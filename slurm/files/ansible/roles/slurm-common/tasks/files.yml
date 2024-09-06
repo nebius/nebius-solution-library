@@ -1,0 +1,86 @@
+- name: /etc/nccl-topo-h100-v1.xml
+  copy:
+    dest: /etc/nccl-topo-h100-v1.xml
+    src: nccl-topo-h100-v1.xml
+
+- name: Set NCCL_TOPO_FILE
+  ansible.builtin.lineinfile:
+    path: /home/slurm/.bashrc
+    line: export NCCL_TOPO_FILE=/etc/nccl-topo-h100-v1.xml
+
+- name: /etc/enroot/enroot.conf.d/enroot.conf
+  copy:
+    dest: /etc/enroot/enroot.conf.d/enroot.conf
+    content: |
+      ENROOT_RUNTIME_PATH        /var/spool/enroot/user-$(id -u)
+      ENROOT_CONFIG_PATH         ${HOME}/enroot
+      ENROOT_CACHE_PATH          /var/spool/enroot
+      ENROOT_DATA_PATH           /var/spool/enroot/data/user-$(id -u)
+      ENROOT_SQUASH_OPTIONS -noI -noD -noF -noX -no-duplicates
+      ENROOT_ROOTFS_WRITABLE     yes
+      ENROOT_MOUNT_HOME          no
+      ENROOT_RESTRICT_DEV        no
+
+- name: /var/log/slurm
+  file:
+    path: /var/log/slurm
+    owner: slurm
+    group: slurm
+    state: directory
+    recurse: yes
+
+- name: /var/lib/slurm/enroot
+  file:
+    path: /var/lib/slurm/enroot
+    state: directory
+
+- name: /var/spool/slurmd
+  file:
+    path: /var/spool/slurmd
+    state: directory
+    owner: slurm
+    group: slurm
+    recurse: yes
+
+- name: /var/spool/enroot
+  file:
+    path: /var/spool/enroot
+    state: directory
+    owner: slurm
+    group: slurm
+    recurse: yes
+
+- name: /var/spool/enroot/data
+  file:
+    path: /var/spool/enroot/data
+    state: directory
+    owner: slurm
+    group: slurm
+    recurse: yes
+
+- name: /var/lib/slurm
+  file:
+    path: /var/lib/slurm
+    owner: slurm
+    group: slurm
+    recurse: yes
+
+- name: /etc/slurm/slurmdbd.conf
+  file:
+    path: /etc/slurm/slurmdbd.conf
+    owner: slurm
+    group: slurm
+
+- name: /etc/slurm
+  file:
+    path: /etc/slurm
+    owner: slurm
+    group: slurm
+    state: directory
+    recurse: yes
+
+- name: /etc/slurm/plugstack.conf
+  copy:
+    dest: /etc/slurm/plugstack.conf
+    content: |
+      required /usr/local/lib/slurm/spank_pyxis.so runtime_path=/var/lib/slurm/pyxis

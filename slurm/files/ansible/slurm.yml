@@ -1,0 +1,23 @@
+- hosts: slurm_master
+  connection: local
+  roles:
+    - slurm-common
+    - slurm-master
+
+- hosts: slurm_worker
+  strategy: free
+  remote_user: slurm
+  become: true
+  gather_facts: no
+  vars:
+    ansible_ssh_private_key_file: "/etc/ssh/id_rsa"
+  pre_tasks:
+    - name: Wait for SSH connection to become available
+      wait_for_connection:
+        timeout: 1800
+        delay: 10
+    - name: Gather facts
+      setup:
+  roles:
+    - slurm-common
+    - slurm-worker

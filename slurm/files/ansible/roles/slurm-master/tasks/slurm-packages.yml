@@ -1,0 +1,4 @@
+- name: Install slurm master packages
+  apt:
+    deb: https://github.com/nebius/slurm-deb-packages/releases/download/{{ SLURM_BINARIES }}{{ SLURM_VERSION }}/slurm-smd-slurmctld_{{ SLURM_VERSION }}-1_amd64.deb
+  register: slurm_packages

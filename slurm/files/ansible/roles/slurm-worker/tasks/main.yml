@@ -1,0 +1,5 @@
+- include_tasks: hosts.yml
+- include_tasks: slurm-packages.yml
+- include_tasks: files.yml
+- include_tasks: munge-auth.yml
+- include_tasks: services.yml

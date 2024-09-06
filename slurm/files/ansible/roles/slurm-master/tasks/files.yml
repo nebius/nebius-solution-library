@@ -1,0 +1,99 @@
+- name: /etc/systemd/system/slurmd.service
+  copy:
+    dest: /etc/systemd/system/slurmd.service
+    content: |
+      [Service]
+      User=slurm
+      Group=slurm
+
+- name: /etc/clustershell/groups.conf
+  copy:
+    dest: /etc/clustershell/groups.conf
+    content: |
+      [Main]
+      default: cluster
+      confdir: /etc/clustershell/groups.conf.d $CFGDIR/groups.conf.d
+      autodir: /etc/clustershell/groups.d $CFGDIR/groups.d
+
+- name: /var/lib/slurm/slurmctld
+  file:
+    path: /var/lib/slurm/slurmctld
+    owner: slurm
+    group: slurm
+
+- name: /etc/slurm/gres.conf
+  copy:
+    dest: /etc/slurm/gres.conf
+    content: |
+      Name=gpu Type=gpu File=/dev/nvidia[0-3] Cores=0-79
+      Name=gpu Type=gpu File=/dev/nvidia[4-7] Cores=80-159
+
+- name: /home/slurm/nccl.sh
+  copy:
+    dest: /home/slurm/nccl.sh
+    owner: slurm
+    group: slurm
+    content: |
+      #!/bin/bash
+      ###
+
+      if [ -z $1 ]; then
+        SLURM_NODES=$1;
+      else
+        SLURM_NODES=2
+      fi;
+
+      #export NCCL_DEBUG=INFO
+      export NCCL_IB_HCA=mlx5
+      export UCX_NET_DEVICES=mlx5_0:1,mlx5_1:1,mlx5_2:1,mlx5_3:1,mlx5_4:1,mlx5_5:1,mlx5_6:1,mlx5_7:1
+      export SHARP_COLL_ENABLE_PCI_RELAXED_ORDERING=1
+      export NCCL_COLLNET_ENABLE=0
+      export NCCL_TOPO_FILE=/etc/nccl-topo-h100-v1.xml
+      # change for more nodes as required, by default run on -N 2 nodes
+      srun -N $SLURM_NODES --ntasks-per-node=8 --gpus-per-node=8 \
+           --container-image="cr.ai.nebius.cloud#examples/nccl-tests:latest" \
+           --container-remap-root --no-container-mount-home --container-mounts=$NCCL_TOPO_FILE:$NCCL_TOPO_FILE \
+           /opt/nccl_tests/build/all_reduce_perf -b 512M -e 8G -f 2 -g 1 $@
+
+- name: /home/slurm/nccl.sbatch
+  copy:
+    dest: /home/slurm/nccl.sbatch
+    owner: slurm
+    group: slurm
+    content: |
+      #!/bin/bash
+      ###
+      # to run sbatch: sbatch -N2 nccl.sbatch
+      # check job status: scontrol show job
+      # check log file: /mnt/slurm/nccl-<jobid>.log
+      ###
+      #SBATCH --job-name=nccl_test
+      #SBATCH --ntasks-per-node=8
+      #SBATCH --gpus-per-node=8
+      #SBATCH --time=10:00
+      #SBATCH --output="/mnt/slurm/nccl-%j.log"
+      #SBATCH --exclusive
+
+      # NCCL environment variables are documented at:
+      # https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html
+
+      #export NCCL_DEBUG=INFO
+      #export NCCL_SOCKET_IFNAME=eth0
+      export NCCL_IB_HCA=mlx5
+      export UCX_NET_DEVICES=mlx5_0:1,mlx5_1:1,mlx5_2:1,mlx5_3:1,mlx5_4:1,mlx5_5:1,mlx5_6:1,mlx5_7:1
+      export SHARP_COLL_ENABLE_PCI_RELAXED_ORDERING=1
+      export NCCL_COLLNET_ENABLE=0
+      export NCCL_TOPO_FILE=/etc/nccl-topo-h100-v1.xml
+
+      # Relaxed ordering is fixed in NCCL 2.18.3+, but
+      # in NCCL 2.18.1 and earlier it should be disabled
+      # for H100s due to a bug. See:
+      # https://docs.nvidia.com/deeplearning/nccl/archives/nccl_2181/release-notes/rel_2-18-1.html
+      # export NCCL_IB_PCI_RELAXED_ORDERING=0
+
+      # Log the assigned nodes
+      echo "Using nodes: $SLURM_JOB_NODELIST"
+
+      srun --container-image="cr.ai.nebius.cloud#examples/nccl-tests:latest" \
+           --container-remap-root --no-container-mount-home --container-mounts=$NCCL_TOPO_FILE:$NCCL_TOPO_FILE \
+           /opt/nccl_tests/build/all_reduce_perf -b 512M -e 8G -f 2 -g 1 $@

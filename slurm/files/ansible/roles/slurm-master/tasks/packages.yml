@@ -1,0 +1,5 @@
+- name: Install packages
+  apt:
+    lock_timeout: 600
+    name:
+      - clustershell

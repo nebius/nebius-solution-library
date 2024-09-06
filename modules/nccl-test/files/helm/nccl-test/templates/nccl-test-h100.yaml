@@ -1,0 +1,118 @@
+apiVersion: kubeflow.org/v1
+kind: MPIJob
+metadata:
+  name: {{ include "nccl-test.fullname" . }}-nccl-test-h100
+  labels:
+  {{- include "nccl-test.labels" . | nindent 4 }}
+spec:
+  mpiReplicaSpecs:
+    Launcher:
+      replicas: 1
+      template:
+        spec:
+          containers:
+          - args:
+            - 'mpirun -np {{ mul .Values.numberOfHosts 8 }} -bind-to none -x LD_LIBRARY_PATH -x NCCL_DEBUG=INFO -x
+              NCCL_SOCKET_IFNAME=eth0 -x NCCL_IB_HCA=mlx5 -x UCX_NET_DEVICES=mlx5_0:1,mlx5_1:1,mlx5_2:1,mlx5_3:1,mlx5_4:1,mlx5_5:1,mlx5_6:1,mlx5_7:1
+              -x SHARP_COLL_ENABLE_PCI_RELAXED_ORDERING=1 -x NCCL_COLLNET_ENABLE=0
+              /opt/nccl_tests/build/all_reduce_perf -b 512M -e 8G -f 2 -g 1 #-n 200
+              #-w 2 -n 20 '
+            command:
+            - /bin/bash
+            - -c
+            env:
+            - name: OMPI_ALLOW_RUN_AS_ROOT
+              value: "1"
+            - name: OMPI_ALLOW_RUN_AS_ROOT_CONFIRM
+              value: "1"
+            image: cr.ai.nebius.cloud/crnu1co0h490t3i3or4c/nccl-tests:latest
+            name: nccl
+            resources:
+              requests:
+                cpu: 2
+                memory: 1208Mi
+            securityContext:
+              privileged: true
+          initContainers:
+          - command:
+            - sh
+            - -c
+            - ulimit -Hl unlimited && ulimit -Sl unlimited
+            image: busybox:1.27.2
+            name: init-limit
+            securityContext:
+              privileged: true
+    Worker:
+      replicas:  {{ .Values.numberOfHosts }}
+      template:
+        spec:
+          automountServiceAccountToken: false
+          # initContainers:
+          # - name: wait-for-node-ready
+          #   image: bitnami/kubectl:latest
+          #   command: ["/bin/bash", "-c"]
+          #   args:
+          #   - |
+          #     LABEL_KEY="nvidia.com/gpu-driver-upgrade-state"
+          #     LABEL_VALUE="upgrade-done"
+          #     # Wait for the node to have the specified label and value
+          #     while true; do
+          #       NODE_NAME=$(kubectl get pod $HOSTNAME -o jsonpath='{.spec.nodeName}') &&
+          #       LABEL_CURRENT_VALUE=$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.labels.$LABEL_KEY}") &&
+          #       echo "Current label value: $LABEL_CURRENT_VALUE" &&
+          #       if [[ "$LABEL_CURRENT_VALUE" == "$LABEL_VALUE" ]]; then
+          #         echo "Node $NODE_NAME is ready."
+          #         break
+          #       else
+          #         echo "Waiting for node $NODE_NAME to be ready..."
+          #         sleep 10
+          #       fi
+          #     done
+          #   env:
+          #   - name: HOSTNAME
+          #     valueFrom:
+          #       fieldRef:
+          #         fieldPath: metadata.name
+          containers:
+          - env:
+            - name: NCCL_TOPO_FILE
+              value: /etc/nccl-topo-h100-v1.xml
+            image: cr.ai.nebius.cloud/crnu1co0h490t3i3or4c/nccl-tests:latest
+            name: nccl
+            resources:
+              limits:
+                cpu: 150
+                memory: 1200G
+                nvidia.com/gpu: 8
+              requests:
+                cpu: 150
+                memory: 1200G
+                nvidia.com/gpu: 8
+            securityContext:
+              privileged: true
+            volumeMounts:
+            - mountPath: /dev/shm
+              name: dshm
+            - mountPath: /etc/nccl-topo-h100-v1.xml
+              name: config
+              subPath: nccl-topo-h100-v1.xml
+          enableServiceLinks: false
+          initContainers:
+          - command:
+            - sh
+            - -c
+            - ulimit -Hl unlimited && ulimit -Sl unlimited
+            image: busybox:1.27.2
+            name: init-limit
+            securityContext:
+              privileged: true
+          volumes:
+          - emptyDir:
+              medium: Memory
+            name: dshm
+          - configMap:
+              name: {{ include "nccl-test.fullname" . }}-topo-config
+            name: config
+  runPolicy:
+    cleanPodPolicy: Running
+  slotsPerWorker: 8

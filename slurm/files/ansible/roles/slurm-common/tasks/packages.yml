@@ -1,0 +1,18 @@
+- name: Install packages
+  apt:
+    install_recommends: true
+    update_cache: true
+    lock_timeout: 600
+    name:
+      - ca-certificates
+      - curl
+      - make
+      - gcc
+      - fuse-overlayfs
+      - glusterfs-client
+      - munge
+      - nfs-common
+      - numactl
+      - parallel
+      - libevent-dev
+      - libhwloc-dev

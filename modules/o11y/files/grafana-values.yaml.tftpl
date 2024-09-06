@@ -1,0 +1,98 @@
+---
+adminPassword: admin
+sidecar:
+  datasources:
+    label: ""
+    labelValue: ""
+    enabled: true
+    maxLines: 1000
+image:
+  tag: 10.4.4
+persistence:
+  type: pvc
+  existingClaim: utility-grafana-pvc
+  enabled: true
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+    %{~ if loki ~}
+    - name: loki
+      orgId: 1
+      folder: 'Loki'
+      type: file
+      disableDeletion: false
+      editable: true
+      options:
+        path: /var/lib/grafana/dashboards/loki
+    %{~ endif ~}
+    %{~ if prometheus && prometheus_node_exporter ~}
+    - name: node-exporter
+      orgId: 1
+      folder: 'Node Exporter'
+      type: file
+      disableDeletion: false
+      editable: true
+      options:
+        path: /var/lib/grafana/dashboards/node-exporter
+    %{~ endif ~}
+    %{~ if prometheus && dcgm_enabled ~}
+    - name: gpu
+      orgId: 1
+      folder: 'GPU'
+      type: file
+      disableDeletion: false
+      editable: true
+      options:
+        path: /var/lib/grafana/dashboards/gpu
+    %{~ endif ~}
+dashboards:
+  %{~ if loki ~}
+  loki:
+    loki-logs:
+      gnetId: 15141
+      datasource: Loki
+  %{~ endif ~}
+  %{~ if prometheus && prometheus_node_exporter ~}
+  node-exporter:
+    node-exporter:
+      gnetId: 1860
+      revision: 37
+      datasource: Prometheus
+    kubernetes-node-exporter:
+      gnetId: 8171
+      datasource: Prometheus
+  %{~ endif ~}
+  %{~ if prometheus && dcgm_enabled ~}
+  gpu:
+    dcgm-exporter:
+      url: https://raw.githubusercontent.com/NVIDIA/dcgm-exporter/main/grafana/dcgm-exporter-dashboard.json
+      datasource: Prometheus
+  %{~ endif ~}
+%{ if prometheus && dcgm_enabled ~}
+alerting:
+  rules.yaml:
+    ${indent(4, alert_rules)}
+%{ endif ~}
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      %{~ if loki ~}
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki:3100
+        version: 1
+        isDefault: true
+        uid: loki
+      %{~ endif ~}
+      %{~ if prometheus ~}
+      - name: Prometheus
+        type: prometheus
+        uid: prometheus
+        url: http://prometheus-server
+        access: proxy
+        isDefault: false
+        version: 1
+      %{~ endif ~}

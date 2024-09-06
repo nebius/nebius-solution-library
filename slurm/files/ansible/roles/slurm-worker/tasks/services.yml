@@ -1,0 +1,11 @@
+- name: Slurm services
+  service:
+    name: "{{ item }}"
+    enabled: yes
+    state: restarted
+  with_items:
+    - munge
+    - slurmd
+  when: (munge_key.changed) or
+        (slurm_packages.changed) or
+        (slurm_common_packages.changed)

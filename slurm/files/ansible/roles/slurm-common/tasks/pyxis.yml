@@ -1,0 +1,30 @@
+- name: Create directory for pyxis sources
+  file:
+    path: /opt/pyxis
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Clone the pyxis repository
+  git:
+    repo: https://github.com/NVIDIA/pyxis.git
+    dest: /opt/pyxis
+  register: pyxis_repo
+
+- name: Make and install pyxis
+  make:
+    chdir: /opt/pyxis
+    target: install
+    jobs: "{{ ansible_processor_cores }}"
+  environment:
+    CPPFLAGS: '-I /usr/include/slurm'
+  when: pyxis_repo.changed
+
+- name: create dir
+  file:
+    path: "/var/lib/slurm/pyxis"
+    state: directory
+    owner: slurm
+    group: slurm
+    mode: '0755'

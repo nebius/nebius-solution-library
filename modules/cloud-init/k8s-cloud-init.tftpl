@@ -1,0 +1,21 @@
+%{ if enable_filestore != "false" || enable_glusterfs != "false" }
+bootcmd:
+%{ endif }
+%{ if enable_filestore != "false" }
+ - sudo mkdir -p /mnt/filestore
+ - sudo mount -t virtiofs filestore-device /mnt/filestore
+ - echo filestore-device /mnt/filestore "virtiofs" "defaults" "0" "2" | sudo tee -a /etc/fstab
+%{ endif }
+%{ if enable_glusterfs != "false" }
+ - sudo mkdir -p /mnt/glusterfs
+ - sudo apt-get install -y glusterfs-client
+ - sudo mount -t glusterfs ${glusterfs_host}:${glusterfs_volume} /mnt/glusterfs
+ - echo ${glusterfs_host}:${glusterfs_volume} /mnt/glusterfs "glusterfs" "defaults" "0" "2" | sudo tee -a /etc/fstab
+%{ endif }
+
+users:
+ - name: ${ssh_user_name}
+   sudo: ALL=(ALL) NOPASSWD:ALL
+   shell: /bin/bash
+   ssh_authorized_keys:
+    - ${public_ssh_key}

@@ -1,0 +1,18 @@
+---
+alertmanager:
+  enabled: false
+prometheus-pushgateway:
+  enabled: false
+prometheus-node-exporter:
+  enabled: ${prometheus_node_exporter}
+kube-state-metrics:
+  metricLabelsAllowlist:
+    - nodes=[nebius.com/group-name]
+server:
+  persistentVolume:
+    existingClaim: utility-prometheus-pvc
+  securityContext:
+    fsGroup: 65534
+    runAsGroup: 0
+    runAsNonRoot: false
+    runAsUser: 0

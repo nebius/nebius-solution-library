@@ -1,0 +1,5 @@
+- name: Copy munge key
+  copy:
+    dest: /etc/munge/munge.key
+    src: /etc/munge/munge.key
+  register: munge_key

@@ -1,0 +1,18 @@
+- name: /etc/default/slurmd
+  copy:
+    dest: /etc/default/slurmd
+    content: |
+      SLURMD_OPTIONS="--conf-server slurm-master"
+
+- name: /run/slurm
+  file:
+    path: /run/slurm
+    state: directory
+    owner: slurm
+    group: slurm
+
+- name: /var/spool/enroot
+  file:
+    path: /var/spool/enroot
+    state: directory
+    mode: a+rwx

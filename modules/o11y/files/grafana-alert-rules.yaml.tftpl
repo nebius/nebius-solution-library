@@ -1,0 +1,73 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: GPU number
+      folder: GPU
+      interval: 5m
+      rules:
+        %{~ for node_group_name, node_group in dcgm_node_groups ~}
+        - uid: ${ node_group_name }
+          title: GPU number has changed in the node group ${ node_group_name }
+          condition: Missing
+          data:
+            - refId: Number of GPUs
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: prometheus
+              model:
+                datasource:
+                    type: prometheus
+                    uid: prometheus
+                editorMode: code
+                expr: |-
+                  (count by (node) (label_replace(DCGM_FI_DEV_POWER_USAGE{Hostname=~"^${ node_group.instance_group_id }-.+"},
+                      "node", "$1", "Hostname", "(.*)")))
+                  or on (node)
+                  (count by (node) (kube_node_labels{node=~"^${ node_group.instance_group_id }-.+"}) * 0)
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: Number of GPUs
+            - refId: Missing
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - ${node_group.gpus}
+                            - 0
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: Number of GPUs
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: Missing
+                type: threshold
+          noDataState: OK
+          execErrState: Error
+          for: 5m
+          annotations:
+            description: ""
+            runbook_url: ""
+            summary: ""
+          labels:
+            "": ""
+          isPaused: false
+        %{~ endfor ~}

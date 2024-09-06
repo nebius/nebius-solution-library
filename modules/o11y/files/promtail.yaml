@@ -1,0 +1,6 @@
+config:
+  logLevel: info
+  serverPort: 3101
+  log_format: logfmt
+  clients:
+    - url: http://loki:3100/loki/api/v1/push

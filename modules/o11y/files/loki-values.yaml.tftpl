@@ -1,0 +1,44 @@
+---
+config:
+  ingester:
+      lifecycler:
+        ring:
+          kvstore:
+            store: memberlist
+          replication_factor: 1
+      chunk_retain_period: 1m
+      max_transfer_retries: 0
+      wal:
+        dir: /tmp/loki/wal
+  storage_config:
+    aws:
+      bucketnames: ${loki_bucket}
+      endpoint: storage.eu-north1.nebius.cloud:443
+      region: eu-north1
+      s3forcepathstyle: true
+      access_key_id: ${s3_access_key}
+      secret_access_key: ${s3_secret_key}
+      sse_encryption: false
+    boltdb_shipper:
+      active_index_directory: /data/loki/index
+      cache_location: /data/loki/cache
+      shared_store: s3
+  schema_config:
+    configs:
+    - from: 2020-10-24
+      store: boltdb-shipper
+      object_store: aws
+      schema: v11
+      index:
+        prefix: loki_index_
+        period: 24h
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http-metrics
+  initialDelaySeconds: 45
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: http-metrics
+  initialDelaySeconds: 45
