@@ -127,11 +127,11 @@ jobs:
     - name: Perform forced cleanup
       run: |
         for resource in \
-          "mk8s v1alpha1 cluster" \
-          "compute v1alpha1 instance" \
-          "compute v1alpha1 filesystem" \
-          "compute v1alpha1 disk" \
-          "compute v1alpha1 gpu-cluster" \
+          "mk8s v1 cluster" \
+          "compute v1 instance" \
+          "compute v1 filesystem" \
+          "compute v1 disk" \
+          "compute v1 gpu-cluster" \
           "vpc v1alpha1 allocation" \
           "storage bucket" \
         ; do

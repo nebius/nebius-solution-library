@@ -7,8 +7,9 @@ resource "null_resource" "master-check-ansible" {
 
   provisioner "remote-exec" {
     inline = [
-      "until [ -s '/tmp/ansible/ansible.pid' ]; do echo 'Waiting for ansbile process start'; sleep 1; done",
-      "until ! ps -p $(cat /tmp/ansible/ansible.pid) > /dev/null; do echo 'Waiting for ansbile process finish'; sleep 1; done",
+      "set -eu",
+      "until [ -s '/tmp/ansible/ansible.pid' ]; do echo 'Waiting for ansbile process start'; sleep 10; done",
+      "until ! ps -p $(cat /tmp/ansible/ansible.pid) > /dev/null; do echo 'Waiting for ansbile process finish'; sleep 10; done",
       "grep -q 'failed=0' /tmp/ansible/ansible.log",
       "grep -q 'unreachable=0' /tmp/ansible/ansible.log",
       "grep -q 'rescued=0' /tmp/ansible/ansible.log",
@@ -27,10 +28,11 @@ resource "null_resource" "master-check-slurm" {
 
   provisioner "remote-exec" {
     inline = [
+      "set -eu",
       "sinfo -N",
       "scontrol show nodes --json | jq '.nodes[].state'",
-      "! scontrol show nodes --json | jq '.nodes[].state == [\"IDLE\"]' | grep -q false",
-      "scontrol show nodes --json | jq '.nodes | length' | grep -q '^${var.cluster_workers_count}$'"
+      "scontrol show nodes --json | jq -e '.nodes | length == ${var.cluster_workers_count}'",
+      "scontrol show nodes --json | jq -e '[(select(.nodes[].state == [\"IDLE\"]))] | length == ${var.cluster_workers_count}'",
     ]
   }
 }
@@ -45,10 +47,10 @@ resource "null_resource" "master-run-nccl-tests" {
 
   provisioner "remote-exec" {
     inline = [
-      "sbatch --time=10:00 -W -N ${var.cluster_workers_count} /home/slurm/nccl.sbatch",
-      "! scontrol show job --all --json | jq '.jobs[].job_state == [\"COMPLETED\"]' | grep -q false",
-      "bash /home/slurm/nccl.sh ${var.cluster_workers_count}",
-      "! scontrol show job --all --json | jq '.jobs[].job_state == [\"COMPLETED\"]' | grep -q false",
+      "set -eu",
+      "sbatch -W -N ${var.cluster_workers_count} /home/slurm/nccl.sbatch",
+      "scontrol show job --all",
+      "scontrol show job --all --json | jq -e '[select(.jobs[].job_state == [\"COMPLETED\"])] | length == 1'",
     ]
   }
 }

@@ -103,8 +103,8 @@ write_files:
     AccountingStorageHost=slurm-master
     JobCompType=jobcomp/mysql
     JobCompUser=slurm
-    JobCompPass= ${password}
-    JobCompHost= ${hostname}
+    JobCompPass=${password}
+    JobCompHost=${hostname}
     JobCompLoc=slurm-db
     %{ endif }
 
@@ -112,7 +112,7 @@ write_files:
     SelectType=select/cons_tres
     # COMPUTE NODES
     # NodeName=${worker_prefix}-[1-${cluster_workers_count}] CPUs=16 RealMemory=32090 State=idle State=UNKNOWN
-    NodeName=${worker_prefix}-[1-${cluster_workers_count}] Gres=gpu:8 CPUs=160 RealMemory=1290080 State=idle State=UNKNOWN
+    NodeName=${worker_prefix}-[1-${cluster_workers_count}] Gres=gpu:8 CPUs=128 RealMemory=1290080 State=idle State=UNKNOWN
     PartitionName=debug Nodes=ALL Default=YES MaxTime=INFINITE State=UP
 - path: /etc/slurm/slurmdbd.conf
   permissions: '0600'
