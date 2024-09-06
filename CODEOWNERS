@@ -1,1 +1,4 @@
-.github/workflows @elijah-k-nebius @malibora @d3vil-st
+# Global code owners (applies to the whole repo)
+* @malibora @jadnov @LevonSarkisyan
+
+.github/workflows @malibora @d3vil-st
