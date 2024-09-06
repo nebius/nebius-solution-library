@@ -45,7 +45,7 @@ resource "null_resource" "master-run-nccl-tests" {
 
   provisioner "remote-exec" {
     inline = [
-      "sbatch -W -N ${var.cluster_workers_count} /home/slurm/nccl.sbatch",
+      "sbatch --time=10:00 -W -N ${var.cluster_workers_count} /home/slurm/nccl.sbatch",
       "! scontrol show job --all --json | jq '.jobs[].job_state == [\"COMPLETED\"]' | grep -q false",
       "bash /home/slurm/nccl.sh ${var.cluster_workers_count}",
       "! scontrol show job --all --json | jq '.jobs[].job_state == [\"COMPLETED\"]' | grep -q false",
