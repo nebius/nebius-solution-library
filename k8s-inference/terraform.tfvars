@@ -1,8 +1,8 @@
 # Cloud environment and network
-parent_id      = "project-e00gd0e773bh7yypsg"                                                                         # The project-id in this context
-subnet_id      = "vpcsubnet-e00htyey2y294en83f"                                                                       # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
-ssh_user_name  = "sand"                                                                                               # Username you want to use to connect to the nodes
-public_ssh_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFyRtxn6IrQY35498GONBA0A8Jaf5PPi4DnH6g+meNT3 panuko@nebius.com" # Public SSH key used in connecting to the nodes
+# parent_id      = ""                                                                         # The project-id in this context
+# subnet_id      = ""                                                                       # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
+# ssh_user_name  = ""                                                                                               # Username you want to use to connect to the nodes
+# public_ssh_key = "" # Public SSH key used in connecting to the nodes
 
 # K8s modes
 cpu_nodes_count  = 1                   # Number of CPU nodes
@@ -17,8 +17,8 @@ enable_loki       = false # Enable or disable Loki deployment with true or false
 enable_dcgm       = true  # Enable or disable NVIDIA DCGM Exporter Dashboard and Alerting deployment with true or false
 
 ## Loki
-loki_access_key_id = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
-loki_secret_key    = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
+# loki_access_key_id = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
+# loki_secret_key    = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
 
 # Storage
 ## Filestore - recommended

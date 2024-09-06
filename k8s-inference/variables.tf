@@ -82,13 +82,12 @@ variable "glusterfs_disk_block_size" {
 variable "ssh_user_name" {
   description = "SSH username."
   type        = string
-  default     = ""
+  default     = "ubuntu"
 }
 
 variable "public_ssh_key" {
   description = "SSH public key."
   type        = string
-  default     = ""
 }
 
 # K8s CPU node group
@@ -197,7 +196,6 @@ variable "loki_secret_key" {
 variable "iam_token" {
   description = "Token for Helm provider authentication."
   type        = string
-  default     = ""
 }
 
 variable "test_mode" {
