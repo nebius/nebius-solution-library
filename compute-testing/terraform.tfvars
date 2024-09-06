@@ -7,8 +7,8 @@ gpu_nodes_count   = 1
 gpu_nodes_preset  = "1gpu-20vcpu-200gb"
 enable_grafana    = true
 enable_prometheus = true
-enable_loki = true
-enable_dcgm = true
+enable_loki       = true
+enable_dcgm       = true
 
 enable_filestore     = true
 filestore_disk_size  = 42949672960
