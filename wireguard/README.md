@@ -64,7 +64,7 @@ Update the following variables in the `terraform.tfvars` file with your specific
 - `parent_id`
 - `subnet_id`
 - `ssh_user_name`
-- `public_ssh_key`
+- `ssh_public_key`
 
 ## Create and using a public IP allocation
 
@@ -98,7 +98,7 @@ the IP address.
     ```
 
 3. Access the Wireguard UI in your browser:
-    ``` 
+    ```
     http://<instance_public_ip>:5000
     ```
 

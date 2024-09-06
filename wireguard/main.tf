@@ -24,6 +24,6 @@ resource "nebius_compute_v1_instance" "wireguard-instanse" {
 
   cloud_init_user_data = templatefile("../modules/cloud-init/wireguard-cloud-init.tftpl", {
     ssh_user_name  = var.ssh_user_name,
-    public_ssh_key = var.public_ssh_key,
+    ssh_public_key = local.ssh_public_key,
   })
 }

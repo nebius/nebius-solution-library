@@ -82,13 +82,20 @@ variable "glusterfs_disk_block_size" {
 variable "ssh_user_name" {
   description = "SSH username."
   type        = string
-  default     = ""
+  default     = "ubuntu"
 }
 
-variable "public_ssh_key" {
-  description = "SSH public key."
-  type        = string
-  default     = ""
+variable "ssh_public_key" {
+  description = "SSH Public Key to access the cluster nodes"
+  type = object({
+    key  = optional(string),
+    path = optional(string, "~/.ssh/id_rsa.pub")
+  })
+  default = {}
+  validation {
+    condition     = var.ssh_public_key.key != null || fileexists(var.ssh_public_key.path)
+    error_message = "SSH Public Key must be set by `key` or file `path` ${var.ssh_public_key.path}"
+  }
 }
 
 # K8s CPU node group
@@ -191,11 +198,13 @@ variable "enable_dcgm" {
 }
 
 variable "loki_access_key_id" {
-  type = string
+  type    = string
+  default = null
 }
 
 variable "loki_secret_key" {
-  type = string
+  type    = string
+  default = null
 }
 
 # Helm

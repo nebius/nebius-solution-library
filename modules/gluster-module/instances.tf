@@ -33,7 +33,7 @@ resource "nebius_compute_v1_instance" "gluster-fs-instance" {
 
   cloud_init_user_data = templatefile("../modules/cloud-init/glusterfs-cluster-cloud-init.tftpl", {
     ssh_user_name  = "root",
-    public_ssh_key = var.public_ssh_key,
+    ssh_public_key = var.ssh_public_key,
     is_leader      = count.index == 0 ? "true" : "false"
     master_pubkey  = trimspace(tls_private_key.master_key.public_key_openssh)
     master_privkey = split("\n", tls_private_key.master_key.private_key_openssh)

@@ -2,7 +2,10 @@
 # parent_id      = "" # The project-id in this context
 # subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
 # ssh_user_name  = "" # Username you want to use to connect to the nodes
-# public_ssh_key = "" # Public SSH key used in connecting to the nodes
+# ssh_public_key = {
+# key  = "put your public ssh key here" OR
+# path = "put path to ssh key here"
+# }
 
 # K8s modes
 cpu_nodes_count  = 1                     # Number of CPU nodes
@@ -18,8 +21,8 @@ enable_loki       = true # Enable or disable Loki deployment with true or false
 enable_dcgm       = true # Enable or disable NVIDIA DCGM Exporter Dashboard and Alerting deployment with true or false
 
 ## Loki
-loki_access_key_id = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
-loki_secret_key    = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
+# loki_access_key_id = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
+# loki_secret_key    = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
 
 # Storage
 ## Filestore - recommended

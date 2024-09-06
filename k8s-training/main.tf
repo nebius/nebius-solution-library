@@ -47,7 +47,7 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       glusterfs_host   = var.enable_glusterfs ? module.glusterfs[0].glusterfs-host : "",
       glusterfs_volume = var.enable_glusterfs ? module.glusterfs[0].volume : "",
       ssh_user_name    = var.ssh_user_name,
-      public_ssh_key   = var.public_ssh_key
+      ssh_public_key   = local.ssh_public_key
     })
   }
 }
@@ -90,7 +90,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
       glusterfs_host   = var.enable_glusterfs ? module.glusterfs[0].glusterfs-host : "",
       glusterfs_volume = var.enable_glusterfs ? module.glusterfs[0].volume : "",
       ssh_user_name    = var.ssh_user_name,
-      public_ssh_key   = var.public_ssh_key
+      ssh_public_key   = local.ssh_public_key
     })
   }
 }

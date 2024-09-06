@@ -5,5 +5,5 @@ module "glusterfs" {
   storage_nodes     = 3
   disk_count_per_vm = 3
   disk_size         = 26843545600
-  public_ssh_key    = ""
+  ssh_public_key    = local.ssh_public_key
 }
