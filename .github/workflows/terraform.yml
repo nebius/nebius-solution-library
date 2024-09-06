@@ -96,6 +96,8 @@ jobs:
 
   cleanup-infra:
     name: 'Cleanup Infra'
+    environment:
+      name: project-e00pjzzrtk1fs3yavy
     runs-on: ubuntu-latest
     needs: terraform
     if: always() && needs.terraform.result != 'success'
