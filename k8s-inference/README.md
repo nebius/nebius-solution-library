@@ -97,7 +97,7 @@ enable_prometheus = true # Enable or disable Prometheus deployment with true or 
 enable_loki       = true # Enable or disable Loki deployment with true or false
 enable_dcgm       = true # Enable or disable NVIDIA DCGM Exporter Dashboard and Alerting deployment with true or false
 
-## hcl
+## Loki
 loki_access_key_id = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
 loki_secret_key    = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
 ```
@@ -107,7 +107,7 @@ Check the details below for more information on [Grafana](#grafana), [Prometheus
 > Deploying Loki will require you to create a service account! Please check the instructions [here](#temporary-block-to-make-loki-work-now)!
 
 ### Storage configuration
-```yaml
+```hcl
 # Storage
 ## Filestore - recommended
 enable_filestore     = true # Enable or disable Filestore integration with true or false
@@ -219,7 +219,7 @@ GlusterFS it is `/mnt/glusterfs`.
 
 To configure Filestore integration, set these variables is `terraform.tfvars`:
 
-```yaml
+```hcl
 enable_filestore     = true # Enable or disable Filestore integration
 filestore_disk_size  = 107374182400 # Set Filestore disk size in bytes
 filestore_block_size = 4096 # Set Filestore block size in bytes
@@ -229,7 +229,7 @@ filestore_block_size = 4096 # Set Filestore block size in bytes
 
 To configure GlusterFS integration, set these variables is `terraform.tfvars`:
 
-```yaml
+```hcl
 enable_glusterfs = true # Enable or disable GlusterFS integration
 glusterfs_storage_nodes = 3 # Set amount of storage nodes in GlusterFS cluster
 glusterfs_disk_count_per_vm = 2 # Set amount of disks per storage node in GlusterFS cluster
