@@ -54,8 +54,7 @@ variable "preset" {
 }
 
 # SSH KEY
-variable "public_ssh_key" {
+variable "ssh_public_key" {
   description = "SSH public key for the 'root' user."
   type        = string
-  default     = ""
 }

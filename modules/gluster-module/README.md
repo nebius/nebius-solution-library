@@ -4,7 +4,7 @@
 
 example of call as module:
 
-```
+```hcl
 module gluster-module {
   providers = {
     nebius = nebius

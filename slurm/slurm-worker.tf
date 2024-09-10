@@ -30,7 +30,7 @@ resource "nebius_compute_v1_instance" "worker" {
   parent_id = var.parent_id
   resources = {
     platform = "gpu-h100-sxm"
-    preset   = "8gpu-160vcpu-1600gb"
+    preset   = "8gpu-128vcpu-1600gb"
   }
   gpu_cluster = nebius_compute_v1_gpu_cluster.gpu-cluster-slurm
 

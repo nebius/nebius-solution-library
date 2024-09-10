@@ -1,5 +1,5 @@
 #parent_id               = ""
 #subnet_id               = ""
 #ssh_user_name           = ""
-#public_ssh_key          = ""
+#ssh_public_key          = ""
 #public_ip_allocation_id = ""

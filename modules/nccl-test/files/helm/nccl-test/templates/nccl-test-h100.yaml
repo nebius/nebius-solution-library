@@ -81,11 +81,11 @@ spec:
             name: nccl
             resources:
               limits:
-                cpu: 150
+                cpu: 108
                 memory: 1200G
                 nvidia.com/gpu: 8
               requests:
-                cpu: 150
+                cpu: 108
                 memory: 1200G
                 nvidia.com/gpu: 8
             securityContext:

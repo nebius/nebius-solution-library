@@ -36,6 +36,11 @@ variable "o11y" {
   })
   description = "Configuration of observability stack."
   default     = {}
+
+  validation {
+    condition     = var.o11y.loki.enabled ? (var.o11y.loki.aws_access_key_id != "" && var.o11y.loki.secret_key != "") : true
+    error_message = "aws_access_key_id and secret_key must be set if Loki enabled ${jsonencode(var.o11y.loki)}"
+  }
 }
 
 variable "test_mode" {

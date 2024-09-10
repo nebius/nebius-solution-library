@@ -37,11 +37,8 @@
       #!/bin/bash
       ###
 
-      if [ -z $1 ]; then
-        SLURM_NODES=$1;
-      else
-        SLURM_NODES=2
-      fi;
+      # change for more nodes as required, by default run on 2 nodes
+      SLURM_NODES=2
 
       #export NCCL_DEBUG=INFO
       export NCCL_IB_HCA=mlx5
@@ -49,7 +46,6 @@
       export SHARP_COLL_ENABLE_PCI_RELAXED_ORDERING=1
       export NCCL_COLLNET_ENABLE=0
       export NCCL_TOPO_FILE=/etc/nccl-topo-h100-v1.xml
-      # change for more nodes as required, by default run on -N 2 nodes
       srun -N $SLURM_NODES --ntasks-per-node=8 --gpus-per-node=8 \
            --container-image="cr.ai.nebius.cloud#examples/nccl-tests:latest" \
            --container-remap-root --no-container-mount-home --container-mounts=$NCCL_TOPO_FILE:$NCCL_TOPO_FILE \
@@ -71,6 +67,7 @@
       #SBATCH --ntasks-per-node=8
       #SBATCH --gpus-per-node=8
       #SBATCH --time=10:00
+      #SBATCH --deadline=now+20minutes
       #SBATCH --output="/mnt/slurm/nccl-%j.log"
       #SBATCH --exclusive
 

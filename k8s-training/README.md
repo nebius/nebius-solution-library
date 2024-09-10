@@ -68,16 +68,19 @@ These are the basic configurations needed to deploy Kubernetes for Training in N
 There are additional configurable variables in `variables.tf`.
 
 ### Environment and network variables
-```yaml
+```hcl
 # Cloud environment and network
 parent_id      = "" # The project-id in this context
 subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
 ssh_user_name  = "" # Username you want to use to connect to the nodes
-public_ssh_key = "" # Public SSH key used in connecting to the nodes
+ssh_public_key = {
+  key  = "put your public ssh key here" OR
+  path = "put path to ssh key here"
+}
 ```
 
 ### Kubernetes nodes
-```yaml
+```hcl
 # K8s modes
 cpu_nodes_count  = 1 # Number of CPU nodes
 cpu_nodes_preset = "16vcpu-64gb" # The CPU node preset
@@ -86,7 +89,7 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Set to "1gpu-16v
 ```
 
 ### Observability options
-```yaml
+```hcl
 # Observability
 enable_grafana    = true # Enable or disable Grafana deployment with true or false
 enable_prometheus = true # Enable or disable Prometheus deployment with true or false
@@ -103,7 +106,7 @@ Check the details below for more information on [Grafana](#grafana), [Prometheus
 > Deploying Loki will require you to create a service account! Please check the instructions [here](#temporary-block-to-make-loki-work-now)!
 
 ### Storage configuration
-```yaml
+```hcl
 # Storage
 ## Filestore - recommended
 enable_filestore     = true # Enable or disable Filestore integration with true or false

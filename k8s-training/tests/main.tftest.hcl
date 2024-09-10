@@ -2,7 +2,8 @@ run "create_cluster" {
   command = apply
 
   variables {
-    test_mode = true
+    enable_loki = false # TODO: Disabling Loki since not possible to delete non-empty storage bucket
+    test_mode   = true
   }
 
   assert {

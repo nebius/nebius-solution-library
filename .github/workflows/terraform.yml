@@ -11,13 +11,12 @@ concurrency:
 
 env:
   TF_VAR_parent_id: project-e00pjzzrtk1fs3yavy
-  TF_VAR_subnet_id: vpcsubnet-e00dgdntmhgkeej1z3
-  TF_VAR_loki_access_key_id: ${{ secrets.TF_VAR_LOKI_ACCESS_KEY_ID }}
-  TF_VAR_loki_secret_key: ${{ secrets.TF_VAR_LOKI_SECRET_KEY }}
 
 jobs:
   terraform:
     name: 'Terraform ${{ matrix.solution.name }}'
+    environment:
+      name: project-e00pjzzrtk1fs3yavy
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 2
@@ -26,12 +25,18 @@ jobs:
           - name: k8s-inference
           - name: k8s-training
           - name: slurm
+          - name: compute-testing
 
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
         shell: bash
-        working-directory: newbius/${{ matrix.solution.name }}
+        working-directory: ${{ matrix.solution.name }}
+
+    env:
+      TF_VAR_subnet_id: vpcsubnet-e00dgdntmhgkeej1z3
+      TF_VAR_loki_access_key_id: ${{ secrets.TF_VAR_LOKI_ACCESS_KEY_ID }}
+      TF_VAR_loki_secret_key: ${{ secrets.TF_VAR_LOKI_SECRET_KEY }}
+
     steps:
     # Checkout the repository to the GitHub Actions runner
     - name: Checkout
@@ -93,6 +98,8 @@ jobs:
 
   cleanup-infra:
     name: 'Cleanup Infra'
+    environment:
+      name: project-e00pjzzrtk1fs3yavy
     runs-on: ubuntu-latest
     needs: terraform
     if: always() && needs.terraform.result != 'success'
@@ -120,11 +127,11 @@ jobs:
     - name: Perform forced cleanup
       run: |
         for resource in \
-          "mk8s v1alpha1 cluster" \
-          "compute v1alpha1 instance" \
-          "compute v1alpha1 filesystem" \
-          "compute v1alpha1 disk" \
-          "compute v1alpha1 gpu-cluster" \
+          "mk8s v1 cluster" \
+          "compute v1 instance" \
+          "compute v1 filesystem" \
+          "compute v1 disk" \
+          "compute v1 gpu-cluster" \
           "vpc v1alpha1 allocation" \
           "storage bucket" \
         ; do
