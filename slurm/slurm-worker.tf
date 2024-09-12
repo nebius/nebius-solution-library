@@ -18,10 +18,10 @@ resource "nebius_compute_v1_disk" "worker" {
   parent_id = var.parent_id
   name      = "slurm-boot-disk-worker-${each.key}"
 
-  block_size_bytes    = 4096
-  size_bytes          = 549755813888
-  type                = "NETWORK_SSD"
-    source_image_family = {
+  block_size_bytes = 4096
+  size_bytes       = 549755813888
+  type             = "NETWORK_SSD"
+  source_image_family = {
     image_family = "ubuntu22.04-cuda12"
   }
 }
