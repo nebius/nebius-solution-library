@@ -25,7 +25,7 @@ jobs:
          # - name: k8s-inference
           - name: k8s-training
           - name: slurm
-          - name: compute-testing
+          #- name: compute-testing
 
     defaults:
       run:
