@@ -4,6 +4,7 @@ run "create_cluster" {
   variables {
     enable_loki = false # TODO: Disabling Loki since not possible to delete non-empty storage bucket
     test_mode   = true
+    infiniband_fabric = "fabric-4"
   }
 
   assert {

@@ -93,3 +93,10 @@ variable "test_mode" {
   type        = bool
   default     = false
 }
+
+
+variable "infiniband_fabric" {
+  description = "Infiniband's fabric name."
+  type        = string
+  default     = "fabric-4"
+}
