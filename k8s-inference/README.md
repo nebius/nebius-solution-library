@@ -131,7 +131,7 @@ GlusterFS it is `/mnt/glusterfs`.
 
 Check [here](#accessing-storage) how to access storage in K8S.
 
-## Connecting to the cluster - after deployment
+## Connecting to the cluster
 
 ### Prepare your environment 
 * Install kubectl ([instructions](https://kubernetes.io/docs/tasks/tools/#kubectl))
