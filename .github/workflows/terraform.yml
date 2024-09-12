@@ -34,8 +34,8 @@ jobs:
 
     env:
       TF_VAR_subnet_id: vpcsubnet-e00dgdntmhgkeej1z3
-      TF_VAR_loki_access_key_id: ${{ secrets.TF_VAR_LOKI_ACCESS_KEY_ID }}
-      TF_VAR_loki_secret_key: ${{ secrets.TF_VAR_LOKI_SECRET_KEY }}
+      TF_VAR_loki_access_key_id: ${{ secrets.SA_ACCESS_KEY_ID }}
+      TF_VAR_loki_secret_key: ${{ secrets.SA_SECRET_KEY }}
 
     steps:
     # Checkout the repository to the GitHub Actions runner
@@ -49,6 +49,17 @@ jobs:
         echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
         echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> $GITHUB_ENV
         ssh-add
+
+    - name: Setup s3cmd
+      run: |
+        pip3 install s3cmd --no-cache --quiet
+        s3cmd --dump-config \
+        --access_key="${{ secrets.SA_ACCESS_KEY_ID }}" \
+        --secret_key="${{ secrets.SA_SECRET_KEY }}" \
+        --host="storage.eu-north1.nebius.cloud:443" \
+        --host-bucket="%(bucket)s.storage.eu-north1.nebius.cloud" \
+        > ~/.s3cfg
+        mkdir -p tests/reports
 
     - name: Install Nebius CLI
       run: |
@@ -75,6 +86,8 @@ jobs:
     # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "v1.10.0-alpha20240911"
 
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
@@ -94,7 +107,17 @@ jobs:
 
     # Run Terraform Tests
     - name: Terraform Test
-      run: terraform test
+      run: terraform test -verbose -junit-xml=tests/reports/TEST-result-${{ github.run_id }}.xml
+
+    - name: Test Summary
+      uses: test-summary/action@v2
+      with:
+        paths: ${{ matrix.solution.name }}/tests/reports/TEST-result-${{ github.run_id }}.xml
+      if: always()
+
+    - name: Upload test results
+      run: s3cmd sync tests/reports s3://terraform-test-reports/${{ matrix.solution.name }}/
+      if: always()
 
   cleanup-infra:
     name: 'Cleanup Infra'
