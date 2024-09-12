@@ -12,12 +12,14 @@ resource "nebius_vpc_v1alpha1_allocation" "master" {
 }
 
 resource "nebius_compute_v1_disk" "master" {
-  parent_id           = var.parent_id
-  name                = "slurm-boot-disk-master"
-  block_size_bytes    = 4096
-  size_bytes          = 107374182400
-  type                = "NETWORK_SSD"
-  source_image_family = "ubuntu22.04-driverless"
+  parent_id        = var.parent_id
+  name             = "slurm-boot-disk-master"
+  block_size_bytes = 4096
+  size_bytes       = 107374182400
+  type             = "NETWORK_SSD"
+  source_image_family = {
+    image_family = "ubuntu22.04-driverless"
+  }
 }
 
 resource "nebius_compute_v1_instance" "master" {
