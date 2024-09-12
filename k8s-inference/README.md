@@ -131,25 +131,42 @@ GlusterFS it is `/mnt/glusterfs`.
 
 Check [here](#accessing-storage) how to access storage in K8S.
 
-## Add credentials to the kubectl configuration file
+## Connecting to the cluster
 
+### Prepare your environment 
+* Install kubectl ([instructions](https://kubernetes.io/docs/tasks/tools/#kubectl))
+* Install Nebius AI CLI ([instructions](https://docs.nebius.ai/cli/install)) - also required for deploying the cluster
+* Install JQ ([instructions](https://jqlang.github.io/jq/download/)) - also required for deploying the cluster
+
+### Add credentials to the kubectl configuration file
 1. Perform this command from the terraform deployment folder:
-    ```bash
-    nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
-    ```
+  ```bash
+  nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
+  ```
 2. Verify the kubectl configuration after adding the credentials:
-    ```bash
-    kubectl config view
-    ```
+  ```bash
+  kubectl config view
+  ```
 
-   The output should resemble::
-    ```bash
-    apiVersion: v1
-    clusters:
-      - cluster:
-        certificate-authority-data: DATA+OMITTED
-    ...
-    ```
+  The output should resemble::
+  ```bash
+  apiVersion: v1
+  clusters:
+    - cluster:
+      certificate-authority-data: DATA+OMITTED
+  ...
+  ```
+
+### Connect to the cluster
+Show cluster information:
+  ```bash
+  kubectl cluster-info
+  ```
+
+Get pods:
+  ```bash
+  kubectl get pods -A
+  ```
 
 ## Observability
 
