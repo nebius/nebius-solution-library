@@ -19,10 +19,10 @@ jobs:
       name: project-e00pjzzrtk1fs3yavy
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 3
+      max-parallel: 1
       matrix:
         solution:
-          - name: k8s-inference
+         # - name: k8s-inference
           - name: k8s-training
           - name: slurm
           - name: compute-testing
