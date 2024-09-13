@@ -1,0 +1,14 @@
+apiVersion: storage.k8s.io/v1
+kind: CSIDriver
+metadata:
+  name: hostpath.csi.nebius.ai
+spec:
+  attachRequired: false
+  storageCapacity: true
+  fsGroupPolicy: "File"
+  volumeLifecycleModes:
+  - Persistent
+  - Ephemeral
+  # To determine at runtime which mode a volume uses, pod info and its
+  # "csi.storage.k8s.io/ephemeral" entry are needed.
+  podInfoOnMount: true

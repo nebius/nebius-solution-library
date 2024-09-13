@@ -56,3 +56,19 @@ module "nccl-test" {
   source          = "../modules/nccl-test"
   number_of_hosts = nebius_mk8s_v1_node_group.gpu.fixed_node_count
 }
+
+module "kuberay" {
+  providers = {
+    nebius = nebius
+    helm   = helm
+  }
+  
+  source                  = "../modules/kuberay"
+  count                   = var.enable_kuberay ? 1 : 0 # && local.all_pods_running ? 1 : 0
+  kube_host               = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.endpoints.public_endpoint
+  cluster_ca_certificate  = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.auth.cluster_ca_certificate
+  kube_token              = var.iam_token
+  gpu_workers             = var.gpu_nodes_count
+  gpu_platform            = var.gpu_nodes_platform
+  cpu_platform            = var.cpu_nodes_platform
+}

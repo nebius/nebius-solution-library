@@ -218,3 +218,9 @@ variable "test_mode" {
   type        = bool
   default     = false
 }
+
+variable "enable_kuberay" {
+  description = "Enable kuberay"
+  type    = bool
+  default = false
+}

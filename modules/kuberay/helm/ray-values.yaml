@@ -1,0 +1,176 @@
+additionalWorkerGroups:
+  cpu:
+    affinity: {}
+    annotations: {}
+    args: []
+    command: []
+    containerEnv: []
+    disabled: false
+    envFrom: []
+    labels: {}
+    maxReplicas: 0
+    minReplicas: 0
+    nodeSelector:
+      beta.kubernetes.io/instance-type: 
+    rayStartParams: {}
+    replicas: 0
+    resources:
+      limits:
+        cpu: "16"
+        memory: 30Gi
+      requests:
+        cpu: '{{ .Values.additionalWorkerGroups.cpu.resources.limits.cpu }}'
+        memory: '{{ .Values.additionalWorkerGroups.cpu.resources.limits.memory }}'
+    securityContext: {}
+    serviceAccountName: ""
+    sidecarContainers: []
+    tolerations: []
+    volumeMounts:
+    - mountPath: /tmp/ray
+      name: log-volume
+    volumes:
+    - emptyDir: {}
+      name: log-volume
+common:
+  containerEnv:
+  - name: AWS_EC2_METADATA_DISABLED
+    value: "TRUE"
+customImage: null
+fullnameOverride: ""
+gpuPlatform: NVIDIA® H100 NVLink with Intel Sapphire Rapids
+gpuToResourceHelperValues:
+  NVIDIA® H100 NVLink with Intel Sapphire Rapids:
+    cpu: 16
+    memory: 200
+  NVIDIA® H100 PCIe with Intel Ice Lake:
+    cpu: 22
+    memory: 86
+  NVIDIA® V100 NVLink with Intel Cascade Lake:
+    cpu: 7
+    memory: 40
+  NVIDIA® V100 PCIe with Intel Broadwell:
+    cpu: 3
+    memory: 40
+head:
+  affinity: {}
+  annotations: {}
+  args: []
+  command: []
+  containerEnv:
+  - name: RAY_REDIS_ADDRESS
+    value: '{{ .Release.Name }}-redis-master:6379'
+  - name: NVIDIA_VISIBLE_DEVICES
+    value: "void"
+  enableInTreeAutoscaling: true
+  envFrom: []
+  headService: {}
+  labels: {}
+  nodeSelector:
+    beta.kubernetes.io/instance-type: 
+  rayStartParams:
+    dashboard-host: 0.0.0.0
+    # NVIDIA_VISIBLE_DEVICES: void
+  resources:
+    limits:
+      cpu: "4"
+      memory: 8Gi
+    requests:
+      cpu: '{{ .Values.head.resources.limits.cpu }}'
+      memory: '{{ .Values.head.resources.limits.memory }}'
+  securityContext: {}
+  serviceAccountName: ""
+  sidecarContainers: []
+  tolerations: []
+  volumeMounts:
+  - mountPath: /tmp/ray
+    name: log-volume
+  volumes:
+  - emptyDir: {}
+    name: log-volume
+image:
+  pullPolicy: IfNotPresent
+  repository: docker.io/rayproject/ray-ml
+  tag: 2.35.0.ba2487-gpu
+imagePullSecrets: []
+kuberay-operator:
+  # env:
+  #   - name: CLUSTER_DOMAIN
+  #     value: "pr.mk8scluster-e00by4dhp8r8acnkt7.mk8s.eu-north1.nebius.cloud"
+  image:
+    pullPolicy: IfNotPresent
+    repository: cr.nemax.nebius.cloud/yc-marketplace/nebius/ray-cluster/kuberay/operator1713900777304275129011842529120435612759099215098
+    tag: v1.1.0
+  singleNamespaceInstall: true
+nameOverride: kuberay
+redis:
+  architecture: standalone
+  auth:
+    enabled: false
+  image:
+    pullPolicy: IfNotPresent
+    registry: cr.nemax.nebius.cloud/yc-marketplace
+    repository: nebius/ray-cluster/redis1713900777304275129011842529120435612759099215098
+    tag: 7.2.4-debian-12-r9
+  master:
+    persistence:
+      size: 8Gi
+      storageClass: csi-hostpath # storageClassName? 
+    persistentVolumeClaimRetentionPolicy:
+      enabled: true
+      whenDeleted: Delete
+      whenScaled: Retain
+    resources:
+      limits:
+        cpu: "4" # limits Minimum cpu=4 per gpu node
+        memory: 8Gi # limits Minimum memory=8Gi per gpu node
+      requests:
+        cpu: "1" # Requests Minimum cpu=1 per gpu node
+        memory: 512Mi # Requests Minimum memory=512Mi per gpu node
+    serviceAccount:
+      create: false
+  networkPolicy:
+    enabled: false
+  serviceAccount:
+    create: false
+  nodeSelector:
+    beta.kubernetes.io/instance-type: 
+service:
+  type: ClusterIP
+worker:
+  affinity: {}
+  annotations: {}
+  args: []
+  command: []
+  containerEnv: []
+  envFrom: []
+  groupName: gpu
+  labels: {}
+  maxReplicas: 2
+  minReplicas: 1
+  nodeSelector: 
+    beta.kubernetes.io/instance-type: 
+  rayStartParams: {}
+  replicas: 1
+  resources:
+    limits:
+      cpu: '{{ (get .Values.gpuToResourceHelperValues .Values.gpuPlatform).cpu }}'
+      memory: '{{ (get .Values.gpuToResourceHelperValues .Values.gpuPlatform).memory
+        }}Gi'
+      nvidia.com/gpu: "8"
+    requests:
+      cpu: '{{ tpl .Values.worker.resources.limits.cpu . }}'
+      memory: '{{ tpl .Values.worker.resources.limits.memory . }}'
+      nvidia.com/gpu: "8"
+  securityContext: {}
+  serviceAccountName: ""
+  sidecarContainers: []
+  tolerations:
+  - effect: NoSchedule
+    key: nvidia.com/gpu
+    operator: Exists
+  volumeMounts:
+  - mountPath: /tmp/ray
+    name: log-volume
+  volumes:
+  - emptyDir: {}
+    name: log-volume
