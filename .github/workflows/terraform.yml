@@ -23,7 +23,7 @@ jobs:
       matrix:
         solution:
          # - name: k8s-inference
-          - name: k8s-training
+         # - name: k8s-training
           - name: slurm
           #- name: compute-testing
 
