@@ -1,0 +1,1 @@
+{"tests/main.tftest.hcl:tests/main.tftest.hcl#create_cluster":{"statistic":{"failed":0,"broken":0,"skipped":0,"passed":1,"unknown":0,"total":1},"items":[{"uid":"927f592e6a9ec724","reportUrl":"https://nebius.github.io/nebius-solution-library/k8s-training/89//#testresult/927f592e6a9ec724","status":"passed","time":{"duration":1115982}}]}}
