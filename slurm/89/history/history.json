@@ -1,0 +1,1 @@
+{"tests/main.tftest.hcl:tests/main.tftest.hcl#create_cluster":{"statistic":{"failed":0,"broken":0,"skipped":0,"passed":1,"unknown":0,"total":1},"items":[{"uid":"3427bcbe91b5b050","reportUrl":"https://nebius.github.io/nebius-solution-library/slurm/89//#testresult/3427bcbe91b5b050","status":"passed","time":{"duration":630291}}]}}
