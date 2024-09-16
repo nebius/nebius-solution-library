@@ -23,9 +23,9 @@ jobs:
       matrix:
         solution:
           - name: compute-testing
-          # - name: k8s-inference
-          # - name: k8s-training
-          # - name: slurm
+          - name: slurm
+          - name: k8s-inference
+          - name: k8s-training
 
     defaults:
       run:
@@ -109,16 +109,6 @@ jobs:
     - name: Terraform Test
       run: terraform test -verbose -junit-xml=tests/reports/TEST-result-${{ github.run_id }}.xml
 
-    - name: Test Summary
-      uses: test-summary/action@v2
-      with:
-        paths: ${{ matrix.solution.name }}/tests/reports/TEST-result-${{ github.run_id }}.xml
-      if: always()
-
-    - name: Upload test results
-      run: s3cmd sync tests/reports s3://terraform-test-reports/${{ matrix.solution.name }}/
-      if: always()
-
     - name: Load test report history
       uses: actions/checkout@v4
       if: always()
@@ -128,12 +118,12 @@ jobs:
         path: gh-pages
 
     - name: Build test report
-      uses: simple-elf/allure-report-action@v1.7
+      uses: simple-elf/allure-report-action@v1.9
       if: always()
       with:
         gh_pages: gh-pages
-        allure_history: allure-history
-        allure_results: tests/reports
+        subfolder: ${{ matrix.solution.name }}
+        allure_results: ${{ matrix.solution.name }}/tests/reports
 
     - name: Publish test report
       uses: peaceiris/actions-gh-pages@v4
@@ -142,6 +132,7 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_branch: gh-pages
         publish_dir: allure-history
+        keep_files: true
 
   cleanup-infra:
     name: 'Cleanup Infra'
