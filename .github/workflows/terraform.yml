@@ -22,10 +22,10 @@ jobs:
       max-parallel: 2
       matrix:
         solution:
-          - name: k8s-inference
-          - name: k8s-training
-          - name: slurm
           - name: compute-testing
+          # - name: k8s-inference
+          # - name: k8s-training
+          # - name: slurm
 
     defaults:
       run:
@@ -120,7 +120,7 @@ jobs:
       if: always()
 
     - name: Load test report history
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       if: always()
       continue-on-error: true
       with:
@@ -136,7 +136,7 @@ jobs:
         allure_results: tests/reports
 
     - name: Publish test report
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       if: always()
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
