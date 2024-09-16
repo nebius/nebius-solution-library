@@ -1,1 +1,0 @@
-{"tests/main.tftest.hcl:tests/main.tftest.hcl#create_cluster":{"statistic":{"failed":0,"broken":0,"skipped":0,"passed":1,"unknown":0,"total":1},"items":[{"uid":"bc1644b509ee3d3a","reportUrl":"https://nebius.github.io/nebius-solution-library/76//#testresult/bc1644b509ee3d3a","status":"passed","time":{"duration":387}}]}}
