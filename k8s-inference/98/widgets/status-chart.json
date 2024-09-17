@@ -1,0 +1,1 @@
+[{"uid":"e3a7ebd2d80872ab","name":"test_mode_k8s_inference_apply","time":{"start":1726593134000,"stop":1726593144463,"duration":10463},"status":"passed","severity":"normal"},{"uid":"ed8e9eabd009fda2","name":"k8s_inference_apply","time":{"start":1726593134000,"stop":1726594028904,"duration":894904},"status":"passed","severity":"normal"}]
