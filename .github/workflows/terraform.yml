@@ -111,7 +111,7 @@ jobs:
 
     # Run Terraform Tests
     - name: Terraform Test
-      run: terraform test -verbose -junit-xml=tests/reports/TEST-result-${{ github.run_id }}.xml
+      run: terraform test -junit-xml=tests/reports/TEST-result-${{ github.run_id }}.xml
 
     - name: Set date in report
       run: |
