@@ -1,3 +1,8 @@
 run "create_wireguard_server" {
-  command = plan
+  command = apply
+
+  variables {
+    test_mode = true
+  }
 }
+q
