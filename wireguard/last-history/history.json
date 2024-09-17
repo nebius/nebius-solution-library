@@ -1,0 +1,1 @@
+{"tests/main.tftest.hcl:tests/main.tftest.hcl#create_wireguard_server":{"statistic":{"failed":0,"broken":0,"skipped":0,"passed":1,"unknown":0,"total":1},"items":[{"uid":"888ef15a12ddc8d0","reportUrl":"https://nebius.github.io/nebius-solution-library/wireguard/95//#testresult/888ef15a12ddc8d0","status":"passed","time":{"start":1726573568000,"stop":1726573568196,"duration":196}}]}}
