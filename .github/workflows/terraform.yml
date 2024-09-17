@@ -26,6 +26,7 @@ jobs:
           - name: slurm
           - name: k8s-inference
           - name: k8s-training
+          - name: wireguard
 
     defaults:
       run:
@@ -120,6 +121,10 @@ jobs:
         -i '/testsuites/testsuite[*]' -t attr -n timestamp -v $(date --iso-8601=seconds) \
         -i '/testsuites/testsuite[*]/testcase' -t attr -n timestamp -v $(date --iso-8601=seconds) \
         tests/reports/TEST-result-${{ github.run_id }}.xml
+
+    - name: Upload test results
+      run: s3cmd sync tests/reports s3://terraform-test-reports/${{ matrix.solution.name }}/
+      if: always()
 
     - name: Load test report history
       uses: actions/checkout@v4
