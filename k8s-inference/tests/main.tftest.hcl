@@ -1,4 +1,8 @@
-run "create_cluster" {
+run "k8s_inference_apply" {
+  command = apply
+}
+
+run "test_mode_k8s_inference_apply" {
   command = apply
 
   variables {

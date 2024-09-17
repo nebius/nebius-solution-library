@@ -1,4 +1,12 @@
-run "create_cluster" {
+run "k8s_training_apply" {
+  command = apply
+
+  variables {
+    enable_loki = false # TODO: Disabling Loki since not possible to delete non-empty storage bucket
+  }
+}
+
+run "test_mode_k8s_training_apply" {
   command = apply
 
   variables {
