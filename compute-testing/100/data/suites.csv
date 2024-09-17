@@ -1,0 +1,2 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Tue Sep 17 19:06:32 GMT 2024","Tue Sep 17 19:06:32 GMT 2024","392","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","compute_testing_plan",""
