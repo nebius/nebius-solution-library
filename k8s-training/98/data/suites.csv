@@ -1,0 +1,3 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Tue Sep 17 18:05:14 GMT 2024","Tue Sep 17 18:22:25 GMT 2024","1031429","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_k8s_training_apply",""
+"passed","Tue Sep 17 18:05:14 GMT 2024","Tue Sep 17 18:16:22 GMT 2024","668218","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","k8s_training_apply",""
