@@ -15,6 +15,12 @@ variable "k8s_version" {
   default     = "1.30"
 }
 
+variable "etcd_cluster_size" {
+  description = "Size of etcd cluster. "
+  type        = number
+  default     = 3
+}
+
 # K8s filestore
 variable "enable_filestore" {
   description = "Use Filestore."
@@ -87,7 +93,7 @@ variable "ssh_user_name" {
 
 variable "ssh_public_key" {
   description = "SSH Public Key to access the cluster nodes"
-  type = object({
+  type        = object({
     key  = optional(string),
     path = optional(string, "~/.ssh/id_rsa.pub")
   })

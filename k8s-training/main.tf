@@ -5,6 +5,7 @@ resource "nebius_mk8s_v1_cluster" "k8s-cluster" {
     endpoints = {
       public_endpoint = {}
     }
+    etcd_cluster_size = var.etcd_cluster_size
     subnet_id = var.subnet_id
     version   = var.k8s_version
   }
