@@ -93,7 +93,7 @@ variable "ssh_user_name" {
 
 variable "ssh_public_key" {
   description = "SSH Public Key to access the cluster nodes"
-  type        = object({
+  type = object({
     key  = optional(string),
     path = optional(string, "~/.ssh/id_rsa.pub")
   })
