@@ -1,3 +1,3 @@
-run "create_cluster" {
+run "compute_testing_plan" {
   command = plan
 }

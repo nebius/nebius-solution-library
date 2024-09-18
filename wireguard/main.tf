@@ -1,6 +1,6 @@
-resource "nebius_compute_v1_instance" "wireguard-instanse" {
+resource "nebius_compute_v1_instance" "wireguard_instance" {
   parent_id = var.parent_id
-  name      = "wireguard-instanse"
+  name      = "wireguard-instance"
 
   boot_disk = {
     attach_mode   = "READ_WRITE"
@@ -9,16 +9,18 @@ resource "nebius_compute_v1_instance" "wireguard-instanse" {
 
   network_interfaces = [
     {
-      name              = "eth0"
-      subnet_id         = var.subnet_id
-      ip_address        = {}
-      public_ip_address = var.public_ip_allocation_id != null ? { allocation_id = var.public_ip_allocation_id } : {}
+      name       = "eth0"
+      subnet_id  = var.subnet_id
+      ip_address = {}
+      public_ip_address = {
+        allocation_id = var.public_ip_allocation_id
+      }
     }
   ]
 
   resources = {
     platform = "cpu-e2"
-    preset   = "16vcpu-64gb"
+    preset   = "4vcpu-16gb"
   }
 
 
