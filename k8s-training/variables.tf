@@ -15,6 +15,12 @@ variable "k8s_version" {
   default     = "1.30"
 }
 
+variable "etcd_cluster_size" {
+  description = "Size of etcd cluster. "
+  type        = number
+  default     = 3
+}
+
 # K8s filestore
 variable "enable_filestore" {
   description = "Use Filestore."
