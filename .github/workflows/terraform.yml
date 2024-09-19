@@ -141,6 +141,7 @@ jobs:
       if: always()
       with:
         gh_pages: gh-pages
+        keep_reports: 100
         subfolder: ${{ matrix.solution.name }}
         allure_results: ${{ matrix.solution.name }}/tests/reports
 
