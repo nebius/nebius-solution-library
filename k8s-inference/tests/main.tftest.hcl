@@ -25,7 +25,7 @@ run "k8s_node_groups_inference_apply" {
 
 run "full_inference_apply" {
   command = apply
-    variables {
+  variables {
     etcd_cluster_size = 1
   }
 }
