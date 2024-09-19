@@ -2,8 +2,6 @@ name: 'Terraform'
 
 on:
   pull_request:
-  schedule:
-    - cron: '30 * * * *'
 
 permissions:
   contents: write
