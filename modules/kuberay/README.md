@@ -17,9 +17,52 @@ export NCP_FOLDER_ID=$(ncp config get folder-id)
 ```
 
 ## kuberay module installation steps
-* Important note! *
+### Prerequisites
+1. Important note! 
  Avoid deploying K8s cluster with kuberay simultanouasly from scratch, instead, start with deploying K8s cluster, only then, when the cluster is healthy, turn kuberay variable to 'true', and deploy kuberay operator.
-* *
+
+
+2. Validate which type of cpu platfroms generated for your environment: Intel Ice Lake (instance-type=standard-v3) / Intel Cascade (instance-type=standard-v2):
+```shell
+kubectl get nodes --show-labels | grep instance-type
+```
+4. In your ray-cluster.yaml, set the worker node selector accordingly(gpu-h100/gpu-h100-b/c):
+gpu-workers(ray-cluster.yaml):
+```shell
+worker:
+...Rest of configs
+    nodeSelector
+        beta.kubernetes.io/instance-type: gpu-h100
+...Rest of configs
+```
+5. In your ray-cluster.yaml, set the head&redis node selector accordingly
+non-gpu pods (the example below based on if your k8s cpu-only ng using Intel Cascade/standard-v2);
+*If your cluster provisioned standard-v3 cpu platform, please change it accordingly:
+```shell
+redis:
+...Rest of configs
+  nodeSelector:
+    beta.kubernetes.io/instance-type: standard-v2
+...Rest of configs
+
+head:
+...Rest of configs
+  nodeSelector:
+    beta.kubernetes.io/instance-type: standard-v2
+...Rest of configs
+```
+
+6. To use Infiniband from pods, add the following key:value to the relevant section in ray-values.yaml:
+```shell
+  securityContext:
+    privileged: true
+```
+Additionally, validate that all of the following packages installed correctly inside the relevant pods:
+```shell
+sudo apt update && sudo apt upgrade -y && sudo apt install -y kmod infiniband-diags ibverbs-utils libibverbs-dev perftest net-tools
+```
+
+## Installation
 
 1. To use kuberay as a module, please add the following module call to the end of your root main.tf:
 
@@ -250,6 +293,9 @@ enableInTreeAutoscaling: true
 3. Validate you have a running GPU k8s node group with 2 nodes (16xH100s)
    
 #### Autoscaling test:
+
+* To make mk8s cluster scale up&down accordingly to kuberay autoscaler, apply auto_scale to the gpu node group.
+
 1. Run port forwarding:
 ```shell
 kubectl port-forward -n ray-cluster service/ray-cluster-kuberay-head-svc 8265:8265
@@ -343,11 +389,11 @@ Job 'raysubmit_9PPrjJjAKkwjxK67' succeeded
 ------------------------------------------
 ```
 
-4. After few moments the ray-cluster should shrink from 2 gpu workers into 1 gpu worker pod.
+4. After few moments the ray-cluster should shrink his gpu workers from 2 into 1 pod.
 
 ### Updating Ray cluster from terraform
 
-To scale gpu ray cluster gpu worker pods, please update your root kubernetes variables.tf file with 'gpu_nodes_count'.
+To scale gpu ray cluster gpu worker pods, please update your root kubernetes terraform.tfvars file with 'gpu_nodes_count'.
 For other ray cluster changes, update ray-cluster.yaml
 
 After each update, run plan and apply.

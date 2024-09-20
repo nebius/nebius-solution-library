@@ -250,13 +250,13 @@ apiVersion: v1
 metadata:
   name: external-storage-persistent-volume
 spec:
-  storageClassName: hostpath
+  storageClassName: csi-mounted-fs-path-sc
   capacity:
     storage: "<SIZE>"
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: "<HOST-PATH>" # "/mnt/filestore/<sub-directory>" or "/mnt/glusterfs/<sub-directory>"
+    path: "<HOST-PATH>" # "/mnt/data/<sub-directory>" or "/mnt/glusterfs/<sub-directory>"
 
 ---
 
@@ -265,10 +265,23 @@ apiVersion: v1
 metadata:
   name: external-storage-persistent-volumeclaim
 spec:
-  storageClassName: hostpath
+  storageClassName: csi-mounted-fs-path-sc
   accessModes:
     - ReadWriteMany
   resources:
     requests:
       storage: "<SIZE>"
 ```
+
+
+CSI limitations:
+limitations of CSI over mounted FS
+FS should be mounted to all NodeGroups, because PV attachmend to pod runniing on Node without FS will fail
+One PV may fill up to all common FS size
+FS size will not be autoupdated if PV size exceed it spec size
+FS size for now can't be updated through API, only through NEBOPS. (thread)
+volumeMode: Block  - is not possible
+
+Good to know:
+read-write many mode PV will work
+MSP started testing that solution to enable early integration with mk8s. Hope they will bring feedback soon.

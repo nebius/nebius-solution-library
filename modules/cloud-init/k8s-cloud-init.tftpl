@@ -2,9 +2,9 @@
 bootcmd:
 %{ endif }
 %{ if enable_filestore != "false" }
- - sudo mkdir -p /mnt/filestore
- - sudo mount -t virtiofs filestore-device /mnt/filestore
- - echo filestore-device /mnt/filestore "virtiofs" "defaults" "0" "2" | sudo tee -a /etc/fstab
+- sudo mkdir -p /mnt/data
+- sudo mount -t virtiofs data /mnt/data
+- echo data /mnt/data \"virtiofs\" \"defaults\" \"0\" \"2\" | sudo tee -a /etc/fstab"
 %{ endif }
 %{ if enable_glusterfs != "false" }
  - sudo mkdir -p /mnt/glusterfs

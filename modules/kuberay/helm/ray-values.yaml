@@ -1,6 +1,15 @@
 additionalWorkerGroups:
   cpu:
-    affinity: {}
+    affinity:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+            - key: beta.kubernetes.io/instance-type
+              operator: In
+              values:
+              - 
     annotations: {}
     args: []
     command: []
@@ -10,7 +19,7 @@ additionalWorkerGroups:
     labels: {}
     maxReplicas: 0
     minReplicas: 0
-    nodeSelector:
+    nodeSelector: 
       beta.kubernetes.io/instance-type: 
     rayStartParams: {}
     replicas: 0
@@ -31,6 +40,11 @@ additionalWorkerGroups:
     volumes:
     - emptyDir: {}
       name: log-volume
+    tolerations:
+    - key: "beta.kubernetes.io/instance-type"
+      operator: "Equal"
+      value: 
+      effect: "NoSchedule"
 common:
   containerEnv:
   - name: AWS_EC2_METADATA_DISABLED
@@ -51,8 +65,65 @@ gpuToResourceHelperValues:
   NVIDIA® V100 PCIe with Intel Broadwell:
     cpu: 3
     memory: 40
+worker:
+  annotations: {}
+  args: []
+  command: []
+  containerEnv: []
+  envFrom: []
+  groupName: gpu
+  labels: {}
+  maxReplicas: 
+  minReplicas: 
+  nodeSelector: {}
+  rayStartParams: {}
+  replicas: 1
+  resources:
+    limits:
+      cpu: '{{ (get .Values.gpuToResourceHelperValues .Values.gpuPlatform).cpu }}'
+      memory: '{{ (get .Values.gpuToResourceHelperValues .Values.gpuPlatform).memory
+        }}Gi'
+      nvidia.com/gpu: "8"
+    requests:
+      cpu: '{{ tpl .Values.worker.resources.limits.cpu . }}'
+      memory: '{{ tpl .Values.worker.resources.limits.memory . }}'
+      nvidia.com/gpu: "8"
+  nodeSelector: 
+    beta.kubernetes.io/instance-type: 
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: beta.kubernetes.io/instance-type
+            operator: In
+            values:
+            - 
+  securityContext:
+    privileged: true
+  serviceAccountName: ""
+  sidecarContainers: []
+  tolerations:
+  - effect: NoSchedule
+    key: nvidia.com/gpu
+    operator: Exists
+  volumeMounts:
+  - mountPath: /tmp/ray
+    name: log-volume
+  volumes:
+  - emptyDir: {}
+    name: log-volume
 head:
-  affinity: {}
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - key: beta.kubernetes.io/instance-type
+            operator: In
+            values:
+            - 
   annotations: {}
   args: []
   command: []
@@ -65,22 +136,25 @@ head:
   envFrom: []
   headService: {}
   labels: {}
-  nodeSelector:
+  nodeSelector: 
     beta.kubernetes.io/instance-type: 
+  tolerations:
+  - key: "beta.kubernetes.io/instance-type"
+    operator: "Equal"
+    value: 
+    effect: "NoSchedule"
   rayStartParams:
     dashboard-host: 0.0.0.0
-    # NVIDIA_VISIBLE_DEVICES: void
   resources:
     limits:
-      cpu: "4"
-      memory: 8Gi
+      cpu: "2"
+      memory: 4Gi
     requests:
       cpu: '{{ .Values.head.resources.limits.cpu }}'
       memory: '{{ .Values.head.resources.limits.memory }}'
   securityContext: {}
   serviceAccountName: ""
   sidecarContainers: []
-  tolerations: []
   volumeMounts:
   - mountPath: /tmp/ray
     name: log-volume
@@ -89,20 +163,38 @@ head:
     name: log-volume
 image:
   pullPolicy: IfNotPresent
-  repository: docker.io/rayproject/ray-ml
-  tag: 2.35.0.ba2487-gpu
+  repository: cr.nemax.nebius.cloud/yc-marketplace/nebius/ray-cluster/rayproject/ray-ml1713900777304275129011842529120435612759099215098
+  tag: 2.9.3-gpu
 imagePullSecrets: []
 kuberay-operator:
-  # env:
-  #   - name: CLUSTER_DOMAIN
-  #     value: "pr.mk8scluster-e00by4dhp8r8acnkt7.mk8s.eu-north1.nebius.cloud"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: beta.kubernetes.io/instance-type
+            operator: NotIn
+            values:
+            - 
   image:
     pullPolicy: IfNotPresent
     repository: cr.nemax.nebius.cloud/yc-marketplace/nebius/ray-cluster/kuberay/operator1713900777304275129011842529120435612759099215098
     tag: v1.1.0
   singleNamespaceInstall: true
+  nodeSelector: 
+    beta.kubernetes.io/instance-type: 
 nameOverride: kuberay
 redis:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - key: beta.kubernetes.io/instance-type
+            operator: In
+            values:
+            - 
   architecture: standalone
   auth:
     enabled: false
@@ -114,15 +206,15 @@ redis:
   master:
     persistence:
       size: 8Gi
-      storageClass: csi-hostpath # storageClassName? 
+      storageClass: csi-mounted-fs-path-sc
     persistentVolumeClaimRetentionPolicy:
       enabled: true
       whenDeleted: Delete
       whenScaled: Retain
     resources:
       limits:
-        cpu: "4" # limits Minimum cpu=4 per gpu node
-        memory: 8Gi # limits Minimum memory=8Gi per gpu node
+        cpu: "2" # limits Minimum cpu=4 per gpu node
+        memory: 4Gi # limits Minimum memory=8Gi per gpu node
       requests:
         cpu: "1" # Requests Minimum cpu=1 per gpu node
         memory: 512Mi # Requests Minimum memory=512Mi per gpu node
@@ -136,41 +228,3 @@ redis:
     beta.kubernetes.io/instance-type: 
 service:
   type: ClusterIP
-worker:
-  affinity: {}
-  annotations: {}
-  args: []
-  command: []
-  containerEnv: []
-  envFrom: []
-  groupName: gpu
-  labels: {}
-  maxReplicas: 2
-  minReplicas: 1
-  nodeSelector: 
-    beta.kubernetes.io/instance-type: 
-  rayStartParams: {}
-  replicas: 1
-  resources:
-    limits:
-      cpu: '{{ (get .Values.gpuToResourceHelperValues .Values.gpuPlatform).cpu }}'
-      memory: '{{ (get .Values.gpuToResourceHelperValues .Values.gpuPlatform).memory
-        }}Gi'
-      nvidia.com/gpu: "8"
-    requests:
-      cpu: '{{ tpl .Values.worker.resources.limits.cpu . }}'
-      memory: '{{ tpl .Values.worker.resources.limits.memory . }}'
-      nvidia.com/gpu: "8"
-  securityContext: {}
-  serviceAccountName: ""
-  sidecarContainers: []
-  tolerations:
-  - effect: NoSchedule
-    key: nvidia.com/gpu
-    operator: Exists
-  volumeMounts:
-  - mountPath: /tmp/ray
-    name: log-volume
-  volumes:
-  - emptyDir: {}
-    name: log-volume

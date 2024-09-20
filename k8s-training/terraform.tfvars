@@ -1,11 +1,11 @@
 # Cloud environment and network
-parent_id      = "" # The project-id in this context
-subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
-ssh_user_name  = "" # Username you want to use to connect to the nodes
-ssh_public_key = {
-key  = "put your public ssh key here" # Optional
-path = "put path to ssh key here" # Optional
-}
+# parent_id      = "" # The project-id in this context
+# subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
+# ssh_user_name  = "" # Username you want to use to connect to the nodes
+# ssh_public_key = {
+# key  = "put your public ssh key here" OR
+# path = "put path to ssh key here"
+# }
 
 # K8s modes
 cpu_nodes_count  = 1                     # Number of CPU nodes
@@ -36,5 +36,7 @@ glusterfs_storage_nodes     = 3                          # Set amount of storage
 glusterfs_disk_count_per_vm = 2                          # Set amount of disks per storage node in GlusterFS cluster
 glusterfs_disk_size         = 100 * (1024 * 1024 * 1024) # Set disk size in bytes. The multiplication makes it easier to set the size in GB. This would set the size as 100GB
 
-# Kuberay
-enable_kuberay = false
+# KubeRay
+enable_kuberay = true # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
+kuberay_min_gpu_replicas = 1
+kuberay_max_gpu_replicas = 2

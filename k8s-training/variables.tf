@@ -222,5 +222,18 @@ variable "test_mode" {
 variable "enable_kuberay" {
   description = "Enable kuberay"
   type    = bool
-  default = false
+  default = true
 }
+
+variable "kuberay_min_gpu_replicas" {
+  description = "Minimum amount of kuberay gpu worker pods"
+  type    = number
+  default = 0
+}
+
+variable "kuberay_max_gpu_replicas" {
+  description = "Minimum amount of kuberay gpu worker pods"
+  type    = number
+  default = 1
+}
+
