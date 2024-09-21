@@ -1,0 +1,5 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Sat Sep 21 02:59:44 GMT 2024","Sat Sep 21 03:02:59 GMT 2024","195396","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","k8s_inference_apply",""
+"passed","Sat Sep 21 02:59:44 GMT 2024","Sat Sep 21 03:01:14 GMT 2024","90232","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","full_inference_apply",""
+"passed","Sat Sep 21 02:59:44 GMT 2024","Sat Sep 21 03:01:57 GMT 2024","133905","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","k8s_node_groups_inference_apply",""
+"passed","Sat Sep 21 02:59:44 GMT 2024","Sat Sep 21 02:59:53 GMT 2024","9444","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_k8s_inference_apply",""
