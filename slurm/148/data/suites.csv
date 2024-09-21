@@ -1,0 +1,4 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","","","46812","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","slurm_master_apply",""
+"passed","","","90901","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","slurm_full_apply",""
+"broken","","","5258","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_slurm_apply",""
