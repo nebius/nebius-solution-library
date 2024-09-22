@@ -1,0 +1,3 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Sun Sep 22 13:01:29 GMT 2024","Sun Sep 22 13:01:56 GMT 2024","27328","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","wireguard_apply",""
+"passed","Sun Sep 22 13:01:29 GMT 2024","Sun Sep 22 13:03:19 GMT 2024","110867","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_wireguard_apply",""
