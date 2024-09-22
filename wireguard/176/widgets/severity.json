@@ -1,0 +1,1 @@
+[{"uid":"7dd15aa3d31d5999","name":"test_mode_wireguard_apply","time":{"start":1726995253000,"stop":1726995314371,"duration":61371},"status":"passed","severity":"normal"},{"uid":"d19a68a38e2e51e3","name":"wireguard_apply","time":{"start":1726995253000,"stop":1726995287070,"duration":34070},"status":"passed","severity":"normal"}]
