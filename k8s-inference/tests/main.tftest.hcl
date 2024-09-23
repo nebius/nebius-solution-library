@@ -1,8 +1,41 @@
-run "create_cluster" {
+run "k8s_inference_apply" {
+  command = apply
+  plan_options {
+    target = [
+      nebius_mk8s_v1_cluster.k8s-cluster
+    ]
+  }
+  variables {
+    etcd_cluster_size = 1
+  }
+}
+
+run "k8s_node_groups_inference_apply" {
+  command = apply
+  plan_options {
+    target = [
+      nebius_mk8s_v1_node_group.cpu-only,
+      nebius_mk8s_v1_node_group.gpu
+    ]
+  }
+  variables {
+    etcd_cluster_size = 1
+  }
+}
+
+run "full_inference_apply" {
+  command = apply
+  variables {
+    etcd_cluster_size = 1
+  }
+}
+
+run "test_mode_k8s_inference_apply" {
   command = apply
 
   variables {
-    test_mode = true
+    test_mode         = true
+    etcd_cluster_size = 1
   }
 
   assert {

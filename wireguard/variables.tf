@@ -17,7 +17,7 @@ variable "ssh_user_name" {
 }
 
 variable "ssh_public_key" {
-  description = "SSH Public Key to access the cluster nodes"
+  description = "SSH Public Key to access the cluster nodes."
   type = object({
     key  = optional(string),
     path = optional(string, "~/.ssh/id_rsa.pub")
@@ -29,10 +29,15 @@ variable "ssh_public_key" {
   }
 }
 
-
 # Access By IP
 variable "public_ip_allocation_id" {
   description = "Id of a manually created public_ip_allocation."
   type        = string
   default     = null
+}
+
+variable "test_mode" {
+  description = "Switch between real usage and testing."
+  type        = bool
+  default     = false
 }
