@@ -7,7 +7,7 @@ resource "helm_release" "kuberay-operator" {
   version          = "1.1.0"
   atomic           = true
   values = [
-    templatefile("${path.module}/helm/ray-values.yaml.tftpl", {
+    templatefile("${path.module}/files/ray-values.yaml.tftpl", {
       cpu_platform     = var.cpu_platform
       gpu_platform     = var.gpu_platform
       max_gpu_replicas = var.max_gpu_replicas

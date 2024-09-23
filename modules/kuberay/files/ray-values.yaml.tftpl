@@ -15,19 +15,20 @@ head:
     limits:
       cpu: "2"
       memory: 4Gi
-    requests:
-      cpu: '{{ .Values.head.resources.limits.cpu }}'
-      memory: '{{ .Values.head.resources.limits.memory }}'
 
 worker:
-  replicas: 1
+  replicas: ${min_gpu_replicas}
   minReplicas: ${min_gpu_replicas}
   maxReplicas: ${max_gpu_replicas}
   resources:
     limits:
+      cpu: 120
+      memory: 1500Gi
       nvidia.com/gpu: "8"
     requests:
-      nvidia.com/gpu: "8"
+      cpu: '{{ .Values.worker.resources.limits.cpu }}'
+      memory: '{{ .Values.worker.resources.limits.memory }}'
+      nvidia.com/gpu: '{{ get .Values.worker.resources.limits "nvidia.com/gpu" }}'
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -76,5 +77,5 @@ redis:
       requests:
         cpu: "1" # Requests Minimum cpu=1 per gpu node
         memory: 512Mi # Requests Minimum memory=512Mi per gpu node
-  nodeSelector:
-    beta.kubernetes.io/instance-type: ${cpu_platform}
+    nodeSelector:
+      beta.kubernetes.io/instance-type: ${cpu_platform}
