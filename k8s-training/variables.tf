@@ -228,7 +228,7 @@ variable "test_mode" {
 variable "enable_kuberay" {
   description = "Enable kuberay"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "kuberay_min_gpu_replicas" {
@@ -242,4 +242,3 @@ variable "kuberay_max_gpu_replicas" {
   type        = number
   default     = 1
 }
-
