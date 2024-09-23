@@ -5,7 +5,7 @@ resource "helm_release" "kuberay-operator" {
   namespace        = var.kuberay_namespace
   create_namespace = var.kuberay_create_namespace
   version          = "1.1.0"
-  values           = [
+  values = [
     "${file("${path.module}/helm/ray-values.yaml")}"
   ]
   # nodeSelector settings (cpu pods to select cpu-nodes, gpu pods to select gpu nodes)
@@ -25,7 +25,7 @@ resource "helm_release" "kuberay-operator" {
     name  = "redis.master.master.nodeSelector.beta\\.kubernetes\\.io/instance-type"
     value = var.cpu_platform
   }
-    set {
+  set {
     name  = "worker.nodeSelector.beta\\.kubernetes\\.io/instance-type"
     value = var.gpu_platform
   }

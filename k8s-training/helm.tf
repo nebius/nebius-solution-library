@@ -58,35 +58,30 @@ module "nccl-test" {
 }
 
 module "kuberay" {
-  source                  = "../modules/kuberay"
-  count                   = var.enable_kuberay ? 1 : 0 
-  
-  depends_on = [
-  nebius_mk8s_v1_node_group.cpu-only,
-  nebius_mk8s_v1_node_group.gpu,
-  module.network-operator,
-  module.gpu-operator,
-  module.csi-mounted-fs-path,
-  ]
-  
-  providers = {
-    nebius = nebius
-    helm   = helm
-  }
+  source = "../modules/kuberay"
+  count  = var.enable_kuberay ? 1 : 0
 
-  kube_host               = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.endpoints.public_endpoint
-  cluster_ca_certificate  = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.auth.cluster_ca_certificate
-  kube_token              = var.iam_token
-  gpu_workers             = var.gpu_nodes_count
-  gpu_platform            = var.gpu_nodes_platform
-  cpu_platform            = var.cpu_nodes_platform
-  min_gpu_replicas        = var.kuberay_min_gpu_replicas
-  max_gpu_replicas        = var.kuberay_max_gpu_replicas
+  depends_on = [
+    nebius_mk8s_v1_node_group.cpu-only,
+    nebius_mk8s_v1_node_group.gpu,
+    module.network-operator,
+    module.gpu-operator,
+    module.csi-mounted-fs-path,
+  ]
+
+  kube_host              = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.endpoints.public_endpoint
+  cluster_ca_certificate = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.auth.cluster_ca_certificate
+  kube_token             = var.iam_token
+  gpu_workers            = var.gpu_nodes_count
+  gpu_platform           = var.gpu_nodes_platform
+  cpu_platform           = var.cpu_nodes_platform
+  min_gpu_replicas       = var.kuberay_min_gpu_replicas
+  max_gpu_replicas       = var.kuberay_max_gpu_replicas
 }
 
 
 module "csi-mounted-fs-path" {
-  source    = "../modules/csi-mounted-fs-path"
-  count     = var.enable_filestore ? 1 : 0 
+  source = "../modules/csi-mounted-fs-path"
+  count  = var.enable_filestore ? 1 : 0
 
 }

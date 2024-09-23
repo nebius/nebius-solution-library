@@ -9,36 +9,36 @@ variable "gpu_platform" {
 }
 
 variable "kuberay_name" {
-    description = "kuberay operator name"
-    type = string
-    default = "ray-cluster"
-  }
+  description = "kuberay operator name"
+  type        = string
+  default     = "ray-cluster"
+}
 
 variable "kuberay_repository_path" {
-    description = "kuberay repository chart path"
-    type = string
-    default = "oci://cr.nemax.nebius.cloud/yc-marketplace/nebius/ray-cluster/chart/"
-  }
+  description = "kuberay repository chart path"
+  type        = string
+  default     = "oci://cr.nemax.nebius.cloud/yc-marketplace/nebius/ray-cluster/chart/"
+}
 
 variable "kuberay_chart_name" {
-    description = "kuberay chart name"
-    type = string
-    default = "ray-cluster"
-  }
+  description = "kuberay chart name"
+  type        = string
+  default     = "ray-cluster"
+}
 
 variable "kuberay_namespace" {
-    description = "kuberay namespace name"
-    type = string
-    default = "ray-cluster"
-  }
+  description = "kuberay namespace name"
+  type        = string
+  default     = "ray-cluster"
+}
 
 variable "kuberay_create_namespace" {
-    description = "kuberay boolean variable for create a new namespace from scratch or not"
-    type = bool
-    default = true
-  }
+  description = "kuberay boolean variable for create a new namespace from scratch or not"
+  type        = bool
+  default     = true
+}
 
-  variable "kube_host" {
+variable "kube_host" {
   description = "The Kubernetes API server endpoint"
   type        = string
 }
@@ -60,12 +60,12 @@ variable "gpu_workers" {
 
 variable "min_gpu_replicas" {
   description = "Minimum amount of kuberay gpu worker pods"
-  type    = number
-  default = 0
+  type        = number
+  default     = 0
 }
 
 variable "max_gpu_replicas" {
   description = "Minimum amount of kuberay gpu worker pods"
-  type    = number
-  default = 1
+  type        = number
+  default     = 1
 }
