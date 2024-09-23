@@ -69,14 +69,10 @@ module "kuberay" {
     module.csi-mounted-fs-path,
   ]
 
-  kube_host              = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.endpoints.public_endpoint
-  cluster_ca_certificate = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.auth.cluster_ca_certificate
-  kube_token             = var.iam_token
-  gpu_workers            = var.gpu_nodes_count
-  gpu_platform           = var.gpu_nodes_platform
-  cpu_platform           = var.cpu_nodes_platform
-  min_gpu_replicas       = var.kuberay_min_gpu_replicas
-  max_gpu_replicas       = var.kuberay_max_gpu_replicas
+  gpu_platform     = var.gpu_nodes_platform
+  cpu_platform     = var.cpu_nodes_platform
+  min_gpu_replicas = var.kuberay_min_gpu_replicas
+  max_gpu_replicas = var.kuberay_max_gpu_replicas
 }
 
 

@@ -32,32 +32,6 @@ variable "kuberay_namespace" {
   default     = "ray-cluster"
 }
 
-variable "kuberay_create_namespace" {
-  description = "kuberay boolean variable for create a new namespace from scratch or not"
-  type        = bool
-  default     = true
-}
-
-variable "kube_host" {
-  description = "The Kubernetes API server endpoint"
-  type        = string
-}
-
-variable "cluster_ca_certificate" {
-  description = "The Kubernetes cluster CA certificate"
-  type        = string
-}
-
-variable "kube_token" {
-  description = "The Kubernetes authentication token"
-  type        = string
-}
-
-variable "gpu_workers" {
-  description = "Ray GPU worker nodes"
-  type        = number
-}
-
 variable "min_gpu_replicas" {
   description = "Minimum amount of kuberay gpu worker pods"
   type        = number
