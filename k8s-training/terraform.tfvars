@@ -35,3 +35,8 @@ enable_glusterfs            = false                      # Enable or disable Glu
 glusterfs_storage_nodes     = 3                          # Set amount of storage nodes in GlusterFS cluster
 glusterfs_disk_count_per_vm = 2                          # Set amount of disks per storage node in GlusterFS cluster
 glusterfs_disk_size         = 100 * (1024 * 1024 * 1024) # Set disk size in bytes. The multiplication makes it easier to set the size in GB. This would set the size as 100GB
+
+# KubeRay
+enable_kuberay           = false # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
+kuberay_min_gpu_replicas = 1
+kuberay_max_gpu_replicas = 2

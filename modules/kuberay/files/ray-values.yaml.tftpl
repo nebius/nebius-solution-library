@@ -1,0 +1,81 @@
+head:
+  containerEnv:
+    - name: RAY_REDIS_ADDRESS
+      value: '{{ .Release.Name }}-redis-master:6379'
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: "void"
+  nodeSelector:
+    beta.kubernetes.io/instance-type: ${cpu_platform}
+  tolerations:
+    - key: "beta.kubernetes.io/instance-type"
+      operator: "Equal"
+      value: ${cpu_platform}
+      effect: "NoSchedule"
+  resources:
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+worker:
+  replicas: ${min_gpu_replicas}
+  minReplicas: ${min_gpu_replicas}
+  maxReplicas: ${max_gpu_replicas}
+  resources:
+    limits:
+      cpu: 120
+      memory: 1500Gi
+      nvidia.com/gpu: "8"
+    requests:
+      cpu: '{{ .Values.worker.resources.limits.cpu }}'
+      memory: '{{ .Values.worker.resources.limits.memory }}'
+      nvidia.com/gpu: '{{ get .Values.worker.resources.limits "nvidia.com/gpu" }}'
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: beta.kubernetes.io/instance-type
+            operator: In
+            values: [ ${gpu_platform} ]
+  securityContext:
+    privileged: true
+  tolerations:
+    - effect: NoSchedule
+      key: nvidia.com/gpu
+      operator: Exists
+
+additionalWorkerGroups:
+  cpu:
+    affinity:
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+            - key: beta.kubernetes.io/instance-type
+              operator: In
+              values: [ ${cpu_platform} ]
+    tolerations:
+      - key: "beta.kubernetes.io/instance-type"
+        operator: "Equal"
+        value: ${cpu_platform}
+        effect: "NoSchedule"
+
+kuberay-operator:
+  nodeSelector:
+    beta.kubernetes.io/instance-type: ${cpu_platform}
+
+redis:
+  master:
+    persistence:
+      size: 8Gi
+      storageClass: csi-mounted-fs-path-sc
+    resources:
+      limits:
+        cpu: "2" # limits Minimum cpu=4 per gpu node
+        memory: 4Gi # limits Minimum memory=8Gi per gpu node
+      requests:
+        cpu: "1" # Requests Minimum cpu=1 per gpu node
+        memory: 512Mi # Requests Minimum memory=512Mi per gpu node
+    nodeSelector:
+      beta.kubernetes.io/instance-type: ${cpu_platform}
