@@ -1,0 +1,4 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Tue Sep 24 10:51:58 GMT 2024","Tue Sep 24 10:53:27 GMT 2024","89985","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","slurm_full_apply",""
+"passed","Tue Sep 24 10:51:58 GMT 2024","Tue Sep 24 11:01:22 GMT 2024","564570","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_slurm_apply",""
+"passed","Tue Sep 24 10:51:58 GMT 2024","Tue Sep 24 10:52:35 GMT 2024","37354","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","slurm_master_apply",""
