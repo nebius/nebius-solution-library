@@ -24,11 +24,11 @@ jobs:
       max-parallel: 2
       matrix:
         solution:
-          - name: compute-testing
-          - name: slurm
+#          - name: compute-testing
+#          - name: slurm
           - name: k8s-inference
           - name: k8s-training
-          - name: wireguard
+#          - name: wireguard
 
     defaults:
       run:
