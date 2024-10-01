@@ -1,5 +1,0 @@
-"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
-"passed","","","686198","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","k8s_inference_apply",""
-"passed","","","9860","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_k8s_inference_apply",""
-"passed","","","71010","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","full_inference_apply",""
-"passed","","","104067","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","k8s_node_groups_inference_apply",""

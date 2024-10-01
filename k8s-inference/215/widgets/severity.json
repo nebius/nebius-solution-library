@@ -1,1 +1,1 @@
-[{"uid":"653d5ccb961fb114","name":"full_inference_apply","time":{"duration":71010},"status":"passed","severity":"normal"},{"uid":"9acfbfc06aace69a","name":"test_mode_k8s_inference_apply","time":{"duration":9860},"status":"passed","severity":"normal"},{"uid":"c716421acde4991d","name":"k8s_inference_apply","time":{"duration":686198},"status":"passed","severity":"normal"},{"uid":"dd690a1980513685","name":"k8s_node_groups_inference_apply","time":{"duration":104067},"status":"passed","severity":"normal"}]
+[]
