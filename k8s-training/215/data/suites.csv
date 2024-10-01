@@ -1,0 +1,8 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Tue Oct 01 15:12:25 GMT 2024","Tue Oct 01 15:21:11 GMT 2024","526114","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_k8s_training_apply",""
+"passed","Tue Oct 01 15:12:25 GMT 2024","Tue Oct 01 15:24:09 GMT 2024","704965","","tests/k8s-training-kuberay.tftest.hcl","","tests/k8s-training-kuberay.tftest.hcl","","k8s_training_kuberay_apply",""
+"passed","Tue Oct 01 15:12:25 GMT 2024","Tue Oct 01 15:14:51 GMT 2024","146453","","tests/k8s-training-kuberay.tftest.hcl","","tests/k8s-training-kuberay.tftest.hcl","","full_training_kuberay_apply",""
+"passed","Tue Oct 01 15:12:25 GMT 2024","Tue Oct 01 15:14:08 GMT 2024","103946","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","full_training_apply",""
+"passed","Tue Oct 01 15:12:25 GMT 2024","Tue Oct 01 15:25:01 GMT 2024","756596","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","k8s_training_apply",""
+"passed","Tue Oct 01 15:12:25 GMT 2024","Tue Oct 01 15:16:51 GMT 2024","266028","","tests/k8s-training-kuberay.tftest.hcl","","tests/k8s-training-kuberay.tftest.hcl","","k8s_node_groups_training_kuberay_apply",""
+"passed","Tue Oct 01 15:12:25 GMT 2024","Tue Oct 01 15:15:57 GMT 2024","212767","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","k8s_node_groups_training_apply",""
