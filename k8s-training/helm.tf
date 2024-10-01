@@ -14,7 +14,6 @@ module "gpu-operator" {
   nfd_enabled = false
 }
 
-## FIXME o11y is not working yet, because buckets and S3 keys are not yet implemented in the public tf provider
 module "o11y" {
   source    = "../modules/o11y"
   parent_id = var.parent_id

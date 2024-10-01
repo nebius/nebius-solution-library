@@ -1,7 +1,7 @@
 variable "helm_repository" {
   description = "GPU Operator Helm chart source repository."
   type        = string
-  default     = "oci://cr.eu-north1.nebius.cloud/e00b8s3tas83ntb55w/nebius/nvidia-gpu-operator/chart"
+  default     = "oci://cr.eu-north1.nebius.cloud/marketplace/nebius/nvidia-gpu-operator/chart"
 }
 
 variable "helm_version" {
