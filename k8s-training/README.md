@@ -241,6 +241,17 @@ this [article](https://grafana.com/docs/grafana/latest/alerting/configure-notifi
 
 ## Accessing Storage
 
+### Prerequisites:
+1. To use csi-driver, it's mandatory to set 'enable_filestore = true' in terraform.tfvars file.
+2. Then, the helm release managing this csi-driver is deployed in helm.tf file by applying the module: "csi-mounted-fs-path".
+3. Keep in mind that 'csi-mounted-fs-path' module is applying only while instances are in boot process, using the following /nebius-solution-library/modules/cloud-init/k8s-cloud-init.tftpl commands:
+   ```shell
+     - sudo mkdir -p /mnt/data
+     - sudo mount -t virtiofs data /mnt/data
+     - echo data /mnt/data \"virtiofs\" \"defaults\" \"0\" \"2\" | sudo tee -a /etc/fstab"
+   ```
+
+### Using mounted storageclass
 Using mounted storage requires manually creating Persistent Volumes. Bellow is a template for creating PV and PVC.
 Replace `<HOST-PATH>` and `<SIZE>` variables with actual values.
 
