@@ -54,7 +54,7 @@ jobs:
         ssh-add
 
     - name: Setup s3cmd
-      run: |
+      run: 
         pip3 install s3cmd --no-cache --quiet
         s3cmd --dump-config \
         --access_key="${{ secrets.SA_ACCESS_KEY_ID }}" \

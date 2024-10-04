@@ -29,4 +29,17 @@ module "slurm" {
     worker     = 2
   }
 
+  k8s_cluster_node_group_gpu = {
+    resource = {
+      platform = "gpu-h100-sxm"
+      preset   = "8gpu-128vcpu-1600gb"
+    }
+    boot_disk = {
+      type           = "NETWORK_SSD"
+      size_gibibytes = 1024
+    }
+    gpu_cluster = {
+      infiniband_fabric = "fabric-4"
+    }
+  }
 }
