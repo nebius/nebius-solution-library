@@ -1,67 +1,67 @@
-# Kubernetes for Training in Nebius AI
+# Kubernetes for training in Nebius AI
 
 ## Features
 
 - Creating a Kubernetes cluster with CPU and GPU nodes.
-- Installing the necessary [Nvidia Gpu Operator](https://github.com/NVIDIA/gpu-operator)
-  and [Network Operator](https://docs.nvidia.com/networking/display/cokan10/network+operator) for running GPU
-  workloads.- Installing [Grafana](https://github.com/grafana/helm-charts/tree/main/charts/grafana).
+- Installing the necessary [NVIDIA GPU Operator](https://github.com/NVIDIA/gpu-operator) and [Network Operator](https://docs.nvidia.com/networking/display/cokan10/network+operator) for running GPU workloads.
+- Installing [Grafana](https://github.com/grafana/helm-charts/tree/main/charts/grafana).
 - Installing [Prometheus](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus).
 - Installing [Loki](https://github.com/grafana/loki/tree/main/production/helm/loki).
 - Installing [Promtail](https://github.com/grafana/helm-charts/tree/main/charts/promtail).
 
 ## Prerequisites
+
 1. Install [Nebius CLI](https://docs.nebius.ai/cli/install/):
-    ```bash
-    curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
-    ```
+   ```bash
+   curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
+   ```
 
 2. Reload your shell session:
-    ```bash
-    exec -l $SHELL
-    ```
+
+   ```bash
+   exec -l $SHELL
+   ```
+
    or
 
-    ```bash
-    source ~/.bashrc
-    ```
+   ```bash
+   source ~/.bashrc
+   ```
 
-3. [Configure](https://docs.nebius.ai/cli/configure/) Nebius CLI (it's recommended to use [service account](https://docs.nebius.ai/iam/service-accounts/manage/) for configuration):
-    ```bash
-    nebius init
-    ```
+3. [Configure](https://docs.nebius.ai/cli/configure/) Nebius CLI (it is recommended to use [service account](https://docs.nebius.ai/iam/service-accounts/manage/) for configuration):
+   ```bash
+   nebius init
+   ```
 
-3. Install JQuery (example for Debian based distros):
-    ```bash
-    sudo apt install jq -y
-    ```
+4. Install JQuery (for Debian based distributions):
+   ```bash
+   sudo apt install jq -y
+   ```
 
 ## Usage
 
-Follow these steps to deploy the Kubernetes cluster:
+To deploy a Kubernetes cluster, follow these steps:
 
 1. Load environment variables:
-    ```bash
-    source ./environment.sh
-    ```
+   ```bash
+   source ./environment.sh
+   ```
 2. Initialize Terraform:
-    ```bash
-    terraform init
-    ```
-3. Replace the placeholder content
-   in `terraform.tfvars` with actual configuration values to fit your specific
-   requirements. See the details [bellow](#configuration-variables).
+   ```bash
+   terraform init
+   ```
+3. Replace the placeholder content in `terraform.tfvars` with configuration values that meet your specific requirements. See the details [below](#configuration-variables).
 4. Preview the deployment plan:
-    ```bash
-    terraform plan
-    ```
+   ```bash
+   terraform plan
+   ```
 5. Apply the configuration:
-    ```bash
-    terraform apply
-    ```
+   ```bash
+   terraform apply
+   ```
    Wait for the operation to complete.
 
-## Configuration Variables
+## Configuration variables
 
 These are the basic configurations needed to deploy Kubernetes for Training in Nebius AI. Edit in the configurations that you need in the file `terraform.tfvars`.
 
@@ -138,23 +138,24 @@ Check [here](#accessing-storage) how to access storage in K8S.
 * Install JQ ([instructions](https://jqlang.github.io/jq/download/)) - also required for deploying the cluster
 
 ### Add credentials to the kubectl configuration file
-1. Perform this command from the terraform deployment folder:
-  ```bash
-  nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
-  ```
-2. Verify the kubectl configuration after adding the credentials:
-  ```bash
-  kubectl config view
-  ```
+1. Run the following command from the terraform deployment folder:
+   ```bash
+   nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
+   ```
+2. Add the credentials and verify the kubectl configuration:
 
-  The output should resemble::
-  ```bash
-  apiVersion: v1
-  clusters:
-    - cluster:
-      certificate-authority-data: DATA+OMITTED
-  ...
-  ```
+   ```bash
+   kubectl config view
+   ```
+
+   The output should look like this:
+
+   ```bash
+   apiVersion: v1
+   clusters:
+     - cluster:
+       certificate-authority-data: DATA+OMITTED
+   ```
 
 ### Connect to the cluster
 Show cluster information:
@@ -169,7 +170,7 @@ Get pods:
 
 ## Observability
 
-Observability stack is enabled by default. It consist of the following:
+Observability stack is enabled by default. It includes the following components:
 
 - Grafana
 - Prometheus
@@ -177,40 +178,40 @@ Observability stack is enabled by default. It consist of the following:
 
 ### Grafana
 
-Could be disabled by setting follwing in set `enable_grafana` variable to `false` in terraform.tfvars` file.
+Can be disabled by setting the `enable_grafana` variable to `false` in `the terraform.tfvars` file.
 
 To access Grafana:
 
-1. **Port-Forward to the Grafana Service:** Run the following command to port-forward to the Grafana service:
+1. **Port-forward to the Grafana service:** Run the following command to port-forward to the Grafana service:
    ```sh
    kubectl --namespace o11y port-forward service/grafana 8080:80
    ```
 
-2. **Access Grafana Dashboard:** Open your browser and navigate to `http://localhost:8080`.
+2. **Access Grafana dashboard:** Open your browser and go to `http://localhost:8080`.
 
-3. **Log In:** Use the default credentials to log in:
-    - **Username:** `admin`
-    - **Password:** `admin`
+3. **Log in:** Use the default credentials to log in:
+   - **Username:** `admin`
+   - **Password:** `admin`
 
-### Log Aggregation
+### Log aggregation
 
 #### Temporary block to make Loki work now
 
 1. Create an SA
-    2. `nebius iam service-account create --parent-id <parent-id> --name <name>`.
-2. Add SA to editors group.
-    3. Get your tenant id with `nebius iam whoami`.
-    4. Get the `editors` group id with: `nebius iam group list --parent-id <tenant-id> | grep -n5 "name: editors"`.
-        3. List all members of the `editors` group
-           with `nebius iam group-membership list-members --parent-id <group-id>`.
-    4. Add your SA to the `editors` group
-       with `nebius iam group-membership create --parent-id <group-id> --member-id <sa-id>`
+   2. `nebius iam service-account create --parent-id <parent-id> --name <name>`.
+2. Add an SA to the editors group.
+   3. Get your tenant id with `nebius iam whoami`.
+   4. Get the `editors` group id with: `nebius iam group list --parent-id <tenant-id> | grep -n5 "name: editors"`.
+   3. List all members of the `editors` group
+   with `nebius iam group-membership list-members --parent-id <group-id>`.
+   4. Add your SA to the `editors` group
+   with `nebius iam group-membership create --parent-id <group-id> --member-id <sa-id>`
 3. Create access key and get its credentials:
-    4. `nebius iam access-key create --account-service-account-id <SA-ID> --description 'AWS CLI' --format json`
-    5. `nebius iam access-key get-by-aws-id --aws-access-key-id <AWS-KEY-ID-FROM-PREVIOUS-COMMAND> --view secret --format json`
+   4. `nebius iam access-key create --account-service-account-id <SA-ID> --description 'AWS CLI' --format json`
+   5. `nebius iam access-key get-by-aws-id --aws-access-key-id <AWS-KEY-ID-FROM-PREVIOUS-COMMAND> --view secret --format json`
 4. Update `loki_access_key_id` and `loki_secret_key` in `terraform.tfvars` with info from the last command.
 
-Log aggregation with the Loki is enabled by default. If you need to disable it, set `enable_loki` variable to `false` in
+Log aggregation with the Loki is enabled by default. To disable it, set the `enable_loki` variable to `false` in the
 `terraform.tfvars` file.
 
 To access logs navigate to Loki dashboard `http://localhost:8080/d/o6-BGgnnk/loki-kubernetes-logs`
@@ -219,16 +220,16 @@ To access logs navigate to Loki dashboard `http://localhost:8080/d/o6-BGgnnk/lok
 
 ### Prometheus
 
-Prometheus server is enabled by default. If you need to disable it, set `enable_prometheus` variable to `false` in
-terraform.tfvars` file.
+Prometheus server is enabled by default. To disable it, set the `enable_prometheus` variable to `false` in the
+`terraform.tfvars` file.
 Because `DCGM exporter` uses Prometheus as a datasource it will be disabled as well.
 
 To access logs navigate to Node exporter folder `http://localhost:8080/f/e6acfbcb-6f13-4a58-8e02-f780811a2404/`
 
 ### NVIDIA DCGM Exporter Dashboard and Alerting
 
-NVIDIA DCGM Exporter Dashboard and Alerting rules are enabled by default. If you need to disable it, set `enable_dcgm`
-variable to `false` in terraform.tfvars` file.
+NVIDIA DCGM Exporter Dashboard and Alerting rules are enabled by default. To disable it, set the `enable_dcgm`
+variable to `false` in the `terraform.tfvars` file.
 
 By default Alerting rules are created for node groups that has GPUs.
 
@@ -239,7 +240,7 @@ To access NVIDIA DCGM Exporter Dashboard `http://localhost:8080/d/Oxed_c6Wz/nvid
 To enable alert messages for Slack please refer
 this [article](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-slack/)
 
-## Accessing Storage
+## Accessing storage
 
 ### Prerequisites:
 1. To use csi-driver, it's mandatory to set 'enable_filestore = true' in terraform.tfvars file.
