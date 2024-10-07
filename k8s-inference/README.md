@@ -12,57 +12,59 @@
 ## Prerequisites
 
 1. Install [Nebius CLI](https://docs.nebius.ai/cli/install/):
-    ```bash
-    curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
-    ```
+   ```bash
+   curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
+   ```
 
 2. Reload your shell session:
-    ```bash
-    exec -l $SHELL
-    ```
+
+   ```bash
+   exec -l $SHELL
+   ```
+
    or
 
-    ```bash
-    source ~/.bashrc
-    ```
+   ```bash
+   source ~/.bashrc
+   ```
 
 3. [Configure](https://docs.nebius.ai/cli/configure/) Nebius CLI (it's recommended to
    use [service account](https://docs.nebius.ai/iam/service-accounts/manage/) for configuration):
-    ```bash
-    nebius init
-    ```
+   ```bash
+   nebius init
+   ```
 
-3. Install JQuery (example for Debian based distros):
-    ```bash
-    sudo apt install jq -y
-    ```
+4. Install JQuery (example for Debian-based distros):
+   ```bash
+   sudo apt install jq -y
+   ```
 
 ## Usage
 
-Follow these steps to deploy the Kubernetes cluster:
+To deploy the Kubernetes cluster, follow the steps below:
 
 1. Load environment variables:
-    ```bash
-    source ./environment.sh
-    ```
+   ```bash
+   source ./environment.sh
+   ```
 2. Initialize Terraform:
-    ```bash
-    terraform init
-    ```
+   ```bash
+   terraform init
+   ```
 3. Replace the placeholder content
-   in `terraform.tfvars` with actual configuration values to fit your specific
-   requirements. See the details [bellow](#configuration-variables).
+   in `terraform.tfvars` with actual configuration values that meet your specific
+   requirements. See the details [below](#configuration-variables).
 4. Preview the deployment plan:
-    ```bash
-    terraform plan
-    ```
+   ```bash
+   terraform plan
+   ```
 5. Apply the configuration:
-    ```bash
-    terraform apply
-    ```
+   ```bash
+   terraform apply
+   ```
    Wait for the operation to complete.
 
-## Configuration Variables
+## Configuration variables
 
 These are the basic configurations needed to deploy Kubernetes for Inference in Nebius AI. Edit in the configurations that you need in the file `terraform.tfvars`.
 
@@ -139,23 +141,25 @@ Check [here](#accessing-storage) how to access storage in K8S.
 * Install JQ ([instructions](https://jqlang.github.io/jq/download/)) - also required for deploying the cluster
 
 ### Add credentials to the kubectl configuration file
-1. Perform this command from the terraform deployment folder:
-  ```bash
-  nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
-  ```
-2. Verify the kubectl configuration after adding the credentials:
-  ```bash
-  kubectl config view
-  ```
+1. Run the following command from the Terraform deployment folder:
+   ```bash
+   nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
+   ```
+2. Check the kubectl configuration after adding the credentials:
 
-  The output should resemble::
-  ```bash
-  apiVersion: v1
-  clusters:
-    - cluster:
-      certificate-authority-data: DATA+OMITTED
-  ...
-  ```
+   ```bash
+   kubectl config view
+   ```
+
+   The output should be as follows:
+
+   ```bash
+   apiVersion: v1
+   clusters:
+     - cluster:
+       certificate-authority-data: DATA+OMITTED
+   ...
+   ```
 
 ### Connect to the cluster
 Show cluster information:
@@ -170,7 +174,7 @@ Get pods:
 
 ## Observability
 
-Observability stack is enabled by default. It consists of the following:
+Observability stack is enabled by default. It includes the following components:
 
 - Grafana
 - Prometheus
@@ -178,63 +182,62 @@ Observability stack is enabled by default. It consists of the following:
 
 ### Grafana
 
-Could be disabled by setting follwing in set `enable_grafana` variable to `false` in terraform.tfvars` file.
+Can be disabled by setting the `enable_grafana` variable to `false` in the `terraform.tfvars` file.
 
 To access Grafana:
 
-1. **Port-Forward to the Grafana Service:** Run the following command to port-forward to the Grafana service:
+1. **Port-forward to the Grafana service:** Run the following command to port-forward to the Grafana service:
    ```sh
    kubectl --namespace o11y port-forward service/grafana 8080:80
    ```
 
-2. **Access Grafana Dashboard:** Open your browser and navigate to `http://localhost:8080`.
+2. **Access Grafana dashboard:** Open your browser and go to `http://localhost:8080`.
 
-3. **Log In:** Use the default credentials to log in:
-    - **Username:** `admin`
-    - **Password:** `admin`
+3. **Log in:** To log in, use the default credentials:
+   - **Username:** `admin`
+   - **Password:** `admin`
 
-### Log Aggregation
+### Log aggregation
 
-Log aggregation with the Loki is enabled by default. If you need to disable it, set `enable_loki` variable to `false` in
-terraform.tfvars` file.
+Log aggregation with the Loki is enabled by default. To disable it, set `enable_loki` variable to `false` in
+`terraform.tfvars` file.
 
-To access logs navigate to Loki dashboard `http://localhost:8080/d/o6-BGgnnk/loki-kubernetes-logs`
+To access logs, go to Loki dashboard `http://localhost:8080/d/o6-BGgnnk/loki-kubernetes-logs`
 
 ### Prometheus
 
-Prometheus server is enabled by default. If you need to disable it, set `enable_prometheus` variable to `false` in
+Prometheus server is enabled by default. To disable it, set `enable_prometheus` variable to `false` in
 terraform.tfvars` file.
-Because `DCGM exporter` uses Prometheus as a datasource it will be disabled as well.
+Since `DCGM exporter` uses Prometheus as its data source, it will also be disabled.
 
-To access logs navigate to Node exporter folder `http://localhost:8080/f/e6acfbcb-6f13-4a58-8e02-f780811a2404/`
+To access logs, go to Node exporter folder `http://localhost:8080/f/e6acfbcb-6f13-4a58-8e02-f780811a2404/`
 
-### NVIDIA DCGM Exporter Dashboard and Alerting
+### NVIDIA DCGM-Exporter dashboard and alerting
 
-NVIDIA DCGM Exporter Dashboard and Alerting rules are enabled by default. If you need to disable it, set `enable_dcgm`
-variable to `false` in terraform.tfvars` file.
+The DCGM-Exporter dashboard and alerting rules are enabled by default. To disable it, set `enable_dcgm`
+variable to `false` in `terraform.tfvars` file.
 
-By default Alerting rules are created for node groups that has GPUs.
+Alerting rules are created for node groups with GPUs by default.
 
-To access NVIDIA DCGM Exporter Dashboard `http://localhost:8080/d/Oxed_c6Wz/nvidia-dcgm-exporter-dashboard`
+To access NVIDIA DCGM Exporter Dashboard: `http://localhost:8080/d/Oxed_c6Wz/nvidia-dcgm-exporter-dashboard`
 
 ### Alerting
 
-To enable alert messages for Slack please refer
+To enable alert messages for Slack, see
 this [article](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-slack/)
 
 ## Storage
 
-There are two options available for adding external storage to k8s clusters:
+There are two ways to add external storage to k8s clusters:
 
-- Filestore (recommended, enabled by default)
+- Filestore (recommended and enabled by default)
 - GlusterFS (legacy)
 
-Both would allow creating a Read-Write-Many HostPath PVCs in k8s cluster. Path for Filestore is `/mnt/filestore`, for
-GlusterFS it is `/mnt/glusterfs`.
+Both would allow the creation of Read-Write-Many HostPath PVCs in a K8s cluster. Use `/mnt/filestore` path for Filestore and `/mnt/glusterfs` for GlusterFS.
 
 ### Filestore
 
-To configure Filestore integration, set these variables is `terraform.tfvars`:
+To configure Filestore integration, set the following variables in `terraform.tfvars`:
 
 ```hcl
 enable_filestore     = true # Enable or disable Filestore integration
@@ -244,7 +247,7 @@ filestore_block_size = 4096 # Set Filestore block size in bytes
 
 ### GlusterFS
 
-To configure GlusterFS integration, set these variables is `terraform.tfvars`:
+To configure GlusterFS integration, set the following variables in `terraform.tfvars`:
 
 ```hcl
 enable_glusterfs = true # Enable or disable GlusterFS integration
@@ -253,10 +256,9 @@ glusterfs_disk_count_per_vm = 2 # Set amount of disks per storage node in Gluste
 glusterfs_disk_size = 107374182400 # Set disk size in bytes
 ```
 
-## Accessing Storage
+## Accessing storage
 
-Using mounted storage requires manually creating Persistent Volumes. Bellow is a template for creating PV and PVC.
-Replace `<HOST-PATH>` and `<SIZE>` variables with actuall values.
+To use mounted storage, Persistent Volumes must be created manually. Here is a template for creating a Persistent Volume (PV) and Persistent Volume Claim (PVC); replace `<HOST-PATH>` and `<SIZE>` variables with the actual values:
 
 ```yaml
 kind: PersistentVolume

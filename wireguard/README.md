@@ -1,75 +1,71 @@
-# Wireguard VPN Instance
+# Wireguard VPN instance
 
-This Terraform solution deploys a Wireguard VPN instance intended to be used as a secure jump host for your
-infrastructure. By minimizing the use of Public IPs and limiting access to the rest of your environment, it enhances
-security.
+This Terraform solution deploys a Wireguard VPN instance that serves as a secure jump host for your infrastructure. It improves the security by minimizing the use of Public IPs and limiting access to the rest of the environment.
 
 ## Prerequisites
 
 1. Install [Nebius CLI](https://docs.nebius.dev/en/cli/#installation):
-    ```bash
-    curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
-    ```
+   ```bash
+   curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
+   ```
 
 2. Reload your shell session:
-    ```bash
-    exec -l $SHELL
-    ```
+
+   ```bash
+   exec -l $SHELL
+   ```
+
    or
 
-    ```bash
-    source ~/.bashrc
-    ```
+   ```bash
+   source ~/.bashrc
+   ```
 
-3. [Configure](https://docs.nebius.ai/cli/configure/) Nebius CLI (it's recommended to
-   use [service account](https://docs.nebius.ai/iam/service-accounts/manage/) for configuration):
-    ```bash
-    nebius init
-    ```
+3. [Configure](https://docs.nebius.ai/cli/configure/) Nebius CLI (we recommend using [service account](https://docs.nebius.ai/iam/service-accounts/manage/)):
+   ```bash
+   nebius init
+   ```
 
-3. Install JQuery (example for Debian based distros):
-    ```bash
-    sudo apt install jq -y
-    ```
+4. Install JQuery (for Debian-based distributions):
+   ```bash
+   sudo apt install jq -y
+   ```
 
 ## Installation
 
-Follow these steps to deploy the Solution:
+To deploy the solution, follow these steps:
 
 1. Load environment variables:
-    ```bash
-    source ./environment.sh
-    ```
+   ```bash
+   source ./environment.sh
+   ```
 2. Initialize Terraform:
-    ```bash
-    terraform init
-    ```
-3. Replace the placeholder content
-   in `terraform.tfvars` with actual configuration values to fit your specific
-   requirements. See the details [bellow](#configuration-variables).
+   ```bash
+   terraform init
+   ```
+3. Replace the placeholder content in `terraform.tfvars` with the configuration values that you need. See the details [below](#configuration-variables).
 4. Preview the deployment plan:
-    ```bash
-    terraform plan
-    ```
+   ```bash
+   terraform plan
+   ```
 5. Apply the configuration:
-    ```bash
-    terraform apply
-    ```
+   ```bash
+   terraform apply
+   ```
    Wait for the operation to complete.
 
-## Configuration Variables
+## Configuration variables
 
-Update the following variables in the `terraform.tfvars` file with your specific values:
+Update the following variables in the `terraform.tfvars` file with your own values:
 
 - `parent_id`
 - `subnet_id`
 - `ssh_user_name`
 - `ssh_public_key`
 
-## Create and using a public IP allocation
+## Creating and using a public IP allocation
 
-This step will allow to retain the IP address if the VM will be deleted, you can skip section if you don't need to keep
-the IP address.
+This step allows you to retain the IP address even if the VM is deleted. If you don’t need to keep the IP adress, skip section.
 
 1. Create a public IP allocation:
    ```bash
@@ -77,36 +73,36 @@ the IP address.
    --parent-id <project-id> --name wireguard_allocation_pub \
    --format json | jq -r '.metadata.id'
    ```
-2. Assign value from the previous step to `public_ip_allocation_id` variable in [variables.tf](./variables.tf):
+2. Assign the value from the previous step to the `public_ip_allocation_id` variable in [variables.tf](./variables.tf):
 
-  ```bash
-  public_ip_allocation_id = <public_ip_allocation_id>
-  ```
+```bash
+public_ip_allocation_id = <public_ip_allocation_id>
+```
 
 ## Usage
 
 ### Logging into Wireguard UI
 
 1. SSH into the Wireguard instance:
-    ```bash
-    ssh -i <path_to_private_ssh_key> <ssh_user_name>@<instance_public_ip>
-    ```
+   ```bash
+   ssh -i <path_to_private_ssh_key> <ssh_user_name>@<instance_public_ip>
+   ```
 
 2. Retrieve the Wireguard UI password:
-    ```bash
-    sudo cat /var/lib/wireguard-ui/initial_password
-    ```
+   ```bash
+   sudo cat /var/lib/wireguard-ui/initial_password
+   ```
 
-3. Access the Wireguard UI in your browser:
-    ```
-    http://<instance_public_ip>:5000
-    ```
+3. Open the Wireguard UI in your browser:
+   ```
+   http://<instance_public_ip>:5000
+   ```
 
 4. Log in with the following credentials:
-    - **Username:** `admin`
-    - **Password:** [password retrieved in step 2]
+   - **Username:** `admin`
+   - **Password:** [password retrieved in step 2]
 
 ### Notes
 
-- **Apply Config:** After creating, deleting, or changing Wireguard users, press the "Apply Config" button.
+- **Apply Config:** After creating, deleting or changing Wireguard users, select "Apply Config".
 - **Allowed IPs:** When adding new users, specify the CIDRs of your existing infrastructure in the "Allowed IPs" field.
