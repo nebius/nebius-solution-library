@@ -11,7 +11,6 @@ module "gpu-operator" {
     module.network-operator
   ]
   source      = "../modules/gpu-operator"
-  nfd_enabled = false
 }
 
 module "o11y" {
