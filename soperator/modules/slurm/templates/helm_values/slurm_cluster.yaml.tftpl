@@ -1,0 +1,171 @@
+clusterName: ${name}
+
+k8sNodeFilters:
+  - name: ${k8s_node_filters.non_gpu.name}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: ${k8s_node_filters.non_gpu.affinity.key}
+                  operator: In
+                  values:
+                    - ${k8s_node_filters.non_gpu.affinity.value}
+
+  - name: ${k8s_node_filters.gpu.name}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: ${k8s_node_filters.gpu.affinity.key}
+                  operator: In
+                  values:
+                    - ${k8s_node_filters.gpu.affinity.value}
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+
+volumeSources:
+  - name: jail
+    persistentVolumeClaim:
+      claimName: jail-pvc
+      readOnly: false
+
+  - name: controller-spool
+    persistentVolumeClaim:
+      claimName: controller-spool-pvc
+      readOnly: false
+
+  - name: worker-spool
+    emptyDir:
+      sizeLimit: ${nodes.worker.resources.ephemeral_storage}Gi
+
+  %{~ for sub_mount in jail_submounts ~}
+  - name: jail-submount-${sub_mount.name}
+    persistentVolumeClaim:
+      claimName: jail-submount-${sub_mount.name}-pvc
+      readOnly: false
+  %{~ endfor ~}
+
+populateJail:
+  k8sNodeFilterName: ${k8s_node_filters.gpu.name}
+
+ncclSettings:
+  topologyType: "${nccl_topology_type}"
+
+periodicChecks:
+  ncclBenchmark:
+    enabled: ${ncclBenchmark.enable}
+    k8sNodeFilterName: ${k8s_node_filters.non_gpu.name}
+    schedule: "${ncclBenchmark.schedule}"
+    ncclArguments:
+      thresholdMoreThan: ${ncclBenchmark.min_threshold}
+
+slurmNodes:
+  accounting:
+    enabled: ${nodes.accounting.enabled}
+    k8sNodeFilterName: ${k8s_node_filters.non_gpu.name}
+    mariadbOperator:
+      enabled: ${nodes.accounting.mariadbOperator.enabled}
+      %{~ if nodes.accounting.mariadbOperator.enabled  ~}
+      metrics:
+        enabled: ${nodes.accounting.mariadbOperator.metricsEnabled}
+      storage:
+        ephemeral: false
+        volumeClaimTemplate:
+          accessModes:
+            - ReadWriteMany
+          resources:
+            requests:
+              storage: ${nodes.accounting.mariadbOperator.storage_size}Gi
+          volumeName: accounting-pv
+          storageClassName: slurm-local-pv
+        storageClassName: slurm-local-pv
+      %{~ endif ~}
+    %{~ if nodes.accounting.enabled &&  length(nodes.accounting.slurmdbdConfig) > 0 ~}
+    slurmdbdConfig:
+      %{~ for key, value in nodes.accounting.slurmdbdConfig ~}
+      ${key}: "${value}"
+      %{~ endfor ~}
+    %{~ endif ~}
+    %{~ if nodes.accounting.enabled &&  length(nodes.accounting.slurmConfig) > 0 ~}
+    slurmConfig:
+      %{~ for key, value in nodes.accounting.slurmConfig ~}
+      ${key}: "${value}"
+      %{~ endfor ~}
+    %{~ endif ~}
+  controller:
+    size: ${nodes.controller.size}
+    k8sNodeFilterName: ${k8s_node_filters.non_gpu.name}
+
+  worker:
+    size: ${nodes.worker.size}
+    k8sNodeFilterName: ${k8s_node_filters.gpu.name}
+    cgroupVersion: v2
+    munge:
+      resources:
+        cpu: 500m
+    slurmd:
+      resources:
+        cpu: ${ceil(nodes.worker.resources.cpu * 1000)}m
+        memory: ${nodes.worker.resources.memory}Gi
+        ephemeralStorage: ${nodes.worker.resources.ephemeral_storage}Gi
+        gpu: ${nodes.worker.resources.gpus}
+    volumes:
+      spool:
+        volumeClaimTemplateSpec: null
+        volumeSourceName: worker-spool
+      %{~ if length(jail_submounts) > 0 ~}
+      jailSubMounts:
+        %{~ for sub_mount in jail_submounts ~}
+        - name: ${sub_mount.name}
+          mountPath: ${sub_mount.mount_path}
+          volumeSourceName: jail-submount-${sub_mount.name}
+        %{~ endfor ~}
+      %{~ endif ~}
+      sharedMemorySize: ${nodes.worker.shared_memory}Gi
+
+  login:
+    size: ${nodes.login.size}
+    k8sNodeFilterName: ${k8s_node_filters.non_gpu.name}
+    sshdServiceType: ${nodes.login.service_type}
+    %{~ if nodes.login.service_type == "LoadBalancer" ~}
+    sshdServiceLoadBalancerIP: "${nodes.login.load_balancer_ip}"
+    %{~ endif ~}
+    %{~ if nodes.login.service_type == "NodePort" ~}
+    sshdServiceNodePort: ${nodes.login.node_port}
+    %{~ endif ~}
+    %{~ if length(nodes.login.root_public_keys) > 0 ~}
+    sshRootPublicKeys:
+      %{~ for key in nodes.login.root_public_keys ~}
+      - ${key}
+      %{~ endfor ~}
+    %{~ endif ~}
+    %{~ if length(jail_submounts) > 0 ~}
+    volumes:
+      jailSubMounts:
+        %{~ for sub_mount in jail_submounts ~}
+        - name: ${sub_mount.name}
+          mountPath: ${sub_mount.mount_path}
+          volumeSourceName: jail-submount-${sub_mount.name}
+        %{~ endfor ~}
+      %{~ endif ~}
+
+  exporter:
+    enabled: ${nodes.exporter.enabled}
+    k8sNodeFilterName: ${k8s_node_filters.non_gpu.name}
+    volumes:
+      jail:
+        volumeSourceName: "jail"
+
+%{ if telemetry.enabled ~}
+telemetry:
+  jobsTelemetry:
+    otelCollectorHttpHost: ${telemetry.metrics_collector.endpoint.http_host}
+    otelCollectorPort: ${telemetry.metrics_collector.endpoint.port}
+    otelCollectorPath: /opentelemetry/api/v1/push
+    sendJobsEvents: true
+    sendOtelMetrics: true
+%{ endif }

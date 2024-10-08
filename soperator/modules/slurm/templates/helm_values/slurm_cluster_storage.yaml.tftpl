@@ -1,0 +1,41 @@
+volume:
+  jail:
+    size: ${volume.jail.size}
+    filestoreDeviceName: ${volume.jail.device}
+  controllerSpool:
+    size: ${volume.controller_spool.size}
+    filestoreDeviceName: ${volume.controller_spool.device}
+  accounting:
+    enabled: ${volume.accounting.enabled}
+    %{~ if volume.accounting.enabled ~}
+    size: ${volume.accounting.size}
+    filestoreDeviceName: ${volume.accounting.device}
+    %{~ endif ~}
+  %{~ if length(volume.jail_submounts) > 0 ~}
+  jailSubMounts:
+    %{~ for sub_mount in volume.jail_submounts ~}
+    - name: ${sub_mount.name}
+      size: ${sub_mount.size}
+      filestoreDeviceName: ${sub_mount.device}
+    %{~ endfor ~}
+  %{~ endif ~}
+
+scheduling:
+  cpuOnly:
+    matchExpressions:
+      - key: ${scheduling.key}
+        operator: In
+        values:
+          - ${scheduling.cpu}
+
+  cpuAndGpu:
+    matchExpressions:
+      - key: ${scheduling.key}
+        operator: In
+        values:
+          - ${scheduling.cpu}
+          - ${scheduling.gpu}
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
