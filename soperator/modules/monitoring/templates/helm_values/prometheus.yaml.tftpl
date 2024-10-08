@@ -1,0 +1,25 @@
+prometheusOperator:
+  enabled: false
+
+alertmanager:
+  enabled: false
+
+grafana:
+  enabled: true
+  adminPassword: "${admin_password}"
+
+  alertmanager:
+    enabled: false
+  sidecar:
+    datasources:
+      url: "http://${metrics_collector.host}.:${metrics_collector.port}"
+  defaultDashboardsEnabled: false
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+prometheus:
+  enabled: false

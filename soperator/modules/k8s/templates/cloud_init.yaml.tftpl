@@ -1,0 +1,10 @@
+users:
+%{ for user in ssh_users ~}
+  - name: "${user.name}"
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+    %{~ for key in user.public_keys ~}
+      - "${key}"
+    %{~ endfor ~}
+%{ endfor ~}
