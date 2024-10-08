@@ -14,7 +14,7 @@ The module includes the following files and directories:
 
 ## Configuring Terraform for Nebius Cloud
 
-- Install [Nebius CLI](https://nebius.ai/docs/cli/quickstart)
+- Install [Nebius CLI](https://docs.nebius.ai/cli/quickstart)
 - Add environment variables for Terraform authentication in Nebuis Cloud
 
 ## Preparing the environment
