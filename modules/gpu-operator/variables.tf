@@ -15,9 +15,3 @@ variable "driver_version" {
   type        = string
   default     = "550.54.15"
 }
-
-variable "nfd_enabled" {
-  description = "Enable Node Feature Discovery."
-  type        = bool
-  default     = true
-}

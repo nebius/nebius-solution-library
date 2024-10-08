@@ -10,16 +10,6 @@ resource "helm_release" "gpu-operator" {
   timeout          = 600
 
   set {
-    name  = "nfd.enabled"
-    value = var.nfd_enabled
-  }
-
-  set {
-    name  = "dcgm.enabled"
-    value = true
-  }
-
-  set {
     name  = "driver.version"
     value = var.driver_version
   }
