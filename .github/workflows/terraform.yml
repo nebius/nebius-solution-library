@@ -3,7 +3,7 @@ name: 'Terraform'
 on:
   pull_request:
     paths-ignore:
-      - 'soperator**'
+      - 'soperator/**'
 #  schedule:
 #    - cron: '30 * * * *'
 
