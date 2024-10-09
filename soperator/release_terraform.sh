@@ -18,7 +18,7 @@ done
 version=$(echo "${VERSION}" | tr '.' '_' | tr '-' '_')
 
 mkdir -p releases
-tarball="releases/soperator-tf-${version}.tar.gz"
+tarball="releases/soperator_tf_${version}.tar.gz"
 if [ ! -f "$tarball" ] || [ -n "$force" ]; then
   tar -czf "$tarball" \
     installations \
