@@ -1,0 +1,113 @@
+ccManager:
+  enabled: ${enable.cc_manager}
+  repository: "${repository}"
+  image: "${image_prefix}/k8s-cc-manager"
+
+dcgm:
+  enabled: ${enable.dcgm}
+  repository: "${repository}"
+  image: "${image_prefix}/dcgm"
+
+dcgmExporter:
+  enabled: ${enable.dcgm_exporter}
+  repository: "${repository}"
+  image: "${image_prefix}/dcgm-exporter"
+  serviceMonitor:
+    enabled: ${enable.dcgm_exporter_service_monitor}
+    interval: 30s
+
+devicePlugin:
+  enabled: ${enable.device_plugin}
+  repository: "${repository}"
+  image: "${image_prefix}/k8s-device-plugin"
+
+driver:
+  enabled: ${enable.driver}
+  version: "535.161.08"
+  repository: "${repository}"
+  image: "${image_prefix}/driver"
+  full_alternative_image: "${repository}/${image_prefix}/driver:535.161.08-ubuntu22.04"
+  full_new_image: "${repository}/${image_prefix}/driver:550.54.15-ubuntu20.04"
+  full_new_alternative_image: "${repository}/${image_prefix}/driver:550.54.15-ubuntu22.04"
+
+  manager:
+    repository: "${repository}"
+    image: "${image_prefix}/k8s-driver-manager"
+
+  rdma:
+    enabled: ${enable.driver_rdma}
+    useHostMofed: ${enable.driver_rdma_host_mofed}
+
+gfd:
+  enabled: ${enable.gfd}
+  repository: "${repository}"
+  image: "${image_prefix}/k8s-device-plugin"
+
+kataManager:
+  enabled: ${enable.kata_manager}
+  repository: "${repository}"
+  image: "${image_prefix}/k8s-kata-manager"
+
+migManager:
+  enabled: ${enable.mig_manager}
+  repository: "${repository}"
+  image: "${image_prefix}/k8s-mig-manager"
+
+nfd:
+  enabled: ${enable.nfd}
+node-feature-discovery:
+  image:
+    repository: "${repository}/${image_prefix}/node-feature-discovery"
+    tag: "v0.15.4"
+
+nodeStatusExporter:
+  enabled: ${enable.node_status_exporter}
+  repository: "${repository}"
+  image: "${image_prefix}/gpu-operator-validator"
+  version: "${operator_version}"
+
+operator:
+  repository: "${repository}"
+  image: "${image_prefix}/gpu-operator"
+  version: "${operator_version}"
+
+  initContainer:
+    repository: "${repository}"
+    image: "${image_prefix}/cuda"
+
+sandboxDevicePlugin:
+  enabled: ${enable.sandbox_device_plugin}
+  repository: "${repository}"
+  image: "${image_prefix}/kubevirt-gpu-device-plugin"
+
+toolkit:
+  enabled: ${enable.toolkit}
+  repository: "${repository}"
+  image: "${image_prefix}/container-toolkit"
+
+unified_agent_installer:
+  image: "${repository}/${image_prefix}/busybox:latest_pinned"
+
+validator:
+  repository: "${repository}"
+  image: "${image_prefix}/gpu-operator-validator"
+  version: "${operator_version}"
+
+vfioManager:
+  enabled: ${enable.vfio_manager}
+  repository: "${repository}"
+  image: "${image_prefix}/cuda"
+
+  driverManager:
+    repository: "${repository}"
+    image: "${image_prefix}/k8s-driver-manager"
+
+vgpuDeviceManager:
+  enabled: ${enable.vgpu_device_manager}
+  repository: "${repository}"
+  image: "${image_prefix}/vgpu-device-manager"
+
+vgpuManager:
+  enabled: ${enable.vgpu_manager}
+  repository: "${repository}"
+  image: "${image_prefix}/k8s-driver-manager"
