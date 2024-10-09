@@ -27,6 +27,7 @@ jobs:
 
       - name: Build release
         run: |
+          cd soperator
           make release
           ls -la releases/
 
@@ -46,7 +47,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            releases/slurm_operator_tf_${{ env.FILE_VERSION }}.tar.gz
+            soperator/releases/slurm_operator_tf_${{ env.FILE_VERSION }}.tar.gz
 
       - name: Cleanup
-        run: rm -rf releases/slurm_operator_tf_${{ env.FILE_VERSION }}.tar.gz
+        run: rm -rf soperator/releases/slurm_operator_tf_${{ env.FILE_VERSION }}.tar.gz
