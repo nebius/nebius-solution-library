@@ -27,7 +27,6 @@ jobs:
 
       - name: Make release
         run: |
-          mkdir -p releases
           make release
           ls -la releases/
 
