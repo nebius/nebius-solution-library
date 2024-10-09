@@ -1,12 +1,8 @@
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-SLURM_VERSION					= 24.05.2
-UBUNTU_VERSION					= jammy
 VERSION							= $(shell cat VERSION)
 IMAGE_TAG						= $(VERSION)
-GREEN							= '\033[0;32m'
-RESET							= '\033[0m'
 DOCKER_REGISTRY_NAME			= soperator
 
 
@@ -24,8 +20,6 @@ ifeq ($(UNSTABLE), true)
 	IMAGE_TAG					= $(VERSION)-$(SHORT_SHA)
 	DOCKER_REGISTRY_NAME		= soperator-unstable
 endif
-
-TARBALL							= "slurm_operator_tf_$(shell echo "${IMAGE_TAG}" | tr '-' '_' | tr '.' '_').tar.gz"
 
 .PHONY: get-image-version
 get-image-version:
@@ -58,21 +52,7 @@ sync-version: ## Sync versions from file
 	@terraform fmt installations/msp-slurm-prod/main.tf >/dev/null 2>&1 || true
 	@# endregion installations/msp-slurm-prod/main.tf
 
-.PHONY: release-terraform
-release-terraform: sync-version
-	@echo "Packing new terraform tarball"
-	VERSION=${IMAGE_TAG} ./release_terraform.sh -f
-	@echo "Unpacking the terraform tarball"
-	cd releases/unstable && VERSION=${IMAGE_TAG} TARBALL=${TARBALL} ./unpack_current_version.sh
-ifeq ($(UNSTABLE), true)
-	@echo "${GREEN}Unstable version ${IMAGE_TAG} is successfully released and unpacked to releases/unstable/${RESET}"
-else
-	mv "releases/unstable/${TARBALL}" "releases/stable/"
-	@echo "${GREEN}Stable version ${IMAGE_TAG} is successfully released${RESET}"
-endif
-
-.PHONY: release-terraform-ci
-release-terraform-ci:
+.PHONY: release
+release:
 	@echo "Packing terraform tarball with version - ${IMAGE_TAG}"
 	VERSION=${IMAGE_TAG} ./release_terraform.sh -f
-	mv "releases/unstable/${TARBALL}" "releases/"
