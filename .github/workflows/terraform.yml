@@ -1,9 +1,11 @@
 name: 'Terraform'
 
 on:
- pull_request:
-  # schedule:
-  #   - cron: '30 * * * *'
+  pull_request:
+    paths-ignore:
+      - 'soperator**'
+#  schedule:
+#    - cron: '30 * * * *'
 
 permissions:
   contents: write

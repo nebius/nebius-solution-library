@@ -1,0 +1,53 @@
+name: "Build soperator terraform release"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "soperator"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    permissions:
+      contents: write  # for softprops/action-gh-release to create GitHub release
+    runs-on: self-hosted
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Make release
+        run: |
+          mkdir -p releases
+          make release
+          ls -la releases/
+
+      - name: Get Version
+        id: get_version
+        run: |
+          echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+          echo "FILE_VERSION=$(cat VERSION | tr '.' '_' | tr '-' '_')" >> $GITHUB_ENV
+
+      - name: Create GitHub Release and Upload terraform tarball
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: v${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            releases/slurm_operator_tf_${{ env.FILE_VERSION }}.tar.gz
+
+      - name: Cleanup
+        run: rm -rf releases/slurm_operator_tf_${{ env.FILE_VERSION }}.tar.gz

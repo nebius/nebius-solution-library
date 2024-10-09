@@ -17,7 +17,7 @@ done
 
 version=$(echo "${VERSION}" | tr '.' '_' | tr '-' '_')
 
-tarball="releases/unstable/soperator-tf-${version}.tar.gz"
+tarball="releases/soperator-tf-${version}.tar.gz"
 if [ ! -f "$tarball" ] || [ -n "$force" ]; then
   tar -czf "$tarball" \
     installations \
