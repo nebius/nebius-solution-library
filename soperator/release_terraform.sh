@@ -26,5 +26,5 @@ if [ ! -f "$tarball" ] || [ -n "$force" ]; then
     test \
     README.md \
     ../LICENSE
-  echo "$(pwd)/$tarball created."
+  echo "$(pwd)/$tarball created"
 fi
