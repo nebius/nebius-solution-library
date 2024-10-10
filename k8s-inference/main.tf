@@ -37,7 +37,7 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
     filesystems = var.enable_filestore ? [
       {
         attach_mode         = "READ_WRITE"
-        mount_tag           = "filestore-device"
+        mount_tag           = "data"
         existing_filesystem = nebius_compute_v1_filesystem.shared-filesystem[0]
       }
     ] : null
