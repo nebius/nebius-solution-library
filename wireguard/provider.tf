@@ -7,5 +7,5 @@ terraform {
 }
 
 provider "nebius" {
-  domain = "api.eu-north1.nebius.cloud:443"
+  domain = "api.eu.nebius.cloud:443"
 }
