@@ -1,11 +1,11 @@
 # Cloud environment and network
-# parent_id      = "" # The project-id in this context
-# subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
-# ssh_user_name  = "" # Username you want to use to connect to the nodes
-# ssh_public_key = {
+parent_id      = "project-e00dppgnh7smdq475s" # The project-id in this context
+subnet_id      = "vpcsubnet-e00bdce2b4npsj1m25" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
+ssh_user_name  = "user" # Username you want to use to connect to the nodes
+ssh_public_key = {
 # key  = "put your public ssh key here" OR
-# path = "put path to ssh key here"
-# }
+path = "~/.ssh/id_ed25519.pub"
+}
 
 # K8s modes
 cpu_nodes_count  = 1                     # Number of CPU nodes
@@ -17,7 +17,7 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Set to "1gpu-16v
 # Observability
 enable_grafana    = true # Enable or disable Grafana deployment with true or false
 enable_prometheus = true # Enable or disable Prometheus deployment with true or false
-enable_loki       = true # Enable or disable Loki deployment with true or false
+enable_loki       = false # Enable or disable Loki deployment with true or false
 enable_dcgm       = true # Enable or disable NVIDIA DCGM Exporter Dashboard and Alerting deployment with true or false
 
 ## Loki
