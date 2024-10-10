@@ -79,7 +79,7 @@ jobs:
         ${{ secrets.TERRAFORM_SA_PRIVATE_KEY }}
         EOF
         nebius profile create ${{ vars.TERRAFORM_SA_ID }} --skip-auth \
-          --endpoint api.eu-north1.nebius.cloud \
+          --endpoint api.eu.nebius.cloud \
           --service-account-id ${{ vars.TERRAFORM_SA_ID }} \
           --public-key-id ${{ secrets.TERRAFORM_SA_PUBLIC_KEY_ID }} \
           --parent-id ${{ env.TF_VAR_parent_id }} \
@@ -177,7 +177,7 @@ jobs:
         ${{ secrets.TERRAFORM_SA_PRIVATE_KEY }}
         EOF
         nebius profile create ${{ vars.TERRAFORM_SA_ID }} --skip-auth \
-          --endpoint api.eu-north1.nebius.cloud \
+          --endpoint api.eu.nebius.cloud \
           --service-account-id ${{ vars.TERRAFORM_SA_ID }} \
           --public-key-id ${{ secrets.TERRAFORM_SA_PUBLIC_KEY_ID }} \
           --parent-id ${{ env.TF_VAR_parent_id }} \
