@@ -6,11 +6,7 @@ resource "nebius_applications_v1alpha1_k8s_release" "gpu-operator" {
   namespace        = "gpu-operator"
   product_slug     = "nebius/nvidia-gpu-operator"
 
-  #  set = {
-  #    "driver.version" : var.driver_version
-  #  }
-  values = <<EOT
-  driver:
-    version: ${var.driver_version}
-  EOT
+  set = {
+    "driver.version" : var.driver_version
+  }
 }
