@@ -1,13 +1,17 @@
-variable "helm_repository" {
-  description = "GPU Operator Helm chart source repository."
+variable "cluster_id" {
+  description = "K8s cluster id."
   type        = string
-  default     = "oci://cr.eu-north1.nebius.cloud/marketplace/nebius/nvidia-gpu-operator/chart"
 }
 
-variable "helm_version" {
-  description = "Version of GPU Operator Helm chart."
+variable "parent_id" {
+  description = "Project id."
   type        = string
-  default     = "v24.6.2"
+}
+
+variable "product_slug" {
+  description = "Marketplace product slug."
+  type        = string
+  default     = "nebius/nvidia-gpu-operator"
 }
 
 variable "driver_version" {

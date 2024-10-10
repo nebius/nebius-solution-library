@@ -1,13 +1,17 @@
-variable "helm_repository" {
-  description = "Network Operator Helm chart source repository."
+variable "cluster_id" {
+  description = "K8s cluster id."
   type        = string
-  default     = "oci://cr.eu-north1.nebius.cloud/marketplace/nebius/nvidia-network-operator/chart"
 }
 
-variable "helm_version" {
-  description = "Version of Network Operator Helm chart."
+variable "parent_id" {
+  description = "Project id."
   type        = string
-  default     = "24.4.0"
+}
+
+variable "product_slug" {
+  description = "Marketplace product slug."
+  type        = string
+  default     = "nebius/nvidia-network-operator"
 }
 
 variable "limit_cpu" {

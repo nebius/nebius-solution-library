@@ -3,14 +3,18 @@ module "network-operator" {
     nebius_mk8s_v1_node_group.cpu-only,
     nebius_mk8s_v1_node_group.gpu,
   ]
-  source = "../modules/network-operator"
+  source     = "../modules/network-operator"
+  parent_id  = var.parent_id
+  cluster_id = nebius_mk8s_v1_cluster.k8s-cluster.id
 }
 
 module "gpu-operator" {
   depends_on = [
     module.network-operator
   ]
-  source = "../modules/gpu-operator"
+  source     = "../modules/gpu-operator"
+  parent_id  = var.parent_id
+  cluster_id = nebius_mk8s_v1_cluster.k8s-cluster.id
 }
 
 module "o11y" {
@@ -44,34 +48,34 @@ module "o11y" {
   }
   test_mode = var.test_mode
 }
-
-module "nccl-test" {
-  depends_on = [
-    module.gpu-operator,
-  ]
-
-  count           = var.test_mode ? 1 : 0
-  source          = "../modules/nccl-test"
-  number_of_hosts = nebius_mk8s_v1_node_group.gpu.fixed_node_count
-}
-
-module "kuberay" {
-  source = "../modules/kuberay"
-  count  = var.enable_kuberay ? 1 : 0
-
-  depends_on = [
-    nebius_mk8s_v1_node_group.cpu-only,
-    nebius_mk8s_v1_node_group.gpu,
-    module.network-operator,
-    module.gpu-operator,
-    module.csi-mounted-fs-path,
-  ]
-
-  gpu_platform     = var.gpu_nodes_platform
-  cpu_platform     = var.cpu_nodes_platform
-  min_gpu_replicas = var.kuberay_min_gpu_replicas
-  max_gpu_replicas = var.kuberay_max_gpu_replicas
-}
+#
+#module "nccl-test" {
+#  depends_on = [
+#    module.gpu-operator,
+#  ]
+#
+#  count           = var.test_mode ? 1 : 0
+#  source          = "../modules/nccl-test"
+#  number_of_hosts = nebius_mk8s_v1_node_group.gpu.fixed_node_count
+#}
+#
+#module "kuberay" {
+#  source = "../modules/kuberay"
+#  count  = var.enable_kuberay ? 1 : 0
+#
+#  depends_on = [
+#    nebius_mk8s_v1_node_group.cpu-only,
+#    nebius_mk8s_v1_node_group.gpu,
+#    module.network-operator,
+#    module.gpu-operator,
+#    module.csi-mounted-fs-path,
+#  ]
+#
+#  gpu_platform     = var.gpu_nodes_platform
+#  cpu_platform     = var.cpu_nodes_platform
+#  min_gpu_replicas = var.kuberay_min_gpu_replicas
+#  max_gpu_replicas = var.kuberay_max_gpu_replicas
+#}
 
 
 module "csi-mounted-fs-path" {

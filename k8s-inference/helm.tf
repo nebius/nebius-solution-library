@@ -3,7 +3,9 @@ module "gpu-operator" {
     nebius_mk8s_v1_node_group.gpu,
     nebius_mk8s_v1_node_group.cpu-only,
   ]
-  source = "../modules/gpu-operator"
+  source     = "../modules/gpu-operator"
+  parent_id  = var.parent_id
+  cluster_id = nebius_mk8s_v1_cluster.k8s-cluster.id
 }
 
 module "o11y" {
