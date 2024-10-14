@@ -200,3 +200,18 @@ module "slurm" {
     helm = helm
   }
 }
+
+module "login_script" {
+  depends_on = [
+    module.slurm
+  ]
+
+  source = "../../modules/login"
+
+  nlb_used           = local.create_nlb
+  slurm_cluster_name = var.slurm_cluster_name
+
+  providers = {
+    kubernetes = kubernetes
+  }
+}
