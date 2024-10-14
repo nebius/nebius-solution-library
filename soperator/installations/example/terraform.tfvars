@@ -223,7 +223,7 @@ slurm_node_count = {
 # Type of the k8s service to connect to login nodes.
 # Could be either "LoadBalancer" or "NodePort".
 # ---
-slurm_login_service_type = "NodePort"
+slurm_login_service_type = "LoadBalancer"
 
 # Port of the host to be opened in case of use of `NodePort` service type.
 # By default, 30022.

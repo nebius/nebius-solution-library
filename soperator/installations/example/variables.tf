@@ -397,7 +397,6 @@ variable "slurm_accounting_config" {
   default     = {}
 }
 
-
 # endregion Accounting
 
 # endregion Slurm

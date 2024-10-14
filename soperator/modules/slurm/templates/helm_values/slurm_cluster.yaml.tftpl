@@ -131,8 +131,9 @@ slurmNodes:
     size: ${nodes.login.size}
     k8sNodeFilterName: ${k8s_node_filters.non_gpu.name}
     sshdServiceType: ${nodes.login.service_type}
-    %{~ if nodes.login.service_type == "LoadBalancer" ~}
-    sshdServiceLoadBalancerIP: "${nodes.login.load_balancer_ip}"
+    %{~ if nodes.login.service_type == "LoadBalancer" && nodes.login.allocation_id != null ~}
+    sshdServiceAnnotations:
+      "nebius.com/load-balancer-allocation-id": "${nodes.login.allocation_id}"
     %{~ endif ~}
     %{~ if nodes.login.service_type == "NodePort" ~}
     sshdServiceNodePort: ${nodes.login.node_port}

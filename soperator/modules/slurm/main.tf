@@ -205,7 +205,7 @@ resource "helm_release" "slurm_cluster" {
       login = {
         size             = var.node_count.controller
         service_type     = var.login_service_type
-        load_balancer_ip = var.login_load_balancer_ip
+        allocation_id    = var.login_allocation_id
         node_port        = var.login_node_port
         root_public_keys = var.login_ssh_root_public_keys
       }

@@ -6,7 +6,7 @@ output "control_plane" {
   }
 }
 
-output "login_ip" {
-  description = "IP used for SSH connection into Slurm cluster."
-  value       = local.login_ip
+output "allocation_id" {
+  description = "ID of the VPC allocation used for SSH connection into Slurm cluster."
+  value       = local.allocation_id
 }
