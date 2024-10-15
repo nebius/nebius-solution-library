@@ -85,14 +85,14 @@ filestore_jail = {
 
 # Shared filesystems to be mounted inside jail.
 # ---
-filestore_jail_submounts = [{
-  name       = "mlperf-sd"
-  mount_path = "/mlperf-sd"
-  spec = {
-    size_gibibytes       = 2048
-    block_size_kibibytes = 4
-  }
-}]
+# filestore_jail_submounts = [{
+#   name       = "mlperf-sd"
+#   mount_path = "/mlperf-sd"
+#   spec = {
+#     size_gibibytes       = 2048
+#     block_size_kibibytes = 4
+#   }
+# }]
 # Or use existing filestores.
 # ---
 # filestore_jail_submounts = [{
@@ -107,12 +107,12 @@ filestore_jail_submounts = [{
 # By default, null.
 # Required if accounting_enabled is true.
 # ---
-# filestore_accounting = {
-#   spec = {
-#     size_gibibytes       = 512
-#     block_size_kibibytes = 4
-#   }
-# }
+filestore_accounting = {
+  spec = {
+    size_gibibytes       = 512
+    block_size_kibibytes = 4
+  }
+}
 # Or use existing filestore.
 # ---
 # filestore_accounting = {
@@ -173,10 +173,10 @@ k8s_cluster_node_group_gpu = {
 # By default, empty list.
 # ---
 # k8s_cluster_node_ssh_access_users = [{
-#   name = "user1"
+#   name = "<USER1>"
 #   public_keys = [
-#     "user1 key1",
-#     "user1 key2",
+#     "<ENCRYPTION-METHOD HASH1 USER1>",,
+#     "<ENCRYPTION-METHOD HASH1 USER1>",,
 #   ]
 # }]
 
@@ -199,7 +199,7 @@ slurm_cluster_name = "my-amazing-slurm"
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.14.4"
+slurm_operator_version = "1.14.7"
 
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
@@ -233,7 +233,7 @@ slurm_login_service_type = "NodePort"
 # Authorized keys accepted for connecting to Slurm login nodes via SSH as 'root' user.
 # ---
 slurm_login_ssh_root_public_keys = [
-  "ENCRYPTION-METHOD HASH USER",
+  "<ENCRYPTION-METHOD HASH USER>",
 ]
 
 # endregion Login
@@ -262,7 +262,7 @@ slurm_login_ssh_root_public_keys = [
 # Shared memory size for Slurm controller and worker nodes in GiB.
 # By default, 64.
 # ---
-# slurm_shared_memory_size_gibibytes = 64
+slurm_shared_memory_size_gibibytes = 256
 
 # endregion Config
 
@@ -306,7 +306,7 @@ slurm_login_ssh_root_public_keys = [
 # Password of `admin` user of Grafana.
 # Set it to your desired password.
 # ---
-# telemetry_grafana_admin_password = ""
+telemetry_grafana_admin_password = "<YOUR-PASSWORD-FOR-GRAFANA>"
 
 # endregion Telemetry
 
@@ -320,34 +320,7 @@ slurm_login_ssh_root_public_keys = [
 # Whether to enable Accounting.
 # By default, false.
 # ---
-# accounting_enabled = false
-
-# Slurmdbd.conf configuration. See https://slurm.schedmd.com/slurmdbd.conf.html.Not all options are supported.
-# slurmdbd_config = {
-#   archiveEvents     = "yes"
-#   archiveJobs       = "yes"
-#   archiveSteps      = "yes"
-#   archiveSuspend    = "yes"
-#   archiveResv       = "yes"
-#   archiveUsage      = "yes"
-#   archiveTXN        = "yes"
-#   debugLevel        = "info"
-#   tcpTimeout        = "120"
-#   purgeEventAfter   = "1month"
-#   purgeJobAfter     = "1month"
-#   purgeStepAfter    = "1month"
-#   purgeSuspendAfter = "12month"
-#   purgeResvAfter    = "1month"
-# }
-
-# Slurm.conf accounting configuration. See https://slurm.schedmd.com/slurm.conf.html. Not all options are supported.
-# slurm_accounting_config = {
-#   accountingStorageTRES      = "gres/gpu,license/iop1"
-#   accountingStoreFlags       = "job_comment,job_env,job_extra,job_script,no_stdio"
-#   acctGatherInterconnectType = "acct_gather_interconnect/ofed"
-#   jobAcctGatherType          = "jobacct_gather/cgroup"
-#   jobAcctGatherFrequency     = 30
-# }
+accounting_enabled = true
 
 # endregion Accounting
 

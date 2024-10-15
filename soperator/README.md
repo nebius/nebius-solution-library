@@ -45,8 +45,17 @@ These checks are implemented as usual Slurm jobs - they stay in the same queue w
 
 ## Get your own copy
 
-In order to not mess with example recipe, make your own copy of [example directory](installations/example).
-Following steps will be described as you work in terminal within that new directory.
+In order to not mess with example recipe, make your own copy of [example directory](installations/example):
+```bash
+mkdir installations/<your-installation-name>
+
+cd installations/<your-installation-name>
+
+cp -r ../examples/ ./
+```
+
+> [!NOTE]
+> Following steps will be described as you work in terminal within that new directory.
 
 ### Nebius CLI
 
@@ -94,6 +103,7 @@ Let's start with exporting your tenant and project IDs for a further use.
       --parent-id "${NEBIUS_PROJECT_ID}" \
       --name 'slurm-terraform-sa' \
       --format json | jq -r '.metadata.id')
+   
    export NEBIUS_SA_TERRAFORM_ID
    ```
 
@@ -105,6 +115,7 @@ Let's start with exporting your tenant and project IDs for a further use.
       --parent-id "${NEBIUS_TENANT_ID}" \
       --name 'editors' \
       --format json | jq -r '.metadata.id')
+   
    export NEBIUS_GROUP_EDITORS_ID
    
    # Adding SA to the 'editors' group
@@ -122,6 +133,7 @@ Let's start with exporting your tenant and project IDs for a further use.
       --account-service-account-id "${NEBIUS_SA_TERRAFORM_ID}" \
       --description 'AWS CLI key' \
       --format json | jq -r '.resource_id')
+   
    export NEBIUS_SA_ACCESS_KEY_ID
    ```
 
@@ -132,8 +144,11 @@ Let's start with exporting your tenant and project IDs for a further use.
 
    ```bash
    aws configure set aws_access_key_id "${NEBIUS_SA_ACCESS_KEY_AWS_ID}"
+   
    aws configure set aws_secret_access_key "${NEBIUS_SA_SECRET_ACCESS_KEY}"
+   
    aws configure set region 'eu-north1'
+   
    aws configure set endpoint_url 'https://storage.eu-north1.nebius.cloud:443'
    ```
 
@@ -141,6 +156,7 @@ Let's start with exporting your tenant and project IDs for a further use.
 
 ```bash
 NEBIUS_BUCKET_NAME="tfstate-slurm-k8s-$(echo -n "${NEBIUS_TENANT_ID}-${NEBIUS_PROJECT_ID}" | md5sum | awk '$0=$1')"
+
 nebius storage bucket create --parent-id "${NEBIUS_PROJECT_ID}" --versioning-policy 'enabled' --name "${NEBIUS_BUCKET_NAME}"
 ```
 
@@ -208,6 +224,7 @@ It can find and load variables from e.g. `.envrc` file.
 
    ```bash
    token_present() { test ${NEBIUS_IAM_TOKEN} && echo 'IAM token is present' || echo 'There is no IAM token'; }
+   
    pushd .. > /dev/null ; echo ; token_present ; echo ; popd > /dev/null ; echo ; token_present
    ```
 
@@ -275,8 +292,11 @@ When it finishes, connect to the K8S cluster and wait until the `slurm.nebius.ai
 
 Once it's available, you will be able to connect to Slurm login node via SSH using provided public key as a `root` user.
 
+[//]: # (TODO: Add instructions on how to find this SLURM_IP)
+
 ```shell
 SLURM_IP='<NLB node / allocated IP address>'
+
 ssh -i '<Path to private key for provided public key>' [-p <Node port>] root@${SLURM_IP}
 ```
 
