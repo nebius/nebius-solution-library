@@ -1,0 +1,22 @@
+#cloud-config
+users:
+  - name: ${ssh_user_name}
+    groups: sudo
+    shell: /bin/bash
+    sudo: 'ALL=(ALL) NOPASSWD:ALL'
+    ssh-authorized-keys:
+      - ${ssh_public_key}
+
+runcmd:
+- apt-get update
+- apt-get install -y nfs-kernel-server
+- mkdir -p ${nfs_path}
+- mkfs.ext4 /dev/vda
+- mount -o rw /dev/vda ${nfs_path}
+- echo "/dev/vdb ${nfs_path} ext4  rw,relatime" | tee -a /etc/fstab
+- chown nobody:nogroup ${nfs_path}
+- chmod 777 ${nfs_path}
+- echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check)" >> /etc/exports
+- netplan set ethernets.eth0.mtu=${mtu_size}
+- netplan apply
+- systemctl restart nfs-kernel-server
