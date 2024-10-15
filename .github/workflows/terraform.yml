@@ -4,6 +4,7 @@ on:
   pull_request:
     paths-ignore:
       - 'soperator/**'
+      - '.github/workflows/soperator.yml'
 #  schedule:
 #    - cron: '30 * * * *'
 
