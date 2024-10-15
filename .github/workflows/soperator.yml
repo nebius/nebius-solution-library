@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "soperator/**"
+      - ".github/workflows/soperator.yml"
 
 permissions:
   contents: read
