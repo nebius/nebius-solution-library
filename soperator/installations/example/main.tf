@@ -154,9 +154,9 @@ module "slurm" {
     }
   })[var.k8s_cluster_node_group_gpu.resource.preset]
 
-  login_service_type         = "NodePort"
+  login_service_type         = var.slurm_login_service_type
   login_node_port            = var.slurm_login_node_port
-  login_load_balancer_ip     = module.k8s.login_ip
+  login_allocation_id        = module.k8s.allocation_id
   login_ssh_root_public_keys = var.slurm_login_ssh_root_public_keys
 
   exporter_enabled        = var.slurm_exporter_enabled
@@ -198,5 +198,21 @@ module "slurm" {
 
   providers = {
     helm = helm
+  }
+}
+
+module "login_script" {
+  depends_on = [
+    module.slurm
+  ]
+
+  source = "../../modules/login"
+
+  nlb_used           = local.create_nlb
+  nlb_port           = var.slurm_login_node_port
+  slurm_cluster_name = var.slurm_cluster_name
+
+  providers = {
+    kubernetes = kubernetes
   }
 }

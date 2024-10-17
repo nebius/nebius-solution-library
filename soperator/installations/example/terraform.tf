@@ -12,6 +12,10 @@ terraform {
       version = ">=1.1.1"
     }
 
+    kubernetes = {
+      source = "hashicorp/kubernetes"
+    }
+
     helm = {
       source = "hashicorp/helm"
     }
@@ -23,6 +27,12 @@ provider "nebius" {
 }
 
 provider "units" {}
+
+provider "kubernetes" {
+  host                   = module.k8s.control_plane.public_endpoint
+  cluster_ca_certificate = module.k8s.control_plane.cluster_ca_certificate
+  token                  = var.iam_token
+}
 
 provider "helm" {
   kubernetes {

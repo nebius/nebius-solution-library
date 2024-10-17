@@ -45,34 +45,38 @@ resource "nebius_mk8s_v1_node_group" "nlb" {
   }
 }
 
-resource "nebius_vpc_v1_allocation" "this" {
-  count = var.create_nlb ? 0 : 1
-
-  depends_on = [
-    nebius_mk8s_v1_cluster.this,
-  ]
-
-  parent_id = var.iam_project_id
-
-  name = "${var.name}-${var.slurm_cluster_name}"
-  labels = tomap({
-    (module.labels.key_k8s_cluster_id)     = (nebius_mk8s_v1_cluster.this.id)
-    (module.labels.key_k8s_cluster_name)   = (nebius_mk8s_v1_cluster.this.name)
-    (module.labels.key_slurm_cluster_name) = (var.slurm_cluster_name)
-  })
-
-  ipv4_public = {
-    subnet_id = var.vpc_subnet_id
-  }
-
-  lifecycle {
-    ignore_changes = [
-      labels,
-    ]
-  }
-}
+# TODO: Use allocation for static IPs when it's ready
+#
+# resource "nebius_vpc_v1_allocation" "this" {
+#   count = var.create_nlb ? 0 : 1
+#
+#   depends_on = [
+#     nebius_mk8s_v1_cluster.this,
+#   ]
+#
+#   parent_id = var.iam_project_id
+#
+#   name = "${var.name}-${var.slurm_cluster_name}"
+#   labels = tomap({
+#     (module.labels.key_k8s_cluster_id)     = (nebius_mk8s_v1_cluster.this.id)
+#     (module.labels.key_k8s_cluster_name)   = (nebius_mk8s_v1_cluster.this.name)
+#     (module.labels.key_slurm_cluster_name) = (var.slurm_cluster_name)
+#   })
+#
+#   ipv4_public = {
+#     cidr = "/32"
+#     subnet_id = var.vpc_subnet_id
+#   }
+#
+#   lifecycle {
+#     ignore_changes = [
+#       labels,
+#       ipv4_public.subnet_id,
+#     ]
+#   }
+# }
 
 locals {
-  # TODO: return IP for NLB as well
-  login_ip = var.create_nlb ? "" : regexall("[\\d\\.]+", one(nebius_vpc_v1_allocation.this).status.details.allocated_cidr)[0]
+  # allocation_id = nebius_vpc_v1_allocation.this.id
+  allocation_id = null
 }
