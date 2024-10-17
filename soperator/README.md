@@ -300,16 +300,22 @@ correspond to your needs. Type `yes` if the configuration is correct and watch t
 > ```
 > Try to re-run `terraform apply` until they're gone.
 
-When it finishes, connect to the K8S cluster and wait until the `slurm.nebius.ai/SlurmCluster` becomes `Available`.
+Our Terraform recipe waits for `slurm.nebius.ai/SlurmCluster` CustomResource having `Available` `.status.phase`.
 
-Once it's available, you will be able to connect to Slurm login node via SSH using provided public key as a `root` user.
+Once it's ready, we create `login.sh` script to connect to Slurm. It automatically gets public IP address of:
+- K8s node (in case of use of `NodePort` Service type);
+- Slurm Login Service (in case of use of `LoadBalancer` Service type).
 
-[//]: # (TODO: Add instructions on how to find this SLURM_IP)
+You can use this script to easily connect to your newly created cluster. It accepts following arguments:
+- _Optional_ `-u <SSH user name>` (by default, `root`);
+- `-k <Path to private key for provided public key>`.
 
-```shell
-SLURM_IP='<NLB node / allocated IP address>'
-
-ssh -i '<Path to private key for provided public key>' [-p <Node port>] root@${SLURM_IP}
+```bash
+./login.sh -k ~/.ssh/id_rsa
+```
+```text
+...
+root@login-0:~#
 ```
 
 ### Check it out
