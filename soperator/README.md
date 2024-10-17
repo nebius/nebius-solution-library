@@ -1,4 +1,4 @@
-# Terraform recipe to create Slurm cluster on K8s in Nebius
+# Terraform recipe to create Slurm cluster on K8s with [Soperator](https://github.com/nebius/soperator) in Nebius
 
 ## Overview
 
@@ -43,7 +43,7 @@ These checks are implemented as usual Slurm jobs - they stay in the same queue w
 
 ## Prerequisites
 
-## Get your own copy
+### Get your own copy
 
 In order to not mess with example recipe, make your own copy of [example directory](installations/example):
 ```bash
@@ -56,6 +56,10 @@ cp -r ../examples/ ./
 
 > [!NOTE]
 > Following steps will be described as you work in terminal within that new directory.
+
+### JQ
+
+Install [jq](https://jqlang.github.io/jq/download/).
 
 ### Nebius CLI
 
@@ -182,6 +186,14 @@ which md5sum
 > ```bash
 > brew install coreutils
 > ```
+
+### Kubectl
+
+Install [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) and verify it's working:
+
+```bash
+kubectl cluster-info
+```
 
 ### Environment
 
