@@ -4,6 +4,12 @@ variable "nlb_used" {
   nullable    = false
 }
 
+variable "nlb_port" {
+  description = "NodePort used for NLB."
+  type        = number
+  nullable    = false
+}
+
 variable "slurm_cluster_name" {
   description = "Name of the Slurm cluster in k8s cluster."
   type        = string

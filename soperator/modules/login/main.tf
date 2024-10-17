@@ -25,5 +25,6 @@ resource "local_file" "this" {
   file_permission = "0774"
   content = templatefile("${path.module}/templates/login.sh.tftpl", {
     address = terraform_data.connection_ip.output
+    port    = var.nlb_used ? var.nlb_port : 22
   })
 }

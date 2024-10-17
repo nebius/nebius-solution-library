@@ -209,6 +209,7 @@ module "login_script" {
   source = "../../modules/login"
 
   nlb_used           = local.create_nlb
+  nlb_port           = var.slurm_login_node_port
   slurm_cluster_name = var.slurm_cluster_name
 
   providers = {
