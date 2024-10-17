@@ -226,3 +226,14 @@ resource "helm_release" "slurm_cluster" {
   wait          = true
   wait_for_jobs = true
 }
+
+resource "terraform_data" "wait_for_slurm_cluster" {
+  depends_on = [
+    helm_release.slurm_cluster
+  ]
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = "kubectl wait --for=jsonpath='{.status.phase}'=Available --timeout 1h -n ${var.name} slurmcluster.slurm.nebius.ai/${var.name}"
+  }
+}
