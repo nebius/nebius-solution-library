@@ -91,6 +91,7 @@ variable "filestore_jail_submounts" {
       block_size_kibibytes = number
     }))
   }))
+  default = []
 
   validation {
     condition = length([
