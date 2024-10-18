@@ -5,7 +5,6 @@ VERSION							= $(shell cat VERSION)
 IMAGE_TAG						= $(VERSION)
 DOCKER_REGISTRY_NAME			= soperator
 
-
 ifeq ($(shell uname), Darwin)
     SHA_CMD = shasum -a 256
     SED_COMMAND = sed -i ''
@@ -39,18 +38,6 @@ sync-version: ## Sync versions from file
 	@$(SED_COMMAND) -E 's/slurm_operator_version *= *"[0-9]+.[0-9]+.[0-9]+[^ ]*"/slurm_operator_version = "$(IMAGE_TAG)"/' installations/example/terraform.tfvars
 	@terraform fmt installations/example/terraform.tfvars
 	@# endregion installations/example/terraform.tfvars
-
-	@# region installations/msp-slurm-test/main.tf
-	@echo 'Syncing installations/msp-slurm-test/main.tf'
-	@$(SED_COMMAND) -E 's/operator_version *= *"[0-9]+.[0-9]+.[0-9]+[^ ]*"/operator_version = "$(IMAGE_TAG)"/' installations/msp-slurm-test/main.tf >/dev/null 2>&1 || true
-	@terraform fmt installations/msp-slurm-test/main.tf >/dev/null 2>&1 || true
-	@# endregion installations/msp-slurm-test/main.tf
-
-	@# region installations/msp-slurm-prod/main.tf
-	@echo 'Syncing installations/msp-slurm-prod/main.tf'
-	@$(SED_COMMAND) -E 's/operator_version *= *"[0-9]+.[0-9]+.[0-9]+[^ ]*"/operator_version = "$(IMAGE_TAG)"/' installations/msp-slurm-prod/main.tf >/dev/null 2>&1 || true
-	@terraform fmt installations/msp-slurm-prod/main.tf >/dev/null 2>&1 || true
-	@# endregion installations/msp-slurm-prod/main.tf
 
 .PHONY: release
 release:

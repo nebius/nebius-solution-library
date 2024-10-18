@@ -20,3 +20,19 @@ resource "nebius_mk8s_v1_cluster" "this" {
     ]
   }
 }
+
+resource "terraform_data" "kubectl_cluster_context" {
+  depends_on = [
+    nebius_mk8s_v1_cluster.this
+  ]
+
+  triggers_replace = [
+    nebius_mk8s_v1_cluster.this.id
+  ]
+
+  provisioner "local-exec" {
+    working_dir = path.root
+    interpreter = ["nebius", "mk8s", "cluster", "get-credentials", "--external", "--force", "--id"]
+    command     = nebius_mk8s_v1_cluster.this.id
+  }
+}

@@ -175,8 +175,8 @@ k8s_cluster_node_group_gpu = {
 # k8s_cluster_node_ssh_access_users = [{
 #   name = "<USER1>"
 #   public_keys = [
-#     "<ENCRYPTION-METHOD HASH1 USER1>",,
-#     "<ENCRYPTION-METHOD HASH1 USER1>",,
+#     "<ENCRYPTION-METHOD1 HASH1 USER1>",
+#     "<ENCRYPTION-METHOD2 HASH2 USER1>",
 #   ]
 # }]
 
@@ -199,7 +199,7 @@ slurm_cluster_name = "my-amazing-slurm"
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.14.7"
+slurm_operator_version = "1.14.10"
 
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
@@ -223,7 +223,7 @@ slurm_node_count = {
 # Type of the k8s service to connect to login nodes.
 # Could be either "LoadBalancer" or "NodePort".
 # ---
-slurm_login_service_type = "NodePort"
+slurm_login_service_type = "LoadBalancer"
 
 # Port of the host to be opened in case of use of `NodePort` service type.
 # By default, 30022.

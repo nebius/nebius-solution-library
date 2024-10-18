@@ -91,6 +91,7 @@ variable "filestore_jail_submounts" {
       block_size_kibibytes = number
     }))
   }))
+  default = []
 
   validation {
     condition = length([
@@ -396,7 +397,6 @@ variable "slurm_accounting_config" {
   type        = map(any)
   default     = {}
 }
-
 
 # endregion Accounting
 

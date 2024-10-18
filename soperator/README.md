@@ -1,4 +1,4 @@
-# Terraform recipe to create Slurm cluster on K8s in Nebius
+# Terraform recipe to create Slurm cluster on K8s with [Soperator](https://github.com/nebius/soperator) in Nebius
 
 ## Overview
 
@@ -43,7 +43,7 @@ These checks are implemented as usual Slurm jobs - they stay in the same queue w
 
 ## Prerequisites
 
-## Get your own copy
+### Get your own copy
 
 In order to not mess with example recipe, make your own copy of [example directory](installations/example):
 ```bash
@@ -56,6 +56,10 @@ cp -r ../examples/ ./
 
 > [!NOTE]
 > Following steps will be described as you work in terminal within that new directory.
+
+### JQ
+
+Install [jq](https://jqlang.github.io/jq/download/).
 
 ### Nebius CLI
 
@@ -183,6 +187,14 @@ which md5sum
 > brew install coreutils
 > ```
 
+### Kubectl
+
+Install [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) and verify it's working:
+
+```bash
+kubectl cluster-info
+```
+
 ### Environment
 
 You have to have IAM token for auth with **Nebius CLI** and **Nebius Terraform provider**.
@@ -288,16 +300,22 @@ correspond to your needs. Type `yes` if the configuration is correct and watch t
 > ```
 > Try to re-run `terraform apply` until they're gone.
 
-When it finishes, connect to the K8S cluster and wait until the `slurm.nebius.ai/SlurmCluster` becomes `Available`.
+Our Terraform recipe waits for `slurm.nebius.ai/SlurmCluster` CustomResource having `Available` `.status.phase`.
 
-Once it's available, you will be able to connect to Slurm login node via SSH using provided public key as a `root` user.
+Once it's ready, we create `login.sh` script to connect to Slurm. It automatically gets public IP address of:
+- K8s node (in case of use of `NodePort` Service type);
+- Slurm Login Service (in case of use of `LoadBalancer` Service type).
 
-[//]: # (TODO: Add instructions on how to find this SLURM_IP)
+You can use this script to easily connect to your newly created cluster. It accepts following arguments:
+- _Optional_ `-u <SSH user name>` (by default, `root`);
+- `-k <Path to private key for provided public key>`.
 
-```shell
-SLURM_IP='<NLB node / allocated IP address>'
-
-ssh -i '<Path to private key for provided public key>' [-p <Node port>] root@${SLURM_IP}
+```bash
+./login.sh -k ~/.ssh/id_rsa
+```
+```text
+...
+root@login-0:~#
 ```
 
 ### Check it out
