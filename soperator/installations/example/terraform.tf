@@ -12,6 +12,10 @@ terraform {
       version = ">=1.1.1"
     }
 
+    kubernetes = {
+      source = "hashicorp/kubernetes"
+    }
+
     helm = {
       source = "hashicorp/helm"
     }
@@ -19,10 +23,16 @@ terraform {
 }
 
 provider "nebius" {
-  domain = "api.eu-north1.nebius.cloud:443"
+  domain = "api.eu.nebius.cloud:443"
 }
 
 provider "units" {}
+
+provider "kubernetes" {
+  host                   = module.k8s.control_plane.public_endpoint
+  cluster_ca_certificate = module.k8s.control_plane.cluster_ca_certificate
+  token                  = var.iam_token
+}
 
 provider "helm" {
   kubernetes {

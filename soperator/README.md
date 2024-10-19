@@ -1,4 +1,4 @@
-# Terraform recipe to create Slurm cluster on K8s in Nebius
+# Terraform recipe to create Slurm cluster on K8s with [Soperator](https://github.com/nebius/soperator) in Nebius
 
 ## Overview
 
@@ -43,10 +43,23 @@ These checks are implemented as usual Slurm jobs - they stay in the same queue w
 
 ## Prerequisites
 
-## Get your own copy
+### Get your own copy
 
-In order to not mess with example recipe, make your own copy of [example directory](installations/example).
-Following steps will be described as you work in terminal within that new directory.
+In order to not mess with example recipe, make your own copy of [example directory](installations/example):
+```bash
+mkdir installations/<your-installation-name>
+
+cd installations/<your-installation-name>
+
+cp -r ../examples/ ./
+```
+
+> [!NOTE]
+> Following steps will be described as you work in terminal within that new directory.
+
+### JQ
+
+Install [jq](https://jqlang.github.io/jq/download/).
 
 ### Nebius CLI
 
@@ -94,6 +107,7 @@ Let's start with exporting your tenant and project IDs for a further use.
       --parent-id "${NEBIUS_PROJECT_ID}" \
       --name 'slurm-terraform-sa' \
       --format json | jq -r '.metadata.id')
+   
    export NEBIUS_SA_TERRAFORM_ID
    ```
 
@@ -105,6 +119,7 @@ Let's start with exporting your tenant and project IDs for a further use.
       --parent-id "${NEBIUS_TENANT_ID}" \
       --name 'editors' \
       --format json | jq -r '.metadata.id')
+   
    export NEBIUS_GROUP_EDITORS_ID
    
    # Adding SA to the 'editors' group
@@ -122,6 +137,7 @@ Let's start with exporting your tenant and project IDs for a further use.
       --account-service-account-id "${NEBIUS_SA_TERRAFORM_ID}" \
       --description 'AWS CLI key' \
       --format json | jq -r '.resource_id')
+   
    export NEBIUS_SA_ACCESS_KEY_ID
    ```
 
@@ -132,8 +148,11 @@ Let's start with exporting your tenant and project IDs for a further use.
 
    ```bash
    aws configure set aws_access_key_id "${NEBIUS_SA_ACCESS_KEY_AWS_ID}"
+   
    aws configure set aws_secret_access_key "${NEBIUS_SA_SECRET_ACCESS_KEY}"
+   
    aws configure set region 'eu-north1'
+   
    aws configure set endpoint_url 'https://storage.eu-north1.nebius.cloud:443'
    ```
 
@@ -141,6 +160,7 @@ Let's start with exporting your tenant and project IDs for a further use.
 
 ```bash
 NEBIUS_BUCKET_NAME="tfstate-slurm-k8s-$(echo -n "${NEBIUS_TENANT_ID}-${NEBIUS_PROJECT_ID}" | md5sum | awk '$0=$1')"
+
 nebius storage bucket create --parent-id "${NEBIUS_PROJECT_ID}" --versioning-policy 'enabled' --name "${NEBIUS_BUCKET_NAME}"
 ```
 
@@ -166,6 +186,14 @@ which md5sum
 > ```bash
 > brew install coreutils
 > ```
+
+### Kubectl
+
+Install [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) and verify it's working:
+
+```bash
+kubectl cluster-info
+```
 
 ### Environment
 
@@ -208,6 +236,7 @@ It can find and load variables from e.g. `.envrc` file.
 
    ```bash
    token_present() { test ${NEBIUS_IAM_TOKEN} && echo 'IAM token is present' || echo 'There is no IAM token'; }
+   
    pushd .. > /dev/null ; echo ; token_present ; echo ; popd > /dev/null ; echo ; token_present
    ```
 
@@ -271,13 +300,22 @@ correspond to your needs. Type `yes` if the configuration is correct and watch t
 > ```
 > Try to re-run `terraform apply` until they're gone.
 
-When it finishes, connect to the K8S cluster and wait until the `slurm.nebius.ai/SlurmCluster` becomes `Available`.
+Our Terraform recipe waits for `slurm.nebius.ai/SlurmCluster` CustomResource having `Available` `.status.phase`.
 
-Once it's available, you will be able to connect to Slurm login node via SSH using provided public key as a `root` user.
+Once it's ready, we create `login.sh` script to connect to Slurm. It automatically gets public IP address of:
+- K8s node (in case of use of `NodePort` Service type);
+- Slurm Login Service (in case of use of `LoadBalancer` Service type).
 
-```shell
-SLURM_IP='<NLB node / allocated IP address>'
-ssh -i '<Path to private key for provided public key>' [-p <Node port>] root@${SLURM_IP}
+You can use this script to easily connect to your newly created cluster. It accepts following arguments:
+- _Optional_ `-u <SSH user name>` (by default, `root`);
+- `-k <Path to private key for provided public key>`.
+
+```bash
+./login.sh -k ~/.ssh/id_rsa
+```
+```text
+...
+root@login-0:~#
 ```
 
 ### Check it out

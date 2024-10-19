@@ -91,8 +91,8 @@ sbatch \
     --nodes="${NUM_NODES}" \
     --gpus-per-node=${GPUS_PER_NODE} \
     --ntasks-per-node="${GPUS_PER_NODE}" \
-    --cpus-per-task=16 \
-    --mem-per-cpu="8G" \
+    --cpus-per-task=8 \
+    --mem-per-cpu="4G" \
     --time="${WALLTIME}" \
     --output="${LOG_DIR}/%A_${JOB_NAME}.out" \
     ./scripts/slurm/srun.sh \

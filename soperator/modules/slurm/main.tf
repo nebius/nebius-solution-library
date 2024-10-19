@@ -205,7 +205,7 @@ resource "helm_release" "slurm_cluster" {
       login = {
         size             = var.node_count.controller
         service_type     = var.login_service_type
-        load_balancer_ip = var.login_load_balancer_ip
+        allocation_id    = var.login_allocation_id
         node_port        = var.login_node_port
         root_public_keys = var.login_ssh_root_public_keys
       }
@@ -225,4 +225,15 @@ resource "helm_release" "slurm_cluster" {
 
   wait          = true
   wait_for_jobs = true
+}
+
+resource "terraform_data" "wait_for_slurm_cluster" {
+  depends_on = [
+    helm_release.slurm_cluster
+  ]
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = "kubectl wait --for=jsonpath='{.status.phase}'=Available --timeout 1h -n ${var.name} slurmcluster.slurm.nebius.ai/${var.name}"
+  }
 }

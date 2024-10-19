@@ -43,10 +43,11 @@ variable "login_node_port" {
   type        = number
 }
 
-variable "login_load_balancer_ip" {
-  description = "External IP of the LoadBalancer in case of use of `LoadBalancer` service type."
+variable "login_allocation_id" {
+  description = "ID of the VPC allocation used in case of `LoadBalancer` service type."
   type        = string
-  default     = ""
+  nullable    = true
+  default     = null
 }
 
 variable "login_ssh_root_public_keys" {
