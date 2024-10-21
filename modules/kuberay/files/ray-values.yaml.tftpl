@@ -1,7 +1,5 @@
 head:
   containerEnv:
-    - name: RAY_REDIS_ADDRESS
-      value: '{{ .Release.Name }}-redis-master:6379'
     - name: NVIDIA_VISIBLE_DEVICES
       value: "void"
   nodeSelector:
