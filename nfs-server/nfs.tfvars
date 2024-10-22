@@ -1,5 +1,5 @@
 parent_id = "project-..."
-subnet_id = "vpcsubnet-...0"
+subnet_id = "vpcsubnet-..."
 ssh_user_name = "nfs"
 ssh_public_key = {
   key  = "put your ssh key here"
