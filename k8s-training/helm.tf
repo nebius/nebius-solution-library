@@ -3,14 +3,18 @@ module "network-operator" {
     nebius_mk8s_v1_node_group.cpu-only,
     nebius_mk8s_v1_node_group.gpu,
   ]
-  source = "../modules/network-operator"
+  source     = "../modules/network-operator"
+  parent_id  = var.parent_id
+  cluster_id = nebius_mk8s_v1_cluster.k8s-cluster.id
 }
 
 module "gpu-operator" {
   depends_on = [
     module.network-operator
   ]
-  source = "../modules/gpu-operator"
+  source     = "../modules/gpu-operator"
+  parent_id  = var.parent_id
+  cluster_id = nebius_mk8s_v1_cluster.k8s-cluster.id
 }
 
 module "o11y" {

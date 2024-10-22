@@ -1,21 +1,13 @@
-resource "helm_release" "network_operator" {
-  name       = "network-operator"
-  repository = var.helm_repository
-  chart      = "network-operator"
-  namespace  = "network-operator"
-  atomic     = true
-  timeout    = 600
+resource "nebius_applications_v1alpha1_k8s_release" "network-operator" {
+  cluster_id = var.cluster_id
+  parent_id  = var.parent_id
 
-  create_namespace = true
-  version          = var.helm_version
+  application_name = "network-operator"
+  namespace        = "network-operator"
+  product_slug     = var.product_slug
 
-  set {
-    name  = "operator.resources.limits.cpu"
-    value = var.limit_cpu
-  }
-
-  set {
-    name  = "operator.resources.limits.memory"
-    value = var.limit_memory
+  set = {
+    "operator.resources.limits.cpu" : var.limit_cpu,
+    "operator.resources.limits.memory" : var.limit_memory
   }
 }

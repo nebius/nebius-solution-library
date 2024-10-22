@@ -1,17 +1,12 @@
-resource "helm_release" "gpu-operator" {
-  name = "gpu-operator"
-  # FIXME set to production product
-  repository       = var.helm_repository
-  chart            = "gpu-operator"
+resource "nebius_applications_v1alpha1_k8s_release" "gpu-operator" {
+  cluster_id = var.cluster_id
+  parent_id  = var.parent_id
+
+  application_name = "gpu-operator"
   namespace        = "gpu-operator"
-  create_namespace = true
-  version          = var.helm_version
-  atomic           = true
-  timeout          = 600
+  product_slug     = "nebius/nvidia-gpu-operator"
 
-  set {
-    name  = "driver.version"
-    value = var.driver_version
+  set = {
+    "driver.version" : var.driver_version
   }
-
 }
