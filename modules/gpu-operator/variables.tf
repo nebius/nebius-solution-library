@@ -8,12 +8,6 @@ variable "parent_id" {
   type        = string
 }
 
-variable "product_slug" {
-  description = "Marketplace product slug."
-  type        = string
-  default     = "nebius/nvidia-gpu-operator"
-}
-
 variable "driver_version" {
   description = "GPU driver version."
   type        = string

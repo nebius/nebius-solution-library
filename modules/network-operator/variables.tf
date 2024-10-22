@@ -8,12 +8,6 @@ variable "parent_id" {
   type        = string
 }
 
-variable "product_slug" {
-  description = "Marketplace product slug."
-  type        = string
-  default     = "nebius/nvidia-network-operator"
-}
-
 variable "limit_cpu" {
   description = "CPU limit for the Network Operator"
   type        = string
