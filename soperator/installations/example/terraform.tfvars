@@ -199,7 +199,7 @@ slurm_cluster_name = "my-amazing-slurm"
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.14.10"
+slurm_operator_version = "1.14.11"
 
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
