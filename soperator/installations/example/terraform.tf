@@ -4,7 +4,7 @@ terraform {
   required_providers {
     nebius = {
       source  = "terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius"
-      version = "0.3.22"
+      version = "0.4.4"
     }
 
     units = {
@@ -40,4 +40,8 @@ provider "helm" {
     cluster_ca_certificate = module.k8s.control_plane.cluster_ca_certificate
     token                  = var.iam_token
   }
+}
+
+module "resources" {
+  source = "../../modules/available_resources"
 }

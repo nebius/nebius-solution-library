@@ -1,5 +1,7 @@
 locals {
   create_nlb = var.slurm_login_service_type == "NodePort"
+
+  worker_resources = module.resources.this[var.k8s_cluster_node_group_gpu.resource.platform][var.k8s_cluster_node_group_gpu.resource.preset]
 }
 
 module "filestore" {
@@ -115,21 +117,45 @@ module "k8s" {
   }
 }
 
-module "nvidia_operators" {
+module "nvidia_operator_network" {
+  count = local.worker_resources.gpus > 0 ? 1 : 0
+
   depends_on = [
     module.k8s
   ]
 
-  source = "../../modules/nvidia_operators"
+  source = "../../../modules/network-operator"
+
+  cluster_id = module.k8s.cluster_id
+  parent_id  = data.nebius_iam_v1_project.this.id
 
   providers = {
-    helm = helm
+    nebius = nebius
+  }
+}
+
+module "nvidia_operator_gpu" {
+  count = local.worker_resources.gpus > 0 ? 1 : 0
+
+  depends_on = [
+    module.nvidia_operator_network
+  ]
+
+  source = "../../../modules/gpu-operator"
+
+  cluster_id = module.k8s.cluster_id
+  parent_id  = data.nebius_iam_v1_project.this.id
+
+  enable_dcgm_service_monitor = var.telemetry_enabled
+
+  providers = {
+    nebius = nebius
   }
 }
 
 module "slurm" {
   depends_on = [
-    module.k8s
+    module.k8s,
   ]
 
   source = "../../modules/slurm"
@@ -139,20 +165,12 @@ module "slurm" {
 
   node_count = var.slurm_node_count
 
-  worker_resources = tomap({
-    "8gpu-128vcpu-1600gb" = {
-      cpu_cores                   = 128 - 48
-      memory_gibibytes            = 1600 - 400
-      ephemeral_storage_gibibytes = ceil(var.k8s_cluster_node_group_gpu.boot_disk.size_gibibytes / 2)
-      gpus                        = 8
-    }
-    "1gpu-20vcpu-200gb" = {
-      cpu_cores                   = 20 - 4
-      memory_gibibytes            = 200 - 50
-      ephemeral_storage_gibibytes = ceil(var.k8s_cluster_node_group_gpu.boot_disk.size_gibibytes / 2)
-      gpus                        = 1
-    }
-  })[var.k8s_cluster_node_group_gpu.resource.preset]
+  worker_resources = {
+    cpu_cores                   = local.worker_resources.cpu_cores
+    memory_gibibytes            = local.worker_resources.memory_gibibytes
+    ephemeral_storage_gibibytes = ceil(var.k8s_cluster_node_group_gpu.boot_disk.size_gibibytes / 2)
+    gpus                        = local.worker_resources.gpus
+  }
 
   login_service_type         = var.slurm_login_service_type
   login_node_port            = var.slurm_login_node_port
@@ -164,7 +182,6 @@ module "slurm" {
   slurmdbd_config         = var.slurmdbd_config
   slurm_accounting_config = var.slurm_accounting_config
 
-  # TODO: MSP-2817 - use computed values of filestore sizes
   filestores = {
     controller_spool = {
       size_gibibytes = module.filestore.controller_spool.size_gibibytes

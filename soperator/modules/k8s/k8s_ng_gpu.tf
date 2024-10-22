@@ -1,11 +1,7 @@
 locals {
   gpu = {
     cluster = {
-      create = tomap({
-        "8gpu-128vcpu-1600gb" = true
-        "1gpu-20vcpu-200gb"   = false
-      })[var.node_group_gpu.resource.preset]
-
+      create = module.resources.this[var.node_group_gpu.resource.platform][var.node_group_gpu.resource.preset].gpu_cluster_compatible
       name = join("-", [
         trimsuffix(
           substr(
@@ -18,11 +14,6 @@ locals {
         var.node_group_gpu.gpu_cluster.infiniband_fabric
       ])
     }
-
-    count = tomap({
-      "8gpu-128vcpu-1600gb" = 8
-      "1gpu-20vcpu-200gb"   = 1
-    })[var.node_group_gpu.resource.preset]
   }
 }
 
@@ -62,11 +53,11 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     metadata = {
       labels = module.labels.label_group_name_gpu
     }
-    taints = [{
+    taints = module.resources.this[var.node_group_gpu.resource.platform][var.node_group_gpu.resource.preset].gpus > 0 ? [{
       key    = "nvidia.com/gpu",
-      value  = local.gpu.count
+      value  = module.resources.this[var.node_group_gpu.resource.platform][var.node_group_gpu.resource.preset].gpus
       effect = "NO_SCHEDULE"
-    }]
+    }] : null
 
     resources = {
       platform = var.node_group_gpu.resource.platform
@@ -105,5 +96,13 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     ignore_changes = [
       labels,
     ]
+
+    precondition {
+      condition = (var.node_group_gpu.resource.platform == "cpu-e2"
+        ? !contains(["2vcpu-8gb", "4vcpu-16gb"], var.node_group_gpu.resource.preset)
+        : true
+      )
+      error_message = "Worker resource preset '${var.node_group_gpu.resource.preset}' is insufficient."
+    }
   }
 }

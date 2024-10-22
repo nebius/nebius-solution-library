@@ -21,7 +21,7 @@ resource "local_file" "this" {
     terraform_data.connection_ip,
   ]
 
-  filename        = "${path.root}/login.sh"
+  filename        = "${path.root}/${var.script_name}.sh"
   file_permission = "0774"
   content = templatefile("${path.module}/templates/login.sh.tftpl", {
     address = terraform_data.connection_ip.output
