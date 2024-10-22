@@ -1,4 +1,5 @@
 clusterName: ${name}
+clusterType: ${ nodes.worker.resources.gpus > 0 ? "gpu" : "cpu" }
 
 k8sNodeFilters:
   - name: ${k8s_node_filters.non_gpu.name}
@@ -22,10 +23,12 @@ k8sNodeFilters:
                   operator: In
                   values:
                     - ${k8s_node_filters.gpu.affinity.value}
+    %{~ if nodes.worker.resources.gpus > 0 ~}
     tolerations:
       - key: nvidia.com/gpu
         operator: Exists
         effect: NoSchedule
+    %{~ endif ~}
 
 volumeSources:
   - name: jail

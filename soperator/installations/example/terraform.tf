@@ -41,3 +41,7 @@ provider "helm" {
     token                  = var.iam_token
   }
 }
+
+module "resources" {
+  source = "../../modules/available_resources"
+}

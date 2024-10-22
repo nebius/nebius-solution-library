@@ -15,3 +15,9 @@ variable "slurm_cluster_name" {
   type        = string
   nullable    = false
 }
+
+variable "script_name" {
+  description = "Name of the script file."
+  type        = string
+  default     = "login"
+}
