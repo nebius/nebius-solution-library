@@ -4,9 +4,10 @@ resource "nebius_applications_v1alpha1_k8s_release" "gpu-operator" {
 
   application_name = "gpu-operator"
   namespace        = "gpu-operator"
-  product_slug     = "nebius/nvidia-gpu-operator"
+  product_slug     = var.product_slug
 
   set = {
-    "driver.version" : var.driver_version
+    "driver.version" : var.driver_version,
+    "dcgmExporter.serviceMonitor.enabled" : var.enable_dcgm_service_monitor
   }
 }
