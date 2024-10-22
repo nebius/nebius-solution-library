@@ -54,7 +54,7 @@ variable "ssh_user_name" {
 variable "nfs_path" {
   type        = string
   description = "Path to nfs_device"
-  default     = "/mnt/nfs"
+  default     = "/nfs"
 }
 
 variable "nfs_ip_range" {

@@ -71,15 +71,15 @@ variable "shared_fs_type" {
   default     = null
   description = "Use shared managed FileStorage mounted on /mnt/slurm on every worker node"
   validation {
-    condition     = var.shared_fs_type == null ? true : contains(["filesystem"], var.shared_fs_type)
-    error_message = "shared_fs_type must be one of: filesystem"
+    condition     = var.shared_fs_type == null ? true : contains(["filesystem","nfs"], var.shared_fs_type)
+    error_message = "shared_fs_type must be one of: filesystem / nfs"
   }
 }
 
 variable "fs_size" {
   type        = number
-  description = "Shared FileStorage or NFS size x930"
-  default     = 930 * 1024 * 1024 * 1024
+  description = "Shared FileStorage or NFS size x93"
+  default     = 93 * 1024 * 1024 * 1024
 }
 
 variable "worker_name_prefix" {

@@ -2,7 +2,7 @@ module nfs-module {
   providers = {
     nebius = nebius
   }
-  source            = "../../modules/nfs-server"
+  source            = "../modules/nfs-server"
   parent_id         = var.parent_id
   subnet_id         = var.subnet_id
   ssh_user_name     = var.ssh_user_name

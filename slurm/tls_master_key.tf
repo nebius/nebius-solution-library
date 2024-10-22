@@ -1,3 +1,3 @@
 resource "tls_private_key" "master_key" {
-  algorithm = "RSA"
+  algorithm = "ED25519"
 }
