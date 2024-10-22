@@ -6,6 +6,11 @@ output "control_plane" {
   }
 }
 
+output "cluster_id" {
+  description = "K8s cluster ID."
+  value       = nebius_mk8s_v1_cluster.this.id
+}
+
 output "allocation_id" {
   description = "ID of the VPC allocation used for SSH connection into Slurm cluster."
   value       = local.allocation_id

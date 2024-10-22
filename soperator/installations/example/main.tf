@@ -115,15 +115,35 @@ module "k8s" {
   }
 }
 
-module "nvidia_operators" {
+module "nvidia_operator_network" {
   depends_on = [
     module.k8s
   ]
 
-  source = "../../modules/nvidia_operators"
+  source = "../../../modules/network-operator"
+
+  cluster_id = module.k8s.cluster_id
+  parent_id  = data.nebius_iam_v1_project.this.id
 
   providers = {
-    helm = helm
+    nebius = nebius
+  }
+}
+
+module "nvidia_operator_gpu" {
+  depends_on = [
+    module.nvidia_operator_network
+  ]
+
+  source = "../../../modules/gpu-operator"
+
+  cluster_id = module.k8s.cluster_id
+  parent_id  = data.nebius_iam_v1_project.this.id
+
+  enable_dcgm_service_monitor = var.telemetry_enabled
+
+  providers = {
+    nebius = nebius
   }
 }
 

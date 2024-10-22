@@ -1,33 +1,32 @@
-# Terraform recipe to create Slurm cluster on K8s with [Soperator](https://github.com/nebius/soperator) in Nebius
+# Slurm cluster on K8s with [Soperator](https://github.com/nebius/soperator)
 
 ## Overview
 
-This solution allows you to create a Slurm cluster in Kubernetes with a single terraform apply.
+This Terraform recipe allows you to create a Slurm cluster in Kubernetes with a single `terraform apply`.
 
-Running Slurm in Kubernetes using this operator brings several features and possibilities.
+Running Slurm on Kubernetes using the Soperator brings several features and possibilities.
 
-### Easy scaling
+### 📈 Easy scaling
 
 You can scale the Slurm cluster up or down without the need to bootstrap new nodes from scratch.
 
-### High availability
+### 🩹 High availability
 
-K8s provides some self-healing out of the box: Slurm nodes represented as K8S pods are automatically restarted in case
-of problems.
+K8s provides some self-healing out of the box: Slurm nodes represented as K8S pods are automatically restarted in case of problems.
 
-### Shared root filesystem
+### 🔄 Shared root filesystem
 
 When users interact with Slurm, they see a single shared persistent storage as the root directory on each Slurm node.
-This frees users from the Slurm requirement that is very difficult to achieve: all nodes must be identical. Because of
-the storage, users don't need to manually synchronise all software versions and Linux UIDs & GIDs among the nodes.
+This frees users from the Slurm requirement that is very difficult to achieve: all nodes must be identical.
+Because of the storage, users don't need to manually synchronise all software versions and Linux UIDs & GIDs among the nodes.
 
-### Protection against accidental Slurm breakage
+### 🪖 Protection against accidental Slurm breakage
 
-Users connect to login nodes and execute jobs on worker nodes not on the system where Slurm daemons are running, but in
-a special isolated environment from which it's almost impossible to accidentally break Slurm.
+Users connect to the login nodes and execute jobs on worker nodes not on the system where Slurm daemons are running,
+but in a special isolated environment from which it's almost impossible to accidentally break Slurm.
 In addition, GPU drivers and libraries are mounted from K8s nodes so users can't irreversibly break them.
 
-### Periodic GPU health checks
+### 🩺 Periodic GPU health checks
 
 NCCL tests are periodically launched on all Slurm workers, and nodes that show unsatisfactory results are drained.
 These checks are implemented as usual Slurm jobs - they stay in the same queue with users' workload and don't interfere it.
@@ -43,253 +42,374 @@ These checks are implemented as usual Slurm jobs - they stay in the same queue w
 
 ## Prerequisites
 
+Make sure you have the following programs installed on your machine.
+
+- [Terraform CLI](https://developer.hashicorp.com/terraform/install)
+
+    > [!IMPORTANT]
+    > The minimum version of Terraform needed for this recipe is `1.8.0`.
+
+    ```console
+    $ terraform version
+    Terraform v1.9.8
+    on darwin_arm64
+    ...
+    ```
+
+- [Nebius CLI](https://docs.nebius.ai/cli/install)
+
+    ```console
+    $ nebius version
+    0.11.2
+    ```
+
+    [Authorize it](https://docs.nebius.com/cli/configure/#authorize-with-a-user-account) with a user account.
+
+- [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
+
+    ```console
+    $ kubectl version
+    Client Version: v1.31.1
+    ...
+    ```
+
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+
+    ```console
+    $ aws --version
+    aws-cli/2.17.20 Python/3.11.9 Darwin/23.6.0 exe/x86_64
+    ```
+
+- [jq](https://jqlang.github.io/jq/download/)
+
+    ```console
+    $ jq --version
+    jq-1.7.1
+    ```
+
+- `md5sum`
+
+    We use `md5sum` utility to generate unique S3 bucket IDs.
+    
+    `md5sum` is often pre-installed on most of Unix-like OSs. Ensure that you have it installed on your machine.
+    
+    ```shell
+    which md5sum 
+    ```
+    
+    > [!TIP]
+    > To install `md5sum` on macOS, you have to install GNU coreutils that includes it.
+    > ```shell
+    > brew install coreutils
+    > ```
+
+- [direnv](https://direnv.net/#basic-installation)
+
+    `direnv` is a tool for automatic loading of directory-scoped environment variables.
+    It can find and load variables from e.g. `.envrc` file.
+
+## Step-by-step guide
+
+Let's start from opening this directory in terminal.
+
 ### Get your own copy
 
 In order to not mess with example recipe, make your own copy of [example directory](installations/example):
-```bash
+
+```shell
 mkdir installations/<your-installation-name>
-
+```
+```shell
 cd installations/<your-installation-name>
-
-cp -r ../examples/ ./
+```
+```shell
+cp -r ../example/ ./
 ```
 
 > [!NOTE]
+> At first, you will get an error like:
+> 
+> ```text
+> direnv: error <path-to>/nebius-solution-library/soperator/installations/<your-installation-name>/.envrc is blocked. Run `direnv allow` to approve its content
+> ```
+> 
+> We can ignore it for a moment, until we have our setup configured.
+
+> [!IMPORTANT]
 > Following steps will be described as you work in terminal within that new directory.
 
-### JQ
+### Export your project info
 
-Install [jq](https://jqlang.github.io/jq/download/).
+Let's export your tenant and project IDs for a further use.
 
-### Nebius CLI
+```shell
+export NEBIUS_TENANT_ID='<your-tenant-id>'
+```
+```shell
+export NEBIUS_PROJECT_ID='<your-project-id>'
+```
 
-Install and initialize [Nebius CLI](https://docs.nebius.ai/cli/install).
-
-### Keeping state in remote Storage
+### Give Terraform rights to access Object Storage
 
 In order to store Terraform state remotely in Nebius Object Storage, Terraform must be able to connect to it.
 We'll use [service account](https://docs.nebius.ai/iam/service-accounts/manage/) for that purpose.
 
-Let's start with exporting your tenant and project IDs for a further use.
+1. Create service account:
 
-> [!TIP]
-> We suggest you to replace checks for `NEBIUS_TENANT_ID` and `NEBIUS_PROJECT_ID` in provided [`.envrc`](installations/example/.envrc) file
-> with the following:
-> 
-> ```bash
-> # --------------------
-> # Automatic retrieving
-> # --------------------
-> NEBIUS_TENANT_ID=$(nebius iam tenant list \
->   --format json \
->   | jq -r ".items.[0].metadata.id")
-> export NEBIUS_TENANT_ID
-> 
-> NEBIUS_PROJECT_ID=$(nebius iam project list \
->   --parent-id "${NEBIUS_TENANT_ID}" \
->   --format json \
->   | jq -r ".items.[0].metadata.id")
-> export NEBIUS_PROJECT_ID
-> 
-> # ---------------
-> # OR specific IDs
-> # ---------------
-> export NEBIUS_TENANT_ID='<YOUR TENANT ID>'
-> export NEBIUS_PROJECT_ID='<YOUR PROJECT ID>'
-> ```
+    ```shell
+    NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account create \
+        --parent-id "${NEBIUS_PROJECT_ID}" \
+        --name 'slurm-terraform-sa' \
+        --format json \
+        | jq -r '.metadata.id')
+    ```
+    ```shell
+    export NEBIUS_SA_TERRAFORM_ID
+    ```
 
-#### Service account
+    Make sure it has valid value:
 
-1. Create service account
+    ```console
+    $ echo ${NEBIUS_SA_TERRAFORM_ID}
+    serviceaccount-<inner-id>
+    ```
 
-   ```bash
-   NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account create \
-      --parent-id "${NEBIUS_PROJECT_ID}" \
-      --name 'slurm-terraform-sa' \
-      --format json | jq -r '.metadata.id')
-   
-   export NEBIUS_SA_TERRAFORM_ID
-   ```
+2. Add this account to the `editors` group:
 
-2. Add this account to the `editors` group
+    Get ID of the `editors` group:
 
-   ```bash
-   # Getting ID of the 'editors' group
-   NEBIUS_GROUP_EDITORS_ID=$(nebius iam group get-by-name \
-      --parent-id "${NEBIUS_TENANT_ID}" \
-      --name 'editors' \
-      --format json | jq -r '.metadata.id')
-   
-   export NEBIUS_GROUP_EDITORS_ID
-   
-   # Adding SA to the 'editors' group
-   nebius iam group-membership create \
-      --parent-id "${NEBIUS_GROUP_EDITORS_ID}" \
-      --member-id "${NEBIUS_SA_TERRAFORM_ID}"
-   ```
+    ```shell
+    NEBIUS_GROUP_EDITORS_ID=$(nebius iam group get-by-name \
+        --parent-id "${NEBIUS_TENANT_ID}" \
+        --name 'editors' \
+        --format json \
+        | jq -r '.metadata.id')
+    ```
+    ```shell
+    export NEBIUS_GROUP_EDITORS_ID
+    ```
 
-3. Create a key pair for giving AWS CLI a way to access Storage with the service account
+    Make sure it has valid value:
 
-   ```bash
-   NEBIUS_SA_ACCESS_KEY_ID=$(nebius iam access-key create \
-      --parent-id "${NEBIUS_PROJECT_ID}" \
-      --name 'slurm-terraform-sa-access-key' \
-      --account-service-account-id "${NEBIUS_SA_TERRAFORM_ID}" \
-      --description 'AWS CLI key' \
-      --format json | jq -r '.resource_id')
-   
-   export NEBIUS_SA_ACCESS_KEY_ID
-   ```
+    ```console
+    $ echo ${NEBIUS_GROUP_EDITORS_ID}
+    group-<inner-id>
+    ```
 
-#### AWS CLI
+    Add service account to the `editors` group:
 
-1. [Install](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) `aws`
-2. Add the key, the Nebius AI region ID and the Object Storage endpoint URL to the AWS CLI configuration
+    ```shell
+    nebius iam group-membership create \
+        --parent-id "${NEBIUS_GROUP_EDITORS_ID}" \
+        --member-id "${NEBIUS_SA_TERRAFORM_ID}"
+    ```
 
-   ```bash
-   aws configure set aws_access_key_id "${NEBIUS_SA_ACCESS_KEY_AWS_ID}"
-   
-   aws configure set aws_secret_access_key "${NEBIUS_SA_SECRET_ACCESS_KEY}"
-   
-   aws configure set region 'eu-north1'
-   
-   aws configure set endpoint_url 'https://storage.eu-north1.nebius.cloud:443'
-   ```
+3. Create a key pair for giving AWS CLI a way to access Object Storage with the service account:
 
-#### Bucket
+    ```shell
+    NEBIUS_SA_ACCESS_KEY_ID=$(nebius iam access-key create \
+        --parent-id "${NEBIUS_PROJECT_ID}" \
+        --name 'slurm-terraform-sa-access-key' \
+        --account-service-account-id "${NEBIUS_SA_TERRAFORM_ID}" \
+        --description 'AWS CLI key' \
+        --format json \
+        | jq -r '.resource_id')
+    ```
+    ```shell
+    export NEBIUS_SA_ACCESS_KEY_ID
+    ```
 
-```bash
-NEBIUS_BUCKET_NAME="tfstate-slurm-k8s-$(echo -n "${NEBIUS_TENANT_ID}-${NEBIUS_PROJECT_ID}" | md5sum | awk '$0=$1')"
+    Make sure it has valid value:
 
-nebius storage bucket create --parent-id "${NEBIUS_PROJECT_ID}" --versioning-policy 'enabled' --name "${NEBIUS_BUCKET_NAME}"
-```
+    ```console
+    $ echo ${NEBIUS_SA_ACCESS_KEY_ID}
+    accesskey-<inner-id>
+    ```
 
-> [!NOTE]
-> `NEBIUS_BUCKET_NAME` contains unique bucket name dedicated to the project inside your tenant. 
+### Create a bucket in Object Storage
 
-> [!NOTE]
-> `--versioning-policy 'enabled'` allows you to keep track of versions made by Terraform.
-> It gives you a possibility to roll back to specified version of TF state in case your installation is broken.
+Let's create a S3 bucket in Object Storage, which will be used by Terraform to store its state remotely.
 
-#### md5sum
+1. Generate a name for a bucket:
 
-We use `md5sum` utility to generate unique S3 bucket IDs.
+    ```shell
+    NEBIUS_PROJECT_HASH=$(echo -n "${NEBIUS_TENANT_ID}-${NEBIUS_PROJECT_ID}" \
+        | md5sum \
+        | awk '$0=$1')
+    NEBIUS_BUCKET_NAME="tfstate-slurm-k8s-${NEBIUS_PROJECT_HASH}"
+    ```
 
-`md5sum` is often pre-installed on most of Unix-like OSs. Ensure that you have it installed on your machine.
+    Make sure it has valid value:
 
-```bash
-which md5sum 
-```
+    ```console
+    $ echo ${NEBIUS_BUCKET_NAME}
+    tfstate-slurm-k8s-<project-hash>
+    ```
 
-> [!TIP]
-> To install `md5sum` on macOS, you have to install GNU coreutils that includes it.
-> ```bash
-> brew install coreutils
-> ```
+    > [!NOTE]
+    > `NEBIUS_BUCKET_NAME` contains unique bucket name dedicated to the project inside your tenant.
 
-### Kubectl
+2. Create a bucket:
 
-Install [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) and verify it's working:
+    ```shell
+    nebius storage bucket create \
+        --name "${NEBIUS_BUCKET_NAME}" \
+        --parent-id "${NEBIUS_PROJECT_ID}" \
+        --versioning-policy 'enabled' 
+    ```
 
-```bash
-kubectl cluster-info
-```
+    > [!NOTE]
+    > `--versioning-policy 'enabled'` allows you to keep track of versions made by Terraform.
+    > It gives you a possibility to roll back to specified version of TF state in case your installation is broken.
 
-### Environment
+3. Add the key, the Nebius AI region ID and the Object Storage endpoint URL to the AWS CLI configuration
+
+    ```bash
+    aws configure set aws_access_key_id "${NEBIUS_SA_ACCESS_KEY_AWS_ID}"
+    ```
+    ```bash
+    aws configure set aws_secret_access_key "${NEBIUS_SA_SECRET_ACCESS_KEY}"
+    ```
+    ```bash
+    aws configure set region 'eu-north1'
+    ```
+    ```bash
+    aws configure set endpoint_url 'https://storage.eu-north1.nebius.cloud:443'
+    ```
+
+### Set environment variables
 
 You have to have IAM token for auth with **Nebius CLI** and **Nebius Terraform provider**.
 
-In order to do that, we provide `.envrc` file that gets access token from Nebius IAM.
+In order to do that, we provide [`.envrc`](installations/example/.envrc) file that gets access token from Nebius IAM.
 It exposes following environment variables:
-- `NEBIUS_IAM_TOKEN` for `nebius` tool;
-- `TF_VAR_iam_token` for being used in Terraform.
 
-Setting `TF_VAR_iam_token` env var to some value is a way to pass this variable to Terraform from environment.
-You can also set it within `terraform.tfvars`, but it's not secure, and we do not recommend to do that.
+- for Nebius CLI:
+  - `NEBIUS_IAM_TOKEN`
+- For Terraform:
+  - `TF_VAR_iam_token`
+  - `TF_VAR_iam_tenant_id`
+  - `TF_VAR_iam_project_id`
+  - `TF_VAR_vpc_subnet_id`
+- For AWS CLI
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
 
-To load variables from `.envrc` file, you can use `direnv` or you can simply call
+It also generates `terraform_backend_override.tf` file used by Terraform for configuring S3 backend. 
 
-```bash
-source .envrc
+> [!NOTE]
+> Setting environment variables like `TF_VAR_<terraform-variable-name>` is a way to pass the value for this variable to Terraform from environment.
+> You can also set e.g. `iam_token` within [`terraform.tfvars`](installations/example/terraform.tfvars), but it's not secure, and we do not recommend to do that.
+
+> [!TIP]
+> You can replace checks for `NEBIUS_TENANT_ID` and `NEBIUS_PROJECT_ID` in provided [`.envrc`](installations/example/.envrc) file with the following:
+>
+> #### Automatic retrieving
+> 
+> ```shell
+> # NEBIUS_TENANT_ID="${NEBIUS_TENANT_ID:?NEBIUS_TENANT_ID not set}"
+> # Becomes
+> NEBIUS_TENANT_ID=$(nebius iam tenant list \
+>    --format json \
+>    | jq -r ".items.[0].metadata.id")
+> ```
+> ```shell
+> # NEBIUS_PROJECT_ID="${NEBIUS_PROJECT_ID:?NEBIUS_PROJECT_ID not set}"
+> # Becomes
+> NEBIUS_PROJECT_ID=$(nebius iam project list \
+>    --parent-id "${NEBIUS_TENANT_ID}" \
+>    --format json \
+>    | jq -r ".items.[0].metadata.id")
+> ```
+> 
+> #### Specific IDs
+> 
+> ```shell
+> # NEBIUS_TENANT_ID="${NEBIUS_TENANT_ID:?NEBIUS_TENANT_ID not set}"
+> # Becomes
+> NEBIUS_TENANT_ID='<your-tenant-id>'
+> ```
+> ```shell
+> # NEBIUS_PROJECT_ID="${NEBIUS_PROJECT_ID:?NEBIUS_PROJECT_ID not set}"
+> # Becomes
+> NEBIUS_PROJECT_ID='<your-project-id>'
+> ```
+
+Since we exported some variables in previous steps,
+let's create a new terminal session and load variables from `.envrc` file to the clean environment.
+
+To allow `direnv` access for `.envrc` file, run:
+
+```shell
+direnv allow .
+```
+
+And check if it works:
+
+```console
+$ token_present() { test ${NEBIUS_IAM_TOKEN} && echo 'IAM token is present' || echo 'There is no IAM token'; }
+$ pushd .. > /dev/null ; echo ; token_present ; echo ; popd > /dev/null ; echo ; token_present
+direnv: unloading
+
+There is no IAM token
+
+direnv: loading <path-to>/installations/<your-installation-name>/.envrc
+token from NEBIUS_IAM_TOKEN env is used
+token from NEBIUS_IAM_TOKEN env is used
+direnv: export +AWS_ACCESS_KEY_ID +AWS_SECRET_ACCESS_KEY +NEBIUS_IAM_TOKEN +NEBIUS_PROJECT_ID +NEBIUS_TENANT_ID +NEBIUS_VPC_SUBNET_ID +TF_VAR_iam_project_id +TF_VAR_iam_tenant_id +TF_VAR_iam_token +TF_VAR_vpc_subnet_id
+
+IAM token is present
 ```
 
 > [!TIP]
-> If you have your access token expired, you can simply re-source `.envrc`
-> ```bash
-> source .envrc
-> ```
-
-#### `direnv`
-
-`direnv` is a tool for automatic loading of directory-scoped environment variables.
-It can find and load variables from e.g. `.envrc` file.
-
-1. [Install](https://direnv.net/#basic-installation) `direnv`
-2. Run
-
-   ```bash
-   direnv allow .
-   ```
-
-    To allow `direnv` access for `.envrc` file.
-3. Check if it works
-
-   ```bash
-   token_present() { test ${NEBIUS_IAM_TOKEN} && echo 'IAM token is present' || echo 'There is no IAM token'; }
-   
-   pushd .. > /dev/null ; echo ; token_present ; echo ; popd > /dev/null ; echo ; token_present
-   ```
-
-   You'll get something like:
-
-   ```
-   direnv: unloading
-   
-   There is no IAM token
-   
-   direnv: loading <PATH>/terraform/.envrc
-   direnv: export +NEBIUS_IAM_TOKEN <OTHER ENV VARS>
-   
-   IAM token is present
-   ```
-
-> [!TIP]
-> If you have your access token expired, you can switch directories back and forth to trigger unloading/loading of
-> `.envrc` file, or just simply call `direnv reload`
-> ```bash
+> If you have access token expired,
+> you can switch directories back and forth to trigger unloading/loading of `.envrc` file:
+> ```shell
 > pushd .. && popd
-> # or
+> ```
+> Or just simply call:
+> ```shell
 > direnv reload
 > ```
 
-### Terraform CLI
+> [!NOTE]
+> Instead of using `direnv`, you can just use `source` command to load variables from .envrc.
+> ```shell
+> source .envrc
+> ```
+> However, you won't get variables unloaded when you leave your installation directory.
+> I case of access token expiration, call `source` command again:
+> ```shell
+> source .envrc
+> ```
 
-Install [Terraform CLI](https://developer.hashicorp.com/terraform/install).
+Once you loaded `.envrc` file into your environment, you'll get `.aws_secret_access_key` and 
+ files created in your installation directory.
 
 > [!IMPORTANT]
-> The minimum version of Terraform needed for this recipe is `1.8.0`.
+> Make sure that:
+> - `.aws_secret_access_key` file is not empty
+> - `terraform_backend_override.tf` file contains valid bucket name
 
-## Create your cluster
+### Initialize Terraform
 
-### Initialization
-
-Execute:
+To initialize a Terraform project, download all referenced providers and modules, execute:
 
 ```shell
 terraform init
 ```
 
-This command will download all referenced providers and modules.
+Now you have your project set up, and Terraform state stored in Object Storage.
 
 ### Fill out terraform variables
 
-We provide default variables in [`terraform.tfvars`](installations/example/terraform.tfvars) file that you can use as a
-reference for your cluster configuration.
+We provide default variables in [`terraform.tfvars`](installations/example/terraform.tfvars) file,
+that you can use as a reference for your cluster configuration.
 All variables there are comprehensively commented, and you'll probably leave most of them with pre-set values.
 
-### Creating resources
+### Create resources
 
-1. Run `terraform plan` to make sure if provided values create resources as you want.
+1. Run `terraform plan` to make sure if provided values create resources the way you wanted.
 2. Run `terraform apply` to create resources based on provided values. You will be prompted to check if resources
 correspond to your needs. Type `yes` if the configuration is correct and watch the process.
 
@@ -302,18 +422,16 @@ correspond to your needs. Type `yes` if the configuration is correct and watch t
 
 Our Terraform recipe waits for `slurm.nebius.ai/SlurmCluster` CustomResource having `Available` `.status.phase`.
 
-Once it's ready, we create `login.sh` script to connect to Slurm. It automatically gets public IP address of:
+Once it's ready, `login.sh` script will be created to connect to Slurm. It automatically gets public IP address of:
 - K8s node (in case of use of `NodePort` Service type);
 - Slurm Login Service (in case of use of `LoadBalancer` Service type).
 
 You can use this script to easily connect to your newly created cluster. It accepts following arguments:
-- _Optional_ `-u <SSH user name>` (by default, `root`);
-- `-k <Path to private key for provided public key>`.
+- _Optional_ `-u <ssh-user-name>` (by default, `root`);
+- `-k <path-to-private-key-for-provided-public-key>`.
 
-```bash
-./login.sh -k ~/.ssh/id_rsa
-```
-```text
+```console
+$ ./login.sh -k ~/.ssh/id_rsa
 ...
 root@login-0:~#
 ```
