@@ -15,7 +15,13 @@ variable "product_slug" {
 }
 
 variable "driver_version" {
-  description = "Enable Node Feature Discovery."
+  description = "GPU driver version."
   type        = string
   default     = "550.54.15"
+}
+
+variable "enable_dcgm_service_monitor" {
+  description = "Whether to enable DCGM service monitor."
+  type        = bool
+  default     = false
 }
