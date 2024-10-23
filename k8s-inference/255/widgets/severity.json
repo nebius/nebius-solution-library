@@ -1,1 +1,1 @@
-[]
+[{"uid":"d995a0c6c07f3556","name":"k8s_inference_apply","time":{"duration":1762105},"status":"broken","severity":"normal"},{"uid":"be8a09ac5671e4f0","name":"k8s_node_groups_inference_apply","time":{},"status":"skipped","severity":"normal"},{"uid":"1758f360f49e2d50","name":"test_mode_k8s_inference_apply","time":{},"status":"skipped","severity":"normal"},{"uid":"ef875c1de946692b","name":"full_inference_apply","time":{},"status":"skipped","severity":"normal"}]

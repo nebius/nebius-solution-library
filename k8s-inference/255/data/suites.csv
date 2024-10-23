@@ -1,0 +1,5 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"broken","","","1762105","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","k8s_inference_apply",""
+"skipped","","","","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_k8s_inference_apply",""
+"skipped","","","","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","k8s_node_groups_inference_apply",""
+"skipped","","","","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","full_inference_apply",""
