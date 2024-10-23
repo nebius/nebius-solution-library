@@ -274,6 +274,21 @@ variable "slurm_operator_version" {
   nullable    = false
 }
 
+# region PartitionConfiguration
+
+variable "partitionConfigType" {
+  description = "Could be default of custom"
+  nullable    = true
+  default     = "default"
+  type = string
+}
+
+variable "partitionRawConfig" {
+  description = "Configuration as list strings started with PartitionName"
+  type        = list(string)
+  nullable    = true
+}
+
 # region Nodes
 
 variable "slurm_node_count" {

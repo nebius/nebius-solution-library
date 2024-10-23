@@ -201,6 +201,14 @@ slurm_cluster_name = "my-amazing-slurm"
 # ---
 slurm_operator_version = "1.14.11"
 
+# Slurm partition type. Could be default or custom
+partitionConfigType = "default"
+
+partitionRawConfig = [
+  "PartitionName=low_priority Nodes=worker-[0-15] Default=YES MaxTime=INFINITE State=UP PriorityTier=1",
+  "PartitionName=high_priority  Nodes=worker-[10-20] Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
+]
+
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                                         Nodes                                                        #

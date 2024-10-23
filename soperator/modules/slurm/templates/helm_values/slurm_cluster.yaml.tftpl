@@ -1,6 +1,13 @@
 clusterName: ${name}
 clusterType: ${ nodes.worker.resources.gpus > 0 ? "gpu" : "cpu" }
 
+partitionConfiguration:
+  configType: ${partitionConfiguration.configType}
+  rawConfig:
+    %{~ for partition in partitionConfiguration.rawConfig ~}
+    - ${partition}
+    %{~ endfor ~}
+
 k8sNodeFilters:
   - name: ${k8s_node_filters.non_gpu.name}
     affinity:

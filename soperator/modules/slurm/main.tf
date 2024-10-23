@@ -148,6 +148,11 @@ resource "helm_release" "slurm_cluster" {
   values = [templatefile("${path.module}/templates/helm_values/slurm_cluster.yaml.tftpl", {
     name = var.name
 
+    partitionConfiguration = {
+      configType = var.partitionConfigType
+      rawConfig = var.partitionRawConfig
+    }
+
     k8s_node_filters = {
       non_gpu = {
         name = module.labels.name_node_group_cpu
