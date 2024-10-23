@@ -8,9 +8,9 @@ path = "~/.ssh/id_ed25519.pub"
 }
 
 # K8s modes
-cpu_nodes_count  = 1                     # Number of CPU nodes
+cpu_nodes_count  = 0                     # Number of CPU nodes
 cpu_nodes_preset = "16vcpu-64gb"         # The CPU node preset
-gpu_nodes_count  = 1                     # Number of GPU nodes
+gpu_nodes_count  = 2                     # Number of GPU nodes
 gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Set to "1gpu-16vcpu-200gb", to deploy nodes with a single GPU.
 
 
@@ -27,7 +27,7 @@ enable_dcgm       = true # Enable or disable NVIDIA DCGM Exporter Dashboard and 
 # Storage
 ## Filestore - recommended
 enable_filestore     = true                       # Enable or disable Filestore integration with true or false
-filestore_disk_size  = 100 * (1024 * 1024 * 1024) # Set Filestore disk size in bytes. The multiplication makes it easier to set the size in GB. This would set the size as 100GB
+filestore_disk_size  = 5000 * (1024 * 1024 * 1024) # Set Filestore disk size in bytes. The multiplication makes it easier to set the size in GB.
 filestore_block_size = 4096                       # Set Filestore block size in bytes
 
 ## GlusterFS - legacy
@@ -40,3 +40,5 @@ glusterfs_disk_size         = 100 * (1024 * 1024 * 1024) # Set disk size in byte
 enable_kuberay           = false # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
 kuberay_min_gpu_replicas = 1
 kuberay_max_gpu_replicas = 2
+
+gpu_disk_size = "2023" # in GB
