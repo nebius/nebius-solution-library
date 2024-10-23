@@ -1,0 +1,84 @@
+- name: Configure custom routes and DNS on Ubuntu VMs
+  hosts: ubuntu_vms
+  become: yes
+  vars:
+    custom_dns_servers:
+      - "8.8.8.8"
+      - "8.8.4.4"
+    custom_routes:
+      - to: "0.0.0.0/0"
+        via: "192.168.0.7"
+  tasks:
+    - name: Gather network interface facts
+      ansible.builtin.setup:
+        filter: ansible_default_ipv4
+
+    - name: Find existing netplan configuration files
+      ansible.builtin.find:
+        paths: /etc/netplan
+        patterns: "*.yaml"
+      register: netplan_files
+
+    - name: Set netplan configuration file variable
+      set_fact:
+        netplan_config_file: "{{ netplan_files.files[0].path if netplan_files.matched > 0 else '/etc/netplan/50-cloud-init.yaml' }}"
+
+    - name: Backup existing netplan configuration
+      ansible.builtin.copy:
+        src: "{{ netplan_config_file }}"
+        dest: "{{ netplan_config_file }}.bak"
+        remote_src: yes
+        backup: yes
+
+    - name: Disable cloud-init network configuration
+      ansible.builtin.copy:
+        dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+        content: |
+          network: {config: disabled}
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Generate netplan configuration with custom routes and DNS
+      ansible.builtin.template:
+        src: netplan_template.j2
+        dest: "{{ netplan_config_file }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Validate netplan configuration
+      ansible.builtin.shell: netplan generate --debug
+      register: netplan_validate
+      failed_when: netplan_validate.rc != 0
+      changed_when: False
+
+    - name: Reboot the server to apply network configuration
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+      register: reboot_result
+
+    - name: Wait for the system to reboot
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 22
+        delay: 10
+        timeout: 600
+        state: started
+
+    - name: Reset the SSH connection
+      meta: reset_connection
+
+    - name: Verify network configuration
+      ansible.builtin.shell: ip route
+      register: ip_route_output
+
+    - name: Display IP route information
+      ansible.builtin.debug:
+        msg: "{{ ip_route_output.stdout_lines }}"
+
+    - name: Check if netplan apply was successful
+      ansible.builtin.shell: systemctl is-active systemd-networkd
+      register: netplan_apply_status
+      failed_when: netplan_apply_status.stdout.strip() != 'active'
+      changed_when: False

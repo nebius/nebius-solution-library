@@ -1,0 +1,4 @@
+#put your hosts ip addresses here
+[ubuntu_vms]
+vm1 ansible_host=192.168.0.6
+vm2 ansible_host=192.168.0.26
