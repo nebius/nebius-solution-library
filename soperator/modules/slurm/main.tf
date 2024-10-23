@@ -148,9 +148,9 @@ resource "helm_release" "slurm_cluster" {
   values = [templatefile("${path.module}/templates/helm_values/slurm_cluster.yaml.tftpl", {
     name = var.name
 
-    partitionConfiguration = {
-      configType = var.partitionConfigType
-      rawConfig = var.partitionRawConfig
+    partition_configuration = {
+      slurm_config_type = var.slurm_partition_config_type
+      slurm_raw_config = var.slurm_partition_raw_config
     }
 
     k8s_node_filters = {

@@ -276,18 +276,24 @@ variable "slurm_operator_version" {
 
 # region PartitionConfiguration
 
-variable "partitionConfigType" {
-  description = "Could be default of custom"
-  nullable    = true
+variable "slurm_partition_config_type" {
+  description = "Type of the Slurm partition config. Could be either `default` or `custom`."
   default     = "default"
   type = string
+
+  validation {
+    condition     = (contains(["default", "custom"], var.slurm_partition_config_type))
+    error_message = "Invalid partition config type. It must be one of `default` or `custom`."
+  }
 }
 
-variable "partitionRawConfig" {
-  description = "Configuration as list strings started with PartitionName"
+variable "slurm_partition_raw_config" {
+  description = "Partition config in case of `custom` slurm_partition_config_type. Each string must be started with `PartitionName`."
+  default     = []
   type        = list(string)
-  nullable    = true
 }
+
+# endregion PartitionConfiguration
 
 # region Nodes
 
