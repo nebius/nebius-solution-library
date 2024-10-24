@@ -12,7 +12,7 @@ variable "operator_version" {
 variable "slurm_partition_config_type" {
   description = "Type of the Slurm partition config. Could be either `default` or `custom`."
   default     = "default"
-  type = string
+  type        = string
 }
 
 variable "slurm_partition_raw_config" {
