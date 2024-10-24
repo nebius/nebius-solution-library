@@ -150,7 +150,7 @@ resource "helm_release" "slurm_cluster" {
 
     partition_configuration = {
       slurm_config_type = var.slurm_partition_config_type
-      slurm_raw_config = var.slurm_partition_raw_config
+      slurm_raw_config  = var.slurm_partition_raw_config
     }
 
     k8s_node_filters = {
