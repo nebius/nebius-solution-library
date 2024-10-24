@@ -7,6 +7,20 @@ variable "operator_version" {
   type = string
 }
 
+# region PartitionConfiguration
+
+variable "slurm_partition_config_type" {
+  description = "Type of the Slurm partition config. Could be either `default` or `custom`."
+  default     = "default"
+  type = string
+}
+
+variable "slurm_partition_raw_config" {
+  description = "Partition config in case of `custom` slurm_partition_config_type. Each string must be started with `PartitionName`."
+  type        = list(string)
+  default     = []
+}
+
 # region Nodes
 
 variable "node_count" {

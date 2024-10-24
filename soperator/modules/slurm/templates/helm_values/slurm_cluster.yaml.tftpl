@@ -1,6 +1,15 @@
 clusterName: ${name}
 clusterType: ${ nodes.worker.resources.gpus > 0 ? "gpu" : "cpu" }
 
+partitionConfiguration:
+  configType: ${partition_configuration.slurm_config_type}
+  %{~ if partition_configuration.slurm_config_type == "custom" ~}
+    rawConfig:
+      %{~ for partition in partition_configuration.slurm_raw_config ~}
+      - ${partition}
+      %{~ endfor ~}
+  %{~ endif ~}
+
 k8sNodeFilters:
   - name: ${k8s_node_filters.non_gpu.name}
     affinity:
