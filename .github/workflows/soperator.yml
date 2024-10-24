@@ -35,20 +35,21 @@ jobs:
       - name: Get Version
         id: get_version
         run: |
-          echo "VERSION=$(cat soperator/VERSION)" >> $GITHUB_ENV
-          echo "FILE_VERSION=$(cat soperator/VERSION | tr '.' '_' | tr '-' '_')" >> $GITHUB_ENV
+          VERSION=$(cat soperator/VERSION)
+          SUBVERSION=$(cat soperator/SUBVERSION)
+          echo "TAG_VERSION=v$VERSION-$SUBVERSION" >> $GITHUB_ENV
 
       - name: Create GitHub Release and Upload terraform tarball
         uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: soperator-v${{ env.VERSION }}
-          name: Soperator terraform v${{ env.VERSION }}
+          tag_name: soperator-${{ env.TAG_VERSION }}
+          name: Soperator Terraform recipe ${{ env.TAG_VERSION }}
           draft: false
           prerelease: false
           files: |
-            soperator/releases/soperator_tf_${{ env.FILE_VERSION }}.tar.gz
+            soperator/releases/soperator-tf-*.tar.gz
 
       - name: Cleanup
-        run: rm -rf soperator/releases/soperator_tf_${{ env.FILE_VERSION }}.tar.gz
+        run: rm -rf soperator/releases
