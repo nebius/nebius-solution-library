@@ -1,0 +1,790 @@
+{
+  "version": 4,
+  "terraform_version": "1.9.2",
+  "serial": 25,
+  "lineage": "79ccd51c-c38d-1c68-f0f1-4367322ba4bd",
+  "outputs": {
+    "slurm_master_pib": {
+      "value": "195.242.10.243",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "archive_file",
+      "name": "ansible_role",
+      "provider": "provider[\"registry.terraform.io/hashicorp/archive\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "exclude_symlink_directories": null,
+            "excludes": null,
+            "id": "ef799665d3ed4f57b180edb86fb158485d47d744",
+            "output_base64sha256": "HKilLXYRk5+W3xAA5LHma4Ez0oMQzfoDf7xABrKPzrg=",
+            "output_base64sha512": "OFbmrEqNM9eqTG41/wjQ/CgG8y6yRGzljkpT3raCj+zZrDAeRqbVphP+bLDg/fHbsJqXIzLWJ1gQxRKMGrbzdA==",
+            "output_file_mode": null,
+            "output_md5": "d0ea8e5912f5a6081ce8866eada11716",
+            "output_path": "files/ansible_role.zip",
+            "output_sha": "ef799665d3ed4f57b180edb86fb158485d47d744",
+            "output_sha256": "1ca8a52d7611939f96df1000e4b1e66b8133d28310cdfa037fbc4006b28fceb8",
+            "output_sha512": "3856e6ac4a8d33d7aa4c6e35ff08d0fc2806f32eb2446ce58e4a53deb6828fecd9ac301e46a6d5a613fe6cb0e0fdf1dbb09a972332d6275810c5128c1ab6f374",
+            "output_size": 8923,
+            "source": [],
+            "source_content": null,
+            "source_content_filename": null,
+            "source_dir": "files/ansible",
+            "source_file": null,
+            "type": "zip"
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "nebius_compute_v1_disk",
+      "name": "master",
+      "provider": "provider[\"terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "block_size_bytes": 4096,
+            "created_at": "2024-10-16T18:56:36.638925Z",
+            "id": "computedisk-e00nj8fj1vwzf74qey",
+            "labels": null,
+            "metadata": {},
+            "name": "slurm-boot-disk-master",
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "placement_policy": null,
+            "resource_version": 0,
+            "size_bytes": 107374182400,
+            "size_gibibytes": null,
+            "size_kibibytes": null,
+            "size_mebibytes": null,
+            "source_image_family": {
+              "image_family": "ubuntu22.04-driverless",
+              "parent_id": null
+            },
+            "source_image_id": null,
+            "status": {
+              "read_only_attachments": null,
+              "read_write_attachment": null,
+              "reconciling": null,
+              "size_bytes": 107374182400,
+              "source_image_id": "computeimage-e00m4wdczvzd3m7mva",
+              "state": "READY",
+              "state_description": null
+            },
+            "type": "NETWORK_SSD",
+            "updated_at": null
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "nebius_compute_v1_disk",
+      "name": "worker",
+      "provider": "provider[\"terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius\"]",
+      "instances": [
+        {
+          "index_key": "slurm-worker-1",
+          "schema_version": 0,
+          "attributes": {
+            "block_size_bytes": 4096,
+            "created_at": "2024-10-16T18:56:36.56059Z",
+            "id": "computedisk-e00zmre55p3ypjbe2k",
+            "labels": null,
+            "metadata": {},
+            "name": "slurm-boot-disk-worker-slurm-worker-1",
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "placement_policy": null,
+            "resource_version": 0,
+            "size_bytes": 549755813888,
+            "size_gibibytes": null,
+            "size_kibibytes": null,
+            "size_mebibytes": null,
+            "source_image_family": {
+              "image_family": "ubuntu22.04-cuda12",
+              "parent_id": null
+            },
+            "source_image_id": null,
+            "status": {
+              "read_only_attachments": null,
+              "read_write_attachment": null,
+              "reconciling": null,
+              "size_bytes": 549755813888,
+              "source_image_id": "computeimage-e00hw828515kpszy5d",
+              "state": "READY",
+              "state_description": null
+            },
+            "type": "NETWORK_SSD",
+            "updated_at": null
+          },
+          "sensitive_attributes": []
+        },
+        {
+          "index_key": "slurm-worker-2",
+          "schema_version": 0,
+          "attributes": {
+            "block_size_bytes": 4096,
+            "created_at": "2024-10-16T18:56:36.641014Z",
+            "id": "computedisk-e00gdaqq2t20ja2t1s",
+            "labels": null,
+            "metadata": {},
+            "name": "slurm-boot-disk-worker-slurm-worker-2",
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "placement_policy": null,
+            "resource_version": 0,
+            "size_bytes": 549755813888,
+            "size_gibibytes": null,
+            "size_kibibytes": null,
+            "size_mebibytes": null,
+            "source_image_family": {
+              "image_family": "ubuntu22.04-cuda12",
+              "parent_id": null
+            },
+            "source_image_id": null,
+            "status": {
+              "read_only_attachments": null,
+              "read_write_attachment": null,
+              "reconciling": null,
+              "size_bytes": 549755813888,
+              "source_image_id": "computeimage-e00hw828515kpszy5d",
+              "state": "READY",
+              "state_description": null
+            },
+            "type": "NETWORK_SSD",
+            "updated_at": null
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "nebius_compute_v1_gpu_cluster",
+      "name": "gpu-cluster-slurm",
+      "provider": "provider[\"terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "created_at": "2024-10-16T18:56:36.621813Z",
+            "id": "computegpucluster-e00x4rcth73nvbfr8d",
+            "infiniband_fabric": "fabric-3",
+            "labels": null,
+            "metadata": {},
+            "name": "gpu-cluster-slurm",
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "resource_version": 0,
+            "status": {
+              "instances": null,
+              "reconciling": null
+            },
+            "updated_at": null
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "nebius_compute_v1_instance",
+      "name": "master",
+      "provider": "provider[\"terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "boot_disk": {
+              "attach_mode": "READ_WRITE",
+              "device_id": null,
+              "existing_disk": {
+                "id": "computedisk-e00nj8fj1vwzf74qey"
+              }
+            },
+            "cloud_init_user_data": "#cloud-config\nhostname: slurm-master\nprefer_fqdn_over_hostname: false\nusers:\n  - name: slurm\n    groups: sudo\n    shell: /bin/bash\n    sudo: 'ALL=(ALL) NOPASSWD:ALL'\n    ssh-authorized-keys:\n      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP5nxVe9sWkFl+FHrb06KrRdM+TDwIVLErY1xzbTUO2H\n      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCpLT/FWiFb9JtftZOrArQCmEC0tVPZWFIyLrHLRFTeKCqllbsnbOhsqXJOiSXGFVbaW9b0IFudKkP2DTOeayAPndP2Dy3SL/hsbEGewvbYHoWGRGj3oxS51EHkhaiTK9ZzsBQWUYpH/KFadWFUGmJP4Bmm25QGOYTPuO8WEyFEXgxw8Ncl6LAd5BHQGlDjezVHW+u7gXyH+qxyag9j4Xs24xQIct9mPl1FTaN3tzu5khpfN8FP66/Qy7Tfzxi0VRtRpPmjeh+AkSS2Je6AF8LNYYo9g6t8V7FIMgZ4IxuEIZBhV8qznsr7sN20td6zoSkNvt9OEy55VOrUMBXjSumn\n\n\npackages:\n  - unzip\n  - python3-pip\n\nruncmd:\n  - base64 -d /tmp/ansible/ansible_role.zip.b64 \u003e /tmp/ansible/ansible_role.zip\n  - unzip /tmp/ansible/ansible_role.zip -d /tmp/ansible/\n  - pip3 install ansible\n  - |\n    ANSIBLE_HOST_KEY_CHECKING=False \\\n    ANSIBLE_LOG_PATH=/tmp/ansible/ansible.log \\\n    ansible-playbook \\\n    -i /tmp/ansible/inventory.yml \\\n    /tmp/ansible/slurm.yml \u0026\n    echo $! \u003e /tmp/ansible/ansible.pid\n  # export ANSIBLE_HOST_KEY_CHECKING=False\n  # ansible-playbook -i /tmp/ansible/inventory.yml -e SLURM_BINARIES=\"12.2.2-jammy-slurm\" -e SLURM_VERSION=\"24.05.2\" -e ENROOT_VERSION=\"3.4.1\" /tmp/ansible/slurm.yml\n\nwrite_files:\n- content: |\n    -----BEGIN OPENSSH PRIVATE KEY-----\n    b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdz\n    c2gtcnNhAAAAAwEAAQAAAQEAqS0/xVohW/SbX7WTqwK0AphAtLVT2VhSMi6xy0RU\n    3igqpZW7J2zobKlyToklxhVW2lvW9CBbnSpD9g0znmsgD53T9g8t0i/4bGxBnsL2\n    2B6FhkRo96MUudRB5IWokyvWc7AUFlGKR/yhWnVhVBpiT+AZptuUBjmEz7jvFhMh\n    RF4McPDXJeiwHeQR0BpQ43s1R1vru4F8h/qscmoPY+F7NuMUCHLfZj5dRU2jd7c7\n    uZIaXzfBT+uv0Mu0388YtFUbUaT5o3ofgJEktiXugBfCzWGKPYOrfFexSDIGeCMb\n    hCGQYVfKs57K+7DdtLXes6EpDb7fThMueVTq1DAV40rppwAAA7h8tEc9fLRHPQAA\n    AAdzc2gtcnNhAAABAQCpLT/FWiFb9JtftZOrArQCmEC0tVPZWFIyLrHLRFTeKCql\n    lbsnbOhsqXJOiSXGFVbaW9b0IFudKkP2DTOeayAPndP2Dy3SL/hsbEGewvbYHoWG\n    RGj3oxS51EHkhaiTK9ZzsBQWUYpH/KFadWFUGmJP4Bmm25QGOYTPuO8WEyFEXgxw\n    8Ncl6LAd5BHQGlDjezVHW+u7gXyH+qxyag9j4Xs24xQIct9mPl1FTaN3tzu5khpf\n    N8FP66/Qy7Tfzxi0VRtRpPmjeh+AkSS2Je6AF8LNYYo9g6t8V7FIMgZ4IxuEIZBh\n    V8qznsr7sN20td6zoSkNvt9OEy55VOrUMBXjSumnAAAAAwEAAQAAAQAqviH0jLcM\n    8pom7ktm04IDfdArV/zdVvE9eIq3HoaKsn9D4rasWVnHym/047XFfDK7bKS8fUho\n    RvtwuRknl008ZNXevysGhdQwIJHbuMqBBAUcTUBwAKYF5VjYkeRrepHuHLiWgvd7\n    BJsHrcxvYVMhdy9D9wpJIFMr4D+XxjGLggYRmhWN92Y7acWpk7Pb8bjiN/aypnm/\n    6ldWdlYl01A35o07jpWu4G0vZn+Wlor1kCUhAGby683mODGCKtsLAMEIoe0ltfQn\n    bK18fENAkFqcz8ciQHPIfOgjvdzSzp5mzkCayU3FjOb9VOaJFHJi3YCI8kDZ/KMW\n    maWWcBw/2RSRAAAAgB1YdfwqSoLvYdhJNP+ByvrbeIzgjcms0GxVC55wYpq6Okek\n    aIfvrCT01dDjykgXQ3TmvNPqeW2emwOJ1tiym9H9fKQPSrH0kl8CQaPrwQROkbAo\n    0agfwiaLiIjKkLH4XgrMbglMEG4beuPE3FBUy6MlTEp2HCJQf2i2SJeUqAIYAAAA\n    gQDBBiS8pVMb95FLe8EWsk4IQtNAbSBL7QYS04Pa0UXXnSAVbsQf0FwntkF43k1/\n    /DH/Weaiu2y2+OHWCdTMPNWiB2sfmVb0KFriFSWnNJfU/z+tI0/9jrFfaa7Qd3SH\n    mKohrmPIbiBRW3Zmfuuu5QPCSynTflC75bxt7hhdz3b8nQAAAIEA4F9Sr/n/qu0m\n    MzbrxgZrGVo8R1O96ublxO3wndPMjm51pF6QNacLHheKV5q1rw9snjv+V9OQfe39\n    ep0DtgkMkYq+mgGtwxYmibsKfJdLb9ADMLbDrkjra35A6AINFiO71xMHK/DKEfEu\n    z24FYQOV1bsWRUqGuKgdwdJejMHFshMAAAAAAQID\n    -----END OPENSSH PRIVATE KEY-----\n    \n  path: /etc/ssh/id_rsa\n  permissions: \"0400\"\n  owner: root:root\n- path: /tmp/ansible/ansible_role.zip.b64\n  encoding: gzip+base64\n  content: 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\n- path: /tmp/ansible/inventory.yml\n  content: |\n    all:\n      vars:\n        SLURM_VERSION: 24.05.3\n        SLURM_BINARIES: 12.2.2-jammy-slurm\n        ENROOT_VERSION: 3.4.1\n        PMIX_VERSION: 5.0.3\n    slurm_master:\n      hosts:\n        slurm-master:\n    slurm_worker:\n      hosts:\n        slurm-worker-1:\n          ansible_host: 192.168.0.100\n        slurm-worker-2:\n          ansible_host: 192.168.0.38\n- path: /etc/slurm/slurm.conf\n  content: |\n    # slurm.conf file\n    ClusterName=slurm-cluster\n    SlurmctldHost=slurm-master\n    SlurmUser=slurm\n    SlurmdUser=root\n    SlurmctldPort=6817\n    SlurmdPort=6818\n    AuthType=auth/munge\n    StateSaveLocation=/var/lib/slurm/slurmctld\n    SwitchType=switch/none\n    MpiDefault=pmi2\n    SlurmctldPidFile=/run/slurmctld.pid\n    SlurmdPidFile=/run/slurmd.pid\n    ProctrackType=proctrack/pgid\n    ReturnToService=0\n    PlugStackConfig=/etc/slurm/plugstack.conf\n    SlurmctldParameters=enable_configless\n\n    # TIMERS\n    SlurmctldTimeout=300\n    SlurmdTimeout=300\n    InactiveLimit=0\n    MinJobAge=300\n    KillWait=30\n    Waittime=0\n\n    # DEBUG\n    DebugFlags=NO_CONF_HASH\n\n    # LOGGING/ACCOUNTNG\n    SlurmctldDebug=info\n    SlurmctldLogFile=/var/log/slurm/slurmctld.log\n    SlurmdDebug=info\n    SlurmdLogFile=/var/log/slurm/slurmd.log\n    JobAcctGatherType=jobacct_gather/none\n\n    #DB\n    \n\n    GresTypes=gpu\n    SelectType=select/cons_tres\n    # COMPUTE NODES\n    # NodeName=slurm-worker-[1-2] CPUs=16 RealMemory=32090 State=idle State=UNKNOWN\n    NodeName=slurm-worker-[1-2] Gres=gpu:8 CPUs=128 RealMemory=1290080 State=idle State=UNKNOWN\n    PartitionName=debug Nodes=ALL Default=YES MaxTime=INFINITE State=UP\n- path: /etc/slurm/slurmdbd.conf\n  permissions: '0600'\n  content: |\n    AuthType=auth/munge\n    DbdHost=slurm-master\n    DebugLevel=info\n    LogFile=/var/log/slurm/slurmdbd.log\n    PidFile=/run/slurmdbd.pid\n    SlurmUser=slurm\n    StoragePass=\n    StorageUser=slurm\n    StorageHost=slurm-master\n    StorageLoc=slurm-db\n    StorageType=accounting_storage/mysql\n- path: /etc/clustershell/groups.d/cluster.yaml\n  content: |\n    cluster:\n      all: '@gluster'\n      clients: 'client[01-2]'\n",
+            "created_at": "2024-10-16T18:56:43.954047Z",
+            "filesystems": null,
+            "gpu_cluster": null,
+            "id": "computeinstance-e00w316bxk60b82qkm",
+            "labels": null,
+            "metadata": {},
+            "name": "slurm-master",
+            "network_interfaces": [
+              {
+                "ip_address": {
+                  "allocation_id": "vpcallocation-e00vs84dxsf1ashxtz"
+                },
+                "name": "eth0",
+                "public_ip_address": {
+                  "allocation_id": null,
+                  "static": null
+                },
+                "subnet_id": "vpcsubnet-e00y7e70x0xb0vt9d0"
+              }
+            ],
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "resource_version": 0,
+            "resources": {
+              "platform": "cpu-e2",
+              "preset": "4vcpu-16gb"
+            },
+            "secondary_disks": null,
+            "service_account_id": null,
+            "status": {
+              "network_interfaces": [
+                {
+                  "index": null,
+                  "ip_address": {
+                    "address": "192.168.0.54/32",
+                    "allocation_id": "vpcallocation-e00vs84dxsf1ashxtz"
+                  },
+                  "mac_address": "B6:16:92:1D:D1:E1",
+                  "name": "eth0",
+                  "public_ip_address": {
+                    "address": "195.242.10.243/32",
+                    "allocation_id": "vpcallocation-e00q1b8ncrqfzrb3bz"
+                  }
+                }
+              ],
+              "reconciling": null,
+              "state": "RUNNING"
+            },
+            "stopped": null,
+            "updated_at": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "cloud_init_user_data"
+              }
+            ]
+          ],
+          "dependencies": [
+            "data.archive_file.ansible_role",
+            "nebius_compute_v1_disk.master",
+            "nebius_compute_v1_filesystem.slurm-fs",
+            "nebius_vpc_v1alpha1_allocation.master",
+            "nebius_vpc_v1alpha1_allocation.worker",
+            "tls_private_key.master_key"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "nebius_compute_v1_instance",
+      "name": "worker",
+      "provider": "provider[\"terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius\"]",
+      "instances": [
+        {
+          "index_key": "slurm-worker-1",
+          "schema_version": 0,
+          "attributes": {
+            "boot_disk": {
+              "attach_mode": "READ_WRITE",
+              "device_id": null,
+              "existing_disk": {
+                "id": "computedisk-e00zmre55p3ypjbe2k"
+              }
+            },
+            "cloud_init_user_data": "#cloud-config\nhostname: slurm-worker-1\nprefer_fqdn_over_hostname: false\nusers:\n  - name: slurm\n    groups: sudo\n    shell: /bin/bash\n    sudo: 'ALL=(ALL) NOPASSWD:ALL'\n    ssh-authorized-keys:\n      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP5nxVe9sWkFl+FHrb06KrRdM+TDwIVLErY1xzbTUO2H\n      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCpLT/FWiFb9JtftZOrArQCmEC0tVPZWFIyLrHLRFTeKCqllbsnbOhsqXJOiSXGFVbaW9b0IFudKkP2DTOeayAPndP2Dy3SL/hsbEGewvbYHoWGRGj3oxS51EHkhaiTK9ZzsBQWUYpH/KFadWFUGmJP4Bmm25QGOYTPuO8WEyFEXgxw8Ncl6LAd5BHQGlDjezVHW+u7gXyH+qxyag9j4Xs24xQIct9mPl1FTaN3tzu5khpfN8FP66/Qy7Tfzxi0VRtRpPmjeh+AkSS2Je6AF8LNYYo9g6t8V7FIMgZ4IxuEIZBhV8qznsr7sN20td6zoSkNvt9OEy55VOrUMBXjSumn\n\n\nruncmd:\n  - mkdir /mnt/slurm\n  - echo \"1.2.3.4:/nfs /mnt/slurm nfs defaults 0 0\" \u003e\u003e /etc/fstab\n  - mount -a\n  \n\nwrite_files:\n- path: /etc/slurm/slurmdbd.conf\n  permissions: '0600'\n  content: |\n    AuthType=auth/munge\n    DbdHost=slurm-master\n    DebugLevel=info\n    LogFile=/var/log/slurm/slurmdbd.log\n    PidFile=/run/slurmdbd.pid\n    SlurmUser=slurm\n    StoragePass=\n    StorageUser=slurm\n    StorageHost=slurm-worker-1\n    StorageLoc=slurm-db\n    StorageType=accounting_storage/mysql\n- path: /etc/tmpfiles.d/slurm.conf\n  content: |\n    d /run/slurm 0770 root slurm -\n",
+            "created_at": "2024-10-16T18:56:45.069453Z",
+            "filesystems": null,
+            "gpu_cluster": {
+              "id": "computegpucluster-e00x4rcth73nvbfr8d"
+            },
+            "id": "computeinstance-e00n452na5235rwars",
+            "labels": null,
+            "metadata": {},
+            "name": "slurm-worker-1",
+            "network_interfaces": [
+              {
+                "ip_address": {
+                  "allocation_id": "vpcallocation-e00gkp7vdck26g8bnw"
+                },
+                "name": "eth0",
+                "public_ip_address": null,
+                "subnet_id": "vpcsubnet-e00y7e70x0xb0vt9d0"
+              }
+            ],
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "resource_version": 0,
+            "resources": {
+              "platform": "gpu-h100-sxm",
+              "preset": "8gpu-128vcpu-1600gb"
+            },
+            "secondary_disks": null,
+            "service_account_id": null,
+            "status": {
+              "network_interfaces": [
+                {
+                  "index": null,
+                  "ip_address": {
+                    "address": "192.168.0.100/32",
+                    "allocation_id": "vpcallocation-e00gkp7vdck26g8bnw"
+                  },
+                  "mac_address": "B6:93:40:64:EF:5E",
+                  "name": "eth0",
+                  "public_ip_address": null
+                }
+              ],
+              "reconciling": null,
+              "state": "RUNNING"
+            },
+            "stopped": null,
+            "updated_at": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "cloud_init_user_data"
+              }
+            ]
+          ],
+          "dependencies": [
+            "nebius_compute_v1_disk.worker",
+            "nebius_compute_v1_filesystem.slurm-fs",
+            "nebius_compute_v1_gpu_cluster.gpu-cluster-slurm",
+            "nebius_vpc_v1alpha1_allocation.worker",
+            "tls_private_key.master_key"
+          ]
+        },
+        {
+          "index_key": "slurm-worker-2",
+          "schema_version": 0,
+          "attributes": {
+            "boot_disk": {
+              "attach_mode": "READ_WRITE",
+              "device_id": null,
+              "existing_disk": {
+                "id": "computedisk-e00gdaqq2t20ja2t1s"
+              }
+            },
+            "cloud_init_user_data": "#cloud-config\nhostname: slurm-worker-2\nprefer_fqdn_over_hostname: false\nusers:\n  - name: slurm\n    groups: sudo\n    shell: /bin/bash\n    sudo: 'ALL=(ALL) NOPASSWD:ALL'\n    ssh-authorized-keys:\n      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP5nxVe9sWkFl+FHrb06KrRdM+TDwIVLErY1xzbTUO2H\n      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCpLT/FWiFb9JtftZOrArQCmEC0tVPZWFIyLrHLRFTeKCqllbsnbOhsqXJOiSXGFVbaW9b0IFudKkP2DTOeayAPndP2Dy3SL/hsbEGewvbYHoWGRGj3oxS51EHkhaiTK9ZzsBQWUYpH/KFadWFUGmJP4Bmm25QGOYTPuO8WEyFEXgxw8Ncl6LAd5BHQGlDjezVHW+u7gXyH+qxyag9j4Xs24xQIct9mPl1FTaN3tzu5khpfN8FP66/Qy7Tfzxi0VRtRpPmjeh+AkSS2Je6AF8LNYYo9g6t8V7FIMgZ4IxuEIZBhV8qznsr7sN20td6zoSkNvt9OEy55VOrUMBXjSumn\n\n\nruncmd:\n  - mkdir /mnt/slurm\n  - echo \"1.2.3.4:/nfs /mnt/slurm nfs defaults 0 0\" \u003e\u003e /etc/fstab\n  - mount -a\n  \n\nwrite_files:\n- path: /etc/slurm/slurmdbd.conf\n  permissions: '0600'\n  content: |\n    AuthType=auth/munge\n    DbdHost=slurm-master\n    DebugLevel=info\n    LogFile=/var/log/slurm/slurmdbd.log\n    PidFile=/run/slurmdbd.pid\n    SlurmUser=slurm\n    StoragePass=\n    StorageUser=slurm\n    StorageHost=slurm-worker-2\n    StorageLoc=slurm-db\n    StorageType=accounting_storage/mysql\n- path: /etc/tmpfiles.d/slurm.conf\n  content: |\n    d /run/slurm 0770 root slurm -\n",
+            "created_at": "2024-10-16T18:56:45.069138Z",
+            "filesystems": null,
+            "gpu_cluster": {
+              "id": "computegpucluster-e00x4rcth73nvbfr8d"
+            },
+            "id": "computeinstance-e00r0jbzy9jrmtedt1",
+            "labels": null,
+            "metadata": {},
+            "name": "slurm-worker-2",
+            "network_interfaces": [
+              {
+                "ip_address": {
+                  "allocation_id": "vpcallocation-e00d534h7f6pek57nq"
+                },
+                "name": "eth0",
+                "public_ip_address": null,
+                "subnet_id": "vpcsubnet-e00y7e70x0xb0vt9d0"
+              }
+            ],
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "resource_version": 0,
+            "resources": {
+              "platform": "gpu-h100-sxm",
+              "preset": "8gpu-128vcpu-1600gb"
+            },
+            "secondary_disks": null,
+            "service_account_id": null,
+            "status": {
+              "network_interfaces": [
+                {
+                  "index": null,
+                  "ip_address": {
+                    "address": "192.168.0.38/32",
+                    "allocation_id": "vpcallocation-e00d534h7f6pek57nq"
+                  },
+                  "mac_address": "B6:4C:91:D1:AB:17",
+                  "name": "eth0",
+                  "public_ip_address": null
+                }
+              ],
+              "reconciling": null,
+              "state": "RUNNING"
+            },
+            "stopped": null,
+            "updated_at": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "cloud_init_user_data"
+              }
+            ]
+          ],
+          "dependencies": [
+            "nebius_compute_v1_disk.worker",
+            "nebius_compute_v1_filesystem.slurm-fs",
+            "nebius_compute_v1_gpu_cluster.gpu-cluster-slurm",
+            "nebius_vpc_v1alpha1_allocation.worker",
+            "tls_private_key.master_key"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "nebius_vpc_v1alpha1_allocation",
+      "name": "master",
+      "provider": "provider[\"terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "created_at": "2024-10-16T18:56:36.630224Z",
+            "id": "vpcallocation-e00vs84dxsf1ashxtz",
+            "ipv4_private": {
+              "cidr": null,
+              "pool_id": null,
+              "subnet_id": "vpcsubnet-e00y7e70x0xb0vt9d0"
+            },
+            "ipv4_public": null,
+            "labels": null,
+            "metadata": {},
+            "name": "slurm-master",
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "resource_version": 0,
+            "status": {
+              "assignment": null,
+              "details": {
+                "allocated_cidr": "192.168.0.54/32",
+                "pool_id": "vpcpool-e00g0rgv9qhjwpebgx",
+                "version": "IPV4"
+              },
+              "state": "ALLOCATED",
+              "static": true
+            },
+            "updated_at": null
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "nebius_vpc_v1alpha1_allocation",
+      "name": "worker",
+      "provider": "provider[\"terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius\"]",
+      "instances": [
+        {
+          "index_key": "slurm-worker-1",
+          "schema_version": 0,
+          "attributes": {
+            "created_at": "2024-10-16T18:56:36.695965Z",
+            "id": "vpcallocation-e00gkp7vdck26g8bnw",
+            "ipv4_private": {
+              "cidr": null,
+              "pool_id": null,
+              "subnet_id": "vpcsubnet-e00y7e70x0xb0vt9d0"
+            },
+            "ipv4_public": null,
+            "labels": null,
+            "metadata": {},
+            "name": "slurm-worker-1",
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "resource_version": 0,
+            "status": {
+              "assignment": null,
+              "details": {
+                "allocated_cidr": "192.168.0.100/32",
+                "pool_id": "vpcpool-e00g0rgv9qhjwpebgx",
+                "version": "IPV4"
+              },
+              "state": "ALLOCATED",
+              "static": true
+            },
+            "updated_at": null
+          },
+          "sensitive_attributes": []
+        },
+        {
+          "index_key": "slurm-worker-2",
+          "schema_version": 0,
+          "attributes": {
+            "created_at": "2024-10-16T18:56:36.548845Z",
+            "id": "vpcallocation-e00d534h7f6pek57nq",
+            "ipv4_private": {
+              "cidr": null,
+              "pool_id": null,
+              "subnet_id": "vpcsubnet-e00y7e70x0xb0vt9d0"
+            },
+            "ipv4_public": null,
+            "labels": null,
+            "metadata": {},
+            "name": "slurm-worker-2",
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "resource_version": 0,
+            "status": {
+              "assignment": null,
+              "details": {
+                "allocated_cidr": "192.168.0.38/32",
+                "pool_id": "vpcpool-e00g0rgv9qhjwpebgx",
+                "version": "IPV4"
+              },
+              "state": "ALLOCATED",
+              "static": true
+            },
+            "updated_at": null
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "tls_private_key",
+      "name": "master_key",
+      "provider": "provider[\"registry.terraform.io/hashicorp/tls\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "algorithm": "RSA",
+            "ecdsa_curve": "P224",
+            "id": "9904f3a266e149aef9f625f146a4c0a3c27d916f",
+            "private_key_openssh": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdz\nc2gtcnNhAAAAAwEAAQAAAQEAqS0/xVohW/SbX7WTqwK0AphAtLVT2VhSMi6xy0RU\n3igqpZW7J2zobKlyToklxhVW2lvW9CBbnSpD9g0znmsgD53T9g8t0i/4bGxBnsL2\n2B6FhkRo96MUudRB5IWokyvWc7AUFlGKR/yhWnVhVBpiT+AZptuUBjmEz7jvFhMh\nRF4McPDXJeiwHeQR0BpQ43s1R1vru4F8h/qscmoPY+F7NuMUCHLfZj5dRU2jd7c7\nuZIaXzfBT+uv0Mu0388YtFUbUaT5o3ofgJEktiXugBfCzWGKPYOrfFexSDIGeCMb\nhCGQYVfKs57K+7DdtLXes6EpDb7fThMueVTq1DAV40rppwAAA7h8tEc9fLRHPQAA\nAAdzc2gtcnNhAAABAQCpLT/FWiFb9JtftZOrArQCmEC0tVPZWFIyLrHLRFTeKCql\nlbsnbOhsqXJOiSXGFVbaW9b0IFudKkP2DTOeayAPndP2Dy3SL/hsbEGewvbYHoWG\nRGj3oxS51EHkhaiTK9ZzsBQWUYpH/KFadWFUGmJP4Bmm25QGOYTPuO8WEyFEXgxw\n8Ncl6LAd5BHQGlDjezVHW+u7gXyH+qxyag9j4Xs24xQIct9mPl1FTaN3tzu5khpf\nN8FP66/Qy7Tfzxi0VRtRpPmjeh+AkSS2Je6AF8LNYYo9g6t8V7FIMgZ4IxuEIZBh\nV8qznsr7sN20td6zoSkNvt9OEy55VOrUMBXjSumnAAAAAwEAAQAAAQAqviH0jLcM\n8pom7ktm04IDfdArV/zdVvE9eIq3HoaKsn9D4rasWVnHym/047XFfDK7bKS8fUho\nRvtwuRknl008ZNXevysGhdQwIJHbuMqBBAUcTUBwAKYF5VjYkeRrepHuHLiWgvd7\nBJsHrcxvYVMhdy9D9wpJIFMr4D+XxjGLggYRmhWN92Y7acWpk7Pb8bjiN/aypnm/\n6ldWdlYl01A35o07jpWu4G0vZn+Wlor1kCUhAGby683mODGCKtsLAMEIoe0ltfQn\nbK18fENAkFqcz8ciQHPIfOgjvdzSzp5mzkCayU3FjOb9VOaJFHJi3YCI8kDZ/KMW\nmaWWcBw/2RSRAAAAgB1YdfwqSoLvYdhJNP+ByvrbeIzgjcms0GxVC55wYpq6Okek\naIfvrCT01dDjykgXQ3TmvNPqeW2emwOJ1tiym9H9fKQPSrH0kl8CQaPrwQROkbAo\n0agfwiaLiIjKkLH4XgrMbglMEG4beuPE3FBUy6MlTEp2HCJQf2i2SJeUqAIYAAAA\ngQDBBiS8pVMb95FLe8EWsk4IQtNAbSBL7QYS04Pa0UXXnSAVbsQf0FwntkF43k1/\n/DH/Weaiu2y2+OHWCdTMPNWiB2sfmVb0KFriFSWnNJfU/z+tI0/9jrFfaa7Qd3SH\nmKohrmPIbiBRW3Zmfuuu5QPCSynTflC75bxt7hhdz3b8nQAAAIEA4F9Sr/n/qu0m\nMzbrxgZrGVo8R1O96ublxO3wndPMjm51pF6QNacLHheKV5q1rw9snjv+V9OQfe39\nep0DtgkMkYq+mgGtwxYmibsKfJdLb9ADMLbDrkjra35A6AINFiO71xMHK/DKEfEu\nz24FYQOV1bsWRUqGuKgdwdJejMHFshMAAAAAAQID\n-----END OPENSSH PRIVATE KEY-----\n",
+            "private_key_pem": "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAqS0/xVohW/SbX7WTqwK0AphAtLVT2VhSMi6xy0RU3igqpZW7\nJ2zobKlyToklxhVW2lvW9CBbnSpD9g0znmsgD53T9g8t0i/4bGxBnsL22B6FhkRo\n96MUudRB5IWokyvWc7AUFlGKR/yhWnVhVBpiT+AZptuUBjmEz7jvFhMhRF4McPDX\nJeiwHeQR0BpQ43s1R1vru4F8h/qscmoPY+F7NuMUCHLfZj5dRU2jd7c7uZIaXzfB\nT+uv0Mu0388YtFUbUaT5o3ofgJEktiXugBfCzWGKPYOrfFexSDIGeCMbhCGQYVfK\ns57K+7DdtLXes6EpDb7fThMueVTq1DAV40rppwIDAQABAoIBACq+IfSMtwzymibu\nS2bTggN90CtX/N1W8T14ircehoqyf0PitqxZWcfKb/TjtcV8MrtspLx9SGhG+3C5\nGSeXTTxk1d6/KwaF1DAgkdu4yoEEBRxNQHAApgXlWNiR5Gt6ke4cuJaC93sEmwet\nzG9hUyF3L0P3CkkgUyvgP5fGMYuCBhGaFY33ZjtpxamTs9vxuOI39rKmeb/qV1Z2\nViXTUDfmjTuOla7gbS9mf5aWivWQJSEAZvLrzeY4MYIq2wsAwQih7SW19CdsrXx8\nQ0CQWpzPxyJAc8h86CO93NLOnmbOQJrJTcWM5v1U5okUcmLdgIjyQNn8oxaZpZZw\nHD/ZFJECgYEAwQYkvKVTG/eRS3vBFrJOCELTQG0gS+0GEtOD2tFF150gFW7EH9Bc\nJ7ZBeN5Nf/wx/1nmortstvjh1gnUzDzVogdrH5lW9Cha4hUlpzSX1P8/rSNP/Y6x\nX2mu0Hd0h5iqIa5jyG4gUVt2Zn7rruUDwksp035Qu+W8be4YXc92/J0CgYEA4F9S\nr/n/qu0mMzbrxgZrGVo8R1O96ublxO3wndPMjm51pF6QNacLHheKV5q1rw9snjv+\nV9OQfe39ep0DtgkMkYq+mgGtwxYmibsKfJdLb9ADMLbDrkjra35A6AINFiO71xMH\nK/DKEfEuz24FYQOV1bsWRUqGuKgdwdJejMHFshMCgYEAjShn/0lL8PzoVXJIL8fv\nht0PzmK/pqbMtUHXgFNgpyByERpy9O0UJ7qCQNkZhgoxqhLdto4oH9r8lOGVrFKk\nzJxuO6qQy3cjl4htg8zTaGHN+FkFq2EJ18PaovtozazYZk85C591pOmlOamBw+IZ\nEKKVEOSkN/T3CtF/IkOROYUCgYA4A3QYHJhYKpYTyQ05RZbtIFrWD7Dk+Lm53RDp\nxdtWX3sdCsKDsm0TGRtfXW8oAfjC1AVeFaIH3iceuh4YDtBFcVa+CddAUcJTNg+b\nJQYfJtX1DltxoiCrmDxJ72Em+srFGan7rUQ1EHn4LOZI3uVEE02vBLj3Vnj/Ty5t\ng16AYwKBgB1YdfwqSoLvYdhJNP+ByvrbeIzgjcms0GxVC55wYpq6OkekaIfvrCT0\n1dDjykgXQ3TmvNPqeW2emwOJ1tiym9H9fKQPSrH0kl8CQaPrwQROkbAo0agfwiaL\niIjKkLH4XgrMbglMEG4beuPE3FBUy6MlTEp2HCJQf2i2SJeUqAIY\n-----END RSA PRIVATE KEY-----\n",
+            "private_key_pem_pkcs8": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCpLT/FWiFb9Jtf\ntZOrArQCmEC0tVPZWFIyLrHLRFTeKCqllbsnbOhsqXJOiSXGFVbaW9b0IFudKkP2\nDTOeayAPndP2Dy3SL/hsbEGewvbYHoWGRGj3oxS51EHkhaiTK9ZzsBQWUYpH/KFa\ndWFUGmJP4Bmm25QGOYTPuO8WEyFEXgxw8Ncl6LAd5BHQGlDjezVHW+u7gXyH+qxy\nag9j4Xs24xQIct9mPl1FTaN3tzu5khpfN8FP66/Qy7Tfzxi0VRtRpPmjeh+AkSS2\nJe6AF8LNYYo9g6t8V7FIMgZ4IxuEIZBhV8qznsr7sN20td6zoSkNvt9OEy55VOrU\nMBXjSumnAgMBAAECggEAKr4h9Iy3DPKaJu5LZtOCA33QK1f83VbxPXiKtx6GirJ/\nQ+K2rFlZx8pv9OO1xXwyu2ykvH1IaEb7cLkZJ5dNPGTV3r8rBoXUMCCR27jKgQQF\nHE1AcACmBeVY2JHka3qR7hy4loL3ewSbB63Mb2FTIXcvQ/cKSSBTK+A/l8Yxi4IG\nEZoVjfdmO2nFqZOz2/G44jf2sqZ5v+pXVnZWJdNQN+aNO46VruBtL2Z/lpaK9ZAl\nIQBm8uvN5jgxgirbCwDBCKHtJbX0J2ytfHxDQJBanM/HIkBzyHzoI73c0s6eZs5A\nmslNxYzm/VTmiRRyYt2AiPJA2fyjFpmllnAcP9kUkQKBgQDBBiS8pVMb95FLe8EW\nsk4IQtNAbSBL7QYS04Pa0UXXnSAVbsQf0FwntkF43k1//DH/Weaiu2y2+OHWCdTM\nPNWiB2sfmVb0KFriFSWnNJfU/z+tI0/9jrFfaa7Qd3SHmKohrmPIbiBRW3Zmfuuu\n5QPCSynTflC75bxt7hhdz3b8nQKBgQDgX1Kv+f+q7SYzNuvGBmsZWjxHU73q5uXE\n7fCd08yObnWkXpA1pwseF4pXmrWvD2yeO/5X05B97f16nQO2CQyRir6aAa3DFiaJ\nuwp8l0tv0AMwtsOuSOtrfkDoAg0WI7vXEwcr8MoR8S7PbgVhA5XVuxZFSoa4qB3B\n0l6MwcWyEwKBgQCNKGf/SUvw/OhVckgvx++G3Q/OYr+mpsy1QdeAU2CnIHIRGnL0\n7RQnuoJA2RmGCjGqEt22jigf2vyU4ZWsUqTMnG47qpDLdyOXiG2DzNNoYc34WQWr\nYQnXw9qi+2jNrNhmTzkLn3Wk6aU5qYHD4hkQopUQ5KQ39PcK0X8iQ5E5hQKBgDgD\ndBgcmFgqlhPJDTlFlu0gWtYPsOT4ubndEOnF21Zfex0KwoOybRMZG19dbygB+MLU\nBV4VogfeJx66HhgO0EVxVr4J10BRwlM2D5slBh8m1fUOW3GiIKuYPEnvYSb6ysUZ\nqfutRDUQefgs5kje5UQTTa8EuPdWeP9PLm2DXoBjAoGAHVh1/CpKgu9h2Ek0/4HK\n+tt4jOCNyazQbFULnnBimro6R6Roh++sJPTV0OPKSBdDdOa80+p5bZ6bA4nW2LKb\n0f18pA9KsfSSXwJBo+vBBE6RsCjRqB/CJouIiMqQsfheCsxuCUwQbht648TcUFTL\noyVMSnYcIlB/aLZIl5SoAhg=\n-----END PRIVATE KEY-----\n",
+            "public_key_fingerprint_md5": "10:d8:96:dc:c6:53:40:31:65:93:2a:3b:df:2a:d2:c5",
+            "public_key_fingerprint_sha256": "SHA256:zMf+eRpgC8dVsBltYZXFG1EdpU2ZsQxIPhlkZhHwc50",
+            "public_key_openssh": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCpLT/FWiFb9JtftZOrArQCmEC0tVPZWFIyLrHLRFTeKCqllbsnbOhsqXJOiSXGFVbaW9b0IFudKkP2DTOeayAPndP2Dy3SL/hsbEGewvbYHoWGRGj3oxS51EHkhaiTK9ZzsBQWUYpH/KFadWFUGmJP4Bmm25QGOYTPuO8WEyFEXgxw8Ncl6LAd5BHQGlDjezVHW+u7gXyH+qxyag9j4Xs24xQIct9mPl1FTaN3tzu5khpfN8FP66/Qy7Tfzxi0VRtRpPmjeh+AkSS2Je6AF8LNYYo9g6t8V7FIMgZ4IxuEIZBhV8qznsr7sN20td6zoSkNvt9OEy55VOrUMBXjSumn\n",
+            "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqS0/xVohW/SbX7WTqwK0\nAphAtLVT2VhSMi6xy0RU3igqpZW7J2zobKlyToklxhVW2lvW9CBbnSpD9g0znmsg\nD53T9g8t0i/4bGxBnsL22B6FhkRo96MUudRB5IWokyvWc7AUFlGKR/yhWnVhVBpi\nT+AZptuUBjmEz7jvFhMhRF4McPDXJeiwHeQR0BpQ43s1R1vru4F8h/qscmoPY+F7\nNuMUCHLfZj5dRU2jd7c7uZIaXzfBT+uv0Mu0388YtFUbUaT5o3ofgJEktiXugBfC\nzWGKPYOrfFexSDIGeCMbhCGQYVfKs57K+7DdtLXes6EpDb7fThMueVTq1DAV40rp\npwIDAQAB\n-----END PUBLIC KEY-----\n",
+            "rsa_bits": 2048
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key_pem_pkcs8"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key_pem"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "private_key_openssh"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.nfs-module[0]",
+      "mode": "managed",
+      "type": "nebius_compute_v1_disk",
+      "name": "nfs-boot-disk",
+      "provider": "provider[\"terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "block_size_bytes": 4096,
+            "created_at": "2024-10-16T18:56:36.562576Z",
+            "id": "computedisk-e00fzza7t96ghp5cbs",
+            "labels": null,
+            "metadata": {},
+            "name": "nfs-boot-disk",
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "placement_policy": null,
+            "resource_version": 0,
+            "size_bytes": 64424509440,
+            "size_gibibytes": null,
+            "size_kibibytes": null,
+            "size_mebibytes": null,
+            "source_image_family": {
+              "image_family": "ubuntu22.04-driverless",
+              "parent_id": null
+            },
+            "source_image_id": null,
+            "status": {
+              "read_only_attachments": null,
+              "read_write_attachment": null,
+              "reconciling": null,
+              "size_bytes": 64424509440,
+              "source_image_id": "computeimage-e00m4wdczvzd3m7mva",
+              "state": "READY",
+              "state_description": null
+            },
+            "type": "NETWORK_SSD",
+            "updated_at": null
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "module": "module.nfs-module[0]",
+      "mode": "managed",
+      "type": "nebius_compute_v1_disk",
+      "name": "nfs-storage-disk",
+      "provider": "provider[\"terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "block_size_bytes": 4096,
+            "created_at": "2024-10-16T18:56:36.561436Z",
+            "id": "computedisk-e00g6s5qmn5grdg73p",
+            "labels": null,
+            "metadata": {},
+            "name": "nfs-storage-disk",
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "placement_policy": null,
+            "resource_version": 0,
+            "size_bytes": 99857989632,
+            "size_gibibytes": null,
+            "size_kibibytes": null,
+            "size_mebibytes": null,
+            "source_image_family": null,
+            "source_image_id": null,
+            "status": {
+              "read_only_attachments": null,
+              "read_write_attachment": null,
+              "reconciling": null,
+              "size_bytes": 99857989632,
+              "source_image_id": null,
+              "state": "READY",
+              "state_description": null
+            },
+            "type": "NETWORK_SSD_IO_M3",
+            "updated_at": null
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    },
+    {
+      "module": "module.nfs-module[0]",
+      "mode": "managed",
+      "type": "nebius_compute_v1_instance",
+      "name": "nfs_server",
+      "provider": "provider[\"terraform-provider-nebius.storage.ai.nebius.cloud/nebius/nebius\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "boot_disk": {
+              "attach_mode": "READ_WRITE",
+              "device_id": null,
+              "existing_disk": {
+                "id": "computedisk-e00fzza7t96ghp5cbs"
+              }
+            },
+            "cloud_init_user_data": "#cloud-config\nusers:\n  - name: storage\n    groups: sudo\n    shell: /bin/bash\n    sudo: 'ALL=(ALL) NOPASSWD:ALL'\n    ssh-authorized-keys:\n      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP5nxVe9sWkFl+FHrb06KrRdM+TDwIVLErY1xzbTUO2H\n\nruncmd:\n- apt-get update\n- apt-get install -y nfs-kernel-server\n- mkdir -p /mnt/nfs\n- mkfs.ext4 /dev/vda\n- mount -o rw /dev/vda /mnt/nfs\n- echo \"/dev/vdb /mnt/nfs ext4  rw,relatime\" | tee -a /etc/fstab\n- chown nobody:nogroup /mnt/nfs\n- chmod 777 /mnt/nfs\n- echo \"/mnt/nfs 192.168.0.0/16(rw,async,no_subtree_check)\" \u003e\u003e /etc/exports\n- netplan set ethernets.eth0.mtu=8910\n- netplan apply\n- systemctl restart nfs-kernel-server\n",
+            "created_at": "2024-10-16T18:56:44.947622Z",
+            "filesystems": null,
+            "gpu_cluster": null,
+            "id": "computeinstance-e00zzh43sr4bmnd1wv",
+            "labels": null,
+            "metadata": {},
+            "name": "nfs-share",
+            "network_interfaces": [
+              {
+                "ip_address": {
+                  "allocation_id": null
+                },
+                "name": "eth0",
+                "public_ip_address": {
+                  "allocation_id": null,
+                  "static": null
+                },
+                "subnet_id": "vpcsubnet-e00y7e70x0xb0vt9d0"
+              }
+            ],
+            "parent_id": "project-e00a2fpdqngbt55ex3",
+            "resource_version": 0,
+            "resources": {
+              "platform": "cpu-e2",
+              "preset": "16vcpu-64gb"
+            },
+            "secondary_disks": [
+              {
+                "attach_mode": "READ_WRITE",
+                "device_id": null,
+                "existing_disk": {
+                  "id": "computedisk-e00g6s5qmn5grdg73p"
+                }
+              }
+            ],
+            "service_account_id": null,
+            "status": {
+              "network_interfaces": [
+                {
+                  "index": null,
+                  "ip_address": {
+                    "address": "192.168.0.112/32",
+                    "allocation_id": "vpcallocation-e00qx4yestwqsqdcfe"
+                  },
+                  "mac_address": "B6:FA:EE:5B:35:C5",
+                  "name": "eth0",
+                  "public_ip_address": {
+                    "address": "195.242.10.237/32",
+                    "allocation_id": "vpcallocation-e00eza0s8cykafeykz"
+                  }
+                }
+              ],
+              "reconciling": null,
+              "state": "RUNNING"
+            },
+            "stopped": null,
+            "updated_at": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "cloud_init_user_data"
+              }
+            ]
+          ],
+          "dependencies": [
+            "module.nfs-module.nebius_compute_v1_disk.nfs-boot-disk",
+            "module.nfs-module.nebius_compute_v1_disk.nfs-storage-disk"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": [
+    {
+      "object_kind": "var",
+      "config_addr": "var.shared_fs_type",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "var.shared_fs_type",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "object_kind": "var",
+      "config_addr": "var.ssh_public_key",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "var.ssh_public_key",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}
