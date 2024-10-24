@@ -1,5 +1,6 @@
 locals {
   gpu = {
+    present = module.resources.this[var.node_group_gpu.resource.platform][var.node_group_gpu.resource.preset].gpus > 0 ? true : false
     cluster = {
       create = module.resources.this[var.node_group_gpu.resource.platform][var.node_group_gpu.resource.preset].gpu_cluster_compatible
       name = join("-", [
@@ -51,9 +52,12 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
 
   template = {
     metadata = {
-      labels = module.labels.label_group_name_gpu
+      labels = merge(
+        (local.gpu.present ? tomap({ ("nebius.com/gpu") = ("true") }) : tomap({})),
+        module.labels.label_group_name_gpu,
+      )
     }
-    taints = module.resources.this[var.node_group_gpu.resource.platform][var.node_group_gpu.resource.preset].gpus > 0 ? [{
+    taints = local.gpu.present ? [{
       key    = "nvidia.com/gpu",
       value  = module.resources.this[var.node_group_gpu.resource.platform][var.node_group_gpu.resource.preset].gpus
       effect = "NO_SCHEDULE"
