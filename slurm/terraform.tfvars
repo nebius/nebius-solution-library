@@ -1,7 +1,7 @@
-parent_id = "project-e00..."
-subnet_id = "vpcsubnet-e00..."
-cluster_workers_count = 2     # amount of workers
-mysql_jobs_backend    = false # Do you want to use mysql
+parent_id             = "project-e00..."
+subnet_id             = "vpcsubnet-e00..."
+cluster_workers_count = 2            # amount of workers
+mysql_jobs_backend    = false        # Do you want to use mysql
 shared_fs_type        = "filesystem" # "nfs" or "filesystem"
 # ssh_public_key = {
 #   key  = "put your public ssh key here"

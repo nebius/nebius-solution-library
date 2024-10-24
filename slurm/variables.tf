@@ -71,7 +71,7 @@ variable "shared_fs_type" {
   default     = null
   description = "Use shared managed FileStorage mounted on /mnt/slurm on every worker node"
   validation {
-    condition     = var.shared_fs_type == null ? true : contains(["filesystem","nfs"], var.shared_fs_type)
+    condition     = var.shared_fs_type == null ? true : contains(["filesystem", "nfs"], var.shared_fs_type)
     error_message = "shared_fs_type must be one of: filesystem / nfs"
   }
 }
