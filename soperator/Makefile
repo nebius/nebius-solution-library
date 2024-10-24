@@ -1,33 +1,20 @@
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-VERSION							= $(shell cat VERSION)
-IMAGE_TAG						= $(VERSION)
-DOCKER_REGISTRY_NAME			= soperator
+SOPERATOR_VERSION		= $(shell cat VERSION)
+SUBVERSION				= $(shell cat SUBVERSION)
+VERSION					= $(SOPERATOR_VERSION)-$(SUBVERSION)
+DOCKER_REGISTRY_NAME	= soperator
 
 ifeq ($(shell uname), Darwin)
-    SHA_CMD = shasum -a 256
     SED_COMMAND = sed -i ''
-    USER_MAIL					= $(shell git config user.email)
 else
-    SHA_CMD = sha256sum
     SED_COMMAND = sed -i
-    USER_MAIL					= $(shell git log -1 --pretty=format:'%ae')
 endif
-ifeq ($(UNSTABLE), true)
-    SHORT_SHA 					= $(shell echo -n "$(USER_MAIL)-$(VERSION)" | $(SHA_CMD) | cut -c1-8)
-	IMAGE_TAG					= $(VERSION)-$(SHORT_SHA)
-	DOCKER_REGISTRY_NAME		= soperator-unstable
-endif
-
-.PHONY: get-image-version
-get-image-version:
-	@echo '$(IMAGE_TAG)'
 
 .PHONY: sync-version
-sync-version: ## Sync versions from file
-	@echo 'Version is - $(VERSION)'
-	@echo 'Image version is - $(IMAGE_TAG)'
+sync-version: ## Sync Soperator version from file
+	@echo 'Soperator version is - $(SOPERATOR_VERSION)'
 
 	@# region modules/slurm/locals.tf
 	@$(SED_COMMAND) "s|\(oci://cr.eu-north1.nebius.cloud/\)[^\"]*|\1$(DOCKER_REGISTRY_NAME)|" modules/slurm/locals.tf
@@ -35,11 +22,11 @@ sync-version: ## Sync versions from file
 
 	@# region installations/example/terraform.tfvars
 	@echo 'Syncing installations/example/terraform.tfvars'
-	@$(SED_COMMAND) -E 's/slurm_operator_version *= *"[0-9]+.[0-9]+.[0-9]+[^ ]*"/slurm_operator_version = "$(IMAGE_TAG)"/' installations/example/terraform.tfvars
+	@$(SED_COMMAND) -E 's/slurm_operator_version *= *"[0-9]+.[0-9]+.[0-9]+[^ ]*"/slurm_operator_version = "$(SOPERATOR_VERSION)"/' installations/example/terraform.tfvars
 	@terraform fmt installations/example/terraform.tfvars
 	@# endregion installations/example/terraform.tfvars
 
 .PHONY: release
-release:
+release: ## Create a zipped tarball with release TF recipe
 	@echo "Packing terraform tarball with version - ${IMAGE_TAG}"
-	VERSION=${IMAGE_TAG} ./release_terraform.sh -f
+	VERSION=${VERSION} ./release_terraform.sh -f

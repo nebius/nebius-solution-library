@@ -15,16 +15,19 @@ do
   esac
 done
 
-version=$(echo "${VERSION}" | tr '.' '_' | tr '-' '_')
-
 mkdir -p releases
-tarball="releases/soperator_tf_${version}.tar.gz"
+tarball="releases/soperator-tf-${VERSION}.tar.gz"
 if [ ! -f "$tarball" ] || [ -n "$force" ]; then
-  tar -czf "$tarball" \
-    installations \
-    modules \
-    test \
-    README.md \
-    ../LICENSE
-  echo "$(pwd)/$tarball created."
+  echo "Creating $tarball ..."
+  pushd ..
+  tar -czf "soperator/$tarball" \
+    modules/gpu-operator \
+    modules/network-operator \
+    soperator/installations \
+    soperator/modules \
+    soperator/test \
+    soperator/README.md \
+    LICENSE
+  popd
+  echo "Created $tarball ."
 fi
