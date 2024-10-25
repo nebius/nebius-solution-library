@@ -450,6 +450,14 @@ $ ./login.sh -k ~/.ssh/id_rsa
 root@login-0:~#
 ```
 
+> [!NOTE]
+> You can get the IP for connection from `./login.sh`.
+> But it would be faster to get it via following command:
+> ```shell
+> terraform show -json \
+>   | jq -r '.values.root_module.child_modules[].resources[] | select(.address | endswith("terraform_data.connection_ip")).values.output'
+> ```
+
 ### Check it out
 
 Take a look on the list of Slurm workers:
