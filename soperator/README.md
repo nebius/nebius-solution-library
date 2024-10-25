@@ -64,7 +64,7 @@ on darwin_arm64
 
 ```console
 $ nebius version
-0.11.2
+0.11.6
 ```
 
 [Authorize it](https://docs.nebius.com/cli/configure/#authorize-with-a-user-account) with a user account.
