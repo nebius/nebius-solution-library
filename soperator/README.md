@@ -44,69 +44,81 @@ These checks are implemented as usual Slurm jobs - they stay in the same queue w
 
 Make sure you have the following programs installed on your machine.
 
-- [Terraform CLI](https://developer.hashicorp.com/terraform/install)
+### Terraform CLI
 
-    > [!IMPORTANT]
-    > The minimum version of Terraform needed for this recipe is `1.8.0`.
+> [!IMPORTANT]
+> The minimum version of Terraform needed for this recipe is `1.8.0`.
 
-    ```console
-    $ terraform version
-    Terraform v1.9.8
-    on darwin_arm64
-    ...
-    ```
+[How to install](https://developer.hashicorp.com/terraform/install).
 
-- [Nebius CLI](https://docs.nebius.ai/cli/install)
+```console
+$ terraform version
+Terraform v1.9.8
+on darwin_arm64
+...
+```
 
-    ```console
-    $ nebius version
-    0.11.2
-    ```
+### Nebius CLI
 
-    [Authorize it](https://docs.nebius.com/cli/configure/#authorize-with-a-user-account) with a user account.
+[How to install](https://docs.nebius.ai/cli/install).
 
-- [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
+```console
+$ nebius version
+0.11.6
+```
 
-    ```console
-    $ kubectl version
-    Client Version: v1.31.1
-    ...
-    ```
+[Authorize it](https://docs.nebius.com/cli/configure/#authorize-with-a-user-account) with a user account.
 
-- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+### `kubectl`
 
-    ```console
-    $ aws --version
-    aws-cli/2.17.20 Python/3.11.9 Darwin/23.6.0 exe/x86_64
-    ```
+[How to install](https://kubernetes.io/docs/tasks/tools/#kubectl).
 
-- [jq](https://jqlang.github.io/jq/download/)
+```console
+$ kubectl version
+Client Version: v1.31.1
+...
+```
 
-    ```console
-    $ jq --version
-    jq-1.7.1
-    ```
+### AWS CLI
 
-- `md5sum`
+[How to install](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
 
-    We use `md5sum` utility to generate unique S3 bucket IDs.
-    
-    `md5sum` is often pre-installed on most of Unix-like OSs. Ensure that you have it installed on your machine.
-    
-    ```shell
-    which md5sum 
-    ```
-    
-    > [!TIP]
-    > To install `md5sum` on macOS, you have to install GNU coreutils that includes it.
-    > ```shell
-    > brew install coreutils
-    > ```
+```console
+$ aws --version
+aws-cli/2.17.20 Python/3.11.9 Darwin/23.6.0 exe/x86_64
+```
 
-- [direnv](https://direnv.net/#basic-installation)
+### `jq`
 
-    `direnv` is a tool for automatic loading of directory-scoped environment variables.
-    It can find and load variables from e.g. `.envrc` file.
+[How to install](https://jqlang.github.io/jq/download/).
+
+```console
+$ jq --version
+jq-1.7.1
+```
+
+### `md5sum`
+
+We use `md5sum` utility to generate unique S3 bucket IDs.
+
+`md5sum` is often pre-installed on most of Unix-like OSs. Ensure that you have it installed on your machine.
+
+```shell
+which md5sum 
+```
+
+> [!TIP]
+> To install `md5sum` on macOS, you have to install GNU coreutils that includes it.
+> ```shell
+> brew install coreutils
+> ```
+
+### `direnv`
+
+`direnv` is a tool for automatic loading of directory-scoped environment variables.
+It can find and load variables from e.g. `.envrc` file.
+
+[How to install](https://direnv.net/#basic-installation).
 
 ## Step-by-step guide
 
@@ -246,8 +258,8 @@ Let's create a S3 bucket in Object Storage, which will be used by Terraform to s
     tfstate-slurm-k8s-<project-hash>
     ```
 
-    > [!NOTE]
-    > `NEBIUS_BUCKET_NAME` contains unique bucket name dedicated to the project inside your tenant.
+> [!NOTE]
+> `NEBIUS_BUCKET_NAME` contains unique bucket name dedicated to the project inside your tenant.
 
 2. Create a bucket:
 
@@ -258,24 +270,9 @@ Let's create a S3 bucket in Object Storage, which will be used by Terraform to s
         --versioning-policy 'enabled' 
     ```
 
-    > [!NOTE]
-    > `--versioning-policy 'enabled'` allows you to keep track of versions made by Terraform.
-    > It gives you a possibility to roll back to specified version of TF state in case your installation is broken.
-
-3. Add the key, the Nebius AI region ID and the Object Storage endpoint URL to the AWS CLI configuration
-
-    ```bash
-    aws configure set aws_access_key_id "${NEBIUS_SA_ACCESS_KEY_AWS_ID}"
-    ```
-    ```bash
-    aws configure set aws_secret_access_key "${NEBIUS_SA_SECRET_ACCESS_KEY}"
-    ```
-    ```bash
-    aws configure set region 'eu-north1'
-    ```
-    ```bash
-    aws configure set endpoint_url 'https://storage.eu-north1.nebius.cloud:443'
-    ```
+> [!NOTE]
+> `--versioning-policy 'enabled'` allows you to keep track of versions made by Terraform.
+> It gives you a possibility to roll back to specified version of TF state in case your installation is broken.
 
 ### Set environment variables
 
@@ -384,12 +381,29 @@ IAM token is present
 > ```
 
 Once you loaded `.envrc` file into your environment, you'll get `.aws_secret_access_key` and 
- files created in your installation directory.
+files created in your installation directory.
 
 > [!IMPORTANT]
 > Make sure that:
 > - `.aws_secret_access_key` file is not empty
 > - `terraform_backend_override.tf` file contains valid bucket name
+
+### Configure AWS CLI
+
+Add the key, the Nebius AI region ID and the Object Storage endpoint URL to the AWS CLI configuration:
+
+```shell
+aws configure set aws_access_key_id "${AWS_ACCESS_KEY_ID}"
+```
+```shell
+aws configure set aws_secret_access_key "${AWS_SECRET_ACCESS_KEY}"
+```
+```shell
+aws configure set region 'eu-north1'
+```
+```shell
+aws configure set endpoint_url 'https://storage.eu-north1.nebius.cloud:443'
+```
 
 ### Initialize Terraform
 
@@ -436,11 +450,19 @@ $ ./login.sh -k ~/.ssh/id_rsa
 root@login-0:~#
 ```
 
+> [!NOTE]
+> You can get the IP for connection from `./login.sh`.
+> But it would be faster to get it via following command:
+> ```shell
+> terraform show -json \
+>   | jq -r '.values.root_module.child_modules[].resources[] | select(.address | endswith("terraform_data.connection_ip")).values.output'
+> ```
+
 ### Check it out
 
 Take a look on the list of Slurm workers:
 
-```bash
+```shell
 sinfo -Nl
 ```
 
@@ -448,7 +470,7 @@ Make sure they all are in `idle` state.
 
 In order to connect to a specific worker, use the following command:
 
-```bash
+```shell
 srun -w <worker-name> -Z --pty bash
 ```
 
@@ -460,7 +482,6 @@ Now you can check how it executes compute jobs.
 We offer two kind of checks:
 - [Quick](#quickly-check-the-slurm-cluster);
 - [MLCommons Stable Diffusion](#run-mlcommons-stable-diffusion-benchmark).
-- [MLCommons GPT3](#run-mlcommons-gpt3-benchmark).
 
 Additionally, you can [try out the special features](#try-out-special-features) Soperator provides.
 
@@ -469,22 +490,25 @@ Additionally, you can [try out the special features](#try-out-special-features) 
 There is a [test](test) directory.
 Enter it and run the script that uploads several batch job scripts to your cluster:
 
-```bash
+```shell
 ./prepare_for_quickcheck.sh -u root -k <Path to private key for provided public key> -a ${SLURM_IP}
 ```
 
 Within an SSH session to the Slurm cluster, execute:
 
-```bash
+```shell
 cd /quickcheck
-
-sbatch hello.sh
+```
+```shell
+sbatch hello.sh && \
 tail -f outputs/hello.out
-
-sbatch nccl.sh
+```
+```shell
+sbatch nccl.sh && \
 tail -f outputs/nccl.out
-
-sbatch enroot.sh
+```
+```shell
+sbatch enroot.sh && \
 tail -f outputs/enroot.out
 ```
 
@@ -532,7 +556,7 @@ filestore_jail_submounts = [{
 Or, you can use the same filestore for multiple clusters.
 In order to do this, create it on your own with the Nebius CLI
 
-```bash
+```shell
 nebius compute filesystem create \
   --parent-id "${NEBIUS_PROJECT_ID}" \
   --name 'shared-mlperf-sd' \
@@ -559,14 +583,14 @@ It will attach the storage to your cluster at `/mlperf-sd` directory.
 
 Enter the [test](test) directory and run the script that uploads several batch job scripts to your cluster:
 
-```bash
+```shell
 ./prepare_for_mlperf_sd.sh -u root -k <Path to private key for provided public key> -a ${SLURM_IP}
 ```
 
 Within an SSH session to the Slurm cluster, execute:
 
-```bash
-cd /opt/mlperf-sd
+```shell
+cd /opt/mlperf-sd && \
 ./prepare_env.sh
 ```
 
@@ -576,26 +600,26 @@ downloading datasets and checkpoints.
 > [!NOTE]
 > The actual working directory for this benchmark is located at the root level - `/mlperf-sd`.
 > 
-> ```cd
-> /mlperf-sd
+> ```shell
+> cd /mlperf-sd
 > ```
 
 Wait until the job finishes. You can track the progress by running:
 
-```bash
+```shell
 watch squeue
 ```
 
 Or checking the `aws_download.log` output:
 
-```bash
+```shell
 tail -f aws_download.log
 ```
 
 Once it's done, start the benchmark:
 
-```bash
-cd /mlperf-sd/training/stable_diffusion
+```shell
+cd /mlperf-sd/training/stable_diffusion && \
 ./scripts/slurm/sbatch.sh
 ```
 
@@ -606,7 +630,7 @@ If your setup consists of 2 worker nodes with 8 H100 GPU on each, you can compar
 
 Also, you can execute
 
-```bash
+```shell
 ./parselog -f nogit/logs/your_log_file
 ```
 
@@ -615,7 +639,7 @@ In order to parse your log file and calculate the result.
 <details>
 <summary>Usage example</summary>
 
->```bash
+>```shell
 >./parselog -f nogit/logs/reference_02x08x08_1720163290.out -g 2xH100
 >```
 >```text
@@ -637,159 +661,3 @@ In order to parse your log file and calculate the result.
 > max: 23.62s
 >```
 </details>
-
-#### Run MLCommons GPT3 benchmark
-
-If you are going to run the MLCommons GPT3 benchmark, you will probably need large storage for it.
-
-<details>
-<summary>Creating storage for GPT3 benchmark</summary>
-
-You can create with this Terraform recipe, as in provided [terraform.tfvars](installations/example):
-
-```terraform
-# Shared filesystems to be mounted inside jail.
-# ---
-filestore_jail_submounts = [{
-  name       = "mlperf-gpt3"
-  mount_path = "/gpt3"
-  spec = {
-    size_gibibytes       = 8192
-    block_size_kibibytes = 4
-  }
-}]
-```
-
-Or, you can use the same filestore for multiple clusters.
-In order to do this, create it on your own with the Nebius CLI
-
-```bash
-nebius compute filesystem create \
-  --parent-id "${NEBIUS_PROJECT_ID}" \
-  --name 'shared-mlperf-gpt3' \
-  --type 'network_ssd' \
-  --size-bytes 8796093022208
-```
-
-And provide its ID to the recipe as follows:
-
-```terraform
-# Shared filesystems to be mounted inside jail.
-# ---
-filestore_jail_submounts = [{
-  name       = "mlperf-gpt3"
-  mount_path = "/gpt3"
-  existing = {
-    id = "<ID of created filestore>"
-  }
-}]
-```
-
-It will attach the storage to your cluster at `/gpt3` directory.
-</details>
-
-Enter the [test](test) directory and run the script that uploads several batch job scripts to your cluster:
-
-```bash
-./prepare_for_mlperf_gpt3.sh -u root -k <Path to private key for provided public key> -a ${SLURM_IP}
-```
-
-Within an SSH session to the Slurm cluster, execute:
-
-```bash
-cd /opt/mlperf-gpt3
-./init.sh
-```
-
-This script:
-- Clones the necessary parts from MLCommons git repository, and configures it for our cluster setup;
-- Downloads dataset;
-- Downloads checkpoint;
-- Creates a Run script.
-
-Once initialisation is done, start the benchmark:
-
-> [!NOTE]
-> The actual working directory for this benchmark is located at the root level - `/gpt3`.
-
-```bash
-cd /gpt3 && ./run.sh
-```
-
-### Try out special features
-
-#### Shared root filesystem
-
-You can create a new user on a login node and have it appear on all nodes in the cluster.
-There's a wrapper script `createuser`, which:
-- Creates a new user & group;
-- Adds they to sudoers;
-- Creates a home directory with the specified public SSH key.
-
-<details>
-<summary>Usage example</summary>
-
->```bash
-> createuser pierre
->```
->```text
-> Adding user `pierre' ...
-> Adding new group `pierre' (1004) ...
-> Adding new user `pierre' (1004) with group `pierre' ...
-> Creating home directory `/home/pierre' ...
-> Copying files from `/etc/skel' ...
-> New password: ********
-> Retype new password: ********
-> passwd: password updated successfully
-> Changing the user information for pierre
-> Enter the new value, or press ENTER for the default
-> 	Full Name []: Pierre Dunn
-> 	Room Number []: 123
-> 	Work Phone []:
-> 	Home Phone []:
-> 	Other []: Slurm expert
-> Is the information correct? [Y/n] y
-> Enter the SSH public key, or press ENTER to avoid creating a key:
-> ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKzxkjzPQ4EyZSjan4MLGFSA18idpZicoKW7HC4YmwgN pierre.dunn@gmail.com
->```
-</details>
-
-You can also check how new packages are installed into the shared filesystem:
-
-```bash
-# Install the package on the login node
-apt update && apt install -y neofetch
-
-# Run it on a worker node
-srun neofetch
-```
-
-#### Periodic GPU health checks
-
-The NCCL tests are launched from the `<cluster-name>-nccl-benchmark` K8s CronJob.
-
-You can trigger this job manually if you don't want to wait until the next execution time.
-
-If everything is OK with GPUs on your nodes, the launch of CronJob will finish successfully.
-
-In order to simulate GPU performance issues on one of the nodes, you can launch another NCCL test with half of available
-GPUs just before triggering the CronJob:
-
-```bash
-srun -w worker-0 -Z --gpus=4 bash -c "/usr/bin/all_reduce_perf -b 512M -e 16G -f 2 -g 4"
-```
-
-> [!NOTE]
-> We set the `-Z` option here, so it will ignore GPUs allocated in concurrent jobs.
-
-After that, `worker-0` should become drained:
-
-```bash
-sinfo -Nl
-```
-
-You can see the verbose details in the Reason field of this node description:
-
-```bash
-scontrol show node worker-0
-```
