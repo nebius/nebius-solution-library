@@ -3,7 +3,7 @@
 ## Features
 
 - Creating a Kubernetes cluster with CPU and GPU nodes.
-- Installing the required [NVIDIA GPU Operator](https://github.com/NVIDIA/gpu-operator)
+- Installing the required [Nvidia Gpu Operator](https://github.com/NVIDIA/gpu-operator)
   and [Network Operator](https://docs.nvidia.com/networking/display/cokan10/network+operator) for running GPU
   workloads.- Installing [Grafana](https://github.com/grafana/helm-charts/tree/main/charts/grafana).
 - Installing [Prometheus](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus).
@@ -299,12 +299,3 @@ spec:
       storage: "<SIZE>"
 ```
 
-CSI limitations:
-the limitations of CSI over mounted FS:
-FS should be mounted to all NodeGroups because a PV attached to a pod running on a node without FS will fail
-A single PV can storage up to all common FS sizes
-If the PV size exceeds the specified size, the FS size will not be updated automatically
-For now the FS size can only be updated via NEBOPS, not the API. (thread)
-volumeMode: Block  - is not possible
-
-Note: The read-write-many mode PV is already operational. MSP is testing this solution to enable early integration with mk8s. We hope they will give us feedback soon.
