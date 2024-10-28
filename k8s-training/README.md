@@ -11,54 +11,57 @@
 - Installing [Promtail](https://github.com/grafana/helm-charts/tree/main/charts/promtail).
 
 ## Prerequisites
+
 1. Install [Nebius CLI](https://docs.nebius.ai/cli/install/):
-    ```bash
-    curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
-    ```
+   ```bash
+   curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
+   ```
 
 2. Reload your shell session:
-    ```bash
-    exec -l $SHELL
-    ```
+
+   ```bash
+   exec -l $SHELL
+   ```
+
    or
 
-    ```bash
-    source ~/.bashrc
-    ```
+   ```bash
+   source ~/.bashrc
+   ```
 
 3. [Configure](https://docs.nebius.ai/cli/configure/) Nebius CLI (it's recommended to use [service account](https://docs.nebius.ai/iam/service-accounts/manage/) for configuration):
-    ```bash
-    nebius init
-    ```
+   ```bash
+   nebius init
+   ```
 
 3. Install JQuery (example for Debian based distros):
-    ```bash
-    sudo apt install jq -y
-    ```
+   ```bash
+   sudo apt install jq -y
+   ```
 
 ## Usage
 
 Follow these steps to deploy the Kubernetes cluster:
 
 1. Load environment variables:
-    ```bash
-    source ./environment.sh
-    ```
+   ```bash
+   source ./environment.sh
+   ```
 2. Initialize Terraform:
-    ```bash
-    terraform init
-    ```
+   ```bash
+   terraform init
+   ```
 3. Replace the placeholder content
    in `terraform.tfvars` with actual configuration values to fit your specific
    requirements. See the details [bellow](#configuration-variables).
 4. Preview the deployment plan:
-    ```bash
-    terraform plan
-    ```
+   ```bash
+   terraform plan
+   ```
 5. Apply the configuration:
-    ```bash
-    terraform apply
-    ```
+   ```bash
+   terraform apply
+   ```
    Wait for the operation to complete.
 
 ## Configuration Variables
@@ -68,6 +71,7 @@ These are the basic configurations needed to deploy Kubernetes for Training in N
 There are additional configurable variables in `variables.tf`.
 
 ### Environment and network variables
+
 ```hcl
 # Cloud environment and network
 parent_id      = "" # The project-id in this context
@@ -80,6 +84,7 @@ ssh_public_key = {
 ```
 
 ### Kubernetes nodes
+
 ```hcl
 # K8s modes
 cpu_nodes_count  = 1 # Number of CPU nodes
@@ -89,6 +94,7 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Set to "1gpu-16v
 ```
 
 ### Observability options
+
 ```hcl
 # Observability
 enable_grafana    = true # Enable or disable Grafana deployment with true or false
@@ -106,6 +112,7 @@ Check the details below for more information on [Grafana](#grafana), [Prometheus
 > Deploying Loki will require you to create a service account! Please check the instructions [here](#temporary-block-to-make-loki-work-now)!
 
 ### Storage configuration
+
 ```hcl
 # Storage
 ## Filestore - recommended
@@ -158,14 +165,16 @@ Check [here](#accessing-storage) how to access storage in K8S.
 
 ### Connect to the cluster
 Show cluster information:
-  ```bash
-  kubectl cluster-info
-  ```
+
+```bash
+kubectl cluster-info
+```
 
 Get pods:
-  ```bash
-  kubectl get pods -A
-  ```
+
+```bash
+kubectl get pods -A
+```
 
 ## Observability
 
