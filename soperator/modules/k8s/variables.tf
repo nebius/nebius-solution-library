@@ -34,36 +34,71 @@ variable "etcd_cluster_size" {
 
 #---
 
-variable "node_group_cpu" {
-  description = "CPU-only node group specification."
+variable "node_group_system" {
+  description = "System node group specification."
   type = object({
-    size = number
+    count = number
     resource = object({
       platform = string
       preset   = string
     })
     boot_disk = object({
-      type           = string
-      size_gibibytes = number
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
     })
   })
 }
 
-variable "node_group_gpu" {
-  description = "GPU node group specification."
+variable "node_group_controller" {
+  description = "Controller node group specification."
   type = object({
-    size = number
+    count = number
     resource = object({
       platform = string
       preset   = string
     })
     boot_disk = object({
-      type           = string
-      size_gibibytes = number
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
     })
-    gpu_cluster = object({
+  })
+}
+
+variable "node_group_workers" {
+  description = "Worker node groups specification."
+  type = list(object({
+    count = number
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+    gpu_cluster = optional(object({
       infiniband_fabric = string
+    }))
+  }))
+}
+
+variable "node_group_login" {
+  description = "Controller node group specification."
+  type = object({
+    count = number
+    resource = object({
+      platform = string
+      preset   = string
     })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+    use_node_port = bool
   })
 }
 
@@ -88,13 +123,6 @@ variable "filestores" {
       mount_tag = string
     }))
   })
-}
-
-#---
-
-variable "create_nlb" {
-  type     = bool
-  nullable = false
 }
 
 #---

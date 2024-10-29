@@ -1,31 +1,42 @@
-resource "nebius_mk8s_v1_node_group" "cpu" {
+resource "nebius_mk8s_v1_node_group" "controller" {
   depends_on = [
     nebius_mk8s_v1_cluster.this,
   ]
 
   parent_id = nebius_mk8s_v1_cluster.this.id
 
-  name = module.labels.name_node_group_cpu
+  name = "slurm-${module.labels.name_nodeset_controller}"
   labels = merge(
-    module.labels.label_group_name_cpu
+    module.labels.label_nodeset_controller,
+    local.node_group_workload_label.controller,
   )
 
   version          = var.k8s_version
-  fixed_node_count = var.node_group_cpu.size
+  fixed_node_count = var.node_group_controller.count
 
   template = {
     metadata = {
-      labels = module.labels.label_group_name_cpu
+      labels = merge(
+        module.labels.label_nodeset_controller,
+        local.node_group_workload_label.controller,
+        (local.node_group_gpu_present.controller ? module.labels.label_nebius_gpu : {}),
+      )
     }
+    taints = local.node_group_gpu_present.controller ? [{
+      key    = module.labels.key_nvidia_gpu,
+      value  = module.resources.this[var.node_group_controller.resource.platform][var.node_group_controller.resource.preset].gpus
+      effect = "NO_SCHEDULE"
+    }] : null
 
     resources = {
-      platform = var.node_group_cpu.resource.platform
-      preset   = var.node_group_cpu.resource.preset
+      platform = var.node_group_controller.resource.platform
+      preset   = var.node_group_controller.resource.preset
     }
 
     boot_disk = {
-      type       = var.node_group_cpu.boot_disk.type
-      size_bytes = provider::units::from_gib(var.node_group_cpu.boot_disk.size_gibibytes)
+      type             = var.node_group_controller.boot_disk.type
+      size_bytes       = provider::units::from_gib(var.node_group_controller.boot_disk.size_gibibytes)
+      block_size_bytes = provider::units::from_kib(var.node_group_controller.boot_disk.block_size_kibibytes)
     }
 
     filesystems = concat([{

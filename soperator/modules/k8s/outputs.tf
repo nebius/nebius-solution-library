@@ -15,3 +15,13 @@ output "allocation_id" {
   description = "ID of the VPC allocation used for SSH connection into Slurm cluster."
   value       = local.allocation_id
 }
+
+output "gpu_involved" {
+  description = "Whether the GPUs were involved."
+  value = length([for nodeset in concat([
+    local.node_group_gpu_present.system,
+    local.node_group_gpu_present.controller,
+    local.node_group_gpu_present.login,
+    local.node_group_gpu_present.nlb,
+  ], local.node_group_gpu_present.worker) : nodeset if nodeset]) > 0
+}
