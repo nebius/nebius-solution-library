@@ -1,0 +1,48 @@
+#cloud-config
+version: 2
+ethernets:
+  {{ .ipip_primary_interface }}:
+    dhcp4: false
+    addresses:
+      - {{ .ipip_tunnel_local_ip }}/24  # Assign the primary IP
+    nameservers:
+      addresses:
+        - 8.8.8.8
+        - 8.8.4.4
+    mtu: 1450
+
+tunnels:
+  {{ .ipip_tunnel_interface_name }}:
+    mode: ipip
+    local: {{ .ipip_tunnel_local_ip }}
+    remote: {{ .ipip_tunnel_remote_ip }}
+    addresses:
+      - {{ .ipip_tunnel_local_ip }}/30
+    routes:
+      {% for subnet in split(",", .ipip_internal_subnet) %}
+      - to: {{ subnet }}
+        via: {{ .ipip_tunnel_remote_ip }}
+      {% endfor %}
+
+write_files:
+  - path: /etc/sysctl.d/99-ip_forward.conf
+    content: |
+      net.ipv4.ip_forward=1
+
+runcmd:
+  - sysctl --system
+  - |
+    # Configure iptables for NAT if enabled
+    {% if .ipip_enable_nat %}
+    iptables -t nat -A POSTROUTING -o {{ .ipip_primary_interface }} -j MASQUERADE
+    {% endif %}
+    # Allow IPIP protocol
+    iptables -A INPUT -p 4 -j ACCEPT
+    iptables -A OUTPUT -p 4 -j ACCEPT
+    # Allow forwarding between primary interface and IPIP tunnel
+    iptables -A FORWARD -i {{ .ipip_primary_interface }} -o {{ .ipip_tunnel_interface_name }} -j ACCEPT
+    iptables -A FORWARD -i {{ .ipip_tunnel_interface_name }} -o {{ .ipip_primary_interface }} -j ACCEPT
+    # Persist iptables rules
+    apt-get update
+    apt-get install -y iptables-persistent
+    netfilter-persistent save

@@ -1,0 +1,124 @@
+#cloud-config
+users:
+  - name: ${ssh_user_name}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+packages:
+  - iproute2
+  - iptables-persistent
+  - netfilter-persistent
+  - systemd
+
+write_files:
+  # Ensure the IPIP module loads on boot
+  - path: /etc/modules-load.d/ipip.conf
+    content: |
+      ipip
+
+  # Script to configure the IPIP tunnel interface
+  - path: /usr/local/bin/configure_ipiptun0.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      set -e
+
+      # Variables
+      CLIENT_PRIVATE_IP=$(hostname -I | awk '{print $1}')
+      GATEWAY_PRIVATE_IP=${gateway_private_ip}  # Replace with your Gateway's private IP
+      LAST_OCTET=$(echo $CLIENT_PRIVATE_IP | awk -F. '{print $4}')
+      TUNNEL_IP="10.0.0.$((LAST_OCTET + 1))/24"
+
+      # Create IPIP tunnel if it doesn't exist
+      if ! ip link show ipiptun0 &>/dev/null; then
+          ip tunnel add ipiptun0 mode ipip local $CLIENT_PRIVATE_IP remote $GATEWAY_PRIVATE_IP ttl 255
+      fi
+
+      # Bring up the tunnel interface
+      ip link set ipiptun0 up
+
+      # Assign IP address to the tunnel interface
+      ip addr replace $TUNNEL_IP dev ipiptun0
+
+  # Systemd service to run the IPIP tunnel configuration script
+  - path: /etc/systemd/system/ipiptun0.service
+    content: |
+      [Unit]
+      Description=Configure ipiptun0 interface
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/configure_ipiptun0.sh
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+
+  # Script to configure policy-based routing
+  - path: /usr/local/bin/configure_ipip_routing.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      set -e
+
+      # Variables
+      CLIENT_PRIVATE_IP=$(hostname -I | awk '{print $1}')
+      GATEWAY_PRIVATE_IP=${gateway_private_ip}
+      
+      echo "200 ipiproute" | sudo tee -a /etc/iproute2/rt_tables
+      
+      sudo ip rule add sport 22 lookup main priority 100
+      
+      # Add default route to the 'ipiproute' table via the tunnel interface
+      sudo ip route add default dev ipiptun0 table ipiproute
+      
+      # Add routing rules
+      sudo ip rule add from $CLIENT_PRIVATE_IP lookup ipiproute
+      sudo ip rule add to $GATEWAY_PRIVATE_IP lookup main
+  
+  
+
+  # Systemd service to run the policy-based routing configuration script
+  - path: /etc/systemd/system/ipip-routing.service
+    content: |
+      [Unit]
+      Description=Configure policy-based routing for IPIP tunnel
+      After=ipiptun0.service
+      Requires=ipiptun0.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/configure_ipip_routing.sh
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # Reload systemd to recognize new services
+  - sudo modprobe ipip
+  - sudo systemctl daemon-reload
+
+  # Enable and start the IPIP tunnel service
+  - sudo systemctl enable ipiptun0.service
+  - sudo systemctl start ipiptun0.service
+
+  # Configure iptables to allow IPIP protocol traffic (Protocol Number 4)
+  - |
+    # Allow incoming IPIP traffic
+    sudo iptables -A INPUT -p 4 -j ACCEPT
+    # Allow outgoing IPIP traffic
+    sudo iptables -A OUTPUT -p 4 -j ACCEPT
+    # Allow forwarded IPIP traffic
+    sudo iptables -A FORWARD -p 4 -j ACCEPT
+
+  - sudo netfilter-persistent save
+
+  # Enable and start the policy-based routing service
+  - sudo systemctl enable ipip-routing.service
+  - sudo systemctl start ipip-routing.service
