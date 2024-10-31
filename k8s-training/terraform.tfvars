@@ -11,7 +11,7 @@
 cpu_nodes_count  = 1                     # Number of CPU nodes
 cpu_nodes_preset = "16vcpu-64gb"         # The CPU node preset
 gpu_nodes_count  = 1                     # Number of GPU nodes
-gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Set to "1gpu-16vcpu-200gb", to deploy nodes with a single GPU.
+gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 8 GPU can be added to gpu cluster with infiniband connection
 
 
 # Observability
