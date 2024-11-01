@@ -1,0 +1,3 @@
+module "labels" {
+  source = "../labels"
+}
