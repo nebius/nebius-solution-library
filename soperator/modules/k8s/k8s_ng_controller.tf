@@ -8,25 +8,19 @@ resource "nebius_mk8s_v1_node_group" "controller" {
   name = "slurm-${module.labels.name_nodeset_controller}"
   labels = merge(
     module.labels.label_nodeset_controller,
-    local.node_group_workload_label.controller,
+    module.labels.label_workload_cpu,
   )
 
   version          = var.k8s_version
-  fixed_node_count = var.node_group_controller.count
+  fixed_node_count = var.node_group_controller.size
 
   template = {
     metadata = {
       labels = merge(
         module.labels.label_nodeset_controller,
-        local.node_group_workload_label.controller,
-        (local.node_group_gpu_present.controller ? module.labels.label_nebius_gpu : {}),
+        module.labels.label_workload_cpu,
       )
     }
-    taints = local.node_group_gpu_present.controller ? [{
-      key    = module.labels.key_nvidia_gpu,
-      value  = module.resources.this[var.node_group_controller.resource.platform][var.node_group_controller.resource.preset].gpus
-      effect = "NO_SCHEDULE"
-    }] : null
 
     resources = {
       platform = var.node_group_controller.resource.platform

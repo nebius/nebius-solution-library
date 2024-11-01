@@ -37,7 +37,7 @@ variable "etcd_cluster_size" {
 variable "node_group_system" {
   description = "System node group specification."
   type = object({
-    count = number
+    size = number
     resource = object({
       platform = string
       preset   = string
@@ -53,7 +53,7 @@ variable "node_group_system" {
 variable "node_group_controller" {
   description = "Controller node group specification."
   type = object({
-    count = number
+    size = number
     resource = object({
       platform = string
       preset   = string
@@ -69,7 +69,7 @@ variable "node_group_controller" {
 variable "node_group_workers" {
   description = "Worker node groups specification."
   type = list(object({
-    count = number
+    size = number
     resource = object({
       platform = string
       preset   = string
@@ -90,7 +90,7 @@ variable "node_group_workers" {
 variable "node_group_login" {
   description = "Controller node group specification."
   type = object({
-    count = number
+    size = number
     resource = object({
       platform = string
       preset   = string

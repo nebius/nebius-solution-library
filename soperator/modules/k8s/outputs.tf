@@ -18,10 +18,5 @@ output "allocation_id" {
 
 output "gpu_involved" {
   description = "Whether the GPUs were involved."
-  value = length([for nodeset in concat([
-    local.node_group_gpu_present.system,
-    local.node_group_gpu_present.controller,
-    local.node_group_gpu_present.login,
-    local.node_group_gpu_present.nlb,
-  ], local.node_group_gpu_present.worker) : nodeset if nodeset]) > 0
+  value       = length([for worker in local.node_group_gpu_present.worker : worker if worker]) > 0
 }
