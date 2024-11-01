@@ -1,32 +1,23 @@
 locals {
-  fabrics = {
-    for fabric in sort(distinct([
-      for worker in var.node_group_workers :
-      worker.gpu_cluster.infiniband_fabric
-      if worker.gpu_cluster != null
-    ])) :
-    fabric => join("-", [
-      trimsuffix(
-        substr(
-          var.name,
-          0,
-          64 - (length(fabric) + 1)
-        ),
-        "-"
-      ),
-      fabric
-    ])
+  gpu_clusters = { for cluster in distinct([for worker in var.node_group_workers :
+    {
+      nodeset = worker.nodeset_index
+      fabric  = worker.gpu_cluster.infiniband_fabric
+    }
+    if worker.gpu_cluster != null
+    ]) :
+    cluster.nodeset => cluster.fabric
   }
 }
 
 resource "nebius_compute_v1_gpu_cluster" "this" {
-  for_each = local.fabrics
+  for_each = local.gpu_clusters
 
   parent_id = var.iam_project_id
 
-  name = each.value
+  name = "${var.name}-${each.key}"
 
-  infiniband_fabric = each.key
+  infiniband_fabric = each.value
 
   lifecycle {
     ignore_changes = [
@@ -45,10 +36,20 @@ resource "nebius_mk8s_v1_node_group" "worker" {
 
   parent_id = nebius_mk8s_v1_cluster.this.id
 
-  name = "slurm-${module.labels.name_nodeset_worker}"
+  name = join("-", [
+    "slurm",
+    module.labels.name_nodeset_worker,
+    var.node_group_workers[count.index].nodeset_index,
+    var.node_group_workers[count.index].subset_index,
+  ])
   labels = merge(
-    module.labels.label_nodeset_worker,
-    local.node_group_workload_label.worker,
+    tomap({
+      (module.labels.key_slurm_nodeset_name) = join("-", [
+        module.labels.name_nodeset_worker,
+        var.node_group_workers[count.index].nodeset_index,
+      ])
+    }),
+    local.node_group_workload_label.worker[count.index],
   )
 
   version          = var.k8s_version
@@ -57,7 +58,12 @@ resource "nebius_mk8s_v1_node_group" "worker" {
   template = {
     metadata = {
       labels = merge(
-        module.labels.label_nodeset_worker,
+        tomap({
+          (module.labels.key_slurm_nodeset_name) = join("-", [
+            module.labels.name_nodeset_worker,
+            var.node_group_workers[count.index].nodeset_index,
+          ])
+        }),
         local.node_group_workload_label.worker[count.index],
         (local.node_group_gpu_present.worker[count.index] ? module.labels.label_nebius_gpu : {}),
       )
@@ -74,7 +80,7 @@ resource "nebius_mk8s_v1_node_group" "worker" {
     }
     gpu_cluster = (local.node_group_gpu_cluster_compatible.worker[count.index]
       ? (var.node_group_workers[count.index].gpu_cluster != null
-        ? nebius_compute_v1_gpu_cluster.this[var.node_group_workers[count.index].gpu_cluster.infiniband_fabric]
+        ? nebius_compute_v1_gpu_cluster.this[var.node_group_workers[count.index].nodeset_index]
         : null
       )
       : null
