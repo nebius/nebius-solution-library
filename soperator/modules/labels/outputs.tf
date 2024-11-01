@@ -18,6 +18,11 @@ output "name_nodeset_login" {
   value       = local.const.name.nodesets.login
 }
 
+output "name_nodeset_accounting" {
+  description = "Accounting nodeset name."
+  value       = local.const.name.nodesets.accounting
+}
+
 output "name_workload_cpu" {
   description = "CPU workload name."
   value       = local.const.name.workloads.cpu
@@ -51,6 +56,11 @@ output "label_nodeset_worker" {
 output "label_nodeset_login" {
   description = "Login nodeset label."
   value       = local.label.nodeset.login
+}
+
+output "label_nodeset_accounting" {
+  description = "Accounting nodeset label."
+  value       = local.label.nodeset.accounting
 }
 
 output "label_workload_cpu" {
