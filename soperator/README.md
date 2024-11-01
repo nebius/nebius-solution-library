@@ -60,7 +60,7 @@ Create a "[jail](https://en.wikipedia.org/wiki/FreeBSD_jail)" filesystem in the 
 ![Create Filesystem 1](imgs/create_fs_1.png)
 ![Create Filesystem 2](imgs/create_fs_2.png)
 
-> **Important Storage Notes:**
+> [!NOTE] 
 > - For storage > 2 TiB: Contact Nebius Support (in the web console) to enable multitablet functionality
 > - Note down the filesystem ID for your terraform configuration
 > ![Create Filesystem 2](imgs/create_fs_3.png)
@@ -98,7 +98,7 @@ slurm_login_ssh_root_public_keys = [
 You probably don't need this unless you want to manage the K8S cluster manually.
 
 
-> **Important Configuration Notes:**
+> [!NOTE] 
 > - For large clusters: Use larger presets for CPU-only nodes
 > - Adjust storage sizes based on your needs
 > - Contact support to increase quotas if needed
@@ -107,20 +107,21 @@ You probably don't need this unless you want to manage the K8S cluster manually.
 5. **Deploy Your Cluster**
 ```bash
 terraform init
-terraform apply # This will take ~15-20 mins
+terraform apply # This will take ~40 mins
 ```
 
 6. **(Optionally) Verify Kubernetes Setup**
-- Open the K8s cluster page in Nebius Console
-- Find and copy the command under "How to connect"
-![K8s Cluster](imgs/connect_k8s.png)
-- Execute this command to connect to your cluster
-
+- List kubectl contexts to verify that the new cluster was added
 ```bash
-nebius mk8s cluster get-credentials --id mk8scluster-<...> --external
+kubectl config get-contexts
 ```
-- Verify that you can list the pods in the cluster and there are no pods in the error state
 
+- Set the new context 
+```bash
+kubectl config use-context <your-context-name>
+```
+
+- Verify that you can list the pods in the cluster and there are no pods in the error state
 ```bash
 kubectl get pods --all-namespaces
 ```
@@ -133,7 +134,7 @@ Get the Slurm cluster IP address
 ```bash
 export SLURM_IP=$(terraform state show module.login_script.terraform_data.connection_ip | grep 'input' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n 1
 )
-ssh root@$SLURM_IP
+ssh root@$SLURM_IP -i ~/.ssh/<public_id_rsa_key>  -p <node_port_if_not_default>
 ```
 
 or connect using the login script:
