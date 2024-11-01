@@ -21,6 +21,11 @@ resource "nebius_mk8s_v1_node_group" "login" {
         module.labels.label_workload_cpu,
       )
     }
+    taints = [{
+      key    = module.labels.key_slurm_nodeset_name,
+      value  = module.labels.name_nodeset_login
+      effect = "PREFER_NO_SCHEDULE"
+    }]
 
     resources = {
       platform = var.node_group_login.resource.platform
@@ -33,23 +38,27 @@ resource "nebius_mk8s_v1_node_group" "login" {
       block_size_bytes = provider::units::from_kib(var.node_group_login.boot_disk.block_size_kibibytes)
     }
 
-    filesystems = concat([
-      {
-        attach_mode = "READ_WRITE"
-        mount_tag   = var.filestores.jail.mount_tag
-        existing_filesystem = {
-          id = var.filestores.jail.id
+    filesystems = concat(
+      [
+        {
+          attach_mode = "READ_WRITE"
+          mount_tag   = var.filestores.jail.mount_tag
+          existing_filesystem = {
+            id = var.filestores.jail.id
+          }
         }
-      }
-      ], [
-      for submount in var.filestores.jail_submounts : {
-        attach_mode = "READ_WRITE"
-        mount_tag   = submount.mount_tag
-        existing_filesystem = {
-          id = submount.id
+      ],
+      [
+        for submount in var.filestores.jail_submounts :
+        {
+          attach_mode = "READ_WRITE"
+          mount_tag   = submount.mount_tag
+          existing_filesystem = {
+            id = submount.id
+          }
         }
-      }
-    ])
+      ]
+    )
 
     network_interfaces = [
       {

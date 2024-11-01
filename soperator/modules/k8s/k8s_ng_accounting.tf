@@ -23,6 +23,11 @@ resource "nebius_mk8s_v1_node_group" "accounting" {
         module.labels.label_workload_cpu,
       )
     }
+    taints = [{
+      key    = module.labels.key_slurm_nodeset_name,
+      value  = module.labels.name_nodeset_accounting
+      effect = "PREFER_NO_SCHEDULE"
+    }]
 
     resources = {
       platform = var.node_group_accounting.spec.resource.platform
@@ -35,27 +40,38 @@ resource "nebius_mk8s_v1_node_group" "accounting" {
       block_size_bytes = provider::units::from_kib(var.node_group_accounting.spec.boot_disk.block_size_kibibytes)
     }
 
-    filesystems = concat([{
-      attach_mode = "READ_WRITE"
-      mount_tag   = var.filestores.jail.mount_tag
-      existing_filesystem = {
-        id = var.filestores.jail.id
-      }
-      }], [for submount in var.filestores.jail_submounts : {
-      attach_mode = "READ_WRITE"
-      mount_tag   = submount.mount_tag
-      existing_filesystem = {
-        id = submount.id
-      }
-      }], var.filestores.accounting != null ? [
-      {
-        attach_mode = "READ_WRITE"
-        mount_tag   = var.filestores.accounting.mount_tag
-        existing_filesystem = {
-          id = var.filestores.accounting.id
+    filesystems = concat(
+      [
+        {
+          attach_mode = "READ_WRITE"
+          mount_tag   = var.filestores.jail.mount_tag
+          existing_filesystem = {
+            id = var.filestores.jail.id
+          }
         }
-      }
-    ] : [])
+      ],
+      [
+        for submount in var.filestores.jail_submounts :
+        {
+          attach_mode = "READ_WRITE"
+          mount_tag   = submount.mount_tag
+          existing_filesystem = {
+            id = submount.id
+          }
+        }
+      ],
+      var.filestores.accounting != null
+      ? [
+        {
+          attach_mode = "READ_WRITE"
+          mount_tag   = var.filestores.accounting.mount_tag
+          existing_filesystem = {
+            id = var.filestores.accounting.id
+          }
+        }
+      ]
+      : []
+    )
 
     network_interfaces = [{
       public_ip_address = local.node_ssh_access.enabled ? {} : null

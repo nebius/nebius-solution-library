@@ -92,19 +92,27 @@ resource "nebius_mk8s_v1_node_group" "worker" {
       block_size_bytes = provider::units::from_kib(var.node_group_workers[count.index].boot_disk.block_size_kibibytes)
     }
 
-    filesystems = concat([{
-      attach_mode = "READ_WRITE"
-      mount_tag   = var.filestores.jail.mount_tag
-      existing_filesystem = {
-        id = var.filestores.jail.id
-      }
-      }], [for submount in var.filestores.jail_submounts : {
-      attach_mode = "READ_WRITE"
-      mount_tag   = submount.mount_tag
-      existing_filesystem = {
-        id = submount.id
-      }
-    }])
+    filesystems = concat(
+      [
+        {
+          attach_mode = "READ_WRITE"
+          mount_tag   = var.filestores.jail.mount_tag
+          existing_filesystem = {
+            id = var.filestores.jail.id
+          }
+        }
+      ],
+      [
+        for submount in var.filestores.jail_submounts :
+        {
+          attach_mode = "READ_WRITE"
+          mount_tag   = submount.mount_tag
+          existing_filesystem = {
+            id = submount.id
+          }
+        }
+      ]
+    )
 
     network_interfaces = [{
       public_ip_address = local.node_ssh_access.enabled ? {} : null
