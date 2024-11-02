@@ -69,19 +69,19 @@ filestore_controller_spool = {
 
 # Shared filesystem to be used on controller, worker, and login nodes.
 # ---
-filestore_jail = {
-  spec = {
-    size_gibibytes       = 2048
-    block_size_kibibytes = 4
-  }
-}
-# Or use existing filestore.
-# ---
 # filestore_jail = {
-#   existing = {
-#     id = "computefilesystem-<YOUR-FILESTORE-ID>"
+#   spec = {
+#     size_gibibytes       = 2048
+#     block_size_kibibytes = 4
 #   }
 # }
+# Or use existing filestore.
+# ---
+filestore_jail = {
+  existing = {
+    id = "computefilesystem-<YOUR-FILESTORE-ID>"
+  }
+}
 
 # Shared filesystems to be mounted inside jail.
 # ---
@@ -165,7 +165,7 @@ k8s_cluster_node_group_gpu = {
     size_gibibytes = 1024
   }
   gpu_cluster = {
-    infiniband_fabric = "fabric-2"
+    infiniband_fabric = "fabric-3"
   }
 }
 

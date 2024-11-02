@@ -213,7 +213,7 @@ variable "k8s_cluster_node_group_gpu" {
       size_gibibytes = 1024
     }
     gpu_cluster = {
-      infiniband_fabric = "fabric-2"
+      infiniband_fabric = "fabric-3"
     }
   }
 
