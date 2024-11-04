@@ -1,0 +1,1 @@
+[{"uid":"f0380d031229746c","name":"test_mode_slurm_apply","time":{"duration":301329},"status":"broken","severity":"normal"},{"uid":"9fffe3975fb9d3a9","name":"slurm_master_apply","time":{"duration":66584},"status":"passed","severity":"normal"},{"uid":"d189fe1de5bc9e78","name":"slurm_full_apply","time":{"duration":101934},"status":"passed","severity":"normal"}]
