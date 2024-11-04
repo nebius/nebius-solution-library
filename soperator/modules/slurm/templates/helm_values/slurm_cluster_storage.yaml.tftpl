@@ -1,16 +1,10 @@
 volume:
-  jail:
-    size: ${volume.jail.size}
-    filestoreDeviceName: ${volume.jail.device}
   controllerSpool:
     size: ${volume.controller_spool.size}
     filestoreDeviceName: ${volume.controller_spool.device}
-  accounting:
-    enabled: ${volume.accounting.enabled}
-    %{~ if volume.accounting.enabled ~}
-    size: ${volume.accounting.size}
-    filestoreDeviceName: ${volume.accounting.device}
-    %{~ endif ~}
+  jail:
+    size: ${volume.jail.size}
+    filestoreDeviceName: ${volume.jail.device}
   %{~ if length(volume.jail_submounts) > 0 ~}
   jailSubMounts:
     %{~ for sub_mount in volume.jail_submounts ~}
@@ -19,23 +13,56 @@ volume:
       filestoreDeviceName: ${sub_mount.device}
     %{~ endfor ~}
   %{~ endif ~}
+  accounting:
+    enabled: ${volume.accounting.enabled}
+    %{~ if volume.accounting.enabled ~}
+    size: ${volume.accounting.size}
+    filestoreDeviceName: ${volume.accounting.device}
+    %{~ endif ~}
 
-scheduling:
-  cpuOnly:
+storage:
+  accounting:
     matchExpressions:
-      - key: ${scheduling.key}
+      - key: ${scheduling.label.nodeset}
         operator: In
         values:
-          - ${scheduling.cpu}
-
-  cpuAndGpu:
-    matchExpressions:
-      - key: ${scheduling.key}
-        operator: In
-        values:
-          - ${scheduling.cpu}
-          - ${scheduling.gpu}
+          - ${scheduling.accounting.match}
     tolerations:
-      - key: nvidia.com/gpu
+      - key: ${scheduling.label.nodeset}
+        operator: Equal
+        value: ${scheduling.label.accounting}
+        effect: PreferNoSchedule
+
+  controllerSpool:
+    matchExpressions:
+      - key: ${scheduling.label.nodeset}
+        operator: In
+        values:
+          - ${scheduling.controller.match}
+    tolerations:
+      - key: ${scheduling.label.nodeset}
+        operator: Equal
+        value: ${scheduling.label.controller}
+        effect: PreferNoSchedule
+
+  jail:
+    matchExpressions:
+      - key: ${scheduling.label.nodeset}
+        operator: In
+        values:
+          - ${scheduling.system.match}
+          - ${scheduling.controller.match}
+        %{~ for worker in scheduling.worker.matches ~}
+          - ${worker}
+        %{~ endfor ~}
+          - ${scheduling.login.match}
+          - ${scheduling.accounting.match}
+    tolerations:
+      - key: ${scheduling.label.nodeset}
+        operator: Exists
+        effect: PreferNoSchedule
+    %{~ if scheduling.worker.gpu_present ~}
+      - key: ${scheduling.label.gpu}
         operator: Exists
         effect: NoSchedule
+    %{~ endif ~}

@@ -27,23 +27,66 @@ variable "node_count" {
   description = "Count of Slurm nodes."
   type = object({
     controller = number
-    worker     = number
+    worker     = list(number)
+    login      = number
   })
 }
 
-# region Worker
+# region Resources
 
-variable "worker_resources" {
-  description = "Slurmd resources on worker nodes."
+variable "resources" {
+  description = "Resources of Slurm nodes."
   type = object({
-    cpu_cores                   = number
-    memory_gibibytes            = number
-    ephemeral_storage_gibibytes = number
-    gpus                        = number
+    system = object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    })
+    controller = object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    })
+    worker = list(object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+      gpus                        = number
+    }))
+    login = object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    })
+    accounting = object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    })
   })
+
+  validation {
+    condition     = length(var.resources.worker) > 0
+    error_message = "At least one worker node must be provided."
+  }
+
+  # TODO: remove when node sets are supported
+  validation {
+    condition     = length(var.resources.worker) == 1
+    error_message = "Only one worker node is supported."
+  }
 }
 
-# endregion Worker
+resource "terraform_data" "check_worker_nodesets" {
+  lifecycle {
+    precondition {
+      condition     = length(var.node_count.worker) == length(var.resources.worker)
+      error_message = "Worker node set resources must accord to the worker node count."
+    }
+  }
+}
+
+# endregion Resources
 
 # region Login
 
