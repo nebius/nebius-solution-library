@@ -290,8 +290,9 @@ variable "slurm_nodeset_controller" {
 variable "slurm_nodeset_workers" {
   description = "Configuration of Slurm Worker node sets."
   type = list(object({
-    size         = number
-    split_factor = number
+    size                    = number
+    split_factor            = number
+    max_unavailable_percent = number
     resource = object({
       platform = string
       preset   = string
@@ -307,8 +308,9 @@ variable "slurm_nodeset_workers" {
   }))
   nullable = false
   default = [{
-    size         = 1
-    split_factor = 1
+    size                    = 1
+    split_factor            = 1
+    max_unavailable_percent = 50
     resource = {
       platform = "cpu-e2"
       preset   = "16vcpu-64gb"

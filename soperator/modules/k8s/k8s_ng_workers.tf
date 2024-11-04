@@ -53,6 +53,11 @@ resource "nebius_mk8s_v1_node_group" "worker" {
 
   version          = var.k8s_version
   fixed_node_count = var.node_group_workers[count.index].size
+  strategy = {
+    max_unavailable = {
+      percent = var.node_group_workers[count.index].max_unavailable_percent
+    }
+  }
 
   template = {
     metadata = {

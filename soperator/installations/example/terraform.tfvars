@@ -227,8 +227,9 @@ slurm_nodeset_controller = {
 # during maintenance.
 # ---
 slurm_nodeset_workers = [{
-  size         = 2
-  split_factor = 2
+  size                    = 2
+  split_factor            = 2
+  max_unavailable_percent = 50
   resource = {
     platform = "gpu-h100-sxm"
     preset   = "8gpu-128vcpu-1600gb"

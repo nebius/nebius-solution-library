@@ -69,7 +69,8 @@ variable "node_group_controller" {
 variable "node_group_workers" {
   description = "Worker node groups specification."
   type = list(object({
-    size = number
+    size                    = number
+    max_unavailable_percent = number
     resource = object({
       platform = string
       preset   = string
