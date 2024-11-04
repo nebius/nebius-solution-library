@@ -5,7 +5,7 @@ resource "nebius_mk8s_v1_node_group" "login" {
 
   parent_id = nebius_mk8s_v1_cluster.this.id
 
-  name = "slurm-${module.labels.name_nodeset_login}"
+  name = module.labels.name_nodeset_login
   labels = merge(
     module.labels.label_nodeset_login,
     module.labels.label_workload_cpu,

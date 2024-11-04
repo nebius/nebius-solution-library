@@ -5,7 +5,7 @@ resource "nebius_mk8s_v1_node_group" "controller" {
 
   parent_id = nebius_mk8s_v1_cluster.this.id
 
-  name = "slurm-${module.labels.name_nodeset_controller}"
+  name = module.labels.name_nodeset_controller
   labels = merge(
     module.labels.label_nodeset_controller,
     module.labels.label_workload_cpu,

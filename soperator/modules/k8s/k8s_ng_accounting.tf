@@ -7,7 +7,7 @@ resource "nebius_mk8s_v1_node_group" "accounting" {
 
   parent_id = nebius_mk8s_v1_cluster.this.id
 
-  name = "slurm-${module.labels.name_nodeset_accounting}"
+  name = module.labels.name_nodeset_accounting
   labels = merge(
     module.labels.label_nodeset_accounting,
     module.labels.label_workload_cpu,
