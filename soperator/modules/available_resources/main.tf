@@ -1,15 +1,14 @@
 locals {
-  # TODO: Get to know exact amount of allocatable resources
   resources = tomap({
     "cpu-e2" = tomap({
       "2vcpu-8gb" = {
-        cpu_cores              = 2 - 0.5
-        memory_gibibytes       = 8 - 1
+        cpu_cores              = 2 - 1
+        memory_gibibytes       = 8 - 2
         gpus                   = 0
         gpu_cluster_compatible = false
         sufficient = {
           (module.labels.name_nodeset_system)     = false
-          (module.labels.name_nodeset_controller) = false
+          (module.labels.name_nodeset_controller) = true
           (module.labels.name_nodeset_worker)     = false
           (module.labels.name_nodeset_login)      = true
           (module.labels.name_nodeset_accounting) = true
@@ -17,7 +16,7 @@ locals {
       }
       "4vcpu-16gb" = {
         cpu_cores              = 4 - 1
-        memory_gibibytes       = 16 - 1
+        memory_gibibytes       = 16 - 2
         gpus                   = 0
         gpu_cluster_compatible = false
         sufficient = {
