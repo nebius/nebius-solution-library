@@ -100,7 +100,6 @@ variable "node_group_login" {
       size_gibibytes       = number
       block_size_kibibytes = number
     })
-    use_node_port = bool
   })
 }
 
@@ -162,4 +161,9 @@ variable "node_ssh_access_users" {
     public_keys = list(string)
   }))
   default = []
+}
+
+variable "use_node_port" {
+  description = "Whether NodePort Service type is used for Login."
+  type        = bool
 }
