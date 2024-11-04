@@ -87,9 +87,10 @@ module "k8s" {
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller
   node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers :
-    [for subset in range(ceil(nodeset.size / nodeset.split_factor)) :
+    [
+      for subset in range(ceil(nodeset.size / nodeset.split_factor)) :
       {
-        size                    = ceil(nodeset.size / nodeset.split_factor)
+        size                    = nodeset.split_factor
         max_unavailable_percent = nodeset.max_unavailable_percent
         resource                = nodeset.resource
         boot_disk               = nodeset.boot_disk
