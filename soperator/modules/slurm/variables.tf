@@ -4,7 +4,14 @@ variable "name" {
 }
 
 variable "operator_version" {
-  type = string
+  description = "Version of the Soperator."
+  type        = string
+}
+
+variable "operator_stable" {
+  description = "Whether to use stable version of the Soperator."
+  type        = bool
+  default     = true
 }
 
 # region PartitionConfiguration
