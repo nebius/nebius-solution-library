@@ -57,6 +57,10 @@ resource "helm_release" "slurm_cluster_crd" {
 }
 
 resource "helm_release" "slurm_cluster_storage" {
+  depends_on = [
+    terraform_data.check_worker_nodesets,
+  ]
+
   name       = local.helm.chart.slurm_cluster_storage
   repository = local.helm.repository.slurm
   chart      = "helm-${local.helm.chart.slurm_cluster_storage}"
