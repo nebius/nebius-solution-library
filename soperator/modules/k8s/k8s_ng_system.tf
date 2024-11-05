@@ -1,6 +1,7 @@
 resource "nebius_mk8s_v1_node_group" "system" {
   depends_on = [
     nebius_mk8s_v1_cluster.this,
+    terraform_data.check_resource_preset_sufficiency,
   ]
 
   parent_id = nebius_mk8s_v1_cluster.this.id
