@@ -57,6 +57,10 @@ resource "helm_release" "slurm_cluster_crd" {
 }
 
 resource "helm_release" "slurm_cluster_storage" {
+  depends_on = [
+    terraform_data.check_worker_nodesets,
+  ]
+
   name       = local.helm.chart.slurm_cluster_storage
   repository = local.helm.repository.slurm
   chart      = "helm-${local.helm.chart.slurm_cluster_storage}"
@@ -66,19 +70,16 @@ resource "helm_release" "slurm_cluster_storage" {
   namespace        = var.name
 
   values = [templatefile("${path.module}/templates/helm_values/slurm_cluster_storage.yaml.tftpl", {
-    scheduling = {
-      key = module.labels.key_slurm_node_group_name
-      cpu = module.labels.name_node_group_cpu
-      gpu = module.labels.name_node_group_gpu
-    }
+    scheduling = local.node_filters
+
     volume = {
-      jail = {
-        size   = "${var.filestores.jail.size_gibibytes}Gi"
-        device = var.filestores.jail.device
-      }
       controller_spool = {
         size   = "${var.filestores.controller_spool.size_gibibytes}Gi"
         device = var.filestores.controller_spool.device
+      }
+      jail = {
+        size   = "${var.filestores.jail.size_gibibytes}Gi"
+        device = var.filestores.jail.device
       }
       jail_submounts = [for submount in var.filestores.jail_submounts : {
         name   = submount.name
@@ -153,22 +154,7 @@ resource "helm_release" "slurm_cluster" {
       slurm_raw_config  = var.slurm_partition_raw_config
     }
 
-    k8s_node_filters = {
-      non_gpu = {
-        name = module.labels.name_node_group_cpu
-        affinity = {
-          key   = module.labels.key_slurm_node_group_name
-          value = module.labels.name_node_group_cpu
-        }
-      }
-      gpu = {
-        name = module.labels.name_node_group_gpu
-        affinity = {
-          key   = module.labels.key_slurm_node_group_name
-          value = module.labels.name_node_group_gpu
-        }
-      }
-    },
+    k8s_node_filters = local.node_filters
 
     jail_submounts = [for submount in var.filestores.jail_submounts : {
       name       = submount.name
@@ -176,7 +162,7 @@ resource "helm_release" "slurm_cluster" {
     }]
 
     nccl_topology_type = var.nccl_topology_type
-    ncclBenchmark = {
+    nccl_benchmark = {
       enable        = var.nccl_benchmark_enable
       schedule      = var.nccl_benchmark_schedule
       min_threshold = var.nccl_benchmark_min_threshold
@@ -185,39 +171,62 @@ resource "helm_release" "slurm_cluster" {
     nodes = {
       accounting = {
         enabled = var.accounting_enabled
-        mariadbOperator = {
-          metricsEnabled = var.telemetry_enabled
-          enabled        = var.accounting_enabled
-          storage_size   = var.accounting_enabled ? var.filestores.accounting.size_gibibytes : 0
+        mariadb_operator = {
+          enabled         = var.accounting_enabled
+          storage_size    = var.accounting_enabled ? var.filestores.accounting.size_gibibytes : 0
+          metrics_enabled = var.telemetry_enabled
+          resources       = local.resources.mariadb
         }
-        slurmdbdConfig = var.slurmdbd_config
-        slurmConfig    = var.slurm_accounting_config
-
+        slurmdbd_config = var.slurmdbd_config
+        slurm_config    = var.slurm_accounting_config
+        resources = {
+          cpu               = var.resources.accounting.cpu_cores - local.resources.munge.cpu - local.resources.mariadb.cpu
+          memory            = var.resources.accounting.memory_gibibytes - local.resources.munge.memory - local.resources.mariadb.memory
+          ephemeral_storage = var.resources.accounting.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage - local.resources.mariadb.ephemeral_storage
+        }
       }
+
       controller = {
         size = var.node_count.controller
-      }
-      worker = {
-        size = var.node_count.worker
         resources = {
-          cpu               = var.worker_resources.cpu_cores
-          memory            = var.worker_resources.memory_gibibytes
-          ephemeral_storage = var.worker_resources.ephemeral_storage_gibibytes
-          gpus              = var.worker_resources.gpus
+          cpu               = var.resources.controller.cpu_cores - local.resources.munge.cpu
+          memory            = var.resources.controller.memory_gibibytes - local.resources.munge.memory
+          ephemeral_storage = var.resources.controller.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
+        }
+      }
+
+      worker = {
+        size = one(var.node_count.worker)
+        resources = {
+          cpu               = one(var.resources.worker).cpu_cores - local.resources.munge.cpu
+          memory            = one(var.resources.worker).memory_gibibytes - local.resources.munge.memory
+          ephemeral_storage = one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
+          gpus              = one(var.resources.worker).gpus
         }
         shared_memory = var.shared_memory_size_gibibytes
       }
+
       login = {
-        size             = var.node_count.controller
+        size             = var.node_count.login
         service_type     = var.login_service_type
         allocation_id    = var.login_allocation_id
         node_port        = var.login_node_port
         root_public_keys = var.login_ssh_root_public_keys
-      }
-      exporter = {
-        enabled = var.exporter_enabled
+        resources = {
+          cpu               = var.resources.login.cpu_cores - local.resources.munge.cpu
+          memory            = var.resources.login.memory_gibibytes - local.resources.munge.memory
+          ephemeral_storage = var.resources.login.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
+        }
       }
 
+      exporter = {
+        enabled   = var.exporter_enabled
+        resources = local.resources.exporter
+      }
+
+      munge = {
+        resources = local.resources.munge
+      }
     }
 
     telemetry = {

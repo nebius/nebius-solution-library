@@ -1,7 +1,13 @@
 locals {
-  create_nlb = var.slurm_login_service_type == "NodePort"
+  resources = {
+    system     = module.resources.this[var.slurm_nodeset_system.resource.platform][var.slurm_nodeset_system.resource.preset]
+    controller = module.resources.this[var.slurm_nodeset_controller.resource.platform][var.slurm_nodeset_controller.resource.preset]
+    workers    = [for worker in var.slurm_nodeset_workers : module.resources.this[worker.resource.platform][worker.resource.preset]]
+    login      = module.resources.this[var.slurm_nodeset_login.resource.platform][var.slurm_nodeset_login.resource.preset]
+    accounting = module.resources.this[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset]
+  }
 
-  worker_resources = module.resources.this[var.k8s_cluster_node_group_gpu.resource.platform][var.k8s_cluster_node_group_gpu.resource.preset]
+  use_node_port = var.slurm_login_service_type == "NodePort"
 }
 
 module "filestore" {
@@ -64,7 +70,9 @@ module "filestore" {
 
 module "k8s" {
   depends_on = [
-    module.filestore
+    module.filestore,
+    terraform_data.check_slurm_nodeset_accounting,
+    terraform_data.check_slurm_nodeset,
   ]
 
   source = "../../modules/k8s"
@@ -76,16 +84,26 @@ module "k8s" {
   name               = var.k8s_cluster_name
   slurm_cluster_name = var.slurm_cluster_name
 
-  node_group_cpu = {
-    size      = var.slurm_node_count.controller
-    resource  = var.k8s_cluster_node_group_cpu.resource
-    boot_disk = var.k8s_cluster_node_group_cpu.boot_disk
-  }
-  node_group_gpu = {
-    size        = var.slurm_node_count.worker
-    resource    = var.k8s_cluster_node_group_gpu.resource
-    boot_disk   = var.k8s_cluster_node_group_gpu.boot_disk
-    gpu_cluster = var.k8s_cluster_node_group_gpu.gpu_cluster
+  node_group_system     = var.slurm_nodeset_system
+  node_group_controller = var.slurm_nodeset_controller
+  node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers :
+    [
+      for subset in range(ceil(nodeset.size / nodeset.split_factor)) :
+      {
+        size                    = nodeset.split_factor
+        max_unavailable_percent = nodeset.max_unavailable_percent
+        resource                = nodeset.resource
+        boot_disk               = nodeset.boot_disk
+        gpu_cluster             = nodeset.gpu_cluster
+        nodeset_index           = i
+        subset_index            = subset
+      }
+    ]
+  ])
+  node_group_login = var.slurm_nodeset_login
+  node_group_accounting = {
+    enabled = var.accounting_enabled
+    spec    = var.slurm_nodeset_accounting
   }
 
   filestores = {
@@ -107,9 +125,8 @@ module "k8s" {
     } : null
   }
 
-  create_nlb = local.create_nlb
-
   node_ssh_access_users = var.k8s_cluster_node_ssh_access_users
+  use_node_port         = local.use_node_port
 
   providers = {
     nebius = nebius
@@ -118,7 +135,7 @@ module "k8s" {
 }
 
 module "nvidia_operator_network" {
-  count = local.worker_resources.gpus > 0 ? 1 : 0
+  count = module.k8s.gpu_involved ? 1 : 0
 
   depends_on = [
     module.k8s
@@ -135,7 +152,7 @@ module "nvidia_operator_network" {
 }
 
 module "nvidia_operator_gpu" {
-  count = local.worker_resources.gpus > 0 ? 1 : 0
+  count = module.k8s.gpu_involved ? 1 : 0
 
   depends_on = [
     module.nvidia_operator_network
@@ -163,13 +180,41 @@ module "slurm" {
   name             = var.slurm_cluster_name
   operator_version = var.slurm_operator_version
 
-  node_count = var.slurm_node_count
+  node_count = {
+    controller = var.slurm_nodeset_controller.size
+    worker     = [for workers in var.slurm_nodeset_workers : workers.size]
+    login      = var.slurm_nodeset_login.size
+  }
 
-  worker_resources = {
-    cpu_cores                   = local.worker_resources.cpu_cores
-    memory_gibibytes            = local.worker_resources.memory_gibibytes
-    ephemeral_storage_gibibytes = ceil(var.k8s_cluster_node_group_gpu.boot_disk.size_gibibytes / 2)
-    gpus                        = local.worker_resources.gpus
+  resources = {
+    system = {
+      cpu_cores                   = local.resources.system.cpu_cores
+      memory_gibibytes            = local.resources.system.memory_gibibytes
+      ephemeral_storage_gibibytes = ceil(var.slurm_nodeset_system.boot_disk.size_gibibytes / 2)
+    }
+    controller = {
+      cpu_cores                   = local.resources.controller.cpu_cores
+      memory_gibibytes            = local.resources.controller.memory_gibibytes
+      ephemeral_storage_gibibytes = ceil(var.slurm_nodeset_controller.boot_disk.size_gibibytes / 2)
+    }
+    worker = [for i, worker in var.slurm_nodeset_workers :
+      {
+        cpu_cores                   = local.resources.workers[i].cpu_cores
+        memory_gibibytes            = local.resources.workers[i].memory_gibibytes
+        ephemeral_storage_gibibytes = ceil(worker.boot_disk.size_gibibytes / 2)
+        gpus                        = local.resources.workers[i].gpus
+      }
+    ]
+    login = {
+      cpu_cores                   = local.resources.login.cpu_cores
+      memory_gibibytes            = local.resources.login.memory_gibibytes
+      ephemeral_storage_gibibytes = ceil(var.slurm_nodeset_login.boot_disk.size_gibibytes / 2)
+    }
+    accounting = {
+      cpu_cores                   = local.resources.accounting.cpu_cores
+      memory_gibibytes            = local.resources.accounting.memory_gibibytes
+      ephemeral_storage_gibibytes = ceil(var.slurm_nodeset_accounting.boot_disk.size_gibibytes / 2)
+    }
   }
 
   login_service_type         = var.slurm_login_service_type
@@ -205,7 +250,7 @@ module "slurm" {
 
   shared_memory_size_gibibytes = var.slurm_shared_memory_size_gibibytes
 
-  nccl_topology_type           = var.k8s_cluster_node_group_gpu.resource.platform == "gpu-h100-sxm" ? "H100 GPU cluster" : "auto"
+  nccl_topology_type           = var.slurm_nodeset_workers[0].resource.platform == "gpu-h100-sxm" ? "H100 GPU cluster" : "auto"
   nccl_benchmark_enable        = var.nccl_benchmark_enable
   nccl_benchmark_schedule      = var.nccl_benchmark_schedule
   nccl_benchmark_min_threshold = var.nccl_benchmark_min_threshold
@@ -225,8 +270,10 @@ module "login_script" {
 
   source = "../../modules/login"
 
-  nlb_used           = local.create_nlb
-  nlb_port           = var.slurm_login_node_port
+  node_port = {
+    used = local.use_node_port
+    port = var.slurm_login_node_port
+  }
   slurm_cluster_name = var.slurm_cluster_name
 
   providers = {

@@ -34,8 +34,8 @@ variable "etcd_cluster_size" {
 
 #---
 
-variable "node_group_cpu" {
-  description = "CPU-only node group specification."
+variable "node_group_system" {
+  description = "System node group specification."
   type = object({
     size = number
     resource = object({
@@ -43,14 +43,15 @@ variable "node_group_cpu" {
       preset   = string
     })
     boot_disk = object({
-      type           = string
-      size_gibibytes = number
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
     })
   })
 }
 
-variable "node_group_gpu" {
-  description = "GPU node group specification."
+variable "node_group_controller" {
+  description = "Controller node group specification."
   type = object({
     size = number
     resource = object({
@@ -58,13 +59,75 @@ variable "node_group_gpu" {
       preset   = string
     })
     boot_disk = object({
-      type           = string
-      size_gibibytes = number
-    })
-    gpu_cluster = object({
-      infiniband_fabric = string
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
     })
   })
+}
+
+variable "node_group_workers" {
+  description = "Worker node groups specification."
+  type = list(object({
+    size                    = number
+    max_unavailable_percent = number
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+    gpu_cluster = optional(object({
+      infiniband_fabric = string
+    }))
+    nodeset_index = number
+    subset_index  = number
+  }))
+}
+
+variable "node_group_login" {
+  description = "Controller node group specification."
+  type = object({
+    size = number
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+  })
+}
+
+variable "node_group_accounting" {
+  description = "System node group specification."
+  type = object({
+    enabled = bool
+    spec = optional(object({
+      resource = object({
+        platform = string
+        preset   = string
+      })
+      boot_disk = object({
+        type                 = string
+        size_gibibytes       = number
+        block_size_kibibytes = number
+      })
+    }))
+  })
+
+  validation {
+    condition = (var.node_group_accounting.enabled
+      ? var.node_group_accounting.spec != null
+      : true
+    )
+    error_message = "Specification must be provided when accounting is enabled."
+  }
 }
 
 #---
@@ -92,13 +155,6 @@ variable "filestores" {
 
 #---
 
-variable "create_nlb" {
-  type     = bool
-  nullable = false
-}
-
-#---
-
 variable "node_ssh_access_users" {
   description = "SSH user credentials for accessing k8s nodes."
   type = list(object({
@@ -106,4 +162,9 @@ variable "node_ssh_access_users" {
     public_keys = list(string)
   }))
   default = []
+}
+
+variable "use_node_port" {
+  description = "Whether NodePort Service type is used for Login."
+  type        = bool
 }

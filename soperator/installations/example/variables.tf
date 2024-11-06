@@ -162,74 +162,6 @@ variable "k8s_cluster_name" {
   }
 }
 
-variable "k8s_cluster_node_group_cpu" {
-  description = "CPU-only node group specification."
-  type = object({
-    resource = object({
-      platform = string
-      preset   = string
-    })
-    boot_disk = object({
-      type           = string
-      size_gibibytes = number
-    })
-  })
-  nullable = false
-  default = {
-    resource = {
-      platform = "cpu-e2"
-      preset   = "16vcpu-64gb"
-    }
-    boot_disk = {
-      type           = "NETWORK_SSD"
-      size_gibibytes = 128
-    }
-  }
-}
-
-variable "k8s_cluster_node_group_gpu" {
-  description = "GPU node group specification."
-  type = object({
-    resource = object({
-      platform = string
-      preset   = string
-    })
-    boot_disk = object({
-      type           = string
-      size_gibibytes = number
-    })
-    gpu_cluster = object({
-      infiniband_fabric = string
-    })
-  })
-  nullable = false
-  default = {
-    resource = {
-      platform = "gpu-h100-sxm"
-      preset   = "8gpu-128vcpu-1600gb"
-    }
-    boot_disk = {
-      type           = "NETWORK_SSD"
-      size_gibibytes = 1024
-    }
-    gpu_cluster = {
-      infiniband_fabric = "fabric-3"
-    }
-  }
-
-  validation {
-    condition = (
-      (var.k8s_cluster_node_group_gpu.resource.platform == "gpu-h100-sxm") &&
-      (contains(["8gpu-128vcpu-1600gb", "1gpu-20vcpu-200gb"], var.k8s_cluster_node_group_gpu.resource.preset))
-    )
-    error_message = <<EOF
-      Invalid resource specification for GPU node group.
-      - The only platform supported is `gpu-h100-sxm`
-      - Preset must be one of `8gpu-128vcpu-1600gb` or `1gpu-20vcpu-200gb`
-    EOF
-  }
-}
-
 variable "k8s_cluster_node_ssh_access_users" {
   description = "SSH user credentials for accessing k8s nodes."
   type = list(object({
@@ -297,13 +229,198 @@ variable "slurm_partition_raw_config" {
 
 # region Nodes
 
-variable "slurm_node_count" {
-  description = "Count of Slurm nodes."
+variable "slurm_nodeset_system" {
+  description = "Configuration of System node set for system resources created by Soperator."
   type = object({
-    controller = number
-    worker     = number
+    size = number
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
   })
   nullable = false
+  default = {
+    size = 1
+    resource = {
+      platform = "cpu-e2"
+      preset   = "16vcpu-64gb"
+    }
+    boot_disk = {
+      type                 = "NETWORK_SSD"
+      size_gibibytes       = 128
+      block_size_kibibytes = 4
+    }
+  }
+}
+
+variable "slurm_nodeset_controller" {
+  description = "Configuration of Slurm Controller node set."
+  type = object({
+    size = number
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+  })
+  nullable = false
+  default = {
+    size = 1
+    resource = {
+      platform = "cpu-e2"
+      preset   = "16vcpu-64gb"
+    }
+    boot_disk = {
+      type                 = "NETWORK_SSD"
+      size_gibibytes       = 128
+      block_size_kibibytes = 4
+    }
+  }
+}
+
+variable "slurm_nodeset_workers" {
+  description = "Configuration of Slurm Worker node sets."
+  type = list(object({
+    size                    = number
+    split_factor            = number
+    max_unavailable_percent = number
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+    gpu_cluster = optional(object({
+      infiniband_fabric = string
+    }))
+  }))
+  nullable = false
+  default = [{
+    size                    = 1
+    split_factor            = 1
+    max_unavailable_percent = 50
+    resource = {
+      platform = "cpu-e2"
+      preset   = "16vcpu-64gb"
+    }
+    boot_disk = {
+      type                 = "NETWORK_SSD"
+      size_gibibytes       = 128
+      block_size_kibibytes = 4
+    }
+  }]
+
+  # TODO: change to `>0` when node sets supported in soperator
+  validation {
+    condition     = length(var.slurm_nodeset_workers) == 1
+    error_message = "Only one worker node set must be provided for a while."
+  }
+
+  validation {
+    condition = length([for worker in var.slurm_nodeset_workers :
+      1 if worker.size % worker.split_factor != 0
+    ]) == 1
+    error_message = "Worker count must be divisible by split_factor."
+  }
+}
+
+variable "slurm_nodeset_login" {
+  description = "Configuration of Slurm Login node set."
+  type = object({
+    size = number
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+  })
+  nullable = false
+  default = {
+    size = 1
+    resource = {
+      platform = "cpu-e2"
+      preset   = "16vcpu-64gb"
+    }
+    boot_disk = {
+      type                 = "NETWORK_SSD"
+      size_gibibytes       = 128
+      block_size_kibibytes = 4
+    }
+  }
+}
+
+variable "slurm_nodeset_accounting" {
+  description = "Configuration of Slurm Accounting node set."
+  type = object({
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+  })
+  nullable = true
+  default  = null
+}
+
+resource "terraform_data" "check_slurm_nodeset_accounting" {
+  lifecycle {
+    precondition {
+      condition = (var.accounting_enabled
+        ? var.slurm_nodeset_accounting != null
+        : true
+      )
+      error_message = "Accounting node set must be provided when accounting is enabled."
+    }
+  }
+}
+
+resource "terraform_data" "check_slurm_nodeset" {
+  for_each = merge({
+    "system"     = var.slurm_nodeset_system
+    "controller" = var.slurm_nodeset_controller
+    "login"      = var.slurm_nodeset_login
+    }, { for i, worker in var.slurm_nodeset_workers :
+    "worker_${i}" => worker
+  })
+
+  lifecycle {
+    precondition {
+      condition     = each.value.size > 0
+      error_message = "Size must be greater than zero in node set ${each.key}."
+    }
+
+    precondition {
+      condition     = contains(keys(module.resources.this), each.value.resource.platform)
+      error_message = "Unsupported platform ${each.value.resource.platform} in node set ${each.key}."
+    }
+
+    precondition {
+      condition     = contains(keys(module.resources.this[each.value.resource.platform]), each.value.resource.preset)
+      error_message = "Unsupported preset ${each.value.resource.preset} in node set ${each.key}."
+    }
+
+    # TODO: precondition for total node group count
+  }
 }
 
 # region Login

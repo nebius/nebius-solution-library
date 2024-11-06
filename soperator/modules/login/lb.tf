@@ -1,5 +1,5 @@
 data "kubernetes_service" "slurm_login" {
-  count = !var.nlb_used ? 1 : 0
+  count = !var.node_port.used ? 1 : 0
 
   metadata {
     namespace = var.slurm_cluster_name
@@ -8,7 +8,7 @@ data "kubernetes_service" "slurm_login" {
 }
 
 resource "terraform_data" "wait_for_slurm_login_service" {
-  count = !var.nlb_used ? 1 : 0
+  count = !var.node_port.used ? 1 : 0
 
   depends_on = [
     data.kubernetes_service.slurm_login
@@ -25,7 +25,7 @@ resource "terraform_data" "wait_for_slurm_login_service" {
 }
 
 resource "terraform_data" "lb_service_ip" {
-  count = !var.nlb_used ? 1 : 0
+  count = !var.node_port.used ? 1 : 0
 
   depends_on = [
     terraform_data.wait_for_slurm_login_service
