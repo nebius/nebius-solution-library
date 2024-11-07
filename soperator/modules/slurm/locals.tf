@@ -68,6 +68,11 @@ locals {
       memory            = 0.25
       ephemeral_storage = 0.5
     }
+    rest = {
+      cpu               = 1
+      memory            = 1
+      ephemeral_storage = 0.5
+    }
     mariadb = {
       cpu               = 1
       memory            = 1

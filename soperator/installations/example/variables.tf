@@ -465,6 +465,16 @@ variable "slurm_exporter_enabled" {
 
 # endregion Exporter
 
+# region REST API
+
+variable "slurm_rest_enabled" {
+  description = "Whether to enable Slurm REST API."
+  type        = bool
+  default     = true
+}
+
+# endregion REST API
+
 # endregion Nodes
 
 # region Config
