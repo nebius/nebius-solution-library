@@ -223,6 +223,7 @@ module "slurm" {
   login_ssh_root_public_keys = var.slurm_login_ssh_root_public_keys
 
   exporter_enabled        = var.slurm_exporter_enabled
+  rest_enabled            = var.slurm_rest_enabled
   accounting_enabled      = var.accounting_enabled
   slurmdbd_config         = var.slurmdbd_config
   slurm_accounting_config = var.slurm_accounting_config

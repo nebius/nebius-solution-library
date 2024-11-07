@@ -227,6 +227,11 @@ resource "helm_release" "slurm_cluster" {
       munge = {
         resources = local.resources.munge
       }
+
+      rest = {
+        enabled   = var.rest_enabled
+        resources = local.resources.rest
+      }
     }
 
     telemetry = {

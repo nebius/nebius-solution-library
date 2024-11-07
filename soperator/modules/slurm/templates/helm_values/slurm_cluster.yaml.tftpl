@@ -274,6 +274,15 @@ slurmNodes:
       jail:
         volumeSourceName: "jail"
 
+  rest:
+    enabled: ${nodes.rest.enabled}
+    k8sNodeFilterName: ${k8s_node_filters.system.name}
+    rest:
+      resources:
+        cpu: ${nodes.rest.resources.cpu * 1000}m
+        memory: ${nodes.rest.resources.memory}Gi
+        ephemeralStorage: ${nodes.rest.resources.ephemeral_storage}Gi
+
 %{ if telemetry.enabled ~}
 telemetry:
   jobsTelemetry:
