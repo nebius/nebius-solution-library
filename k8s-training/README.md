@@ -28,15 +28,17 @@
    source ~/.bashrc
    ```
 
-3. [Configure](https://docs.nebius.ai/cli/configure/) Nebius CLI (it is recommended to use [service account](https://docs.nebius.ai/iam/service-accounts/manage/) for configuration):
-   ```bash
-   nebius init
-   ```
+3. [Configure Nebius CLI](https://docs.nebius.com/cli/configure/) (it is recommended to use [service account](https://docs.nebius.com/iam/service-accounts/manage/) for configuration)
 
-4. Install JQuery (for Debian based distributions):
-   ```bash
-   sudo apt install jq -y
-   ```
+4. Install JQuery:
+   - MacOS:
+     ```bash
+     brew install jq
+     ```
+   - Debian based distributions:
+     ```bash
+     sudo apt install jq -y
+     ```
 
 ## Usage
 
