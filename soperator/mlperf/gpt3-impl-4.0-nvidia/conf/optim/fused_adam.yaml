@@ -1,0 +1,11 @@
+name: fused_adam
+lr: ${oc.decode:${oc.env:LR,0.9e-4}}
+weight_decay: 0.1
+betas:
+- 0.9
+- 0.95
+sched:
+  name: CosineAnnealingExp
+  warmup_steps: ${oc.decode:${oc.env:WARMUP_STEPS,115}}
+  min_lr: ${oc.decode:${oc.env:MIN_LR,0.9e-5}}
+  max_steps_for_lr_sched: ${oc.decode:${oc.env:MAX_STEPS_FOR_LR_SCHED,108600}}  # overwritten in run_and_time
