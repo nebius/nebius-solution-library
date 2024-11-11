@@ -102,9 +102,6 @@ RUN if [ "${MEGATRON_REVISION}" != SKIP ]; then \
 
 ENV PYTHONPATH "${PYTHONPATH}:/workspace/Megatron-LM"
 
-# Pin PL version
-# RUN pip install --force-reinstall --no-deps pytorch-lightning==2.0.7
-
 ## 5. Benchmark dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -119,6 +116,10 @@ RUN rm -rf /opt/hpcx/nccl_rdma_sharp_plugin && \
     make -j install && \
     cd ../ && \
     rm -rf nccl-rdma-sharp-plugins/
+
+# Fix dependencies that don't work from the newest versions
+RUN pip install huggingface_hub==0.23.2
+RUN pip install -v "transformers<=4.40.2"
 
 # Benchmark code
 WORKDIR /workspace/llm

@@ -92,7 +92,8 @@ if [ -n "${NEMO_RESULTS_SUBDIR}" ]; then
 fi
 
 if [ "${TRAIN_ONLY:-0}" -eq 1 ]; then
-  EXTRA_ARGS+=" data_prefix@model.data.data_prefix=train_only_c4"
+  echo "Skip changing data_prefix for TRAIN_ONLY" # The data_prefix/train_only_c4/ doesn't exist because it's not clear what it should contain
+  # EXTRA_ARGS+=" data_prefix@model.data.data_prefix=train_only_c4"
 elif [ "${USE_SYNTHETIC_DATASET:-0}" -eq 1 ]; then
   EXTRA_ARGS+=" data_prefix@model.data.data_prefix=synthetic model.data.data_impl=mock"
 fi

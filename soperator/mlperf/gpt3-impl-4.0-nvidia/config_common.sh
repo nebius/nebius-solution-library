@@ -2,8 +2,6 @@
 
 export CUDA_VISIBLE_DEVICES=0,4,2,6,1,5,3,7
 
-export TRAIN_ONLY=0
-
 # DL Params
 export USE_DIST_OPTIMIZER=True
 # This is to improve p2p overlap on H100, shouldn't affect A100:
@@ -17,8 +15,6 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 
 : "${CHECKPOINT_NAME:=""}"
 export LOAD_CHECKPOINT="/load_checkpoints/"$CHECKPOINT_NAME
-
-export MICRO_BATCH_SIZE=2
 
 : "${LOAD_MINIMAL_NUM_SAMPLES:=0}"
 
@@ -76,6 +72,13 @@ export FP8_PARAMS=True
 export NCCL_WORK_FIFO_DEPTH=1048576
 
 # Enable SHARP for large scale only
-#if [[ "${DGXNNODES}" -gt 128 ]]; then
-#  export SHARP=True
-#fi
+if [[ "${DGXNNODES}" -gt 128 ]]; then
+  export SHARP=True
+fi
+
+# Disable interleaved schedule
+if [[ "${INTERLEAVED_PIPELINE}" -eq 0 ]]; then
+  export OVERLAP_P2P_COMM=False
+  export INTERLEAVED_PIPELINE=null
+fi
+

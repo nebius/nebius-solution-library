@@ -14,9 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#SBATCH --exclusive
-#SBATCH --mem=0
-
 set -eux
 
 # Vars without defaults
@@ -32,23 +29,24 @@ set -eux
 : "${SEED_BASE:=${SEED-$RANDOM}}"
 export SHARE_RERUNS=${SHARE_RERUNS:=0}
 : "${API_LOG_DIR:=./api_logs}" # apiLog.sh output dir
-: "${API_LOGGING:=0}"
+: "${API_LOGGING:=1}"
+: "${APILOG_PRECISION:="unknown"}"
+: "${APILOG_BATCHSIZE:="unknown"}"
 : "${CLEAR_CACHES:=1}"
-: "${CONT_FILE:=/lustre/fsw/containers/${SLURM_JOBID}_$(basename ${CONT}).squashfs}"
-: "${CONTAINER_PRELOAD_LUSTRE:=0}"
+: "${CONTAINER_PRELOAD_SHARED_PATH:=}"
 : "${DATESTAMP:=$(date +'%y%m%d%H%M%S%N')}"
 : "${LOGDIR:=./results}"
 : "${ABSLOGDIR:=${PWD}/results}"
-: "${POWERCMDDIR:=' '}"
+: "${POWERCMDDIR:=' '}" # Power measurement requires power_monitor.sh that doesn't exist on Slurm nodes. It's not clear where to take it.
 : "${NSYSCMD:=""}"
-: "${NVTX_FLAG:=0}"
-: "${TIME_TAGS:=0}"
+: "${NVTX_FLAG:=1}"
+: "${TIME_TAGS:=1}"
 : "${NCCL_TEST:=1}"
-: "${NCCL_LLM_TEST:=1}"
+: "${NCCL_LLM_TEST:=0}" # These tests use ./scripts/nccl-tests/pytorch_nccltest.py that doesn't exist in the container image. It's not clear where to take it.
 : "${NCCL_TEST_SHARP:=}"
 : "${RUN_ONLY_NCCL:=0}"
-: "${SYNTH_DATA:=0}"
-: "${EPOCH_PROF:=0}"
+: "${SYNTH_DATA:=1}"
+: "${EPOCH_PROF:=1}"
 : "${WORK_DIR:=/workspace/llm}"
 : "${DGXNGPU:=8}"
 : "${STORE_CKPTS_IN_LOGDIR:=1}"
@@ -68,6 +66,8 @@ export SHARE_RERUNS=${SHARE_RERUNS:=0}
 : "${SET_POWER_CAP:=0}"
 # Sets the value for nvidia-smi boost-slider --vboost
 : "${VBOOST_VALUE:=0}"
+: "${JET:=0}"
+: "${TRAIN_ONLY:=0}"
 
 # override enroot's (sometimes in-use) randomly chosen ephemeral port.  29500
 # is non-ephemeral and not assigned by the IANA.  If 29500 is in use on your
@@ -105,7 +105,6 @@ else
     export RUNSUB_DIR=$(dirname "${BASH_SOURCE[0]}")
 fi
 export MLPERF_SLURM_FIRSTNODE="$(scontrol show hostnames "${SLURM_JOB_NODELIST-}" | head -n1)"
-#export MLPERF_SLURM_FIRSTNODE="$(hostname -I | cut -f1 -d ' ')"
 
 # pyxis sometimes leaves containers lying around which can really confuse things:
 cleanup_pyxis() {
@@ -182,10 +181,10 @@ if [ "${API_LOGGING}" -eq 1 ]; then
 
     # Create JSON file for cuDNN
     JSON_MODEL_NAME="MLPERF_${MODEL_NAME}_${MODEL_FRAMEWORK}_train"
-    JSON_README_LINK="${README_PREFIX}/${MODEL_NAME}/${MODEL_FRAMEWORK}/README.md"
+    JSON_README_LINK="./README.md"
     JSON_FMT='{model_name: $mn, readme_link: $rl, configs: {($dt): [$bs]}, sweep: {($dt): [$bs]}}'
     JSON_OUTPUT="MLPERF_${MODEL_NAME}_${MODEL_FRAMEWORK}_train.cudnn.json"
-    jq -n --indent 4 --arg mn $JSON_MODEL_NAME --arg rl $JSON_README_LINK --arg dt $APILOG_PRECISION --arg bs $BATCHSIZE "$JSON_FMT" > ${API_LOG_DIR}/$JSON_OUTPUT
+    jq -n --indent 4 --arg mn $JSON_MODEL_NAME --arg rl $JSON_README_LINK --arg dt $APILOG_PRECISION --arg bs $APILOG_BATCHSIZE "$JSON_FMT" > ${API_LOG_DIR}/$JSON_OUTPUT
 fi
 if [ "${USE_SYNTHETIC_DATASET:-0}" -eq 0 ]; then
     _cont_mounts="${_cont_mounts},$PREPROC_DATA:/preproc_data"
@@ -217,8 +216,8 @@ fi
 # make sure "preload" tmp containers get cleaned on all possible exits (except
 # kill -9)
 #########################################################################
-cleanup_preload_lustre() {
-    if [[ "${CONTAINER_PRELOAD_LUSTRE:-0}" != "0" ]]; then
+cleanup_preload_shared() {
+    if [ -n "${CONTAINER_PRELOAD_SHARED_PATH}" ]; then
         # since this command only needs to run once, and impacts the global
         # file system, not something local to nodes, we don't need to run it
         # under srun.  It's preferable to run this directly, rarther than under
@@ -233,9 +232,9 @@ cleanup_preload_lustre() {
 #########################################################################
 # container preload option
 #########################################################################
-if [[ $CONTAINER_PRELOAD_LUSTRE -gt 0 ]]; then
-    CONT_FILE="/lustre/fsw/containers/${SLURM_JOBID}_$(basename ${CONT}).squashfs"
-    # Prepull container to LUSTRE
+if [ -n "${CONTAINER_PRELOAD_SHARED_PATH}" ]; then
+    CONT_FILE="${CONTAINER_PRELOAD_SHARED_PATH}/containers/${SLURM_JOBID}_$(basename ${CONT}).squashfs"
+    # Prepull container image to the shared filesystem
     srun --ntasks=1 enroot import --output ${CONT_FILE} docker://${CONT}
 else
     CONT_FILE=${CONT}
@@ -255,7 +254,7 @@ cleanup_npy_index_dir() {
 
 cleanup_containers() {
     cleanup_npy_index_dir
-    cleanup_preload_lustre
+    cleanup_preload_shared
     cleanup_pyxis
 }
 trap cleanup_containers TERM EXIT
@@ -276,15 +275,17 @@ fi
 
 # Setup container
 echo MELLANOX_VISIBLE_DEVICES="${MELLANOX_VISIBLE_DEVICES:-}"
-srun --ntasks="$((SLURM_JOB_NUM_NODES))" --container-image="${CONT_FILE}" --container-name="${_cont_name}" true
+srun -N "$((SLURM_JOB_NUM_NODES))" --ntasks="$((SLURM_JOB_NUM_NODES))" --container-image="${CONT_FILE}" --container-name="${_cont_name}" true
 
-srun -N1 -n1 --container-name="${_cont_name}" ibv_devinfo --list
-srun -N1 -n1 --container-name="${_cont_name}" nvidia-smi topo -m
+if [[ "${TRAIN_ONLY}" != "1"  ]]; then
+	srun -N1 -n1 --container-name="${_cont_name}" ibv_devinfo --list
+	srun -N1 -n1 --container-name="${_cont_name}" nvidia-smi topo -m
 
-# Run NCCL test (700 MB FP16 allreduce)
-#srun --mpi=pmix --ntasks="$(( SLURM_JOB_NUM_NODES * DGXNGPU ))" --ntasks-per-node="${DGXNGPU}" \
-#        --container-image=${CONT_FILE} \
-#        all_reduce_perf_mpi -b 85M -e 680M -f 2 -d half
+	# Run NCCL test (700 MB FP16 allreduce)
+	srun --mpi=pmix --ntasks="$(( SLURM_JOB_NUM_NODES * DGXNGPU ))" --ntasks-per-node="${DGXNGPU}" \
+       		--container-image=${CONT_FILE} \
+        	all_reduce_perf_mpi -b 85M -e 680M -f 2 -d half
+fi
 
 if [[ "${USE_IPOIB:-}" == "1" ]]; then
     # list out the ipoib ip addresses and (arbitrarily) choose the last one
@@ -294,7 +295,7 @@ else
 fi
 echo "using MASTER_ADDR \"${MASTER_ADDR}\" of list \"${SLURM_JOB_NODELIST}\""
 
-echo "LLM NCCL_TEST"
+echo "LLM NCCL_TEST = ${NCCL_LLM_TEST}"
 if [[ ${NCCL_LLM_TEST} -eq 1 ]]; then
     (
 	srun --mpi="${SLURM_MPI_TYPE:-pmix}" \
@@ -350,7 +351,7 @@ if [[ "${SET_MAXQ_CLK}" == "1" ]] || [[ "${SET_MINEDP_CLK}" == "1" ]]; then
         fi
         for i in "${NODELIST[@]}"
         do
-                ssh $i 'export GPCCLK='"'$GPCCLK'"';sudo nvidia-smi -lgc ${GPCCLK}'
+                srun -w $i --gpus=${DGXNGPU} bash -c 'export GPCCLK='"'$GPCCLK'"';sudo nvidia-smi -lgc ${GPCCLK}'
         done
 fi
 
@@ -358,19 +359,20 @@ fi
 if [[ "${SET_POWER_CAP}" == "1" ]] ; then
         for i in "${NODELIST[@]}"
         do
-                ssh $i 'export POWER_CAP='"'$POWER_CAP'"';sudo nvidia-smi -pl ${POWER_CAP}'
+                srun -w $i --gpus=${DGXNGPU} bash -c 'export POWER_CAP='"'$POWER_CAP'"';sudo nvidia-smi -pl ${POWER_CAP}'
         done
 fi
 
 #Set the value for nvidia-smi boost-slider --vboost
 if [ ${VBOOST_VALUE} -gt 0 ]; then
-	srun --ntasks=${SLURM_JOB_NUM_NODES} bash -c "sudo nvidia-smi boost-slider --vboost ${VBOOST_VALUE}"
+	srun -N ${SLURM_JOB_NUM_NODES} --ntasks=${SLURM_JOB_NUM_NODES} --gpus-per-node=${DGXNGPU} bash -c "sudo nvidia-smi boost-slider --vboost ${VBOOST_VALUE}"
 fi
 
 if [ "${HANG_MONITOR_TIMEOUT-0}" -gt 0 ]; then
   export HANG_MONITOR_TIMEOUT=${HANG_MONITOR_TIMEOUT}
   HANG_MONITOR_EXEC_CMD="
     srun \
+      \
       --overlap -l --no-container-mount-home --container-mounts=${_cont_mounts} \
       --container-name=${_cont_name} --container-workdir=${WORK_DIR} --ntasks=${SLURM_JOB_NUM_NODES} \
       bash scripts/tracebacks/dump_tracebacks_node.sh"
@@ -390,6 +392,7 @@ if [ "${HANG_MONITOR_TIMEOUT-0}" -gt 0 ]; then
 
       HANG_MONITOR_EXEC_CMD+=";
         srun \
+          \
           --overlap -l --no-container-mount-home --container-mounts=${_cont_mounts} \
           --container-name=${_cont_name} --container-workdir=${WORK_DIR} --ntasks=${SLURM_JOB_NUM_NODES} \
           bash scripts/tracebacks/dump_core_node.sh"
@@ -411,7 +414,7 @@ for _experiment_index in $(seq -w 1 "${NEXP}"); do
         echo ":::DLPAL ${CONT} ${SLURM_JOB_ID} ${SLURM_JOB_NUM_NODES} ${SLURM_JOB_NODELIST} ${MLPERF_CLUSTER_NAME} ${DGXSYSTEM}"
 
         # Print system info
-        echo ":::SYSJSON $(srun --ntasks=1 --container-name="${_cont_name}" mlperf-sysjson.sh)"
+        echo ":::SYSJSON $(srun -N 1 --ntasks=1 --container-name="${_cont_name}" mlperf-sysjson.sh)"
 
         export SEED=$(($SEED_BASE - 1 + 10#$_experiment_index))  # `10#` makes sure we interpret number in base 10
 
