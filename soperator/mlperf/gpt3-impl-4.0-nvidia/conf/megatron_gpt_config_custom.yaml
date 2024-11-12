@@ -1,0 +1,14 @@
+defaults:
+  - _self_
+  - megatron_gpt_config # load NeMo's config
+  - optim@model.optim: fused_adam
+  - data_prefix@model.data.data_prefix: benchmark_c4
+  - custom # our overrides of NeMo's config
+  - override hydra/job_logging: stdout
+
+hydra:
+  searchpath: 
+    - file:///workspace/NeMo/examples/nlp/language_modeling/conf
+  run:
+    dir: '.'
+  output_subdir: null

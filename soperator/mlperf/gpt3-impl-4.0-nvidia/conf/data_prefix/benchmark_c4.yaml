@@ -1,0 +1,9 @@
+train:                                                        
+  - 0.5                                                         
+  - /preproc_data/c4_en_6_c4_spm_text_document                  
+  - 0.5                                                         
+  - /preproc_data/c4_en_7_c4_spm_text_document                  
+validation:                                                   
+  - /preproc_data/c4_en_validation_subset_c4_spm_text_document  
+test:                                                         
+  - /preproc_data/c4_en_validation_subset_c4_spm_text_document  
