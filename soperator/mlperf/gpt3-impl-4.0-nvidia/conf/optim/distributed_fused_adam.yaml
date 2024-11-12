@@ -1,0 +1,18 @@
+name: distributed_fused_adam
+bucket_cap_mb: ${oc.decode:${oc.env:BUCKET_CAP_MB,100}}
+overlap_grad_sync: ${oc.decode:${oc.env:OVERLAP_GRAD_SYNC,True}}
+overlap_param_sync: ${oc.decode:${oc.env:OVERLAP_PARAM_SYNC,True}}
+contiguous_grad_buffer: True
+contiguous_param_buffer: True
+nccl_ub: ${oc.decode:${oc.env:NCCL_UB,False}}
+grad_sync_dtype: bf16
+lr: ${oc.decode:${oc.env:LR,0.9e-4}}
+weight_decay: 0.1
+betas:
+- 0.9
+- 0.95
+sched:
+  name: CosineAnnealingExp
+  warmup_steps: ${oc.decode:${oc.env:WARMUP_STEPS,115}}
+  min_lr: ${oc.decode:${oc.env:MIN_LR,0.9e-5}}
+  max_steps_for_lr_sched: ${oc.decode:${oc.env:MAX_STEPS_FOR_LR_SCHED,108600}}  # overwritten in run_and_time
