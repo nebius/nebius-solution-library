@@ -20,16 +20,16 @@ fi
 
 # Slurm resource allocation
 export SBATCH_GPUS_PER_NODE="8"
-export SBATCH_MEM_PER_NODE="1200G"
-export SBATCH_TRES_PER_TASK="cpu=16"
-export SBATCH_DISTRIBUTION="block:block:block"
-export SLURM_CPU_BIND="verbose,none"
-#export EXCLUSIVE=1
+#export SBATCH_MEM_PER_NODE="1200G"
+#export SBATCH_TRES_PER_TASK="cpu=16"
+#export SBATCH_DISTRIBUTION="block:block:block"
+#export SLURM_CPU_BIND="verbose,none"
+export EXCLUSIVE=1
+export SBATCH_MEM_PER_NODE=0
 
 # Use bindpcie CPU pinning
-export ENABLE_CPU_EXCLUSIVE=1
-export ENABLE_IB_BINDING=1
-
+#export ENABLE_CPU_EXCLUSIVE=1
+#export ENABLE_IB_BINDING=1
 
 
 

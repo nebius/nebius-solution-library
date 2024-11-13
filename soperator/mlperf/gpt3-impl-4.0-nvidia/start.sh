@@ -131,7 +131,6 @@ sbatch \
 	--output="${job_output}" \
 	--export=ALL \
 	--nodes="${nodes}" \
-	--nodelist="${nodelist}" \
 	--ntasks-per-node="${SBATCH_GPUS_PER_NODE}" \
 	${EXCLUSIVE:+--exclusive} \
 	run.sub
