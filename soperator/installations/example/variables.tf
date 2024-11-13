@@ -331,7 +331,7 @@ variable "slurm_nodeset_workers" {
   validation {
     condition = length([for worker in var.slurm_nodeset_workers :
       1 if worker.size % worker.split_factor != 0
-    ]) == 1
+    ]) == 0
     error_message = "Worker count must be divisible by split_factor."
   }
 }
