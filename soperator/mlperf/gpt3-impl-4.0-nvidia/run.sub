@@ -235,6 +235,7 @@ cleanup_preload_shared() {
 if [ -n "${CONTAINER_PRELOAD_SHARED_PATH}" ]; then
     CONT_FILE="${CONTAINER_PRELOAD_SHARED_PATH}/containers/${SLURM_JOBID}_$(basename ${CONT}).squashfs"
     # Prepull container image to the shared filesystem
+    mkdir -p "${CONTAINER_PRELOAD_SHARED_PATH}/containers"
     srun --ntasks=1 enroot import --output ${CONT_FILE} docker://${CONT}
 else
     CONT_FILE=${CONT}

@@ -121,6 +121,21 @@ RUN rm -rf /opt/hpcx/nccl_rdma_sharp_plugin && \
 RUN pip install huggingface_hub==0.23.2
 RUN pip install -v "transformers<=4.40.2"
 
+## Reinstall NCCL to the latest version
+#RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+#RUN dpkg -i cuda-keyring_1.1-1_all.deb
+#RUN apt-get update
+#RUN apt install libnccl2=2.23.4-1+cuda12.4 libnccl-dev=2.23.4-1+cuda12.4
+
+## Install NCCL profiler plugin
+#RUN git clone https://github.com/NVIDIA/nccl && \
+#    cd nccl && \
+#    git checkout v2.23.4-1 && \
+#    cd ext-profiler/example && \
+#    make && \
+#    cp libnccl-profiler.so /usr/lib/x86_64-linux-gnu/
+
+
 # Benchmark code
 WORKDIR /workspace/llm
 
