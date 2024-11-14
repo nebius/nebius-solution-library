@@ -8,6 +8,9 @@ users:
 package_update: true
 packages:
   - wireguard
+  - iproute2
+  - iptables-persistent
+  - netfilter-persistent
 
 write_files:
   - content: |
@@ -52,6 +55,33 @@ write_files:
     path: /etc/systemd/system/wgui_server.service
     permissions: "0400"
     owner: root:root
+  - content: |
+      [Unit]
+      Description=Configure tunl0 interface
+      After=network-online.target
+      Wants=network-online.target
+      
+      [Service]
+      Type=oneshot
+      ExecStartPre=/sbin/modprobe ipip
+      ExecStart=/bin/bash -c 'ip link set tunl0 up'
+      ExecStartPost=/bin/bash -c 'ip addr replace 10.0.0.1/24 dev tunl0'
+      RemainAfterExit=yes
+      
+      [Install]
+      WantedBy=multi-user.target
+    path: /etc/systemd/system/tunl0.service
+    permissions: "0400"
+    owner: root:root
+#  - content: |
+#      #!/bin/bash
+#      set -e
+#      ip link set tunl0 up
+#      ip addr flush dev tunl0
+#      ip addr add 10.0.0.1/24 dev tunl0
+#    path: /usr/local/bin/configure_tunl0.sh
+#    permissions: "0400"
+#    owner: root:root
 
 runcmd:
   # Creating keys
@@ -115,5 +145,21 @@ runcmd:
   - sudo systemctl enable wgui_server.service
   - sudo systemctl start wgui_server.service
 
+  # Preparing IPIP Gateway
+  # Iptables Rules
+  - sudo modprobe ipip
+  - sudo iptables -A INPUT -p 4 -j ACCEPT
+  - sudo iptables -A OUTPUT -p 4 -j ACCEPT
+  - sudo iptables -A FORWARD -p 4 -j ACCEPT
+  - sudo iptables -t nat -A POSTROUTING -o $INTERFACE -j MASQUERADE
+  - sudo iptables -A FORWARD -i tunl0 -o $INTERFACE -j ACCEPT
+  - sudo iptables -A FORWARD -i $INTERFACE -o tunl0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+  - sudo netfilter-persistent save
+  - sudo systemctl start tunl0.service
+  - sudo systemctl enable tunl0.service
+
+
 bootcmd:
   - sudo systemctl restart wgui_server.service
+  - sudo modprobe ipip
+
