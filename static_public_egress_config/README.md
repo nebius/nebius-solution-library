@@ -1,6 +1,10 @@
-# Wireguard VPN instance
+# Wireguard VPN + IPIP Gateway instance
 
-This Terraform solution deploys a Wireguard VPN instance that serves as a secure jump host for your infrastructure. It improves the security by minimizing the use of Public IPs and limiting access to the rest of the environment.
+There are cases when some external internet sevices are filtering incoming connections via their IP addresses. For cases like that, we need to configure the infrastructure to use a limited set of ip adresses to access those resources.  This solution, consisting of multiple perts, aloows to form 2 Public IP adresses (1 for VMs to route through, another for K8S pods to route through)
+
+This first part of solution deploys a Wireguard VPN instance that serves as a secure jump host for your infrastructure.
+Additionally there is an IPIP gateway deployed inside the instance to cionfigure custom routing for site-to-site VPN deployment cases.
+Wireguard is just used as an example, you can deploy your own VPN solution inside this same instance. 
 
 ## Prerequisites
 
@@ -30,6 +34,13 @@ This Terraform solution deploys a Wireguard VPN instance that serves as a secure
    ```bash
    sudo apt install jq -y
    ```
+
+5. **Prepare the network**
+    Create a support request to: 
+     - Switch option "use network pools" for "IPv4 Private Pools" in "true" for existing subnet
+     - Ask to create a new subnet, new static public IP pool with just one address (CIDR /32). Option "use network pools" for "IPv4 Private Pools" should also be in  "true" for this subnet
+     - Newly created static public pull should have "use network pools" for the subnet in "false" state (so it would be accessible only from the subnet)
+     - Save the ID of the new subnet (let's call it EGRESS_SUBNET_ID')
 
 ## Installation
 
@@ -62,6 +73,7 @@ Update the following variables in the `terraform.tfvars` file with your own valu
 - `subnet_id`
 - `ssh_user_name`
 - `ssh_public_key`
+- `public_ip_allocation_id` (see below)
 
 ## Creating and using a public IP allocation
 
@@ -69,7 +81,7 @@ This step allows you to retain the IP address even if the VM is deleted. If you 
 
 1. Create a public IP allocation:
    ```bash
-   nebius vpc v1 allocation create  --ipv-4-public \
+   nebius vpc v1 allocation create  --ipv-4-public  --ipv-4-public-pool-id <public-pool-id> \
    --parent-id <project-id> --name wireguard_allocation_pub \
    --format json | jq -r '.metadata.id'
    ```
@@ -106,3 +118,85 @@ public_ip_allocation_id = <public_ip_allocation_id>
 
 - **Apply Config:** After creating, deleting or changing Wireguard users, select "Apply Config".
 - **Allowed IPs:** When adding new users, specify the CIDRs of your existing infrastructure in the "Allowed IPs" field.
+
+
+# VM Traffic Routing Script
+
+## Purpose
+
+The script *vm-tunnel.sh* routes **all traffic from a VM without a public IP** through a designated gateway VM with a public IP, using an IPIP (IP-in-IP) tunnel configuration. 
+
+**Do not run this script on VMs with public IPs.**:
+ -  After execution, SSH access will be restricted to only the WireGuard gateway.
+ - VMs with external IPs are supposed to have static address and that adfdress can be added to filtering rules on the remote side
+
+## Prerequisites
+
+1. Ensure a **WireGuard instance** is set up according to the fisrt part of this manual
+2. Obtain the **private IP of the WireGuard instance** (referred to as `GATEWAY_PRIVATE_IP`).
+
+## Usage
+
+```bash
+sudo sh ./vm-tunnel.sh <gateway_private_ip>
+```
+
+Replace `<gateway_private_ip>` with the private IP address of your WireGuard instance.
+
+## Actions Performed by the Script
+
+1. **Tunnel Configuration**:
+    - Sets up IPIP tunnel `ipiptun0` with a unique IP derived from the VM's private IP.
+    - Creates and enables a systemd service to manage the tunnel on startup.
+2. **Policy-Based Routing**:
+    - Adds rules to route **all outgoing traffic** through the IPIP tunnel.
+    - Restricts port 22 traffic (SSH) to operate only from the WireGuard gateway.
+3. **Firewall Rules**:
+    - Configures `iptables` to accept IPIP protocol traffic.
+4. **Service Management**:
+    - Enables and starts services for both the IPIP tunnel and routing configuration.
+
+## Important Notes
+
+- SSH access post-setup will only be available from the **WireGuard instance**.
+- **All traffic** (except SSH management traffic) is routed via the IPIP tunnel through the specified gateway.
+
+
+# Routing Traffic Through EgressGateway in Kubernetes
+
+This tutorial explains how to configure a Cilium policy to route traffic from selected pods through an EgressGateway. This setup allows pods to share a single public IP for all outgoing traffic.
+
+## Prerequisites
+First, modify you one of the solutions: k8s-inference or k8s-training:
+ - append the main.tf in with the config from the *egress_gw_mk8s/add-to-main.tf*, but in the network_interfaces block replace stub ("EGRESS_SUBNET_ID") with the ID aquired in the beginning while configuring the second subnet.
+ - Apply changes and check, that there is a new mk8s node group consisting of one node, which has the public IP configured in the beginning of the manual.
+
+## Steps
+
+1. **Enable EgressGateway on Cilium**
+
+    Execute the following commands to configure your cluster for EgressGateway support:
+
+    ```bash
+    kubectl -n kube-system patch configmap cilium-config --patch '{"data":{"enable-ipv4-egress-gateway":"true"}}'
+    kubectl rollout restart ds cilium -n kube-system
+    kubectl rollout restart deploy cilium-operator -n kube-system
+    ```
+
+2. **Update and Apply the Cilium Policy**
+
+    Edit `cilium-policy.yaml`, replacing placeholders with appropriate values:
+
+    - `<POD-LABEL>`: Label of the target pods for which the policy should apply.
+    - `<YOUR-NAMESPACE>`: Namespace where the target pods are running.
+    - `<NODE-NAME>`: Name of the node that will act as the EgressGateway and should have a public IP.
+
+    After updating the placeholders, apply the policy:
+
+    ```bash
+    kubectl apply -f cilium-policy.yaml
+    ```
+
+**Note**: Ensure the selected node (`<NODE-NAME>`) has a public IP to allow external access for outgoing traffic.
+
+This configuration routes the traffic of specified pods through the EgressGateway node, using a single public IP for simplified egress control.
