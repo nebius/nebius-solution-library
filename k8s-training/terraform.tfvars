@@ -17,7 +17,7 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 
 # Observability
 enable_grafana    = true # Enable or disable Grafana deployment with true or false
 enable_prometheus = true # Enable or disable Prometheus deployment with true or false
-enable_loki       = true # Enable or disable Loki deployment with true or false
+enable_loki       = false # Enable or disable Loki deployment with true or false
 enable_dcgm       = true # Enable or disable NVIDIA DCGM Exporter Dashboard and Alerting deployment with true or false
 
 ## Loki

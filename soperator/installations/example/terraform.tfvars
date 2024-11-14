@@ -69,19 +69,19 @@ filestore_controller_spool = {
 
 # Shared filesystem to be used on controller, worker, and login nodes.
 # ---
-filestore_jail = {
-  spec = {
-    size_gibibytes       = 2048
-    block_size_kibibytes = 4
-  }
-}
-# Or use existing filestore.
-# ---
 # filestore_jail = {
-#   existing = {
-#     id = "computefilesystem-<YOUR-FILESTORE-ID>"
+#   spec = {
+#     size_gibibytes       = 2048
+#     block_size_kibibytes = 4
 #   }
 # }
+# Or use existing filestore.
+# ---
+filestore_jail = {
+  existing = {
+    id = "computefilesystem-<YOUR-FILESTORE-ID>"
+  }
+}
 
 # Shared filesystems to be mounted inside jail.
 # ---
@@ -138,37 +138,6 @@ filestore_accounting = {
 # ---
 k8s_cluster_name = "slurm-k8s"
 
-# CPU-only node group specification.
-# Look at https://docs.nebius.ai/compute/virtual-machines/types/#cpu-configurations to choose the preset.
-# ---
-k8s_cluster_node_group_cpu = {
-  resource = {
-    platform = "cpu-e2"
-    preset   = "16vcpu-64gb"
-  }
-  boot_disk = {
-    type           = "NETWORK_SSD"
-    size_gibibytes = 128
-  }
-}
-
-# GPU node group specification.
-# Look at https://docs.nebius.ai/compute/virtual-machines/types/#gpu-configurations to choose the preset.
-# ---
-k8s_cluster_node_group_gpu = {
-  resource = {
-    platform = "gpu-h100-sxm"
-    preset   = "8gpu-128vcpu-1600gb"
-  }
-  boot_disk = {
-    type           = "NETWORK_SSD"
-    size_gibibytes = 1024
-  }
-  gpu_cluster = {
-    infiniband_fabric = "fabric-2"
-  }
-}
-
 # SSH user credentials for accessing k8s nodes.
 # By default, empty list.
 # ---
@@ -199,7 +168,7 @@ slurm_cluster_name = "my-amazing-slurm"
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.14.13"
+slurm_operator_version = "1.15.2"
 
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".
@@ -222,11 +191,88 @@ slurm_operator_version = "1.14.13"
 #----------------------------------------------------------------------------------------------------------------------#
 # region Nodes
 
-# Count of Slurm nodes.
+# Configuration of System node set for system resources created by Soperator.
 # ---
-slurm_node_count = {
-  controller = 2
-  worker     = 2
+slurm_nodeset_system = {
+  size = 1
+  resource = {
+    platform = "cpu-e2"
+    preset   = "16vcpu-64gb"
+  }
+  boot_disk = {
+    type                 = "NETWORK_SSD"
+    size_gibibytes       = 128
+    block_size_kibibytes = 4
+  }
+}
+
+# Configuration of Slurm Controller node set.
+# ---
+slurm_nodeset_controller = {
+  size = 2
+  resource = {
+    platform = "cpu-e2"
+    preset   = "16vcpu-64gb"
+  }
+  boot_disk = {
+    type                 = "NETWORK_SSD"
+    size_gibibytes       = 128
+    block_size_kibibytes = 4
+  }
+}
+
+# Configuration of Slurm Worker node sets.
+# There can be only one Worker node set for a while.
+# Split factor allows you to split node set into equally-sized node groups to keep your cluster accessible and working
+# during maintenance.
+# ---
+slurm_nodeset_workers = [{
+  size                    = 2
+  split_factor            = 2
+  max_unavailable_percent = 50
+  resource = {
+    platform = "gpu-h100-sxm"
+    preset   = "8gpu-128vcpu-1600gb"
+  }
+  boot_disk = {
+    type                 = "NETWORK_SSD"
+    size_gibibytes       = 1024
+    block_size_kibibytes = 32
+  }
+  gpu_cluster = {
+    infiniband_fabric = "fabric-3"
+  }
+}]
+
+# Configuration of Slurm Login node set.
+# ---
+slurm_nodeset_login = {
+  size = 1
+  resource = {
+    platform = "cpu-e2"
+    preset   = "16vcpu-64gb"
+  }
+  boot_disk = {
+    type                 = "NETWORK_SSD"
+    size_gibibytes       = 128
+    block_size_kibibytes = 4
+  }
+}
+
+# Configuration of Slurm Accounting node set.
+# Required in case of Accounting usage.
+# By default, null.
+# ---
+slurm_nodeset_accounting = {
+  resource = {
+    platform = "cpu-e2"
+    preset   = "16vcpu-64gb"
+  }
+  boot_disk = {
+    type                 = "NETWORK_SSD"
+    size_gibibytes       = 128
+    block_size_kibibytes = 4
+  }
 }
 
 #----------------------------------------------------------------------------------------------------------------------#
@@ -263,6 +309,18 @@ slurm_login_ssh_root_public_keys = [
 # slurm_exporter_enabled = false
 
 # endregion Exporter
+
+#----------------------------------------------------------------------------------------------------------------------#
+#                                                       REST API                                                       #
+#----------------------------------------------------------------------------------------------------------------------#
+# region REST API
+
+# Whether to enable Slurm REST API.
+# By default, false.
+# ---
+# slurm_rest_enabled = false
+
+# endregion REST API
 
 # endregion Nodes
 
