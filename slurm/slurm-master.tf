@@ -1,8 +1,3 @@
-locals {
-  ssh_public_key = var.ssh_public_key.key != null ? var.ssh_public_key.key : (
-  fileexists(var.ssh_public_key.path) ? file(var.ssh_public_key.path) : null)
-}
-
 resource "nebius_vpc_v1alpha1_allocation" "master" {
   parent_id = var.parent_id
   name      = "slurm-master"
@@ -47,6 +42,8 @@ resource "nebius_compute_v1_instance" "master" {
       SLURM_VERSION         = var.slurm_version
       SLURM_BINARIES        = var.slurm_binaries
       shared_fs_type        = var.shared_fs_type
+      nfs_export_path       = var.shared_fs_type == "nfs" ? module.nfs-module[0].nfs_export_path : 0
+      nfs_ip                = var.shared_fs_type == "nfs" ? module.nfs-module[0].nfs_server_internal_ip : 0
       is_mysql              = var.mysql_jobs_backend
       ssh_public_key        = local.ssh_public_key
       cluster_workers_count = var.cluster_workers_count
