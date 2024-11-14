@@ -16,8 +16,8 @@ resource "nebius_mk8s_v1_node_group" "egress-gateway" {
     }
     network_interfaces = [
       {
-        public_ip_address = {}
-        subnet_id         = "<CUSTOM_PUBLIC_IP_POOL_ID>"
+        public_ip_address = null
+        subnet_id         = var.subnet_id
       }
     ]
     resources = {
