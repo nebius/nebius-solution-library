@@ -1,0 +1,24 @@
+apiVersion: cilium.io/v2
+kind: CiliumEgressGatewayPolicy
+metadata:
+  name: egress-gateway
+spec:
+  selectors:
+  - podSelector:
+      matchLabels:
+        <POD-LABEL>
+        io.kubernetes.pod.namespace: <YOUR-NAMESPACE>
+
+  # Specify which destination CIDR(s) this policy applies to.
+  # Multiple CIDRs can be specified.
+  destinationCIDRs:
+  - "0.0.0.0/0"
+
+  # Configure the gateway node.
+  egressGateway:
+    # Specify which node should act as gateway for this policy.
+    nodeSelector:
+      matchLabels:
+        kubernetes.io/hostname: <NODE-NAME>
+
+    interface: eth0
