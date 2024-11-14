@@ -2,11 +2,11 @@ resource "nebius_mk8s_v1_node_group" "egress-gateway" {
   fixed_node_count = 1
   parent_id        = nebius_mk8s_v1_cluster.k8s-cluster.id
   name             = join("-", ["k8s-ng-cpu", local.release-suffix])
-  labels = {
-    metadata = {
-       labels = {
-         "library-solution" : "k8s-inference",
-         "egress-gateway" : "true"
+  metadata = {
+      labels = {
+        "library-solution" : "k8s-inference",
+        "egress-gateway" : "true"
+      }
   }
   version = var.k8s_version
   template = {
