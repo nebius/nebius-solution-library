@@ -12,7 +12,6 @@ resource "nebius_mk8s_v1_node_group" "login" {
     module.labels.label_workload_cpu,
   )
 
-  version          = var.k8s_version
   fixed_node_count = var.node_group_login.size
 
   template = {

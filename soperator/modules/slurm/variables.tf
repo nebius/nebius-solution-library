@@ -65,11 +65,11 @@ variable "resources" {
       memory_gibibytes            = number
       ephemeral_storage_gibibytes = number
     })
-    accounting = object({
+    accounting = optional(object({
       cpu_cores                   = number
       memory_gibibytes            = number
       ephemeral_storage_gibibytes = number
-    })
+    }))
   })
 
   validation {

@@ -171,19 +171,19 @@ resource "helm_release" "slurm_cluster" {
     nodes = {
       accounting = {
         enabled = var.accounting_enabled
-        mariadb_operator = {
+        mariadb_operator = var.accounting_enabled ? {
           enabled         = var.accounting_enabled
           storage_size    = var.accounting_enabled ? var.filestores.accounting.size_gibibytes : 0
           metrics_enabled = var.telemetry_enabled
           resources       = local.resources.mariadb
-        }
+        } : null
         slurmdbd_config = var.slurmdbd_config
         slurm_config    = var.slurm_accounting_config
-        resources = {
+        resources = var.accounting_enabled ? {
           cpu               = var.resources.accounting.cpu_cores - local.resources.munge.cpu - local.resources.mariadb.cpu
           memory            = var.resources.accounting.memory_gibibytes - local.resources.munge.memory - local.resources.mariadb.memory
           ephemeral_storage = var.resources.accounting.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage - local.resources.mariadb.ephemeral_storage
-        }
+        } : null
       }
 
       controller = {

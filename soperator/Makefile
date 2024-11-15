@@ -4,7 +4,6 @@ SHELL = /usr/bin/env bash -o pipefail
 SOPERATOR_VERSION		= $(shell cat VERSION)
 SUBVERSION				= $(shell cat SUBVERSION)
 VERSION					= $(SOPERATOR_VERSION)-$(SUBVERSION)
-DOCKER_REGISTRY_NAME	= soperator
 
 ifeq ($(shell uname), Darwin)
     SED_COMMAND = sed -i ''
@@ -15,10 +14,6 @@ endif
 .PHONY: sync-version
 sync-version: ## Sync Soperator version from file
 	@echo 'Soperator version is - $(SOPERATOR_VERSION)'
-
-	@# region modules/slurm/locals.tf
-	@$(SED_COMMAND) "s|\(oci://cr.eu-north1.nebius.cloud/\)[^\"]*|\1$(DOCKER_REGISTRY_NAME)|" modules/slurm/locals.tf
-	@# endregion modules/slurm/locals.tf
 
 	@# region installations/example/terraform.tfvars
 	@echo 'Syncing installations/example/terraform.tfvars'

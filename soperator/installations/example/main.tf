@@ -4,7 +4,7 @@ locals {
     controller = module.resources.this[var.slurm_nodeset_controller.resource.platform][var.slurm_nodeset_controller.resource.preset]
     workers    = [for worker in var.slurm_nodeset_workers : module.resources.this[worker.resource.platform][worker.resource.preset]]
     login      = module.resources.this[var.slurm_nodeset_login.resource.platform][var.slurm_nodeset_login.resource.preset]
-    accounting = module.resources.this[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset]
+    accounting = var.slurm_nodeset_accounting != null ? module.resources.this[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset] : null
   }
 
   use_node_port = var.slurm_login_service_type == "NodePort"
@@ -210,11 +210,11 @@ module "slurm" {
       memory_gibibytes            = local.resources.login.memory_gibibytes
       ephemeral_storage_gibibytes = ceil(var.slurm_nodeset_login.boot_disk.size_gibibytes / 2)
     }
-    accounting = {
+    accounting = var.accounting_enabled ? {
       cpu_cores                   = local.resources.accounting.cpu_cores
       memory_gibibytes            = local.resources.accounting.memory_gibibytes
       ephemeral_storage_gibibytes = ceil(var.slurm_nodeset_accounting.boot_disk.size_gibibytes / 2)
-    }
+    } : null
   }
 
   login_service_type         = var.slurm_login_service_type
