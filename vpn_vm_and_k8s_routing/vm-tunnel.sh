@@ -35,7 +35,7 @@ ip tunnel add ipiptun0 mode ipip local \$CLIENT_PRIVATE_IP remote \$GATEWAY_PRIV
 ip link set ipiptun0 up
 
 # Assign IP address to the tunnel interface
-ip addr replace \$TUNNEL_IP dev ipiptun0
+# ip addr replace \$TUNNEL_IP dev ipiptun0
 EOF
 
   sudo chmod 0755 /usr/local/bin/configure_ipiptun0.sh
