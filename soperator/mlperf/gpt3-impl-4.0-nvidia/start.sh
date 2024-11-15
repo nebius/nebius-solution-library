@@ -137,4 +137,3 @@ sbatch \
 	run.sub
 
 squeue
-

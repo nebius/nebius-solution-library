@@ -52,7 +52,6 @@ resource "nebius_mk8s_v1_node_group" "worker" {
     local.node_group_workload_label.worker[count.index],
   )
 
-  version          = var.k8s_version
   fixed_node_count = var.node_group_workers[count.index].size
   strategy = {
     max_unavailable = {
