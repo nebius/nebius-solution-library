@@ -10,6 +10,12 @@ resource "nebius_mk8s_v1_node_group" "egress-gateway" {
   }
   version = var.k8s_version
   template = {
+    metadata = {
+      labels = {
+        "library-solution" : "k8s-inference",
+        "egress-gateway" : "true"
+      }
+    }
     boot_disk = {
       size_gibibytes = var.cpu_disk_size
       type           = var.cpu_disk_type

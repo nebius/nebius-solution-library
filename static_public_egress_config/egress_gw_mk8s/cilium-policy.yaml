@@ -19,6 +19,6 @@ spec:
     # Specify which node should act as gateway for this policy.
     nodeSelector:
       matchLabels:
-        kubernetes.io/hostname: <NODE-NAME>
+        egress-gateway: "true"
 
     interface: eth0

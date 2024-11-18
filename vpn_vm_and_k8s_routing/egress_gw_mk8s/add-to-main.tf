@@ -2,14 +2,14 @@ resource "nebius_mk8s_v1_node_group" "egress-gateway" {
   fixed_node_count = 1
   parent_id        = nebius_mk8s_v1_cluster.k8s-cluster.id
   name             = join("-", ["k8s-ng-egress", local.release-suffix])
-  metadata = {
+  version = var.k8s_version
+  template = {
+    metadata = {
       labels = {
         "library-solution" : "k8s-inference",
         "egress-gateway" : "true"
       }
-  }
-  version = var.k8s_version
-  template = {
+    }
     boot_disk = {
       size_gibibytes = var.cpu_disk_size
       type           = var.cpu_disk_type
