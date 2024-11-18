@@ -113,13 +113,6 @@ public_ip_allocation_id = <public_ip_allocation_id>
 
 - **Apply Config:** After creating, deleting or changing Wireguard users, select "Apply Config".
 - **Allowed IPs:** When adding new users, specify the CIDRs of your existing infrastructure in the "Allowed IPs" field.
-- You will addtionally have to configure traffic forwarding from the IPIP interface on the server to VPN interface, depending on networks and chosen VPN solution, i.e.
-```bash
-sudo iptables -A FORWARD -i tunl0 -o wg0 -d <remote-network-cidr> -j ACCEPT
-sudo iptables -A FORWARD -i wg0 -o tunl0 -s <remote-network-cidr> -j ACCEPT
-sudo iptables -t nat -A POSTROUTING -o ipiptun0 -d <remote-network-cidr> -j MASQUERADE
-```
-
 
 # VM Traffic Routing Script
 
@@ -144,6 +137,8 @@ sudo sh ./vm-tunnel.sh <gateway_private_ip>
 ```
 
 Replace `<gateway_private_ip>` with the private IP address of your WireGuard instance.
+
+If you're creating your VMs with terraform, the template from modules/cloud-init/k8s-egress-cloud-init.tftpl can be used, but you'll have to privide the gateway's private IP and edit the list of CIDRs to route to in the body of the template
 
 ## Actions Performed by the Script
 
