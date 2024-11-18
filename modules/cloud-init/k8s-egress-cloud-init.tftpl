@@ -1,0 +1,122 @@
+users:
+  - name: ${ssh_user_name}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+packages:
+  - iproute2
+  - iptables-persistent
+  - netfilter-persistent
+  - systemd
+
+write_files:
+  - content: |
+      # List of CIDRs to route via IPIP tunnel
+      1.1.1.1/32
+      # Add more CIDRs below as needed
+    path: /etc/ipip_tunnel_cidrs.txt
+    permissions: "0644"
+    owner: root:root
+  - content: |
+      #!/bin/bash
+      set -e
+      
+      # Variables
+      CLIENT_PRIVATE_IP=$(hostname -I | awk '{print $1}')
+      GATEWAY_PRIVATE_IP=${gateway_private_ip}
+      LAST_OCTET=$(echo $CLIENT_PRIVATE_IP | awk -F. '{print $4}')
+      TUNNEL_IP="10.0.0.$((LAST_OCTET + 1))/24"
+      
+      # Create or replace IPIP tunnel
+      ip tunnel del ipiptun0 2>/dev/null || true
+      ip tunnel add ipiptun0 mode ipip local $CLIENT_PRIVATE_IP remote $GATEWAY_PRIVATE_IP ttl 255
+      
+      # Bring up the tunnel interface
+      ip link set ipiptun0 up
+    path: /usr/local/bin/configure_ipiptun0.sh
+    permissions: "0755"
+    owner: root:root
+  - content: |
+      [Unit]
+      Description=Configure ipiptun0 interface
+      After=network-online.target
+      Wants=network-online.target
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/configure_ipiptun0.sh
+      RemainAfterExit=yes
+      
+      [Install]
+      WantedBy=multi-user.target
+    path: /etc/systemd/system/ipiptun0.service
+    permissions: "0644"
+    owner: root:root
+  - content: |
+      #!/bin/bash
+      set -e
+      
+      # Variables
+      CIDR_FILE="/etc/ipip_tunnel_cidrs.txt"
+      TUNNEL_INTERFACE="ipiptun0"
+      
+      # Ensure the routing table exists
+      grep -q "200 ipiproute" /etc/iproute2/rt_tables || echo "200 ipiproute" | sudo tee -a /etc/iproute2/rt_tables
+      
+      # Check if CIDR file exists
+      if [ ! -f "$CIDR_FILE" ]; then
+          echo "CIDR file $CIDR_FILE not found. Please create it with the CIDRs to route via the tunnel."
+          exit 1
+      fi
+      
+      # For each CIDR, manage the route
+      while read -r CIDR; do
+          # Skip empty lines and comments
+          if [[ -n "$CIDR" && ! "$CIDR" =~ ^# ]]; then
+              # Remove any existing route to the CIDR
+              sudo ip route del $CIDR 2>/dev/null || true
+              # Add route via tunnel
+              sudo ip route add $CIDR dev $TUNNEL_INTERFACE
+          fi
+      done < "$CIDR_FILE"
+    path: /usr/local/bin/configure_ipip_routing.sh
+    permissions: "0755"
+    owner: root:root
+  - content: |
+      [Unit]
+      Description=Configure routing for IPIP tunnel
+      After=ipiptun0.service
+      Requires=ipiptun0.service
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/configure_ipip_routing.sh
+      RemainAfterExit=yes
+      
+      [Install]
+      WantedBy=multi-user.target
+    path: /etc/systemd/system/ipip-routing.service
+    permissions: "0644"
+    owner: root:root
+
+runcmd:
+  - echo "ipip" | sudo tee /etc/modules-load.d/ipip.conf
+  - sudo modprobe ipip
+  # Reload systemd to recognize new services
+  - sudo systemctl daemon-reload
+  # Enable and start the IPIP tunnel service
+  - sudo systemctl enable ipiptun0.service
+  - sudo systemctl start ipiptun0.service
+  # Configure iptables
+  - sudo iptables -A INPUT -p 4 -j ACCEPT
+  - sudo iptables -A OUTPUT -p 4 -j ACCEPT
+  - sudo netfilter-persistent save
+  # Enable and start the routing service
+  - sudo systemctl enable ipip-routing.service
+  - sudo systemctl start ipip-routing.service
+
+bootcmd:
+  - sudo modprobe ipip

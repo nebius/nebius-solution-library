@@ -6,7 +6,7 @@ spec:
   selectors:
   - podSelector:
       matchLabels:
-        <POD-LABEL>
+        app: <POD-LABEL>
         io.kubernetes.pod.namespace: <YOUR-NAMESPACE>
 
   # Specify which destination CIDR(s) this policy applies to.
