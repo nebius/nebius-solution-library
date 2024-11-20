@@ -1,0 +1,1 @@
+config_H200x8_NODEx8_TPx4_PPx8_VPx4_MINBSx128_MICBSx2.sh

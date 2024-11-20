@@ -6,7 +6,7 @@ usage() {
 	echo "usage: ${0} -N <slurm_nodes> [-w <slurm_nodelist>] [-c <shell_config_file>]" >&2
 	echo "       [-e <slurm_experiment>]" >&2
 	echo "       [-i <container_image>] [-D <dataset_dir>] [-C <checkpoint_dir>] [-R <result_dir>] [-S <shared_image_cache_dir>]" >&2
-	echo "       [-q (quick_start)] [-r (remove_prev_logs)] [-d (debug)] [-h (help)]" >&2
+	echo "       [-q (quick_start)] [-r (remove_prev_logs)] [-d (debug)] [-p (nsys_profiling)] [-h (help)]" >&2
 	exit 1
 }
 
@@ -16,7 +16,7 @@ dataset_dir="/mlperf-data/gpt3-dataset-4.0"
 checkpoint_dir="/mlperf-data/gpt3-checkpoint-4.0"
 result_dir="./result"
 
-while getopts N:w:c:e:i:D:C:R:S:qrdh flag
+while getopts N:w:c:e:i:D:C:R:S:qrdph flag
 do
 	case "${flag}" in
 		N) nodes=${OPTARG};;
@@ -31,6 +31,7 @@ do
 		q) quick_start=1;;
 		r) rmlogs=1;;
 		d) debug=1;;
+		p) nsys_profiling=1;;
 		h) usage;;
 		*) usage;;
 	esac
@@ -116,6 +117,18 @@ if [[ $debug -eq 1 ]]; then
 	export GDRCOPY_LOG_LEVEL=1
 fi
 
+if [[ $nsys_profiling -eq 1 ]]; then
+	# Configure NSYS profiler
+	export NVTX_FLAG=1
+	export PROFILE=True
+	export PROFILE_START_STEP=10
+	export PROFILE_END_STEP=11
+	export PROFILE_RANKS="0,1,2,3,4,5,6,7"
+
+	# Early stopping:
+	export TARGET_LOG_PPL=2.75
+fi
+
 if [ -z "${experiment}" ]; then
 	job_name="gpt3"
 	job_output="gpt3-%j.out"
@@ -124,14 +137,18 @@ else
 	job_output="gpt3-%j-${experiment}.out"
 fi
 
+node_allocation="--nodes=${nodes}"
+if [ -n "${nodelist}" ]; then
+	node_allocation="--nodelist='${nodelist}'"
+fi
+
 echo "Submit Slurm job"
 sbatch \
 	-t $WALLTIME \
 	-J "${job_name}" \
 	--output="${job_output}" \
 	--export=ALL \
-	--nodes="${nodes}" \
-	--nodelist="${nodelist}" \
+	${node_allocation} \
 	--ntasks-per-node="${SBATCH_GPUS_PER_NODE}" \
 	${EXCLUSIVE:+--exclusive} \
 	run.sub
