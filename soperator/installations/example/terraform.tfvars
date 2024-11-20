@@ -357,9 +357,9 @@ slurm_shared_memory_size_gibibytes = 256
 # nccl_benchmark_enable = "0 */3 * * *"
 
 # Minimal threshold of NCCL benchmark for GPU performance to be considered as acceptable.
-# By default, 420.
+# By default, 45.
 # ---
-# nccl_benchmark_min_threshold = 420
+# nccl_benchmark_min_threshold = 45
 
 # endregion NCCL benchmark
 
