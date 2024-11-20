@@ -361,6 +361,11 @@ slurm_shared_memory_size_gibibytes = 256
 # ---
 # nccl_benchmark_min_threshold = 45
 
+# Use infiniband defines using NCCL_P2P_DISABLE=1 NCCL_SHM_DISABLE=1 NCCL_ALGO=Ring env variables for test.
+# By default, true
+# ---
+# nccl_use_infiniband = true
+
 # endregion NCCL benchmark
 
 #----------------------------------------------------------------------------------------------------------------------#
