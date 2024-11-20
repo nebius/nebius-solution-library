@@ -37,12 +37,10 @@ cp -r ../example/ ./
 ```
 
 2. **Set Up Your Environment**
-```bash
-# Set your Nebius project details
-export NEBIUS_TENANT_ID='<your-tenant-id>'
-export NEBIUS_PROJECT_ID='<your-project-id>'
 
-# Load environment variables 
+Update `NEBIUS_TENANT_ID` and `NEBIUS_PROJECT_ID` in `.envrc` with your project details.
+Then source the file to load the environment variables:
+```bash
 source .envrc
 ```
 
