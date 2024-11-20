@@ -1,0 +1,8 @@
+.aws_secret_access_key
+terraform_backend_override.tf
+login.sh
+
+# Internal use
+msp-slurm-sandbox
+msp-slurm-prod
+msp-slurm-test

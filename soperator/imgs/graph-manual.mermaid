@@ -1,0 +1,151 @@
+flowchart LR
+	classDef Var fill:#006B81,color:#DBEFFF,stroke:none;
+	classDef DataSource fill:#DBEFFF,color:#052B41,stroke:#052B41;
+	classDef Resource fill:#D6F34C,color:#052B41,stroke:#052B41;
+	classDef Output fill:#5ECF71,color:#052B41,stroke:none;
+	classDef Module fill:#052B4140,color:#FFFFFF,stroke:none,rx:1vh,ry:1vh;
+	classDef Container fill:#DBEFFF11,color:#FFFFFF,stroke-dasharray:5 5,stroke:#052B41,rx:1vh,ry:1vh;
+
+	subgraph global.container.var[Variables]
+		global.var.accounting_enabled(accounting_enabled):::Var;
+		global.var.filestores(filestores):::Var;
+		global.var.k8s_cluster_node_group_cpu(k8s_cluster_node_group_cpu):::Var;
+		global.var.k8s_cluster_node_group_gpu(k8s_cluster_node_group_gpu):::Var;
+		global.var.slurm_login_service_type(slurm_login_service_type):::Var;
+		global.var.telemetry_enabled(telemetry_enabled):::Var;
+	end
+	global.container.var:::Container;
+
+	subgraph module.filestore
+		subgraph module.filestore.container.resource.container.accounting[Accounting]
+			module.filestore.data.nebius_compute_v1_filesystem.accounting[(<br>nebius_compute_v1_filesystem.accounting<br>)]:::DataSource;
+			module.filestore.nebius_compute_v1_filesystem.accounting[["nebius_compute_v1_filesystem.accounting"]]:::Resource;
+		end
+		module.filestore.container.resource.container.accounting:::Container;
+
+		subgraph module.filestore.container.resource.container.controller_spool[Controller spool]
+			module.filestore.data.nebius_compute_v1_filesystem.controller_spool[(<br>nebius_compute_v1_filesystem.controller_spool<br>)]:::DataSource;
+			module.filestore.nebius_compute_v1_filesystem.controller_spool[["nebius_compute_v1_filesystem.controller_spool"]]:::Resource;
+		end
+		module.filestore.container.resource.container.controller_spool:::Container;
+
+		subgraph module.filestore.container.resource.container.jail[Jail]
+			module.filestore.data.nebius_compute_v1_filesystem.jail[(<br>nebius_compute_v1_filesystem.jail<br>)]:::DataSource;
+			module.filestore.nebius_compute_v1_filesystem.jail[["nebius_compute_v1_filesystem.jail"]]:::Resource;
+		end
+		module.filestore.container.resource.container.jail:::Container;
+
+		subgraph module.filestore.container.resource.container.jail_submounts[Jail sub-mounts]
+			module.filestore.data.nebius_compute_v1_filesystem.jail_submount[(<br>nebius_compute_v1_filesystem.jail_submount<br>)]:::DataSource;
+			module.filestore.nebius_compute_v1_filesystem.jail_submount[["nebius_compute_v1_filesystem.jail_submount"]]:::Resource;
+		end
+		module.filestore.container.resource.container.jail_submounts:::Container;
+
+		subgraph module.filestore.container.output[Outputs]
+			module.filestore.output.accounting{{accounting}}:::Output;
+			module.filestore.output.controller_spool{{controller_spool}}:::Output;
+			module.filestore.output.jail{{jail}}:::Output;
+			module.filestore.output.jail_submounts{{jail_submounts}}:::Output;
+		end
+		module.filestore.container.output:::Container;
+
+		module.filestore.container.resource.container.accounting -.-> module.filestore.output.accounting;
+		module.filestore.container.resource.container.controller_spool --> module.filestore.output.controller_spool;
+		module.filestore.container.resource.container.jail --> module.filestore.output.jail;
+		module.filestore.container.resource.container.jail_submounts --> module.filestore.output.jail_submounts;
+	end
+	module.filestore:::Module;
+
+	subgraph module.k8s
+		module.k8s.nebius_compute_v1_gpu_cluster.this[[nebius_compute_v1_gpu_cluster.this]]:::Resource;
+		module.k8s.nebius_vpc_v1_allocation.this[[nebius_vpc_v1_allocation.this]]:::Resource;
+
+		subgraph module.k8s.container.resource.container.cluster[k8s cluster]
+			module.k8s.nebius_mk8s_v1_cluster.this[[nebius_mk8s_v1_cluster.this]]:::Resource;
+
+			subgraph module.k8s.container.resource.container.cluster.container.ng[Node groups]
+				module.k8s.nebius_mk8s_v1_node_group.cpu[[nebius_mk8s_v1_node_group.cpu]]:::Resource;
+				module.k8s.nebius_mk8s_v1_node_group.gpu[[nebius_mk8s_v1_node_group.gpu]]:::Resource;
+				module.k8s.nebius_mk8s_v1_node_group.nlb[[nebius_mk8s_v1_node_group.nlb]]:::Resource;
+			end
+			module.k8s.container.resource.container.cluster.container.ng:::Container;
+		end
+		module.k8s.container.resource.container.cluster:::Container;
+
+		subgraph module.k8s.container.output[Outputs]
+			module.k8s.output.login_ip{{login_ip}}:::Output;
+		end
+		module.k8s.container.output:::Container;
+
+		module.k8s.nebius_compute_v1_gpu_cluster.this -..-> module.k8s.nebius_mk8s_v1_node_group.gpu;
+		module.k8s.nebius_mk8s_v1_cluster.this --> module.k8s.container.resource.container.cluster.container.ng;
+		module.k8s.nebius_vpc_v1_allocation.this -.-> module.k8s.output.login_ip;
+		module.k8s.nebius_mk8s_v1_node_group.nlb -.-> module.k8s.output.login_ip;
+	end
+	module.k8s:::Module;
+
+	subgraph module.nvidia_operators
+		direction BT;
+
+		module.nvidia_operators.helm_release.network_operator[/helm_release.network_operator/]:::Resource;
+		module.nvidia_operators.helm_release.gpu-operator[/helm_release.gpu-operator/]:::Resource;
+
+		module.nvidia_operators.helm_release.network_operator --> module.nvidia_operators.helm_release.gpu-operator;
+	end
+	module.nvidia_operators:::Module;
+
+	subgraph module.slurm
+		subgraph module.slurm.module.monitoring[module.monitoring]
+			subgraph module.slurm.module.monitoring.container.output[Outputs]
+				module.slurm.module.monitoring.output.metrics_collector_endpoint{{metrics_collector_endpoint}}:::Output;
+			end
+			module.slurm.module.monitoring.container.output:::Container;
+
+			module.slurm.module.monitoring.helm_release.certificate_manager[/helm_release.certificate_manager/]:::Resource;
+			module.slurm.module.monitoring.helm_release.dashboard[/helm_release.dashboard/]:::Resource;
+			module.slurm.module.monitoring.helm_release.fb_logs_collector[/helm_release.fb_logs_collector/]:::Resource;
+			module.slurm.module.monitoring.helm_release.prometheus_stack[/helm_release.prometheus_stack/]:::Resource;
+			module.slurm.module.monitoring.helm_release.slurm_monitor[/helm_release.slurm_monitor/]:::Resource;
+			module.slurm.module.monitoring.helm_release.vm_logs_server[/helm_release.vm_logs_server/]:::Resource;
+			module.slurm.module.monitoring.helm_release.vm_operator[/helm_release.vm_operator/]:::Resource;
+
+			module.slurm.module.monitoring.helm_release.certificate_manager --> module.slurm.module.monitoring.helm_release.prometheus_stack;
+			module.slurm.module.monitoring.helm_release.fb_logs_collector --> module.slurm.module.monitoring.helm_release.dashboard;
+			module.slurm.module.monitoring.helm_release.prometheus_stack --> module.slurm.module.monitoring.helm_release.vm_operator;
+			module.slurm.module.monitoring.helm_release.prometheus_stack --> module.slurm.module.monitoring.output.metrics_collector_endpoint;
+			module.slurm.module.monitoring.helm_release.vm_logs_server --> module.slurm.module.monitoring.helm_release.fb_logs_collector;
+			module.slurm.module.monitoring.helm_release.vm_operator --> module.slurm.module.monitoring.helm_release.slurm_monitor;
+			module.slurm.module.monitoring.helm_release.vm_operator --> module.slurm.module.monitoring.helm_release.vm_logs_server;
+		end
+		module.slurm.module.monitoring:::Module;
+
+		module.slurm.helm_release.mariadb_operator[/helm_release.mariadb_operator/]:::Resource;
+		module.slurm.helm_release.slurm_cluster[/<br><br>helm_release.slurm_cluster<br><br><br>/]:::Resource;
+		module.slurm.helm_release.slurm_cluster_crd[/helm_release.slurm_cluster_crd/]:::Resource;
+		module.slurm.helm_release.slurm_cluster_storage[/helm_release.slurm_cluster_storage/]:::Resource;
+		module.slurm.helm_release.slurm_operator[/helm_release.slurm_operator/]:::Resource;
+
+		module.slurm.helm_release.slurm_cluster_crd --> module.slurm.helm_release.slurm_operator;
+		module.slurm.helm_release.slurm_cluster_storage --> module.slurm.helm_release.slurm_cluster;
+		module.slurm.helm_release.slurm_operator --> module.slurm.helm_release.slurm_cluster;
+		module.slurm.module.monitoring.output.metrics_collector_endpoint -.-> module.slurm.helm_release.slurm_cluster;
+	end
+	module.slurm:::Module;
+
+	global.var.accounting_enabled -.-> module.filestore.container.resource.container.accounting;
+	global.var.accounting_enabled -.-> module.slurm.helm_release.mariadb_operator;
+	global.var.filestores --> module.filestore.container.resource.container.controller_spool;
+	global.var.filestores --> module.filestore.container.resource.container.jail;
+	global.var.filestores --> module.filestore.container.resource.container.jail_submounts;
+	global.var.filestores -.-> module.filestore.container.resource.container.accounting;
+	global.var.k8s_cluster_node_group_cpu --> module.k8s.nebius_mk8s_v1_node_group.cpu;
+	global.var.k8s_cluster_node_group_gpu --> module.k8s.nebius_mk8s_v1_node_group.gpu;
+	global.var.k8s_cluster_node_group_gpu -.-> module.k8s.nebius_compute_v1_gpu_cluster.this;
+	global.var.slurm_login_service_type -....-> module.k8s.nebius_mk8s_v1_node_group.nlb;
+	global.var.slurm_login_service_type -...-> module.k8s.nebius_vpc_v1_allocation.this;
+	global.var.telemetry_enabled -.-> module.slurm.module.monitoring;
+	module.filestore.container.output --> module.slurm.helm_release.slurm_cluster_storage;
+	module.filestore.container.output --> module.k8s.container.resource.container.cluster.container.ng;
+	module.k8s ----> module.nvidia_operators;
+	module.nvidia_operators --> module.slurm;
+	module.k8s.output.login_ip -.-> module.slurm.helm_release.slurm_cluster;

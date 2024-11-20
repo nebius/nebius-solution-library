@@ -1,3 +1,25 @@
+variable "parent_id" {
+  description = "Nebius project id"
+  type        = string
+}
+
+variable "cluster_id" {
+  description = "K8s cluster id"
+  type        = string
+}
+
+variable "name" {
+  description = "Application name"
+  type        = string
+  default     = "ray-cluster"
+}
+
+variable "namespace" {
+  description = "Application namespace"
+  type        = string
+  default     = "ray-cluster"
+}
+
 variable "cpu_platform" {
   description = "Platform for nodes in the CPU-only node group."
   type        = string
@@ -6,30 +28,6 @@ variable "cpu_platform" {
 variable "gpu_platform" {
   description = "Platform for nodes in the CPU-only node group."
   type        = string
-}
-
-variable "kuberay_name" {
-  description = "kuberay operator name"
-  type        = string
-  default     = "ray-cluster"
-}
-
-variable "kuberay_repository_path" {
-  description = "kuberay repository chart path"
-  type        = string
-  default     = "oci://cr.nemax.nebius.cloud/yc-marketplace/nebius/ray-cluster/chart/"
-}
-
-variable "kuberay_chart_name" {
-  description = "kuberay chart name"
-  type        = string
-  default     = "ray-cluster"
-}
-
-variable "kuberay_namespace" {
-  description = "kuberay namespace name"
-  type        = string
-  default     = "ray-cluster"
 }
 
 variable "min_gpu_replicas" {

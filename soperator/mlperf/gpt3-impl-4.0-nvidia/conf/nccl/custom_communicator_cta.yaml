@@ -1,0 +1,42 @@
+# Per-communicator NCCL option tuning
+# Set min/max CTAs and CGA sizes for different NCCL communicators
+dp:
+  cga_cluster_size: 4
+  min_ctas: 1
+  max_ctas: 8
+pp:
+  cga_cluster_size: 2
+  min_ctas: 1
+  max_ctas: 2
+tp:
+  cga_cluster_size: 4
+  min_ctas: 1
+  max_ctas: 8
+dp_cp:
+  cga_cluster_size: 4
+  min_ctas: 1
+  max_ctas: 8
+cp:
+  cga_cluster_size: 1
+  min_ctas: 1
+  max_ctas: 1
+mp:
+  cga_cluster_size: 2
+  min_ctas: 1
+  max_ctas: 2
+embd:
+  cga_cluster_size: 2
+  min_ctas: 1
+  max_ctas: 2
+tp_dp_cp:
+  cga_cluster_size: 1
+  min_ctas: 1
+  max_ctas: 1
+tp_dp:
+  cga_cluster_size: 1
+  min_ctas: 1
+  max_ctas: 1
+tp_exp:
+  cga_cluster_size: 1
+  min_ctas: 1
+  max_ctas: 1

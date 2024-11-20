@@ -34,3 +34,6 @@ terraform.rc
 .DS_Store
 
 *.pem
+
+# IDE
+.idea

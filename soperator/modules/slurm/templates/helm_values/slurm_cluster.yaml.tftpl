@@ -1,0 +1,296 @@
+clusterName: ${name}
+clusterType: ${ nodes.worker.resources.gpus > 0 ? "gpu" : "cpu" }
+
+partitionConfiguration:
+  configType: ${partition_configuration.slurm_config_type}
+  %{~ if partition_configuration.slurm_config_type == "custom" ~}
+  rawConfig:
+    %{~ for partition in partition_configuration.slurm_raw_config ~}
+    - "${partition}"
+    %{~ endfor ~}
+  %{~ endif ~}
+
+k8sNodeFilters:
+  - name: ${k8s_node_filters.system.name}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: ${k8s_node_filters.label.nodeset}
+                  operator: In
+                  values:
+                    - ${k8s_node_filters.system.match}
+
+  - name: ${k8s_node_filters.accounting.name}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: ${k8s_node_filters.label.nodeset}
+                  operator: In
+                  values:
+                    - ${k8s_node_filters.accounting.match}
+    tolerations:
+      - key: ${k8s_node_filters.label.nodeset}
+        operator: Equal
+        value: ${k8s_node_filters.label.accounting}
+        effect: PreferNoSchedule
+
+  - name: ${k8s_node_filters.controller.name}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: ${k8s_node_filters.label.nodeset}
+                  operator: In
+                  values:
+                    - ${k8s_node_filters.controller.match}
+    tolerations:
+      - key: ${k8s_node_filters.label.nodeset}
+        operator: Equal
+        value: ${k8s_node_filters.label.controller}
+        effect: PreferNoSchedule
+
+  - name: ${k8s_node_filters.login.name}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: ${k8s_node_filters.label.nodeset}
+                  operator: In
+                  values:
+                    - ${k8s_node_filters.login.match}
+    tolerations:
+      - key: ${k8s_node_filters.label.nodeset}
+        operator: Equal
+        value: ${k8s_node_filters.label.login}
+        effect: PreferNoSchedule
+
+  - name: ${k8s_node_filters.worker.name}
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: ${k8s_node_filters.label.nodeset}
+                  operator: In
+                  values:
+                  %{~ for worker in k8s_node_filters.worker.matches ~}
+                    - "${worker}"
+                  %{~ endfor ~}
+    tolerations:
+      - key: ${k8s_node_filters.label.nodeset}
+        operator: Equal
+        value: ${k8s_node_filters.label.worker}
+        effect: PreferNoSchedule
+    %{~ if nodes.worker.resources.gpus > 0 ~}
+      - key: ${k8s_node_filters.label.gpu}
+        operator: Exists
+        effect: NoSchedule
+    %{~ endif ~}
+
+volumeSources:
+  - name: jail
+    persistentVolumeClaim:
+      claimName: jail-pvc
+      readOnly: false
+
+  - name: controller-spool
+    persistentVolumeClaim:
+      claimName: controller-spool-pvc
+      readOnly: false
+
+  - name: worker-spool
+    emptyDir:
+      sizeLimit: ${nodes.worker.resources.ephemeral_storage}Gi
+
+  %{~ for sub_mount in jail_submounts ~}
+  - name: jail-submount-${sub_mount.name}
+    persistentVolumeClaim:
+      claimName: jail-submount-${sub_mount.name}-pvc
+      readOnly: false
+  %{~ endfor ~}
+
+populateJail:
+  k8sNodeFilterName: ${k8s_node_filters.system.name}
+
+ncclSettings:
+  topologyType: "${nccl_topology_type}"
+
+periodicChecks:
+  ncclBenchmark:
+    enabled: ${nccl_benchmark.enable}
+    k8sNodeFilterName: ${k8s_node_filters.controller.name}
+    schedule: "${nccl_benchmark.schedule}"
+    ncclArguments:
+      thresholdMoreThan: ${nccl_benchmark.min_threshold}
+
+slurmNodes:
+  accounting:
+    enabled: ${nodes.accounting.enabled}
+    k8sNodeFilterName: ${k8s_node_filters.accounting.name}
+    %{~ if nodes.accounting.enabled ~}
+    mariadbOperator:
+      enabled: ${nodes.accounting.mariadb_operator.enabled}
+      %{~ if nodes.accounting.mariadb_operator.enabled  ~}
+      resources:
+        cpu: ${nodes.accounting.mariadb_operator.resources.cpu * 1000}m
+        memory: ${nodes.accounting.mariadb_operator.resources.memory}Gi
+        ephemeralStorage: ${nodes.accounting.mariadb_operator.resources.ephemeral_storage}Gi
+      metrics:
+        enabled: ${nodes.accounting.mariadb_operator.metrics_enabled}
+      storage:
+        ephemeral: false
+        volumeClaimTemplate:
+          accessModes:
+            - ReadWriteMany
+          resources:
+            requests:
+              storage: ${nodes.accounting.mariadb_operator.storage_size}Gi
+          volumeName: accounting-pv
+          storageClassName: slurm-local-pv
+        storageClassName: slurm-local-pv
+      %{~ endif ~}
+    %{~ if length(nodes.accounting.slurmdbd_config) > 0 ~}
+    slurmdbdConfig:
+      %{~ for key, value in nodes.accounting.slurmdbd_config ~}
+      ${key}: "${value}"
+      %{~ endfor ~}
+    %{~ endif ~}
+    %{~ if length(nodes.accounting.slurm_config) > 0 ~}
+    slurmConfig:
+      %{~ for key, value in nodes.accounting.slurm_config ~}
+      ${key}: "${value}"
+      %{~ endfor ~}
+    %{~ endif ~}
+    slurmdbd:
+      resources:
+        cpu: ${nodes.accounting.resources.cpu * 1000}m
+        memory: ${nodes.accounting.resources.memory}Gi
+        ephemeralStorage: ${nodes.accounting.resources.ephemeral_storage}Gi
+    munge:
+      resources:
+        cpu: ${nodes.munge.resources.cpu * 1000}m
+        memory: ${nodes.munge.resources.memory}Gi
+        ephemeralStorage: ${nodes.munge.resources.ephemeral_storage}Gi
+    %{~ endif ~}
+
+  controller:
+    size: ${nodes.controller.size}
+    k8sNodeFilterName: ${k8s_node_filters.controller.name}
+    slurmctld:
+      resources:
+        cpu: ${nodes.controller.resources.cpu * 1000}m
+        memory: ${nodes.controller.resources.memory}Gi
+        ephemeralStorage: ${nodes.controller.resources.ephemeral_storage}Gi
+    munge:
+      resources:
+        cpu: ${nodes.munge.resources.cpu * 1000}m
+        memory: ${nodes.munge.resources.memory}Gi
+        ephemeralStorage: ${nodes.munge.resources.ephemeral_storage}Gi
+
+  worker:
+    size: ${nodes.worker.size}
+    k8sNodeFilterName: ${k8s_node_filters.worker.name}
+    cgroupVersion: v2
+    slurmd:
+      resources:
+        cpu: ${nodes.worker.resources.cpu * 1000}m
+        memory: ${nodes.worker.resources.memory}Gi
+        ephemeralStorage: ${nodes.worker.resources.ephemeral_storage}Gi
+        gpu: ${nodes.worker.resources.gpus}
+    munge:
+      resources:
+        cpu: ${nodes.munge.resources.cpu * 1000}m
+        memory: ${nodes.munge.resources.memory}Gi
+        ephemeralStorage: ${nodes.munge.resources.ephemeral_storage}Gi
+    volumes:
+      spool:
+        volumeClaimTemplateSpec: null
+        volumeSourceName: worker-spool
+      %{~ if length(jail_submounts) > 0 ~}
+      jailSubMounts:
+        %{~ for sub_mount in jail_submounts ~}
+        - name: ${sub_mount.name}
+          mountPath: ${sub_mount.mount_path}
+          volumeSourceName: jail-submount-${sub_mount.name}
+        %{~ endfor ~}
+      %{~ endif ~}
+      sharedMemorySize: ${nodes.worker.shared_memory}Gi
+
+  login:
+    size: ${nodes.login.size}
+    k8sNodeFilterName: ${k8s_node_filters.login.name}
+    sshdServiceType: ${nodes.login.service_type}
+    %{~ if nodes.login.service_type == "LoadBalancer" && nodes.login.allocation_id != null ~}
+    sshdServiceAnnotations:
+      "nebius.com/load-balancer-allocation-id": "${nodes.login.allocation_id}"
+    %{~ endif ~}
+    %{~ if nodes.login.service_type == "NodePort" ~}
+    sshdServiceNodePort: ${nodes.login.node_port}
+    %{~ endif ~}
+    %{~ if length(nodes.login.root_public_keys) > 0 ~}
+    sshRootPublicKeys:
+      %{~ for key in nodes.login.root_public_keys ~}
+      - ${key}
+      %{~ endfor ~}
+    %{~ endif ~}
+    %{~ if length(jail_submounts) > 0 ~}
+    sshd:
+      resources:
+        cpu: ${nodes.login.resources.cpu * 1000}m
+        memory: ${nodes.login.resources.memory}Gi
+        ephemeralStorage: ${nodes.login.resources.ephemeral_storage}Gi
+    munge:
+      resources:
+        cpu: ${nodes.munge.resources.cpu * 1000}m
+        memory: ${nodes.munge.resources.memory}Gi
+        ephemeralStorage: ${nodes.munge.resources.ephemeral_storage}Gi
+    volumes:
+      jailSubMounts:
+        %{~ for sub_mount in jail_submounts ~}
+        - name: ${sub_mount.name}
+          mountPath: ${sub_mount.mount_path}
+          volumeSourceName: jail-submount-${sub_mount.name}
+        %{~ endfor ~}
+      %{~ endif ~}
+
+  exporter:
+    enabled: ${nodes.exporter.enabled}
+    k8sNodeFilterName: ${k8s_node_filters.system.name}
+    exporter:
+      resources:
+        cpu: ${nodes.exporter.resources.cpu * 1000}m
+        memory: ${nodes.exporter.resources.memory}Gi
+        ephemeralStorage: ${nodes.exporter.resources.ephemeral_storage}Gi
+    munge:
+      resources:
+        cpu: ${nodes.munge.resources.cpu * 1000}m
+        memory: ${nodes.munge.resources.memory}Gi
+        ephemeralStorage: ${nodes.munge.resources.ephemeral_storage}Gi
+    volumes:
+      jail:
+        volumeSourceName: "jail"
+
+  rest:
+    enabled: ${nodes.rest.enabled}
+    k8sNodeFilterName: ${k8s_node_filters.system.name}
+    rest:
+      resources:
+        cpu: ${nodes.rest.resources.cpu * 1000}m
+        memory: ${nodes.rest.resources.memory}Gi
+        ephemeralStorage: ${nodes.rest.resources.ephemeral_storage}Gi
+
+%{ if telemetry.enabled ~}
+telemetry:
+  jobsTelemetry:
+    otelCollectorHttpHost: ${telemetry.metrics_collector.endpoint.http_host}
+    otelCollectorPort: ${telemetry.metrics_collector.endpoint.port}
+    otelCollectorPath: /opentelemetry/api/v1/push
+    sendJobsEvents: true
+    sendOtelMetrics: true
+%{ endif }

@@ -1,9 +1,12 @@
 name: 'Terraform'
 
 on:
- pull_request:
-  # schedule:
-  #   - cron: '30 * * * *'
+  pull_request:
+    paths-ignore:
+      - 'soperator/**'
+      - '.github/workflows/soperator.yml'
+#  schedule:
+#    - cron: '30 * * * *'
 
 permissions:
   contents: write
@@ -77,7 +80,7 @@ jobs:
         ${{ secrets.TERRAFORM_SA_PRIVATE_KEY }}
         EOF
         nebius profile create ${{ vars.TERRAFORM_SA_ID }} --skip-auth \
-          --endpoint api.eu-north1.nebius.cloud \
+          --endpoint api.eu.nebius.cloud \
           --service-account-id ${{ vars.TERRAFORM_SA_ID }} \
           --public-key-id ${{ secrets.TERRAFORM_SA_PUBLIC_KEY_ID }} \
           --parent-id ${{ env.TF_VAR_parent_id }} \
@@ -92,7 +95,7 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
-        terraform_version: "v1.10.0-alpha20240911"
+        terraform_version: "v1.10.0-alpha20241009"
 
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
@@ -175,7 +178,7 @@ jobs:
         ${{ secrets.TERRAFORM_SA_PRIVATE_KEY }}
         EOF
         nebius profile create ${{ vars.TERRAFORM_SA_ID }} --skip-auth \
-          --endpoint api.eu-north1.nebius.cloud \
+          --endpoint api.eu.nebius.cloud \
           --service-account-id ${{ vars.TERRAFORM_SA_ID }} \
           --public-key-id ${{ secrets.TERRAFORM_SA_PUBLIC_KEY_ID }} \
           --parent-id ${{ env.TF_VAR_parent_id }} \

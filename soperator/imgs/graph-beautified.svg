@@ -1,0 +1,2246 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="3024pt" height="3786pt"
+ viewBox="0.00 0.00 3023.85 3786.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 3782)">
+<title>Soperator plan</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-3782 3019.85,-3782 3019.85,4 -4,4"/>
+<g id="clust1" class="cluster">
+<title>cluster_module.root</title>
+<polygon fill="none" stroke="black" points="8,-8 8,-3770 3007.85,-3770 3007.85,-8 8,-8"/>
+<text text-anchor="middle" x="1507.92" y="-3752.7" font-family="Times,serif" font-size="14.00">module.root</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_module.root.module.filestore</title>
+<polygon fill="none" stroke="black" points="1198.99,-168 1198.99,-623 2988.22,-623 2988.22,-168 1198.99,-168"/>
+<text text-anchor="middle" x="2093.61" y="-605.7" font-family="Times,serif" font-size="14.00">module.filestore</text>
+</g>
+<g id="clust3" class="cluster">
+<title>cluster_module.root.module.k8s</title>
+<polygon fill="none" stroke="black" points="839.88,-837 839.88,-1873 2966.47,-1873 2966.47,-837 839.88,-837"/>
+<text text-anchor="middle" x="1903.18" y="-1855.7" font-family="Times,serif" font-size="14.00">module.k8s</text>
+</g>
+<g id="clust4" class="cluster">
+<title>cluster_module.root.module.k8s.module.labels</title>
+<polygon fill="none" stroke="black" points="847.88,-1125 847.88,-1634 2059.18,-1634 2059.18,-1125 847.88,-1125"/>
+<text text-anchor="middle" x="1453.53" y="-1616.7" font-family="Times,serif" font-size="14.00">module.labels</text>
+</g>
+<g id="clust5" class="cluster">
+<title>cluster_module.root.module.nvidia_operators</title>
+<polygon fill="none" stroke="black" points="2237.96,-1881 2237.96,-1958 2997.6,-1958 2997.6,-1881 2237.96,-1881"/>
+<text text-anchor="middle" x="2617.78" y="-1940.7" font-family="Times,serif" font-size="14.00">module.nvidia_operators</text>
+</g>
+<g id="clust6" class="cluster">
+<title>cluster_module.root.module.slurm</title>
+<polygon fill="none" stroke="black" points="363.71,-2226 363.71,-3639 2999.85,-3639 2999.85,-2226 363.71,-2226"/>
+<text text-anchor="middle" x="1681.78" y="-3621.7" font-family="Times,serif" font-size="14.00">module.slurm</text>
+</g>
+<g id="clust7" class="cluster">
+<title>cluster_module.root.module.slurm.module.labels</title>
+<polygon fill="none" stroke="black" points="1229.69,-3313 1229.69,-3606 2395.54,-3606 2395.54,-3313 1229.69,-3313"/>
+<text text-anchor="middle" x="1812.62" y="-3588.7" font-family="Times,serif" font-size="14.00">module.labels</text>
+</g>
+<g id="clust8" class="cluster">
+<title>cluster_module.root.module.slurm.module.monitoring</title>
+<polygon fill="none" stroke="black" points="451.23,-2602 451.23,-2949 2726.97,-2949 2726.97,-2602 451.23,-2602"/>
+<text text-anchor="middle" x="1589.1" y="-2931.7" font-family="Times,serif" font-size="14.00">module.monitoring</text>
+</g>
+<!-- module.root.data.nebius_iam_v1_project.this -->
+<g id="node1" class="node">
+<title>module.root.data.nebius_iam_v1_project.this</title>
+<path fill="none" stroke="black" d="M1721.58,-105C1721.58,-105 1552.58,-105 1552.58,-105 1546.58,-105 1540.58,-99 1540.58,-93 1540.58,-93 1540.58,-81 1540.58,-81 1540.58,-75 1546.58,-69 1552.58,-69 1552.58,-69 1721.58,-69 1721.58,-69 1727.58,-69 1733.58,-75 1733.58,-81 1733.58,-81 1733.58,-93 1733.58,-93 1733.58,-99 1727.58,-105 1721.58,-105"/>
+<text text-anchor="middle" x="1637.08" y="-81.95" font-family="Times,serif" font-size="14.00">data.nebius_iam_v1_project.this</text>
+</g>
+<!-- module.root.var.iam_project_id (validation) -->
+<g id="node2" class="node">
+<title>module.root.var.iam_project_id (validation)</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-34" rx="126.59" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-28.95" font-family="Times,serif" font-size="14.00">var.iam_project_id (validation)</text>
+</g>
+<!-- module.root.data.nebius_iam_v1_project.this&#45;&gt;module.root.var.iam_project_id (validation) -->
+<g id="edge1" class="edge">
+<title>module.root.data.nebius_iam_v1_project.this&#45;&gt;module.root.var.iam_project_id (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1540.47,-72.38C1492.99,-65.12 1435.69,-56.35 1387.85,-49.04"/>
+<polygon fill="black" stroke="black" points="1388.44,-45.59 1378.03,-47.53 1387.39,-52.51 1388.44,-45.59"/>
+</g>
+<!-- module.root.var.iam_project_id -->
+<g id="node159" class="node">
+<title>module.root.var.iam_project_id</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-34" rx="81.04" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-28.95" font-family="Times,serif" font-size="14.00">var.iam_project_id</text>
+</g>
+<!-- module.root.var.iam_project_id (validation)&#45;&gt;module.root.var.iam_project_id -->
+<g id="edge183" class="edge">
+<title>module.root.var.iam_project_id (validation)&#45;&gt;module.root.var.iam_project_id</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1161.59,-34C1108.61,-34 1048.12,-34 999.47,-34"/>
+<polygon fill="black" stroke="black" points="999.53,-30.5 989.53,-34 999.53,-37.5 999.53,-30.5"/>
+</g>
+<!-- module.root.data.nebius_vpc_v1_subnet.this -->
+<g id="node3" class="node">
+<title>module.root.data.nebius_vpc_v1_subnet.this</title>
+<path fill="none" stroke="black" d="M1371.16,-829C1371.16,-829 1205.91,-829 1205.91,-829 1199.91,-829 1193.91,-823 1193.91,-817 1193.91,-817 1193.91,-805 1193.91,-805 1193.91,-799 1199.91,-793 1205.91,-793 1205.91,-793 1371.16,-793 1371.16,-793 1377.16,-793 1383.16,-799 1383.16,-805 1383.16,-805 1383.16,-817 1383.16,-817 1383.16,-823 1377.16,-829 1371.16,-829"/>
+<text text-anchor="middle" x="1288.53" y="-805.95" font-family="Times,serif" font-size="14.00">data.nebius_vpc_v1_subnet.this</text>
+</g>
+<!-- module.root.var.vpc_subnet_id (validation) -->
+<g id="node4" class="node">
+<title>module.root.var.vpc_subnet_id (validation)</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-757" rx="124.03" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-751.95" font-family="Times,serif" font-size="14.00">var.vpc_subnet_id (validation)</text>
+</g>
+<!-- module.root.data.nebius_vpc_v1_subnet.this&#45;&gt;module.root.var.vpc_subnet_id (validation) -->
+<g id="edge2" class="edge">
+<title>module.root.data.nebius_vpc_v1_subnet.this&#45;&gt;module.root.var.vpc_subnet_id (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1193.65,-797.65C1137.32,-789.64 1065.7,-779.46 1008.23,-771.29"/>
+<polygon fill="black" stroke="black" points="1008.83,-767.84 998.44,-769.9 1007.84,-774.77 1008.83,-767.84"/>
+</g>
+<!-- module.root.var.vpc_subnet_id -->
+<g id="node166" class="node">
+<title>module.root.var.vpc_subnet_id</title>
+<ellipse fill="none" stroke="black" cx="531.56" cy="-757" rx="78.48" ry="18"/>
+<text text-anchor="middle" x="531.56" y="-751.95" font-family="Times,serif" font-size="14.00">var.vpc_subnet_id</text>
+</g>
+<!-- module.root.var.vpc_subnet_id (validation)&#45;&gt;module.root.var.vpc_subnet_id -->
+<g id="edge190" class="edge">
+<title>module.root.var.vpc_subnet_id (validation)&#45;&gt;module.root.var.vpc_subnet_id</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M782.24,-757C729.79,-757 669.78,-757 621.75,-757"/>
+<polygon fill="black" stroke="black" points="621.95,-753.5 611.95,-757 621.95,-760.5 621.95,-753.5"/>
+</g>
+<!-- module.root.local.create_nlb -->
+<g id="node5" class="node">
+<title>module.root.local.create_nlb</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-1973" rx="69.78" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-1967.95" font-family="Times,serif" font-size="14.00">local.create_nlb</text>
+</g>
+<!-- module.root.var.slurm_login_service_type (validation) -->
+<g id="node6" class="node">
+<title>module.root.var.slurm_login_service_type (validation)</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-1973" rx="166.51" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-1967.95" font-family="Times,serif" font-size="14.00">var.slurm_login_service_type (validation)</text>
+</g>
+<!-- module.root.local.create_nlb&#45;&gt;module.root.var.slurm_login_service_type (validation) -->
+<g id="edge3" class="edge">
+<title>module.root.local.create_nlb&#45;&gt;module.root.var.slurm_login_service_type (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1567.2,-1973C1537.95,-1973 1502.38,-1973 1466.59,-1973"/>
+<polygon fill="black" stroke="black" points="1466.99,-1969.5 1456.99,-1973 1466.99,-1976.5 1466.99,-1969.5"/>
+</g>
+<!-- module.root.var.slurm_login_service_type -->
+<g id="node165" class="node">
+<title>module.root.var.slurm_login_service_type</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-1973" rx="120.96" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-1967.95" font-family="Times,serif" font-size="14.00">var.slurm_login_service_type</text>
+</g>
+<!-- module.root.var.slurm_login_service_type (validation)&#45;&gt;module.root.var.slurm_login_service_type -->
+<g id="edge189" class="edge">
+<title>module.root.var.slurm_login_service_type (validation)&#45;&gt;module.root.var.slurm_login_service_type</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1121.77,-1973C1094.16,-1973 1065.85,-1973 1039.23,-1973"/>
+<polygon fill="black" stroke="black" points="1039.45,-1969.5 1029.45,-1973 1039.45,-1976.5 1039.45,-1969.5"/>
+</g>
+<!-- module.root.module.filestore.data.nebius_compute_v1_filesystem.accounting -->
+<g id="node7" class="node">
+<title>module.root.module.filestore.data.nebius_compute_v1_filesystem.accounting</title>
+<path fill="none" stroke="black" d="M2423.17,-590C2423.17,-590 2169.42,-590 2169.42,-590 2163.42,-590 2157.42,-584 2157.42,-578 2157.42,-578 2157.42,-566 2157.42,-566 2157.42,-560 2163.42,-554 2169.42,-554 2169.42,-554 2423.17,-554 2423.17,-554 2429.17,-554 2435.17,-560 2435.17,-566 2435.17,-566 2435.17,-578 2435.17,-578 2435.17,-584 2429.17,-590 2423.17,-590"/>
+<text text-anchor="middle" x="2296.29" y="-566.95" font-family="Times,serif" font-size="14.00">data.nebius_compute_v1_filesystem.accounting</text>
+</g>
+<!-- module.root.module.filestore.local.accounting_needed -->
+<g id="node8" class="node">
+<title>module.root.module.filestore.local.accounting_needed</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-518" rx="102.53" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-512.95" font-family="Times,serif" font-size="14.00">local.accounting_needed</text>
+</g>
+<!-- module.root.module.filestore.data.nebius_compute_v1_filesystem.accounting&#45;&gt;module.root.module.filestore.local.accounting_needed -->
+<g id="edge4" class="edge">
+<title>module.root.module.filestore.data.nebius_compute_v1_filesystem.accounting&#45;&gt;module.root.module.filestore.local.accounting_needed</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2179.62,-553.57C2135.19,-546.49 2085.25,-538.53 2043.89,-531.94"/>
+<polygon fill="black" stroke="black" points="2044.67,-528.52 2034.24,-530.4 2043.57,-535.43 2044.67,-528.52"/>
+</g>
+<!-- module.root.module.filestore.var.accounting (validation) -->
+<g id="node17" class="node">
+<title>module.root.module.filestore.var.accounting (validation)</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-518" rx="110.72" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-512.95" font-family="Times,serif" font-size="14.00">var.accounting (validation)</text>
+</g>
+<!-- module.root.module.filestore.local.accounting_needed&#45;&gt;module.root.module.filestore.var.accounting (validation) -->
+<g id="edge10" class="edge">
+<title>module.root.module.filestore.local.accounting_needed&#45;&gt;module.root.module.filestore.var.accounting (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1852.59,-518C1822.91,-518 1790.19,-518 1759.43,-518"/>
+<polygon fill="black" stroke="black" points="1759.71,-514.5 1749.71,-518 1759.71,-521.5 1759.71,-514.5"/>
+</g>
+<!-- module.root.module.filestore.data.nebius_compute_v1_filesystem.controller_spool -->
+<g id="node9" class="node">
+<title>module.root.module.filestore.data.nebius_compute_v1_filesystem.controller_spool</title>
+<path fill="none" stroke="black" d="M2437.79,-212C2437.79,-212 2154.79,-212 2154.79,-212 2148.79,-212 2142.79,-206 2142.79,-200 2142.79,-200 2142.79,-188 2142.79,-188 2142.79,-182 2148.79,-176 2154.79,-176 2154.79,-176 2437.79,-176 2437.79,-176 2443.79,-176 2449.79,-182 2449.79,-188 2449.79,-188 2449.79,-200 2449.79,-200 2449.79,-206 2443.79,-212 2437.79,-212"/>
+<text text-anchor="middle" x="2296.29" y="-188.95" font-family="Times,serif" font-size="14.00">data.nebius_compute_v1_filesystem.controller_spool</text>
+</g>
+<!-- module.root.module.filestore.var.controller_spool (validation) -->
+<g id="node10" class="node">
+<title>module.root.module.filestore.var.controller_spool (validation)</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-194" rx="130.68" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-188.95" font-family="Times,serif" font-size="14.00">var.controller_spool (validation)</text>
+</g>
+<!-- module.root.module.filestore.data.nebius_compute_v1_filesystem.controller_spool&#45;&gt;module.root.module.filestore.var.controller_spool (validation) -->
+<g id="edge5" class="edge">
+<title>module.root.module.filestore.data.nebius_compute_v1_filesystem.controller_spool&#45;&gt;module.root.module.filestore.var.controller_spool (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2142.71,-194C2127.73,-194 2112.58,-194 2097.72,-194"/>
+<polygon fill="black" stroke="black" points="2097.93,-190.5 2087.93,-194 2097.93,-197.5 2097.93,-190.5"/>
+</g>
+<!-- module.root.module.filestore.var.controller_spool -->
+<g id="node35" class="node">
+<title>module.root.module.filestore.var.controller_spool</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-194" rx="85.13" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-188.95" font-family="Times,serif" font-size="14.00">var.controller_spool</text>
+</g>
+<!-- module.root.module.filestore.var.controller_spool (validation)&#45;&gt;module.root.module.filestore.var.controller_spool -->
+<g id="edge39" class="edge">
+<title>module.root.module.filestore.var.controller_spool (validation)&#45;&gt;module.root.module.filestore.var.controller_spool</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1824.39,-194C1794,-194 1762.17,-194 1733.6,-194"/>
+<polygon fill="black" stroke="black" points="1733.92,-190.5 1723.92,-194 1733.92,-197.5 1733.92,-190.5"/>
+</g>
+<!-- module.root.module.filestore.data.nebius_compute_v1_filesystem.jail -->
+<g id="node11" class="node">
+<title>module.root.module.filestore.data.nebius_compute_v1_filesystem.jail</title>
+<path fill="none" stroke="black" d="M2402.17,-320C2402.17,-320 2190.42,-320 2190.42,-320 2184.42,-320 2178.42,-314 2178.42,-308 2178.42,-308 2178.42,-296 2178.42,-296 2178.42,-290 2184.42,-284 2190.42,-284 2190.42,-284 2402.17,-284 2402.17,-284 2408.17,-284 2414.17,-290 2414.17,-296 2414.17,-296 2414.17,-308 2414.17,-308 2414.17,-314 2408.17,-320 2402.17,-320"/>
+<text text-anchor="middle" x="2296.29" y="-296.95" font-family="Times,serif" font-size="14.00">data.nebius_compute_v1_filesystem.jail</text>
+</g>
+<!-- module.root.module.filestore.var.jail (validation) -->
+<g id="node12" class="node">
+<title>module.root.module.filestore.var.jail (validation)</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-302" rx="82.06" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-296.95" font-family="Times,serif" font-size="14.00">var.jail (validation)</text>
+</g>
+<!-- module.root.module.filestore.data.nebius_compute_v1_filesystem.jail&#45;&gt;module.root.module.filestore.var.jail (validation) -->
+<g id="edge6" class="edge">
+<title>module.root.module.filestore.data.nebius_compute_v1_filesystem.jail&#45;&gt;module.root.module.filestore.var.jail (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2178.2,-302C2135.97,-302 2088.94,-302 2049.09,-302"/>
+<polygon fill="black" stroke="black" points="2049.29,-298.5 2039.29,-302 2049.29,-305.5 2049.29,-298.5"/>
+</g>
+<!-- module.root.module.filestore.var.jail -->
+<g id="node37" class="node">
+<title>module.root.module.filestore.var.jail</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-275" rx="36.51" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-269.95" font-family="Times,serif" font-size="14.00">var.jail</text>
+</g>
+<!-- module.root.module.filestore.var.jail (validation)&#45;&gt;module.root.module.filestore.var.jail -->
+<g id="edge42" class="edge">
+<title>module.root.module.filestore.var.jail (validation)&#45;&gt;module.root.module.filestore.var.jail</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1878.25,-295.5C1817.87,-290.34 1735.45,-283.31 1684.55,-278.97"/>
+<polygon fill="black" stroke="black" points="1685.02,-275.49 1674.76,-278.13 1684.43,-282.47 1685.02,-275.49"/>
+</g>
+<!-- module.root.module.filestore.data.nebius_compute_v1_filesystem.jail_submount -->
+<g id="node13" class="node">
+<title>module.root.module.filestore.data.nebius_compute_v1_filesystem.jail_submount</title>
+<path fill="none" stroke="black" d="M2432.54,-482C2432.54,-482 2160.04,-482 2160.04,-482 2154.04,-482 2148.04,-476 2148.04,-470 2148.04,-470 2148.04,-458 2148.04,-458 2148.04,-452 2154.04,-446 2160.04,-446 2160.04,-446 2432.54,-446 2432.54,-446 2438.54,-446 2444.54,-452 2444.54,-458 2444.54,-458 2444.54,-470 2444.54,-470 2444.54,-476 2438.54,-482 2432.54,-482"/>
+<text text-anchor="middle" x="2296.29" y="-458.95" font-family="Times,serif" font-size="14.00">data.nebius_compute_v1_filesystem.jail_submount</text>
+</g>
+<!-- module.root.module.filestore.var.jail_submounts (validation) -->
+<g id="node14" class="node">
+<title>module.root.module.filestore.var.jail_submounts (validation)</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-464" rx="127.1" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-458.95" font-family="Times,serif" font-size="14.00">var.jail_submounts (validation)</text>
+</g>
+<!-- module.root.module.filestore.data.nebius_compute_v1_filesystem.jail_submount&#45;&gt;module.root.module.filestore.var.jail_submounts (validation) -->
+<g id="edge7" class="edge">
+<title>module.root.module.filestore.data.nebius_compute_v1_filesystem.jail_submount&#45;&gt;module.root.module.filestore.var.jail_submounts (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2147.8,-464C2036.5,-464 1884.89,-464 1775.99,-464"/>
+<polygon fill="black" stroke="black" points="1776.11,-460.5 1766.11,-464 1776.11,-467.5 1776.11,-460.5"/>
+</g>
+<!-- module.root.module.filestore.var.jail_submounts -->
+<g id="node39" class="node">
+<title>module.root.module.filestore.var.jail_submounts</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-464" rx="81.55" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-458.95" font-family="Times,serif" font-size="14.00">var.jail_submounts</text>
+</g>
+<!-- module.root.module.filestore.var.jail_submounts (validation)&#45;&gt;module.root.module.filestore.var.jail_submounts -->
+<g id="edge44" class="edge">
+<title>module.root.module.filestore.var.jail_submounts (validation)&#45;&gt;module.root.module.filestore.var.jail_submounts</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1509.5,-464C1467.26,-464 1421.03,-464 1381.89,-464"/>
+<polygon fill="black" stroke="black" points="1382.04,-460.5 1372.04,-464 1382.04,-467.5 1382.04,-460.5"/>
+</g>
+<!-- module.root.module.filestore.local.accounting -->
+<g id="node15" class="node">
+<title>module.root.module.filestore.local.accounting</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-545" rx="71.82" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-539.95" font-family="Times,serif" font-size="14.00">local.accounting</text>
+</g>
+<!-- module.root.module.filestore.local.accounting&#45;&gt;module.root.module.filestore.data.nebius_compute_v1_filesystem.accounting -->
+<g id="edge8" class="edge">
+<title>module.root.module.filestore.local.accounting&#45;&gt;module.root.module.filestore.data.nebius_compute_v1_filesystem.accounting</title>
+<path fill="none" stroke="black" d="M2576.2,-550.3C2539.25,-553.18 2492.06,-556.85 2447.04,-560.35"/>
+<polygon fill="black" stroke="black" points="2446.85,-556.85 2437.15,-561.12 2447.39,-563.83 2446.85,-556.85"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.accounting -->
+<g id="node16" class="node">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.accounting</title>
+<path fill="none" stroke="black" d="M2410.04,-536C2410.04,-536 2182.54,-536 2182.54,-536 2176.54,-536 2170.54,-530 2170.54,-524 2170.54,-524 2170.54,-512 2170.54,-512 2170.54,-506 2176.54,-500 2182.54,-500 2182.54,-500 2410.04,-500 2410.04,-500 2416.04,-500 2422.04,-506 2422.04,-512 2422.04,-512 2422.04,-524 2422.04,-524 2422.04,-530 2416.04,-536 2410.04,-536"/>
+<text text-anchor="middle" x="2296.29" y="-512.95" font-family="Times,serif" font-size="14.00">nebius_compute_v1_filesystem.accounting</text>
+</g>
+<!-- module.root.module.filestore.local.accounting&#45;&gt;module.root.module.filestore.nebius_compute_v1_filesystem.accounting -->
+<g id="edge9" class="edge">
+<title>module.root.module.filestore.local.accounting&#45;&gt;module.root.module.filestore.nebius_compute_v1_filesystem.accounting</title>
+<path fill="none" stroke="black" d="M2576.2,-539.7C2535.63,-536.54 2482.7,-532.42 2433.86,-528.62"/>
+<polygon fill="black" stroke="black" points="2434.29,-525.15 2424.04,-527.86 2433.74,-532.13 2434.29,-525.15"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.accounting&#45;&gt;module.root.module.filestore.local.accounting_needed -->
+<g id="edge20" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.accounting&#45;&gt;module.root.module.filestore.local.accounting_needed</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2170.07,-518C2137.19,-518 2101.91,-518 2069.69,-518"/>
+<polygon fill="black" stroke="black" points="2069.94,-514.5 2059.94,-518 2069.94,-521.5 2069.94,-514.5"/>
+</g>
+<!-- module.root.module.filestore.local.name -->
+<g id="node24" class="node">
+<title>module.root.module.filestore.local.name</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-410" rx="51.86" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-404.95" font-family="Times,serif" font-size="14.00">local.name</text>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.accounting&#45;&gt;module.root.module.filestore.local.name -->
+<g id="edge21" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.accounting&#45;&gt;module.root.module.filestore.local.name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2170.4,-501.88C2155.88,-498.83 2141.39,-495.23 2127.74,-491 2079.19,-475.94 2026.83,-449.55 1992.96,-431"/>
+<polygon fill="black" stroke="black" points="1994.83,-428.03 1984.38,-426.24 1991.43,-434.15 1994.83,-428.03"/>
+</g>
+<!-- module.root.module.filestore.var.iam_project_id -->
+<g id="node27" class="node">
+<title>module.root.module.filestore.var.iam_project_id</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-356" rx="81.04" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-350.95" font-family="Times,serif" font-size="14.00">var.iam_project_id</text>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.accounting&#45;&gt;module.root.module.filestore.var.iam_project_id -->
+<g id="edge22" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.accounting&#45;&gt;module.root.module.filestore.var.iam_project_id</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2170.45,-513.61C2154.86,-508.73 2140.09,-501.49 2127.74,-491 2089.18,-458.23 2129.68,-416.48 2091.74,-383 2079.21,-371.95 2063.47,-364.91 2047.2,-360.53"/>
+<polygon fill="black" stroke="black" points="2048.46,-357.23 2037.93,-358.36 2046.87,-364.05 2048.46,-357.23"/>
+</g>
+<!-- module.root.module.filestore.var.accounting -->
+<g id="node32" class="node">
+<title>module.root.module.filestore.var.accounting</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-518" rx="65.17" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-512.95" font-family="Times,serif" font-size="14.00">var.accounting</text>
+</g>
+<!-- module.root.module.filestore.var.accounting (validation)&#45;&gt;module.root.module.filestore.var.accounting -->
+<g id="edge37" class="edge">
+<title>module.root.module.filestore.var.accounting (validation)&#45;&gt;module.root.module.filestore.var.accounting</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1525.95,-518C1473.68,-518 1412.52,-518 1365.51,-518"/>
+<polygon fill="black" stroke="black" points="1365.69,-514.5 1355.69,-518 1365.69,-521.5 1365.69,-514.5"/>
+</g>
+<!-- module.root.module.filestore.local.controller_spool -->
+<g id="node18" class="node">
+<title>module.root.module.filestore.local.controller_spool</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-234" rx="91.78" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-228.95" font-family="Times,serif" font-size="14.00">local.controller_spool</text>
+</g>
+<!-- module.root.module.filestore.local.controller_spool&#45;&gt;module.root.module.filestore.data.nebius_compute_v1_filesystem.controller_spool -->
+<g id="edge11" class="edge">
+<title>module.root.module.filestore.local.controller_spool&#45;&gt;module.root.module.filestore.data.nebius_compute_v1_filesystem.controller_spool</title>
+<path fill="none" stroke="black" d="M2565.16,-224.87C2534.16,-221.3 2497.38,-217.06 2461.17,-212.89"/>
+<polygon fill="black" stroke="black" points="2461.8,-209.44 2451.46,-211.77 2460.99,-216.39 2461.8,-209.44"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.controller_spool -->
+<g id="node19" class="node">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.controller_spool</title>
+<path fill="none" stroke="black" d="M2424.67,-266C2424.67,-266 2167.92,-266 2167.92,-266 2161.92,-266 2155.92,-260 2155.92,-254 2155.92,-254 2155.92,-242 2155.92,-242 2155.92,-236 2161.92,-230 2167.92,-230 2167.92,-230 2424.67,-230 2424.67,-230 2430.67,-230 2436.67,-236 2436.67,-242 2436.67,-242 2436.67,-254 2436.67,-254 2436.67,-260 2430.67,-266 2424.67,-266"/>
+<text text-anchor="middle" x="2296.29" y="-242.95" font-family="Times,serif" font-size="14.00">nebius_compute_v1_filesystem.controller_spool</text>
+</g>
+<!-- module.root.module.filestore.local.controller_spool&#45;&gt;module.root.module.filestore.nebius_compute_v1_filesystem.controller_spool -->
+<g id="edge12" class="edge">
+<title>module.root.module.filestore.local.controller_spool&#45;&gt;module.root.module.filestore.nebius_compute_v1_filesystem.controller_spool</title>
+<path fill="none" stroke="black" d="M2554.97,-237.61C2522.39,-238.92 2484.59,-240.44 2448.15,-241.91"/>
+<polygon fill="black" stroke="black" points="2448.25,-238.41 2438.4,-242.31 2448.53,-245.4 2448.25,-238.41"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.controller_spool&#45;&gt;module.root.module.filestore.var.controller_spool (validation) -->
+<g id="edge24" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.controller_spool&#45;&gt;module.root.module.filestore.var.controller_spool (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2179.62,-229.57C2138.7,-223.05 2093.11,-215.78 2053.85,-209.53"/>
+<polygon fill="black" stroke="black" points="2054.61,-206.1 2044.19,-207.99 2053.51,-213.02 2054.61,-206.1"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.controller_spool&#45;&gt;module.root.module.filestore.local.name -->
+<g id="edge23" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.controller_spool&#45;&gt;module.root.module.filestore.local.name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2155.46,-257.97C2145.45,-262.36 2136.04,-267.94 2127.74,-275 2089.18,-307.77 2129.68,-349.52 2091.74,-383 2071.96,-400.46 2044.15,-407.89 2018.89,-410.69"/>
+<polygon fill="black" stroke="black" points="2018.67,-407.2 2009.01,-411.55 2019.27,-414.17 2018.67,-407.2"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.controller_spool&#45;&gt;module.root.module.filestore.var.iam_project_id -->
+<g id="edge25" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.controller_spool&#45;&gt;module.root.module.filestore.var.iam_project_id</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2155.67,-261.16C2145.85,-264.87 2136.41,-269.42 2127.74,-275 2103.47,-290.6 2115.71,-312.96 2091.74,-329 2077.78,-338.35 2061.31,-344.6 2044.75,-348.75"/>
+<polygon fill="black" stroke="black" points="2044.36,-345.25 2035.37,-350.85 2045.89,-352.08 2044.36,-345.25"/>
+</g>
+<!-- module.root.module.filestore.local.jail -->
+<g id="node20" class="node">
+<title>module.root.module.filestore.local.jail</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-315" rx="43.16" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-309.95" font-family="Times,serif" font-size="14.00">local.jail</text>
+</g>
+<!-- module.root.module.filestore.local.jail&#45;&gt;module.root.module.filestore.data.nebius_compute_v1_filesystem.jail -->
+<g id="edge13" class="edge">
+<title>module.root.module.filestore.local.jail&#45;&gt;module.root.module.filestore.data.nebius_compute_v1_filesystem.jail</title>
+<path fill="none" stroke="black" d="M2602.14,-313.42C2558.52,-311.78 2488.24,-309.15 2426.14,-306.83"/>
+<polygon fill="black" stroke="black" points="2426.29,-303.33 2416.17,-306.45 2426.03,-310.32 2426.29,-303.33"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.jail -->
+<g id="node21" class="node">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.jail</title>
+<path fill="none" stroke="black" d="M2389.04,-374C2389.04,-374 2203.54,-374 2203.54,-374 2197.54,-374 2191.54,-368 2191.54,-362 2191.54,-362 2191.54,-350 2191.54,-350 2191.54,-344 2197.54,-338 2203.54,-338 2203.54,-338 2389.04,-338 2389.04,-338 2395.04,-338 2401.04,-344 2401.04,-350 2401.04,-350 2401.04,-362 2401.04,-362 2401.04,-368 2395.04,-374 2389.04,-374"/>
+<text text-anchor="middle" x="2296.29" y="-350.95" font-family="Times,serif" font-size="14.00">nebius_compute_v1_filesystem.jail</text>
+</g>
+<!-- module.root.module.filestore.local.jail&#45;&gt;module.root.module.filestore.nebius_compute_v1_filesystem.jail -->
+<g id="edge14" class="edge">
+<title>module.root.module.filestore.local.jail&#45;&gt;module.root.module.filestore.nebius_compute_v1_filesystem.jail</title>
+<path fill="none" stroke="black" d="M2603.52,-319.82C2556.85,-325.34 2478.43,-334.6 2412.63,-342.37"/>
+<polygon fill="black" stroke="black" points="2412.37,-338.88 2402.85,-343.53 2413.19,-345.83 2412.37,-338.88"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.jail&#45;&gt;module.root.module.filestore.var.jail (validation) -->
+<g id="edge28" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.jail&#45;&gt;module.root.module.filestore.var.jail (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2191.32,-339.43C2140.63,-331.35 2080.71,-321.81 2034.08,-314.37"/>
+<polygon fill="black" stroke="black" points="2034.75,-310.94 2024.32,-312.82 2033.65,-317.85 2034.75,-310.94"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.jail&#45;&gt;module.root.module.filestore.local.name -->
+<g id="edge26" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.jail&#45;&gt;module.root.module.filestore.local.name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2191.32,-372.57C2133.14,-381.84 2062.8,-393.05 2014.34,-400.77"/>
+<polygon fill="black" stroke="black" points="2013.95,-397.29 2004.62,-402.32 2015.05,-404.2 2013.95,-397.29"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.jail&#45;&gt;module.root.module.filestore.var.iam_project_id -->
+<g id="edge27" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.jail&#45;&gt;module.root.module.filestore.var.iam_project_id</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2191.32,-356C2145.59,-356 2092.35,-356 2048.12,-356"/>
+<polygon fill="black" stroke="black" points="2048.3,-352.5 2038.3,-356 2048.3,-359.5 2048.3,-352.5"/>
+</g>
+<!-- module.root.module.filestore.local.jail_submount -->
+<g id="node22" class="node">
+<title>module.root.module.filestore.local.jail_submount</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-437" rx="84.62" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-431.95" font-family="Times,serif" font-size="14.00">local.jail_submount</text>
+</g>
+<!-- module.root.module.filestore.local.jail_submount&#45;&gt;module.root.module.filestore.data.nebius_compute_v1_filesystem.jail_submount -->
+<g id="edge15" class="edge">
+<title>module.root.module.filestore.local.jail_submount&#45;&gt;module.root.module.filestore.data.nebius_compute_v1_filesystem.jail_submount</title>
+<path fill="none" stroke="black" d="M2565.16,-443.16C2532.66,-445.69 2493.81,-448.71 2455.92,-451.66"/>
+<polygon fill="black" stroke="black" points="2455.94,-448.15 2446.24,-452.41 2456.49,-455.13 2455.94,-448.15"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.jail_submount -->
+<g id="node23" class="node">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.jail_submount</title>
+<path fill="none" stroke="black" d="M2419.42,-428C2419.42,-428 2173.17,-428 2173.17,-428 2167.17,-428 2161.17,-422 2161.17,-416 2161.17,-416 2161.17,-404 2161.17,-404 2161.17,-398 2167.17,-392 2173.17,-392 2173.17,-392 2419.42,-392 2419.42,-392 2425.42,-392 2431.42,-398 2431.42,-404 2431.42,-404 2431.42,-416 2431.42,-416 2431.42,-422 2425.42,-428 2419.42,-428"/>
+<text text-anchor="middle" x="2296.29" y="-404.95" font-family="Times,serif" font-size="14.00">nebius_compute_v1_filesystem.jail_submount</text>
+</g>
+<!-- module.root.module.filestore.local.jail_submount&#45;&gt;module.root.module.filestore.nebius_compute_v1_filesystem.jail_submount -->
+<g id="edge16" class="edge">
+<title>module.root.module.filestore.local.jail_submount&#45;&gt;module.root.module.filestore.nebius_compute_v1_filesystem.jail_submount</title>
+<path fill="none" stroke="black" d="M2565.16,-430.84C2528.97,-428.02 2484.91,-424.6 2443.06,-421.34"/>
+<polygon fill="black" stroke="black" points="2443.36,-417.85 2433.12,-420.57 2442.82,-424.83 2443.36,-417.85"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.jail_submount&#45;&gt;module.root.module.filestore.local.name -->
+<g id="edge29" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.jail_submount&#45;&gt;module.root.module.filestore.local.name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2160.88,-410C2111.94,-410 2058.92,-410 2019.14,-410"/>
+<polygon fill="black" stroke="black" points="2019.28,-406.5 2009.28,-410 2019.28,-413.5 2019.28,-406.5"/>
+</g>
+<!-- module.root.module.filestore.nebius_compute_v1_filesystem.jail_submount&#45;&gt;module.root.module.filestore.var.iam_project_id -->
+<g id="edge30" class="edge">
+<title>module.root.module.filestore.nebius_compute_v1_filesystem.jail_submount&#45;&gt;module.root.module.filestore.var.iam_project_id</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2179.62,-391.57C2131.4,-383.88 2076.69,-375.16 2033.51,-368.28"/>
+<polygon fill="black" stroke="black" points="2034.14,-364.84 2023.71,-366.72 2033.04,-371.75 2034.14,-364.84"/>
+</g>
+<!-- module.root.module.filestore.local.name&#45;&gt;module.root.module.filestore.var.jail_submounts (validation) -->
+<g id="edge18" class="edge">
+<title>module.root.module.filestore.local.name&#45;&gt;module.root.module.filestore.var.jail_submounts (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1908.43,-417.85C1862.14,-425.75 1789.46,-438.16 1731.11,-448.12"/>
+<polygon fill="black" stroke="black" points="1730.77,-444.63 1721.5,-449.76 1731.95,-451.53 1730.77,-444.63"/>
+</g>
+<!-- module.root.module.filestore.local.const -->
+<g id="node25" class="node">
+<title>module.root.module.filestore.local.const</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-410" rx="50.84" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-404.95" font-family="Times,serif" font-size="14.00">local.const</text>
+</g>
+<!-- module.root.module.filestore.local.name&#45;&gt;module.root.module.filestore.local.const -->
+<g id="edge17" class="edge">
+<title>module.root.module.filestore.local.name&#45;&gt;module.root.module.filestore.local.const</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1903.25,-410C1847.75,-410 1759.18,-410 1699.86,-410"/>
+<polygon fill="black" stroke="black" points="1699.91,-406.5 1689.91,-410 1699.91,-413.5 1699.91,-406.5"/>
+</g>
+<!-- module.root.module.filestore.var.k8s_cluster_name -->
+<g id="node26" class="node">
+<title>module.root.module.filestore.var.k8s_cluster_name</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-572" rx="91.78" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-566.95" font-family="Times,serif" font-size="14.00">var.k8s_cluster_name</text>
+</g>
+<!-- module.root.module.filestore.local.name&#45;&gt;module.root.module.filestore.var.k8s_cluster_name -->
+<g id="edge19" class="edge">
+<title>module.root.module.filestore.local.name&#45;&gt;module.root.module.filestore.var.k8s_cluster_name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1922.21,-424.21C1892.96,-438.21 1849.84,-461.73 1819.11,-491 1798.23,-510.89 1807.19,-529.11 1783.11,-545 1769.26,-554.14 1753.13,-560.39 1736.76,-564.62"/>
+<polygon fill="black" stroke="black" points="1736.41,-561.1 1727.46,-566.77 1737.99,-567.92 1736.41,-561.1"/>
+</g>
+<!-- module.root.var.k8s_cluster_name (validation) -->
+<g id="node41" class="node">
+<title>module.root.var.k8s_cluster_name (validation)</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-649" rx="137.34" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-643.95" font-family="Times,serif" font-size="14.00">var.k8s_cluster_name (validation)</text>
+</g>
+<!-- module.root.module.filestore.var.k8s_cluster_name&#45;&gt;module.root.var.k8s_cluster_name (validation) -->
+<g id="edge45" class="edge">
+<title>module.root.module.filestore.var.k8s_cluster_name&#45;&gt;module.root.var.k8s_cluster_name (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1548.08,-576.88C1528.64,-580.24 1508.62,-585.59 1491.04,-594 1471.46,-603.37 1474.71,-617.81 1455.04,-627 1445.19,-631.6 1434.68,-635.33 1423.91,-638.33"/>
+<polygon fill="black" stroke="black" points="1423.35,-634.86 1414.53,-640.73 1425.08,-641.64 1423.35,-634.86"/>
+</g>
+<!-- module.root.module.filestore.var.iam_project_id&#45;&gt;module.root.data.nebius_iam_v1_project.this -->
+<g id="edge40" class="edge">
+<title>module.root.module.filestore.var.iam_project_id&#45;&gt;module.root.data.nebius_iam_v1_project.this</title>
+<path fill="none" stroke="black" d="M1874.11,-355.19C1853.9,-351.22 1833.81,-343.44 1819.11,-329 1765.57,-276.4 1828.47,-223.81 1783.11,-164 1764.48,-139.43 1735.7,-121.87 1708.67,-109.79"/>
+<polygon fill="black" stroke="black" points="1710.38,-106.72 1699.81,-106.02 1707.64,-113.16 1710.38,-106.72"/>
+</g>
+<!-- module.root.module.filestore.output.accounting -->
+<g id="node28" class="node">
+<title>module.root.module.filestore.output.accounting</title>
+<polygon fill="none" stroke="black" points="2959.6,-563 2852.1,-563 2852.1,-527 2965.6,-527 2965.6,-557 2959.6,-563"/>
+<polyline fill="none" stroke="black" points="2959.6,-563 2959.6,-557"/>
+<polyline fill="none" stroke="black" points="2965.6,-557 2959.6,-557"/>
+<text text-anchor="middle" x="2908.85" y="-539.95" font-family="Times,serif" font-size="14.00">output.accounting</text>
+</g>
+<!-- module.root.module.filestore.output.accounting&#45;&gt;module.root.module.filestore.local.accounting -->
+<g id="edge31" class="edge">
+<title>module.root.module.filestore.output.accounting&#45;&gt;module.root.module.filestore.local.accounting</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2851.75,-545C2815.89,-545 2768.76,-545 2728.69,-545"/>
+<polygon fill="black" stroke="black" points="2728.83,-541.5 2718.83,-545 2728.83,-548.5 2728.83,-541.5"/>
+</g>
+<!-- module.root.module.filestore.output.controller_spool -->
+<g id="node29" class="node">
+<title>module.root.module.filestore.output.controller_spool</title>
+<polygon fill="none" stroke="black" points="2974.22,-252 2837.47,-252 2837.47,-216 2980.22,-216 2980.22,-246 2974.22,-252"/>
+<polyline fill="none" stroke="black" points="2974.22,-252 2974.22,-246"/>
+<polyline fill="none" stroke="black" points="2980.22,-246 2974.22,-246"/>
+<text text-anchor="middle" x="2908.85" y="-228.95" font-family="Times,serif" font-size="14.00">output.controller_spool</text>
+</g>
+<!-- module.root.module.filestore.output.controller_spool&#45;&gt;module.root.module.filestore.local.controller_spool -->
+<g id="edge32" class="edge">
+<title>module.root.module.filestore.output.controller_spool&#45;&gt;module.root.module.filestore.local.controller_spool</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2837.08,-234C2809.86,-234 2778.2,-234 2748.59,-234"/>
+<polygon fill="black" stroke="black" points="2748.87,-230.5 2738.87,-234 2748.87,-237.5 2748.87,-230.5"/>
+</g>
+<!-- module.root.module.filestore.output.jail -->
+<g id="node30" class="node">
+<title>module.root.module.filestore.output.jail</title>
+<polygon fill="none" stroke="black" points="2938.6,-333 2873.1,-333 2873.1,-297 2944.6,-297 2944.6,-327 2938.6,-333"/>
+<polyline fill="none" stroke="black" points="2938.6,-333 2938.6,-327"/>
+<polyline fill="none" stroke="black" points="2944.6,-327 2938.6,-327"/>
+<text text-anchor="middle" x="2908.85" y="-309.95" font-family="Times,serif" font-size="14.00">output.jail</text>
+</g>
+<!-- module.root.module.filestore.output.jail&#45;&gt;module.root.module.filestore.local.jail -->
+<g id="edge33" class="edge">
+<title>module.root.module.filestore.output.jail&#45;&gt;module.root.module.filestore.local.jail</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2872.85,-315C2828.6,-315 2751.96,-315 2700.22,-315"/>
+<polygon fill="black" stroke="black" points="2700.45,-311.5 2690.45,-315 2700.45,-318.5 2700.45,-311.5"/>
+</g>
+<!-- module.root.module.filestore.output.jail_submounts -->
+<g id="node31" class="node">
+<title>module.root.module.filestore.output.jail_submounts</title>
+<polygon fill="none" stroke="black" points="2971.6,-455 2840.1,-455 2840.1,-419 2977.6,-419 2977.6,-449 2971.6,-455"/>
+<polyline fill="none" stroke="black" points="2971.6,-455 2971.6,-449"/>
+<polyline fill="none" stroke="black" points="2977.6,-449 2971.6,-449"/>
+<text text-anchor="middle" x="2908.85" y="-431.95" font-family="Times,serif" font-size="14.00">output.jail_submounts</text>
+</g>
+<!-- module.root.module.filestore.output.jail_submounts&#45;&gt;module.root.module.filestore.local.jail_submount -->
+<g id="edge34" class="edge">
+<title>module.root.module.filestore.output.jail_submounts&#45;&gt;module.root.module.filestore.local.jail_submount</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2839.83,-437C2809.91,-437 2774.25,-437 2741.74,-437"/>
+<polygon fill="black" stroke="black" points="2741.91,-433.5 2731.91,-437 2741.91,-440.5 2741.91,-433.5"/>
+</g>
+<!-- module.root.var.accounting_enabled -->
+<g id="node33" class="node">
+<title>module.root.var.accounting_enabled</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-518" rx="98.44" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-512.95" font-family="Times,serif" font-size="14.00">var.accounting_enabled</text>
+</g>
+<!-- module.root.module.filestore.var.accounting&#45;&gt;module.root.var.accounting_enabled -->
+<g id="edge35" class="edge">
+<title>module.root.module.filestore.var.accounting&#45;&gt;module.root.var.accounting_enabled</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1223.1,-518C1166.68,-518 1083.52,-518 1016.75,-518"/>
+<polygon fill="black" stroke="black" points="1016.85,-514.5 1006.85,-518 1016.85,-521.5 1016.85,-514.5"/>
+</g>
+<!-- module.root.var.filestore_accounting (validation) -->
+<g id="node34" class="node">
+<title>module.root.var.filestore_accounting (validation)</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-572" rx="145.52" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-566.95" font-family="Times,serif" font-size="14.00">var.filestore_accounting (validation)</text>
+</g>
+<!-- module.root.module.filestore.var.accounting&#45;&gt;module.root.var.filestore_accounting (validation) -->
+<g id="edge36" class="edge">
+<title>module.root.module.filestore.var.accounting&#45;&gt;module.root.var.filestore_accounting (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1228.91,-525.56C1197.24,-529.7 1157.47,-535 1122.03,-540 1085.98,-545.09 1046.56,-550.9 1011.47,-556.17"/>
+<polygon fill="black" stroke="black" points="1011.1,-552.68 1001.73,-557.63 1012.14,-559.6 1011.1,-552.68"/>
+</g>
+<!-- module.root.var.filestore_accounting -->
+<g id="node155" class="node">
+<title>module.root.var.filestore_accounting</title>
+<ellipse fill="none" stroke="black" cx="531.56" cy="-572" rx="99.97" ry="18"/>
+<text text-anchor="middle" x="531.56" y="-566.95" font-family="Times,serif" font-size="14.00">var.filestore_accounting</text>
+</g>
+<!-- module.root.var.filestore_accounting (validation)&#45;&gt;module.root.var.filestore_accounting -->
+<g id="edge179" class="edge">
+<title>module.root.var.filestore_accounting (validation)&#45;&gt;module.root.var.filestore_accounting</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M760.92,-572C721.83,-572 680.17,-572 643.28,-572"/>
+<polygon fill="black" stroke="black" points="643.51,-568.5 633.51,-572 643.51,-575.5 643.51,-568.5"/>
+</g>
+<!-- module.root.var.filestore_controller_spool (validation) -->
+<g id="node36" class="node">
+<title>module.root.var.filestore_controller_spool (validation)</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-88" rx="165.48" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-82.95" font-family="Times,serif" font-size="14.00">var.filestore_controller_spool (validation)</text>
+</g>
+<!-- module.root.module.filestore.var.controller_spool&#45;&gt;module.root.var.filestore_controller_spool (validation) -->
+<g id="edge38" class="edge">
+<title>module.root.module.filestore.var.controller_spool&#45;&gt;module.root.var.filestore_controller_spool (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1551.51,-193.35C1530.46,-190.02 1508.84,-183.64 1491.04,-172 1465.96,-155.6 1480.03,-131.54 1455.04,-115 1447.95,-110.31 1440.33,-106.34 1432.38,-102.98"/>
+<polygon fill="black" stroke="black" points="1433.77,-99.76 1423.18,-99.45 1431.26,-106.3 1433.77,-99.76"/>
+</g>
+<!-- module.root.var.filestore_controller_spool -->
+<g id="node156" class="node">
+<title>module.root.var.filestore_controller_spool</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-88" rx="119.93" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-82.95" font-family="Times,serif" font-size="14.00">var.filestore_controller_spool</text>
+</g>
+<!-- module.root.var.filestore_controller_spool (validation)&#45;&gt;module.root.var.filestore_controller_spool -->
+<g id="edge180" class="edge">
+<title>module.root.var.filestore_controller_spool (validation)&#45;&gt;module.root.var.filestore_controller_spool</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1122.6,-88C1094.49,-88 1065.63,-88 1038.55,-88"/>
+<polygon fill="black" stroke="black" points="1038.57,-84.5 1028.57,-88 1038.57,-91.5 1038.57,-84.5"/>
+</g>
+<!-- module.root.var.filestore_jail (validation) -->
+<g id="node38" class="node">
+<title>module.root.var.filestore_jail (validation)</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-142" rx="116.86" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-136.95" font-family="Times,serif" font-size="14.00">var.filestore_jail (validation)</text>
+</g>
+<!-- module.root.module.filestore.var.jail&#45;&gt;module.root.var.filestore_jail (validation) -->
+<g id="edge41" class="edge">
+<title>module.root.module.filestore.var.jail&#45;&gt;module.root.var.filestore_jail (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1602.17,-268.88C1570.62,-261.78 1523.69,-247.5 1491.04,-221 1467.78,-202.11 1480.27,-180.16 1455.04,-164 1443.2,-156.41 1429.9,-150.91 1416.12,-146.98"/>
+<polygon fill="black" stroke="black" points="1417,-143.59 1406.45,-144.52 1415.28,-150.37 1417,-143.59"/>
+</g>
+<!-- module.root.var.filestore_jail -->
+<g id="node157" class="node">
+<title>module.root.var.filestore_jail</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-142" rx="71.31" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-136.95" font-family="Times,serif" font-size="14.00">var.filestore_jail</text>
+</g>
+<!-- module.root.var.filestore_jail (validation)&#45;&gt;module.root.var.filestore_jail -->
+<g id="edge181" class="edge">
+<title>module.root.var.filestore_jail (validation)&#45;&gt;module.root.var.filestore_jail</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1171.26,-142C1112.53,-142 1042.69,-142 989.67,-142"/>
+<polygon fill="black" stroke="black" points="989.79,-138.5 979.79,-142 989.79,-145.5 989.79,-138.5"/>
+</g>
+<!-- module.root.var.filestore_jail_submounts (validation) -->
+<g id="node40" class="node">
+<title>module.root.var.filestore_jail_submounts (validation)</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-464" rx="161.9" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-458.95" font-family="Times,serif" font-size="14.00">var.filestore_jail_submounts (validation)</text>
+</g>
+<!-- module.root.module.filestore.var.jail_submounts&#45;&gt;module.root.var.filestore_jail_submounts (validation) -->
+<g id="edge43" class="edge">
+<title>module.root.module.filestore.var.jail_submounts&#45;&gt;module.root.var.filestore_jail_submounts (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1206.52,-464C1169.54,-464 1124.25,-464 1080.21,-464"/>
+<polygon fill="black" stroke="black" points="1080.26,-460.5 1070.26,-464 1080.26,-467.5 1080.26,-460.5"/>
+</g>
+<!-- module.root.var.filestore_jail_submounts -->
+<g id="node158" class="node">
+<title>module.root.var.filestore_jail_submounts</title>
+<ellipse fill="none" stroke="black" cx="531.56" cy="-464" rx="116.35" ry="18"/>
+<text text-anchor="middle" x="531.56" y="-458.95" font-family="Times,serif" font-size="14.00">var.filestore_jail_submounts</text>
+</g>
+<!-- module.root.var.filestore_jail_submounts (validation)&#45;&gt;module.root.var.filestore_jail_submounts -->
+<g id="edge182" class="edge">
+<title>module.root.var.filestore_jail_submounts (validation)&#45;&gt;module.root.var.filestore_jail_submounts</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M744.49,-464C716.08,-464 686.87,-464 659.56,-464"/>
+<polygon fill="black" stroke="black" points="659.9,-460.5 649.9,-464 659.9,-467.5 659.9,-460.5"/>
+</g>
+<!-- module.root.var.k8s_cluster_name -->
+<g id="node160" class="node">
+<title>module.root.var.k8s_cluster_name</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-649" rx="91.78" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-643.95" font-family="Times,serif" font-size="14.00">var.k8s_cluster_name</text>
+</g>
+<!-- module.root.var.k8s_cluster_name (validation)&#45;&gt;module.root.var.k8s_cluster_name -->
+<g id="edge184" class="edge">
+<title>module.root.var.k8s_cluster_name (validation)&#45;&gt;module.root.var.k8s_cluster_name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1150.95,-649C1104.58,-649 1053.6,-649 1010.34,-649"/>
+<polygon fill="black" stroke="black" points="1010.45,-645.5 1000.45,-649 1010.45,-652.5 1010.45,-645.5"/>
+</g>
+<!-- module.root.module.k8s.local.gpu -->
+<g id="node42" class="node">
+<title>module.root.module.k8s.local.gpu</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-1099" rx="45.21" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-1093.95" font-family="Times,serif" font-size="14.00">local.gpu</text>
+</g>
+<!-- module.root.module.k8s.var.name -->
+<g id="node43" class="node">
+<title>module.root.module.k8s.var.name</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-999" rx="45.21" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-993.95" font-family="Times,serif" font-size="14.00">var.name</text>
+</g>
+<!-- module.root.module.k8s.local.gpu&#45;&gt;module.root.module.k8s.var.name -->
+<g id="edge46" class="edge">
+<title>module.root.module.k8s.local.gpu&#45;&gt;module.root.module.k8s.var.name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1594.1,-1093.05C1564.91,-1088.46 1525.27,-1081.32 1491.04,-1072 1434.48,-1056.6 1371.21,-1032.51 1330.92,-1016.25"/>
+<polygon fill="black" stroke="black" points="1332.42,-1013.08 1321.84,-1012.56 1329.79,-1019.57 1332.42,-1013.08"/>
+</g>
+<!-- module.root.module.k8s.var.node_group_gpu -->
+<g id="node44" class="node">
+<title>module.root.module.k8s.var.node_group_gpu</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-1099" rx="87.18" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-1093.95" font-family="Times,serif" font-size="14.00">var.node_group_gpu</text>
+</g>
+<!-- module.root.module.k8s.local.gpu&#45;&gt;module.root.module.k8s.var.node_group_gpu -->
+<g id="edge47" class="edge">
+<title>module.root.module.k8s.local.gpu&#45;&gt;module.root.module.k8s.var.node_group_gpu</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1591.48,-1099C1540.25,-1099 1454.62,-1099 1387.61,-1099"/>
+<polygon fill="black" stroke="black" points="1387.69,-1095.5 1377.69,-1099 1387.69,-1102.5 1387.69,-1095.5"/>
+</g>
+<!-- module.root.var.slurm_node_count -->
+<g id="node79" class="node">
+<title>module.root.var.slurm_node_count</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-1909" rx="93.83" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-1903.95" font-family="Times,serif" font-size="14.00">var.slurm_node_count</text>
+</g>
+<!-- module.root.module.k8s.var.node_group_gpu&#45;&gt;module.root.var.slurm_node_count -->
+<g id="edge99" class="edge">
+<title>module.root.module.k8s.var.node_group_gpu&#45;&gt;module.root.var.slurm_node_count</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1213.41,-1089.55C1180.88,-1089.74 1144.95,-1096.6 1122.03,-1121 1082.6,-1162.97 1104.45,-1583.44 1086.03,-1638 1052.23,-1738.05 972.29,-1836.92 931.93,-1882.66"/>
+<polygon fill="black" stroke="black" points="929.47,-1880.17 925.42,-1889.96 934.69,-1884.83 929.47,-1880.17"/>
+</g>
+<!-- module.root.var.k8s_cluster_node_group_gpu (validation) -->
+<g id="node80" class="node">
+<title>module.root.var.k8s_cluster_node_group_gpu (validation)</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-811" rx="179.3" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-805.95" font-family="Times,serif" font-size="14.00">var.k8s_cluster_node_group_gpu (validation)</text>
+</g>
+<!-- module.root.module.k8s.var.node_group_gpu&#45;&gt;module.root.var.k8s_cluster_node_group_gpu (validation) -->
+<g id="edge98" class="edge">
+<title>module.root.module.k8s.var.node_group_gpu&#45;&gt;module.root.var.k8s_cluster_node_group_gpu (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1240.54,-1083.6C1206.03,-1071.06 1158.93,-1051.31 1122.03,-1026 1041.28,-970.62 964.87,-882.38 929.02,-838.15"/>
+<polygon fill="black" stroke="black" points="931.94,-836.19 922.95,-830.59 926.48,-840.58 931.94,-836.19"/>
+</g>
+<!-- module.root.module.k8s.local.login_ip -->
+<g id="node45" class="node">
+<title>module.root.module.k8s.local.login_ip</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-1178" rx="62.1" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-1172.95" font-family="Times,serif" font-size="14.00">local.login_ip</text>
+</g>
+<!-- module.root.module.k8s.nebius_vpc_v1_allocation.this -->
+<g id="node46" class="node">
+<title>module.root.module.k8s.nebius_vpc_v1_allocation.this</title>
+<path fill="none" stroke="black" d="M2374.79,-1196C2374.79,-1196 2217.79,-1196 2217.79,-1196 2211.79,-1196 2205.79,-1190 2205.79,-1184 2205.79,-1184 2205.79,-1172 2205.79,-1172 2205.79,-1166 2211.79,-1160 2217.79,-1160 2217.79,-1160 2374.79,-1160 2374.79,-1160 2380.79,-1160 2386.79,-1166 2386.79,-1172 2386.79,-1172 2386.79,-1184 2386.79,-1184 2386.79,-1190 2380.79,-1196 2374.79,-1196"/>
+<text text-anchor="middle" x="2296.29" y="-1172.95" font-family="Times,serif" font-size="14.00">nebius_vpc_v1_allocation.this</text>
+</g>
+<!-- module.root.module.k8s.local.login_ip&#45;&gt;module.root.module.k8s.nebius_vpc_v1_allocation.this -->
+<g id="edge48" class="edge">
+<title>module.root.module.k8s.local.login_ip&#45;&gt;module.root.module.k8s.nebius_vpc_v1_allocation.this</title>
+<path fill="none" stroke="black" d="M2583.1,-1178C2532.1,-1178 2458.41,-1178 2398.63,-1178"/>
+<polygon fill="black" stroke="black" points="2398.77,-1174.5 2388.77,-1178 2398.77,-1181.5 2398.77,-1174.5"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.key_k8s_cluster_id -->
+<g id="node52" class="node">
+<title>module.root.module.k8s.module.labels.output.key_k8s_cluster_id</title>
+<polygon fill="none" stroke="black" points="2029.05,-1277 1875.8,-1277 1875.8,-1241 2035.05,-1241 2035.05,-1271 2029.05,-1277"/>
+<polyline fill="none" stroke="black" points="2029.05,-1277 2029.05,-1271"/>
+<polyline fill="none" stroke="black" points="2035.05,-1271 2029.05,-1271"/>
+<text text-anchor="middle" x="1955.43" y="-1253.95" font-family="Times,serif" font-size="14.00">output.key_k8s_cluster_id</text>
+</g>
+<!-- module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.module.labels.output.key_k8s_cluster_id -->
+<g id="edge86" class="edge">
+<title>module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.module.labels.output.key_k8s_cluster_id</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2230.01,-1196.43C2190.2,-1207.39 2138.21,-1221.21 2091.74,-1232 2077.09,-1235.4 2061.49,-1238.76 2046.29,-1241.89"/>
+<polygon fill="black" stroke="black" points="2045.89,-1238.39 2036.79,-1243.82 2047.29,-1245.25 2045.89,-1238.39"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.key_k8s_cluster_name -->
+<g id="node53" class="node">
+<title>module.root.module.k8s.module.labels.output.key_k8s_cluster_name</title>
+<polygon fill="none" stroke="black" points="2038.8,-1169 1866.05,-1169 1866.05,-1133 2044.8,-1133 2044.8,-1163 2038.8,-1169"/>
+<polyline fill="none" stroke="black" points="2038.8,-1169 2038.8,-1163"/>
+<polyline fill="none" stroke="black" points="2044.8,-1163 2038.8,-1163"/>
+<text text-anchor="middle" x="1955.43" y="-1145.95" font-family="Times,serif" font-size="14.00">output.key_k8s_cluster_name</text>
+</g>
+<!-- module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.module.labels.output.key_k8s_cluster_name -->
+<g id="edge87" class="edge">
+<title>module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.module.labels.output.key_k8s_cluster_name</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2205.37,-1170.84C2159.63,-1167.19 2103.9,-1162.75 2056.77,-1159"/>
+<polygon fill="black" stroke="black" points="2057.05,-1155.51 2046.81,-1158.2 2056.5,-1162.48 2057.05,-1155.51"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.key_slurm_cluster_name -->
+<g id="node54" class="node">
+<title>module.root.module.k8s.module.labels.output.key_slurm_cluster_name</title>
+<polygon fill="none" stroke="black" points="2045.18,-1223 1859.68,-1223 1859.68,-1187 2051.18,-1187 2051.18,-1217 2045.18,-1223"/>
+<polyline fill="none" stroke="black" points="2045.18,-1223 2045.18,-1217"/>
+<polyline fill="none" stroke="black" points="2051.18,-1217 2045.18,-1217"/>
+<text text-anchor="middle" x="1955.43" y="-1199.95" font-family="Times,serif" font-size="14.00">output.key_slurm_cluster_name</text>
+</g>
+<!-- module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.module.labels.output.key_slurm_cluster_name -->
+<g id="edge88" class="edge">
+<title>module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.module.labels.output.key_slurm_cluster_name</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2205.37,-1185.16C2161.63,-1188.65 2108.74,-1192.86 2062.98,-1196.51"/>
+<polygon fill="black" stroke="black" points="2062.71,-1193.02 2053.02,-1197.3 2063.27,-1200 2062.71,-1193.02"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_cluster.this -->
+<g id="node64" class="node">
+<title>module.root.module.k8s.nebius_mk8s_v1_cluster.this</title>
+<path fill="none" stroke="black" d="M2030.18,-1061C2030.18,-1061 1880.68,-1061 1880.68,-1061 1874.68,-1061 1868.68,-1055 1868.68,-1049 1868.68,-1049 1868.68,-1037 1868.68,-1037 1868.68,-1031 1874.68,-1025 1880.68,-1025 1880.68,-1025 2030.18,-1025 2030.18,-1025 2036.18,-1025 2042.18,-1031 2042.18,-1037 2042.18,-1037 2042.18,-1049 2042.18,-1049 2042.18,-1055 2036.18,-1061 2030.18,-1061"/>
+<text text-anchor="middle" x="1955.43" y="-1037.95" font-family="Times,serif" font-size="14.00">nebius_mk8s_v1_cluster.this</text>
+</g>
+<!-- module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.nebius_mk8s_v1_cluster.this -->
+<g id="edge89" class="edge">
+<title>module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.nebius_mk8s_v1_cluster.this</title>
+<path fill="none" stroke="black" d="M2267.19,-1159.67C2229,-1135.58 2157.87,-1093.57 2091.74,-1070 2079.57,-1065.66 2066.53,-1061.96 2053.52,-1058.81"/>
+<polygon fill="black" stroke="black" points="2054.63,-1055.47 2044.1,-1056.63 2053.05,-1062.29 2054.63,-1055.47"/>
+</g>
+<!-- module.root.module.k8s.var.create_nlb -->
+<g id="node73" class="node">
+<title>module.root.module.k8s.var.create_nlb</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-1660" rx="63.12" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-1654.95" font-family="Times,serif" font-size="14.00">var.create_nlb</text>
+</g>
+<!-- module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.var.create_nlb -->
+<g id="edge90" class="edge">
+<title>module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.var.create_nlb</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2258.42,-1196.36C2218.78,-1218.25 2157.46,-1258.79 2127.74,-1313 2092.81,-1376.72 2141.8,-1585.33 2091.74,-1638 2075.32,-1655.27 2051.05,-1662.4 2027.58,-1664.67"/>
+<polygon fill="black" stroke="black" points="2027.42,-1661.18 2017.67,-1665.33 2027.88,-1668.16 2027.42,-1661.18"/>
+</g>
+<!-- module.root.module.k8s.var.slurm_cluster_name -->
+<g id="node74" class="node">
+<title>module.root.module.k8s.var.slurm_cluster_name</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-926" rx="100.48" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-920.95" font-family="Times,serif" font-size="14.00">var.slurm_cluster_name</text>
+</g>
+<!-- module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.var.slurm_cluster_name -->
+<g id="edge91" class="edge">
+<title>module.root.module.k8s.nebius_vpc_v1_allocation.this&#45;&gt;module.root.module.k8s.var.slurm_cluster_name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2257.56,-1159.5C2221.39,-1140.51 2166.7,-1108.37 2127.74,-1070 2107.18,-1049.76 2112.14,-1036.39 2091.74,-1016 2064.63,-988.92 2028.2,-965.24 1999.96,-948.98"/>
+<polygon fill="black" stroke="black" points="2001.71,-945.94 1991.29,-944.07 1998.27,-952.04 2001.71,-945.94"/>
+</g>
+<!-- module.root.module.k8s.local.node_ssh_access -->
+<g id="node47" class="node">
+<title>module.root.module.k8s.local.node_ssh_access</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-1768" rx="93.83" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-1762.95" font-family="Times,serif" font-size="14.00">local.node_ssh_access</text>
+</g>
+<!-- module.root.module.k8s.var.node_ssh_access_users -->
+<g id="node48" class="node">
+<title>module.root.module.k8s.var.node_ssh_access_users</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-1795" rx="110.72" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-1789.95" font-family="Times,serif" font-size="14.00">var.node_ssh_access_users</text>
+</g>
+<!-- module.root.module.k8s.local.node_ssh_access&#45;&gt;module.root.module.k8s.var.node_ssh_access_users -->
+<g id="edge49" class="edge">
+<title>module.root.module.k8s.local.node_ssh_access&#45;&gt;module.root.module.k8s.var.node_ssh_access_users</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1868.82,-1775.31C1831.43,-1778.5 1787.14,-1782.28 1747.41,-1785.67"/>
+<polygon fill="black" stroke="black" points="1747.23,-1782.17 1737.57,-1786.51 1747.83,-1789.15 1747.23,-1782.17"/>
+</g>
+<!-- module.root.var.k8s_cluster_node_ssh_access_users -->
+<g id="node81" class="node">
+<title>module.root.var.k8s_cluster_node_ssh_access_users</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-1899" rx="157.3" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-1893.95" font-family="Times,serif" font-size="14.00">var.k8s_cluster_node_ssh_access_users</text>
+</g>
+<!-- module.root.module.k8s.var.node_ssh_access_users&#45;&gt;module.root.var.k8s_cluster_node_ssh_access_users -->
+<g id="edge100" class="edge">
+<title>module.root.module.k8s.var.node_ssh_access_users&#45;&gt;module.root.var.k8s_cluster_node_ssh_access_users</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1545.25,-1805.41C1527.13,-1808.43 1508.35,-1812.24 1491.04,-1817 1436.39,-1832.04 1376.55,-1857.63 1336.4,-1876.23"/>
+<polygon fill="black" stroke="black" points="1335.07,-1872.99 1327.5,-1880.39 1338.04,-1879.33 1335.07,-1872.99"/>
+</g>
+<!-- module.root.module.k8s.module.labels.local.label -->
+<g id="node49" class="node">
+<title>module.root.module.k8s.module.labels.local.label</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-1385" rx="49.3" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-1379.95" font-family="Times,serif" font-size="14.00">local.label</text>
+</g>
+<!-- module.root.module.k8s.module.labels.local.label_key -->
+<g id="node50" class="node">
+<title>module.root.module.k8s.module.labels.local.label_key</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-1267" rx="67.22" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-1261.95" font-family="Times,serif" font-size="14.00">local.label_key</text>
+</g>
+<!-- module.root.module.k8s.module.labels.local.label&#45;&gt;module.root.module.k8s.module.labels.local.label_key -->
+<g id="edge50" class="edge">
+<title>module.root.module.k8s.module.labels.local.label&#45;&gt;module.root.module.k8s.module.labels.local.label_key</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1599.97,-1372.71C1538.47,-1351.76 1413.14,-1309.09 1341.97,-1284.85"/>
+<polygon fill="black" stroke="black" points="1343.48,-1281.67 1332.89,-1281.76 1341.23,-1288.3 1343.48,-1281.67"/>
+</g>
+<!-- module.root.module.k8s.module.labels.local.const -->
+<g id="node51" class="node">
+<title>module.root.module.k8s.module.labels.local.const</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-1384" rx="50.84" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-1378.95" font-family="Times,serif" font-size="14.00">local.const</text>
+</g>
+<!-- module.root.module.k8s.module.labels.local.label_key&#45;&gt;module.root.module.k8s.module.labels.local.const -->
+<g id="edge51" class="edge">
+<title>module.root.module.k8s.module.labels.local.label_key&#45;&gt;module.root.module.k8s.module.labels.local.const</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1228.57,-1275.32C1195.12,-1282.18 1153.74,-1294.43 1122.03,-1316 1100.56,-1330.6 1108.62,-1349.22 1086.03,-1362 1050.38,-1382.16 1004.4,-1387.43 968.06,-1387.78"/>
+<polygon fill="black" stroke="black" points="968.15,-1384.28 958.14,-1387.74 968.13,-1391.28 968.15,-1384.28"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.key_k8s_cluster_id&#45;&gt;module.root.module.k8s.module.labels.local.label_key -->
+<g id="edge52" class="edge">
+<title>module.root.module.k8s.module.labels.output.key_k8s_cluster_id&#45;&gt;module.root.module.k8s.module.labels.local.label_key</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1875.58,-1264.57C1846.53,-1266.36 1813.34,-1268.12 1783.11,-1269 1636.19,-1273.28 1464.57,-1270.93 1367.3,-1268.91"/>
+<polygon fill="black" stroke="black" points="1367.4,-1265.41 1357.33,-1268.7 1367.25,-1272.41 1367.4,-1265.41"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.key_k8s_cluster_name&#45;&gt;module.root.module.k8s.module.labels.local.label_key -->
+<g id="edge53" class="edge">
+<title>module.root.module.k8s.module.labels.output.key_k8s_cluster_name&#45;&gt;module.root.module.k8s.module.labels.local.label_key</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1865.98,-1157.63C1839.35,-1159.51 1810.05,-1161.46 1783.11,-1163 1750.68,-1164.86 1518.44,-1158.55 1491.04,-1176 1461.87,-1194.58 1483.37,-1225.16 1455.04,-1245 1429.15,-1263.14 1395.28,-1269.81 1364.92,-1271.5"/>
+<polygon fill="black" stroke="black" points="1364.87,-1268 1355,-1271.86 1365.12,-1275 1364.87,-1268"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.key_slurm_cluster_name&#45;&gt;module.root.module.k8s.module.labels.local.label_key -->
+<g id="edge54" class="edge">
+<title>module.root.module.k8s.module.labels.output.key_slurm_cluster_name&#45;&gt;module.root.module.k8s.module.labels.local.label_key</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1859.58,-1189.24C1763.43,-1177.29 1612,-1169.73 1491.04,-1215 1471.54,-1222.3 1474.11,-1236.63 1455.04,-1245 1427.74,-1256.98 1395.66,-1262.88 1367.05,-1265.66"/>
+<polygon fill="black" stroke="black" points="1367.04,-1262.15 1357.37,-1266.48 1367.63,-1269.12 1367.04,-1262.15"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.key_slurm_node_group_name -->
+<g id="node55" class="node">
+<title>module.root.module.k8s.module.labels.output.key_slurm_node_group_name</title>
+<polygon fill="none" stroke="black" points="1741.08,-1260 1527.08,-1260 1527.08,-1224 1747.08,-1224 1747.08,-1254 1741.08,-1260"/>
+<polyline fill="none" stroke="black" points="1741.08,-1260 1741.08,-1254"/>
+<polyline fill="none" stroke="black" points="1747.08,-1254 1741.08,-1254"/>
+<text text-anchor="middle" x="1637.08" y="-1236.95" font-family="Times,serif" font-size="14.00">output.key_slurm_node_group_name</text>
+</g>
+<!-- module.root.module.k8s.module.labels.output.key_slurm_node_group_name&#45;&gt;module.root.module.k8s.module.labels.local.label_key -->
+<g id="edge55" class="edge">
+<title>module.root.module.k8s.module.labels.output.key_slurm_node_group_name&#45;&gt;module.root.module.k8s.module.labels.local.label_key</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1526.91,-1249.88C1474.39,-1253.66 1412.74,-1258.11 1365.43,-1261.52"/>
+<polygon fill="black" stroke="black" points="1365.26,-1258.03 1355.54,-1262.24 1365.77,-1265.01 1365.26,-1258.03"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.label_group_name_cpu -->
+<g id="node56" class="node">
+<title>module.root.module.k8s.module.labels.output.label_group_name_cpu</title>
+<polygon fill="none" stroke="black" points="2040.3,-1547 1864.55,-1547 1864.55,-1511 2046.3,-1511 2046.3,-1541 2040.3,-1547"/>
+<polyline fill="none" stroke="black" points="2040.3,-1547 2040.3,-1541"/>
+<polyline fill="none" stroke="black" points="2046.3,-1541 2040.3,-1541"/>
+<text text-anchor="middle" x="1955.43" y="-1523.95" font-family="Times,serif" font-size="14.00">output.label_group_name_cpu</text>
+</g>
+<!-- module.root.module.k8s.module.labels.output.label_group_name_cpu&#45;&gt;module.root.module.k8s.module.labels.local.label -->
+<g id="edge56" class="edge">
+<title>module.root.module.k8s.module.labels.output.label_group_name_cpu&#45;&gt;module.root.module.k8s.module.labels.local.label</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1864.23,-1515.94C1848.88,-1512.33 1833.32,-1507.76 1819.11,-1502 1760.95,-1478.41 1701.29,-1435.5 1667.06,-1408.72"/>
+<polygon fill="black" stroke="black" points="1669.3,-1406.03 1659.29,-1402.57 1664.95,-1411.52 1669.3,-1406.03"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.label_group_name_gpu -->
+<g id="node57" class="node">
+<title>module.root.module.k8s.module.labels.output.label_group_name_gpu</title>
+<polygon fill="none" stroke="black" points="2040.68,-1385 1864.18,-1385 1864.18,-1349 2046.68,-1349 2046.68,-1379 2040.68,-1385"/>
+<polyline fill="none" stroke="black" points="2040.68,-1385 2040.68,-1379"/>
+<polyline fill="none" stroke="black" points="2046.68,-1379 2040.68,-1379"/>
+<text text-anchor="middle" x="1955.43" y="-1361.95" font-family="Times,serif" font-size="14.00">output.label_group_name_gpu</text>
+</g>
+<!-- module.root.module.k8s.module.labels.output.label_group_name_gpu&#45;&gt;module.root.module.k8s.module.labels.local.label -->
+<g id="edge57" class="edge">
+<title>module.root.module.k8s.module.labels.output.label_group_name_gpu&#45;&gt;module.root.module.k8s.module.labels.local.label</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1863.77,-1372.16C1810.42,-1375.19 1744.44,-1378.95 1697.64,-1381.61"/>
+<polygon fill="black" stroke="black" points="1697.47,-1378.12 1687.68,-1382.18 1697.86,-1385.1 1697.47,-1378.12"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.label_group_name_nlb -->
+<g id="node58" class="node">
+<title>module.root.module.k8s.module.labels.output.label_group_name_nlb</title>
+<polygon fill="none" stroke="black" points="2039.18,-1439 1865.68,-1439 1865.68,-1403 2045.18,-1403 2045.18,-1433 2039.18,-1439"/>
+<polyline fill="none" stroke="black" points="2039.18,-1439 2039.18,-1433"/>
+<polyline fill="none" stroke="black" points="2045.18,-1433 2039.18,-1433"/>
+<text text-anchor="middle" x="1955.43" y="-1415.95" font-family="Times,serif" font-size="14.00">output.label_group_name_nlb</text>
+</g>
+<!-- module.root.module.k8s.module.labels.output.label_group_name_nlb&#45;&gt;module.root.module.k8s.module.labels.local.label -->
+<g id="edge58" class="edge">
+<title>module.root.module.k8s.module.labels.output.label_group_name_nlb&#45;&gt;module.root.module.k8s.module.labels.local.label</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1865.46,-1410.88C1811.1,-1404.69 1743.15,-1396.96 1695.75,-1391.56"/>
+<polygon fill="black" stroke="black" points="1696.3,-1388.1 1685.97,-1390.45 1695.51,-1395.06 1696.3,-1388.1"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.name_node_group_cpu -->
+<g id="node59" class="node">
+<title>module.root.module.k8s.module.labels.output.name_node_group_cpu</title>
+<polygon fill="none" stroke="black" points="2040.3,-1601 1864.55,-1601 1864.55,-1565 2046.3,-1565 2046.3,-1595 2040.3,-1601"/>
+<polyline fill="none" stroke="black" points="2040.3,-1601 2040.3,-1595"/>
+<polyline fill="none" stroke="black" points="2046.3,-1595 2040.3,-1595"/>
+<text text-anchor="middle" x="1955.43" y="-1577.95" font-family="Times,serif" font-size="14.00">output.name_node_group_cpu</text>
+</g>
+<!-- module.root.module.k8s.module.labels.output.name_node_group_cpu&#45;&gt;module.root.module.k8s.module.labels.local.const -->
+<g id="edge59" class="edge">
+<title>module.root.module.k8s.module.labels.output.name_node_group_cpu&#45;&gt;module.root.module.k8s.module.labels.local.const</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1864.17,-1566.62C1849.06,-1563.41 1833.59,-1559.84 1819.11,-1556 1802.81,-1551.67 1799.45,-1548.21 1783.11,-1544 1493.78,-1469.47 1407.43,-1510.4 1122.03,-1422 1105.3,-1416.82 1102.9,-1410.68 1086.03,-1406 1047.95,-1395.44 1003.9,-1389.95 969.11,-1387.09"/>
+<polygon fill="black" stroke="black" points="969.43,-1383.6 959.19,-1386.33 968.9,-1390.58 969.43,-1383.6"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.name_node_group_gpu -->
+<g id="node60" class="node">
+<title>module.root.module.k8s.module.labels.output.name_node_group_gpu</title>
+<polygon fill="none" stroke="black" points="2040.68,-1331 1864.18,-1331 1864.18,-1295 2046.68,-1295 2046.68,-1325 2040.68,-1331"/>
+<polyline fill="none" stroke="black" points="2040.68,-1331 2040.68,-1325"/>
+<polyline fill="none" stroke="black" points="2046.68,-1325 2040.68,-1325"/>
+<text text-anchor="middle" x="1955.43" y="-1307.95" font-family="Times,serif" font-size="14.00">output.name_node_group_gpu</text>
+</g>
+<!-- module.root.module.k8s.module.labels.output.name_node_group_gpu&#45;&gt;module.root.module.k8s.module.labels.local.const -->
+<g id="edge60" class="edge">
+<title>module.root.module.k8s.module.labels.output.name_node_group_gpu&#45;&gt;module.root.module.k8s.module.labels.local.const</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1863.82,-1319.15C1654.96,-1333.31 1144.15,-1367.96 968.34,-1379.89"/>
+<polygon fill="black" stroke="black" points="968.26,-1376.39 958.52,-1380.55 968.73,-1383.37 968.26,-1376.39"/>
+</g>
+<!-- module.root.module.k8s.module.labels.output.name_node_group_nlb -->
+<g id="node61" class="node">
+<title>module.root.module.k8s.module.labels.output.name_node_group_nlb</title>
+<polygon fill="none" stroke="black" points="2039.18,-1493 1865.68,-1493 1865.68,-1457 2045.18,-1457 2045.18,-1487 2039.18,-1493"/>
+<polyline fill="none" stroke="black" points="2039.18,-1493 2039.18,-1487"/>
+<polyline fill="none" stroke="black" points="2045.18,-1487 2039.18,-1487"/>
+<text text-anchor="middle" x="1955.43" y="-1469.95" font-family="Times,serif" font-size="14.00">output.name_node_group_nlb</text>
+</g>
+<!-- module.root.module.k8s.module.labels.output.name_node_group_nlb&#45;&gt;module.root.module.k8s.module.labels.local.const -->
+<g id="edge61" class="edge">
+<title>module.root.module.k8s.module.labels.output.name_node_group_nlb&#45;&gt;module.root.module.k8s.module.labels.local.const</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1865.18,-1467.24C1657.03,-1449.14 1143.74,-1404.52 967.93,-1389.23"/>
+<polygon fill="black" stroke="black" points="968.38,-1385.76 958.11,-1388.38 967.77,-1392.73 968.38,-1385.76"/>
+</g>
+<!-- module.root.module.k8s.nebius_compute_v1_gpu_cluster.this -->
+<g id="node62" class="node">
+<title>module.root.module.k8s.nebius_compute_v1_gpu_cluster.this</title>
+<path fill="none" stroke="black" d="M2052.3,-1115C2052.3,-1115 1858.55,-1115 1858.55,-1115 1852.55,-1115 1846.55,-1109 1846.55,-1103 1846.55,-1103 1846.55,-1091 1846.55,-1091 1846.55,-1085 1852.55,-1079 1858.55,-1079 1858.55,-1079 2052.3,-1079 2052.3,-1079 2058.3,-1079 2064.3,-1085 2064.3,-1091 2064.3,-1091 2064.3,-1103 2064.3,-1103 2064.3,-1109 2058.3,-1115 2052.3,-1115"/>
+<text text-anchor="middle" x="1955.43" y="-1091.95" font-family="Times,serif" font-size="14.00">nebius_compute_v1_gpu_cluster.this</text>
+</g>
+<!-- module.root.module.k8s.nebius_compute_v1_gpu_cluster.this&#45;&gt;module.root.module.k8s.local.gpu -->
+<g id="edge62" class="edge">
+<title>module.root.module.k8s.nebius_compute_v1_gpu_cluster.this&#45;&gt;module.root.module.k8s.local.gpu</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1846.44,-1097.68C1795.23,-1098.01 1736.19,-1098.38 1694.06,-1098.65"/>
+<polygon fill="black" stroke="black" points="1694.14,-1095.15 1684.16,-1098.71 1694.19,-1102.15 1694.14,-1095.15"/>
+</g>
+<!-- module.root.module.k8s.var.iam_project_id -->
+<g id="node63" class="node">
+<title>module.root.module.k8s.var.iam_project_id</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-1045" rx="81.04" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-1039.95" font-family="Times,serif" font-size="14.00">var.iam_project_id</text>
+</g>
+<!-- module.root.module.k8s.nebius_compute_v1_gpu_cluster.this&#45;&gt;module.root.module.k8s.var.iam_project_id -->
+<g id="edge63" class="edge">
+<title>module.root.module.k8s.nebius_compute_v1_gpu_cluster.this&#45;&gt;module.root.module.k8s.var.iam_project_id</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1846.44,-1079.25C1803.01,-1072.11 1753.96,-1064.05 1714.36,-1057.54"/>
+<polygon fill="black" stroke="black" points="1715.11,-1054.12 1704.68,-1055.95 1713.98,-1061.02 1715.11,-1054.12"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_cluster.this&#45;&gt;module.root.module.k8s.var.name -->
+<g id="edge67" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_cluster.this&#45;&gt;module.root.module.k8s.var.name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1924.88,-1024.54C1891.81,-1005.05 1835.9,-975.58 1783.11,-964 1656.32,-936.17 1618.91,-941.62 1491.04,-964 1474.29,-966.93 1471.57,-972.97 1455.04,-977 1418.64,-985.88 1376.8,-991.4 1344.3,-994.69"/>
+<polygon fill="black" stroke="black" points="1344.34,-991.17 1334.72,-995.62 1345.01,-998.14 1344.34,-991.17"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_cluster.this&#45;&gt;module.root.module.k8s.var.iam_project_id -->
+<g id="edge65" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_cluster.this&#45;&gt;module.root.module.k8s.var.iam_project_id</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1868.4,-1043.54C1825.49,-1043.82 1773.56,-1044.14 1729.88,-1044.42"/>
+<polygon fill="black" stroke="black" points="1729.87,-1040.92 1719.89,-1044.48 1729.91,-1047.92 1729.87,-1040.92"/>
+</g>
+<!-- module.root.module.k8s.var.etcd_cluster_size -->
+<g id="node65" class="node">
+<title>module.root.module.k8s.var.etcd_cluster_size</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-991" rx="88.2" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-985.95" font-family="Times,serif" font-size="14.00">var.etcd_cluster_size</text>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_cluster.this&#45;&gt;module.root.module.k8s.var.etcd_cluster_size -->
+<g id="edge64" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_cluster.this&#45;&gt;module.root.module.k8s.var.etcd_cluster_size</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1868.4,-1028.86C1821.58,-1021.16 1764.03,-1011.7 1718.16,-1004.16"/>
+<polygon fill="black" stroke="black" points="1719,-1000.75 1708.56,-1002.59 1717.86,-1007.66 1719,-1000.75"/>
+</g>
+<!-- module.root.module.k8s.var.k8s_version -->
+<g id="node66" class="node">
+<title>module.root.module.k8s.var.k8s_version</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-863" rx="69.26" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-857.95" font-family="Times,serif" font-size="14.00">var.k8s_version</text>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_cluster.this&#45;&gt;module.root.module.k8s.var.k8s_version -->
+<g id="edge66" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_cluster.this&#45;&gt;module.root.module.k8s.var.k8s_version</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1917.42,-1024.59C1888.12,-1008.65 1847.53,-983.41 1819.11,-953 1797.1,-929.44 1809.4,-908.68 1783.11,-890 1764.27,-876.61 1740.69,-869.3 1718.05,-865.46"/>
+<polygon fill="black" stroke="black" points="1718.58,-862 1708.18,-864.01 1717.57,-868.93 1718.58,-862"/>
+</g>
+<!-- module.root.module.k8s.var.vpc_subnet_id -->
+<g id="node67" class="node">
+<title>module.root.module.k8s.var.vpc_subnet_id</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-917" rx="78.48" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-911.95" font-family="Times,serif" font-size="14.00">var.vpc_subnet_id</text>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_cluster.this&#45;&gt;module.root.module.k8s.var.vpc_subnet_id -->
+<g id="edge68" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_cluster.this&#45;&gt;module.root.module.k8s.var.vpc_subnet_id</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1926.82,-1024.61C1893.91,-1003.47 1836.62,-969.11 1783.11,-949 1761.23,-940.77 1736.65,-934.36 1714.03,-929.51"/>
+<polygon fill="black" stroke="black" points="1714.74,-926.08 1704.24,-927.49 1713.32,-932.94 1714.74,-926.08"/>
+</g>
+<!-- module.root.var.k8s_version (validation) -->
+<g id="node77" class="node">
+<title>module.root.var.k8s_version (validation)</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-757" rx="114.82" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-751.95" font-family="Times,serif" font-size="14.00">var.k8s_version (validation)</text>
+</g>
+<!-- module.root.module.k8s.var.k8s_version&#45;&gt;module.root.var.k8s_version (validation) -->
+<g id="edge95" class="edge">
+<title>module.root.module.k8s.var.k8s_version&#45;&gt;module.root.var.k8s_version (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1567.59,-864.34C1541.85,-861.96 1513.42,-855.63 1491.04,-841 1465.96,-824.6 1480.03,-800.54 1455.04,-784 1441.73,-775.19 1426.52,-768.91 1410.84,-764.49"/>
+<polygon fill="black" stroke="black" points="1411.95,-761.16 1401.4,-762.09 1410.23,-767.95 1411.95,-761.16"/>
+</g>
+<!-- module.root.module.k8s.var.vpc_subnet_id&#45;&gt;module.root.data.nebius_vpc_v1_subnet.this -->
+<g id="edge102" class="edge">
+<title>module.root.module.k8s.var.vpc_subnet_id&#45;&gt;module.root.data.nebius_vpc_v1_subnet.this</title>
+<path fill="none" stroke="black" d="M1558.91,-914.42C1535.55,-910.66 1510.86,-903.44 1491.04,-890 1466.24,-873.19 1480.27,-849.16 1455.04,-833 1437.06,-821.48 1415.73,-814.77 1394.46,-811.05"/>
+<polygon fill="black" stroke="black" points="1395.27,-807.64 1384.85,-809.6 1394.22,-814.56 1395.27,-807.64"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.cpu -->
+<g id="node68" class="node">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.cpu</title>
+<path fill="none" stroke="black" d="M2385.67,-1666C2385.67,-1666 2206.92,-1666 2206.92,-1666 2200.92,-1666 2194.92,-1660 2194.92,-1654 2194.92,-1654 2194.92,-1642 2194.92,-1642 2194.92,-1636 2200.92,-1630 2206.92,-1630 2206.92,-1630 2385.67,-1630 2385.67,-1630 2391.67,-1630 2397.67,-1636 2397.67,-1642 2397.67,-1642 2397.67,-1654 2397.67,-1654 2397.67,-1660 2391.67,-1666 2385.67,-1666"/>
+<text text-anchor="middle" x="2296.29" y="-1642.95" font-family="Times,serif" font-size="14.00">nebius_mk8s_v1_node_group.cpu</text>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.local.node_ssh_access -->
+<g id="edge69" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.local.node_ssh_access</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2261.33,-1666.48C2221.69,-1687.34 2153.66,-1720.98 2091.74,-1741 2075.47,-1746.26 2057.76,-1750.69 2040.67,-1754.33"/>
+<polygon fill="black" stroke="black" points="2040.12,-1750.87 2031.03,-1756.31 2041.53,-1757.73 2040.12,-1750.87"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.module.labels.output.label_group_name_cpu -->
+<g id="edge70" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.module.labels.output.label_group_name_cpu</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2260.95,-1629.55C2221.24,-1608.92 2153.4,-1575.8 2091.74,-1556 2080.85,-1552.5 2069.31,-1549.37 2057.76,-1546.59"/>
+<polygon fill="black" stroke="black" points="2058.69,-1543.22 2048.16,-1544.37 2057.12,-1550.04 2058.69,-1543.22"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.module.labels.output.name_node_group_cpu -->
+<g id="edge71" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.module.labels.output.name_node_group_cpu</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2212.28,-1629.54C2175.44,-1621.59 2131.5,-1612.43 2091.74,-1605 2080.86,-1602.97 2069.47,-1600.95 2058.11,-1599"/>
+<polygon fill="black" stroke="black" points="2058.72,-1595.56 2048.27,-1597.34 2057.55,-1602.46 2058.72,-1595.56"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.nebius_mk8s_v1_cluster.this -->
+<g id="edge72" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.nebius_mk8s_v1_cluster.this</title>
+<path fill="none" stroke="black" d="M2261.65,-1629.66C2221.91,-1605.97 2157.45,-1560.69 2127.74,-1502 2084.23,-1416.05 2155.87,-1141.88 2091.74,-1070 2081.54,-1058.57 2067.98,-1051.16 2053.39,-1046.48"/>
+<polygon fill="black" stroke="black" points="2054.64,-1043.2 2044.07,-1043.94 2052.8,-1049.95 2054.64,-1043.2"/>
+</g>
+<!-- module.root.module.k8s.var.filestores -->
+<g id="node69" class="node">
+<title>module.root.module.k8s.var.filestores</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-1714" rx="58.52" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-1708.95" font-family="Times,serif" font-size="14.00">var.filestores</text>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.var.filestores -->
+<g id="edge73" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.var.filestores</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2200.45,-1666.47C2141.65,-1677.92 2067.88,-1692.29 2016.93,-1702.22"/>
+<polygon fill="black" stroke="black" points="2016.41,-1698.75 2007.26,-1704.1 2017.75,-1705.62 2016.41,-1698.75"/>
+</g>
+<!-- module.root.module.k8s.var.node_group_cpu -->
+<g id="node70" class="node">
+<title>module.root.module.k8s.var.node_group_cpu</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-1822" rx="86.67" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-1816.95" font-family="Times,serif" font-size="14.00">var.node_group_cpu</text>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.var.node_group_cpu -->
+<g id="edge74" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.cpu&#45;&gt;module.root.module.k8s.var.node_group_cpu</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2276.01,-1666.42C2241.82,-1697.98 2167.06,-1762.16 2091.74,-1795 2076.25,-1801.75 2059.02,-1806.84 2042.19,-1810.66"/>
+<polygon fill="black" stroke="black" points="2041.74,-1807.17 2032.68,-1812.67 2043.19,-1814.02 2041.74,-1807.17"/>
+</g>
+<!-- module.root.var.k8s_cluster_node_group_cpu -->
+<g id="node78" class="node">
+<title>module.root.var.k8s_cluster_node_group_cpu</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-1899" rx="133.24" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-1893.95" font-family="Times,serif" font-size="14.00">var.k8s_cluster_node_group_cpu</text>
+</g>
+<!-- module.root.module.k8s.var.node_group_cpu&#45;&gt;module.root.var.k8s_cluster_node_group_cpu -->
+<g id="edge96" class="edge">
+<title>module.root.module.k8s.var.node_group_cpu&#45;&gt;module.root.var.k8s_cluster_node_group_cpu</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1911.66,-1837.84C1877.33,-1850.04 1827.66,-1866.54 1783.11,-1877 1771.22,-1879.79 1758.7,-1882.31 1746.2,-1884.56"/>
+<polygon fill="black" stroke="black" points="1745.97,-1881.04 1736.72,-1886.2 1747.17,-1887.94 1745.97,-1881.04"/>
+</g>
+<!-- module.root.module.k8s.var.node_group_cpu&#45;&gt;module.root.var.slurm_node_count -->
+<g id="edge97" class="edge">
+<title>module.root.module.k8s.var.node_group_cpu&#45;&gt;module.root.var.slurm_node_count</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1933.79,-1839.8C1903.28,-1864.81 1843.26,-1909.17 1783.11,-1926 1639.05,-1966.31 1199.03,-1934.58 1003.31,-1917.76"/>
+<polygon fill="black" stroke="black" points="1003.69,-1914.28 993.42,-1916.91 1003.08,-1921.26 1003.69,-1914.28"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.gpu -->
+<g id="node71" class="node">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.gpu</title>
+<path fill="none" stroke="black" d="M2386.04,-1358C2386.04,-1358 2206.54,-1358 2206.54,-1358 2200.54,-1358 2194.54,-1352 2194.54,-1346 2194.54,-1346 2194.54,-1334 2194.54,-1334 2194.54,-1328 2200.54,-1322 2206.54,-1322 2206.54,-1322 2386.04,-1322 2386.04,-1322 2392.04,-1322 2398.04,-1328 2398.04,-1334 2398.04,-1334 2398.04,-1346 2398.04,-1346 2398.04,-1352 2392.04,-1358 2386.04,-1358"/>
+<text text-anchor="middle" x="2296.29" y="-1334.95" font-family="Times,serif" font-size="14.00">nebius_mk8s_v1_node_group.gpu</text>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.local.node_ssh_access -->
+<g id="edge75" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.local.node_ssh_access</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2245.13,-1358.45C2206.36,-1375.49 2154.86,-1404.76 2127.74,-1448 2058.02,-1559.14 2180.98,-1644.83 2091.74,-1741 2082.85,-1750.57 2071.61,-1757.3 2059.43,-1761.94"/>
+<polygon fill="black" stroke="black" points="2058.36,-1758.61 2049.95,-1765.04 2060.54,-1765.26 2058.36,-1758.61"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.module.labels.output.label_group_name_gpu -->
+<g id="edge76" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.module.labels.output.label_group_name_gpu</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2194.08,-1348.06C2151.2,-1351.48 2101.33,-1355.45 2058.37,-1358.88"/>
+<polygon fill="black" stroke="black" points="2058.23,-1355.38 2048.54,-1359.66 2058.79,-1362.36 2058.23,-1355.38"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.module.labels.output.name_node_group_gpu -->
+<g id="edge77" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.module.labels.output.name_node_group_gpu</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2194.08,-1331.94C2151.2,-1328.52 2101.33,-1324.55 2058.37,-1321.12"/>
+<polygon fill="black" stroke="black" points="2058.79,-1317.64 2048.54,-1320.34 2058.23,-1324.62 2058.79,-1317.64"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.nebius_compute_v1_gpu_cluster.this -->
+<g id="edge78" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.nebius_compute_v1_gpu_cluster.this</title>
+<path fill="none" stroke="black" d="M2264.26,-1321.66C2227.41,-1298.53 2166.11,-1255.6 2127.74,-1205 2103.2,-1172.63 2123.56,-1146.25 2091.74,-1121 2086.53,-1116.87 2080.85,-1113.35 2074.87,-1110.36"/>
+<polygon fill="black" stroke="black" points="2076.49,-1107.25 2065.92,-1106.43 2073.67,-1113.66 2076.49,-1107.25"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.nebius_mk8s_v1_cluster.this -->
+<g id="edge79" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.nebius_mk8s_v1_cluster.this</title>
+<path fill="none" stroke="black" d="M2261.29,-1321.56C2223.05,-1299.06 2161.85,-1257.46 2127.74,-1205 2093.88,-1152.94 2137.02,-1112.49 2091.74,-1070 2081.02,-1059.94 2067.66,-1053.16 2053.55,-1048.65"/>
+<polygon fill="black" stroke="black" points="2054.68,-1045.33 2044.11,-1046.03 2052.81,-1052.07 2054.68,-1045.33"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.var.filestores -->
+<g id="edge80" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.gpu&#45;&gt;module.root.module.k8s.var.filestores</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2245.84,-1358.48C2207.2,-1375.61 2155.54,-1404.98 2127.74,-1448 2069.42,-1538.21 2165.87,-1609.26 2091.74,-1687 2074.61,-1704.96 2049.19,-1712.8 2024.99,-1715.78"/>
+<polygon fill="black" stroke="black" points="2024.75,-1712.29 2015.13,-1716.71 2025.41,-1719.26 2024.75,-1712.29"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.nlb -->
+<g id="node72" class="node">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.nlb</title>
+<path fill="none" stroke="black" d="M2384.54,-1493C2384.54,-1493 2208.04,-1493 2208.04,-1493 2202.04,-1493 2196.04,-1487 2196.04,-1481 2196.04,-1481 2196.04,-1469 2196.04,-1469 2196.04,-1463 2202.04,-1457 2208.04,-1457 2208.04,-1457 2384.54,-1457 2384.54,-1457 2390.54,-1457 2396.54,-1463 2396.54,-1469 2396.54,-1469 2396.54,-1481 2396.54,-1481 2396.54,-1487 2390.54,-1493 2384.54,-1493"/>
+<text text-anchor="middle" x="2296.29" y="-1469.95" font-family="Times,serif" font-size="14.00">nebius_mk8s_v1_node_group.nlb</text>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.nlb&#45;&gt;module.root.module.k8s.local.node_ssh_access -->
+<g id="edge81" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.nlb&#45;&gt;module.root.module.k8s.local.node_ssh_access</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2265.28,-1493.4C2227.71,-1517.95 2163.91,-1564.9 2127.74,-1621 2097.56,-1667.8 2132.93,-1703.53 2091.74,-1741 2082.14,-1749.73 2070.56,-1755.97 2058.25,-1760.39"/>
+<polygon fill="black" stroke="black" points="2057.22,-1757.04 2048.72,-1763.37 2059.31,-1763.73 2057.22,-1757.04"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.nlb&#45;&gt;module.root.module.k8s.module.labels.output.label_group_name_nlb -->
+<g id="edge82" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.nlb&#45;&gt;module.root.module.k8s.module.labels.output.label_group_name_nlb</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2195.91,-1459.16C2152.08,-1452.18 2100.65,-1443.98 2056.71,-1436.98"/>
+<polygon fill="black" stroke="black" points="2057.33,-1433.54 2046.91,-1435.42 2056.23,-1440.45 2057.33,-1433.54"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.nlb&#45;&gt;module.root.module.k8s.module.labels.output.name_node_group_nlb -->
+<g id="edge83" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.nlb&#45;&gt;module.root.module.k8s.module.labels.output.name_node_group_nlb</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2195.91,-1475C2152.08,-1475 2100.65,-1475 2056.71,-1475"/>
+<polygon fill="black" stroke="black" points="2056.93,-1471.5 2046.93,-1475 2056.93,-1478.5 2056.93,-1471.5"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.nlb&#45;&gt;module.root.module.k8s.nebius_mk8s_v1_cluster.this -->
+<g id="edge84" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.nlb&#45;&gt;module.root.module.k8s.nebius_mk8s_v1_cluster.this</title>
+<path fill="none" stroke="black" d="M2245.11,-1456.56C2206.33,-1439.53 2154.83,-1410.27 2127.74,-1367 2057.17,-1254.3 2182.1,-1167.54 2091.74,-1070 2081.39,-1058.83 2067.83,-1051.54 2053.31,-1046.9"/>
+<polygon fill="black" stroke="black" points="2054.62,-1043.63 2044.05,-1044.36 2052.77,-1050.38 2054.62,-1043.63"/>
+</g>
+<!-- module.root.module.k8s.nebius_mk8s_v1_node_group.nlb&#45;&gt;module.root.module.k8s.var.create_nlb -->
+<g id="edge85" class="edge">
+<title>module.root.module.k8s.nebius_mk8s_v1_node_group.nlb&#45;&gt;module.root.module.k8s.var.create_nlb</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2278.88,-1493.31C2246.73,-1527.89 2171.59,-1602.52 2091.74,-1638 2072.38,-1646.6 2050.12,-1651.88 2029.32,-1655.11"/>
+<polygon fill="black" stroke="black" points="2028.86,-1651.64 2019.44,-1656.49 2029.83,-1658.57 2028.86,-1651.64"/>
+</g>
+<!-- module.root.module.k8s.var.create_nlb&#45;&gt;module.root.local.create_nlb -->
+<g id="edge94" class="edge">
+<title>module.root.module.k8s.var.create_nlb&#45;&gt;module.root.local.create_nlb</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1892.42,-1657.53C1866.35,-1659.85 1837.8,-1667.41 1819.11,-1687 1744.98,-1764.74 1852.6,-1844.08 1783.11,-1926 1765.89,-1946.31 1739.8,-1957.91 1714.48,-1964.52"/>
+<polygon fill="black" stroke="black" points="1713.73,-1961.1 1704.79,-1966.79 1715.32,-1967.92 1713.73,-1961.1"/>
+</g>
+<!-- module.root.var.slurm_cluster_name (validation) -->
+<g id="node82" class="node">
+<title>module.root.var.slurm_cluster_name (validation)</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-756" rx="146.04" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-750.95" font-family="Times,serif" font-size="14.00">var.slurm_cluster_name (validation)</text>
+</g>
+<!-- module.root.module.k8s.var.slurm_cluster_name&#45;&gt;module.root.var.slurm_cluster_name (validation) -->
+<g id="edge101" class="edge">
+<title>module.root.module.k8s.var.slurm_cluster_name&#45;&gt;module.root.var.slurm_cluster_name (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1922.58,-908.6C1888.22,-889.85 1831.86,-859.17 1783.11,-833 1749.34,-814.86 1711.02,-794.53 1682.26,-779.32"/>
+<polygon fill="black" stroke="black" points="1683.93,-776.25 1673.46,-774.67 1680.66,-782.43 1683.93,-776.25"/>
+</g>
+<!-- module.root.module.k8s.output.control_plane -->
+<g id="node75" class="node">
+<title>module.root.module.k8s.output.control_plane</title>
+<polygon fill="none" stroke="black" points="2354.54,-1061 2232.04,-1061 2232.04,-1025 2360.54,-1025 2360.54,-1055 2354.54,-1061"/>
+<polyline fill="none" stroke="black" points="2354.54,-1061 2354.54,-1055"/>
+<polyline fill="none" stroke="black" points="2360.54,-1055 2354.54,-1055"/>
+<text text-anchor="middle" x="2296.29" y="-1037.95" font-family="Times,serif" font-size="14.00">output.control_plane</text>
+</g>
+<!-- module.root.module.k8s.output.control_plane&#45;&gt;module.root.module.k8s.nebius_mk8s_v1_cluster.this -->
+<g id="edge92" class="edge">
+<title>module.root.module.k8s.output.control_plane&#45;&gt;module.root.module.k8s.nebius_mk8s_v1_cluster.this</title>
+<path fill="none" stroke="black" d="M2231.55,-1043C2181.5,-1043 2110.95,-1043 2053.82,-1043"/>
+<polygon fill="black" stroke="black" points="2054.1,-1039.5 2044.1,-1043 2054.1,-1046.5 2054.1,-1039.5"/>
+</g>
+<!-- module.root.module.k8s.output.login_ip -->
+<g id="node76" class="node">
+<title>module.root.module.k8s.output.login_ip</title>
+<polygon fill="none" stroke="black" points="2952.47,-1196 2859.22,-1196 2859.22,-1160 2958.47,-1160 2958.47,-1190 2952.47,-1196"/>
+<polyline fill="none" stroke="black" points="2952.47,-1196 2952.47,-1190"/>
+<polyline fill="none" stroke="black" points="2958.47,-1190 2952.47,-1190"/>
+<text text-anchor="middle" x="2908.85" y="-1172.95" font-family="Times,serif" font-size="14.00">output.login_ip</text>
+</g>
+<!-- module.root.module.k8s.output.login_ip&#45;&gt;module.root.module.k8s.local.login_ip -->
+<g id="edge93" class="edge">
+<title>module.root.module.k8s.output.login_ip&#45;&gt;module.root.module.k8s.local.login_ip</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2858.97,-1178C2819.67,-1178 2763.85,-1178 2719.27,-1178"/>
+<polygon fill="black" stroke="black" points="2719.42,-1174.5 2709.42,-1178 2719.42,-1181.5 2719.42,-1174.5"/>
+</g>
+<!-- module.root.var.k8s_version -->
+<g id="node162" class="node">
+<title>module.root.var.k8s_version</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-703" rx="69.26" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-697.95" font-family="Times,serif" font-size="14.00">var.k8s_version</text>
+</g>
+<!-- module.root.var.k8s_version (validation)&#45;&gt;module.root.var.k8s_version -->
+<g id="edge186" class="edge">
+<title>module.root.var.k8s_version (validation)&#45;&gt;module.root.var.k8s_version</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1201.82,-744.81C1134.74,-735.28 1042.54,-722.17 979.36,-713.19"/>
+<polygon fill="black" stroke="black" points="980.2,-709.77 969.8,-711.83 979.21,-716.7 980.2,-709.77"/>
+</g>
+<!-- module.root.var.k8s_cluster_node_group_gpu -->
+<g id="node161" class="node">
+<title>module.root.var.k8s_cluster_node_group_gpu</title>
+<ellipse fill="none" stroke="black" cx="531.56" cy="-811" rx="133.75" ry="18"/>
+<text text-anchor="middle" x="531.56" y="-805.95" font-family="Times,serif" font-size="14.00">var.k8s_cluster_node_group_gpu</text>
+</g>
+<!-- module.root.var.k8s_cluster_node_group_gpu (validation)&#45;&gt;module.root.var.k8s_cluster_node_group_gpu -->
+<g id="edge185" class="edge">
+<title>module.root.var.k8s_cluster_node_group_gpu (validation)&#45;&gt;module.root.var.k8s_cluster_node_group_gpu</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M727.07,-811C710.26,-811 693.36,-811 676.93,-811"/>
+<polygon fill="black" stroke="black" points="677.15,-807.5 667.15,-811 677.15,-814.5 677.15,-807.5"/>
+</g>
+<!-- module.root.var.slurm_cluster_name -->
+<g id="node163" class="node">
+<title>module.root.var.slurm_cluster_name</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-703" rx="100.48" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-697.95" font-family="Times,serif" font-size="14.00">var.slurm_cluster_name</text>
+</g>
+<!-- module.root.var.slurm_cluster_name (validation)&#45;&gt;module.root.var.slurm_cluster_name -->
+<g id="edge187" class="edge">
+<title>module.root.var.slurm_cluster_name (validation)&#45;&gt;module.root.var.slurm_cluster_name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1543.21,-741.8C1491.77,-733.93 1428.17,-724.2 1377.53,-716.46"/>
+<polygon fill="black" stroke="black" points="1378.18,-713.02 1367.76,-714.96 1377.12,-719.94 1378.18,-713.02"/>
+</g>
+<!-- module.root.module.nvidia_operators.helm_release.gpu&#45;operator -->
+<g id="node83" class="node">
+<title>module.root.module.nvidia_operators.helm_release.gpu&#45;operator</title>
+<path fill="none" stroke="black" d="M2977.6,-1925C2977.6,-1925 2840.1,-1925 2840.1,-1925 2834.1,-1925 2828.1,-1919 2828.1,-1913 2828.1,-1913 2828.1,-1901 2828.1,-1901 2828.1,-1895 2834.1,-1889 2840.1,-1889 2840.1,-1889 2977.6,-1889 2977.6,-1889 2983.6,-1889 2989.6,-1895 2989.6,-1901 2989.6,-1901 2989.6,-1913 2989.6,-1913 2989.6,-1919 2983.6,-1925 2977.6,-1925"/>
+<text text-anchor="middle" x="2908.85" y="-1901.95" font-family="Times,serif" font-size="14.00">helm_release.gpu&#45;operator</text>
+</g>
+<!-- module.root.module.nvidia_operators.helm_release.network_operator -->
+<g id="node84" class="node">
+<title>module.root.module.nvidia_operators.helm_release.network_operator</title>
+<path fill="none" stroke="black" d="M2727.22,-1925C2727.22,-1925 2563.47,-1925 2563.47,-1925 2557.47,-1925 2551.47,-1919 2551.47,-1913 2551.47,-1913 2551.47,-1901 2551.47,-1901 2551.47,-1895 2557.47,-1889 2563.47,-1889 2563.47,-1889 2727.22,-1889 2727.22,-1889 2733.22,-1889 2739.22,-1895 2739.22,-1901 2739.22,-1901 2739.22,-1913 2739.22,-1913 2739.22,-1919 2733.22,-1925 2727.22,-1925"/>
+<text text-anchor="middle" x="2645.35" y="-1901.95" font-family="Times,serif" font-size="14.00">helm_release.network_operator</text>
+</g>
+<!-- module.root.module.nvidia_operators.helm_release.gpu&#45;operator&#45;&gt;module.root.module.nvidia_operators.helm_release.network_operator -->
+<g id="edge103" class="edge">
+<title>module.root.module.nvidia_operators.helm_release.gpu&#45;operator&#45;&gt;module.root.module.nvidia_operators.helm_release.network_operator</title>
+<path fill="none" stroke="black" d="M2827.61,-1907C2803.29,-1907 2776.21,-1907 2750.55,-1907"/>
+<polygon fill="black" stroke="black" points="2750.78,-1903.5 2740.78,-1907 2750.78,-1910.5 2750.78,-1903.5"/>
+</g>
+<!-- module.root.module.nvidia_operators.local.helm -->
+<g id="node85" class="node">
+<title>module.root.module.nvidia_operators.local.helm</title>
+<ellipse fill="none" stroke="black" cx="2296.29" cy="-1907" rx="50.33" ry="18"/>
+<text text-anchor="middle" x="2296.29" y="-1901.95" font-family="Times,serif" font-size="14.00">local.helm</text>
+</g>
+<!-- module.root.module.nvidia_operators.helm_release.network_operator&#45;&gt;module.root.module.nvidia_operators.local.helm -->
+<g id="edge104" class="edge">
+<title>module.root.module.nvidia_operators.helm_release.network_operator&#45;&gt;module.root.module.nvidia_operators.local.helm</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2551.34,-1907C2490.18,-1907 2411.85,-1907 2358.45,-1907"/>
+<polygon fill="black" stroke="black" points="2358.63,-1903.5 2348.63,-1907 2358.63,-1910.5 2358.63,-1903.5"/>
+</g>
+<!-- module.root.module.slurm.helm_release.mariadb_operator -->
+<g id="node86" class="node">
+<title>module.root.module.slurm.helm_release.mariadb_operator</title>
+<path fill="none" stroke="black" d="M2378.54,-3101C2378.54,-3101 2214.04,-3101 2214.04,-3101 2208.04,-3101 2202.04,-3095 2202.04,-3089 2202.04,-3089 2202.04,-3077 2202.04,-3077 2202.04,-3071 2208.04,-3065 2214.04,-3065 2214.04,-3065 2378.54,-3065 2378.54,-3065 2384.54,-3065 2390.54,-3071 2390.54,-3077 2390.54,-3077 2390.54,-3089 2390.54,-3089 2390.54,-3095 2384.54,-3101 2378.54,-3101"/>
+<text text-anchor="middle" x="2296.29" y="-3077.95" font-family="Times,serif" font-size="14.00">helm_release.mariadb_operator</text>
+</g>
+<!-- module.root.module.slurm.local.helm -->
+<g id="node87" class="node">
+<title>module.root.module.slurm.local.helm</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-3137" rx="50.33" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-3131.95" font-family="Times,serif" font-size="14.00">local.helm</text>
+</g>
+<!-- module.root.module.slurm.helm_release.mariadb_operator&#45;&gt;module.root.module.slurm.local.helm -->
+<g id="edge105" class="edge">
+<title>module.root.module.slurm.helm_release.mariadb_operator&#45;&gt;module.root.module.slurm.local.helm</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2201.8,-3097.9C2141.33,-3107.53 2064.6,-3119.76 2013.18,-3127.96"/>
+<polygon fill="black" stroke="black" points="2012.79,-3124.47 2003.46,-3129.5 2013.89,-3131.39 2012.79,-3124.47"/>
+</g>
+<!-- module.root.module.slurm.var.accounting_enabled -->
+<g id="node88" class="node">
+<title>module.root.module.slurm.var.accounting_enabled</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-3191" rx="98.44" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-3185.95" font-family="Times,serif" font-size="14.00">var.accounting_enabled</text>
+</g>
+<!-- module.root.module.slurm.helm_release.mariadb_operator&#45;&gt;module.root.module.slurm.var.accounting_enabled -->
+<g id="edge106" class="edge">
+<title>module.root.module.slurm.helm_release.mariadb_operator&#45;&gt;module.root.module.slurm.var.accounting_enabled</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2201.7,-3084.51C2176.16,-3088.41 2149.55,-3095.98 2127.74,-3110 2103.47,-3125.6 2115.71,-3147.96 2091.74,-3164 2081.11,-3171.11 2069.04,-3176.43 2056.58,-3180.4"/>
+<polygon fill="black" stroke="black" points="2055.67,-3177.02 2047.01,-3183.13 2057.59,-3183.75 2055.67,-3177.02"/>
+</g>
+<!-- module.root.module.slurm.var.mariadb_operator_namespace -->
+<g id="node89" class="node">
+<title>module.root.module.slurm.var.mariadb_operator_namespace</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-3029" rx="136.31" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-3023.95" font-family="Times,serif" font-size="14.00">var.mariadb_operator_namespace</text>
+</g>
+<!-- module.root.module.slurm.helm_release.mariadb_operator&#45;&gt;module.root.module.slurm.var.mariadb_operator_namespace -->
+<g id="edge107" class="edge">
+<title>module.root.module.slurm.helm_release.mariadb_operator&#45;&gt;module.root.module.slurm.var.mariadb_operator_namespace</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2201.8,-3068.1C2156.37,-3060.86 2101.76,-3052.16 2055.61,-3044.81"/>
+<polygon fill="black" stroke="black" points="2056.29,-3041.37 2045.87,-3043.25 2055.19,-3048.28 2056.29,-3041.37"/>
+</g>
+<!-- module.root.module.slurm.var.telemetry_enabled -->
+<g id="node90" class="node">
+<title>module.root.module.slurm.var.telemetry_enabled</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-3083" rx="93.32" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-3077.95" font-family="Times,serif" font-size="14.00">var.telemetry_enabled</text>
+</g>
+<!-- module.root.module.slurm.helm_release.mariadb_operator&#45;&gt;module.root.module.slurm.var.telemetry_enabled -->
+<g id="edge108" class="edge">
+<title>module.root.module.slurm.helm_release.mariadb_operator&#45;&gt;module.root.module.slurm.var.telemetry_enabled</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2201.8,-3083C2157.91,-3083 2105.46,-3083 2060.33,-3083"/>
+<polygon fill="black" stroke="black" points="2060.54,-3079.5 2050.54,-3083 2060.54,-3086.5 2060.54,-3079.5"/>
+</g>
+<!-- module.root.module.slurm.var.operator_version -->
+<g id="node113" class="node">
+<title>module.root.module.slurm.var.operator_version</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-3211" rx="87.18" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-3205.95" font-family="Times,serif" font-size="14.00">var.operator_version</text>
+</g>
+<!-- module.root.module.slurm.local.helm&#45;&gt;module.root.module.slurm.var.operator_version -->
+<g id="edge134" class="edge">
+<title>module.root.module.slurm.local.helm&#45;&gt;module.root.module.slurm.var.operator_version</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1910.11,-3145.18C1883.62,-3150.24 1849.35,-3157.06 1819.11,-3164 1779.99,-3172.97 1736.43,-3184.24 1701.85,-3193.49"/>
+<polygon fill="black" stroke="black" points="1701.17,-3190.05 1692.42,-3196.03 1702.98,-3196.81 1701.17,-3190.05"/>
+</g>
+<!-- module.root.var.telemetry_enabled -->
+<g id="node153" class="node">
+<title>module.root.var.telemetry_enabled</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-2200" rx="93.32" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-2194.95" font-family="Times,serif" font-size="14.00">var.telemetry_enabled</text>
+</g>
+<!-- module.root.module.slurm.var.telemetry_enabled&#45;&gt;module.root.var.telemetry_enabled -->
+<g id="edge177" class="edge">
+<title>module.root.module.slurm.var.telemetry_enabled&#45;&gt;module.root.var.telemetry_enabled</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1862.26,-3081C1845.84,-3076.46 1830.41,-3068.72 1819.11,-3056 1751.33,-2979.66 1804.79,-2697.76 1783.11,-2598 1751.9,-2454.32 1680.98,-2292.31 1651.41,-2228.23"/>
+<polygon fill="black" stroke="black" points="1654.73,-2227.08 1647.35,-2219.49 1648.39,-2230.04 1654.73,-2227.08"/>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster -->
+<g id="node91" class="node">
+<title>module.root.module.slurm.helm_release.slurm_cluster</title>
+<path fill="none" stroke="black" d="M2979.85,-2993C2979.85,-2993 2837.85,-2993 2837.85,-2993 2831.85,-2993 2825.85,-2987 2825.85,-2981 2825.85,-2981 2825.85,-2969 2825.85,-2969 2825.85,-2963 2831.85,-2957 2837.85,-2957 2837.85,-2957 2979.85,-2957 2979.85,-2957 2985.85,-2957 2991.85,-2963 2991.85,-2969 2991.85,-2969 2991.85,-2981 2991.85,-2981 2991.85,-2987 2985.85,-2993 2979.85,-2993"/>
+<text text-anchor="middle" x="2908.85" y="-2969.95" font-family="Times,serif" font-size="14.00">helm_release.slurm_cluster</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster_storage -->
+<g id="node92" class="node">
+<title>module.root.module.slurm.helm_release.slurm_cluster_storage</title>
+<path fill="none" stroke="black" d="M2390.17,-3209C2390.17,-3209 2202.42,-3209 2202.42,-3209 2196.42,-3209 2190.42,-3203 2190.42,-3197 2190.42,-3197 2190.42,-3185 2190.42,-3185 2190.42,-3179 2196.42,-3173 2202.42,-3173 2202.42,-3173 2390.17,-3173 2390.17,-3173 2396.17,-3173 2402.17,-3179 2402.17,-3185 2402.17,-3185 2402.17,-3197 2402.17,-3197 2402.17,-3203 2396.17,-3209 2390.17,-3209"/>
+<text text-anchor="middle" x="2296.29" y="-3185.95" font-family="Times,serif" font-size="14.00">helm_release.slurm_cluster_storage</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.helm_release.slurm_cluster_storage -->
+<g id="edge109" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.helm_release.slurm_cluster_storage</title>
+<path fill="none" stroke="black" d="M2830.21,-2993.26C2828.69,-2994.43 2827.24,-2995.68 2825.85,-2997 2787.73,-3033.4 2831.3,-3077.44 2789.85,-3110 2739.22,-3149.76 2559.81,-3104.16 2500.85,-3130 2480.69,-3138.83 2484.58,-3154.26 2464.85,-3164 2448.98,-3171.83 2431.34,-3177.47 2413.63,-3181.52"/>
+<polygon fill="black" stroke="black" points="2413.16,-3178.04 2404.1,-3183.53 2414.6,-3184.89 2413.16,-3178.04"/>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_operator -->
+<g id="node93" class="node">
+<title>module.root.module.slurm.helm_release.slurm_operator</title>
+<path fill="none" stroke="black" d="M2720.85,-2993C2720.85,-2993 2569.85,-2993 2569.85,-2993 2563.85,-2993 2557.85,-2987 2557.85,-2981 2557.85,-2981 2557.85,-2969 2557.85,-2969 2557.85,-2963 2563.85,-2957 2569.85,-2957 2569.85,-2957 2720.85,-2957 2720.85,-2957 2726.85,-2957 2732.85,-2963 2732.85,-2969 2732.85,-2969 2732.85,-2981 2732.85,-2981 2732.85,-2987 2726.85,-2993 2720.85,-2993"/>
+<text text-anchor="middle" x="2645.35" y="-2969.95" font-family="Times,serif" font-size="14.00">helm_release.slurm_operator</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.helm_release.slurm_operator -->
+<g id="edge110" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.helm_release.slurm_operator</title>
+<path fill="none" stroke="black" d="M2825.47,-2975C2799.79,-2975 2771.22,-2975 2744.57,-2975"/>
+<polygon fill="black" stroke="black" points="2744.8,-2971.5 2734.8,-2975 2744.8,-2978.5 2744.8,-2971.5"/>
+</g>
+<!-- module.root.module.slurm.var.exporter_enabled -->
+<g id="node94" class="node">
+<title>module.root.module.slurm.var.exporter_enabled</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-3399" rx="88.71" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-3393.95" font-family="Times,serif" font-size="14.00">var.exporter_enabled</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.exporter_enabled -->
+<g id="edge111" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.exporter_enabled</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2829.58,-2993.26C2828.27,-2994.44 2827.03,-2995.68 2825.85,-2997 2753.75,-3077.81 2835.8,-3139.93 2789.85,-3238 2763.53,-3294.18 2711.16,-3345.08 2677.5,-3374"/>
+<polygon fill="black" stroke="black" points="2675.49,-3371.12 2670.11,-3380.24 2680,-3376.47 2675.49,-3371.12"/>
+</g>
+<!-- module.root.module.slurm.var.login_load_balancer_ip -->
+<g id="node95" class="node">
+<title>module.root.module.slurm.var.login_load_balancer_ip</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-2360" rx="111.74" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-2354.95" font-family="Times,serif" font-size="14.00">var.login_load_balancer_ip</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.login_load_balancer_ip -->
+<g id="edge112" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.login_load_balancer_ip</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2906.85,-2956.68C2901.55,-2866.39 2873.73,-2469.87 2789.85,-2387 2782.22,-2379.46 2773.19,-2373.68 2763.44,-2369.28"/>
+<polygon fill="black" stroke="black" points="2765.04,-2366.14 2754.45,-2365.73 2762.47,-2372.65 2765.04,-2366.14"/>
+</g>
+<!-- module.root.module.slurm.var.login_node_port -->
+<g id="node96" class="node">
+<title>module.root.module.slurm.var.login_node_port</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-3520" rx="85.64" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-3514.95" font-family="Times,serif" font-size="14.00">var.login_node_port</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.login_node_port -->
+<g id="edge113" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.login_node_port</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2829.15,-2993.46C2827.99,-2994.58 2826.89,-2995.76 2825.85,-2997 2764.5,-3070.41 2838.81,-3343.81 2789.85,-3426 2769.49,-3460.17 2731.32,-3484.27 2699.46,-3499.51"/>
+<polygon fill="black" stroke="black" points="2698.37,-3496.16 2690.75,-3503.51 2701.3,-3502.52 2698.37,-3496.16"/>
+</g>
+<!-- module.root.module.slurm.var.login_service_type -->
+<g id="node97" class="node">
+<title>module.root.module.slurm.var.login_service_type</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-2468" rx="94.86" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-2462.95" font-family="Times,serif" font-size="14.00">var.login_service_type</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.login_service_type -->
+<g id="edge114" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.login_service_type</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2905.97,-2956.68C2897.39,-2876.89 2859.42,-2560.84 2789.85,-2495 2778.99,-2484.72 2765.52,-2477.75 2751.22,-2473.1"/>
+<polygon fill="black" stroke="black" points="2752.18,-2469.74 2741.61,-2470.39 2750.28,-2476.47 2752.18,-2469.74"/>
+</g>
+<!-- module.root.module.slurm.var.login_ssh_root_public_keys -->
+<g id="node98" class="node">
+<title>module.root.module.slurm.var.login_ssh_root_public_keys</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-2252" rx="128.63" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-2246.95" font-family="Times,serif" font-size="14.00">var.login_ssh_root_public_keys</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.login_ssh_root_public_keys -->
+<g id="edge115" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.login_ssh_root_public_keys</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2907.47,-2956.75C2905.01,-2857.05 2888.18,-2379.12 2789.85,-2279 2784.42,-2273.47 2778.24,-2268.88 2771.57,-2265.07"/>
+<polygon fill="black" stroke="black" points="2773.34,-2262.05 2762.82,-2260.73 2770.22,-2268.31 2773.34,-2262.05"/>
+</g>
+<!-- module.root.module.slurm.var.nccl_benchmark_enable -->
+<g id="node99" class="node">
+<title>module.root.module.slurm.var.nccl_benchmark_enable</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-2306" rx="114.82" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-2300.95" font-family="Times,serif" font-size="14.00">var.nccl_benchmark_enable</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.nccl_benchmark_enable -->
+<g id="edge116" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.nccl_benchmark_enable</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2907.18,-2956.61C2903.34,-2861.31 2880.91,-2424.44 2789.85,-2333 2782.77,-2325.89 2774.44,-2320.33 2765.43,-2316.01"/>
+<polygon fill="black" stroke="black" points="2766.96,-2312.86 2756.38,-2312.24 2764.26,-2319.32 2766.96,-2312.86"/>
+</g>
+<!-- module.root.module.slurm.var.nccl_benchmark_min_threshold -->
+<g id="node100" class="node">
+<title>module.root.module.slurm.var.nccl_benchmark_min_threshold</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-2414" rx="144.5" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-2408.95" font-family="Times,serif" font-size="14.00">var.nccl_benchmark_min_threshold</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.nccl_benchmark_min_threshold -->
+<g id="edge117" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.nccl_benchmark_min_threshold</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2906.45,-2956.68C2899.58,-2871.5 2866.56,-2515.33 2789.85,-2441 2785.35,-2436.64 2780.39,-2432.88 2775.09,-2429.63"/>
+<polygon fill="black" stroke="black" points="2777.02,-2426.69 2766.56,-2425.04 2773.71,-2432.86 2777.02,-2426.69"/>
+</g>
+<!-- module.root.module.slurm.var.nccl_benchmark_schedule -->
+<g id="node101" class="node">
+<title>module.root.module.slurm.var.nccl_benchmark_schedule</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-2522" rx="123" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-2516.95" font-family="Times,serif" font-size="14.00">var.nccl_benchmark_schedule</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.nccl_benchmark_schedule -->
+<g id="edge118" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.nccl_benchmark_schedule</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2905.34,-2956.51C2894.86,-2882.17 2852.28,-2606.39 2789.85,-2549 2783.29,-2542.97 2775.82,-2538.09 2767.82,-2534.15"/>
+<polygon fill="black" stroke="black" points="2769.39,-2531.01 2758.83,-2530.25 2766.61,-2537.44 2769.39,-2531.01"/>
+</g>
+<!-- module.root.module.slurm.var.nccl_topology_type -->
+<g id="node102" class="node">
+<title>module.root.module.slurm.var.nccl_topology_type</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-3029" rx="97.93" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-3023.95" font-family="Times,serif" font-size="14.00">var.nccl_topology_type</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.nccl_topology_type -->
+<g id="edge119" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.nccl_topology_type</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2829.24,-2993.44C2816.1,-2996.39 2802.6,-2999.34 2789.85,-3002 2769.75,-3006.19 2748,-3010.43 2727.66,-3014.27"/>
+<polygon fill="black" stroke="black" points="2727.2,-3010.8 2718.01,-3016.08 2728.49,-3017.68 2727.2,-3010.8"/>
+</g>
+<!-- module.root.module.slurm.var.node_count -->
+<g id="node103" class="node">
+<title>module.root.module.slurm.var.node_count</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-3083" rx="67.73" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-3077.95" font-family="Times,serif" font-size="14.00">var.node_count</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.node_count -->
+<g id="edge120" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.node_count</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2830.99,-2993.49C2829.22,-2994.6 2827.5,-2995.76 2825.85,-2997 2801.26,-3015.41 2815.12,-3038.54 2789.85,-3056 2770.85,-3069.13 2747.19,-3076.33 2724.61,-3080.16"/>
+<polygon fill="black" stroke="black" points="2724.16,-3076.69 2714.78,-3081.61 2725.18,-3083.62 2724.16,-3076.69"/>
+</g>
+<!-- module.root.module.slurm.var.shared_memory_size_gibibytes -->
+<g id="node104" class="node">
+<title>module.root.module.slurm.var.shared_memory_size_gibibytes</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-2576" rx="142.45" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-2570.95" font-family="Times,serif" font-size="14.00">var.shared_memory_size_gibibytes</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.shared_memory_size_gibibytes -->
+<g id="edge121" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.shared_memory_size_gibibytes</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2908.34,-2956.91C2908.94,-2895.63 2901.95,-2694.31 2789.85,-2598 2786.6,-2595.21 2783.15,-2592.69 2779.54,-2590.42"/>
+<polygon fill="black" stroke="black" points="2781.41,-2587.46 2770.96,-2585.71 2778.04,-2593.59 2781.41,-2587.46"/>
+</g>
+<!-- module.root.module.slurm.var.slurmdbd_config -->
+<g id="node105" class="node">
+<title>module.root.module.slurm.var.slurmdbd_config</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-3157" rx="88.2" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-3151.95" font-family="Times,serif" font-size="14.00">var.slurmdbd_config</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.slurmdbd_config -->
+<g id="edge122" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.slurmdbd_config</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2829.8,-2993.47C2828.43,-2994.58 2827.11,-2995.76 2825.85,-2997 2783.81,-3038.53 2832.76,-3084.37 2789.85,-3125 2776.8,-3137.35 2760.08,-3145.33 2742.69,-3150.41"/>
+<polygon fill="black" stroke="black" points="2742.08,-3146.95 2733.27,-3152.83 2743.83,-3153.73 2742.08,-3146.95"/>
+</g>
+<!-- module.root.module.slurm.var.worker_resources -->
+<g id="node106" class="node">
+<title>module.root.module.slurm.var.worker_resources</title>
+<ellipse fill="none" stroke="black" cx="2645.35" cy="-3211" rx="90.25" ry="18"/>
+<text text-anchor="middle" x="2645.35" y="-3205.95" font-family="Times,serif" font-size="14.00">var.worker_resources</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.worker_resources -->
+<g id="edge123" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster&#45;&gt;module.root.module.slurm.var.worker_resources</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2829.66,-2993.33C2828.33,-2994.48 2827.05,-2995.71 2825.85,-2997 2768.19,-3058.96 2849.82,-3124.28 2789.85,-3184 2777.99,-3195.81 2762.7,-3203.33 2746.54,-3207.98"/>
+<polygon fill="black" stroke="black" points="2746.15,-3204.47 2737.29,-3210.27 2747.83,-3211.26 2746.15,-3204.47"/>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.local.helm -->
+<g id="edge125" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.local.helm</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2189.93,-3174.21C2131.47,-3164.89 2061.08,-3153.68 2012.97,-3146.01"/>
+<polygon fill="black" stroke="black" points="2013.77,-3142.59 2003.34,-3144.48 2012.67,-3149.51 2013.77,-3142.59"/>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.var.accounting_enabled -->
+<g id="edge129" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.var.accounting_enabled</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2189.93,-3191C2150.41,-3191 2105.44,-3191 2065.59,-3191"/>
+<polygon fill="black" stroke="black" points="2065.73,-3187.5 2055.73,-3191 2065.73,-3194.5 2065.73,-3187.5"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.key_slurm_node_group_name -->
+<g id="node108" class="node">
+<title>module.root.module.slurm.module.labels.output.key_slurm_node_group_name</title>
+<polygon fill="none" stroke="black" points="2059.43,-3357 1845.43,-3357 1845.43,-3321 2065.43,-3321 2065.43,-3351 2059.43,-3357"/>
+<polyline fill="none" stroke="black" points="2059.43,-3357 2059.43,-3351"/>
+<polyline fill="none" stroke="black" points="2065.43,-3351 2059.43,-3351"/>
+<text text-anchor="middle" x="1955.43" y="-3333.95" font-family="Times,serif" font-size="14.00">output.key_slurm_node_group_name</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.module.labels.output.key_slurm_node_group_name -->
+<g id="edge126" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.module.labels.output.key_slurm_node_group_name</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2272.46,-3209.4C2236.39,-3237.43 2162.98,-3290.37 2091.74,-3317 2086.77,-3318.86 2081.65,-3320.55 2076.43,-3322.11"/>
+<polygon fill="black" stroke="black" points="2075.77,-3318.66 2067.07,-3324.7 2077.64,-3325.41 2075.77,-3318.66"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.name_node_group_cpu -->
+<g id="node109" class="node">
+<title>module.root.module.slurm.module.labels.output.name_node_group_cpu</title>
+<polygon fill="none" stroke="black" points="1721.95,-3357 1546.2,-3357 1546.2,-3321 1727.95,-3321 1727.95,-3351 1721.95,-3357"/>
+<polyline fill="none" stroke="black" points="1721.95,-3357 1721.95,-3351"/>
+<polyline fill="none" stroke="black" points="1727.95,-3351 1721.95,-3351"/>
+<text text-anchor="middle" x="1637.08" y="-3333.95" font-family="Times,serif" font-size="14.00">output.name_node_group_cpu</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.module.labels.output.name_node_group_cpu -->
+<g id="edge127" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.module.labels.output.name_node_group_cpu</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2190.01,-3205.79C2158.44,-3210 2123.71,-3214.42 2091.74,-3218 2031.28,-3224.78 1869.16,-3208.41 1819.11,-3243 1789.03,-3263.79 1812.57,-3295.33 1783.11,-3317 1770.2,-3326.5 1754.86,-3332.66 1739.07,-3336.55"/>
+<polygon fill="black" stroke="black" points="1738.63,-3333.06 1729.58,-3338.57 1740.09,-3339.91 1738.63,-3333.06"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.name_node_group_gpu -->
+<g id="node110" class="node">
+<title>module.root.module.slurm.module.labels.output.name_node_group_gpu</title>
+<polygon fill="none" stroke="black" points="1722.33,-3411 1545.83,-3411 1545.83,-3375 1728.33,-3375 1728.33,-3405 1722.33,-3411"/>
+<polyline fill="none" stroke="black" points="1722.33,-3411 1722.33,-3405"/>
+<polyline fill="none" stroke="black" points="1728.33,-3405 1722.33,-3405"/>
+<text text-anchor="middle" x="1637.08" y="-3387.95" font-family="Times,serif" font-size="14.00">output.name_node_group_gpu</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.module.labels.output.name_node_group_gpu -->
+<g id="edge128" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.module.labels.output.name_node_group_gpu</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M2221.27,-3209.4C2182.85,-3218.34 2135,-3228.53 2091.74,-3235 2031.61,-3244 1866.9,-3220.41 1819.11,-3258 1779.35,-3289.28 1821.27,-3332.77 1783.11,-3366 1770.8,-3376.73 1755.61,-3383.79 1739.76,-3388.34"/>
+<polygon fill="black" stroke="black" points="1739.02,-3384.92 1730.17,-3390.74 1740.72,-3391.71 1739.02,-3384.92"/>
+</g>
+<!-- module.root.module.slurm.var.filestores -->
+<g id="node111" class="node">
+<title>module.root.module.slurm.var.filestores</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-3285" rx="58.52" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-3279.95" font-family="Times,serif" font-size="14.00">var.filestores</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.var.filestores -->
+<g id="edge130" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.var.filestores</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2238.1,-3209.48C2197.46,-3222.35 2141.49,-3239.56 2091.74,-3253 2066.69,-3259.77 2038.82,-3266.49 2014.92,-3272.02"/>
+<polygon fill="black" stroke="black" points="2014.33,-3268.56 2005.36,-3274.21 2015.89,-3275.39 2014.33,-3268.56"/>
+</g>
+<!-- module.root.module.slurm.var.name -->
+<g id="node112" class="node">
+<title>module.root.module.slurm.var.name</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-2975" rx="45.21" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-2969.95" font-family="Times,serif" font-size="14.00">var.name</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.var.name -->
+<g id="edge131" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster_storage&#45;&gt;module.root.module.slurm.var.name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2190.05,-3193.03C2167.11,-3188.65 2144.67,-3179.97 2127.74,-3164 2074.07,-3113.4 2144.45,-3053.58 2091.74,-3002 2070.91,-2981.62 2039.33,-2974.51 2011.92,-2972.67"/>
+<polygon fill="black" stroke="black" points="2012.12,-2969.17 2001.98,-2972.24 2011.82,-2976.16 2012.12,-2969.17"/>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_operator&#45;&gt;module.root.module.slurm.helm_release.mariadb_operator -->
+<g id="edge132" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_operator&#45;&gt;module.root.module.slurm.helm_release.mariadb_operator</title>
+<path fill="none" stroke="black" d="M2557.59,-2988.54C2538.72,-2992.25 2518.99,-2996.74 2500.85,-3002 2447.2,-3017.56 2388.1,-3041.93 2347.47,-3059.88"/>
+<polygon fill="black" stroke="black" points="2346.14,-3056.64 2338.42,-3063.91 2348.98,-3063.04 2346.14,-3056.64"/>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster_crd -->
+<g id="node107" class="node">
+<title>module.root.module.slurm.helm_release.slurm_cluster_crd</title>
+<path fill="none" stroke="black" d="M2379.29,-3155C2379.29,-3155 2213.29,-3155 2213.29,-3155 2207.29,-3155 2201.29,-3149 2201.29,-3143 2201.29,-3143 2201.29,-3131 2201.29,-3131 2201.29,-3125 2207.29,-3119 2213.29,-3119 2213.29,-3119 2379.29,-3119 2379.29,-3119 2385.29,-3119 2391.29,-3125 2391.29,-3131 2391.29,-3131 2391.29,-3143 2391.29,-3143 2391.29,-3149 2385.29,-3155 2379.29,-3155"/>
+<text text-anchor="middle" x="2296.29" y="-3131.95" font-family="Times,serif" font-size="14.00">helm_release.slurm_cluster_crd</text>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_operator&#45;&gt;module.root.module.slurm.helm_release.slurm_cluster_crd -->
+<g id="edge133" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_operator&#45;&gt;module.root.module.slurm.helm_release.slurm_cluster_crd</title>
+<path fill="none" stroke="black" d="M2557.67,-2976.45C2537.11,-2980.56 2516.61,-2988.25 2500.85,-3002 2462.73,-3035.27 2503.4,-3077.23 2464.85,-3110 2447.56,-3124.69 2425.52,-3132.99 2403.14,-3137.41"/>
+<polygon fill="black" stroke="black" points="2402.56,-3133.96 2393.28,-3139.07 2403.73,-3140.86 2402.56,-3133.96"/>
+</g>
+<!-- module.root.var.slurm_exporter_enabled -->
+<g id="node145" class="node">
+<title>module.root.var.slurm_exporter_enabled</title>
+<ellipse fill="none" stroke="black" cx="2296.29" cy="-3665" rx="114.82" ry="18"/>
+<text text-anchor="middle" x="2296.29" y="-3659.95" font-family="Times,serif" font-size="14.00">var.slurm_exporter_enabled</text>
+</g>
+<!-- module.root.module.slurm.var.exporter_enabled&#45;&gt;module.root.var.slurm_exporter_enabled -->
+<g id="edge169" class="edge">
+<title>module.root.module.slurm.var.exporter_enabled&#45;&gt;module.root.var.slurm_exporter_enabled</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2605.05,-3415.48C2572.65,-3430.98 2527.78,-3457.17 2500.85,-3493 2468.15,-3536.49 2502.96,-3571.17 2464.85,-3610 2445.99,-3629.21 2420.32,-3641.72 2394.73,-3649.85"/>
+<polygon fill="black" stroke="black" points="2393.85,-3646.47 2385.25,-3652.65 2395.83,-3653.18 2393.85,-3646.47"/>
+</g>
+<!-- module.root.var.slurm_login_node_port (validation) -->
+<g id="node146" class="node">
+<title>module.root.var.slurm_login_node_port (validation)</title>
+<ellipse fill="none" stroke="black" cx="2296.29" cy="-3719" rx="157.3" ry="18"/>
+<text text-anchor="middle" x="2296.29" y="-3713.95" font-family="Times,serif" font-size="14.00">var.slurm_login_node_port (validation)</text>
+</g>
+<!-- module.root.module.slurm.var.login_node_port&#45;&gt;module.root.var.slurm_login_node_port (validation) -->
+<g id="edge170" class="edge">
+<title>module.root.module.slurm.var.login_node_port&#45;&gt;module.root.var.slurm_login_node_port (validation)</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2631.46,-3538.25C2604.9,-3574.33 2540.19,-3654.49 2464.85,-3692 2454.55,-3697.12 2443.5,-3701.31 2432.17,-3704.74"/>
+<polygon fill="black" stroke="black" points="2431.38,-3701.32 2422.69,-3707.38 2433.26,-3708.06 2431.38,-3701.32"/>
+</g>
+<!-- module.root.var.slurm_login_ssh_root_public_keys -->
+<g id="node147" class="node">
+<title>module.root.var.slurm_login_ssh_root_public_keys</title>
+<ellipse fill="none" stroke="black" cx="2296.29" cy="-1984" rx="154.74" ry="18"/>
+<text text-anchor="middle" x="2296.29" y="-1978.95" font-family="Times,serif" font-size="14.00">var.slurm_login_ssh_root_public_keys</text>
+</g>
+<!-- module.root.module.slurm.var.login_ssh_root_public_keys&#45;&gt;module.root.var.slurm_login_ssh_root_public_keys -->
+<g id="edge171" class="edge">
+<title>module.root.module.slurm.var.login_ssh_root_public_keys&#45;&gt;module.root.var.slurm_login_ssh_root_public_keys</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2636.7,-2233.72C2616.39,-2187.64 2556.29,-2066.46 2464.85,-2011 2456.06,-2005.67 2446.56,-2001.29 2436.69,-1997.7"/>
+<polygon fill="black" stroke="black" points="2437.9,-1994.42 2427.31,-1994.59 2435.7,-2001.06 2437.9,-1994.42"/>
+</g>
+<!-- module.root.var.nccl_benchmark_enable -->
+<g id="node148" class="node">
+<title>module.root.var.nccl_benchmark_enable</title>
+<ellipse fill="none" stroke="black" cx="2296.29" cy="-2038" rx="114.82" ry="18"/>
+<text text-anchor="middle" x="2296.29" y="-2032.95" font-family="Times,serif" font-size="14.00">var.nccl_benchmark_enable</text>
+</g>
+<!-- module.root.module.slurm.var.nccl_benchmark_enable&#45;&gt;module.root.var.nccl_benchmark_enable -->
+<g id="edge172" class="edge">
+<title>module.root.module.slurm.var.nccl_benchmark_enable&#45;&gt;module.root.var.nccl_benchmark_enable</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2535.57,-2300.48C2522.58,-2295.75 2510.52,-2288.86 2500.85,-2279 2433.31,-2210.15 2533.28,-2132.96 2464.85,-2065 2452.93,-2053.16 2438.01,-2045.26 2422.01,-2040.12"/>
+<polygon fill="black" stroke="black" points="2423.4,-2036.88 2412.83,-2037.54 2421.51,-2043.62 2423.4,-2036.88"/>
+</g>
+<!-- module.root.var.nccl_benchmark_min_threshold -->
+<g id="node149" class="node">
+<title>module.root.var.nccl_benchmark_min_threshold</title>
+<ellipse fill="none" stroke="black" cx="2296.29" cy="-2092" rx="144.5" ry="18"/>
+<text text-anchor="middle" x="2296.29" y="-2086.95" font-family="Times,serif" font-size="14.00">var.nccl_benchmark_min_threshold</text>
+</g>
+<!-- module.root.module.slurm.var.nccl_benchmark_min_threshold&#45;&gt;module.root.var.nccl_benchmark_min_threshold -->
+<g id="edge173" class="edge">
+<title>module.root.module.slurm.var.nccl_benchmark_min_threshold&#45;&gt;module.root.var.nccl_benchmark_min_threshold</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2524.16,-2403.98C2515.51,-2399.64 2507.57,-2394.08 2500.85,-2387 2418.12,-2299.82 2548.71,-2205.09 2464.85,-2119 2458.56,-2112.54 2451.38,-2107.25 2443.62,-2102.92"/>
+<polygon fill="black" stroke="black" points="2445.37,-2099.88 2434.85,-2098.61 2442.28,-2106.16 2445.37,-2099.88"/>
+</g>
+<!-- module.root.var.nccl_benchmark_schedule -->
+<g id="node150" class="node">
+<title>module.root.var.nccl_benchmark_schedule</title>
+<ellipse fill="none" stroke="black" cx="2296.29" cy="-2146" rx="123" ry="18"/>
+<text text-anchor="middle" x="2296.29" y="-2140.95" font-family="Times,serif" font-size="14.00">var.nccl_benchmark_schedule</text>
+</g>
+<!-- module.root.module.slurm.var.nccl_benchmark_schedule&#45;&gt;module.root.var.nccl_benchmark_schedule -->
+<g id="edge174" class="edge">
+<title>module.root.module.slurm.var.nccl_benchmark_schedule&#45;&gt;module.root.var.nccl_benchmark_schedule</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2530.83,-2515.3C2519.56,-2510.58 2509.21,-2504.01 2500.85,-2495 2402.89,-2389.45 2564.18,-2277.26 2464.85,-2173 2455.15,-2162.82 2443.24,-2155.49 2430.28,-2150.31"/>
+<polygon fill="black" stroke="black" points="2431.71,-2147.11 2421.11,-2147.11 2429.4,-2153.71 2431.71,-2147.11"/>
+</g>
+<!-- module.root.var.slurm_shared_memory_size_gibibytes -->
+<g id="node152" class="node">
+<title>module.root.var.slurm_shared_memory_size_gibibytes</title>
+<ellipse fill="none" stroke="black" cx="2296.29" cy="-2200" rx="168.56" ry="18"/>
+<text text-anchor="middle" x="2296.29" y="-2194.95" font-family="Times,serif" font-size="14.00">var.slurm_shared_memory_size_gibibytes</text>
+</g>
+<!-- module.root.module.slurm.var.shared_memory_size_gibibytes&#45;&gt;module.root.var.slurm_shared_memory_size_gibibytes -->
+<g id="edge176" class="edge">
+<title>module.root.module.slurm.var.shared_memory_size_gibibytes&#45;&gt;module.root.var.slurm_shared_memory_size_gibibytes</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2531.95,-2564.74C2520.88,-2560.79 2510.27,-2555.65 2500.85,-2549 2384.9,-2467.2 2325.09,-2296.75 2305.1,-2228.83"/>
+<polygon fill="black" stroke="black" points="2308.56,-2228.22 2302.44,-2219.57 2301.84,-2230.14 2308.56,-2228.22"/>
+</g>
+<!-- module.root.module.slurm.helm_release.slurm_cluster_crd&#45;&gt;module.root.module.slurm.local.helm -->
+<g id="edge124" class="edge">
+<title>module.root.module.slurm.helm_release.slurm_cluster_crd&#45;&gt;module.root.module.slurm.local.helm</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2200.9,-3137C2142.22,-3137 2068.48,-3137 2017.42,-3137"/>
+<polygon fill="black" stroke="black" points="2017.43,-3133.5 2007.43,-3137 2017.43,-3140.5 2017.43,-3133.5"/>
+</g>
+<!-- module.root.module.slurm.module.labels.local.label_key -->
+<g id="node115" class="node">
+<title>module.root.module.slurm.module.labels.local.label_key</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-3447" rx="67.22" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-3441.95" font-family="Times,serif" font-size="14.00">local.label_key</text>
+</g>
+<!-- module.root.module.slurm.module.labels.output.key_slurm_node_group_name&#45;&gt;module.root.module.slurm.module.labels.local.label_key -->
+<g id="edge140" class="edge">
+<title>module.root.module.slurm.module.labels.output.key_slurm_node_group_name&#45;&gt;module.root.module.slurm.module.labels.local.label_key</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1845,-3352.85C1835.85,-3356.35 1827.08,-3360.67 1819.11,-3366 1795.14,-3382.04 1807.19,-3404.11 1783.11,-3420 1763.27,-3433.1 1738.76,-3440.24 1715.56,-3444.04"/>
+<polygon fill="black" stroke="black" points="1715.21,-3440.55 1705.8,-3445.43 1716.2,-3447.48 1715.21,-3440.55"/>
+</g>
+<!-- module.root.module.slurm.module.labels.local.const -->
+<g id="node116" class="node">
+<title>module.root.module.slurm.module.labels.local.const</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-3420" rx="50.84" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-3414.95" font-family="Times,serif" font-size="14.00">local.const</text>
+</g>
+<!-- module.root.module.slurm.module.labels.output.name_node_group_cpu&#45;&gt;module.root.module.slurm.module.labels.local.const -->
+<g id="edge144" class="edge">
+<title>module.root.module.slurm.module.labels.output.name_node_group_cpu&#45;&gt;module.root.module.slurm.module.labels.local.const</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1545.72,-3354.7C1527.56,-3358.17 1508.65,-3362.01 1491.04,-3366 1439.06,-3377.78 1380.25,-3393.87 1339.64,-3405.41"/>
+<polygon fill="black" stroke="black" points="1338.8,-3402.01 1330.15,-3408.12 1340.73,-3408.74 1338.8,-3402.01"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.name_node_group_gpu&#45;&gt;module.root.module.slurm.module.labels.local.const -->
+<g id="edge145" class="edge">
+<title>module.root.module.slurm.module.labels.output.name_node_group_gpu&#45;&gt;module.root.module.slurm.module.labels.local.const</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1545.48,-3400.06C1483.83,-3404.86 1403.93,-3411.09 1349.93,-3415.29"/>
+<polygon fill="black" stroke="black" points="1349.68,-3411.8 1339.99,-3416.07 1350.23,-3418.78 1349.68,-3411.8"/>
+</g>
+<!-- module.root.var.slurm_operator_version -->
+<g id="node151" class="node">
+<title>module.root.var.slurm_operator_version</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-3665" rx="113.28" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-3659.95" font-family="Times,serif" font-size="14.00">var.slurm_operator_version</text>
+</g>
+<!-- module.root.module.slurm.var.operator_version&#45;&gt;module.root.var.slurm_operator_version -->
+<g id="edge175" class="edge">
+<title>module.root.module.slurm.var.operator_version&#45;&gt;module.root.var.slurm_operator_version</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1594.96,-3227.17C1561.11,-3242.77 1514.94,-3269.83 1491.04,-3309 1420.87,-3424.02 1540.23,-3505.62 1455.04,-3610 1438.78,-3629.92 1415.09,-3642.68 1390.7,-3650.83"/>
+<polygon fill="black" stroke="black" points="1389.82,-3647.44 1381.29,-3653.72 1391.87,-3654.13 1389.82,-3647.44"/>
+</g>
+<!-- module.root.module.slurm.module.labels.local.label -->
+<g id="node114" class="node">
+<title>module.root.module.slurm.module.labels.local.label</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-3555" rx="49.3" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-3549.95" font-family="Times,serif" font-size="14.00">local.label</text>
+</g>
+<!-- module.root.module.slurm.module.labels.local.label&#45;&gt;module.root.module.slurm.module.labels.local.label_key -->
+<g id="edge135" class="edge">
+<title>module.root.module.slurm.module.labels.local.label&#45;&gt;module.root.module.slurm.module.labels.local.label_key</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1905.88,-3554.29C1878.42,-3551.81 1844.59,-3545.06 1819.11,-3528 1795.14,-3511.96 1807.19,-3489.89 1783.11,-3474 1763.27,-3460.9 1738.76,-3453.76 1715.56,-3449.96"/>
+<polygon fill="black" stroke="black" points="1716.2,-3446.52 1705.8,-3448.57 1715.21,-3453.45 1716.2,-3446.52"/>
+</g>
+<!-- module.root.module.slurm.module.labels.local.label_key&#45;&gt;module.root.module.slurm.module.labels.local.const -->
+<g id="edge136" class="edge">
+<title>module.root.module.slurm.module.labels.local.label_key&#45;&gt;module.root.module.slurm.module.labels.local.const</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1572.11,-3442.02C1508.59,-3437.07 1411.95,-3429.54 1349.77,-3424.69"/>
+<polygon fill="black" stroke="black" points="1350.33,-3421.23 1340.09,-3423.94 1349.78,-3428.2 1350.33,-3421.23"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.key_k8s_cluster_id -->
+<g id="node117" class="node">
+<title>module.root.module.slurm.module.labels.output.key_k8s_cluster_id</title>
+<polygon fill="none" stroke="black" points="2029.05,-3411 1875.8,-3411 1875.8,-3375 2035.05,-3375 2035.05,-3405 2029.05,-3411"/>
+<polyline fill="none" stroke="black" points="2029.05,-3411 2029.05,-3405"/>
+<polyline fill="none" stroke="black" points="2035.05,-3405 2029.05,-3405"/>
+<text text-anchor="middle" x="1955.43" y="-3387.95" font-family="Times,serif" font-size="14.00">output.key_k8s_cluster_id</text>
+</g>
+<!-- module.root.module.slurm.module.labels.output.key_k8s_cluster_id&#45;&gt;module.root.module.slurm.module.labels.local.label_key -->
+<g id="edge137" class="edge">
+<title>module.root.module.slurm.module.labels.output.key_k8s_cluster_id&#45;&gt;module.root.module.slurm.module.labels.local.label_key</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1875.41,-3406.49C1823.29,-3415.38 1755.72,-3426.92 1706.01,-3435.4"/>
+<polygon fill="black" stroke="black" points="1705.49,-3431.94 1696.23,-3437.07 1706.67,-3438.84 1705.49,-3431.94"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.key_k8s_cluster_name -->
+<g id="node118" class="node">
+<title>module.root.module.slurm.module.labels.output.key_k8s_cluster_name</title>
+<polygon fill="none" stroke="black" points="2038.8,-3465 1866.05,-3465 1866.05,-3429 2044.8,-3429 2044.8,-3459 2038.8,-3465"/>
+<polyline fill="none" stroke="black" points="2038.8,-3465 2038.8,-3459"/>
+<polyline fill="none" stroke="black" points="2044.8,-3459 2038.8,-3459"/>
+<text text-anchor="middle" x="1955.43" y="-3441.95" font-family="Times,serif" font-size="14.00">output.key_k8s_cluster_name</text>
+</g>
+<!-- module.root.module.slurm.module.labels.output.key_k8s_cluster_name&#45;&gt;module.root.module.slurm.module.labels.local.label_key -->
+<g id="edge138" class="edge">
+<title>module.root.module.slurm.module.labels.output.key_k8s_cluster_name&#45;&gt;module.root.module.slurm.module.labels.local.label_key</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1865.88,-3447C1818.79,-3447 1761.4,-3447 1716.01,-3447"/>
+<polygon fill="black" stroke="black" points="1716.25,-3443.5 1706.25,-3447 1716.25,-3450.5 1716.25,-3443.5"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.key_slurm_cluster_name -->
+<g id="node119" class="node">
+<title>module.root.module.slurm.module.labels.output.key_slurm_cluster_name</title>
+<polygon fill="none" stroke="black" points="2045.18,-3519 1859.68,-3519 1859.68,-3483 2051.18,-3483 2051.18,-3513 2045.18,-3519"/>
+<polyline fill="none" stroke="black" points="2045.18,-3519 2045.18,-3513"/>
+<polyline fill="none" stroke="black" points="2051.18,-3513 2045.18,-3513"/>
+<text text-anchor="middle" x="1955.43" y="-3495.95" font-family="Times,serif" font-size="14.00">output.key_slurm_cluster_name</text>
+</g>
+<!-- module.root.module.slurm.module.labels.output.key_slurm_cluster_name&#45;&gt;module.root.module.slurm.module.labels.local.label_key -->
+<g id="edge139" class="edge">
+<title>module.root.module.slurm.module.labels.output.key_slurm_cluster_name&#45;&gt;module.root.module.slurm.module.labels.local.label_key</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1859.51,-3484.8C1810.12,-3476.37 1750.88,-3466.26 1706.11,-3458.61"/>
+<polygon fill="black" stroke="black" points="1706.7,-3455.16 1696.25,-3456.93 1705.52,-3462.06 1706.7,-3455.16"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.label_group_name_cpu -->
+<g id="node120" class="node">
+<title>module.root.module.slurm.module.labels.output.label_group_name_cpu</title>
+<polygon fill="none" stroke="black" points="2381.17,-3465 2205.42,-3465 2205.42,-3429 2387.17,-3429 2387.17,-3459 2381.17,-3465"/>
+<polyline fill="none" stroke="black" points="2381.17,-3465 2381.17,-3459"/>
+<polyline fill="none" stroke="black" points="2387.17,-3459 2381.17,-3459"/>
+<text text-anchor="middle" x="2296.29" y="-3441.95" font-family="Times,serif" font-size="14.00">output.label_group_name_cpu</text>
+</g>
+<!-- module.root.module.slurm.module.labels.output.label_group_name_cpu&#45;&gt;module.root.module.slurm.module.labels.local.label -->
+<g id="edge141" class="edge">
+<title>module.root.module.slurm.module.labels.output.label_group_name_cpu&#45;&gt;module.root.module.slurm.module.labels.local.label</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2205.18,-3448C2178.59,-3451.73 2150.54,-3459.34 2127.74,-3474 2103.47,-3489.6 2115.71,-3511.96 2091.74,-3528 2069.64,-3542.79 2041.27,-3549.83 2016.21,-3553.06"/>
+<polygon fill="black" stroke="black" points="2016.04,-3549.56 2006.48,-3554.13 2016.8,-3556.52 2016.04,-3549.56"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.label_group_name_gpu -->
+<g id="node121" class="node">
+<title>module.root.module.slurm.module.labels.output.label_group_name_gpu</title>
+<polygon fill="none" stroke="black" points="2381.54,-3519 2205.04,-3519 2205.04,-3483 2387.54,-3483 2387.54,-3513 2381.54,-3519"/>
+<polyline fill="none" stroke="black" points="2381.54,-3519 2381.54,-3513"/>
+<polyline fill="none" stroke="black" points="2387.54,-3513 2381.54,-3513"/>
+<text text-anchor="middle" x="2296.29" y="-3495.95" font-family="Times,serif" font-size="14.00">output.label_group_name_gpu</text>
+</g>
+<!-- module.root.module.slurm.module.labels.output.label_group_name_gpu&#45;&gt;module.root.module.slurm.module.labels.local.label -->
+<g id="edge142" class="edge">
+<title>module.root.module.slurm.module.labels.output.label_group_name_gpu&#45;&gt;module.root.module.slurm.module.labels.local.label</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2204.93,-3515.4C2143.55,-3525.18 2064.34,-3537.8 2012.04,-3546.14"/>
+<polygon fill="black" stroke="black" points="2011.8,-3542.63 2002.47,-3547.66 2012.9,-3549.54 2011.8,-3542.63"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.label_group_name_nlb -->
+<g id="node122" class="node">
+<title>module.root.module.slurm.module.labels.output.label_group_name_nlb</title>
+<polygon fill="none" stroke="black" points="2380.04,-3573 2206.54,-3573 2206.54,-3537 2386.04,-3537 2386.04,-3567 2380.04,-3573"/>
+<polyline fill="none" stroke="black" points="2380.04,-3573 2380.04,-3567"/>
+<polyline fill="none" stroke="black" points="2386.04,-3567 2380.04,-3567"/>
+<text text-anchor="middle" x="2296.29" y="-3549.95" font-family="Times,serif" font-size="14.00">output.label_group_name_nlb</text>
+</g>
+<!-- module.root.module.slurm.module.labels.output.label_group_name_nlb&#45;&gt;module.root.module.slurm.module.labels.local.label -->
+<g id="edge143" class="edge">
+<title>module.root.module.slurm.module.labels.output.label_group_name_nlb&#45;&gt;module.root.module.slurm.module.labels.local.label</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2206.26,-3555C2146.46,-3555 2069.27,-3555 2016.62,-3555"/>
+<polygon fill="black" stroke="black" points="2016.63,-3551.5 2006.63,-3555 2016.63,-3558.5 2016.63,-3551.5"/>
+</g>
+<!-- module.root.module.slurm.module.labels.output.name_node_group_nlb -->
+<g id="node123" class="node">
+<title>module.root.module.slurm.module.labels.output.name_node_group_nlb</title>
+<polygon fill="none" stroke="black" points="1720.83,-3519 1547.33,-3519 1547.33,-3483 1726.83,-3483 1726.83,-3513 1720.83,-3519"/>
+<polyline fill="none" stroke="black" points="1720.83,-3519 1720.83,-3513"/>
+<polyline fill="none" stroke="black" points="1726.83,-3513 1720.83,-3513"/>
+<text text-anchor="middle" x="1637.08" y="-3495.95" font-family="Times,serif" font-size="14.00">output.name_node_group_nlb</text>
+</g>
+<!-- module.root.module.slurm.module.labels.output.name_node_group_nlb&#45;&gt;module.root.module.slurm.module.labels.local.const -->
+<g id="edge146" class="edge">
+<title>module.root.module.slurm.module.labels.output.name_node_group_nlb&#45;&gt;module.root.module.slurm.module.labels.local.const</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1546.97,-3492.26C1527.89,-3488.26 1508.29,-3482.45 1491.04,-3474 1471.82,-3464.59 1474.51,-3450.91 1455.04,-3442 1422.63,-3427.16 1383.15,-3421.5 1350.89,-3419.62"/>
+<polygon fill="black" stroke="black" points="1351.46,-3416.15 1341.31,-3419.18 1351.14,-3423.14 1351.46,-3416.15"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.dashboard -->
+<g id="node124" class="node">
+<title>module.root.module.slurm.module.monitoring.helm_release.dashboard</title>
+<path fill="none" stroke="black" d="M2706.97,-2808C2706.97,-2808 2583.72,-2808 2583.72,-2808 2577.72,-2808 2571.72,-2802 2571.72,-2796 2571.72,-2796 2571.72,-2784 2571.72,-2784 2571.72,-2778 2577.72,-2772 2583.72,-2772 2583.72,-2772 2706.97,-2772 2706.97,-2772 2712.97,-2772 2718.97,-2778 2718.97,-2784 2718.97,-2784 2718.97,-2796 2718.97,-2796 2718.97,-2802 2712.97,-2808 2706.97,-2808"/>
+<text text-anchor="middle" x="2645.35" y="-2784.95" font-family="Times,serif" font-size="14.00">helm_release.dashboard</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.fb_logs_collector -->
+<g id="node125" class="node">
+<title>module.root.module.slurm.module.monitoring.helm_release.fb_logs_collector</title>
+<path fill="none" stroke="black" d="M2377.42,-2754C2377.42,-2754 2215.17,-2754 2215.17,-2754 2209.17,-2754 2203.17,-2748 2203.17,-2742 2203.17,-2742 2203.17,-2730 2203.17,-2730 2203.17,-2724 2209.17,-2718 2215.17,-2718 2215.17,-2718 2377.42,-2718 2377.42,-2718 2383.42,-2718 2389.42,-2724 2389.42,-2730 2389.42,-2730 2389.42,-2742 2389.42,-2742 2389.42,-2748 2383.42,-2754 2377.42,-2754"/>
+<text text-anchor="middle" x="2296.29" y="-2730.95" font-family="Times,serif" font-size="14.00">helm_release.fb_logs_collector</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.dashboard&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.fb_logs_collector -->
+<g id="edge147" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.dashboard&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.fb_logs_collector</title>
+<path fill="none" stroke="black" d="M2571.34,-2778.86C2548.74,-2775.4 2523.76,-2771.56 2500.85,-2768 2468.36,-2762.96 2432.96,-2757.41 2400.93,-2752.37"/>
+<polygon fill="black" stroke="black" points="2401.66,-2748.94 2391.24,-2750.85 2400.58,-2755.86 2401.66,-2748.94"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.var.slurm_cluster_name -->
+<g id="node126" class="node">
+<title>module.root.module.slurm.module.monitoring.var.slurm_cluster_name</title>
+<ellipse fill="none" stroke="black" cx="2296.29" cy="-2844" rx="100.48" ry="18"/>
+<text text-anchor="middle" x="2296.29" y="-2838.95" font-family="Times,serif" font-size="14.00">var.slurm_cluster_name</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.dashboard&#45;&gt;module.root.module.slurm.module.monitoring.var.slurm_cluster_name -->
+<g id="edge148" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.dashboard&#45;&gt;module.root.module.slurm.module.monitoring.var.slurm_cluster_name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2571.34,-2801.14C2548.74,-2804.6 2523.76,-2808.44 2500.85,-2812 2462.41,-2817.97 2419.89,-2824.64 2383.7,-2830.34"/>
+<polygon fill="black" stroke="black" points="2383.51,-2826.83 2374.18,-2831.84 2384.6,-2833.74 2383.51,-2826.83"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.vm_logs_server -->
+<g id="node127" class="node">
+<title>module.root.module.slurm.module.monitoring.helm_release.vm_logs_server</title>
+<path fill="none" stroke="black" d="M2032.8,-2754C2032.8,-2754 1878.05,-2754 1878.05,-2754 1872.05,-2754 1866.05,-2748 1866.05,-2742 1866.05,-2742 1866.05,-2730 1866.05,-2730 1866.05,-2724 1872.05,-2718 1878.05,-2718 1878.05,-2718 2032.8,-2718 2032.8,-2718 2038.8,-2718 2044.8,-2724 2044.8,-2730 2044.8,-2730 2044.8,-2742 2044.8,-2742 2044.8,-2748 2038.8,-2754 2032.8,-2754"/>
+<text text-anchor="middle" x="1955.43" y="-2730.95" font-family="Times,serif" font-size="14.00">helm_release.vm_logs_server</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.fb_logs_collector&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.vm_logs_server -->
+<g id="edge149" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.fb_logs_collector&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.vm_logs_server</title>
+<path fill="none" stroke="black" d="M2202.7,-2736C2157.35,-2736 2102.68,-2736 2056.38,-2736"/>
+<polygon fill="black" stroke="black" points="2056.63,-2732.5 2046.63,-2736 2056.63,-2739.5 2056.63,-2732.5"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.var.resources_fb_logs_collector -->
+<g id="node128" class="node">
+<title>module.root.module.slurm.module.monitoring.var.resources_fb_logs_collector</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-2682" rx="128.63" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-2676.95" font-family="Times,serif" font-size="14.00">var.resources_fb_logs_collector</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.fb_logs_collector&#45;&gt;module.root.module.slurm.module.monitoring.var.resources_fb_logs_collector -->
+<g id="edge150" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.fb_logs_collector&#45;&gt;module.root.module.slurm.module.monitoring.var.resources_fb_logs_collector</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2202.98,-2724.79C2178.48,-2721.57 2152.08,-2717.87 2127.74,-2714 2099.9,-2709.58 2069.63,-2704.13 2042.4,-2699"/>
+<polygon fill="black" stroke="black" points="2043.29,-2695.61 2032.81,-2697.18 2041.98,-2702.48 2043.29,-2695.61"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.var.slurm_cluster_name&#45;&gt;module.root.module.slurm.var.name -->
+<g id="edge168" class="edge">
+<title>module.root.module.slurm.module.monitoring.var.slurm_cluster_name&#45;&gt;module.root.module.slurm.var.name</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2197.81,-2839.96C2172.94,-2843.2 2147.64,-2850.73 2127.74,-2866 2094.54,-2891.47 2124.54,-2927.02 2091.74,-2953 2069.37,-2970.71 2038.28,-2976.66 2011.54,-2977.98"/>
+<polygon fill="black" stroke="black" points="2011.8,-2974.47 2001.9,-2978.24 2011.99,-2981.47 2011.8,-2974.47"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.vm_operator -->
+<g id="node134" class="node">
+<title>module.root.module.slurm.module.monitoring.helm_release.vm_operator</title>
+<path fill="none" stroke="black" d="M1705.83,-2808C1705.83,-2808 1568.33,-2808 1568.33,-2808 1562.33,-2808 1556.33,-2802 1556.33,-2796 1556.33,-2796 1556.33,-2784 1556.33,-2784 1556.33,-2778 1562.33,-2772 1568.33,-2772 1568.33,-2772 1705.83,-2772 1705.83,-2772 1711.83,-2772 1717.83,-2778 1717.83,-2784 1717.83,-2784 1717.83,-2796 1717.83,-2796 1717.83,-2802 1711.83,-2808 1705.83,-2808"/>
+<text text-anchor="middle" x="1637.08" y="-2784.95" font-family="Times,serif" font-size="14.00">helm_release.vm_operator</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.vm_logs_server&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.vm_operator -->
+<g id="edge158" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.vm_logs_server&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.vm_operator</title>
+<path fill="none" stroke="black" d="M1865.88,-2751.11C1823.35,-2758.37 1772.42,-2767.07 1729.51,-2774.39"/>
+<polygon fill="black" stroke="black" points="1728.98,-2770.93 1719.71,-2776.07 1730.15,-2777.83 1728.98,-2770.93"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.var.create_pvcs -->
+<g id="node135" class="node">
+<title>module.root.module.slurm.module.monitoring.var.create_pvcs</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-2736" rx="68.24" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-2730.95" font-family="Times,serif" font-size="14.00">var.create_pvcs</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.vm_logs_server&#45;&gt;module.root.module.slurm.module.monitoring.var.create_pvcs -->
+<g id="edge160" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.vm_logs_server&#45;&gt;module.root.module.slurm.module.monitoring.var.create_pvcs</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1865.88,-2736C1819.12,-2736 1762.22,-2736 1716.98,-2736"/>
+<polygon fill="black" stroke="black" points="1717.26,-2732.5 1707.26,-2736 1717.26,-2739.5 1717.26,-2732.5"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.local.vm_logs_server -->
+<g id="node138" class="node">
+<title>module.root.module.slurm.module.monitoring.local.vm_logs_server</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-2628" rx="90.76" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-2622.95" font-family="Times,serif" font-size="14.00">local.vm_logs_server</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.vm_logs_server&#45;&gt;module.root.module.slurm.module.monitoring.local.vm_logs_server -->
+<g id="edge159" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.vm_logs_server&#45;&gt;module.root.module.slurm.module.monitoring.local.vm_logs_server</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1865.65,-2728.63C1849.25,-2724.48 1832.95,-2718.26 1819.11,-2709 1795.14,-2692.96 1807.19,-2670.89 1783.11,-2655 1769.09,-2645.74 1752.72,-2639.45 1736.13,-2635.23"/>
+<polygon fill="black" stroke="black" points="1737.23,-2631.89 1726.7,-2633.07 1735.67,-2638.71 1737.23,-2631.89"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.var.resources_vm_logs_server -->
+<g id="node139" class="node">
+<title>module.root.module.slurm.module.monitoring.var.resources_vm_logs_server</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-2682" rx="123.52" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-2676.95" font-family="Times,serif" font-size="14.00">var.resources_vm_logs_server</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.vm_logs_server&#45;&gt;module.root.module.slurm.module.monitoring.var.resources_vm_logs_server -->
+<g id="edge161" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.vm_logs_server&#45;&gt;module.root.module.slurm.module.monitoring.var.resources_vm_logs_server</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1865.88,-2720.89C1823.6,-2713.67 1773.02,-2705.03 1730.28,-2697.74"/>
+<polygon fill="black" stroke="black" points="1730.95,-2694.3 1720.51,-2696.07 1729.78,-2701.2 1730.95,-2694.3"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.prometheus_stack -->
+<g id="node129" class="node">
+<title>module.root.module.slurm.module.monitoring.helm_release.prometheus_stack</title>
+<path fill="none" stroke="black" d="M1371.53,-2781C1371.53,-2781 1205.53,-2781 1205.53,-2781 1199.53,-2781 1193.53,-2775 1193.53,-2769 1193.53,-2769 1193.53,-2757 1193.53,-2757 1193.53,-2751 1199.53,-2745 1205.53,-2745 1205.53,-2745 1371.53,-2745 1371.53,-2745 1377.53,-2745 1383.53,-2751 1383.53,-2757 1383.53,-2757 1383.53,-2769 1383.53,-2769 1383.53,-2775 1377.53,-2781 1371.53,-2781"/>
+<text text-anchor="middle" x="1288.53" y="-2757.95" font-family="Times,serif" font-size="14.00">helm_release.prometheus_stack</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.certificate_manager -->
+<g id="node130" class="node">
+<title>module.root.module.slurm.module.monitoring.helm_release.certificate_manager</title>
+<path fill="none" stroke="black" d="M994.6,-2781C994.6,-2781 818.85,-2781 818.85,-2781 812.85,-2781 806.85,-2775 806.85,-2769 806.85,-2769 806.85,-2757 806.85,-2757 806.85,-2751 812.85,-2745 818.85,-2745 818.85,-2745 994.6,-2745 994.6,-2745 1000.6,-2745 1006.6,-2751 1006.6,-2757 1006.6,-2757 1006.6,-2769 1006.6,-2769 1006.6,-2775 1000.6,-2781 994.6,-2781"/>
+<text text-anchor="middle" x="906.72" y="-2757.95" font-family="Times,serif" font-size="14.00">helm_release.certificate_manager</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.prometheus_stack&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.certificate_manager -->
+<g id="edge151" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.prometheus_stack&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.certificate_manager</title>
+<path fill="none" stroke="black" d="M1193.16,-2763C1140.13,-2763 1073.66,-2763 1018.21,-2763"/>
+<polygon fill="black" stroke="black" points="1018.43,-2759.5 1008.43,-2763 1018.43,-2766.5 1018.43,-2759.5"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.local.metrics_collector -->
+<g id="node131" class="node">
+<title>module.root.module.slurm.module.monitoring.local.metrics_collector</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-2709" rx="95.88" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-2703.95" font-family="Times,serif" font-size="14.00">local.metrics_collector</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.prometheus_stack&#45;&gt;module.root.module.slurm.module.monitoring.local.metrics_collector -->
+<g id="edge152" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.prometheus_stack&#45;&gt;module.root.module.slurm.module.monitoring.local.metrics_collector</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1193.16,-2749.58C1132.69,-2740.98 1054.73,-2729.9 995.58,-2721.49"/>
+<polygon fill="black" stroke="black" points="996.28,-2718.05 985.88,-2720.11 995.29,-2724.99 996.28,-2718.05"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.var.grafana_admin_password -->
+<g id="node132" class="node">
+<title>module.root.module.slurm.module.monitoring.var.grafana_admin_password</title>
+<ellipse fill="none" stroke="black" cx="906.72" cy="-2871" rx="119.93" ry="18"/>
+<text text-anchor="middle" x="906.72" y="-2865.95" font-family="Times,serif" font-size="14.00">var.grafana_admin_password</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.prometheus_stack&#45;&gt;module.root.module.slurm.module.monitoring.var.grafana_admin_password -->
+<g id="edge153" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.prometheus_stack&#45;&gt;module.root.module.slurm.module.monitoring.var.grafana_admin_password</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1193.18,-2775.05C1169.74,-2778.96 1144.81,-2783.9 1122.03,-2790 1063.94,-2805.55 999.72,-2830.98 956.86,-2849.2"/>
+<polygon fill="black" stroke="black" points="955.65,-2845.92 947.84,-2853.07 958.41,-2852.35 955.65,-2845.92"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.local.namespace -->
+<g id="node142" class="node">
+<title>module.root.module.slurm.module.monitoring.local.namespace</title>
+<ellipse fill="none" stroke="black" cx="531.56" cy="-2709" rx="72.34" ry="18"/>
+<text text-anchor="middle" x="531.56" y="-2703.95" font-family="Times,serif" font-size="14.00">local.namespace</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.local.metrics_collector&#45;&gt;module.root.module.slurm.module.monitoring.local.namespace -->
+<g id="edge165" class="edge">
+<title>module.root.module.slurm.module.monitoring.local.metrics_collector&#45;&gt;module.root.module.slurm.module.monitoring.local.namespace</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M810.59,-2709C750.37,-2709 673.25,-2709 615.52,-2709"/>
+<polygon fill="black" stroke="black" points="615.76,-2705.5 605.76,-2709 615.76,-2712.5 615.76,-2705.5"/>
+</g>
+<!-- module.root.module.slurm.var.telemetry_grafana_admin_password -->
+<g id="node144" class="node">
+<title>module.root.module.slurm.var.telemetry_grafana_admin_password</title>
+<ellipse fill="none" stroke="black" cx="531.56" cy="-2975" rx="159.85" ry="18"/>
+<text text-anchor="middle" x="531.56" y="-2969.95" font-family="Times,serif" font-size="14.00">var.telemetry_grafana_admin_password</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.var.grafana_admin_password&#45;&gt;module.root.module.slurm.var.telemetry_grafana_admin_password -->
+<g id="edge167" class="edge">
+<title>module.root.module.slurm.module.monitoring.var.grafana_admin_password&#45;&gt;module.root.module.slurm.var.telemetry_grafana_admin_password</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M868.25,-2888.35C826.13,-2907.13 755.27,-2936.59 691.42,-2953 680.8,-2955.73 669.69,-2958.14 658.49,-2960.26"/>
+<polygon fill="black" stroke="black" points="657.98,-2956.8 648.77,-2962.02 659.23,-2963.69 657.98,-2956.8"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.slurm_monitor -->
+<g id="node133" class="node">
+<title>module.root.module.slurm.module.monitoring.helm_release.slurm_monitor</title>
+<path fill="none" stroke="black" d="M2030.18,-2835C2030.18,-2835 1880.68,-2835 1880.68,-2835 1874.68,-2835 1868.68,-2829 1868.68,-2823 1868.68,-2823 1868.68,-2811 1868.68,-2811 1868.68,-2805 1874.68,-2799 1880.68,-2799 1880.68,-2799 2030.18,-2799 2030.18,-2799 2036.18,-2799 2042.18,-2805 2042.18,-2811 2042.18,-2811 2042.18,-2823 2042.18,-2823 2042.18,-2829 2036.18,-2835 2030.18,-2835"/>
+<text text-anchor="middle" x="1955.43" y="-2811.95" font-family="Times,serif" font-size="14.00">helm_release.slurm_monitor</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.slurm_monitor&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.vm_operator -->
+<g id="edge154" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.slurm_monitor&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.vm_operator</title>
+<path fill="none" stroke="black" d="M1868.4,-2809.66C1825.31,-2805.98 1773.13,-2801.53 1729.34,-2797.79"/>
+<polygon fill="black" stroke="black" points="1729.88,-2794.32 1719.62,-2796.96 1729.28,-2801.3 1729.88,-2794.32"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.slurm_monitor&#45;&gt;module.root.module.slurm.module.monitoring.var.create_pvcs -->
+<g id="edge155" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.slurm_monitor&#45;&gt;module.root.module.slurm.module.monitoring.var.create_pvcs</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1901.65,-2798.54C1868.02,-2787.23 1823.35,-2773.05 1783.11,-2763 1758.66,-2756.89 1731.57,-2751.49 1707.49,-2747.16"/>
+<polygon fill="black" stroke="black" points="1708.25,-2743.73 1697.79,-2745.44 1707.03,-2750.63 1708.25,-2743.73"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.var.resources_vm_agent -->
+<g id="node136" class="node">
+<title>module.root.module.slurm.module.monitoring.var.resources_vm_agent</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-2844" rx="101" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-2838.95" font-family="Times,serif" font-size="14.00">var.resources_vm_agent</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.slurm_monitor&#45;&gt;module.root.module.slurm.module.monitoring.var.resources_vm_agent -->
+<g id="edge156" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.slurm_monitor&#45;&gt;module.root.module.slurm.module.monitoring.var.resources_vm_agent</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1868.4,-2824.34C1828.85,-2827.72 1781.63,-2831.75 1740.28,-2835.28"/>
+<polygon fill="black" stroke="black" points="1740.24,-2831.77 1730.57,-2836.11 1740.83,-2838.74 1740.24,-2831.77"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.var.resources_vm_single -->
+<g id="node137" class="node">
+<title>module.root.module.slurm.module.monitoring.var.resources_vm_single</title>
+<ellipse fill="none" stroke="black" cx="1637.08" cy="-2898" rx="103.04" ry="18"/>
+<text text-anchor="middle" x="1637.08" y="-2892.95" font-family="Times,serif" font-size="14.00">var.resources_vm_single</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.slurm_monitor&#45;&gt;module.root.module.slurm.module.monitoring.var.resources_vm_single -->
+<g id="edge157" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.slurm_monitor&#45;&gt;module.root.module.slurm.module.monitoring.var.resources_vm_single</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1868.47,-2823.49C1851.58,-2826.82 1834.37,-2831.74 1819.11,-2839 1799.78,-2848.19 1802.34,-2861.59 1783.11,-2871 1769.32,-2877.75 1754.04,-2882.82 1738.72,-2886.63"/>
+<polygon fill="black" stroke="black" points="1738.01,-2883.2 1729.05,-2888.85 1739.58,-2890.02 1738.01,-2883.2"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.vm_operator&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.prometheus_stack -->
+<g id="edge162" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.vm_operator&#45;&gt;module.root.module.slurm.module.monitoring.helm_release.prometheus_stack</title>
+<path fill="none" stroke="black" d="M1556.14,-2783.77C1508.28,-2780.04 1446.88,-2775.26 1395.07,-2771.22"/>
+<polygon fill="black" stroke="black" points="1395.58,-2767.75 1385.34,-2770.46 1395.03,-2774.73 1395.58,-2767.75"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.local.repository -->
+<g id="node140" class="node">
+<title>module.root.module.slurm.module.monitoring.local.repository</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-2817" rx="68.75" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-2811.95" font-family="Times,serif" font-size="14.00">local.repository</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.vm_operator&#45;&gt;module.root.module.slurm.module.monitoring.local.repository -->
+<g id="edge163" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.vm_operator&#45;&gt;module.root.module.slurm.module.monitoring.local.repository</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1556.14,-2796.23C1499.01,-2800.68 1422.58,-2806.63 1366.21,-2811.03"/>
+<polygon fill="black" stroke="black" points="1366.06,-2807.53 1356.36,-2811.79 1366.61,-2814.51 1366.06,-2807.53"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.var.resources_vm_operator -->
+<g id="node141" class="node">
+<title>module.root.module.slurm.module.monitoring.var.resources_vm_operator</title>
+<ellipse fill="none" stroke="black" cx="1288.53" cy="-2871" rx="111.74" ry="18"/>
+<text text-anchor="middle" x="1288.53" y="-2865.95" font-family="Times,serif" font-size="14.00">var.resources_vm_operator</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.helm_release.vm_operator&#45;&gt;module.root.module.slurm.module.monitoring.var.resources_vm_operator -->
+<g id="edge164" class="edge">
+<title>module.root.module.slurm.module.monitoring.helm_release.vm_operator&#45;&gt;module.root.module.slurm.module.monitoring.var.resources_vm_operator</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1555.83,-2798.19C1534.2,-2802.19 1511.21,-2808.14 1491.04,-2817 1472.73,-2825.04 1473.44,-2836.16 1455.04,-2844 1437.8,-2851.34 1418.77,-2856.7 1399.93,-2860.61"/>
+<polygon fill="black" stroke="black" points="1399.52,-2857.12 1390.36,-2862.45 1400.85,-2863.99 1399.52,-2857.12"/>
+</g>
+<!-- module.root.module.slurm.module.monitoring.output.metrics_collector_endpoint -->
+<g id="node143" class="node">
+<title>module.root.module.slurm.module.monitoring.output.metrics_collector_endpoint</title>
+<polygon fill="none" stroke="black" points="1383.91,-2727 1187.16,-2727 1187.16,-2691 1389.91,-2691 1389.91,-2721 1383.91,-2727"/>
+<polyline fill="none" stroke="black" points="1383.91,-2727 1383.91,-2721"/>
+<polyline fill="none" stroke="black" points="1389.91,-2721 1383.91,-2721"/>
+<text text-anchor="middle" x="1288.53" y="-2703.95" font-family="Times,serif" font-size="14.00">output.metrics_collector_endpoint</text>
+</g>
+<!-- module.root.module.slurm.module.monitoring.output.metrics_collector_endpoint&#45;&gt;module.root.module.slurm.module.monitoring.local.metrics_collector -->
+<g id="edge166" class="edge">
+<title>module.root.module.slurm.module.monitoring.output.metrics_collector_endpoint&#45;&gt;module.root.module.slurm.module.monitoring.local.metrics_collector</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1186.75,-2709C1133.61,-2709 1068.43,-2709 1014.43,-2709"/>
+<polygon fill="black" stroke="black" points="1014.6,-2705.5 1004.6,-2709 1014.6,-2712.5 1014.6,-2705.5"/>
+</g>
+<!-- module.root.var.telemetry_grafana_admin_password -->
+<g id="node154" class="node">
+<title>module.root.var.telemetry_grafana_admin_password</title>
+<ellipse fill="none" stroke="black" cx="175.85" cy="-2975" rx="159.85" ry="18"/>
+<text text-anchor="middle" x="175.85" y="-2969.95" font-family="Times,serif" font-size="14.00">var.telemetry_grafana_admin_password</text>
+</g>
+<!-- module.root.module.slurm.var.telemetry_grafana_admin_password&#45;&gt;module.root.var.telemetry_grafana_admin_password -->
+<g id="edge178" class="edge">
+<title>module.root.module.slurm.var.telemetry_grafana_admin_password&#45;&gt;module.root.var.telemetry_grafana_admin_password</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M371.3,-2975C363.32,-2975 355.3,-2975 347.29,-2975"/>
+<polygon fill="black" stroke="black" points="347.5,-2971.5 337.5,-2975 347.5,-2978.5 347.5,-2971.5"/>
+</g>
+<!-- module.root.var.slurm_login_node_port -->
+<g id="node164" class="node">
+<title>module.root.var.slurm_login_node_port</title>
+<ellipse fill="none" stroke="black" cx="1955.43" cy="-3719" rx="111.74" ry="18"/>
+<text text-anchor="middle" x="1955.43" y="-3713.95" font-family="Times,serif" font-size="14.00">var.slurm_login_node_port</text>
+</g>
+<!-- module.root.var.slurm_login_node_port (validation)&#45;&gt;module.root.var.slurm_login_node_port -->
+<g id="edge188" class="edge">
+<title>module.root.var.slurm_login_node_port (validation)&#45;&gt;module.root.var.slurm_login_node_port</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M2138.75,-3719C2118.6,-3719 2098.21,-3719 2078.72,-3719"/>
+<polygon fill="black" stroke="black" points="2078.87,-3715.5 2068.87,-3719 2078.87,-3722.5 2078.87,-3715.5"/>
+</g>
+<!-- module.root.var.iam_token -->
+<g id="node167" class="node">
+<title>module.root.var.iam_token</title>
+<ellipse fill="none" stroke="black" cx="2908.85" cy="-3692" rx="64.15" ry="18"/>
+<text text-anchor="middle" x="2908.85" y="-3686.95" font-family="Times,serif" font-size="14.00">var.iam_token</text>
+</g>
+</g>
+</svg>

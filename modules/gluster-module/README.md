@@ -2,7 +2,7 @@
 # NOTE: This is a module and should not be run manually or standalone
 #####################################################################
 
-example of call as module:
+Example of a call as a module:
 
 ```hcl
 module gluster-module {

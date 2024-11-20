@@ -3,9 +3,11 @@
 ## Features
 
 - Creating a Kubernetes cluster with CPU and GPU nodes.
+
 - Installing the required [Nvidia Gpu Operator](https://github.com/NVIDIA/gpu-operator)
   and [Network Operator](https://docs.nvidia.com/networking/display/cokan10/network+operator) for running GPU
   workloads.- Installing [Grafana](https://github.com/grafana/helm-charts/tree/main/charts/grafana).
+
 - Installing [Prometheus](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus).
 - Installing [Loki](https://github.com/grafana/loki/tree/main/production/helm/loki).
 - Installing [Promtail](https://github.com/grafana/helm-charts/tree/main/charts/promtail).
@@ -29,19 +31,23 @@
    source ~/.bashrc
    ```
 
-3. [Configure](https://docs.nebius.ai/cli/configure/) Nebius CLI (we recommend using a [service account](https://docs.nebius.ai/iam/service-accounts/manage/) for configuration):
-   ```bash
-   nebius init
-   ```
 
-4. Install JQuery (example for Debian-based distros):
-   ```bash
-   sudo apt install jq -y
-   ```
+3. [Configure Nebius CLI](https://docs.nebius.com/cli/configure/) (it is recommended to use [service account](https://docs.nebius.com/iam/service-accounts/manage/) for configuration)
+
+4. Install JQuery:
+   - MacOS:
+     ```bash
+     brew install jq
+     ```
+   - Debian based distributions:
+     ```bash
+     sudo apt install jq -y
+     ```
+
 
 ## Usage
 
-Follow these steps to deploy the Kubernetes cluster:
+To deploy a Kubernetes cluster, follow these steps:
 
 1. Load environment variables:
    ```bash
@@ -51,9 +57,11 @@ Follow these steps to deploy the Kubernetes cluster:
    ```bash
    terraform init
    ```
+
 3. Replace the placeholder content
    in `terraform.tfvars` with configuration values that meet your specific
    requirements. See the details [below](#configuration-variables).
+
 4. Preview the deployment plan:
    ```bash
    terraform plan
@@ -90,7 +98,9 @@ ssh_public_key = {
 cpu_nodes_count  = 1 # Number of CPU nodes
 cpu_nodes_preset = "16vcpu-64gb" # CPU node preset
 gpu_nodes_count  = 1 # Number of GPU nodes
-gpu_nodes_preset = "8gpu-128vcpu-1600gb" # GPU node preset. Set the value to "1gpu-16vcpu-200gb" to deploy nodes with 8 GPUs.
+
+gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 8 GPU can be added to gpu cluster with infiniband connection.
+
 ```
 
 ### Observability options
@@ -153,24 +163,28 @@ For more information on how to access storage in K8s, refer [here](#accessing-st
 nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
 ```
 
+
+### Add credentials to the kubectl configuration file
+1. Run the following command from the terraform deployment folder:
+   ```bash
+   nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
+   ```
 2. Verify the kubectl configuration after adding the credentials:
 
-```bash
-kubectl config view
-```
+   ```bash
+   kubectl config view
+   ```
 
-The output should look like this:
+   The output should look like this:
 
-```bash
-apiVersion: v1
-clusters:
-  - cluster:
-    certificate-authority-data: DATA+OMITTED
-...
-```
+   ```bash
+   apiVersion: v1
+   clusters:
+     - cluster:
+       certificate-authority-data: DATA+OMITTED
+   ```
 
-### Connecting to the cluster
-
+### Connect to the cluster
 Show cluster information:
 
 ```bash
@@ -195,6 +209,7 @@ Observability stack is enabled by default. It includes the following components:
 
 To disable it, set the `enable_grafana` variable to `false` in the `terraform.tfvars` file.
 
+
 To access Grafana:
 
 1. **Port-forward to the Grafana service:** Run the following command to port-forward to the Grafana service:
@@ -202,7 +217,9 @@ To access Grafana:
    kubectl --namespace o11y port-forward service/grafana 8080:80
    ```
 
+
 2. **Access the Grafana dashboard:** Open your browser and go to `http://localhost:8080`.
+
 
 3. **Log in:** Use the default credentials to log in:
    - **Username:** `admin`
@@ -212,18 +229,21 @@ To access Grafana:
 
 #### Create a temporary block to enable Loki
 
-1. Create a SA
-   2. `nebius iam service-account create --parent-id <parent-id> --name <name>`.
-2. Add an SA to editors group.
-   3. Get your tenant id using `nebius iam whoami`.
-   4. Get the `editors` group id using `nebius iam group list --parent-id <tenant-id> | grep -n5 "name: editors"`.
-   3. List all members of the `editors` group
-   with `nebius iam group-membership list-members --parent-id <group-id>`.
-   4. Add your SA to the `editors` group
-   with `nebius iam group-membership create --parent-id <group-id> --member-id <sa-id>`
-3. Create access key and get its credentials:
-   4. `nebius iam access-key create --account-service-account-id <SA-ID> --description 'AWS CLI' --format json`
-   5. `nebius iam access-key get-by-aws-id --aws-access-key-id <AWS-KEY-ID-FROM-PREVIOUS-COMMAND> --view secret --format json`
+
+1. Create a SA \
+   `nebius iam service-account create --parent-id <parent-id> --name <name>`.
+2. Add an SA to editors group. \
+    Get your tenant id using `nebius iam whoami`. \
+    Get the `editors` group id using `nebius iam group list --parent-id <tenant-id> | grep -n5 "name: editors"`. \
+
+    List all members of the `editors` group 
+   with `nebius iam group-membership list-members --parent-id <group-id>`. \
+    Add your SA to the `editors` group
+   with `nebius iam group-membership create --parent-id <group-id> --member-id <sa-id>` \
+3. Create access key and get its credentials: \
+    `nebius iam access-key create --account-service-account-id <SA-ID> --description 'AWS CLI' --format json` \
+    `nebius iam access-key get-by-aws-id --aws-access-key-id <AWS-KEY-ID-FROM-PREVIOUS-COMMAND> --view secret --format json` \
+
 4. Update `loki_access_key_id` and `loki_secret_key` in `terraform.tfvars` with the result of the previous command.
 
 Log aggregation with Loki is enabled by default. If you want to disable it, set the `enable_loki` variable to `false` in the
@@ -235,14 +255,19 @@ To access logs, go to the Loki dashboard `http://localhost:8080/d/o6-BGgnnk/loki
 
 ### Prometheus
 
+
 Prometheus server is enabled by default. If you want to disable it, set the `enable_prometheus` variable to `false` in the `terraform.tfvars` file.
 Because `DCGM exporter` uses Prometheus as a data source it will also be disabled.
+
 
 To access logs, go to the Node exporter folder `http://localhost:8080/f/e6acfbcb-6f13-4a58-8e02-f780811a2404/`
 
 ### NVIDIA DCGM Exporter Dashboard and Alerting
 
+
 NVIDIA DCGM Exporter Dashboard and Alerting rules are enabled by default. If you need to disable it, set the `enable_dcgm` variable to `false` in terraform.tfvars\` file.
+
+
 
 Alerting rules are created for node groups with GPUs by default.
 

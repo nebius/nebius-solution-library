@@ -1,4 +1,5 @@
 # Global code owners (applies to the whole repo)
-* @malibora @jadnov @elijah-k-nebius
+* @malibora @jadnov @elijah-k-nebius @rdjjke @asteny
 
 .github/workflows @malibora @d3vil-st @elijah-k-nebius
+soperator @dstaroff @asteny @rdjjke @Uburro

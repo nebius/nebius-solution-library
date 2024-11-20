@@ -57,6 +57,8 @@ resource "nebius_compute_v1_instance" "worker" {
       is_mysql              = var.mysql_jobs_backend
       ssh_public_key        = local.ssh_public_key
       shared_fs_type        = var.shared_fs_type
+      nfs_export_path       = var.shared_fs_type == "nfs" ? module.nfs-module[0].nfs_export_path : 0
+      nfs_ip                = var.shared_fs_type == "nfs" ? module.nfs-module[0].nfs_server_internal_ip : 0
       worker_prefix         = var.worker_name_prefix
       cluster_workers_count = var.cluster_workers_count
       hostname              = each.key

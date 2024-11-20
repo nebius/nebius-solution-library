@@ -1,23 +1,21 @@
-variable "helm_repository" {
-  description = "GPU Operator Helm chart source repository."
+variable "cluster_id" {
+  description = "K8s cluster id."
   type        = string
-  default     = "oci://cr.eu-north1.nebius.cloud/marketplace/nebius/nvidia-gpu-operator/chart"
 }
 
-variable "helm_version" {
-  description = "Version of GPU Operator Helm chart."
+variable "parent_id" {
+  description = "Project id."
   type        = string
-  default     = "v24.6.2"
 }
 
 variable "driver_version" {
-  description = "Enable Node Feature Discovery."
+  description = "GPU driver version."
   type        = string
   default     = "550.54.15"
 }
 
-variable "nfd_enabled" {
-  description = "Enable Node Feature Discovery."
+variable "enable_dcgm_service_monitor" {
+  description = "Whether to enable DCGM service monitor."
   type        = bool
-  default     = true
+  default     = false
 }

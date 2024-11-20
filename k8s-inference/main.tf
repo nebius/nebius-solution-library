@@ -37,7 +37,7 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
     filesystems = var.enable_filestore ? [
       {
         attach_mode         = "READ_WRITE"
-        mount_tag           = "filestore-device"
+        mount_tag           = "data"
         existing_filesystem = nebius_compute_v1_filesystem.shared-filesystem[0]
       }
     ] : null
@@ -69,7 +69,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     network_interfaces = [
       {
         subnet_id = var.subnet_id
-        public_ip = var.gpu_nodes_assign_public_ip ? {} : null
+        public_ip_address = var.gpu_nodes_assign_public_ip ? {} : null
       }
     ]
     resources = {
@@ -79,7 +79,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     filesystems = var.enable_filestore ? [
       {
         attach_mode         = "READ_WRITE"
-        mount_tag           = "filestore-device"
+        mount_tag           = "data"
         existing_filesystem = nebius_compute_v1_filesystem.shared-filesystem[0]
       }
     ] : null
