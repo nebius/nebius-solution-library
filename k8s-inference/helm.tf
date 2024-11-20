@@ -39,3 +39,8 @@ module "o11y" {
   }
   test_mode = var.test_mode
 }
+
+module "csi-mounted-fs-path" {
+  source = "../modules/csi-mounted-fs-path"
+  count  = var.enable_filestore ? 1 : 0
+}

@@ -324,3 +324,15 @@ spec:
       storage: "<SIZE>"
 ```
 
+
+## CSI limitations:
+- FS should be mounted to all NodeGroups, because PV attachmend to pod runniing on Node without FS will fail
+- One PV may fill up to all common FS size
+- FS size will not be autoupdated if PV size exceed it spec size
+- FS size for now can't be updated through API, only through NEBOPS. (thread)
+- volumeMode: Block  - is not possible
+
+## Good to know:
+- read-write many mode PV will work
+- MSP started testing that solution to enable early integration with mk8s.
+=======
