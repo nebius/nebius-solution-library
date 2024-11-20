@@ -1,17 +1,16 @@
 # Cloud environment and network
-# parent_id      = "" # The project-id in this context
-# subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
-# ssh_user_name  = "" # Username you want to use to connect to the nodes
-# ssh_public_key = {
-# key  = "put your public ssh key here" OR
-# path = "put path to ssh key here"
-# }
+parent_id      = "project-e00dppgnh7smdq475s" # The project-id in this context
+subnet_id      = "vpcsubnet-e00bdce2b4npsj1m25" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
+ssh_user_name  = "ubuntu" # Username you want to use to connect to the nodes
+ssh_public_key = {
+path = "~/.ssh/id_ed25519.pub"
+}
 
 # K8s modes
 cpu_nodes_count  = 1                     # Number of CPU nodes
 cpu_nodes_preset = "16vcpu-64gb"         # The CPU node preset
-gpu_nodes_count  = 1                     # Number of GPU nodes
-gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 8 GPU can be added to gpu cluster with infiniband connection
+gpu_nodes_count  = 3                     # Number of GPU nodes
+gpu_nodes_preset = "1gpu-16vcpu-200gb" # The GPU node preset. Only nodes with 8 GPU can be added to gpu cluster with infiniband connection
 
 
 # Observability
@@ -27,7 +26,7 @@ enable_dcgm       = true # Enable or disable NVIDIA DCGM Exporter Dashboard and 
 # Storage
 ## Filestore - recommended
 enable_filestore     = true                       # Enable or disable Filestore integration with true or false
-filestore_disk_size  = 100 * (1024 * 1024 * 1024) # Set Filestore disk size in bytes. The multiplication makes it easier to set the size in GB. This would set the size as 100GB
+filestore_disk_size  = 500 * (1024 * 1024 * 1024) # Set Filestore disk size in bytes. The multiplication makes it easier to set the size in GB. This would set the size as 100GB
 filestore_block_size = 4096                       # Set Filestore block size in bytes
 
 ## GlusterFS - legacy

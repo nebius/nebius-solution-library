@@ -169,7 +169,7 @@ variable "gpu_disk_size" {
 variable "infiniband_fabric" {
   description = "Infiniband's fabric name."
   type        = string
-  default     = "fabric-3"
+  default     = "fabric-2"
 }
 
 variable "gpu_nodes_assign_public_ip" {
