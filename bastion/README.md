@@ -1,11 +1,12 @@
-# Wireguard VPN instance
+# Bastion instance
 
-This Terraform solution deploys a Wireguard VPN instance that serves as a secure jump host for your infrastructure. 
+This Terraform solution deploys a Bastion instance that serves as a secure jump host for your infrastructure. 
 It improves the security by minimizing the use of Public IPs and limiting access to the rest of the environment. 
 
 Also create a Service Account with generated Auhorization key pair to authentificate Nebius CLI on the host.
 
 Also installed on the host:
+- Wireguard VPN solution with UI
 - Nebius CLI and configured with profile authentificated by Service account
 - kubectl and configured to connect to first mk8s cluster available in project by --internal flag
   (scanned by: `nebius mk8s v1 cluster list`)
