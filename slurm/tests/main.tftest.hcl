@@ -2,7 +2,7 @@ run "slurm_master_apply" {
   command = apply
 
   variables {
-    region            = "eu-north1"
+    region                = "eu-north1"
     cluster_workers_count = 2
   }
 
@@ -17,7 +17,7 @@ run "slurm_full_apply" {
   command = apply
 
   variables {
-    region            = "eu-north1"
+    region                = "eu-north1"
     cluster_workers_count = 2
   }
 }
@@ -26,7 +26,7 @@ run "test_mode_slurm_apply" {
   command = apply
 
   variables {
-    region            = "eu-north1"
+    region                = "eu-north1"
     cluster_workers_count = 2
     test_mode             = true
   }
