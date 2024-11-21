@@ -6,3 +6,6 @@
 #   path = "put path to ssh key here"
 # }
 # public_ip_allocation_id = ""
+
+platform = cpu-e2
+preset = "4vcpu-16gb"

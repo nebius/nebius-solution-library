@@ -10,7 +10,9 @@
 # K8s modes
 cpu_nodes_count  = 1                   # Number of CPU nodes
 cpu_nodes_preset = "16vcpu-64gb"       # The CPU node preset
+cpu_nodes_platform = "cpu-e2"          # The CPU node platform
 gpu_nodes_count  = 1                   # Number of GPU nodes
+gpu_nodes_platform = "gpu-h100-sxm"    # The GPU node platform
 gpu_nodes_preset = "1gpu-16vcpu-200gb" # The GPU node preset. Set to "8gpu-128vcpu-1600gb", to deploy nodes with 8 GPUs.
 
 # Observability

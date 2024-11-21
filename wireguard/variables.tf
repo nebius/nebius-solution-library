@@ -1,4 +1,4 @@
-# K8s cluster
+# Global parameters
 variable "parent_id" {
   description = "Project ID."
   type        = string
@@ -7,6 +7,20 @@ variable "parent_id" {
 variable "subnet_id" {
   description = "Subnet ID."
   type        = string
+}
+
+
+# Platform
+variable "platform" {
+  description = "Platform for WireGuard host."
+  type        = string
+  default     = "cpu-e2"
+}
+
+variable "preset" {
+  description = "Preset for WireGuard host."
+  type        = string
+  default     = "4vcpu-16gb"
 }
 
 # SSH access

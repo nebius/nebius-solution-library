@@ -19,8 +19,8 @@ resource "nebius_compute_v1_instance" "master" {
   name      = "slurm-master"
   parent_id = var.parent_id
   resources = {
-    platform = "cpu-e2"
-    preset   = "4vcpu-16gb"
+    platform = var.master_platform
+    preset   = var.master_preset
   }
   boot_disk = {
     attach_mode   = "READ_WRITE"

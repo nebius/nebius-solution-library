@@ -29,12 +29,29 @@ variable "ssh_public_key" {
   }
 }
 
-variable "platform_id" {
+variable "master_platform" {
+  description = "Platform for Slurm Master."
   type        = string
-  description = "Platform for workers: gpu-h100-b for Inspur or gpu-h100 for Gigabyte"
-  default     = "gpu-h100-b"
+  default     = "cpu-e2"
 }
 
+variable "master_preset" {
+  description = "Preset for Slurm Master."
+  type        = string
+  default     = "4vcpu-16gb"
+}
+
+variable "worker_platform" {
+  description = "Platform for Slurm Worker."
+  type        = string
+  default     = "gpu-h100-sxm"
+}
+
+variable "worker_preset" {
+  description = "Preset for Slurm Worker."
+  type        = string
+  default     = "8gpu-128vcpu-1600gb"
+}
 
 variable "mysql_jobs_backend" {
   type        = bool
