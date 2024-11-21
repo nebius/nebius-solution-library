@@ -9,6 +9,11 @@ variable "subnet_id" {
   type        = string
 }
 
+variable "region" {
+  description = "Project region."
+  type        = string
+}
+
 
 # Platform
 variable "platform" {
