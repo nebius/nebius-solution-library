@@ -10,4 +10,6 @@ module "nfs-module" {
   ssh_public_key = local.ssh_public_key
   nfs_ip_range   = "192.168.0.0/16"
   nfs_size       = var.fs_size
+  platform       = local.master_platform
+  preset         = local.master_preset
 }

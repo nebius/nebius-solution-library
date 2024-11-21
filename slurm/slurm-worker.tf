@@ -29,8 +29,8 @@ resource "nebius_compute_v1_instance" "worker" {
   name      = each.key
   parent_id = var.parent_id
   resources = {
-    platform = var.worker_platform
-    preset   = var.worker_preset
+    platform = local.worker_platform
+    preset   = local.worker_preset
   }
   gpu_cluster = nebius_compute_v1_gpu_cluster.gpu-cluster-slurm
 
