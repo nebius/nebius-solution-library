@@ -8,13 +8,13 @@ locals {
       master_platform = "cpu-d3"
       master_preset   = "16vcpu-64gb"
       worker_platform = "gpu-h200-sxm"
-      worker_preset   = "1gpu-16vcpu-200gb"
+      worker_preset   = "8gpu-128vcpu-1600gb"
     }
     eu-north1 = {
       master_platform = "cpu-e2"
       master_preset   = "16vcpu-64gb"
       worker_platform = "gpu-h100-sxm"
-      worker_preset   = "1gpu-16vcpu-200gb"
+      worker_preset   = "8gpu-128vcpu-1600gb"
     }
   }
 
