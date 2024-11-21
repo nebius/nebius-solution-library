@@ -6,6 +6,7 @@ run "k8s_inference_apply" {
     ]
   }
   variables {
+    region            = "eu-north1"
     etcd_cluster_size = 1
   }
 }
@@ -26,6 +27,7 @@ run "k8s_node_groups_inference_apply" {
 run "full_inference_apply" {
   command = apply
   variables {
+    region            = "eu-north1"
     etcd_cluster_size = 1
   }
 }
@@ -34,6 +36,7 @@ run "test_mode_k8s_inference_apply" {
   command = apply
 
   variables {
+    region            = "eu-north1"
     etcd_cluster_size = 1
     test_mode         = true
   }
