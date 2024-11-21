@@ -39,6 +39,7 @@ jobs:
 
     env:
       TF_VAR_subnet_id: vpcsubnet-e00dgdntmhgkeej1z3
+      TF_VAR_region: eu-north1
       TF_VAR_loki_access_key_id: ${{ secrets.SA_ACCESS_KEY_ID }}
       TF_VAR_loki_secret_key: ${{ secrets.SA_SECRET_KEY }}
 
