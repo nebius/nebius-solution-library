@@ -1,20 +1,21 @@
 # Cloud environment and network
 # parent_id      = "" # The project-id in this context
 # subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
+# region         = ""
 # ssh_user_name  = "" # Username you want to use to connect to the nodes
 # ssh_public_key = {
 # key  = "put your public ssh key here" OR
 # path = "put path to ssh key here"
 # }
 
-# K8s modes
-cpu_nodes_count  = 1                     # Number of CPU nodes
-cpu_nodes_platform = "cpu-e2"            # The CPU node platform
-cpu_nodes_preset = "16vcpu-64gb"         # The CPU node preset
-gpu_nodes_count  = 1                     # Number of GPU nodes
-gpu_nodes_platform = "gpu-h100-sxm"      # The GPU node platform
-gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 8 GPU can be added to gpu cluster with infiniband connection
-infiniband_fabric = "fabric-3"           # Infiniband fabric name.
+# K8s nodes
+cpu_nodes_count  = 1                   # Number of CPU nodes
+gpu_nodes_count  = 1                   # Number of GPU nodes
+# cpu_nodes_platform =                 # CPU nodes platofm
+# cpu_nodes_preset   =                 # CPU nodes preset
+# gpu_nodes_platform =                 # GPU nodes platform
+# gpu_nodes_preset   =                 # GPU nodes preset
+# infiniband_fabric  =                 # Infiniband fabric name.
 
 
 # Observability

@@ -1,4 +1,4 @@
-# K8s cluster
+# Global
 variable "parent_id" {
   description = "Project ID."
   type        = string
@@ -9,6 +9,12 @@ variable "subnet_id" {
   type        = string
 }
 
+variable "region" {
+  description = "The current region."
+  type        = string
+}
+
+# K8s cluster
 variable "k8s_version" {
   description = "Kubernetes version to be used in the cluster."
   type        = string
@@ -114,13 +120,13 @@ variable "cpu_nodes_count" {
 variable "cpu_nodes_platform" {
   description = "Platform for nodes in the CPU-only node group."
   type        = string
-  default     = "cpu-e2"
+  default     = null
 }
 
 variable "cpu_nodes_preset" {
   description = "CPU and RAM configuration for nodes in the CPU-only node group."
   type        = string
-  default     = "16vcpu-64gb"
+  default     = null
 }
 
 variable "cpu_disk_type" {
@@ -145,13 +151,13 @@ variable "gpu_nodes_count" {
 variable "gpu_nodes_platform" {
   description = "Platform for nodes in the GPU node group."
   type        = string
-  default     = "gpu-h100-sxm"
+  default     = null
 }
 
 variable "gpu_nodes_preset" {
   description = "Configuration for GPU amount, CPU, and RAM for nodes in the GPU node group."
   type        = string
-  default     = "8gpu-128vcpu-1600gb"
+  default     = null
 }
 
 variable "gpu_disk_type" {
@@ -169,7 +175,7 @@ variable "gpu_disk_size" {
 variable "infiniband_fabric" {
   description = "Infiniband's fabric name."
   type        = string
-  default     = "fabric-3"
+  default     = null
 }
 
 variable "gpu_nodes_assign_public_ip" {

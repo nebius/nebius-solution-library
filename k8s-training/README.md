@@ -84,6 +84,7 @@ Additional configurable variables can be found in the `variables.tf` file.
 # Cloud environment and network
 parent_id      = "" # The project-id in this context
 subnet_id      = "" # Run the `nebius vpc v1alpha1 network list` command to see the subnet id
+region         = "" # The project region
 ssh_user_name  = "" # Username you want to use to connect to the nodes
 ssh_public_key = {
   key  = "Enter your public SSH key here" OR
