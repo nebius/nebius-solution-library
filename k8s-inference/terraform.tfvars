@@ -11,6 +11,10 @@
 # K8s nodes
 cpu_nodes_count  = 1                   # Number of CPU nodes
 gpu_nodes_count  = 1                   # Number of GPU nodes
+# cpu_nodes_platform =                 # CPU nodes platofm
+# cpu_nodes_preset   =                 # CPU nodes preset
+# gpu_nodes_platform =                 # GPU nodes platform
+# gpu_nodes_preset   =                 # GPU nodes preset
 
 # Observability
 enable_grafana    = true  # Enable or disable Grafana deployment with true or false

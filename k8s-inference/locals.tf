@@ -5,13 +5,13 @@ locals {
             
   regions_default = {
     eu-west1 = {
-      cpu_nodes_platform = "cpu-e2"
+      cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
-      gpu_nodes_platform = "gpu-h100-sxm"
+      gpu_nodes_platform = "gpu-h200-sxm"
       gpu_nodes_preset   = "1gpu-16vcpu-200gb"
     }
     eu-north1 = {
-      cpu_nodes_platform = "cpu-d3"
+      cpu_nodes_platform = "cpu-e2"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-h100-sxm"
       gpu_nodes_preset   = "1gpu-16vcpu-200gb"
