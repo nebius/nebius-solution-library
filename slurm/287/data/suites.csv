@@ -1,4 +1,4 @@
 "Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
-"passed","","","51621","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","slurm_master_apply",""
-"broken","","","337093","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","slurm_full_apply",""
-"skipped","","","","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_slurm_apply",""
+"passed","Thu Nov 21 22:51:14 GMT 2024","Thu Nov 21 22:52:06 GMT 2024","52189","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","slurm_master_apply",""
+"passed","Thu Nov 21 22:51:14 GMT 2024","Thu Nov 21 23:00:26 GMT 2024","552108","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_slurm_apply",""
+"passed","Thu Nov 21 22:51:14 GMT 2024","Thu Nov 21 22:52:44 GMT 2024","90120","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","slurm_full_apply",""
