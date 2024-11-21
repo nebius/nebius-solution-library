@@ -8,6 +8,23 @@ variable "subnet_id" {
   description = "ID of the subnet."
 }
 
+variable "region" {
+  type = string
+  description = "Project region."
+}
+
+variable "cpu_nodes_platform" {
+  description = "Platform for instances."
+  type        = string
+  default     = null
+}
+
+variable "cpu_nodes_preset" {
+  description = "CPU and RAM configuration for instances."
+  type        = string
+  default     = null
+}
+
 variable "nfs_size" {
   type        = number
   default     = 93 * 1024 * 1024 * 1024 # size should be a multiple of 99857989632

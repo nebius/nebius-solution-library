@@ -1,5 +1,6 @@
 parent_id     = "project-..."
 subnet_id     = "vpcsubnet-..."
+region        = "eu-north1"
 ssh_user_name = "nfs"
 ssh_public_key = {
   key = "put your ssh key here"
