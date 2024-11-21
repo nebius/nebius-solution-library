@@ -20,6 +20,7 @@ run "k8s_node_groups_inference_apply" {
     ]
   }
   variables {
+    region            = "eu-north1"
     etcd_cluster_size = 1
   }
 }
