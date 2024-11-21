@@ -19,8 +19,8 @@ resource "nebius_compute_v1_instance" "wireguard_instance" {
   ]
 
   resources = {
-    platform = var.platform
-    preset   = var.preset
+    platform = local.platform
+    preset   = local.preset
   }
 
 

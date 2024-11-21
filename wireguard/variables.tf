@@ -19,13 +19,13 @@ variable "region" {
 variable "platform" {
   description = "Platform for WireGuard host."
   type        = string
-  default     = "cpu-e2"
+  default     = null
 }
 
 variable "preset" {
   description = "Preset for WireGuard host."
   type        = string
-  default     = "4vcpu-16gb"
+  default     = null
 }
 
 # SSH access
