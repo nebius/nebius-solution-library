@@ -31,8 +31,8 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       }
     ]
     resources = {
-      platform = var.cpu_nodes_platform
-      preset   = var.cpu_nodes_preset
+      platform = local.cpu_nodes_platform
+      preset   = local.cpu_nodes_preset
     }
     filesystems = var.enable_filestore ? [
       {
@@ -73,8 +73,8 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
       }
     ]
     resources = {
-      platform = var.gpu_nodes_platform
-      preset   = var.gpu_nodes_preset
+      platform = local.gpu_nodes_platform
+      preset   = local.gpu_nodes_preset
     }
     filesystems = var.enable_filestore ? [
       {

@@ -1,19 +1,16 @@
 # Cloud environment and network
 # parent_id      = ""                                                                         # The project-id in this context
 # subnet_id      = ""                                                                       # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
+# region         = ""
 # ssh_user_name  = ""                                                                                               # Username you want to use to connect to the nodes
 # ssh_public_key = {
 # key  = "put your public ssh key here" OR
 # path = "put path to ssh key here"
 # }
 
-# K8s modes
+# K8s nodes
 cpu_nodes_count  = 1                   # Number of CPU nodes
-cpu_nodes_preset = "16vcpu-64gb"       # The CPU node preset
-cpu_nodes_platform = "cpu-e2"          # The CPU node platform
 gpu_nodes_count  = 1                   # Number of GPU nodes
-gpu_nodes_platform = "gpu-h100-sxm"    # The GPU node platform
-gpu_nodes_preset = "1gpu-16vcpu-200gb" # The GPU node preset. Set to "8gpu-128vcpu-1600gb", to deploy nodes with 8 GPUs.
 
 # Observability
 enable_grafana    = true  # Enable or disable Grafana deployment with true or false
