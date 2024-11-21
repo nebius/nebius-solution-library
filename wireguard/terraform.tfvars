@@ -8,4 +8,4 @@
 # public_ip_allocation_id = ""
 
 platform = cpu-e2
-preset = "4vcpu-16gb"
+preset   = "4vcpu-16gb"

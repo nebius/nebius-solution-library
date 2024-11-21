@@ -9,14 +9,14 @@ locals {
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-h200-sxm"
       gpu_nodes_preset   = "1gpu-16vcpu-200gb"
-      infiniband_fabric  = "fabric-5" 
+      infiniband_fabric  = "fabric-5"
     }
     eu-north1 = {
       cpu_nodes_platform = "cpu-e2"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-h100-sxm"
       gpu_nodes_preset   = "1gpu-16vcpu-200gb"
-      infiniband_fabric  = "fabric-3" 
+      infiniband_fabric  = "fabric-3"
     }
   }
 
