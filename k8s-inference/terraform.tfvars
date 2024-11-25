@@ -9,7 +9,7 @@
 # }
 
 # K8s nodes
-cpu_nodes_count = 1 # Number of CPU nodes
+cpu_nodes_count = 3 # Number of CPU nodes
 gpu_nodes_count = 1 # Number of GPU nodes
 # cpu_nodes_platform =                 # CPU nodes platofm
 # cpu_nodes_preset   =                 # CPU nodes preset
