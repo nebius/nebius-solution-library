@@ -7,4 +7,6 @@ module "glusterfs" {
   disk_count_per_vm = var.glusterfs_disk_count_per_vm
   disk_size         = var.glusterfs_disk_size
   ssh_public_key    = local.ssh_public_key
+  platform          = local.cpu_nodes_platform
+  preset            = local.cpu_nodes_preset
 }

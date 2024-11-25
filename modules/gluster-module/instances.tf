@@ -14,8 +14,8 @@ resource "nebius_compute_v1_instance" "gluster-fs-instance" {
     }
   ]
   resources = {
-    platform = "cpu-e2"
-    preset   = "16vcpu-64gb"
+    platform = var.platform
+    preset   = var.preset
   }
 
   boot_disk = {

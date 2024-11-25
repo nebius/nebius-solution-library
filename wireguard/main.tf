@@ -19,8 +19,8 @@ resource "nebius_compute_v1_instance" "wireguard_instance" {
   ]
 
   resources = {
-    platform = "cpu-e2"
-    preset   = "4vcpu-16gb"
+    platform = local.platform
+    preset   = local.preset
   }
 
 

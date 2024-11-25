@@ -6,11 +6,4 @@
 # key  = "put your public ssh key here" OR
 # path = "put path to ssh key here"
 # }
-cluster_workers_count = 2            # amount of workers
-mysql_jobs_backend    = false        # Do you want to use mysql
-shared_fs_type        = "filesystem" # "nfs" or "filesystem"
-
-# master_platform = 
-# master_preset   = 
-# worker_platform = 
-# worker_preset   = 
+nfs_ip_range = "192.168.0.0/16"
