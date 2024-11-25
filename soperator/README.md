@@ -19,7 +19,7 @@ Before starting, ensure you have these tools installed:
 - [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 - [Nebius CLI ](https://nebius.com/docs/cli/quickstart)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
-- AWS CLI: `python -m pip install awscli`
+- AWS CLI: `python -m pip install awscli` or [official recipe](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 - [jq](https://jqlang.github.io/jq/download/)
 - coreutils: 
   - macOS: `brew install coreutils`
@@ -65,7 +65,12 @@ Create a "[jail](https://en.wikipedia.org/wiki/FreeBSD_jail)" filesystem in the 
 > - Note down the filesystem ID for your terraform configuration
 > ![Create Filesystem 2](imgs/create_fs_3.png)
 
-4. **Configure Your Cluster**
+4**Create Network**
+```bash
+npc --profile '<profile-name>' vpc network create-default --name '<network-name>' --parent-id '<tennant-id>'
+```
+
+5**Configure Your Cluster**
 
 Edit `terraform.tfvars` with your requirements:
 
@@ -92,6 +97,9 @@ k8s_cluster_node_group_gpu = {
 slurm_login_ssh_root_public_keys = [
   "ssh-rsa AAAAB3N... your-key"
 ]
+
+# Add your VPC subnet_id
+vpc_subnet_id = "<YOUR-VPCSUBNET-ID>"
 ```
 
 `k8s_cluster_node_ssh_access_users` is for connecting to the K8S cluster itself.
