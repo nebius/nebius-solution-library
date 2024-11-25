@@ -5,6 +5,11 @@ variable "subnet_id" {
   type = string
 }
 
+variable "region" {
+  description = "Project region."
+  type        = string
+}
+
 variable "ib_image_id" {
   type        = string
   description = "ID of Infiniband image"
@@ -29,12 +34,29 @@ variable "ssh_public_key" {
   }
 }
 
-variable "platform_id" {
+variable "master_platform" {
+  description = "Platform for Slurm Master."
   type        = string
-  description = "Platform for workers: gpu-h100-b for Inspur or gpu-h100 for Gigabyte"
-  default     = "gpu-h100-b"
+  default     = null
 }
 
+variable "master_preset" {
+  description = "Preset for Slurm Master."
+  type        = string
+  default     = null
+}
+
+variable "worker_platform" {
+  description = "Platform for Slurm Worker."
+  type        = string
+  default     = null
+}
+
+variable "worker_preset" {
+  description = "Preset for Slurm Worker."
+  type        = string
+  default     = null
+}
 
 variable "mysql_jobs_backend" {
   type        = bool

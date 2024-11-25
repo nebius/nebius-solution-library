@@ -3,8 +3,11 @@
 ## Features
 
 - Creating a Kubernetes cluster with CPU and GPU nodes.
-- Installing the necessary [NVIDIA GPU Operator](https://github.com/NVIDIA/gpu-operator) and [Network Operator](https://docs.nvidia.com/networking/display/cokan10/network+operator) for running GPU workloads.
-- Installing [Grafana](https://github.com/grafana/helm-charts/tree/main/charts/grafana).
+
+- Installing the required [Nvidia Gpu Operator](https://github.com/NVIDIA/gpu-operator)
+  and [Network Operator](https://docs.nvidia.com/networking/display/cokan10/network+operator) for running GPU
+  workloads.- Installing [Grafana](https://github.com/grafana/helm-charts/tree/main/charts/grafana).
+
 - Installing [Prometheus](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus).
 - Installing [Loki](https://github.com/grafana/loki/tree/main/production/helm/loki).
 - Installing [Promtail](https://github.com/grafana/helm-charts/tree/main/charts/promtail).
@@ -28,6 +31,7 @@
    source ~/.bashrc
    ```
 
+
 3. [Configure Nebius CLI](https://docs.nebius.com/cli/configure/) (it is recommended to use [service account](https://docs.nebius.com/iam/service-accounts/manage/) for configuration)
 
 4. Install JQuery:
@@ -39,6 +43,7 @@
      ```bash
      sudo apt install jq -y
      ```
+
 
 ## Usage
 
@@ -52,7 +57,11 @@ To deploy a Kubernetes cluster, follow these steps:
    ```bash
    terraform init
    ```
-3. Replace the placeholder content in `terraform.tfvars` with configuration values that meet your specific requirements. See the details [below](#configuration-variables).
+
+3. Replace the placeholder content
+   in `terraform.tfvars` with configuration values that meet your specific
+   requirements. See the details [below](#configuration-variables).
+
 4. Preview the deployment plan:
    ```bash
    terraform plan
@@ -65,86 +74,103 @@ To deploy a Kubernetes cluster, follow these steps:
 
 ## Configuration variables
 
-These are the basic configurations needed to deploy Kubernetes for Training in Nebius AI. Edit in the configurations that you need in the file `terraform.tfvars`.
+These are the basic configurations required to deploy Kubernetes for training in Nebius AI. Edit the configurations as necessary in the `terraform.tfvars` file.
 
-There are additional configurable variables in `variables.tf`.
+Additional configurable variables can be found in the `variables.tf` file.
 
 ### Environment and network variables
+
 ```hcl
 # Cloud environment and network
 parent_id      = "" # The project-id in this context
-subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
+subnet_id      = "" # Run the `nebius vpc v1alpha1 network list` command to see the subnet id
+region         = "" # The project region
 ssh_user_name  = "" # Username you want to use to connect to the nodes
 ssh_public_key = {
-  key  = "put your public ssh key here" OR
-  path = "put path to ssh key here"
+  key  = "Enter your public SSH key here" OR
+  path = "Enter the path to your SSH key here"
 }
 ```
 
 ### Kubernetes nodes
+
 ```hcl
 # K8s modes
 cpu_nodes_count  = 1 # Number of CPU nodes
-cpu_nodes_preset = "16vcpu-64gb" # The CPU node preset
+cpu_nodes_preset = "16vcpu-64gb" # CPU node preset
 gpu_nodes_count  = 1 # Number of GPU nodes
+
 gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 8 GPU can be added to gpu cluster with infiniband connection.
+
 ```
 
 ### Observability options
+
 ```hcl
 # Observability
 enable_grafana    = true # Enable or disable Grafana deployment with true or false
 enable_prometheus = true # Enable or disable Prometheus deployment with true or false
 enable_loki       = true # Enable or disable Loki deployment with true or false
-enable_dcgm       = true # Enable or disable NVIDIA DCGM Exporter Dashboard and Alerting deployment with true or false
+enable_dcgm       = true # Enable or disable NVIDIA DCGM Exporter Dashboard and Alerting deployment using true or false
 
 ## Loki
-loki_access_key_id = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
-loki_secret_key    = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
+loki_access_key_id = "" # See README.md for instructions. Leave empty if you are not deploying Loki.
+loki_secret_key    = "" # See the instruction in README.md on how to create this.  If you are not deploying Loki, leave it empty.
 ```
 
-Check the details below for more information on [Grafana](#grafana), [Prometheus](#prometheus), [Loki](#temporary-block-to-make-loki-work-now) and [NVIDIA DCGM](#nvidia-dcgm-exporter-dashboard-and-alerting).
+See the details below for more information on [Grafana](#grafana), [Prometheus](#prometheus), [Loki](#temporary-block-to-make-loki-work-now) and [NVIDIA DCGM](#nvidia-dcgm-exporter-dashboard-and-alerting).
 
-> Deploying Loki will require you to create a service account! Please check the instructions [here](#temporary-block-to-make-loki-work-now)!
+> To deploy Loki, you will need to create a service account. See the instructions [here](#temporary-block-to-make-loki-work-now).
 
 ### Storage configuration
+
 ```hcl
 # Storage
 ## Filestore - recommended
 enable_filestore     = true # Enable or disable Filestore integration with true or false
-filestore_disk_size  = 100 * (1024 * 1024 * 1024) #Set Filestore disk size in bytes. The multiplication makes it easier to set the size in GB. This would set the size as 100GB
-filestore_block_size = 4096 # Set Filestore block size in bytes
+filestore_disk_size  = 100 * (1024 * 1024 * 1024) #Set the Filestore disk size in bytes. The multiplication makes it easier to set the size in GB, giving you a total of 100 GB
+filestore_block_size = 4096 # Set the Filestore block size in bytes
 
 ## GlusterFS - legacy
 enable_glusterfs = false # Enable or disable GlusterFS integration with true or false
-glusterfs_storage_nodes = 3 # Set amount of storage nodes in GlusterFS cluster
-glusterfs_disk_count_per_vm = 2 # Set amount of disks per storage node in GlusterFS cluster
-glusterfs_disk_size = 100 * (1024 * 1024 * 1024) #Set disk size in bytes. The multiplication makes it easier to set the size in GB. This would set the size as 100GB
+glusterfs_storage_nodes = 3 # Set the number of storage nodes in the GlusterFS cluster
+glusterfs_disk_count_per_vm = 2 # Set the number of disks per storage node in the GlusterFS cluster
+glusterfs_disk_size = 100 * (1024 * 1024 * 1024) #Set the disk size in bytes. The multiplication makes it easier to set the size in GB, giving you a total of 100 GB.
 ```
 
-There are two options available for adding external storage to k8s clusters:
+There are two ways to add external storage to K8s clusters:
 
 - Filestore (recommended, enabled by default)
 - GlusterFS (legacy)
 
-Both would allow creating a Read-Write-Many HostPath PVCs in k8s cluster. Path for Filestore is `/mnt/filestore`, for
-GlusterFS it is `/mnt/glusterfs`.
+Both options allow you to create a Read-Write-Many HostPath PVCs in a K8s cluster. Use the following paths: `/mnt/filestore` for Filestore, `/mnt/glusterfs` for
+GlusterFS.
 
-Check [here](#accessing-storage) how to access storage in K8S.
+For more information on how to access storage in K8s, refer [here](#accessing-storage).
 
 ## Connecting to the cluster
 
-### Prepare your environment 
-* Install kubectl ([instructions](https://kubernetes.io/docs/tasks/tools/#kubectl))
-* Install Nebius AI CLI ([instructions](https://docs.nebius.ai/cli/install)) - also required for deploying the cluster
-* Install JQ ([instructions](https://jqlang.github.io/jq/download/)) - also required for deploying the cluster
+### Preparing the environment
+
+- Install kubectl ([instructions](https://kubernetes.io/docs/tasks/tools/#kubectl))
+- Install the Nebius AI CLI ([instructions](https://docs.nebius.ai/cli/install))
+- Install jq ([instructions](https://jqlang.github.io/jq/download/))
+
+### Adding credentials to the kubectl configuration file
+
+1. Perform the following command from the terraform deployment folder:
+
+```bash
+nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
+```
+
 
 ### Add credentials to the kubectl configuration file
 1. Run the following command from the terraform deployment folder:
    ```bash
    nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
    ```
-2. Add the credentials and verify the kubectl configuration:
+2. Verify the kubectl configuration after adding the credentials:
 
    ```bash
    kubectl config view
@@ -161,14 +187,16 @@ Check [here](#accessing-storage) how to access storage in K8S.
 
 ### Connect to the cluster
 Show cluster information:
-  ```bash
-  kubectl cluster-info
-  ```
+
+```bash
+kubectl cluster-info
+```
 
 Get pods:
-  ```bash
-  kubectl get pods -A
-  ```
+
+```bash
+kubectl get pods -A
+```
 
 ## Observability
 
@@ -180,7 +208,8 @@ Observability stack is enabled by default. It includes the following components:
 
 ### Grafana
 
-Can be disabled by setting the `enable_grafana` variable to `false` in `the terraform.tfvars` file.
+To disable it, set the `enable_grafana` variable to `false` in the `terraform.tfvars` file.
+
 
 To access Grafana:
 
@@ -189,7 +218,9 @@ To access Grafana:
    kubectl --namespace o11y port-forward service/grafana 8080:80
    ```
 
-2. **Access Grafana dashboard:** Open your browser and go to `http://localhost:8080`.
+
+2. **Access the Grafana dashboard:** Open your browser and go to `http://localhost:8080`.
+
 
 3. **Log in:** Use the default credentials to log in:
    - **Username:** `admin`
@@ -197,66 +228,73 @@ To access Grafana:
 
 ### Log aggregation
 
-#### Temporary block to make Loki work now
+#### Create a temporary block to enable Loki
 
-1. Create an SA
-   2. `nebius iam service-account create --parent-id <parent-id> --name <name>`.
-2. Add an SA to the editors group.
-   3. Get your tenant id with `nebius iam whoami`.
-   4. Get the `editors` group id with: `nebius iam group list --parent-id <tenant-id> | grep -n5 "name: editors"`.
-   3. List all members of the `editors` group
-   with `nebius iam group-membership list-members --parent-id <group-id>`.
-   4. Add your SA to the `editors` group
-   with `nebius iam group-membership create --parent-id <group-id> --member-id <sa-id>`
-3. Create access key and get its credentials:
-   4. `nebius iam access-key create --account-service-account-id <SA-ID> --description 'AWS CLI' --format json`
-   5. `nebius iam access-key get-by-aws-id --aws-access-key-id <AWS-KEY-ID-FROM-PREVIOUS-COMMAND> --view secret --format json`
-4. Update `loki_access_key_id` and `loki_secret_key` in `terraform.tfvars` with info from the last command.
 
-Log aggregation with the Loki is enabled by default. To disable it, set the `enable_loki` variable to `false` in the
+1. Create a SA \
+   `nebius iam service-account create --parent-id <parent-id> --name <name>`.
+2. Add an SA to editors group. \
+    Get your tenant id using `nebius iam whoami`. \
+    Get the `editors` group id using `nebius iam group list --parent-id <tenant-id> | grep -n5 "name: editors"`. \
+
+    List all members of the `editors` group 
+   with `nebius iam group-membership list-members --parent-id <group-id>`. \
+    Add your SA to the `editors` group
+   with `nebius iam group-membership create --parent-id <group-id> --member-id <sa-id>` \
+3. Create access key and get its credentials: \
+    `nebius iam access-key create --account-service-account-id <SA-ID> --description 'AWS CLI' --format json` \
+    `nebius iam access-key get-by-aws-id --aws-access-key-id <AWS-KEY-ID-FROM-PREVIOUS-COMMAND> --view secret --format json` \
+
+4. Update `loki_access_key_id` and `loki_secret_key` in `terraform.tfvars` with the result of the previous command.
+
+Log aggregation with Loki is enabled by default. If you want to disable it, set the `enable_loki` variable to `false` in the
 `terraform.tfvars` file.
 
-To access logs navigate to Loki dashboard `http://localhost:8080/d/o6-BGgnnk/loki-kubernetes-logs`
+To access logs, go to the Loki dashboard `http://localhost:8080/d/o6-BGgnnk/loki-kubernetes-logs`.
 
-**NB!** You would have to manually clean loki bucket before doing `terraform destroy`
+**NB!** You will have to manually clean the Loki bucket before performing the `terraform destroy` command.
 
 ### Prometheus
 
-Prometheus server is enabled by default. To disable it, set the `enable_prometheus` variable to `false` in the
-`terraform.tfvars` file.
-Because `DCGM exporter` uses Prometheus as a datasource it will be disabled as well.
 
-To access logs navigate to Node exporter folder `http://localhost:8080/f/e6acfbcb-6f13-4a58-8e02-f780811a2404/`
+Prometheus server is enabled by default. If you want to disable it, set the `enable_prometheus` variable to `false` in the `terraform.tfvars` file.
+Because `DCGM exporter` uses Prometheus as a data source it will also be disabled.
+
+
+To access logs, go to the Node exporter folder `http://localhost:8080/f/e6acfbcb-6f13-4a58-8e02-f780811a2404/`
 
 ### NVIDIA DCGM Exporter Dashboard and Alerting
 
-NVIDIA DCGM Exporter Dashboard and Alerting rules are enabled by default. To disable it, set the `enable_dcgm`
-variable to `false` in the `terraform.tfvars` file.
 
-By default Alerting rules are created for node groups that has GPUs.
+NVIDIA DCGM Exporter Dashboard and Alerting rules are enabled by default. If you need to disable it, set the `enable_dcgm` variable to `false` in terraform.tfvars\` file.
 
-To access NVIDIA DCGM Exporter Dashboard `http://localhost:8080/d/Oxed_c6Wz/nvidia-dcgm-exporter-dashboard`
+
+
+Alerting rules are created for node groups with GPUs by default.
+
+To access the NVIDIA DCGM Exporter dashboard, go to `http://localhost:8080/d/Oxed_c6Wz/nvidia-dcgm-exporter-dashboard`
 
 ### Alerting
 
-To enable alert messages for Slack please refer
-this [article](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-slack/)
+To enable alert messages for Slack, refer to this [article](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-slack/)
 
 ## Accessing storage
 
 ### Prerequisites:
-1. To use csi-driver, it's mandatory to set 'enable_filestore = true' in terraform.tfvars file.
-2. Then, the helm release managing this csi-driver is deployed in helm.tf file by applying the module: "csi-mounted-fs-path".
-3. Keep in mind that 'csi-mounted-fs-path' module is applying only while instances are in boot process, using the following /nebius-solution-library/modules/cloud-init/k8s-cloud-init.tftpl commands:
+
+1. To use csi-driver, you must set 'enable_filestore = true' in the `terraform.tfvars` file.
+2. Deploy the helm release that manages this csi-driver in the `helm.tf` file by applying the "csi-mounted-fs-path" module.
+3. Keep in mind that the 'csi-mounted-fs-path' module can only be applied while instances are booting, using the following /nebius-solution-library/modules/cloud-init/k8s-cloud-init.tftpl commands:
    ```shell
      - sudo mkdir -p /mnt/data
      - sudo mount -t virtiofs data /mnt/data
      - echo data /mnt/data \"virtiofs\" \"defaults\" \"0\" \"2\" | sudo tee -a /etc/fstab"
    ```
 
-### Using mounted storageclass
-Using mounted storage requires manually creating Persistent Volumes. Bellow is a template for creating PV and PVC.
-Replace `<HOST-PATH>` and `<SIZE>` variables with actual values.
+### Using mounted StorageClass
+
+To use mounted storage, you need to manually create Persistent Volumes (PVs). Use the template below to create a PV and PVC.
+Replace `<SIZE>` and `<HOST-PATH>` variables with your specific values.
 
 ```yaml
 kind: PersistentVolume
@@ -288,14 +326,14 @@ spec:
 ```
 
 
-CSI limitations:
-limitations of CSI over mounted FS
-FS should be mounted to all NodeGroups, because PV attachmend to pod runniing on Node without FS will fail
-One PV may fill up to all common FS size
-FS size will not be autoupdated if PV size exceed it spec size
-FS size for now can't be updated through API, only through NEBOPS. (thread)
-volumeMode: Block  - is not possible
+## CSI limitations:
+- FS should be mounted to all NodeGroups, because PV attachmend to pod runniing on Node without FS will fail
+- One PV may fill up to all common FS size
+- FS size will not be autoupdated if PV size exceed it spec size
+- FS size for now can't be updated through API, only through NEBOPS. (thread)
+- volumeMode: Block  - is not possible
 
-Good to know:
-read-write many mode PV will work
-MSP started testing that solution to enable early integration with mk8s. Hope they will bring feedback soon.
+## Good to know:
+- read-write many mode PV will work
+- MSP started testing that solution to enable early integration with mk8s.
+=======

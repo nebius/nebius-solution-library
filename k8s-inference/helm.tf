@@ -30,7 +30,7 @@ module "o11y" {
       enabled = var.enable_dcgm,
       node_groups = {
         node_group_name = {
-          gpus              = tonumber(split("gpu-", var.gpu_nodes_preset)[0])
+          gpus              = tonumber(split("gpu-", local.gpu_nodes_preset)[0])
           instance_group_id = nebius_mk8s_v1_node_group.gpu.id
         }
       }
@@ -38,4 +38,9 @@ module "o11y" {
     }
   }
   test_mode = var.test_mode
+}
+
+module "csi-mounted-fs-path" {
+  source = "../modules/csi-mounted-fs-path"
+  count  = var.enable_filestore ? 1 : 0
 }

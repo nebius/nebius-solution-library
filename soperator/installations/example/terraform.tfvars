@@ -168,7 +168,7 @@ slurm_cluster_name = "my-amazing-slurm"
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.15.2"
+slurm_operator_version = "1.15.3"
 
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".
@@ -357,9 +357,14 @@ slurm_shared_memory_size_gibibytes = 256
 # nccl_benchmark_enable = "0 */3 * * *"
 
 # Minimal threshold of NCCL benchmark for GPU performance to be considered as acceptable.
-# By default, 420.
+# By default, 45.
 # ---
-# nccl_benchmark_min_threshold = 420
+# nccl_benchmark_min_threshold = 45
+
+# Use infiniband defines using NCCL_P2P_DISABLE=1 NCCL_SHM_DISABLE=1 NCCL_ALGO=Ring env variables for test.
+# By default, true
+# ---
+# nccl_use_infiniband = true
 
 # endregion NCCL benchmark
 

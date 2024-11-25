@@ -39,7 +39,7 @@ module "o11y" {
       enabled = var.enable_dcgm,
       node_groups = {
         node_group_name = {
-          gpus              = tonumber(split("gpu-", var.gpu_nodes_preset)[0])
+          gpus              = tonumber(split("gpu-", local.gpu_nodes_preset)[0])
           instance_group_id = nebius_mk8s_v1_node_group.gpu.id
         }
       }

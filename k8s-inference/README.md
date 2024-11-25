@@ -75,6 +75,7 @@ There are additional configurable variables in `variables.tf`.
 # Cloud environment and network
 parent_id      = "" # The project-id in this context
 subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
+region         = "" # The project region.
 ssh_user_name  = "" # Username you want to use to connect to the nodes
 ssh_public_key = {
   key  = "put your public ssh key here" OR
@@ -266,13 +267,13 @@ apiVersion: v1
 metadata:
   name: external-storage-persistent-volume
 spec:
-  storageClassName: hostpath
+  storageClassName: csi-mounted-fs-path-sc
   capacity:
     storage: "<SIZE>"
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: "<HOST-PATH>" # "/mnt/filestore/<sub-directory>" or "/mnt/glusterfs/<sub-directory>"
+    path: "<HOST-PATH>" # "/mnt/data/<sub-directory>" or "/mnt/glusterfs/<sub-directory>"
 
 ---
 
@@ -281,10 +282,21 @@ apiVersion: v1
 metadata:
   name: external-storage-persistent-volumeclaim
 spec:
-  storageClassName: hostpath
+  storageClassName: csi-mounted-fs-path-sc
   accessModes:
     - ReadWriteMany
   resources:
     requests:
       storage: "<SIZE>"
 ```
+
+## CSI limitations:
+- FS should be mounted to all NodeGroups, because PV attachmend to pod runniing on Node without FS will fail
+- One PV may fill up to all common FS size
+- FS size will not be autoupdated if PV size exceed it spec size
+- FS size for now can't be updated through API, only through NEBOPS. (thread)
+- volumeMode: Block  - is not possible
+
+## Good to know:
+- read-write many mode PV will work
+- MSP started testing that solution to enable early integration with mk8s.

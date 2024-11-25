@@ -9,4 +9,6 @@ module "nfs-module" {
   ssh_public_key = var.ssh_public_key.key
   nfs_ip_range   = var.nfs_ip_range
   nfs_size       = var.nfs_size
+  platform       = local.cpu_nodes_platform
+  preset         = local.cpu_nodes_preset
 }
