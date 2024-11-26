@@ -13,7 +13,7 @@ resource "nebius_compute_v1_instance" "wireguard_instance" {
       subnet_id  = var.subnet_id
       ip_address = {}
       public_ip_address = {
-        allocation_id = var.public_ip_allocation_id
+        allocation_id = local.public_ip_allocation ? nebius_vpc_v1_allocation.wireguard-ip-allocation[0].id : var.public_ip_allocation_id
       }
     }
   ]
