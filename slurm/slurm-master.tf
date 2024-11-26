@@ -45,6 +45,7 @@ resource "nebius_compute_v1_instance" "master" {
       nfs_export_path       = var.shared_fs_type == "nfs" ? module.nfs-module[0].nfs_export_path : 0
       nfs_ip                = var.shared_fs_type == "nfs" ? module.nfs-module[0].nfs_server_internal_ip : 0
       is_mysql              = var.mysql_jobs_backend
+      ssh_user_name         = local.ssh_user_name
       ssh_public_key        = local.ssh_public_key
       cluster_workers_count = var.cluster_workers_count
       hostname              = "slurm-master"

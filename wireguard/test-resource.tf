@@ -6,8 +6,10 @@ resource "null_resource" "check_wireguard_instance" {
   count = var.test_mode ? 1 : 0
 
   connection {
-    user = "ubuntu"
+    type = "ssh"
+    user = var.ssh_user_name
     host = local.test_wg_host
+    private_key = fileexists(replace(var.ssh_public_key.path, ".pub", "")) ? file(replace(var.ssh_public_key.path, ".pub", "")) : null
   }
 
   provisioner "remote-exec" {
