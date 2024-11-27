@@ -9,35 +9,6 @@
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                                                                                                      #
-#                                                         Cloud                                                        #
-#                                                                                                                      #
-#                                                                                                                      #
-#----------------------------------------------------------------------------------------------------------------------#
-# region Cloud
-
-# IAM token used for communicating with Nebius services.
-# Token is being passed via .envrc file.
-# Uncomment to override.
-# ---
-# iam_token = "<YOUR-IAM-TOKEN>"
-
-# ID of the IAM project.
-# Project ID is being passed via .envrc file.
-# Uncomment to override.
-# ---
-# iam_project_id = "project-<YOUR-PROJECT-ID>"
-
-# ID of VPC subnet.
-# Subnet ID is being passed via .envrc file.
-# Uncomment to override.
-# ---
-#vpc_subnet_id = "vpcsubnet-<YOUR-SUBNET-ID>"
-
-# endregion Cloud
-
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                                                                                      #
-#                                                                                                                      #
 #                                                    Infrastructure                                                    #
 #                                                                                                                      #
 #                                                                                                                      #
@@ -132,11 +103,11 @@ filestore_accounting = {
 
 # Version of the k8s to be used.
 # ---
-# k8s_version = "1.30"
+k8s_version = "1.30"
 
 # Name of the k8s cluster.
 # ---
-k8s_cluster_name = "slurm-k8s"
+k8s_cluster_name = "soperator"
 
 # SSH user credentials for accessing k8s nodes.
 # By default, empty list.
@@ -151,6 +122,35 @@ k8s_cluster_name = "slurm-k8s"
 
 # endregion k8s
 
+#----------------------------------------------------------------------------------------------------------------------#
+#                                                                                                                      #
+#                                                                                                                      #
+#                                                         Cloud                                                        #
+#                                                                                                                      #
+#                                                                                                                      #
+#----------------------------------------------------------------------------------------------------------------------#
+# region Cloud
+
+# IAM token used for communicating with Nebius services.
+# Token is being passed via .envrc file.
+# Uncomment to override.
+# ---
+# iam_token = "<YOUR-IAM-TOKEN>"
+
+# ID of the IAM project.
+# Project ID is being passed via .envrc file.
+# Uncomment to override.
+# ---
+# iam_project_id = "project-<YOUR-PROJECT-ID>"
+
+# ID of VPC subnet.
+# Subnet ID is being passed via .envrc file.
+# Uncomment to override.
+# ---
+#vpc_subnet_id = "vpcsubnet-<YOUR-SUBNET-ID>"
+
+# endregion Cloud
+
 # endregion Infrastructure
 
 #----------------------------------------------------------------------------------------------------------------------#
@@ -164,7 +164,7 @@ k8s_cluster_name = "slurm-k8s"
 
 # Name of the Slurm cluster in k8s cluster.
 # ---
-slurm_cluster_name = "my-amazing-slurm"
+slurm_cluster_name = "soperator"
 
 # Version of soperator.
 # ---
@@ -173,7 +173,7 @@ slurm_operator_version = "1.15.4"
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".
 # ---
-# slurm_partition_config_type = "custom"
+slurm_partition_config_type = "default"
 
 # Partition config in case of `custom` slurm_partition_config_type.
 # Each string must be started with `PartitionName`.
@@ -209,10 +209,10 @@ slurm_nodeset_system = {
 # Configuration of Slurm Controller node set.
 # ---
 slurm_nodeset_controller = {
-  size = 2
+  size = 1
   resource = {
     platform = "cpu-e2"
-    preset   = "16vcpu-64gb"
+    preset   = "8vcpu-32gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -225,10 +225,11 @@ slurm_nodeset_controller = {
 # There can be only one Worker node set for a while.
 # Split factor allows you to split node set into equally-sized node groups to keep your cluster accessible and working
 # during maintenance.
+# infiniband_fabric is required field
 # ---
 slurm_nodeset_workers = [{
-  size                    = 2
-  split_factor            = 2
+  size                    = 16
+  split_factor            = 4
   max_unavailable_percent = 50
   resource = {
     platform = "gpu-h100-sxm"
@@ -236,11 +237,11 @@ slurm_nodeset_workers = [{
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 1024
-    block_size_kibibytes = 32
+    size_gibibytes       = 256
+    block_size_kibibytes = 4
   }
   gpu_cluster = {
-    infiniband_fabric = "fabric-3"
+    infiniband_fabric = ""
   }
 }]
 
@@ -250,7 +251,7 @@ slurm_nodeset_login = {
   size = 1
   resource = {
     platform = "cpu-e2"
-    preset   = "16vcpu-64gb"
+    preset   = "32vcpu-128gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -306,7 +307,7 @@ slurm_login_ssh_root_public_keys = [
 # Whether to enable Slurm metrics exporter.
 # By default, true.
 # ---
-# slurm_exporter_enabled = false
+slurm_exporter_enabled = true
 
 # endregion Exporter
 
@@ -318,7 +319,7 @@ slurm_login_ssh_root_public_keys = [
 # Whether to enable Slurm REST API.
 # By default, false.
 # ---
-# slurm_rest_enabled = false
+slurm_rest_enabled = false
 
 # endregion REST API
 
@@ -334,7 +335,7 @@ slurm_login_ssh_root_public_keys = [
 # Shared memory size for Slurm controller and worker nodes in GiB.
 # By default, 64.
 # ---
-slurm_shared_memory_size_gibibytes = 256
+slurm_shared_memory_size_gibibytes = 384
 
 # endregion Config
 
@@ -349,22 +350,22 @@ slurm_shared_memory_size_gibibytes = 256
 # It won't take effect in case of 1-GPU hosts.
 # By default, true.
 # ---
-# nccl_benchmark_enable = false
+nccl_benchmark_enable = true
 
 # NCCL benchmark's CronJob schedule.
 # By default, `0 */3 * * *` - every 3 hour.
 # ---
-# nccl_benchmark_enable = "0 */3 * * *"
+nccl_benchmark_schedule = "0 */3 * * *"
 
 # Minimal threshold of NCCL benchmark for GPU performance to be considered as acceptable.
 # By default, 45.
 # ---
-# nccl_benchmark_min_threshold = 45
+nccl_benchmark_min_threshold = 45
 
 # Use infiniband defines using NCCL_P2P_DISABLE=1 NCCL_SHM_DISABLE=1 NCCL_ALGO=Ring env variables for test.
 # By default, true
 # ---
-# nccl_use_infiniband = true
+nccl_use_infiniband = true
 
 # endregion NCCL benchmark
 
@@ -378,12 +379,12 @@ slurm_shared_memory_size_gibibytes = 256
 # Whether to enable telemetry.
 # By default, true.
 # ---
-# telemetry_enabled = false
+telemetry_enabled = true
 
 # Password of `admin` user of Grafana.
 # Set it to your desired password.
 # ---
-telemetry_grafana_admin_password = "<YOUR-PASSWORD-FOR-GRAFANA>"
+telemetry_grafana_admin_password = "password"
 
 # endregion Telemetry
 
