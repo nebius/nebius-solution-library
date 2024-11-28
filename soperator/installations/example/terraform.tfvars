@@ -54,11 +54,11 @@ filestore_jail = {
   }
 }
 
-# Shared filesystems to be mounted inside jail.
+# Additional (Optional) shared filesystems to be mounted inside jail.
 # ---
 # filestore_jail_submounts = [{
-#   name       = "mlperf-sd"
-#   mount_path = "/mlperf-sd"
+#   name       = "datasets"
+#   mount_path = "/datasets"
 #   spec = {
 #     size_gibibytes       = 2048
 #     block_size_kibibytes = 4
@@ -67,8 +67,8 @@ filestore_jail = {
 # Or use existing filestores.
 # ---
 # filestore_jail_submounts = [{
-#   name                 = "mlperf-sd"
-#   mount_path           = "/mlperf-sd"
+#   name                 = "datasets"
+#   mount_path           = "/datasets"
 #   existing = {
 #     id = "computefilesystem-<YOUR-FILESTORE-ID>"
 #   }
@@ -110,6 +110,7 @@ k8s_version = "1.30"
 k8s_cluster_name = "soperator"
 
 # SSH user credentials for accessing k8s nodes.
+# That option add public ip address to every node.
 # By default, empty list.
 # ---
 # k8s_cluster_node_ssh_access_users = [{
@@ -224,7 +225,7 @@ slurm_nodeset_controller = {
 # Configuration of Slurm Worker node sets.
 # There can be only one Worker node set for a while.
 # Split factor allows you to split node set into equally-sized node groups to keep your cluster accessible and working
-# during maintenance.
+# during maintenance. Example: split_factor 3 for 12 nodes will create for you 3 groups with 4 nodes in every group.
 # infiniband_fabric is required field
 # ---
 slurm_nodeset_workers = [{
@@ -294,7 +295,7 @@ slurm_login_service_type = "LoadBalancer"
 # Authorized keys accepted for connecting to Slurm login nodes via SSH as 'root' user.
 # ---
 slurm_login_ssh_root_public_keys = [
-  "<ENCRYPTION-METHOD HASH USER>",
+  "",
 ]
 
 # endregion Login
