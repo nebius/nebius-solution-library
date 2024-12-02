@@ -5,6 +5,7 @@ metadata:
   labels:
   {{- include "nccl-test.labels" . | nindent 4 }}
 spec:
+  slotsPerWorker: 8 # Number of GPUs on each node
   mpiReplicaSpecs:
     Launcher:
       replicas: 1
@@ -25,7 +26,7 @@ spec:
               value: "1"
             - name: OMPI_ALLOW_RUN_AS_ROOT_CONFIRM
               value: "1"
-            image: cr.ai.nebius.cloud/crnu1co0h490t3i3or4c/nccl-tests:latest
+            image: cr.nemax.nebius.cloud/examples/nccl-tests:latest
             name: nccl
             resources:
               requests:
@@ -47,42 +48,13 @@ spec:
       template:
         spec:
           automountServiceAccountToken: false
-          # initContainers:
-          # - name: wait-for-node-ready
-          #   image: bitnami/kubectl:latest
-          #   command: ["/bin/bash", "-c"]
-          #   args:
-          #   - |
-          #     LABEL_KEY="nvidia.com/gpu-driver-upgrade-state"
-          #     LABEL_VALUE="upgrade-done"
-          #     # Wait for the node to have the specified label and value
-          #     while true; do
-          #       NODE_NAME=$(kubectl get pod $HOSTNAME -o jsonpath='{.spec.nodeName}') &&
-          #       LABEL_CURRENT_VALUE=$(kubectl get node $NODE_NAME -o jsonpath="{.metadata.labels.$LABEL_KEY}") &&
-          #       echo "Current label value: $LABEL_CURRENT_VALUE" &&
-          #       if [[ "$LABEL_CURRENT_VALUE" == "$LABEL_VALUE" ]]; then
-          #         echo "Node $NODE_NAME is ready."
-          #         break
-          #       else
-          #         echo "Waiting for node $NODE_NAME to be ready..."
-          #         sleep 10
-          #       fi
-          #     done
-          #   env:
-          #   - name: HOSTNAME
-          #     valueFrom:
-          #       fieldRef:
-          #         fieldPath: metadata.name
           containers:
-          - env:
-            - name: NCCL_TOPO_FILE
-              value: /etc/nccl-topo-h100-v1.xml
-            image: cr.ai.nebius.cloud/crnu1co0h490t3i3or4c/nccl-tests:latest
+          - image: cr.nemax.nebius.cloud/examples/nccl-tests:latest
             name: nccl
             resources:
               limits:
                 cpu: 108
-                memory: 1200G
+                memory: 1600G
                 nvidia.com/gpu: 8
               requests:
                 cpu: 108
@@ -93,9 +65,6 @@ spec:
             volumeMounts:
             - mountPath: /dev/shm
               name: dshm
-            - mountPath: /etc/nccl-topo-h100-v1.xml
-              name: config
-              subPath: nccl-topo-h100-v1.xml
           enableServiceLinks: false
           initContainers:
           - command:
@@ -110,9 +79,5 @@ spec:
           - emptyDir:
               medium: Memory
             name: dshm
-          - configMap:
-              name: {{ include "nccl-test.fullname" . }}-topo-config
-            name: config
   runPolicy:
     cleanPodPolicy: Running
-  slotsPerWorker: 8
