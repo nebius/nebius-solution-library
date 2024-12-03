@@ -96,35 +96,6 @@ filestore_accounting = {
 
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
-#                                                      Kubernetes                                                      #
-#                                                                                                                      #
-#----------------------------------------------------------------------------------------------------------------------#
-# region k8s
-
-# Version of the k8s to be used.
-# ---
-k8s_version = "1.30"
-
-# Name of the k8s cluster.
-# ---
-k8s_cluster_name = "soperator"
-
-# SSH user credentials for accessing k8s nodes.
-# That option add public ip address to every node.
-# By default, empty list.
-# ---
-# k8s_cluster_node_ssh_access_users = [{
-#   name = "<USER1>"
-#   public_keys = [
-#     "<ENCRYPTION-METHOD1 HASH1 USER1>",
-#     "<ENCRYPTION-METHOD2 HASH2 USER1>",
-#   ]
-# }]
-
-# endregion k8s
-
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                                                                                      #
 #                                                                                                                      #
 #                                                         Cloud                                                        #
 #                                                                                                                      #
@@ -404,3 +375,32 @@ accounting_enabled = true
 # endregion Accounting
 
 # endregion Slurm
+
+#----------------------------------------------------------------------------------------------------------------------#
+#                                                                                                                      #
+#                                                      Kubernetes                                                      #
+#                                                                                                                      #
+#----------------------------------------------------------------------------------------------------------------------#
+# region k8s
+
+# Version of the k8s to be used.
+# ---
+k8s_version = "1.30"
+
+# Name of the k8s cluster.
+# ---
+k8s_cluster_name = "soperator"
+
+# SSH user credentials for accessing k8s nodes.
+# That option add public ip address to every node.
+# By default, empty list.
+# ---
+# k8s_cluster_node_ssh_access_users = [{
+#   name = "<USER1>"
+#   public_keys = [
+#     "<ENCRYPTION-METHOD1 HASH1 USER1>",
+#     "<ENCRYPTION-METHOD2 HASH2 USER1>",
+#   ]
+# }]
+
+# endregion k8s
