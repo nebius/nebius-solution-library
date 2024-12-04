@@ -65,7 +65,8 @@ Update the following variables in the `terraform.tfvars` file with your own valu
 
 ## Creating and using a public IP allocation
 
-This step allows you to retain the IP address even if the VM is deleted. If you don’t need to keep the IP adress, skip section.
+This step allows you to retain the IP address even if the VM is deleted.
+By default, if no IP allocation is specified, terraform will handle one for you.
 
 1. Create a public IP allocation:
    ```bash
