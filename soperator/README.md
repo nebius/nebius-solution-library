@@ -19,7 +19,6 @@ Before starting, ensure you have these tools installed:
 - [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 - [Nebius CLI ](https://nebius.com/docs/cli/quickstart)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
-- AWS CLI: `python -m pip install awscli`
 - [jq](https://jqlang.github.io/jq/download/)
 - coreutils: 
   - macOS: `brew install coreutils`
