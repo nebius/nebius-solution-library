@@ -127,6 +127,10 @@ resource "helm_release" "slurm_operator" {
     name  = "controllerManager.manager.env.isMariadbCrdInstalled"
     value = var.accounting_enabled
   }
+  set {
+    name  = "certManager.enabled"
+    value = var.telemetry_enabled
+  }
 
   wait          = true
   wait_for_jobs = true
