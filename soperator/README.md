@@ -31,18 +31,17 @@ Before starting, ensure you have these tools installed:
 
 1. **Create Your Installation Directory**
 ```bash
-mkdir -p installations/<your-name>
-cd installations/<your-name>
+export INSTALLATION_NAME=<your-name> # e.g. customer name
+mkdir -p installations/$INSTALLATION_NAME
+cd installations/$INSTALLATION_NAME
 cp -r ../example/ ./
 ```
 
 2. **Set Up Your Environment**
-```bash
-# Set your Nebius project details
-export NEBIUS_TENANT_ID='<your-tenant-id>'
-export NEBIUS_PROJECT_ID='<your-project-id>'
 
-# Load environment variables 
+Set your NEBIUS_TENANT_ID and NEBIUS_PROJECT_ID in the `.envrc` file, then run:
+
+```bash
 source .envrc
 ```
 
