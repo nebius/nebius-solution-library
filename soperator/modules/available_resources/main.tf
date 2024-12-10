@@ -106,7 +106,7 @@ locals {
     }
     c-96vcpu-384gb = {
       cpu_cores              = 96 - 2
-      memory_gibibytes       = 384 - 10
+      memory_gibibytes       = 384 - 16
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -119,7 +119,7 @@ locals {
     }
     c-128vcpu-512gb = {
       cpu_cores              = 128 - 2
-      memory_gibibytes       = 512 - 10
+      memory_gibibytes       = 512 - 16
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -132,7 +132,7 @@ locals {
     }
     c-160vcpu-640gb = {
       cpu_cores              = 160 - 2
-      memory_gibibytes       = 640 - 10
+      memory_gibibytes       = 640 - 16
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -145,7 +145,7 @@ locals {
     }
     c-192vcpu-768gb = {
       cpu_cores              = 192 - 2
-      memory_gibibytes       = 768 - 10
+      memory_gibibytes       = 768 - 16
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -158,7 +158,7 @@ locals {
     }
     c-224vcpu-896gb = {
       cpu_cores              = 224 - 2
-      memory_gibibytes       = 896 - 10
+      memory_gibibytes       = 896 - 16
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -171,7 +171,7 @@ locals {
     }
     c-256vcpu-1024gb = {
       cpu_cores              = 256 - 2
-      memory_gibibytes       = 1024 - 10
+      memory_gibibytes       = 1024 - 16
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
