@@ -1,16 +1,20 @@
 %{ if enable_filestore != "false" || enable_glusterfs != "false" }
-runcmd:
+mounts:
 %{ endif }
 %{ if enable_filestore != "false" }
- - sudo mkdir -p /mnt/data
- - sudo mount -t virtiofs data /mnt/data
- - echo data /mnt/data virtiofs defaults 0 2 | sudo tee -a /etc/fstab
+- [ data, /mnt/data, virtiofs, "defaults", 0, 2 ]
 %{ endif }
 %{ if enable_glusterfs != "false" }
- - sudo mkdir -p /mnt/glusterfs
- - sudo apt-get install -y glusterfs-client
- - sudo mount -t glusterfs ${glusterfs_host}:${glusterfs_volume} /mnt/glusterfs
- - echo ${glusterfs_host}:${glusterfs_volume} /mnt/glusterfs "glusterfs" "defaults" "0" "2" | sudo tee -a /etc/fstab
+- [ '${glusterfs_host}:${glusterfs_volume}', /mnt/glusterfs, glusterfs, "defaults,nofail", 0, 2 ]
+
+packages:
+  - glusterfs-client
+
+runcmd:
+ - [ modprobe, fuse ]
+ - [ mkdir, '-p', /mnt/data ]
+ - [ mount, '-a' ]
+ 
 %{ endif }
 
 users:
