@@ -94,6 +94,15 @@ filestore_accounting = {
 
 # endregion Storage
 
+# region nfs-server
+
+# nfs = {
+#   enabled = true
+#   size_gibibytes = 93
+# }
+
+# endregion nfs-server
+
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                                                                                                      #

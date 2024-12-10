@@ -127,6 +127,26 @@ variable "filestore_accounting" {
 
 # endregion Storage
 
+# region nfs-server
+
+variable "nfs" {
+  type = object({
+    enabled = bool
+    size_gibibytes = number
+  })
+  default = {
+    enabled = false
+    size_gibibytes = 93
+  }
+
+  validation {
+    condition = var.nfs.enabled ? var.nfs.size_gibibytes % 93 == 0 && var.nfs.size_gibibytes <= 262074 : true
+    error_message = "NFS size must be a multiple of 93 GiB and maximum value is 262074 GiB"
+  }
+}
+
+# endregion nfs-server
+
 # region k8s
 
 variable "k8s_version" {
