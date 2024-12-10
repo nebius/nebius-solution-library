@@ -28,7 +28,7 @@ resource "nebius_compute_v1_instance" "nfs_server" {
     }
   ]
 
-  cloud_init_user_data = templatefile("../modules/cloud-init/nfs-cloud-init.tftpl", {
+  cloud_init_user_data = templatefile("${path.module}/files/nfs-cloud-init.tftpl", {
     ssh_user_name  = var.ssh_user_name,
     ssh_public_key = var.ssh_public_key,
     nfs_ip_range   = var.nfs_ip_range,

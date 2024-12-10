@@ -94,6 +94,19 @@ filestore_accounting = {
 
 # endregion Storage
 
+# region nfs-server
+
+# nfs = {
+#   enabled = true
+#   size_gibibytes = 93
+#   resource = {
+#     platform = "cpu-e2"
+#     preset   = "16vcpu-64gb"
+#    }
+# }
+
+# endregion nfs-server
+
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                                                                                                      #
