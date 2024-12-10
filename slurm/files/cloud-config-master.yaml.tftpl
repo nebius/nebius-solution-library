@@ -20,7 +20,7 @@ packages:
 runcmd:
   - mkdir -p /home/slurm
   - chmod 700 /home/slurm
-  - cp /home/ubuntu/.bashrc /home/slurm/
+  - cp /home/${ssh_user_name}/.bashrc /home/slurm/
   - cp /etc/ssh/id_rsa /home/slurm/.ssh/
   - chown -R slurm:slurm /home/slurm
   %{~ if shared_fs_type == "filesystem" ~}
