@@ -78,8 +78,8 @@ module "nfs-server" {
   nfs_ip_range   = data.nebius_vpc_v1_subnet.this.ipv4_private_pools.pools[0].cidrs[0].cidr
   nfs_size       = var.nfs.size_gibibytes * 1024 * 1024 * 1024
   nfs_path       = "/mnt/nfs"
-  platform       = "cpu-e2"
-  preset         = "16vcpu-64gb"
+  platform       = var.nfs.resource.platform
+  preset         = var.nfs.resource.preset
 
   providers = {
     nebius = nebius
