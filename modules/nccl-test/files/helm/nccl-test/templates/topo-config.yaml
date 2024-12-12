@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "nccl-test.fullname" . }}-topo-config
-  labels:
-  {{- include "nccl-test.labels" . | nindent 4 }}
-data:
-  nccl-topo-h100-v1.xml: {{ .Values.topoConfig.ncclTopoH100V1Xml | toYaml | indent
-    1 }}

@@ -96,7 +96,7 @@ ssh_public_key = {
 
 ```hcl
 # K8s modes
-cpu_nodes_count  = 1 # Number of CPU nodes
+cpu_nodes_count  = 3 # Number of CPU nodes
 cpu_nodes_preset = "16vcpu-64gb" # CPU node preset
 gpu_nodes_count  = 1 # Number of GPU nodes
 
