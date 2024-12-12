@@ -16,7 +16,7 @@ runcmd:
 - echo "/dev/vdb ${nfs_path} ext4  rw,relatime" | tee -a /etc/fstab
 - chown nobody:nogroup ${nfs_path}
 - chmod 777 ${nfs_path}
-- echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check)" >> /etc/exports
+- echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)" >> /etc/exports
 - netplan set ethernets.eth0.mtu=${mtu_size}
 - netplan apply
 - systemctl restart nfs-kernel-server
