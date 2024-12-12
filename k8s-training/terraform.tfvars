@@ -1,21 +1,18 @@
 # Cloud environment and network
-# parent_id      = "" # The project-id in this context
-# subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
-# region         = "" # Project region
-# ssh_user_name  = "" # Username you want to use to connect to the nodes
-# ssh_public_key = {
-# key  = "put your public ssh key here" OR
-# path = "put path to ssh key here"
-# }
+parent_id      = "project-e00dppgnh7smdq475s" # The project-id in this context
+subnet_id      = "vpcsubnet-e00bdce2b4npsj1m25" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
+region         = "eu-north1" # Project region
+ssh_user_name  = "user" # Username you want to use to connect to the nodes
+ssh_public_key = {
+    path = "~/.ssh/id_ed25519.pub"
+}
 
 # K8s nodes
-cpu_nodes_count = 3 # Number of CPU nodes
-gpu_nodes_count = 1 # Number of GPU nodes
-# cpu_nodes_platform =                 # CPU nodes platofm
-# cpu_nodes_preset   =                 # CPU nodes preset
-# gpu_nodes_platform =                 # GPU nodes platform
-# gpu_nodes_preset   =                 # GPU nodes preset
-# infiniband_fabric  =                 # Infiniband fabric name.
+cpu_nodes_count = 1 # Number of CPU nodes
+gpu_nodes_count = 2 # Number of GPU nodes
+cpu_nodes_preset = "16vcpu-64gb"
+gpu_nodes_preset = "8gpu-128vcpu-1600gb"
+infiniband_fabric = "fabric-4" # Infiniband fabric name.
 
 
 # Observability
@@ -31,7 +28,7 @@ enable_dcgm       = true  # Enable or disable NVIDIA DCGM Exporter Dashboard and
 # Storage
 ## Filestore - recommended
 enable_filestore     = true                       # Enable or disable Filestore integration with true or false
-filestore_disk_size  = 100 * (1024 * 1024 * 1024) # Set Filestore disk size in bytes. The multiplication makes it easier to set the size in GB. This would set the size as 100GB
+filestore_disk_size  = 2000 * (1024 * 1024 * 1024) # Set Filestore disk size in bytes. The multiplication makes it easier to set the size in GB. This would set the size as 100GB
 filestore_block_size = 4096                       # Set Filestore block size in bytes
 
 ## GlusterFS - legacy
