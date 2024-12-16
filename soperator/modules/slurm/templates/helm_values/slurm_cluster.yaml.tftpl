@@ -138,7 +138,7 @@ slurmNodes:
     mariadbOperator:
       enabled: ${nodes.accounting.mariadb_operator.enabled}
       %{~ if nodes.accounting.mariadb_operator.enabled  ~}
-      protectedSecret: ${nodes.accounting.mariadb_operator.metrics_enabled}
+      protectedSecret: ${nodes.accounting.protected_secret}
       resources:
         cpu: ${nodes.accounting.mariadb_operator.resources.cpu * 1000}m
         memory: ${nodes.accounting.mariadb_operator.resources.memory}Gi

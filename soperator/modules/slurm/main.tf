@@ -167,15 +167,16 @@ resource "helm_release" "slurm_cluster" {
 
     nccl_topology_type = var.nccl_topology_type
     nccl_benchmark = {
-      enable          = var.nccl_benchmark_enable
-      schedule        = var.nccl_benchmark_schedule
-      min_threshold   = var.nccl_benchmark_min_threshold
-      use_infiniband  = var.nccl_use_infiniband
+      enable         = var.nccl_benchmark_enable
+      schedule       = var.nccl_benchmark_schedule
+      min_threshold  = var.nccl_benchmark_min_threshold
+      use_infiniband = var.nccl_use_infiniband
     }
 
     nodes = {
       accounting = {
-        enabled = var.accounting_enabled
+        enabled          = var.accounting_enabled
+        protected_secret = var.protected_secret
         mariadb_operator = var.accounting_enabled ? {
           enabled         = var.accounting_enabled
           storage_size    = var.accounting_enabled ? var.filestores.accounting.size_gibibytes : 0
