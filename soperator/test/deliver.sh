@@ -29,17 +29,24 @@ if [ -z "${PORT}" ]; then
   PORT=22
 fi
 
-TEST_DIR='/opt/test'
-
-h1() { echo -e "$(tput setab 12)$(tput setaf 0)$(tput bold) ${1} $(tput sgr0)"; }
-hdone() { echo -e "$(tput setab 10)$(tput setaf 0) Done $(tput sgr0)"; }
+source common/env.sh
+source common/printer.sh
 
 h1 "Creating directory for tests on ${ADDRESS}..."
 ssh \
   -i "${KEY}" \
   -P "${PORT}" \
   "${USER}@${ADDRESS}" \
-  mkdir -p ${TEST_DIR}
+  mkdir -p "${TEST_DIR}"
+hdone
+
+h1 "Transferring common files as user '${USER}' with key '${KEY}' to ${ADDRESS}:${PORT}..."
+scp \
+  -i "${KEY}" \
+  -P "${PORT}" \
+  -r \
+  ./common/* \
+  "${USER}@${ADDRESS}":"${TEST_DIR}/common"
 hdone
 
 h1 "Transferring files of ${TEST_TYPE} as user '${USER}' with key '${KEY}' to ${ADDRESS}:${PORT}..."
