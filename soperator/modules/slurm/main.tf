@@ -176,7 +176,7 @@ resource "helm_release" "slurm_cluster" {
     nodes = {
       accounting = {
         enabled          = var.accounting_enabled
-        protected_secret = var.protected_secret
+        use_protected_secret = var.use_protected_secret
         mariadb_operator = var.accounting_enabled ? {
           enabled         = var.accounting_enabled
           storage_size    = var.accounting_enabled ? var.filestores.accounting.size_gibibytes : 0

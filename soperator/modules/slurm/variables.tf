@@ -248,7 +248,7 @@ variable "accounting_enabled" {
   default     = false
 }
 
-variable "protected_secret" {
+variable "use_protected_secret" {
   description = "Protected secret for MariaDB."
   type        = bool
   default     = false
