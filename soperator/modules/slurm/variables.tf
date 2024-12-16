@@ -249,7 +249,7 @@ variable "accounting_enabled" {
 }
 
 variable "use_protected_secret" {
-  description = "Protected secret for MariaDB."
+  description = "If true, protected secret MariaDB will be deleted after the MariaDB CR is deleted."
   type        = bool
   default     = false
 }
