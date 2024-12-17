@@ -7,20 +7,25 @@ users:
     ssh-authorized-keys:
       - ${ssh_public_key}
 
+disk_setup:
+  /dev/disk/by-id/virtio-${nfs_disk_id}:
+    table_type: gpt
+    layout: true
+
+fs_setup:
+  - device: /dev/disk/by-id/virtio-${nfs_disk_id}-part1
+    filesystem: ext4
+
+mounts:
+  - ["/dev/disk/by-id/virtio-${nfs_disk_id}-part1", "${nfs_path}", "ext4", "rw", "0", "0"]
+
 runcmd:
 # install nfs server package
 - apt-get update
 - apt-get install -y nfs-kernel-server
 
-# Prepare partition on secondary disk
+# Prepare pnfs mountpoint
 - mkdir -p ${nfs_path}
-- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mklabel gpt
-- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mkpart primary ext4 0% 100%
-- mkfs.ext4 /dev/disk/by-id/virtio-${nfs_disk_id}-part1
-- sync
-
-# Mount the partition
-- mount -o rw /dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path}
 - echo "/dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path} ext4 rw,relatime" >> /etc/fstab
 
 # Configure permissions
