@@ -8,15 +8,31 @@ users:
       - ${ssh_public_key}
 
 runcmd:
+# install nfs server package
 - apt-get update
 - apt-get install -y nfs-kernel-server
+
+# Prepare partition on secondary disk
 - mkdir -p ${nfs_path}
-- mkfs.ext4 /dev/vda
-- mount -o rw /dev/vda ${nfs_path}
-- echo "/dev/vdb ${nfs_path} ext4  rw,relatime" | tee -a /etc/fstab
+- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mklabel gpt
+- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mkpart primary ext4 0% 100%
+- mkfs.ext4 /dev/disk/by-id/virtio-${nfs_disk_id}-part1
+- sync
+
+# Mount the partition
+- mount -o rw /dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path}
+- echo "/dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path} ext4 rw,relatime" >> /etc/fstab
+
+# Configure permissions
 - chown nobody:nogroup ${nfs_path}
 - chmod 777 ${nfs_path}
+
+# Configure NFS export
 - echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)" >> /etc/exports
+
+# Configure network MTU
 - netplan set ethernets.eth0.mtu=${mtu_size}
 - netplan apply
+
+# Restart NFS service
 - systemctl restart nfs-kernel-server

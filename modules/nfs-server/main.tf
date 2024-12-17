@@ -33,6 +33,7 @@ resource "nebius_compute_v1_instance" "nfs_server" {
     ssh_public_key = var.ssh_public_key,
     nfs_ip_range   = var.nfs_ip_range,
     nfs_path       = var.nfs_path,
-    mtu_size       = var.mtu_size
+    mtu_size       = var.mtu_size,
+    nfs_disk_id    = substr(nebius_compute_v1_disk.nfs-storage-disk.id, 0, 20)
   })
 }
