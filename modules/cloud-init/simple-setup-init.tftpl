@@ -1,0 +1,27 @@
+#cloud-config
+users:
+  - name: ${ssh_user_name}
+    groups: sudo
+    shell: /bin/bash
+    sudo: 'ALL=(ALL) NOPASSWD:ALL'
+    ssh-authorized-keys:
+      - ${ssh_public_key}
+
+runcmd:
+- apt-get update
+- apt-get upgrade
+
+# Prepare partition on secondary disk
+- mkdir -p ${nfs_path}
+- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mklabel gpt
+- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mkpart primary ext4 0% 100%
+- mkfs.ext4 /dev/disk/by-id/virtio-${nfs_disk_id}-part1
+- sync
+
+# Mount the partition
+- mount -o rw /dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path}
+- echo "/dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path} ext4 rw,relatime" >> /etc/fstab
+
+# Configure permissions
+- chown nobody:nogroup ${nfs_path}
+- chmod 777 ${nfs_path}
