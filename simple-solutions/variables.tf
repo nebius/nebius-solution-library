@@ -53,9 +53,20 @@ variable "ssh_user_name" {
   default     = "tux"
 }
 
+variable "add_nfs_storage" {
+  type = bool
+  default = false
+  description = "if true, a new nfs disk will be created and mounted at <nfs_path>"
+ }
+
 variable "nfs_path" {
   type = string
   default = "/mnt/nfs"
   description = "Folder where the network storage will be mounted on"
 }
 
+variable "nfs_size_gb" {
+  type = number
+  default = 50
+  description = "size of the newly created nfs storage"
+}

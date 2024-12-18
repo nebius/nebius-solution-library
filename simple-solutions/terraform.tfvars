@@ -7,3 +7,6 @@ ssh_public_key = {
 }
 
 preset = "16vcpu-64gb"
+
+add_nfs_storage = false
+nfs_size_gb = 100
