@@ -33,6 +33,6 @@ srun -N 1 -n 1 \
     --buffer-size=512Mi \
     --multi-thread-streams=24 --multi-thread-chunk-size=128Mi --multi-thread-cutoff=4Gi --multi-thread-write-buffer-size=256Mi \
     --checkers=16 \
-    --size-only --update --use-server-modtime --fast-list --s3-no-head-object --s3-chunk-size=32M --no-check-dest
+    --use-server-modtime --fast-list --s3-no-head-object --s3-chunk-size=32M
 
 echo "Done"
