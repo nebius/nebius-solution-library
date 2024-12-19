@@ -224,7 +224,7 @@ slurmNodes:
       %{~ if length(jail_submounts) > 0 || nfs.enabled ~}
       jailSubMounts:
         %{~ if nfs.enabled ~}
-        - mountPath: /nfs
+        - mountPath: ${nfs.mount_path}
           name: nfs
           volumeSourceName: nfs
         %{~ endif ~}
@@ -253,7 +253,6 @@ slurmNodes:
       - ${key}
       %{~ endfor ~}
     %{~ endif ~}
-    %{~ if length(jail_submounts) > 0 ~}
     sshd:
       resources:
         cpu: ${nodes.login.resources.cpu * 1000}m
@@ -264,8 +263,14 @@ slurmNodes:
         cpu: ${nodes.munge.resources.cpu * 1000}m
         memory: ${nodes.munge.resources.memory}Gi
         ephemeralStorage: ${nodes.munge.resources.ephemeral_storage}Gi
+    %{~ if length(jail_submounts) > 0 || nfs.enabled ~}
     volumes:
       jailSubMounts:
+        %{~ if nfs.enabled ~}
+        - mountPath: ${nfs.mount_path}
+          name: nfs
+          volumeSourceName: nfs
+        %{~ endif ~}
         %{~ for sub_mount in jail_submounts ~}
         - name: ${sub_mount.name}
           mountPath: ${sub_mount.mount_path}

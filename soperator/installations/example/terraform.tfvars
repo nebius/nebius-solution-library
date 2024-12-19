@@ -99,6 +99,7 @@ filestore_accounting = {
 # nfs = {
 #   enabled = true
 #   size_gibibytes = 93
+#   mount_path     = "/mnt/nfs"
 #   resource = {
 #     platform = "cpu-e2"
 #     preset   = "16vcpu-64gb"

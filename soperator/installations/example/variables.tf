@@ -133,6 +133,7 @@ variable "nfs" {
   type = object({
     enabled        = bool
     size_gibibytes = number
+    mount_path     = optional(string, "/mnt/nfs")
     resource = object({
       platform = string
       preset   = string

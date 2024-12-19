@@ -268,9 +268,10 @@ module "slurm" {
   }
 
   nfs = {
-    enabled = var.nfs.enabled
-    path    = var.nfs.enabled ? module.nfs-server[0].nfs_export_path : null
-    host    = var.nfs.enabled ? module.nfs-server[0].nfs_server_internal_ip : null
+    enabled    = var.nfs.enabled
+    path       = var.nfs.enabled ? module.nfs-server[0].nfs_export_path : null
+    host       = var.nfs.enabled ? module.nfs-server[0].nfs_server_internal_ip : null
+    mount_path = var.nfs.enabled ? var.nfs.mount_path : null
   }
 
   shared_memory_size_gibibytes = var.slurm_shared_memory_size_gibibytes

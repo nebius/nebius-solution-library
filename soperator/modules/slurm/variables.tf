@@ -175,9 +175,10 @@ variable "filestores" {
 
 variable "nfs" {
   type = object({
-    enabled = bool
-    path    = optional(string)
-    host    = optional(string)
+    enabled    = bool
+    mount_path = optional(string, "/mnt/nfs")
+    path       = optional(string)
+    host       = optional(string)
   })
   default = {
     enabled = false
