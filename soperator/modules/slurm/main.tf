@@ -165,6 +165,8 @@ resource "helm_release" "slurm_cluster" {
       mount_path = submount.mount_path
     }]
 
+    nfs = var.nfs
+
     nccl_topology_type = var.nccl_topology_type
     nccl_benchmark = {
       enable         = var.nccl_benchmark_enable
