@@ -171,6 +171,27 @@ variable "filestores" {
 
 # endregion Filestore
 
+# region nfs-server
+
+variable "nfs" {
+  type = object({
+    enabled    = bool
+    mount_path = optional(string, "/mnt/nfs")
+    path       = optional(string)
+    host       = optional(string)
+  })
+  default = {
+    enabled = false
+  }
+
+  validation {
+    condition     = var.nfs.enabled ? var.nfs.path != null && var.nfs.host != null : true
+    error_message = "NFS path and host must be set."
+  }
+}
+
+# endregion nfs-server
+
 # region Config
 
 variable "shared_memory_size_gibibytes" {

@@ -68,6 +68,24 @@ module "filestore" {
   }
 }
 
+module "nfs-server" {
+  count          = var.nfs.enabled ? 1 : 0
+  source         = "../../../modules/nfs-server"
+  parent_id      = data.nebius_iam_v1_project.this.id
+  subnet_id      = data.nebius_vpc_v1_subnet.this.id
+  ssh_user_name  = "soperator"
+  ssh_public_key = var.slurm_login_ssh_root_public_keys[0]
+  nfs_ip_range   = data.nebius_vpc_v1_subnet.this.ipv4_private_pools.pools[0].cidrs[0].cidr
+  nfs_size       = var.nfs.size_gibibytes * 1024 * 1024 * 1024
+  nfs_path       = "/mnt/nfs"
+  platform       = var.nfs.resource.platform
+  preset         = var.nfs.resource.preset
+
+  providers = {
+    nebius = nebius
+  }
+}
+
 module "k8s" {
   depends_on = [
     module.filestore,
@@ -247,6 +265,13 @@ module "slurm" {
       size_gibibytes = module.filestore.accounting.size_gibibytes
       device         = module.filestore.accounting.mount_tag
     } : null
+  }
+
+  nfs = {
+    enabled    = var.nfs.enabled
+    path       = var.nfs.enabled ? module.nfs-server[0].nfs_export_path : null
+    host       = var.nfs.enabled ? module.nfs-server[0].nfs_server_internal_ip : null
+    mount_path = var.nfs.enabled ? var.nfs.mount_path : null
   }
 
   shared_memory_size_gibibytes = var.slurm_shared_memory_size_gibibytes
