@@ -7,16 +7,37 @@ users:
     ssh-authorized-keys:
       - ${ssh_public_key}
 
+disk_setup:
+  /dev/disk/by-id/virtio-${nfs_disk_id}:
+    table_type: gpt
+    layout: true
+
+fs_setup:
+  - device: /dev/disk/by-id/virtio-${nfs_disk_id}-part1
+    filesystem: ext4
+
+mounts:
+  - ["/dev/disk/by-id/virtio-${nfs_disk_id}-part1", "${nfs_path}", "ext4", "rw", "0", "0"]
+
 runcmd:
+# install nfs server package
 - apt-get update
 - apt-get install -y nfs-kernel-server
+
+# Prepare pnfs mountpoint
 - mkdir -p ${nfs_path}
-- mkfs.ext4 /dev/vda
-- mount -o rw /dev/vda ${nfs_path}
-- echo "/dev/vdb ${nfs_path} ext4  rw,relatime" | tee -a /etc/fstab
+- echo "/dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path} ext4 rw,relatime" >> /etc/fstab
+
+# Configure permissions
 - chown nobody:nogroup ${nfs_path}
 - chmod 777 ${nfs_path}
+
+# Configure NFS export
 - echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)" >> /etc/exports
+
+# Configure network MTU
 - netplan set ethernets.eth0.mtu=${mtu_size}
 - netplan apply
+
+# Restart NFS service
 - systemctl restart nfs-kernel-server
