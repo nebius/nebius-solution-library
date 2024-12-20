@@ -219,7 +219,7 @@ module "slurm" {
       {
         cpu_cores                   = local.resources.workers[i].cpu_cores
         memory_gibibytes            = local.resources.workers[i].memory_gibibytes
-        ephemeral_storage_gibibytes = ceil(worker.boot_disk.size_gibibytes - module.resources.k8s_ephemeral_storage_reserve.gibibytes)
+        ephemeral_storage_gibibytes = ceil(worker.boot_disk.size_gibibytes - 2 * module.resources.k8s_ephemeral_storage_reserve.gibibytes)
         gpus                        = local.resources.workers[i].gpus
       }
     ]
