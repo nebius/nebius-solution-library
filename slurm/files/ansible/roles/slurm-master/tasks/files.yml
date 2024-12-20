@@ -47,7 +47,7 @@
       export NCCL_COLLNET_ENABLE=0
       export NCCL_TOPO_FILE=/etc/nccl-topo-h100-v1.xml
       srun -N $SLURM_NODES --ntasks-per-node=8 --gpus-per-node=8 \
-           --container-image="cr.ai.nebius.cloud#examples/nccl-tests:latest" \
+           --container-image="cr.eu-north1.nebius.cloud#nebius-benchmarks/nccl-tests:2.19.4-ubu22.04-cu12.2" \
            --container-remap-root --no-container-mount-home --container-mounts=$NCCL_TOPO_FILE:$NCCL_TOPO_FILE \
            /opt/nccl_tests/build/all_reduce_perf -b 512M -e 8G -f 2 -g 1 $@
 
@@ -91,6 +91,6 @@
       # Log the assigned nodes
       echo "Using nodes: $SLURM_JOB_NODELIST"
 
-      srun --container-image="cr.ai.nebius.cloud#examples/nccl-tests:latest" \
+      srun --container-image="cr.eu-north1.nebius.cloud#nebius-benchmarks/nccl-tests:2.19.4-ubu22.04-cu12.2" \
            --container-remap-root --no-container-mount-home --container-mounts=$NCCL_TOPO_FILE:$NCCL_TOPO_FILE \
            /opt/nccl_tests/build/all_reduce_perf -b 512M -e 8G -f 2 -g 1 $@
