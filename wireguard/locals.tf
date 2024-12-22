@@ -18,4 +18,5 @@ locals {
   platform = coalesce(var.platform, local.current_region_defaults.platform)
   preset   = coalesce(var.preset, local.current_region_defaults.preset)
 
+  public_ip_allocation = var.public_ip_allocation_id == null
 }
