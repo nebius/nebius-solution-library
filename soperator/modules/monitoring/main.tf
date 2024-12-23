@@ -150,7 +150,7 @@ resource "helm_release" "slurm_monitor" {
 
 resource "helm_release" "dashboard" {
   for_each = tomap({
-    dcgm_exporter      = "dcgm-exporter"
+    gpu_metrics        = "gpu-metrics"
     slurm_exporter     = "exporter"
     kube_state_metrics = "kube-state-metrics"
     node_exporter      = "node-exporter"
