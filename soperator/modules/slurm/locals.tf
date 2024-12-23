@@ -79,4 +79,6 @@ locals {
       ephemeral_storage = 5
     }
   }
+
+  slurm_node_extra = "{ \"monitoring\": \"https://console.eu.nebius.com/${var.iam_project_id}/compute/instances/$INSTANCE_ID/monitoring\" }"
 }

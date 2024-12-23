@@ -212,6 +212,7 @@ resource "helm_release" "slurm_cluster" {
           gpus              = one(var.resources.worker).gpus
         }
         shared_memory = var.shared_memory_size_gibibytes
+        slurm_node_extra = local.slurm_node_extra
       }
 
       login = {
