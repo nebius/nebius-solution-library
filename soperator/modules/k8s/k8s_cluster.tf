@@ -27,12 +27,22 @@ resource "terraform_data" "kubectl_cluster_context" {
   ]
 
   triggers_replace = [
-    nebius_mk8s_v1_cluster.this.id
+    nebius_mk8s_v1_cluster.this.id,
+    timestamp(),
   ]
 
   provisioner "local-exec" {
     working_dir = path.root
-    interpreter = ["nebius", "mk8s", "cluster", "get-credentials", "--external", "--force", "--id"]
-    command     = nebius_mk8s_v1_cluster.this.id
+    interpreter = ["/bin/bash", "-c"]
+    command = join(
+      " ",
+      [
+        "nebius", "mk8s", "cluster", "get-credentials",
+        "--context-name", local.context_name,
+        "--external",
+        "--force",
+        "--id", nebius_mk8s_v1_cluster.this.id
+      ]
+    )
   }
 }

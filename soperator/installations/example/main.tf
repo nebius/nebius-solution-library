@@ -101,6 +101,7 @@ module "k8s" {
   k8s_version        = var.k8s_version
   name               = var.k8s_cluster_name
   slurm_cluster_name = var.slurm_cluster_name
+  company_name       = var.company_name
 
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller
@@ -195,8 +196,9 @@ module "slurm" {
 
   source = "../../modules/slurm"
 
-  name             = var.slurm_cluster_name
-  operator_version = var.slurm_operator_version
+  name                = var.slurm_cluster_name
+  operator_version    = var.slurm_operator_version
+  k8s_cluster_context = module.k8s.cluster_context
 
   iam_project_id = var.iam_project_id
 
@@ -326,6 +328,8 @@ module "login_script" {
     port = var.slurm_login_node_port
   }
   slurm_cluster_name = var.slurm_cluster_name
+
+  k8s_cluster_context = module.k8s.cluster_context
 
   providers = {
     kubernetes = kubernetes

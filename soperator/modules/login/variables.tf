@@ -1,3 +1,9 @@
+variable "k8s_cluster_context" {
+  description = "Context name of the K8s cluster."
+  type        = string
+  nullable    = false
+}
+
 variable "node_port" {
   description = "NodePort service configuration."
   type = object({

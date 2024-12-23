@@ -19,6 +19,12 @@ variable "iam_project_id" {
   type        = string
 }
 
+variable "k8s_cluster_context" {
+  description = "Context name of the K8s cluster."
+  type        = string
+  nullable    = false
+}
+
 # region PartitionConfiguration
 
 variable "slurm_partition_config_type" {

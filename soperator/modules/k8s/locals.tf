@@ -24,4 +24,13 @@ locals {
       (worker ? module.labels.label_workload_gpu : module.labels.label_workload_cpu)
     ]
   }
+
+  context_name = join(
+    "-",
+    [
+      "nebius",
+      replace(lower(var.company_name), " ", "-"),
+      "slurm"
+    ]
+  )
 }

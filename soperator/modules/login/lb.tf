@@ -3,7 +3,17 @@ resource "terraform_data" "wait_for_slurm_login_service" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command     = "kubectl wait --for=jsonpath='{.status.loadBalancer.ingress}' --timeout 5m -n ${var.slurm_cluster_name} service/${var.slurm_cluster_name}-login-svc"
+    command = join(
+      " ",
+      [
+        "kubectl", "wait",
+        "--for=jsonpath='{.status.loadBalancer.ingress}'",
+        "--timeout", "5m",
+        "--context", var.k8s_cluster_context,
+        "-n", var.slurm_cluster_name,
+        "service/${var.slurm_cluster_name}-login-svc"
+      ]
+    )
   }
 }
 
