@@ -207,6 +207,8 @@ slurmNodes:
     size: ${nodes.worker.size}
     k8sNodeFilterName: ${k8s_node_filters.worker.name}
     cgroupVersion: v2
+    enableGDRCopy: true
+    slurmNodeExtra: ${slurm_node_extra}
     slurmd:
       resources:
         cpu: ${nodes.worker.resources.cpu * 1000}m

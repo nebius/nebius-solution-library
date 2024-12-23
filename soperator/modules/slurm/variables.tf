@@ -14,6 +14,11 @@ variable "operator_stable" {
   default     = true
 }
 
+variable "iam_project_id" {
+  description = "ID of the IAM project."
+  type        = string
+}
+
 # region PartitionConfiguration
 
 variable "slurm_partition_config_type" {
