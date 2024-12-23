@@ -108,6 +108,14 @@ volumeSources:
     emptyDir:
       sizeLimit: ${nodes.worker.resources.ephemeral_storage}Gi
 
+  %{~ if nfs.enabled ~}
+  - name: nfs
+    nfs:
+      path: ${nfs.path}
+      readOnly: false
+      server: ${nfs.host}
+  %{~ endif ~}
+
   %{~ for sub_mount in jail_submounts ~}
   - name: jail-submount-${sub_mount.name}
     persistentVolumeClaim:
@@ -199,6 +207,9 @@ slurmNodes:
     size: ${nodes.worker.size}
     k8sNodeFilterName: ${k8s_node_filters.worker.name}
     cgroupVersion: v2
+    enableGDRCopy: true
+    slurmNodeExtra: ${slurm_node_extra}
+    supervisordConfigMapRefName: custom-supervisord-config
     slurmd:
       resources:
         cpu: ${nodes.worker.resources.cpu * 1000}m
@@ -214,8 +225,13 @@ slurmNodes:
       spool:
         volumeClaimTemplateSpec: null
         volumeSourceName: worker-spool
-      %{~ if length(jail_submounts) > 0 ~}
+      %{~ if length(jail_submounts) > 0 || nfs.enabled ~}
       jailSubMounts:
+        %{~ if nfs.enabled ~}
+        - mountPath: ${nfs.mount_path}
+          name: nfs
+          volumeSourceName: nfs
+        %{~ endif ~}
         %{~ for sub_mount in jail_submounts ~}
         - name: ${sub_mount.name}
           mountPath: ${sub_mount.mount_path}
@@ -241,7 +257,6 @@ slurmNodes:
       - ${key}
       %{~ endfor ~}
     %{~ endif ~}
-    %{~ if length(jail_submounts) > 0 ~}
     sshd:
       resources:
         cpu: ${nodes.login.resources.cpu * 1000}m
@@ -252,8 +267,14 @@ slurmNodes:
         cpu: ${nodes.munge.resources.cpu * 1000}m
         memory: ${nodes.munge.resources.memory}Gi
         ephemeralStorage: ${nodes.munge.resources.ephemeral_storage}Gi
+    %{~ if length(jail_submounts) > 0 || nfs.enabled ~}
     volumes:
       jailSubMounts:
+        %{~ if nfs.enabled ~}
+        - mountPath: ${nfs.mount_path}
+          name: nfs
+          volumeSourceName: nfs
+        %{~ endif ~}
         %{~ for sub_mount in jail_submounts ~}
         - name: ${sub_mount.name}
           mountPath: ${sub_mount.mount_path}

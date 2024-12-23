@@ -136,10 +136,25 @@ resource "helm_release" "slurm_operator" {
   wait_for_jobs = true
 }
 
+resource "helm_release" "custom_supervisord_config" {
+  name       = "custom-supervisord-config"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.name
+
+  values = []
+
+  wait = true
+}
+
 resource "helm_release" "slurm_cluster" {
   depends_on = [
     helm_release.slurm_operator,
     helm_release.slurm_cluster_storage,
+    helm_release.custom_supervisord_config,
   ]
 
   name       = local.helm.chart.slurm_cluster
@@ -165,6 +180,8 @@ resource "helm_release" "slurm_cluster" {
       mount_path = submount.mount_path
     }]
 
+    nfs = var.nfs
+
     nccl_topology_type = var.nccl_topology_type
     nccl_benchmark = {
       enable         = var.nccl_benchmark_enable
@@ -175,7 +192,7 @@ resource "helm_release" "slurm_cluster" {
 
     nodes = {
       accounting = {
-        enabled          = var.accounting_enabled
+        enabled              = var.accounting_enabled
         use_protected_secret = var.use_protected_secret
         mariadb_operator = var.accounting_enabled ? {
           enabled         = var.accounting_enabled
@@ -209,7 +226,8 @@ resource "helm_release" "slurm_cluster" {
           ephemeral_storage = one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
           gpus              = one(var.resources.worker).gpus
         }
-        shared_memory = var.shared_memory_size_gibibytes
+        shared_memory    = var.shared_memory_size_gibibytes
+        slurm_node_extra = local.slurm_node_extra
       }
 
       login = {
@@ -259,6 +277,16 @@ resource "terraform_data" "wait_for_slurm_cluster" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command     = "kubectl wait --for=jsonpath='{.status.phase}'=Available --timeout 1h -n ${var.name} slurmcluster.slurm.nebius.ai/${var.name}"
+    command = join(
+      " ",
+      [
+        "kubectl", "wait",
+        "--for=jsonpath='{.status.phase}'=Available",
+        "--timeout", "1h",
+        "--context", var.k8s_cluster_context,
+        "-n", var.name,
+        "slurmcluster.slurm.nebius.ai/${var.name}"
+      ]
+    )
   }
 }

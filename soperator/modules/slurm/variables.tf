@@ -14,6 +14,17 @@ variable "operator_stable" {
   default     = true
 }
 
+variable "iam_project_id" {
+  description = "ID of the IAM project."
+  type        = string
+}
+
+variable "k8s_cluster_context" {
+  description = "Context name of the K8s cluster."
+  type        = string
+  nullable    = false
+}
+
 # region PartitionConfiguration
 
 variable "slurm_partition_config_type" {
@@ -170,6 +181,27 @@ variable "filestores" {
 }
 
 # endregion Filestore
+
+# region nfs-server
+
+variable "nfs" {
+  type = object({
+    enabled    = bool
+    mount_path = optional(string, "/mnt/nfs")
+    path       = optional(string)
+    host       = optional(string)
+  })
+  default = {
+    enabled = false
+  }
+
+  validation {
+    condition     = var.nfs.enabled ? var.nfs.path != null && var.nfs.host != null : true
+    error_message = "NFS path and host must be set."
+  }
+}
+
+# endregion nfs-server
 
 # region Config
 

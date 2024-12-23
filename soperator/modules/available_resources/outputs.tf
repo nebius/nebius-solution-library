@@ -3,6 +3,10 @@ output "this" {
   value       = local.resources
 }
 
+output "k8s_ephemeral_storage_coefficient" {
+  value = 0.9
+}
+
 output "k8s_ephemeral_storage_reserve" {
   value = data.units_data_size.k8s_ephemeral_storage_reserve
 }

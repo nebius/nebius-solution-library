@@ -34,6 +34,16 @@ data "nebius_vpc_v1_subnet" "this" {
   id = var.vpc_subnet_id
 }
 
+variable "company_name" {
+  description = "Name of the company. It is used for context name of the cluster in .kubeconfig file."
+  type        = string
+
+  validation {
+    condition     = var.company_name != ""
+    error_message = "Company name is not provided"
+  }
+}
+
 # endregion Cloud
 
 # region Infrastructure
@@ -126,6 +136,35 @@ variable "filestore_accounting" {
 }
 
 # endregion Storage
+
+# region nfs-server
+
+variable "nfs" {
+  type = object({
+    enabled        = bool
+    size_gibibytes = number
+    mount_path     = optional(string, "/mnt/nfs")
+    resource = object({
+      platform = string
+      preset   = string
+    })
+  })
+  default = {
+    enabled        = false
+    size_gibibytes = 93
+    resource = {
+      platform = "cpu-e2"
+      preset   = "16vcpu-64gb"
+    }
+  }
+
+  validation {
+    condition     = var.nfs.enabled ? var.nfs.size_gibibytes % 93 == 0 && var.nfs.size_gibibytes <= 262074 : true
+    error_message = "NFS size must be a multiple of 93 GiB and maximum value is 262074 GiB"
+  }
+}
+
+# endregion nfs-server
 
 # region k8s
 
@@ -291,7 +330,7 @@ variable "slurm_nodeset_workers" {
   description = "Configuration of Slurm Worker node sets."
   type = list(object({
     size                    = number
-    split_factor            = number
+    nodes_per_nodegroup     = number
     max_unavailable_percent = number
     resource = object({
       platform = string
@@ -309,7 +348,7 @@ variable "slurm_nodeset_workers" {
   nullable = false
   default = [{
     size                    = 1
-    split_factor            = 1
+    nodes_per_nodegroup     = 1
     max_unavailable_percent = 50
     resource = {
       platform = "cpu-e2"
@@ -330,9 +369,9 @@ variable "slurm_nodeset_workers" {
 
   validation {
     condition = length([for worker in var.slurm_nodeset_workers :
-      1 if worker.size % worker.split_factor != 0
+      1 if worker.size % worker.nodes_per_nodegroup != 0
     ]) == 0
-    error_message = "Worker count must be divisible by split_factor."
+    error_message = "Worker count must be divisible by nodes_per_nodegroup."
   }
 }
 

@@ -1878,15 +1878,15 @@ worker-1:19513:19856 [5] NCCL INFO Channel 11/0 : 5[5] -> 13[5] [receive] via NE
 worker-1:19513:19856 [5] NCCL INFO Channel 12/0 : 5[5] -> 13[5] [receive] via NET/IBext/1/GDRDMA
 worker-1:19513:19856 [5] NCCL INFO Channel 14/0 : 5[5] -> 13[5] [receive] via NET/IBext/1/GDRDMA
 worker-1:19513:19856 [5] NCCL INFO Channel 15/0 : 5[5] -> 13[5] [receive] via NET/IBext/1/GDRDMA
-worker-1:19513:19856 [5] NCCL INFO Channel 00/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
 worker-1:19513:19856 [5] NCCL INFO Channel 01/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
+worker-1:19513:19856 [5] NCCL INFO Channel 00/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
 worker-1:19513:19856 [5] NCCL INFO Channel 02/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
 worker-1:19513:19856 [5] NCCL INFO Channel 03/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
 worker-0:19593:20042 [3] NCCL INFO Channel 12/0 : 3[3] -> 11[3] [send] via NET/IBext/7/GDRDMA
 worker-0:19593:20042 [3] NCCL INFO Channel 13/0 : 3[3] -> 11[3] [send] via NET/IBext/7/GDRDMA
+worker-1:19513:19856 [5] NCCL INFO Channel 07/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
 worker-1:19513:19856 [5] NCCL INFO Channel 04/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
 worker-1:19513:19856 [5] NCCL INFO Channel 06/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
-worker-1:19513:19856 [5] NCCL INFO Channel 07/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
 worker-1:19513:19856 [5] NCCL INFO Channel 08/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
 worker-1:19513:19856 [5] NCCL INFO Channel 09/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
 worker-1:19513:19856 [5] NCCL INFO Channel 10/0 : 13[5] -> 5[5] [send] via NET/IBext/1/GDRDMA
