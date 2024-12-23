@@ -34,6 +34,16 @@ data "nebius_vpc_v1_subnet" "this" {
   id = var.vpc_subnet_id
 }
 
+variable "company_name" {
+  description = "Name of the company. It is used for context name of the cluster in .kubeconfig file."
+  type        = string
+
+  validation {
+    condition     = var.company_name != ""
+    error_message = "Company name is not provided"
+  }
+}
+
 # endregion Cloud
 
 # region Infrastructure

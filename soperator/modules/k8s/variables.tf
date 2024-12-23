@@ -32,6 +32,16 @@ variable "etcd_cluster_size" {
   default     = 3
 }
 
+variable "company_name" {
+  description = "Name of the company. It is used for context name of the cluster in .kubeconfig file."
+  type        = string
+
+  validation {
+    condition     = var.company_name != ""
+    error_message = "Company name is not provided"
+  }
+}
+
 #---
 
 variable "node_group_system" {

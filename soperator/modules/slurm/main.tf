@@ -277,6 +277,16 @@ resource "terraform_data" "wait_for_slurm_cluster" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command     = "kubectl wait --for=jsonpath='{.status.phase}'=Available --timeout 1h -n ${var.name} slurmcluster.slurm.nebius.ai/${var.name}"
+    command = join(
+      " ",
+      [
+        "kubectl", "wait",
+        "--for=jsonpath='{.status.phase}'=Available",
+        "--timeout", "1h",
+        "--context", var.k8s_cluster_context,
+        "-n", var.name,
+        "slurmcluster.slurm.nebius.ai/${var.name}"
+      ]
+    )
   }
 }
