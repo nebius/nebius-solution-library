@@ -157,7 +157,7 @@ slurm_cluster_name = "soperator"
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.16.0"
+slurm_operator_version = "1.16.1"
 
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".
