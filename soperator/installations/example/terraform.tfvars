@@ -212,13 +212,13 @@ slurm_nodeset_controller = {
 
 # Configuration of Slurm Worker node sets.
 # There can be only one Worker node set for a while.
-# Split factor allows you to split node set into equally-sized node groups to keep your cluster accessible and working
-# during maintenance. Example: split_factor 3 for 12 nodes will create for you 3 groups with 4 nodes in every group.
+# nodes_per_nodegroup allows you to split node set into equally-sized node groups to keep your cluster accessible and working
+# during maintenance. Example: nodes_per_nodegroup=3 for size=12 nodes will create 4 groups with 3 nodes in every group.
 # infiniband_fabric is required field
 # ---
 slurm_nodeset_workers = [{
   size                    = 16
-  split_factor            = 4
+  nodes_per_nodegroup     = 4
   max_unavailable_percent = 50
   resource = {
     platform = "gpu-h100-sxm"

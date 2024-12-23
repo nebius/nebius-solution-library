@@ -330,7 +330,7 @@ variable "slurm_nodeset_workers" {
   description = "Configuration of Slurm Worker node sets."
   type = list(object({
     size                    = number
-    split_factor            = number
+    nodes_per_nodegroup     = number
     max_unavailable_percent = number
     resource = object({
       platform = string
@@ -348,7 +348,7 @@ variable "slurm_nodeset_workers" {
   nullable = false
   default = [{
     size                    = 1
-    split_factor            = 1
+    nodes_per_nodegroup     = 1
     max_unavailable_percent = 50
     resource = {
       platform = "cpu-e2"
@@ -369,9 +369,9 @@ variable "slurm_nodeset_workers" {
 
   validation {
     condition = length([for worker in var.slurm_nodeset_workers :
-      1 if worker.size % worker.split_factor != 0
+      1 if worker.size % worker.nodes_per_nodegroup != 0
     ]) == 0
-    error_message = "Worker count must be divisible by split_factor."
+    error_message = "Worker count must be divisible by nodes_per_nodegroup."
   }
 }
 
