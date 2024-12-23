@@ -35,18 +35,20 @@ source ../common/rclone.sh
 
 h1 'Creating directories...'
 
-DATASET_NAME='gpt3-dataset-4.0'
+DATASET_NAME='sd-dataset-3.0'
 DATASET_DIR="${DATA_DIR}/${DATASET_NAME}"
 
-CHECKPOINT_NAME='gpt3-checkpoint-4.0'
+CHECKPOINT_NAME='sd-checkpoint-3.0'
 CHECKPOINT_DIR="${DATA_DIR}/${CHECKPOINT_NAME}"
 
-h2 "Datasets..." \
+h2 'Datasets...' \
   && mkdir -p "${DATASET_DIR}"
-h2 "Checkpoints..." \
+h2 'Checkpoints...' \
   && mkdir -p "${CHECKPOINT_DIR}"
 h2 'Results...' \
-  && mkdir -p "${TEST_MLPERF_GPT3_RESULTS_DIR}"
+  && mkdir -p "${TEST_MLPERF_SD_RESULTS_DIR}"
+h2 'HuggingFace home...' \
+  && mkdir -p "${DATA_DIR}/hf_home"
 
 hdone
 
@@ -83,7 +85,7 @@ hdone
 # region Test runner
 
 h1 'Patching test runner...'
-SBATCH_RUNNER_PATH='gpt3-impl-4.0-nvidia/start.sh'
+SBATCH_RUNNER_PATH='training_patch/stable_diffusion/scripts/slurm/sbatch.sh'
 
 h2 'Test dir...'
 sed -i -E \
@@ -92,12 +94,17 @@ sed -i -E \
 
 h2 'Log dir...'
 sed -i -E \
-  -e "s|(BASE_LOG_DIR:=)[^}]*|\1${TEST_MLPERF_GPT3_RESULTS_DIR}|" \
+  -e "s|(BASE_LOG_DIR:=)[^}]*|\1${TEST_MLPERF_SD_RESULTS_DIR}|" \
+  ${SBATCH_RUNNER_PATH}
+
+h2 'Results dir...'
+sed -i -E \
+  -e "s|(BASE_RESULTS_DIR:=)[^}]*|\1${TEST_MLPERF_SD_RESULTS_DIR}|" \
   ${SBATCH_RUNNER_PATH}
 
 h2 'Container image...'
 sed -i -E \
-  -e "s|(CONTAINER_IMAGE:=)[^}]*|\1${NEBIUS_CR_ENDPOINT}#${NEBIUS_CR_REGISTRY}/gpt3-4.0-nvidia:\$(cat ./VERSION)|" \
+  -e "s|(CONTAINER_IMAGE:=)[^}]*|\1${NEBIUS_CR_ENDPOINT}#${NEBIUS_CR_REGISTRY}/stable_diffusion_mlcommons|" \
   ${SBATCH_RUNNER_PATH}
 
 h2 'Data dir...'
@@ -107,16 +114,42 @@ sed -i -E \
 
 # endregion Test runner
 
+# region MLCommons repo
+
+h1 'Configuring MLCommons training repository...'
+TRAINING_DIR='training'
+
+if [[ -d "${TRAINING_DIR}" ]]; then
+  h2 'Cleaning leftovers...'
+  rm -rf ${TRAINING_DIR}
+fi
+
+h2 'Checkout...'
+export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+git clone --depth=1 https://github.com/mlcommons/training ${TRAINING_DIR}
+pushd ${TRAINING_DIR}
+  git fetch --depth=1 origin 00f04c57d589721aabce4618922780d29f73cf4e
+  git checkout 00f04c57d589721aabce4618922780d29f73cf4e
+popd
+
+h2 'Patching...'
+rclone copy "${TRAINING_DIR}_patch" ${TRAINING_DIR}
+
+h2 'Setting execution flags...'
+chmod +x ${TRAINING_DIR}/stable_diffusion/scripts/slurm/*.sh
+
+# endregion MLCommons repo
+
 # region Data
 
 h1 'Downloading data...'
 
-h2 'Creating a job to download GPT3 dataset...'
+h2 'Creating a job to download SD dataset...'
 sbatch ../common/sync.sh \
   -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${DATASET_NAME}" \
   -t "${DATASET_DIR}"
 
-h2 'Creating a job to download GPT3 checkpoint...'
+h2 'Creating a job to download SD checkpoint...'
 sbatch ../common/sync.sh \
   -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${CHECKPOINT_NAME}" \
   -t "${CHECKPOINT_DIR}"
