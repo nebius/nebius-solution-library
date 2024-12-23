@@ -198,6 +198,8 @@ module "slurm" {
   name             = var.slurm_cluster_name
   operator_version = var.slurm_operator_version
 
+  iam_project_id = var.iam_project_id
+
   node_count = {
     controller = var.slurm_nodeset_controller.size
     worker     = [for workers in var.slurm_nodeset_workers : workers.size]
