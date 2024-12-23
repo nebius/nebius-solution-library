@@ -209,6 +209,7 @@ slurmNodes:
     cgroupVersion: v2
     enableGDRCopy: true
     slurmNodeExtra: ${slurm_node_extra}
+    supervisordConfigMapRefName: custom-supervisord-config
     slurmd:
       resources:
         cpu: ${nodes.worker.resources.cpu * 1000}m
