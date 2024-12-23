@@ -12,26 +12,51 @@ set -e
 
 # endregion Defaults
 
-usage() { 
-  echo "usage: ${0} [-N <worker_node_count>] [-w <worker_node_list>] [-G <gpu_type>] [-c <config_file>]" >&2
-  echo "       [-e <slurm_experiment>]" >&2
-  echo "       [-i <container_image>] [-D <data_dir>] [-L <log_dir>] [-S <shared_image_cache_dir>]" >&2
-  echo "       [-q (quick_start)] [-r (remove_prev_logs)] [-d (debug)] [-p (nsys_profiling)] [-h (help)]" >&2
+usage() {
+  echo "Usage: ${0} [FLAGS] [-h]" >&2
+  echo 'Flags:' >&2
+  echo '  -N  [int ]  Number of worker nodes' >&2
+  echo "              By default, ${NODE_COUNT}" >&2
+  echo '  -w  [str ]  Worker node list' >&2
+  echo '              e.g. "worker-[0-63]"' >&2
+  echo '  -G  [str ]  GPU type. One of' >&2
+  echo '                H100' >&2
+  echo '                H200' >&2
+  echo '  -c  [path]  Path to the config file' >&2
+  echo "              By default, config_${GPU_TYPE}x8_NODEx${NODE_COUNT}_default.sh" >&2
+  echo '  -D  [path]  Path to the data directory' >&2
+  echo '              This is where datasets and checkpoints are stored' >&2
+  echo "              By default, ${DATA_DIR}" >&2
+  echo '  -L  [path]  Path to the directory for logs' >&2
+  echo "              By default, ${BASE_LOG_DIR}" >&2
+  echo '  -S  [path]  Directory to store shared image cache' >&2
+  echo '              By default, none' >&2
+  echo '  -i  [path]  Path to the container image' >&2
+  echo "              By default, ${CONTAINER_IMAGE}" >&2
+  echo '  -e  [str ]  Experiment name to attach to job name' >&2
+  echo '              By default, none' >&2
+  echo '' >&2
+  echo '  -q  Whether to run training quickly without additional tests' >&2
+  echo '  -r  Whether to remove previous log files' >&2
+  echo '  -d  Whether to enable debug logs' >&2
+  echo '  -p  Whether to run only one step with NSYS profiling' >&2
+  echo '' >&2
+  echo '  -h  Print help and exit' >&2
   exit 1
 }
 
-while getopts N:w:G:c:e:i:D:L:S:qrdph flag
+while getopts N:w:G:c:D:L:S:i:e:qrdph flag
 do
   case "${flag}" in
     N) NODE_COUNT=${OPTARG};;
     w) NODE_LIST=${OPTARG};;
     G) GPU_TYPE=${OPTARG};;
     c) CONFIG_FILE=${OPTARG};;
-    e) EXPERIMENT_NAME=${OPTARG};;
-    i) CONTAINER_IMAGE=${OPTARG};;
     D) DATA_DIR=${OPTARG};;
     L) BASE_LOG_DIR=${OPTARG};;
     S) SHARED_IMAGE_CACHE_DIR=${OPTARG};;
+    i) CONTAINER_IMAGE=${OPTARG};;
+    e) EXPERIMENT_NAME=${OPTARG};;
     q) QUICK_START=1;;
     r) REMOVE_LOGS=1;;
     d) DEBUG=1;;

@@ -2,7 +2,16 @@
 
 set -e
 
-usage() { echo "usage: ${0} -d <data_directory>[-h]" >&2; exit 1; }
+usage() {
+  echo "Usage: ${0} <REQUIRED_FLAGS> [-h]" >&2
+  echo 'Required flags:' >&2
+  echo '  -d  [path]  Path to data directory' >&2
+  echo '              This is where datasets and checkpoints will be stored' >&2
+  echo '' >&2
+  echo 'Flags:' >&2
+  echo '  -h  Print help and exit' >&2
+  exit 1
+}
 
 while getopts d:h flag
 do

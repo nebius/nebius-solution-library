@@ -2,7 +2,24 @@
 
 set -e
 
-usage() { echo "usage: ${0} -t <test_type: quickcheck | mlperf-sd | mlperf-gpt3> -u <ssh_user> -k <path_to_ssh_key> -a <address> [-p <port>] [-h]" >&2; exit 1; }
+usage() {
+  echo "Usage: ${0} <REQUIRED_FLAGS> [FLAGS] [-h]" >&2
+  echo 'Required flags:' >&2
+  echo '  -t  [str ]  Test type. One of:' >&2
+  echo '                quickcheck' >&2
+  echo '                mlperf-sd' >&2
+  echo '                mlperf-gpt3' >&2
+  echo '  -u  [str ]  SSH username' >&2
+  echo '  -k  [path]  Path to private SSH key' >&2
+  echo '  -a  [str ]  Address of login node (IP or domain name)' >&2
+  echo '' >&2
+  echo 'Flags:' >&2
+  echo '  -p  [int ]  SSH port of login node.' >&2
+  echo '              By default, 22' >&2
+  echo '' >&2
+  echo '  -h  Print help and exit' >&2
+  exit 1
+}
 
 while getopts t:u:k:a:p:n:h flag
 do
