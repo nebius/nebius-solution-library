@@ -14,41 +14,45 @@
 
 # endregion Defaults
 
+usage() {
+  echo "Usage: ${0} [FLAGS] [-h]" >&2
+  echo 'Flags:' >&2
+  echo '  -N / --num-nodes      [int ]  Number of worker nodes' >&2
+  echo "                                By default, ${NUM_NODES}" >&2
+  echo '  -g / --gpus-per-node  [int ]  Number of GPUs per worker nodes' >&2
+  echo "                                By default, ${GPUS_PER_NODE}" >&2
+  echo '  -t / --walltime       [str ]  Job timeout' >&2
+  echo "                                By default, ${WALLTIME}" >&2
+  echo '  -c / --config         [path]  Path to the config file' >&2
+  echo "                                By default, ${CONFIG}" >&2
+  echo '  -D / --data-dir       [path]  Path to the data directory' >&2
+  echo '                                This is where datasets and checkpoints are stored' >&2
+  echo "                                By default, ${DATA_DIR}" >&2
+  echo '  -l / --log-dir        [path]  Path to the directory for logs' >&2
+  echo "                                By default, ${BASE_LOG_DIR}" >&2
+  echo '  -r / --results-dir    [path]  Path to the directory for results' >&2
+  echo "                                By default, ${BASE_RESULTS_DIR}" >&2
+  echo '  -i / --container      [path]  Path to the container image' >&2
+  echo "                                By default, ${CONTAINER_IMAGE}" >&2
+  echo '  -C / --checkpoint     [path]  Path to the checkpoint file inside checkpoints mount' >&2
+  echo "                                By default, ${CHECKPOINT}" >&2
+  echo '' >&2
+  echo '  -h  Print help and exit' >&2
+  exit 1
+}
+
 while [ "$1" != "" ]; do
   case $1 in
-    -a | --account )        shift
-                            ACCOUNT=$1
-                            ;;
-    -p | --partition )      shift
-                            PARTITION=$1
-                            ;;
-    -n | --num-nodes )      shift
-                            NUM_NODES=$1
-                            ;;
-    -g | --gpus-per-node )  shift
-                            GPUS_PER_NODE=$1
-                            ;;
-    -t | --walltime )       shift
-                            WALLTIME=$1
-                            ;;
-    -c | --config )         shift
-                            CONFIG=$1
-                            ;;
-    -C | --checkpoint )     shift
-                            CHECKPOINT=$1
-                            ;;
-    -D | --data-dir )       shift
-                            DATA_DIR=$1
-                            ;;
-    -l | --log-dir )        shift
-                            BASE_LOG_DIR=$1
-                            ;;
-    -r | --results-dir )    shift
-                            BASE_RESULTS_DIR=$1
-                            ;;
-    -i | --container )      shift
-                            CONTAINER_IMAGE=$1
-                            ;;
+    -N | --num-nodes )      shift; NUM_NODES=$1;;
+    -g | --gpus-per-node )  shift; GPUS_PER_NODE=$1;;
+    -t | --walltime )       shift; WALLTIME=$1;;
+    -c | --config )         shift; CONFIG=$1;;
+    -D | --data-dir )       shift; DATA_DIR=$1;;
+    -l | --log-dir )        shift; BASE_LOG_DIR=$1;;
+    -r | --results-dir )    shift; BASE_RESULTS_DIR=$1;;
+    -i | --container )      shift; CONTAINER_IMAGE=$1;;
+    -C | --checkpoint )     shift; CHECKPOINT=$1;;
+    -h | * )                shift; usage;;
   esac
   shift
 done
