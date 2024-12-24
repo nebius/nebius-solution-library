@@ -145,7 +145,7 @@ resource "helm_release" "custom_supervisord_config" {
   create_namespace = true
   namespace        = var.name
 
-  values = []
+  values = [templatefile("${path.module}/templates/custom_supervisord_cm.yaml.tftpl", {})]
 
   wait = true
 }
