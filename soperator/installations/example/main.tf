@@ -181,6 +181,7 @@ module "nvidia_operator_gpu" {
 
   cluster_id = module.k8s.cluster_id
   parent_id  = data.nebius_iam_v1_project.this.id
+  driver_version = "550.127.08"
 
   enable_dcgm_service_monitor = var.telemetry_enabled
 
