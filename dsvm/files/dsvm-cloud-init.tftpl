@@ -1,0 +1,152 @@
+users:
+  - name: ${ssh_user_name}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+
+write_files:
+  - content: |
+      #!/bin/bash
+      set -e
+      INSTANCE_ID=$(cloud-init query -f '{{instance_id}}')
+      PASSWORDHASH=$(/usr/local/bin/miniconda/envs/py310/bin/python -c "from jupyter_server.auth import passwd; print(passwd('$INSTANCE_ID', algorithm='sha1'))")
+      
+      mkdir -p /home/${ssh_user_name}/.jupyter/
+      cat > /home/${ssh_user_name}/.jupyter/jupyter_server_config.json <<EOF
+      {
+        "ServerApp": {
+          "password": "$PASSWORDHASH"
+        }
+      }
+      EOF
+      
+      chown -R ${ssh_user_name}:${ssh_user_name} /home/${ssh_user_name}/.jupyter/
+      
+      systemctl daemon-reload
+      systemctl enable jupyter-lab.service
+      systemctl start jupyter-lab.service
+    path: /etc/jupyter-lab/setup-jupyter-lab.sh
+    permissions: "0755"
+    owner: root:root
+  - content: |
+      #!/bin/bash
+      cd /tmp
+      
+      MINICONDA_INSTALLER='Miniconda3-py39_24.7.1-0-Linux-x86_64.sh'
+      MINICONDA_INSTALL_SCRIPT="https://repo.anaconda.com/miniconda/$MINICONDA_INSTALLER"
+      MINICONDA_INSTALL_PATH="/usr/local/bin/miniconda"
+      MINICONDA_BIN="$MINICONDA_INSTALL_PATH/bin/conda"
+      
+      wget -q $MINICONDA_INSTALL_SCRIPT
+      echo "Installer downloaded"
+      
+      sudo bash $MINICONDA_INSTALLER -b -p $MINICONDA_INSTALL_PATH
+      echo "Miniconda installed"
+      
+      sudo sh -c "$MINICONDA_BIN update -y -n base -c defaults conda"
+      echo "Miniconda updated"
+      
+      sudo sh -c "$MINICONDA_BIN create -y -n py310 python=3.10"
+      echo "Python 3.10 installed"
+      
+      sudo sh -c "$MINICONDA_BIN create -y -n py27 python=2.7"
+      echo "Python 2.7 installed"
+      
+      sudo rm -rf MINICONDA_INSTALLER
+      echo "Installer removed"
+    path: /etc/jupyter-lab/scripts/install-conda.sh
+    permissions: "0755"
+    owner: root:root
+  - content: |
+      #!/bin/bash
+      MINICONDA_BIN="/usr/local/bin/miniconda/bin/conda"
+      
+      cat <<EOF >requirements.txt
+      pytorch==2.0.1
+      pytorch-cuda=12.1
+      torchvision==0.15.2
+      pandas==1.4.2
+      numpy==1.22.3
+      scipy==1.8.1
+      matplotlib==3.7.1
+      nltk==3.7
+      pillow==9.4.0
+      scikit-image==0.19.2
+      scikit-learn==1.1.1
+      opencv==4.6.0
+      pyspark==3.2.1
+      tensorflow==2.11.0
+      traitlets==5.9.0
+      catboost==1.2
+      keras==2.11.0
+      jupyterlab==3.6.3
+      accelerate==0.33.0
+      datasets==2.9.0
+      transformers==4.27.1
+      EOF
+      
+      sudo sh -c "$MINICONDA_BIN update -y -n base conda"
+      sudo sh -c "$MINICONDA_BIN install -y -n base conda-libmamba-solver"
+      sudo sh -c "$MINICONDA_BIN config --set solver libmamba"
+      sudo sh -c "$MINICONDA_BIN config --add channels defaults"
+      sudo sh -c "$MINICONDA_BIN install -y -n py310 --file requirements.txt -c fastai -c nvidia -c pytorch -c huggingface -c conda-forge"
+      
+      sudo sh -c "$MINICONDA_BIN run -n py310 pip uninstall -y torch torchvision torchaudio"
+      sudo sh -c "$MINICONDA_BIN run -n py310 pip install torch==2.1.0+cu121 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121"
+      echo "Python 3.10 libraries installed"
+      
+      sudo chmod -R 777 /usr/local/bin/miniconda
+      sudo ln -s /usr/local/bin/miniconda/bin/conda /usr/local/bin/conda
+      echo "Miniconda directory access enabled"
+    path: /etc/jupyter-lab/scripts/install-conda-packages.sh
+    permissions: "0755"
+    owner: root:root
+  - content: |
+      [Unit]
+      Description=Jupyter-lab initialization service
+      Wants=cloud-init.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/etc/jupyter-lab/setup-jupyter-lab.sh
+      ExecStartPost=systemctl disable jupyter-lab-init.service
+
+      [Install]
+      WantedBy=multi-user.target
+    path: /etc/systemd/system/jupyter-lab-init.service
+    permissions: "0644"
+    owner: root:root
+  - content: |
+      [Unit]
+      Description=Jupyter-lab server
+      After=network.target
+      StartLimitIntervalSec=0
+
+      [Service]
+      Type=simple
+      Restart=always
+      RestartSec=1
+      User=${ssh_user_name}
+      ExecStart=/usr/local/bin/miniconda/envs/py310/bin/jupyter-lab --ServerApp.port=8888 --ServerApp.ip=0.0.0.0
+      WorkingDirectory=/home/${ssh_user_name}
+
+      [Install]
+      WantedBy=multi-user.target
+    path: /etc/systemd/system/jupyter-lab.service
+    permissions: "0644"
+    owner: root:root
+
+runcmd:
+  - sudo bash /etc/jupyter-lab/scripts/install-conda.sh
+  - sudo bash /etc/jupyter-lab/scripts/install-conda-packages.sh
+  - sudo -u ${ssh_user_name} /usr/local/bin/miniconda/bin/conda init bash
+  - sudo bash /etc/jupyter-lab/setup-jupyter-lab.sh
+  - sudo systemctl daemon-reload
+  - sudo systemctl enable jupyter-lab-init.service
+  - sudo systemctl start jupyter-lab-init.service
+  - sudo systemctl enable jupyter-lab.service
+  - sudo systemctl start jupyter-lab.service
+  - sudo systemctl restart jupyter-lab.service
