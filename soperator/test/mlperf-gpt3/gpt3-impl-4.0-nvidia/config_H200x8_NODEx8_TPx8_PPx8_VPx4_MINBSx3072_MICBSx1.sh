@@ -34,7 +34,7 @@ export ENABLE_IB_BINDING=1
 
 
 # Job time limit
-export WALLTIME_MINUTES=1200
+export WALLTIME_MINUTES=${WALLTIME_MINUTES:=1200}
 export WALLTIME=$(( (${NEXP:-1} * WALLTIME_MINUTES) ))
 
 
@@ -83,4 +83,3 @@ source $(dirname ${BASH_SOURCE[0]})/config_common.sh
 
 # Apply FP8 settings
 source $(dirname ${BASH_SOURCE[0]})/config_fp8.sh
-
