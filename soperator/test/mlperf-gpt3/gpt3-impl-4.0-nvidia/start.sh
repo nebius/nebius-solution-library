@@ -127,7 +127,7 @@ if [ -z "${CONFIG_FILE}" ]; then
   CONFIG_FILE="config_${GPU_TYPE}x8_NODEx${NODE_COUNT}_default.sh"
 fi
 
-h2 "${CONFIG_FILE}"
+h2 "Applying config file ${CONFIG_FILE}..."
 source "${CONFIG_FILE}"
 
 hdone
@@ -197,7 +197,7 @@ fi
 JOB_OUTPUT="${BASE_LOG_DIR}/${JOB_OUTPUT}"
 
 echo "Job name: ${JOB_NAME}"
-echo "Job out:  ${JOB_NAME}"
+echo "Job out:  ${JOB_OUTPUT}"
 
 hdone
 
