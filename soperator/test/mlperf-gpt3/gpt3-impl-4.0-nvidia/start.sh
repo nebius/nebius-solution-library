@@ -35,6 +35,8 @@ usage() {
   echo "              By default, ${CONTAINER_IMAGE}" >&2
   echo '  -e  [str ]  Experiment name to attach to job name' >&2
   echo '              By default, none' >&2
+  echo '  -t  [int ]  Timeout in minutes' >&2
+  echo '              By default, config specific (20 hours)' >&2
   echo '' >&2
   echo '  -q  Whether to run training quickly without additional tests' >&2
   echo '  -r  Whether to remove previous log files' >&2
@@ -45,7 +47,7 @@ usage() {
   exit 1
 }
 
-while getopts N:w:G:c:D:L:S:i:e:qrdph flag
+while getopts N:w:G:c:D:L:S:i:e:t:qrdph flag
 do
   case "${flag}" in
     N) NODE_COUNT=${OPTARG};;
@@ -57,6 +59,7 @@ do
     S) SHARED_IMAGE_CACHE_DIR=${OPTARG};;
     i) CONTAINER_IMAGE=${OPTARG};;
     e) EXPERIMENT_NAME=${OPTARG};;
+    t) WALLTIME_MINUTES=${OPTARG};;
     q) QUICK_START=1;;
     r) REMOVE_LOGS=1;;
     d) DEBUG=1;;
@@ -122,6 +125,11 @@ hdone
 # region Config
 
 h1 'Applying config...'
+
+if [ -n "${WALLTIME_MINUTES}" ]; then
+  h2 "Setting timeout for job to ${WALLTIME_MINUTES} minutes..."
+  export WALLTIME_MINUTES
+fi
 
 if [ -z "${CONFIG_FILE}" ]; then
   CONFIG_FILE="config_${GPU_TYPE}x8_NODEx${NODE_COUNT}_default.sh"
