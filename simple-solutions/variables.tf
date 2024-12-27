@@ -10,6 +10,13 @@ variable "subnet_id" {
   default     = null
 }
 
+variable "instance_count" {
+  type = number
+  description = "Number of instances"
+  default = 1
+}
+
+
 variable "instance_name" {
   type = string
   description = "name of the instance"

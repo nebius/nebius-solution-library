@@ -11,3 +11,4 @@ preset = "16vcpu-64gb"
 add_nfs_storage = false
 nfs_size_gb = 100
 public_ip = true
+instance_count = 2

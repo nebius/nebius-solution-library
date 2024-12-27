@@ -1,6 +1,6 @@
 resource "nebius_compute_v1_disk" "nfs-boot-disk" {
   parent_id           = var.parent_id
-  name                = "nfs-boot-disk"
+  name                = join("-", ["nfs-boot-disk", var.instance_name])
   block_size_bytes    = 4096
   size_bytes          = 1024 * 1024 * 1024 * 50
   type                = "NETWORK_SSD"
@@ -10,7 +10,7 @@ resource "nebius_compute_v1_disk" "nfs-boot-disk" {
 resource "nebius_compute_v1_disk" "nfs-storage-disk" {
   count            = var.add_nfs_storage ? 1 : 0
   parent_id        = var.parent_id
-  name             = "nfs-storage-disk"
+  name             = join("-", ["nfs-storage-disk", var.instance_name])
   block_size_bytes = 4096
   size_bytes       = 1024 * 1024 * 1024 * var.nfs_size_gb
   type             = "NETWORK_SSD"
