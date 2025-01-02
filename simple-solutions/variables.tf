@@ -35,12 +35,6 @@ variable "preset" {
   default     = "16vcpu-64gb"
 }
 
-variable "cpu_nodes_preset" {
-  description = "CPU and RAM configuration for instances."
-  type        = string
-  default     = null
-}
-
 variable "ssh_public_key" {
   description = "SSH Public Key to access the cluster nodes"
   type = object({
@@ -52,6 +46,37 @@ variable "ssh_public_key" {
     condition     = var.ssh_public_key.key != null || fileexists(var.ssh_public_key.path)
     error_message = "SSH Public Key must be set by `key` or file `path` ${var.ssh_public_key.path}"
   }
+}
+
+variable "ssh_public_key_2" {
+  description = "SSH Public Key to access the cluster nodes"
+  type = object({
+    key  = optional(string),
+    path = optional(string, "~/.ssh/id_rsa.pub")
+  })
+  default = {}
+  validation {
+    condition     = var.ssh_public_key_2.key != null || fileexists(var.ssh_public_key_2.path)
+    error_message = "SSH Public Key must be set by `key` or file `path` ${var.ssh_public_key_2.path}"
+  }
+}
+
+variable "shared_filesystem_id" {
+  description = "Id of an existing shared file system"
+  type = string
+  default = ""
+}
+
+variable "shared_filesystem_mount" {
+  description = "mounting point of the shared file system"
+  type = string
+  default = "/mnt/share"
+}
+
+variable "region" {
+  type = string
+  description = "region"
+  default = "eu-north1"
 }
 
 variable "ssh_user_name" {

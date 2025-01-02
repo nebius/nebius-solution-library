@@ -2,7 +2,7 @@ resource "nebius_compute_v1_disk" "nfs-boot-disk" {
   parent_id           = var.parent_id
   name                = join("-", ["nfs-boot-disk", var.instance_name])
   block_size_bytes    = 4096
-  size_bytes          = 1024 * 1024 * 1024 * 50
+  size_bytes          = 1024 * 1024 * 1024 * var.boot_disk_size_gb
   type                = "NETWORK_SSD"
   source_image_family = { image_family = "ubuntu22.04-cuda12" }
 }
@@ -14,7 +14,6 @@ resource "nebius_compute_v1_disk" "nfs-storage-disk" {
   block_size_bytes = 4096
   size_bytes       = 1024 * 1024 * 1024 * var.nfs_size_gb
   type             = "NETWORK_SSD"
-
 }
 
 
@@ -50,12 +49,25 @@ resource "nebius_compute_v1_instance" "instance" {
     }
   ] : []
 
+  filesystems = var.shared_filesystem_id != "" ? [
+    {
+      attach_mode = "READ_WRITE"
+      existing_filesystem = {
+        id = var.shared_filesystem_id
+      }
+      mount_tag = "filesystem-0"
+    }
+  ] : []
+
+
   cloud_init_user_data = templatefile("../modules/cloud-init/simple-setup-init.tftpl", {
     ssh_user_name  = var.ssh_user_name,
     ssh_public_key = local.ssh_public_key,
+    ssh_public_key_2 = local.ssh_public_key_2,
     nfs_path       = local.nfs_path,
-    nfs_disk_id    = local.nfs_disk_id
-
+    nfs_disk_id    = local.nfs_disk_id,
+    shared_filesystem_id = var.shared_filesystem_id,
+    shared_filesystem_mount = var.shared_filesystem_mount
   })
 }
 

@@ -6,24 +6,30 @@ users:
     sudo: 'ALL=(ALL) NOPASSWD:ALL'
     ssh-authorized-keys:
       - ${ssh_public_key}
+      - ${ssh_public_key_2}
+
 
 runcmd:
 - apt-get update
 - apt-get upgrade
 
+
+# mount nfs if provided
 %{ if nfs_disk_id != "" }
 # Prepare partition on secondary disk
 - mkdir -p ${nfs_path}
-- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mklabel gpt
-- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mkpart primary ext4 0% 100%
 - mkfs.ext4 /dev/disk/by-id/virtio-${nfs_disk_id}-part1
 - sync
-
-# Mount the partition
 - mount -o rw /dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path}
-- echo "/dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path} ext4 rw,relatime" >> /etc/fstab
-
-# Configure permissions
+- echo "/dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path} ext4 defaults 0 2" >> /etc/fstab
 - chown nobody:nogroup ${nfs_path}
 - chmod 777 ${nfs_path}
 %{ endif }
+
+# mount shared filesystem if provided
+%{if shared_filesystem_id != "" }
+- mkdir -p ${shared_filesystem_mount}
+- mount -t virtiofs filesystem-0 ${shared_filesystem_mount}
+- chmod a+w /mnt/fs
+- echo "filesystem-0 ${shared_filesystem_mount} virtiofs rw 0 0" >> /etc/fstab
+%{endif}
