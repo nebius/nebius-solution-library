@@ -209,6 +209,7 @@ slurmNodes:
     cgroupVersion: v2
     enableGDRCopy: true
     slurmNodeExtra: "${nodes.worker.slurm_node_extra}"
+    sshdConfigMapRefName: "${nodes.worker.sshd_config_map_ref_name}"
     supervisordConfigMapRefName: custom-supervisord-config
     slurmd:
       resources:
@@ -252,6 +253,7 @@ slurmNodes:
     sshdServiceNodePort: ${nodes.login.node_port}
     %{~ endif ~}
     %{~ if length(nodes.login.root_public_keys) > 0 ~}
+    sshdConfigMapRefName: "${nodes.login.sshd_config_map_ref_name}"
     sshRootPublicKeys:
       %{~ for key in nodes.login.root_public_keys ~}
       - ${key}

@@ -261,10 +261,13 @@ module "slurm" {
     } : null
   }
 
-  login_service_type         = var.slurm_login_service_type
-  login_node_port            = var.slurm_login_node_port
-  login_allocation_id        = module.k8s.allocation_id
-  login_ssh_root_public_keys = var.slurm_login_ssh_root_public_keys
+  login_service_type              = var.slurm_login_service_type
+  login_node_port                 = var.slurm_login_node_port
+  login_allocation_id             = module.k8s.allocation_id
+  login_sshd_config_map_ref_name  = var.slurm_login_sshd_config_map_ref_name
+  login_ssh_root_public_keys      = var.slurm_login_ssh_root_public_keys
+
+  worker_sshd_config_map_ref_name  = var.slurm_worker_sshd_config_map_ref_name
 
   exporter_enabled        = var.slurm_exporter_enabled
   rest_enabled            = var.slurm_rest_enabled

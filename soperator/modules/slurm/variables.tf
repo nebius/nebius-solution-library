@@ -106,6 +106,16 @@ resource "terraform_data" "check_worker_nodesets" {
 
 # endregion Resources
 
+# region Worker
+
+variable "worker_sshd_config_map_ref_name" {
+  description = "Name of configmap with SSHD config, which runs in slurmd container."
+  type        = string
+  default     = ""
+}
+
+# endregion Worker
+
 # region Login
 
 variable "login_service_type" {
@@ -123,6 +133,12 @@ variable "login_allocation_id" {
   type        = string
   nullable    = true
   default     = null
+}
+
+variable "login_sshd_config_map_ref_name" {
+  description = "Name of configmap with SSHD config, which runs in slurmd container."
+  type        = string
+  default     = ""
 }
 
 variable "login_ssh_root_public_keys" {
