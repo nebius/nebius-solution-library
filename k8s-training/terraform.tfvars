@@ -20,10 +20,10 @@ gpu_nodes_count = 1 # Number of GPU nodes
 enable-k8s-node-group-sa = true
 
 # Observability
-enable_grafana    = false  # Enable or disable Grafana deployment with true or false
-enable_prometheus = false  # Enable or disable Prometheus deployment with true or false
-enable_loki       = false # Enable or disable Loki deployment with true or false
-enable_dcgm       = false  # Enable or disable NVIDIA DCGM Exporter Dashboard and Alerting deployment with true or false
+enable_grafana    = true  # Enable or disable Grafana deployment with true or false
+enable_prometheus = true  # Enable or disable Prometheus deployment with true or false
+enable_loki       = true # Enable or disable Loki deployment with true or false
+enable_dcgm       = true  # Enable or disable NVIDIA DCGM Exporter Dashboard and Alerting deployment with true or false
 
 ## Loki
 # loki_access_key_id = "" # See the instruction in README.md on how to create this. Leave empty if you are not deploying Loki.
