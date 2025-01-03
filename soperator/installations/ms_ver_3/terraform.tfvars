@@ -53,7 +53,7 @@ filestore_controller_spool = {
 # ---
 filestore_jail = {
   existing = {
-    id = "computefilesystem-<YOUR-FILESTORE-ID>"
+    id = "computefilesystem-e00v78cfxehn5jmvmh"
   }
 }
 
@@ -217,8 +217,8 @@ slurm_nodeset_controller = {
 # infiniband_fabric is required field
 # ---
 slurm_nodeset_workers = [{
-  size                    = 16
-  nodes_per_nodegroup     = 4
+  size                    = 1
+  nodes_per_nodegroup     = 1
   max_unavailable_percent = 50
   resource = {
     platform = "gpu-h100-sxm"
@@ -230,7 +230,7 @@ slurm_nodeset_workers = [{
     block_size_kibibytes = 4
   }
   gpu_cluster = {
-    infiniband_fabric = ""
+    infiniband_fabric = "fabric-3"
   }
 }]
 
@@ -296,7 +296,7 @@ slurm_login_ssh_root_public_keys = [
 # Whether to enable Slurm metrics exporter.
 # By default, true.
 # ---
-slurm_exporter_enabled = true
+slurm_exporter_enabled = false
 
 # endregion Exporter
 
@@ -339,7 +339,7 @@ slurm_shared_memory_size_gibibytes = 384
 # It won't take effect in case of 1-GPU hosts.
 # By default, true.
 # ---
-nccl_benchmark_enable = true
+nccl_benchmark_enable = false
 
 # NCCL benchmark's CronJob schedule.
 # By default, `0 */3 * * *` - every 3 hour.
@@ -368,7 +368,7 @@ nccl_use_infiniband = true
 # Whether to enable telemetry.
 # By default, true.
 # ---
-telemetry_enabled = true
+telemetry_enabled = false
 
 # Password of `admin` user of Grafana.
 # Set it to your desired password.
@@ -387,7 +387,7 @@ telemetry_grafana_admin_password = "password"
 # Whether to enable Accounting.
 # By default, false.
 # ---
-accounting_enabled = true
+accounting_enabled = false
 
 # endregion Accounting
 

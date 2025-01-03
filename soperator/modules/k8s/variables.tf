@@ -42,6 +42,16 @@ variable "company_name" {
   }
 }
 
+variable "k8s_node_group_sa_enabled" {
+  description = "Enable K8S Node Group Service Account"
+  type        = bool
+  default     = true
+}
+
+variable "k8s_node_group_sa_id" {
+  description = "Enable K8S Node Group Service Account"
+  type        = string
+}
 #---
 
 variable "node_group_system" {
