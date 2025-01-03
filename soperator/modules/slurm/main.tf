@@ -226,16 +226,18 @@ resource "helm_release" "slurm_cluster" {
           ephemeral_storage = one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
           gpus              = one(var.resources.worker).gpus
         }
-        shared_memory    = var.shared_memory_size_gibibytes
-        slurm_node_extra = local.slurm_node_extra
+        shared_memory                   = var.shared_memory_size_gibibytes
+        slurm_node_extra                = local.slurm_node_extra
+        sshd_config_map_ref_name        = var.worker_sshd_config_map_ref_name
       }
 
       login = {
-        size             = var.node_count.login
-        service_type     = var.login_service_type
-        allocation_id    = var.login_allocation_id
-        node_port        = var.login_node_port
-        root_public_keys = var.login_ssh_root_public_keys
+        size                            = var.node_count.login
+        service_type                    = var.login_service_type
+        allocation_id                   = var.login_allocation_id
+        node_port                       = var.login_node_port
+        sshd_config_map_ref_name        = var.login_sshd_config_map_ref_name
+        root_public_keys                = var.login_ssh_root_public_keys
         resources = {
           cpu               = var.resources.login.cpu_cores - local.resources.munge.cpu
           memory            = var.resources.login.memory_gibibytes - local.resources.munge.memory
