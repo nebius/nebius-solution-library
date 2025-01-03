@@ -1,9 +1,12 @@
 locals {
-  ssh_public_key = var.ssh_public_key.key != null ? var.ssh_public_key.key : (
-  fileexists(var.ssh_public_key.path) ? file(var.ssh_public_key.path) : null)
 
-  ssh_public_key_2 = var.ssh_public_key_2.key != null ? var.ssh_public_key_2.key : (
-  fileexists(var.ssh_public_key_2.path) ? file(var.ssh_public_key_2.path) : null)
+  users = [
+    for user in var.users: {
+      user_name = user.user_name
+      ssh_public_key = user.ssh_public_key != null ? user.ssh_public_key : (
+        fileexists(user.ssh_key_path) ? file(user.ssh_key_path) : null)
+      }
+  ]
 
   regions_default = {
     eu-west1 = {
@@ -32,11 +35,10 @@ locals {
 
 
   cloud_init_log = jsonencode({
-    ssh_user_name  = var.ssh_user_name
-    ssh_public_key = local.ssh_public_key
     nfs_path       = local.nfs_path
     nfs_disk_id    = local.nfs_disk_id
     state         = terraform.workspace
+    users         = local.users
   })
   # current_region_defaults = local.regions_default[var.region]
   #

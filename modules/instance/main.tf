@@ -61,9 +61,7 @@ resource "nebius_compute_v1_instance" "instance" {
 
 
   cloud_init_user_data = templatefile("../modules/cloud-init/simple-setup-init.tftpl", {
-    ssh_user_name  = var.ssh_user_name,
-    ssh_public_key = local.ssh_public_key,
-    ssh_public_key_2 = local.ssh_public_key_2,
+    users = local.users,
     nfs_path       = local.nfs_path,
     nfs_disk_id    = local.nfs_disk_id,
     shared_filesystem_id = var.shared_filesystem_id,

@@ -35,29 +35,19 @@ variable "preset" {
   default     = "16vcpu-64gb"
 }
 
-variable "ssh_public_key" {
-  description = "SSH Public Key to access the cluster nodes"
-  type = object({
-    key  = optional(string),
-    path = optional(string, "~/.ssh/id_rsa.pub")
-  })
-  default = {}
+variable "users" {
+  description = "List of users with their SSH keys"
+  type = list(object({
+    user_name           = string
+    ssh_public_key = optional(string) # Inline SSH key
+    ssh_key_path   = optional(string, "~/.ssh/id_rsa.pub") # Path to SSH key file
+  }))
+  default = []
   validation {
-    condition     = var.ssh_public_key.key != null || fileexists(var.ssh_public_key.path)
-    error_message = "SSH Public Key must be set by `key` or file `path` ${var.ssh_public_key.path}"
-  }
-}
-
-variable "ssh_public_key_2" {
-  description = "SSH Public Key to access the cluster nodes"
-  type = object({
-    key  = optional(string),
-    path = optional(string, "~/.ssh/id_rsa.pub")
-  })
-  default = {}
-  validation {
-    condition     = var.ssh_public_key_2.key != null || fileexists(var.ssh_public_key_2.path)
-    error_message = "SSH Public Key must be set by `key` or file `path` ${var.ssh_public_key_2.path}"
+    condition = alltrue([
+      for user in var.users : user.ssh_public_key != null || fileexists(user.ssh_key_path)
+    ])
+    error_message = "Each user must have at least one SSH key defined as 'ssh_public_key' or 'ssh_key_path'."
   }
 }
 
@@ -77,12 +67,6 @@ variable "region" {
   type = string
   description = "region"
   default = "eu-north1"
-}
-
-variable "ssh_user_name" {
-  type        = string
-  description = "Username for ssh"
-  default     = "tux"
 }
 
 variable "add_nfs_storage" {

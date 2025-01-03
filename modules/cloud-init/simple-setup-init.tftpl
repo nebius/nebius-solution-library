@@ -1,12 +1,13 @@
 #cloud-config
 users:
-  - name: ${ssh_user_name}
+%{ for user in users}
+  - name: ${user.user_name}
     groups: sudo
     shell: /bin/bash
     sudo: 'ALL=(ALL) NOPASSWD:ALL'
     ssh-authorized-keys:
-      - ${ssh_public_key}
-      - ${ssh_public_key_2}
+      - ${user.ssh_public_key}
+%{ endfor}
 
 
 runcmd:
@@ -18,9 +19,14 @@ runcmd:
 %{ if nfs_disk_id != "" }
 # Prepare partition on secondary disk
 - mkdir -p ${nfs_path}
-- mkfs.ext4 /dev/disk/by-id/virtio-${nfs_disk_id}-part1
+- echo "mkdir" >> /home/tux/log.txt
+- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mklabel gpt >> /home/tux/log.txt
+- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mkpart primary ext4 0% 100% >> /home/tux/log.txt
 - sync
-- mount -o rw /dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path}
+- echo "sync" >> /home/tux/log.txt
+- mkfs.ext4 /dev/disk/by-id/virtio-${nfs_disk_id}-part1 >> /home/tux/log.txt
+- sync
+- mount -o rw /dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path} >> /home/tux/log.txt
 - echo "/dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path} ext4 defaults 0 2" >> /etc/fstab
 - chown nobody:nogroup ${nfs_path}
 - chmod 777 ${nfs_path}
@@ -30,6 +36,6 @@ runcmd:
 %{if shared_filesystem_id != "" }
 - mkdir -p ${shared_filesystem_mount}
 - mount -t virtiofs filesystem-0 ${shared_filesystem_mount}
-- chmod a+w /mnt/fs
+- chmod a+w ${shared_filesystem_mount}
 - echo "filesystem-0 ${shared_filesystem_mount} virtiofs rw 0 0" >> /etc/fstab
 %{endif}

@@ -7,6 +7,7 @@ module "instance-module" {
   subnet_id      = var.subnet_id
   count          = var.instance_count
   instance_name = "instance-${count.index}"
+  users = var.users
   preset     = var.preset
   platform = var.platform
   boot_disk_size_gb = 500
