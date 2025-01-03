@@ -22,6 +22,6 @@ users = [
 add_nfs_storage = true
 nfs_size_gb = 100
 public_ip = true
-instance_count = 1
+instance_count = 2
 
 shared_filesystem_id = "computefilesystem-e00ny0xqn0gbahm8mj"
