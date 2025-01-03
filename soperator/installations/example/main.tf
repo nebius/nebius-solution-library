@@ -305,7 +305,7 @@ module "slurm" {
 
   shared_memory_size_gibibytes = var.slurm_shared_memory_size_gibibytes
 
-  nccl_topology_type           = var.slurm_nodeset_workers[0].resource.platform == "gpu-h100-sxm" ? "H100 GPU cluster" : "auto"
+  nccl_topology_type           = "auto"
   nccl_benchmark_enable        = var.nccl_benchmark_enable
   nccl_benchmark_schedule      = var.nccl_benchmark_schedule
   nccl_benchmark_min_threshold = var.nccl_benchmark_min_threshold
