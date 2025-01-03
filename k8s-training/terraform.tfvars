@@ -1,8 +1,8 @@
 # Cloud environment and network
-tenant_id      = "tenant-e00f3wdfzwfjgbcyfv"
-parent_id      = "project-e00pxbakhpc6dy244fn77" # The project-id in this context
-subnet_id      = "vpcsubnet-e00q830c4c75nztpv4" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
-region         = "eu-north1" # Project region
+tenant_id      = "" # Tenant ID
+parent_id      = "" # The project-id in this context
+subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
+region         = "" # Project region
 # ssh_user_name  = "" # Username you want to use to connect to the nodes
 # ssh_public_key = {
 # key  = "put your public ssh key here" OR
