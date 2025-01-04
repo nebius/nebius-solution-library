@@ -36,6 +36,21 @@ exp_manager:
     mode: max
     every_n_epochs: 0
     save_last: True
+
+  create_mlflow_logger: ${oc.decode:${oc.env:USE_MLFLOW_LOGGER,False}}
+  mlflow_logger_kwargs:
+    tracking_uri: ${oc.decode:${oc.env:MLFLOW_TRACKING_URI,None}}
+    save_dir: '/results/mlruns'
+
+    experiment_name: ${oc.env:MLFLOW_EXPERIMENT_NAME,experiment}
+    tags:
+      cloud: ${oc.env:MLF_TAG_CLOUD,NA}
+      installation: ${oc.env:MLF_TAG_INSTALLATION,NA}
+      poc: ${oc.env:MLF_TAG_IS_POC,NA}
+      gpu_type: ${oc.env:MLF_TAG_GPU_TYPE,NA}
+      worker_count: ${oc.env:MLF_TAG_WORKER_COUNT,NA}
+      benchmark_type: gpt3
+
   log_step_timing: True
   log_global_rank_0_only: True
 

@@ -42,12 +42,16 @@ usage() {
   echo '  -r  Whether to remove previous log files' >&2
   echo '  -d  Whether to enable debug logs' >&2
   echo '  -p  Whether to run only one step with NSYS profiling' >&2
+  echo '  -m  Whether to use MLFlow logging' >&2
+  echo '  -M  Whether to use external MLFlow. Following entities are required:' >&2
+  echo '      - MLFlow configuration in "../../common/mlflow.sh"' >&2
+  echo '      - CA certificate in "../../common/mlflow.ca.pem"' >&2
   echo '' >&2
   echo '  -h  Print help and exit' >&2
   exit 1
 }
 
-while getopts N:w:G:c:D:L:S:i:e:t:qrdph flag
+while getopts N:w:G:c:D:R:S:i:e:t:qrdpmMh flag
 do
   case "${flag}" in
     N) NODE_COUNT=${OPTARG};;
@@ -64,6 +68,8 @@ do
     r) REMOVE_LOGS=1;;
     d) DEBUG=1;;
     p) NSYS_PROFILING=1;;
+    m) USE_MLFLOW_LOGGER='True';;
+    M) USE_EXTERNAL_MLFLOW_LOGGER='True';;
     h) usage;;
     *) usage;;
   esac
@@ -199,6 +205,7 @@ if [ -z "${EXPERIMENT_NAME}" ]; then
   JOB_NAME='gpt3'
   JOB_OUTPUT='gpt3-%j.out'
 else
+  h2 'Using experiment-ful name:'
   JOB_NAME="gpt3-${EXPERIMENT_NAME}"
   JOB_OUTPUT="gpt3-%j-${EXPERIMENT_NAME}.out"
 fi
@@ -238,6 +245,46 @@ if [[ "${NSYS_PROFILING}" -eq 1 ]]; then
 
   # Early stopping
   export TARGET_LOG_PPL=2.75
+fi
+
+if [[ "${USE_MLFLOW_LOGGER}" -eq 'True' ]]; then
+  h2 'Configuring MLFlow logger...'
+  export USE_MLFLOW_LOGGER
+
+  if [[ "${USE_EXTERNAL_MLFLOW_LOGGER}" -eq 'True' ]]; then
+    if [[ ! -f "${TEST_DIR}/common/mlflow.sh" ]] || [[ ! -f "${TEST_DIR}/common/mlflow.ca.pem" ]]; then
+      usage
+    fi
+
+    h3 'Configuring external MLFlow logger...'
+    source "${TEST_DIR}/common/mlflow.sh"
+    export EXTRA_MOUNTS="${TEST_DIR}/common/mlflow.ca.pem:${MLFLOW_TRACKING_SERVER_CERT_PATH}"
+  fi
+
+  h3 'Configuring MLFlow logger tags...'
+  : "${MLF_TAG_CLOUD:=nebius}"
+  : "${MLF_TAG_INSTALLATION:=installation}"
+  : "${MLF_TAG_IS_POC:=False}"
+  export MLF_TAG_CLOUD MLF_TAG_INSTALLATION MLF_TAG_IS_POC
+
+  export MLF_TAG_GPU_TYPE="${GPU_TYPE}"
+  export MLF_TAG_WORKER_COUNT="${NODE_COUNT}"
+
+  h3 'Configuring MLFlow experiment name...'
+  MLFLOW_EXPERIMENT_NAME="${MLF_TAG_CLOUD}-${MLF_TAG_INSTALLATION}"
+  if [[ "${MLF_TAG_IS_POC}" -eq 'True' ]]; then
+    MLFLOW_EXPERIMENT_NAME="${MLFLOW_EXPERIMENT_NAME}-poc"
+  fi
+  MLFLOW_EXPERIMENT_NAME="${MLFLOW_EXPERIMENT_NAME}-${GPU_TYPE}-gpt3-x${NODE_COUNT}"
+  if [[ -n "${EXPERIMENT_NAME}" ]]; then
+    MLFLOW_EXPERIMENT_NAME="${MLFLOW_EXPERIMENT_NAME}-${EXPERIMENT_NAME}"
+  fi
+  export MLFLOW_EXPERIMENT_NAME
+  echo "${MLFLOW_EXPERIMENT_NAME}"
+
+  h3 'Configuring MLFlow run name...'
+  export JOB_START_TIME="$(date +'%Y-%m-%d_%H-%M-%S_%Z')"
+  echo "${JOB_START_TIME}"
 fi
 
 hdone
