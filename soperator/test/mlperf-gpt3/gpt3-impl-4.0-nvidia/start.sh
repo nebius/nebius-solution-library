@@ -7,7 +7,7 @@ set -e
 : "${NODE_COUNT:=8}"
 : "${GPU_TYPE:=H100}"
 : "${DATA_DIR:=/mlperf-gpt3}"
-: "${BASE_LOG_DIR:=./logs}"
+: "${BASE_RESULTS_DIR:=../results}"
 : "${CONTAINER_IMAGE:=cr.eu-north1.nebius.cloud#slurm-mlperf-training/gpt3-4.0-nvidia:$(cat ./VERSION)}"
 
 # endregion Defaults
@@ -27,8 +27,8 @@ usage() {
   echo '  -D  [path]  Path to the data directory' >&2
   echo '              This is where datasets and checkpoints are stored' >&2
   echo "              By default, ${DATA_DIR}" >&2
-  echo '  -L  [path]  Path to the directory for logs' >&2
-  echo "              By default, ${BASE_LOG_DIR}" >&2
+  echo '  -R  [path]  Path to the directory for results' >&2
+  echo "              By default, ${BASE_RESULTS_DIR}" >&2
   echo '  -S  [path]  Directory to store shared image cache' >&2
   echo '              By default, none' >&2
   echo '  -i  [path]  Path to the container image' >&2
@@ -55,7 +55,7 @@ do
     G) GPU_TYPE=${OPTARG};;
     c) CONFIG_FILE=${OPTARG};;
     D) DATA_DIR=${OPTARG};;
-    L) BASE_LOG_DIR=${OPTARG};;
+    R) BASE_RESULTS_DIR=${OPTARG};;
     S) SHARED_IMAGE_CACHE_DIR=${OPTARG};;
     i) CONTAINER_IMAGE=${OPTARG};;
     e) EXPERIMENT_NAME=${OPTARG};;
@@ -153,7 +153,7 @@ export CONT="${CONTAINER_IMAGE}"
 export PREPROC_DATA="${DATASET_DIR}/preprocessed_c4_spm"
 export SPM="${DATASET_DIR}/spm/c4_en_301_5Mexp2_spm.model"
 export LOAD_CHECKPOINTS_PATH="${CHECKPOINT_DIR}/ckpt4000-consumed_samples=0"
-export LOGDIR="${BASE_LOG_DIR}"
+export LOGDIR="${BASE_RESULTS_DIR}"
 export CONTAINER_PRELOAD_SHARED_PATH="${SHARED_IMAGE_CACHE_DIR}"
 
 hdone
@@ -202,7 +202,7 @@ else
   JOB_NAME="gpt3-${EXPERIMENT_NAME}"
   JOB_OUTPUT="gpt3-%j-${EXPERIMENT_NAME}.out"
 fi
-JOB_OUTPUT="${BASE_LOG_DIR}/${JOB_OUTPUT}"
+JOB_OUTPUT="${LOGDIR}/${JOB_OUTPUT}"
 
 echo "Job name: ${JOB_NAME}"
 echo "Job out:  ${JOB_OUTPUT}"
@@ -217,7 +217,7 @@ h1 'Configuring logging & profiling...'
 
 if [[ "${REMOVE_LOGS}" -eq 1 ]]; then
   h2 'Removing previous logs...'
-  rm "${BASE_LOG_DIR}"/gpt3-*.out || true
+  rm "${LOGDIR}"/gpt3-*.out || true
   rm -rf ./api_logs/ || true
 fi
 

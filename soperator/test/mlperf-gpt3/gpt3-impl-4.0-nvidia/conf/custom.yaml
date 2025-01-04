@@ -23,16 +23,20 @@ trainer:
   num_sanity_val_steps: 0
 
 exp_manager:
-  explicit_log_dir: '/results'
+  exp_dir: '/results/experiments'
+  use_datetime_version: True
+  version: ${oc.env:JOB_START_TIME,default}
+
+  create_tensorboard_logger: ${oc.decode:${oc.env:CREATE_TENSORBOARD_LOGGER,False}}
+
+  create_checkpoint_callback: False
   resume_if_exists: ${oc.decode:${oc.env:ENABLE_RERUNS,0}}
-  create_checkpoint_callback: ${oc.decode:${oc.env:ENABLE_RERUNS,0}}
   checkpoint_callback_params:
     save_top_k: 1
-    mode: max  # we don't really want to save those checkpoints
+    mode: max
     every_n_epochs: 0
     save_last: True
   log_step_timing: True
-  create_tensorboard_logger: ${oc.decode:${oc.env:CREATE_TENSORBOARD_LOGGER,False}}
   log_global_rank_0_only: True
 
 model:

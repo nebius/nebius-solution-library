@@ -97,7 +97,7 @@ sed -i -E \
 
 h2 'Log dir...'
 sed -i -E \
-  -e "s|(BASE_LOG_DIR:=)[^}]*|\1${TEST_MLPERF_GPT3_RESULTS_DIR}|" \
+  -e "s|(BASE_RESULTS_DIR:=)[^}]*|\1${TEST_MLPERF_GPT3_RESULTS_DIR}|" \
   ${SBATCH_RUNNER_PATH}
 
 h2 'Container image...'

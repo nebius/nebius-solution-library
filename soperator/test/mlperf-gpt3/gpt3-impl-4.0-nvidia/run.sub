@@ -28,15 +28,15 @@ set -eux
 : "${CHECK_COMPLIANCE:=1}"
 : "${SEED_BASE:=${SEED-$RANDOM}}"
 export SHARE_RERUNS=${SHARE_RERUNS:=0}
-: "${API_LOG_DIR:=./api_logs}" # apiLog.sh output dir
+: "${LOGDIR:=./results}"
+: "${ABSLOGDIR:="$(realpath ${LOGDIR})"}"
+: "${API_LOG_DIR:="${ABSLOGDIR}/api_logs"}" # apiLog.sh output dir
 : "${API_LOGGING:=1}"
 : "${APILOG_PRECISION:="unknown"}"
 : "${APILOG_BATCHSIZE:="unknown"}"
 : "${CLEAR_CACHES:=1}"
 : "${CONTAINER_PRELOAD_SHARED_PATH:=}"
 : "${DATESTAMP:=$(date +'%y%m%d%H%M%S%N')}"
-: "${LOGDIR:=./results}"
-: "${ABSLOGDIR:=${PWD}/results}"
 : "${POWERCMDDIR:=' '}" # Power measurement requires power_monitor.sh that doesn't exist on Slurm nodes. It's not clear where to take it.
 : "${NSYSCMD:=""}"
 : "${NVTX_FLAG:=1}"
@@ -94,7 +94,7 @@ export ATTEMPT_CUDA_GDB_CORE_DUMP=${ATTEMPT_CUDA_GDB_CORE_DUMP}
 : "${NPY_INDEX_DIR:=${GLOBAL_TMP_NPY_INDEX_DIR}/${DATESTAMP}_npy_index}"
 : "${CLEANUP_NPY_INDEX_DIR:=1}"
 
-# Add any cluster specific madditional mounts
+# Add any cluster specific additional mounts
 : "${EXTRA_MOUNTS:=""}"
 
 # RUNSUB_DIR is the directory containing the run.sub script, so we can call
