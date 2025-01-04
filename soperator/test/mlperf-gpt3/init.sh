@@ -2,6 +2,8 @@
 
 set -e
 
+: "${DOWNLOAD_DATA:=1}"
+
 usage() {
   echo "Usage: ${0} <REQUIRED_FLAGS> [-h]" >&2
   echo 'Required flags:' >&2
@@ -9,14 +11,17 @@ usage() {
   echo '              This is where datasets and checkpoints will be stored' >&2
   echo '' >&2
   echo 'Flags:' >&2
+  echo '  -n  Whether to not run data downloading jobs' >&2
+  echo '' >&2
   echo '  -h  Print help and exit' >&2
   exit 1
 }
 
-while getopts d:h flag
+while getopts d:nh flag
 do
   case "${flag}" in
     d) DATA_DIR=${OPTARG};;
+    n) DOWNLOAD_DATA=0;;
     h) usage;;
     *) usage;;
   esac
@@ -109,20 +114,24 @@ sed -i -E \
 
 # region Data
 
-h1 'Downloading data...'
+if [[ "${DOWNLOAD_DATA}" -eq 1 ]]; then
+  h1 'Downloading data...'
 
-h2 'Creating a job to download GPT3 dataset...'
-sbatch ../common/sync.sh \
-  -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${DATASET_NAME}" \
-  -t "${DATASET_DIR}"
+  h2 'Creating a job to download GPT3 dataset...'
+  sbatch ../common/sync.sh \
+    -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${DATASET_NAME}" \
+    -t "${DATASET_DIR}"
 
-h2 'Creating a job to download GPT3 checkpoint...'
-sbatch ../common/sync.sh \
-  -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${CHECKPOINT_NAME}" \
-  -t "${CHECKPOINT_DIR}"
+  h2 'Creating a job to download GPT3 checkpoint...'
+  sbatch ../common/sync.sh \
+    -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${CHECKPOINT_NAME}" \
+    -t "${CHECKPOINT_DIR}"
 
-h2 'Current Slurm job queue:'
-squeue
+  h2 'Current Slurm job queue:'
+  squeue
+else
+  h1 'Skipping data downloading...'
+fi
 
 hdone
 
