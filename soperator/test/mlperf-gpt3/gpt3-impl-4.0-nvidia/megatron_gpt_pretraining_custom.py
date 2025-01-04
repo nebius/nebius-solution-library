@@ -189,4 +189,3 @@ def main(cfg) -> None:
 if __name__ == '__main__':
     mllogger.start(key=mllogger.constants.INIT_START)
     main()
-
