@@ -272,11 +272,11 @@ if [[ "${NSYS_PROFILING}" -eq 1 ]]; then
   export TARGET_LOG_PPL=2.75
 fi
 
-if [[ "${USE_MLFLOW_LOGGER}" -eq 'True' ]]; then
+if [[ "${USE_MLFLOW_LOGGER}" == 'True' ]]; then
   h2 'Configuring MLFlow logger...'
   export USE_MLFLOW_LOGGER
 
-  if [[ "${USE_EXTERNAL_MLFLOW_LOGGER}" -eq 'True' ]]; then
+  if [[ "${USE_EXTERNAL_MLFLOW_LOGGER}" == 'True' ]]; then
     if [[ ! -f "${TEST_DIR}/common/mlflow.sh" ]] || [[ ! -f "${TEST_DIR}/common/mlflow.ca.pem" ]]; then
       usage
     fi
@@ -287,6 +287,7 @@ if [[ "${USE_MLFLOW_LOGGER}" -eq 'True' ]]; then
   fi
 
   h3 'Configuring MLFlow logger tags...'
+  # TODO: Change these before run
   : "${MLF_TAG_CLOUD:=nebius}"
   : "${MLF_TAG_INSTALLATION:=installation}"
   : "${MLF_TAG_IS_POC:=False}"
@@ -294,22 +295,16 @@ if [[ "${USE_MLFLOW_LOGGER}" -eq 'True' ]]; then
 
   export MLF_TAG_GPU_TYPE="${GPU_TYPE}"
   export MLF_TAG_WORKER_COUNT="${NODE_COUNT}"
+  export MLF_TAG_EXPERIMENT_NAME="${EXPERIMENT_NAME}"
 
   h3 'Configuring MLFlow experiment name...'
   MLFLOW_EXPERIMENT_NAME="${MLF_TAG_CLOUD}-${MLF_TAG_INSTALLATION}"
-  if [[ "${MLF_TAG_IS_POC}" -eq 'True' ]]; then
+  if [[ "${MLF_TAG_IS_POC}" == 'True' ]]; then
     MLFLOW_EXPERIMENT_NAME="${MLFLOW_EXPERIMENT_NAME}-poc"
   fi
-  MLFLOW_EXPERIMENT_NAME="${MLFLOW_EXPERIMENT_NAME}-${GPU_TYPE}-gpt3-x${NODE_COUNT}"
-  if [[ -n "${EXPERIMENT_NAME}" ]]; then
-    MLFLOW_EXPERIMENT_NAME="${MLFLOW_EXPERIMENT_NAME}-${EXPERIMENT_NAME}"
-  fi
-  export MLFLOW_EXPERIMENT_NAME
+  MLFLOW_EXPERIMENT_NAME="${MLFLOW_EXPERIMENT_NAME}-${GPU_TYPE}-gpt3"
   echo "${MLFLOW_EXPERIMENT_NAME}"
-
-  h3 'Configuring MLFlow run name...'
-  export JOB_START_TIME="$(date +'%Y-%m-%d_%H-%M-%S_%Z')"
-  echo "${JOB_START_TIME}"
+  export MLFLOW_EXPERIMENT_NAME
 fi
 
 hdone
