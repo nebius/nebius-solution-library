@@ -1,3 +1,2 @@
-api_logs
-experiments
-gpt3-*.out
+./*
+!./.gitignore
