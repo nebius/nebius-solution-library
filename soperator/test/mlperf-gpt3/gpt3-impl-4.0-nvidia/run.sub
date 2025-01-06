@@ -36,7 +36,7 @@ export SHARE_RERUNS=${SHARE_RERUNS:=0}
 : "${APILOG_BATCHSIZE:="unknown"}"
 : "${CLEAR_CACHES:=1}"
 : "${CONTAINER_PRELOAD_SHARED_PATH:=}"
-: "${DATESTAMP:=$(date +'%y%m%d%H%M%S%N')}"
+: "${DATESTAMP:=$(date +'%Y-%m-%d_%H-%M-%S_%Z')}"
 : "${POWERCMDDIR:=' '}" # Power measurement requires power_monitor.sh that doesn't exist on Slurm nodes. It's not clear where to take it.
 : "${NSYSCMD:=""}"
 : "${NVTX_FLAG:=1}"
@@ -136,7 +136,16 @@ if [ -z "${CHECKPOINTS_DIR}" ] && [ ${STORE_CKPTS_IN_LOGDIR:-1} -eq 0 ]; then
 fi
 
 # Setup directories
-( umask 0002; mkdir -p "${LOGDIR}"; mkdir -p "${LOGDIR}/${NEMO_RESULTS_SUBDIR}"; mkdir -p $NPY_INDEX_DIR )
+(
+  umask 0002;
+  mkdir -p "${LOGDIR}";
+  mkdir -p "${LOGDIR}/${NEMO_RESULTS_SUBDIR}";
+  mkdir -p "${LOGDIR}/experiments";
+  mkdir -p "${LOGDIR}/mlruns";
+  mkdir -p "${LOGDIR}/checkpoints";
+  mkdir -p "${LOGDIR}/coredumps";
+  mkdir -p $NPY_INDEX_DIR
+)
 
 if [ ${TIME_TAGS} -gt 0 ]; then
     LOGBASE="${SPREFIX}_mllog"
@@ -193,7 +202,7 @@ if [ "${JET:-0}" -eq 1 ]; then
     _cont_mounts="${_cont_mounts},${JET_DIR}:/root/.jet"
 fi
 if [[ -n "${CHECKPOINTS_DIR}" ]] && [[ ${RUN_ONLY_NCCL} -eq 0 ]]; then
-    _cont_mounts="${_cont_mounts},${CHECKPOINTS_DIR}:/results/${NEMO_RESULTS_SUBDIR}/checkpoints"
+    _cont_mounts="${_cont_mounts},${CHECKPOINTS_DIR}:/results/checkpoints"
 fi
 if [ "${REMOUNT_WORKDIR:-0}" -eq 1 ]; then
     echo 'Remounting workdir'
@@ -444,7 +453,7 @@ mllogger.event(key=mllogger.constants.CACHE_CLEAR, value=True)"
     # compliance checker
     if [ "${CHECK_COMPLIANCE}" -eq 1 ]; then
       srun --ntasks=1 --nodes=1 --container-name="${_cont_name}" \
-           --container-mounts="$(realpath ${LOGDIR}):/results"   \
+           --container-mounts="${ABSLOGDIR}:/results"   \
            --container-workdir="/results"                        \
            python3 -m mlperf_logging.compliance_checker --usage training \
            --ruleset "${MLPERF_RULESET}"                                 \
@@ -459,7 +468,7 @@ mllogger.event(key=mllogger.constants.CACHE_CLEAR, value=True)"
         && [ -n "$(ls -A ${CUDA_COREDUMP_HOSTDIR}/*.nvcudmp)" ]; then
       echo "Postprocessing CUDA core dumps"
       srun --ntasks=1 --nodes=1 --container-name="${_cont_name}" \
-           --container-mounts="$(realpath ${LOGDIR}):/results"   \
+           --container-mounts="${ABSLOGDIR}:/results"   \
            --container-workdir="${WORK_DIR}"                        \
            bash scripts/tracebacks/postprocess_core_dumps.sh     \
     || true
@@ -467,7 +476,9 @@ mllogger.event(key=mllogger.constants.CACHE_CLEAR, value=True)"
 
     if [ "${JET:-0}" -eq 1 ]; then
       JET_CREATE="${JET_CREATE:-} --data workload.spec.nodes=${DGXNNODES} --data workload.spec.name=${MODEL_NAME} --data workload.spec.framework=${MODEL_FRAMEWORK} --data workload.spec.platform=${DGXSYSTEM} --data workload.key=${MODEL_NAME}_${MODEL_FRAMEWORK}_${DGXSYSTEM} --mllogger "
-      srun -N1 -n1 --container-name="${_cont_name}" --container-mounts="${_cont_mounts}" bash -c "${JET_CREATE} /results/${LOGBASE}_${_experiment_index}.log --asset /results/slurm-${SLURM_JOB_ID}.out --data source_image.name=${CONT} --data slurm.job=${SLURM_JOB_ID} && ${JET_UPLOAD}"
+      srun -N1 -n1 --container-name="${_cont_name}" \
+        --container-mounts="${_cont_mounts}" \
+        bash -c "${JET_CREATE} /results/${LOGBASE}_${_experiment_index}.log --asset /results/slurm-${SLURM_JOB_ID}.out --data source_image.name=${CONT} --data slurm.job=${SLURM_JOB_ID} && ${JET_UPLOAD}"
     fi
 
 done

@@ -82,6 +82,22 @@ fi
 : "${TEST_DIR:=/opt/slurm-test}"
 source "${TEST_DIR}/common/printer.sh"
 
+# region Cleanup
+
+if [[ "${REMOVE_LOGS}" -eq 1 ]]; then
+  h1 'Cleaning up...'
+
+  h2 'Removing previous results...'
+  rm -rf "${BASE_RESULTS_DIR}"/* || true
+
+  h2 'Removing shared containers...'
+  rm -rf "${DATA_DIR}/containers"/* || true
+
+  hdone
+fi
+
+# endregion Cleanup
+
 # region Cluster name
 
 h1 'Extracting cluster name...'
@@ -148,6 +164,43 @@ hdone
 
 # endregion Config
 
+# region Job version
+
+h1 'Configuring job version...'
+
+JOB_VERSION="$(date +'%Y-%m-%d_%H-%M-%S_%Z')"
+if [ -n "${EXPERIMENT_NAME}" ]; then
+  JOB_VERSION="${JOB_VERSION}-${EXPERIMENT_NAME}"
+fi
+echo "${JOB_VERSION}"
+export JOB_VERSION
+
+hdone
+
+# endregion Job version
+
+# region Job name
+
+h1 'Configuring job name...'
+
+if [ -z "${EXPERIMENT_NAME}" ]; then
+  h2 'Using experiment-less name:'
+  JOB_NAME='gpt3'
+else
+  h2 'Using experiment-ful name:'
+  JOB_NAME="gpt3-${EXPERIMENT_NAME}"
+fi
+
+mkdir -p "${BASE_RESULTS_DIR}/${JOB_VERSION}"
+JOB_OUTPUT="${BASE_RESULTS_DIR}/${JOB_VERSION}/gpt3-%j.out"
+
+echo "Job name: ${JOB_NAME}"
+echo "Job out:  ${JOB_OUTPUT}"
+
+hdone
+
+# endregion Job name
+
 # region Paths
 
 h1 'Configuring paths...'
@@ -159,7 +212,7 @@ export CONT="${CONTAINER_IMAGE}"
 export PREPROC_DATA="${DATASET_DIR}/preprocessed_c4_spm"
 export SPM="${DATASET_DIR}/spm/c4_en_301_5Mexp2_spm.model"
 export LOAD_CHECKPOINTS_PATH="${CHECKPOINT_DIR}/ckpt4000-consumed_samples=0"
-export LOGDIR="${BASE_RESULTS_DIR}"
+export LOGDIR="${BASE_RESULTS_DIR}/${JOB_VERSION}"
 export CONTAINER_PRELOAD_SHARED_PATH="${SHARED_IMAGE_CACHE_DIR}"
 
 hdone
@@ -196,37 +249,9 @@ hdone
 
 # endregion Training
 
-# region Job name
-
-h1 'Configuring job name...'
-
-if [ -z "${EXPERIMENT_NAME}" ]; then
-  h2 'Using experiment-less name:'
-  JOB_NAME='gpt3'
-  JOB_OUTPUT='gpt3-%j.out'
-else
-  h2 'Using experiment-ful name:'
-  JOB_NAME="gpt3-${EXPERIMENT_NAME}"
-  JOB_OUTPUT="gpt3-%j-${EXPERIMENT_NAME}.out"
-fi
-JOB_OUTPUT="${LOGDIR}/${JOB_OUTPUT}"
-
-echo "Job name: ${JOB_NAME}"
-echo "Job out:  ${JOB_OUTPUT}"
-
-hdone
-
-# endregion Job name
-
 # region Logging & Profiling
 
 h1 'Configuring logging & profiling...'
-
-if [[ "${REMOVE_LOGS}" -eq 1 ]]; then
-  h2 'Removing previous logs...'
-  rm "${LOGDIR}"/gpt3-*.out || true
-  rm -rf ./api_logs/ || true
-fi
 
 if [[ "${DEBUG}" -eq 1 ]]; then
   h2 'Enabling debug logging...'

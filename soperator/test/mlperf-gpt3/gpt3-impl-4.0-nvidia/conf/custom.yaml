@@ -25,7 +25,7 @@ trainer:
 exp_manager:
   exp_dir: '/results/experiments'
   use_datetime_version: True
-  version: ${oc.env:JOB_START_TIME,default}
+  version: ${oc.env:JOB_VERSION,default}
 
   create_tensorboard_logger: ${oc.decode:${oc.env:CREATE_TENSORBOARD_LOGGER,False}}
 
