@@ -315,3 +315,12 @@ variable "slurm_accounting_config" {
 }
 
 # endregion Accounting
+
+# region Apparmor
+variable "use_default_apparmor_profile" {
+  description = "Whether to use default AppArmor profile."
+  type        = bool
+  default     = false
+}
+
+# endregion Apparmor
