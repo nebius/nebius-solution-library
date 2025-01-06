@@ -74,13 +74,13 @@ module "nfs-server" {
   parent_id      = data.nebius_iam_v1_project.this.id
   subnet_id      = data.nebius_vpc_v1_subnet.this.id
   ssh_user_name  = "soperator"
-  ssh_public_key = var.slurm_login_ssh_root_public_keys[0]
+  ssh_public_keys = var.slurm_login_ssh_root_public_keys
   nfs_ip_range   = data.nebius_vpc_v1_subnet.this.ipv4_private_pools.pools[0].cidrs[0].cidr
   nfs_size       = var.nfs.size_gibibytes * 1024 * 1024 * 1024
   nfs_path       = "/mnt/nfs"
   platform       = var.nfs.resource.platform
   preset         = var.nfs.resource.preset
-
+  instance_name  = "soperator-nfs-server"
   providers = {
     nebius = nebius
   }
