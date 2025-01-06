@@ -510,39 +510,55 @@ class MetricsLogger(Logger):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace],
                         *args: Any, **kwargs: Any) -> None:
-        model_cfg = params.cfg
         mllogger.mlperf_submission_log('gpt3')
 
-        mllogger.event(key=mllogger.constants.SEED, value=model_cfg.seed,
-                       sync=False, unique=True)
-        mllogger.event(key=mllogger.constants.GLOBAL_BATCH_SIZE,
-                       value=model_cfg.global_batch_size, sync=False)
-        b1, b2 = model_cfg.optim.betas
+        if hasattr(params, 'cfg'):
+            model_cfg = params.cfg
+            mllogger.event(key=mllogger.constants.SEED,
+                           value=model_cfg.seed,
+                           sync=False, unique=True)
+            mllogger.event(key=mllogger.constants.GLOBAL_BATCH_SIZE,
+                           value=model_cfg.global_batch_size,
+                           sync=False)
+            mllogger.event(key=mllogger.constants.OPT_BASE_LR,
+                           value=model_cfg.optim.lr,
+                           sync=False, unique=True)
+            mllogger.event(key="opt_end_learning_rate",
+                           value=model_cfg.optim.sched.min_lr,
+                           sync=False, unique=True)
+            mllogger.event(key="opt_weight_decay",
+                           value=model_cfg.optim.weight_decay,
+                           sync=False, unique=True)
+            mllogger.event(key="opt_learning_rate_decay_steps",
+                           value=int(model_cfg.optim.sched.max_steps_for_lr_sched),
+                           sync=False, unique=True)
+            mllogger.event(key="opt_learning_rate_warmup_steps",
+                           value=int(model_cfg.optim.sched.warmup_steps),
+                           sync=False, unique=True)
+            mllogger.event(key="init_checkpoint_step",
+                           value=model_cfg.custom.init_global_step,
+                           sync=False, unique=True)
+            mllogger.event(key="max_sequence_length",
+                           value=model_cfg.encoder_seq_length,
+                           sync=False, unique=True)
+
+            b1, b2 = model_cfg.optim.betas
+            mllogger.event(key="opt_adam_beta_1",
+                           value=b1,
+                           sync=False, unique=True)
+            mllogger.event(key="opt_adam_beta_2",
+                           value=b2,
+                           sync=False, unique=True)
+
         mllogger.event(key="opt_name", value="adam", sync=False, unique=True)
-        mllogger.event(key=mllogger.constants.OPT_BASE_LR,
-                       value=model_cfg.optim.lr, sync=False, unique=True)
-        mllogger.event(key="opt_end_learning_rate",
-                       value=model_cfg.optim.sched.min_lr, sync=False, unique=True)
-        mllogger.event(key="opt_adam_beta_1", value=b1, sync=False, unique=True)
-        mllogger.event(key="opt_adam_beta_2", value=b2, sync=False, unique=True)
         mllogger.event(key="opt_adam_epsilon",
                        value=self.model.optimizers().optimizer.param_groups[0]['eps'], sync=False, unique=True)
-        mllogger.event(key="opt_weight_decay",
-                       value=model_cfg.optim.weight_decay, sync=False, unique=True)
-        mllogger.event(key="opt_learning_rate_decay_steps",
-                       value=int(model_cfg.optim.sched.max_steps_for_lr_sched), sync=False, unique=True)
-        mllogger.event(key="opt_learning_rate_warmup_steps",
-                       value=int(model_cfg.optim.sched.warmup_steps), sync=False, unique=True)
         mllogger.event(key="opt_learning_rate_decay_schedule",
                        value="cosine with linear warmup", sync=False, unique=True)
         mllogger.event(key="opt_gradient_clip_norm",
                        value=self.trainer.gradient_clip_val, sync=False, unique=True)
-        mllogger.event(key="init_checkpoint_step",
-                       value=model_cfg.custom.init_global_step, sync=False, unique=True)
         mllogger.event(key=mllogger.constants.GRADIENT_ACCUMULATION_STEPS,
                        value=get_num_microbatches(), sync=False, unique=True)
-        mllogger.event(key="max_sequence_length",
-                       value=model_cfg.encoder_seq_length, sync=False, unique=True)
         mllogger.event(key=mllogger.constants.EVAL_SAMPLES,
                        value=11590004, sync=False, unique=True)
 
