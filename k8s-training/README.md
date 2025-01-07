@@ -120,7 +120,7 @@ loki_secret_key    = "" # See the instruction in README.md on how to create this
 
 See the details below for more information on [Grafana](#grafana), [Prometheus](#prometheus), [Loki](#temporary-block-to-make-loki-work-now) and [NVIDIA DCGM](#nvidia-dcgm-exporter-dashboard-and-alerting).
 
-> To deploy Loki, you will need to create a service account. See the instructions [here](#temporary-block-to-make-loki-work-now).
+> Deploying Loki will require you to create a service account! Please check the instructions [here](https://docs.nebius.com/iam/service-accounts/manage) to create a serice account to access to the storage and [here](https://docs.nebius.com/iam/service-accounts/access-keys) to create the access key. You can refer to the access key creation command [here](https://docs.nebius.com/cli/reference/iam/access-key/create).
 
 ### Storage configuration
 
