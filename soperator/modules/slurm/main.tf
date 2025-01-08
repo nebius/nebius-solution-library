@@ -156,6 +156,20 @@ resource "helm_release" "custom_supervisord_config" {
   wait = true
 }
 
+resource "helm_release" "motd_nebius_o11y_script" {
+  name       = "motd-nebius-o11y-script"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.name
+
+  values = [templatefile("${path.module}/templates/motd_nebius_o11y_cm.yaml.tftpl", {})]
+
+  wait = true
+}
+
 resource "helm_release" "spo" {
   depends_on = [
     module.monitoring,
@@ -186,6 +200,7 @@ resource "helm_release" "slurm_cluster" {
     helm_release.slurm_operator,
     helm_release.slurm_cluster_storage,
     helm_release.custom_supervisord_config,
+    helm_release.motd_nebius_o11y_script,
   ]
 
   name       = local.helm.chart.slurm_cluster

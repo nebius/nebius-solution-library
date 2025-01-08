@@ -117,6 +117,13 @@ volumeSources:
       server: ${nfs.host}
   %{~ endif ~}
 
+  %{~ if telemetry.enabled ~}
+  - name: motd-nebius-o11y
+    configMap:
+      name: motd-nebius-o11y
+      defaultMode: 500
+  %{~ endif ~}
+
   %{~ for sub_mount in jail_submounts ~}
   - name: jail-submount-${sub_mount.name}
     persistentVolumeClaim:
@@ -277,6 +284,13 @@ slurmNodes:
         - mountPath: ${nfs.mount_path}
           name: nfs
           volumeSourceName: nfs
+        %{~ endif ~}
+        %{~ if telemetry.enabled ~}
+        - mountPath: /etc/update-motd.d/95-nebius-o11y
+          subPath: 95-nebius-o11y
+          readOnly: true
+          name: motd-nebius-o11y
+          volumeSourceName: motd-nebius-o11y
         %{~ endif ~}
         %{~ for sub_mount in jail_submounts ~}
         - name: ${sub_mount.name}

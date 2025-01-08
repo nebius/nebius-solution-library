@@ -148,7 +148,7 @@ slurm_partition_config_type = "default"
 # Configuration of System node set for system resources created by Soperator.
 # ---
 slurm_nodeset_system = {
-  size = 2
+  size = 3
   resource = {
     platform = "cpu-e2"
     preset   = "8vcpu-32gb"
