@@ -127,6 +127,12 @@ resource "helm_release" "slurm_operator" {
     name  = "controllerManager.manager.env.isMariadbCrdInstalled"
     value = var.accounting_enabled
   }
+
+  set {
+    name  = "controllerManager.manager.env.isApparmorCrdInstalled"
+    value = var.use_default_apparmor_profile
+  }
+
   set {
     name  = "certManager.enabled"
     value = var.telemetry_enabled
@@ -150,6 +156,31 @@ resource "helm_release" "custom_supervisord_config" {
   wait = true
 }
 
+resource "helm_release" "spo" {
+  depends_on = [
+    module.monitoring,
+  ]
+  count = var.use_default_apparmor_profile ? 1 : 0
+
+  name       = "security-profiles-operator"
+  repository = local.helm.repository.spo
+  chart      = local.helm.chart.spo
+  version    = local.helm.version.spo
+
+  create_namespace = true
+  namespace        = "security-profiles-operator-system"
+
+  set {
+    name  = "spoImage.tag"
+    value = local.helm.version.spo
+  }
+
+  set {
+    name  = "enableAppArmor"
+    value = var.use_default_apparmor_profile
+  }
+}
+
 resource "helm_release" "slurm_cluster" {
   depends_on = [
     helm_release.slurm_operator,
@@ -166,7 +197,8 @@ resource "helm_release" "slurm_cluster" {
   namespace        = var.name
 
   values = [templatefile("${path.module}/templates/helm_values/slurm_cluster.yaml.tftpl", {
-    name = var.name
+    name                      = var.name
+    useDefaultAppArmorProfile = var.use_default_apparmor_profile
 
     partition_configuration = {
       slurm_config_type = var.slurm_partition_config_type
@@ -226,18 +258,18 @@ resource "helm_release" "slurm_cluster" {
           ephemeral_storage = one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
           gpus              = one(var.resources.worker).gpus
         }
-        shared_memory                   = var.shared_memory_size_gibibytes
-        slurm_node_extra                = local.slurm_node_extra
-        sshd_config_map_ref_name        = var.worker_sshd_config_map_ref_name
+        shared_memory            = var.shared_memory_size_gibibytes
+        slurm_node_extra         = local.slurm_node_extra
+        sshd_config_map_ref_name = var.worker_sshd_config_map_ref_name
       }
 
       login = {
-        size                            = var.node_count.login
-        service_type                    = var.login_service_type
-        allocation_id                   = var.login_allocation_id
-        node_port                       = var.login_node_port
-        sshd_config_map_ref_name        = var.login_sshd_config_map_ref_name
-        root_public_keys                = var.login_ssh_root_public_keys
+        size                     = var.node_count.login
+        service_type             = var.login_service_type
+        allocation_id            = var.login_allocation_id
+        node_port                = var.login_node_port
+        sshd_config_map_ref_name = var.login_sshd_config_map_ref_name
+        root_public_keys         = var.login_ssh_root_public_keys
         resources = {
           cpu               = var.resources.login.cpu_cores - local.resources.munge.cpu
           memory            = var.resources.login.memory_gibibytes - local.resources.munge.memory
