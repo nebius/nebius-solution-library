@@ -4,7 +4,7 @@ locals {
       slurm   = "oci://cr.eu-north1.nebius.cloud/soperator${!var.operator_stable ? "-unstable" : ""}"
       mariadb = "https://helm.mariadb.com/mariadb-operator"
       raw     = "https://bedag.github.io/helm-charts/"
-      spo     = "oci://cr.eu-north1.nebius.cloud/e00xdc03sb7gpqfd0a/security-profiles-operator"
+      spo     = "oci://cr.eu-north1.nebius.cloud/e00xdc03sb7gpqfd0a"
     }
 
     chart = {
@@ -24,7 +24,7 @@ locals {
       slurm   = var.operator_version
       mariadb = "0.31.0"
       raw     = "2.0.0"
-      spo     = "0.8.4"
+      spo     = "0.8.4-soperator"
     }
   }
 
