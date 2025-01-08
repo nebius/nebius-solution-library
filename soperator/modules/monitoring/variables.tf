@@ -61,12 +61,24 @@ variable "resources_vm_agent" {
 
 variable "resources_fb_logs_collector" {
   type = object({
-    memory = string
-    cpu    = string
+    requests = object({
+      memory = string
+      cpu    = string
+    })
+    limits = object({
+      memory = string
+      cpu    = string
+    })
   })
   default = {
-    memory = "256Mi"
-    cpu    = "200m"
+    requests = {
+      memory = "200Mi"
+      cpu    = "200m"
+    }
+    limits = {
+      memory = "256Mi"
+      cpu    = "200m"
+    }
   }
 }
 
