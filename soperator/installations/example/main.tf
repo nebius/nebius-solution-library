@@ -80,7 +80,7 @@ module "nfs-server" {
   nfs_path        = "/home"
   platform        = var.nfs.resource.platform
   preset          = var.nfs.resource.preset
-  instance_name   = "soperator-nfs-server"
+  instance_name   = "${var.k8s_cluster_name}-nfs-server"
   providers = {
     nebius = nebius
   }
