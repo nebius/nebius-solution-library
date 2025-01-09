@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# URI of MLFlow server
+export MLFLOW_TRACKING_URI='https://mlflow.it'
+
+# MLFlow user name
+export MLFLOW_TRACKING_USERNAME='user'
+# MLFlow user password
+export MLFLOW_TRACKING_PASSWORD='password'
+
+# Absolute mount point path of 'mlflow.ca.pem' file inside the container
+export MLFLOW_TRACKING_SERVER_CERT_PATH='/mlflow.ca.pem'
