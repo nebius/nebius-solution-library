@@ -13,16 +13,16 @@ source ./env.sh
 
 ## Usage
 
-To use this module in your Terraform environment, you must first create a Terraform configuration, such as the file `nfs.tfvars`, with the following example content:
+To use this module in your Terraform environment, you must first create a Terraform configuration, such as the file `terraform.tfvars`, with the following example content:
 
 ```hcl
 parent_id = ""
 subnet_id = ""
 ssh_user_name = "nfs"
-ssh_public_key = {
-  key  = "put your public ssh key here"
-  path = "put path to ssh key here"
-}
+ssh_public_keys = [
+  "ssh-rsa AAAA...", # First user's public key
+  "ssh-rsa AAAA..."  # Second user's public key
+]
 nfs_ip_range = "192.168.0.0/16"
 ```
 
@@ -31,7 +31,7 @@ run terraform:
 ```
 terraform init
 terraform plan
-terraform apply -var-file nfs.tfvars
+terraform apply
 ```
 
 Once you have done that, you can mount on your target device using command 

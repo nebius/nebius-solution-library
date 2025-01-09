@@ -5,7 +5,9 @@ users:
     shell: /bin/bash
     sudo: 'ALL=(ALL) NOPASSWD:ALL'
     ssh-authorized-keys:
-      - ${ssh_public_key}
+%{ for key in ssh_public_keys ~}
+      - ${key}
+%{ endfor ~}
 
 runcmd:
 - apt-get update

@@ -72,18 +72,18 @@ module "filestore" {
 }
 
 module "nfs-server" {
-  count          = var.nfs.enabled ? 1 : 0
-  source         = "../../../modules/nfs-server"
-  parent_id      = data.nebius_iam_v1_project.this.id
-  subnet_id      = data.nebius_vpc_v1_subnet.this.id
-  ssh_user_name  = "soperator"
-  ssh_public_key = var.slurm_login_ssh_root_public_keys[0]
-  nfs_ip_range   = data.nebius_vpc_v1_subnet.this.ipv4_private_pools.pools[0].cidrs[0].cidr
-  nfs_size       = var.nfs.size_gibibytes * 1024 * 1024 * 1024
-  nfs_path       = "/mnt/nfs"
-  platform       = var.nfs.resource.platform
-  preset         = var.nfs.resource.preset
-
+  count           = var.nfs.enabled ? 1 : 0
+  source          = "../../../modules/nfs-server"
+  parent_id       = data.nebius_iam_v1_project.this.id
+  subnet_id       = data.nebius_vpc_v1_subnet.this.id
+  ssh_user_name   = "soperator"
+  ssh_public_keys = var.slurm_login_ssh_root_public_keys
+  nfs_ip_range    = data.nebius_vpc_v1_subnet.this.ipv4_private_pools.pools[0].cidrs[0].cidr
+  nfs_size        = var.nfs.size_gibibytes * 1024 * 1024 * 1024
+  nfs_path        = "/home"
+  platform        = var.nfs.resource.platform
+  preset          = var.nfs.resource.preset
+  instance_name   = "${var.k8s_cluster_name}-nfs-server"
   providers = {
     nebius = nebius
   }
@@ -264,13 +264,13 @@ module "slurm" {
     } : null
   }
 
-  login_service_type              = var.slurm_login_service_type
-  login_node_port                 = var.slurm_login_node_port
-  login_allocation_id             = module.k8s.allocation_id
-  login_sshd_config_map_ref_name  = var.slurm_login_sshd_config_map_ref_name
-  login_ssh_root_public_keys      = var.slurm_login_ssh_root_public_keys
+  login_service_type             = var.slurm_login_service_type
+  login_node_port                = var.slurm_login_node_port
+  login_allocation_id            = module.k8s.allocation_id
+  login_sshd_config_map_ref_name = var.slurm_login_sshd_config_map_ref_name
+  login_ssh_root_public_keys     = var.slurm_login_ssh_root_public_keys
 
-  worker_sshd_config_map_ref_name  = var.slurm_worker_sshd_config_map_ref_name
+  worker_sshd_config_map_ref_name = var.slurm_worker_sshd_config_map_ref_name
 
   exporter_enabled        = var.slurm_exporter_enabled
   rest_enabled            = var.slurm_rest_enabled
