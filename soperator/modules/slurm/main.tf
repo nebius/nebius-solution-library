@@ -199,6 +199,7 @@ resource "helm_release" "slurm_cluster" {
   values = [templatefile("${path.module}/templates/helm_values/slurm_cluster.yaml.tftpl", {
     name                      = var.name
     useDefaultAppArmorProfile = var.use_default_apparmor_profile
+    maintenance               = var.maintenance
 
     partition_configuration = {
       slurm_config_type = var.slurm_partition_config_type

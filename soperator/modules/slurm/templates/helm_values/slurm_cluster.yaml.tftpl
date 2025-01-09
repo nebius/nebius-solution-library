@@ -1,6 +1,7 @@
 clusterName: ${name}
 clusterType: ${ nodes.worker.resources.gpus > 0 ? "gpu" : "cpu" }
 useDefaultAppArmorProfile: ${useDefaultAppArmorProfile}
+maintenance: ${maintenance}
 
 partitionConfiguration:
   configType: ${partition_configuration.slurm_config_type}

@@ -324,3 +324,17 @@ variable "use_default_apparmor_profile" {
 }
 
 # endregion Apparmor
+
+# region Maintenance
+variable "maintenance" {
+  description = "Whether to enable maintenance mode."
+  type        = string
+  default     = "none"
+
+  validation {
+    condition     = contains(["downscaleAndDeletePopulateJail", "downscale", "none", "skipPopulateJail"], var.maintenance)
+    error_message = "The maintenance variable must be one of: downscaleAndDeletePopulateJail, downscale, none, skipPopulateJail."
+  }
+}
+
+# endregion Maintenance
