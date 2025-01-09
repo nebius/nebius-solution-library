@@ -17,10 +17,10 @@ dashboards:
 
 resources:
   limits:
-    memory: ${resources.memory}
+    memory: ${resources.limits.memory}
   requests:
-    cpu: ${resources.cpu}
-    memory: ${resources.memory}
+    cpu: ${resources.requests.cpu}
+    memory: ${resources.requests.memory}
 
 config:
   service: |
@@ -123,3 +123,18 @@ hotReload:
     digest:
     pullPolicy: IfNotPresent
   resources: {}
+
+tolerations:
+- operator: Exists
+- effect: NoSchedule
+  key: node.kubernetes.io/not-ready
+  operator: Exists
+- effect: NoSchedule
+  key: node.kubernetes.io/network-unavailable
+  operator: Exists
+- effect: NoSchedule
+  key: node.kubernetes.io/unschedulable
+  operator: Exists
+- effect: NoSchedule
+  key: node.cilium.io/agent-not-ready
+  operator: Exists
