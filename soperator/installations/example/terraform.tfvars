@@ -122,7 +122,7 @@ filestore_accounting = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.16.1"
+slurm_operator_version = "1.17.0"
 
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".
