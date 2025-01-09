@@ -8,6 +8,9 @@ locals {
   }
 
   use_node_port = var.slurm_login_service_type == "NodePort"
+
+  slurm_cluster_name = "soperator"
+  k8s_cluster_name = format("soperator-%s", var.company_name)
 }
 
 module "filestore" {
@@ -15,7 +18,7 @@ module "filestore" {
 
   iam_project_id = data.nebius_iam_v1_project.this.id
 
-  k8s_cluster_name = var.k8s_cluster_name
+  k8s_cluster_name = local.k8s_cluster_name
 
   controller_spool = {
     spec = var.filestore_controller_spool.spec != null ? {
@@ -99,8 +102,8 @@ module "k8s" {
   vpc_subnet_id  = data.nebius_vpc_v1_subnet.this.id
 
   k8s_version        = var.k8s_version
-  name               = var.k8s_cluster_name
-  slurm_cluster_name = var.slurm_cluster_name
+  name               = local.k8s_cluster_name
+  slurm_cluster_name = local.slurm_cluster_name
   company_name       = var.company_name
 
   node_group_system     = var.slurm_nodeset_system
@@ -196,7 +199,7 @@ module "slurm" {
 
   source = "../../modules/slurm"
 
-  name                = var.slurm_cluster_name
+  name                = local.slurm_cluster_name
   operator_version    = var.slurm_operator_version
   k8s_cluster_context = module.k8s.cluster_context
 
@@ -330,7 +333,7 @@ module "login_script" {
     used = local.use_node_port
     port = var.slurm_login_node_port
   }
-  slurm_cluster_name = var.slurm_cluster_name
+  slurm_cluster_name = local.slurm_cluster_name
 
   k8s_cluster_context = module.k8s.cluster_context
 

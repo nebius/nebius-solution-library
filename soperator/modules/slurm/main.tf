@@ -156,6 +156,20 @@ resource "helm_release" "custom_supervisord_config" {
   wait = true
 }
 
+resource "helm_release" "motd_nebius_o11y_script" {
+  name       = "motd-nebius-o11y-script"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.name
+
+  values = [templatefile("${path.module}/templates/motd_nebius_o11y_cm.yaml.tftpl", {})]
+
+  wait = true
+}
+
 resource "helm_release" "spo" {
   depends_on = [
     module.monitoring,
@@ -172,12 +186,32 @@ resource "helm_release" "spo" {
 
   set {
     name  = "spoImage.tag"
-    value = local.helm.version.spo
+    value = "v0.8.4"
   }
 
   set {
     name  = "enableAppArmor"
     value = var.use_default_apparmor_profile
+  }
+
+  set {
+    name  = "daemon.tolerations[0].operator"
+    value = "Exists"
+  }
+
+  set {
+    name  = "daemon.tolerations[1].effect"
+    value = "NoSchedule"
+  }
+
+  set {
+    name  = "daemon.tolerations[1].key"
+    value = "node.kubernetes.io/not-ready"
+  }
+
+  set {
+    name  = "daemon.tolerations[1].operator"
+    value = "Exists"
   }
 }
 
@@ -186,6 +220,8 @@ resource "helm_release" "slurm_cluster" {
     helm_release.slurm_operator,
     helm_release.slurm_cluster_storage,
     helm_release.custom_supervisord_config,
+    helm_release.motd_nebius_o11y_script,
+    helm_release.spo,
   ]
 
   name       = local.helm.chart.slurm_cluster
@@ -199,6 +235,7 @@ resource "helm_release" "slurm_cluster" {
   values = [templatefile("${path.module}/templates/helm_values/slurm_cluster.yaml.tftpl", {
     name                      = var.name
     useDefaultAppArmorProfile = var.use_default_apparmor_profile
+    maintenance               = var.maintenance
 
     partition_configuration = {
       slurm_config_type = var.slurm_partition_config_type
