@@ -35,12 +35,23 @@ data "nebius_vpc_v1_subnet" "this" {
 }
 
 variable "company_name" {
-  description = "Name of the company. It is used for context name of the cluster in .kubeconfig file."
+  description = "Name of the company. It is used for naming Slurm & K8s clusters."
   type        = string
 
   validation {
-    condition     = var.company_name != ""
-    error_message = "Company name is not provided"
+    condition = (
+      length(var.company_name) >= 1 &&
+      length(var.company_name) <= 32 &&
+      length(regexall("^[a-z][a-z\\d\\-]*[a-z\\d]+$", var.company_name)) == 1
+    )
+    error_message = <<EOF
+      The company name must:
+      - be 1 to 32 characters long
+      - start with a letter
+      - end with a letter or digit
+      - consist of letters, digits, or hyphens (-)
+      - contain only lowercase letters
+    EOF
   }
 }
 
@@ -143,7 +154,7 @@ variable "nfs" {
   type = object({
     enabled        = bool
     size_gibibytes = number
-    mount_path     = optional(string, "/mnt/nfs")
+    mount_path     = optional(string, "/home")
     resource = object({
       platform = string
       preset   = string
@@ -154,7 +165,7 @@ variable "nfs" {
     size_gibibytes = 93
     resource = {
       platform = "cpu-e2"
-      preset   = "16vcpu-64gb"
+      preset   = "32vcpu-128gb"
     }
   }
 
@@ -179,28 +190,6 @@ variable "k8s_version" {
   }
 }
 
-variable "k8s_cluster_name" {
-  description = "Name of the k8s cluster."
-  type        = string
-  nullable    = false
-
-  validation {
-    condition = (
-      length(var.k8s_cluster_name) >= 1 &&
-      length(var.k8s_cluster_name) <= 64 &&
-      length(regexall("^[a-z][a-z\\d\\-]*[a-z\\d]+$", var.k8s_cluster_name)) == 1
-    )
-    error_message = <<EOF
-      The k8s cluster name must:
-      - be 1 to 64 characters long
-      - start with a letter
-      - end with a letter or digit
-      - consist of letters, digits, or hyphens (-)
-      - contain only lowercase letters
-    EOF
-  }
-}
-
 variable "k8s_cluster_node_ssh_access_users" {
   description = "SSH user credentials for accessing k8s nodes."
   type = list(object({
@@ -216,28 +205,6 @@ variable "k8s_cluster_node_ssh_access_users" {
 # endregion Infrastructure
 
 # region Slurm
-
-variable "slurm_cluster_name" {
-  description = "Name of the Slurm cluster in k8s cluster."
-  type        = string
-  nullable    = false
-
-  validation {
-    condition = (
-      length(var.slurm_cluster_name) >= 1 &&
-      length(var.slurm_cluster_name) <= 64 &&
-      length(regexall("^[a-z][a-z\\d\\-]*[a-z\\d]+$", var.slurm_cluster_name)) == 1
-    )
-    error_message = <<EOF
-      The Slurm cluster name must:
-      - be 1 to 64 characters long
-      - start with a letter
-      - end with a letter or digit
-      - consist of letters, digits, or hyphens (-)
-      - contain only lowercase letters
-    EOF
-  }
-}
 
 variable "slurm_operator_version" {
   description = "Version of soperator."
@@ -462,6 +429,16 @@ resource "terraform_data" "check_slurm_nodeset" {
   }
 }
 
+# region Worker
+
+variable "slurm_worker_sshd_config_map_ref_name" {
+  description = "Name of configmap with SSHD config, which runs in slurmd container."
+  type        = string
+  default     = ""
+}
+
+# endregion Worker
+
 # region Login
 
 variable "slurm_login_service_type" {
@@ -484,6 +461,12 @@ variable "slurm_login_node_port" {
     condition     = var.slurm_login_node_port >= 30000 && var.slurm_login_node_port < 32768
     error_message = "Invalid node port. It must be in range [30000,32768)."
   }
+}
+
+variable "slurm_login_sshd_config_map_ref_name" {
+  description = "Name of configmap with SSHD config, which runs in slurmd container."
+  type        = string
+  default     = ""
 }
 
 variable "slurm_login_ssh_root_public_keys" {
