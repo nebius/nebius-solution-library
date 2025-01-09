@@ -101,46 +101,15 @@ filestore_accounting = {
 
 # nfs = {
 #   enabled = true
-#   size_gibibytes = 93
-#   mount_path     = "/mnt/nfs"
+#   size_gibibytes = 930
+#   mount_path     = "/home"
 #   resource = {
 #     platform = "cpu-e2"
-#     preset   = "16vcpu-64gb"
+#     preset   = "32vcpu-128gb"
 #    }
 # }
 
 # endregion nfs-server
-
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                                                                                      #
-#                                                                                                                      #
-#                                                         Cloud                                                        #
-#                                                                                                                      #
-#                                                                                                                      #
-#----------------------------------------------------------------------------------------------------------------------#
-# region Cloud
-
-# IAM token used for communicating with Nebius services.
-# Token is being passed via .envrc file.
-# Uncomment to override.
-# ---
-# iam_token = "<YOUR-IAM-TOKEN>"
-
-# ID of the IAM project.
-# Project ID is being passed via .envrc file.
-# Uncomment to override.
-# ---
-# iam_project_id = "project-<YOUR-PROJECT-ID>"
-
-# ID of VPC subnet.
-# Subnet ID is being passed via .envrc file.
-# Uncomment to override.
-# ---
-#vpc_subnet_id = "vpcsubnet-<YOUR-SUBNET-ID>"
-
-# endregion Cloud
-
-# endregion Infrastructure
 
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
@@ -150,10 +119,6 @@ filestore_accounting = {
 #                                                                                                                      #
 #----------------------------------------------------------------------------------------------------------------------#
 # region Slurm
-
-# Name of the Slurm cluster in k8s cluster.
-# ---
-slurm_cluster_name = "soperator"
 
 # Version of soperator.
 # ---
@@ -183,10 +148,10 @@ slurm_partition_config_type = "default"
 # Configuration of System node set for system resources created by Soperator.
 # ---
 slurm_nodeset_system = {
-  size = 1
+  size = 3
   resource = {
     platform = "cpu-e2"
-    preset   = "16vcpu-64gb"
+    preset   = "8vcpu-32gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -198,10 +163,10 @@ slurm_nodeset_system = {
 # Configuration of Slurm Controller node set.
 # ---
 slurm_nodeset_controller = {
-  size = 1
+  size = 2
   resource = {
     platform = "cpu-e2"
-    preset   = "8vcpu-32gb"
+    preset   = "4vcpu-16gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -403,10 +368,6 @@ accounting_enabled = true
 # Version of the k8s to be used.
 # ---
 k8s_version = "1.30"
-
-# Name of the k8s cluster.
-# ---
-k8s_cluster_name = "soperator"
 
 # SSH user credentials for accessing k8s nodes.
 # That option add public ip address to every node.
