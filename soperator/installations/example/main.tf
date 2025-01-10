@@ -10,7 +10,7 @@ locals {
   use_node_port = var.slurm_login_service_type == "NodePort"
 
   slurm_cluster_name = "soperator"
-  k8s_cluster_name = format("soperator-%s", var.company_name)
+  k8s_cluster_name   = format("soperator-%s", var.company_name)
 }
 
 module "filestore" {
@@ -199,9 +199,11 @@ module "slurm" {
 
   source = "../../modules/slurm"
 
-  name                = local.slurm_cluster_name
-  operator_version    = var.slurm_operator_version
-  k8s_cluster_context = module.k8s.cluster_context
+  name                         = local.slurm_cluster_name
+  operator_version             = var.slurm_operator_version
+  k8s_cluster_context          = module.k8s.cluster_context
+  maintenance                  = var.maintenance
+  use_default_apparmor_profile = var.use_default_apparmor_profile
 
   iam_project_id = var.iam_project_id
 
