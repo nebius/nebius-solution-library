@@ -182,7 +182,7 @@ slurm_nodeset_controller = {
 # infiniband_fabric is required field
 # ---
 slurm_nodeset_workers = [{
-  size                    = 16
+  size                    = 8
   nodes_per_nodegroup     = 4
   max_unavailable_percent = 50
   resource = {
@@ -191,7 +191,7 @@ slurm_nodeset_workers = [{
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 256
+    size_gibibytes       = 2048
     block_size_kibibytes = 4
   }
   gpu_cluster = {
