@@ -332,8 +332,8 @@ variable "maintenance" {
   default     = "none"
 
   validation {
-    condition     = contains(["downscaleAndDeletePopulateJail", "downscale", "none", "skipPopulateJail"], var.maintenance)
-    error_message = "The maintenance variable must be one of: downscaleAndDeletePopulateJail, downscale, none, skipPopulateJail."
+    condition     = contains(["downscaleAndDeletePopulateJail", "downscaleAndOverwritePopulateJail", "downscale", "none", "skipPopulateJail"], var.maintenance)
+    error_message = "The maintenance variable must be one of: downscaleAndDeletePopulateJail, downscaleAndOverwritePopulateJail, downscale, none, skipPopulateJail."
   }
 }
 
