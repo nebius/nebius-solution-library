@@ -45,7 +45,7 @@ resource "helm_release" "prometheus_stack" {
   name       = "prometheus-stack"
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "kube-prometheus-stack"
-  version    = "61.8.0"
+  version    = "67.9.0"
   timeout    = 600
 
   create_namespace = true
