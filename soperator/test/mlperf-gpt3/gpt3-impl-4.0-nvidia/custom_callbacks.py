@@ -607,6 +607,7 @@ class MetricsLogger(Logger):
         mllogger.event(key=mllogger.constants.EVAL_SAMPLES,
                        value=11590004, sync=False, unique=True)
 
+    @rank_zero_only
     def _log_benchmark_metrics(self, metrics: Dict[str, float], step: Optional[int]) -> None:
         self.benchmark_callback.on_external_log_metrics(metrics, step)
 
