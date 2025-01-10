@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import MLFlowLogger
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-from custom_callbacks import compute_consumed_mllog_tokens
+from custom_callbacks import WarmupDurationMetrics, compute_consumed_mllog_tokens
 
 
 @dataclass
@@ -39,11 +39,14 @@ class BenchmarkKeys(str, Enum):
     PARAM_TRAINING_BLOCK_SAMPLES     = f'{BENCHMARK}/training/block/samples'
     PARAM_TRAINING_STEP_SAMPLES      = f'{BENCHMARK}/training/step/samples'
 
-    METRIC_DURATION_TIME_TO_RUN      = f'{BENCHMARK}/duration/timeToRun'
-    METRIC_DURATION_TOTAL            = f'{BENCHMARK}/duration/total'
-    METRIC_DURATION_INITIALIZATION   = f'{BENCHMARK}/duration/initialization'
-    METRIC_DURATION_TRAINING         = f'{BENCHMARK}/duration/training'
-    METRIC_DURATION_VALIDATION_BLOCK = f'{BENCHMARK}/duration/validation/block'
+    METRIC_DURATION_TIME_TO_RUN       = f'{BENCHMARK}/duration/timeToRun'
+    METRIC_DURATION_TOTAL             = f'{BENCHMARK}/duration/total'
+    METRIC_DURATION_INITIALIZATION    = f'{BENCHMARK}/duration/initialization'
+    METRIC_DURATION_WARMUP_CUDAGRAPH  = f'{BENCHMARK}/duration/warmup/cudagraph'
+    METRIC_DURATION_WARMUP_TRAINING   = f'{BENCHMARK}/duration/warmup/training'
+    METRIC_DURATION_WARMUP_VALIDATION = f'{BENCHMARK}/duration/warmup/validation'
+    METRIC_DURATION_TRAINING          = f'{BENCHMARK}/duration/training'
+    METRIC_DURATION_VALIDATION_BLOCK  = f'{BENCHMARK}/duration/validation/block'
 
     METRIC_SAMPLES_PER_SECOND_TRAINING_EPOCH  = f'{BENCHMARK}/samplesPerSecond/training/epoch'
     METRIC_SAMPLES_PER_SECOND_TRAINING_BLOCK  = f'{BENCHMARK}/samplesPerSecond/training/block'
@@ -63,6 +66,12 @@ class BenchmarkKeys(str, Enum):
 class MetricKV:
     key: str
     value: float
+
+
+@dataclass
+class DelayedMetricKV(MetricKV):
+    timestamp: Optional[int] = None
+    step: Optional[int] = None
 
 
 @dataclass
@@ -213,6 +222,8 @@ class BenchmarkCallback(Callback):
         )
         self.metrics: BenchmarkMetrics = BenchmarkMetrics()
 
+        self.delayed_metrics: list[DelayedMetricKV] = []
+
     @rank_zero_only
     def on_fit_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         now = DateTime.now()
@@ -335,6 +346,29 @@ class BenchmarkCallback(Callback):
             timestamp=now,
         )
 
+    @rank_zero_only
+    def on_external_log_metrics(self, metrics: dict[str, float], step: Optional[int]) -> None:
+        pass
+
+    @rank_zero_only
+    def log_warmup_duration_metrics(self, warmup_metrics: WarmupDurationMetrics, step: Optional[int]) -> None:
+        timestamp = DateTime.now().microsecond // 1000
+        self.delayed_metrics.extend(
+            [
+                DelayedMetricKV(
+                    key=metric_name,
+                    value=metric_value,
+                    timestamp=timestamp,
+                    step=step,
+                )
+                for metric_name, metric_value in (
+                    (BenchmarkKeys.METRIC_DURATION_WARMUP_CUDAGRAPH.value, warmup_metrics.cudagraph),
+                    (BenchmarkKeys.METRIC_DURATION_WARMUP_TRAINING.value, warmup_metrics.training),
+                    (BenchmarkKeys.METRIC_DURATION_WARMUP_VALIDATION.value, warmup_metrics.validation),
+                )
+            ]
+        )
+
     def log_metrics(
         self,
         trainer: Trainer,
@@ -362,11 +396,28 @@ class BenchmarkCallback(Callback):
             for metric in metrics
         ]
 
+        if len(self.delayed_metrics) > 0:
+            full_metrics.extend(
+                [
+                    mlf.Metric(
+                        key=metric.key,
+                        value=metric.value,
+                        timestamp=metric.timestamp if metric.timestamp is not None else timestamp.microsecond // 1000,
+                        step=metric.step if metric.step is not None else trainer.global_step,
+                    )
+                    for metric in self.delayed_metrics
+                ]
+            )
+
         logger.experiment.log_batch(
             run_id=logger.run_id,
             metrics=full_metrics,
             params=([mlf.Param(key=param.key, value=param.value) for param in params] if params else ()),
+            synchronous=True,
         )
+
+        if len(self.delayed_metrics) > 0:
+            self.delayed_metrics.clear()
 
     @staticmethod
     def _get_mlflow_logger(trainer: Trainer) -> Optional[MLFlowLogger]:

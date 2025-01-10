@@ -132,8 +132,10 @@ def main(cfg) -> None:
     custom_callback = CustomCallback(cfg)
     callbacks = [custom_callback]
 
+    benchmark_callback = None
     if cfg.exp_manager.create_mlflow_logger:
-        callbacks.append(BenchmarkCallback(cfg))
+        benchmark_callback = BenchmarkCallback(cfg)
+        callbacks.append(benchmark_callback)
 
     trainer = Trainer(
         plugins=plugins, strategy=strategy, **cfg.trainer, callbacks=callbacks
@@ -177,9 +179,16 @@ def main(cfg) -> None:
 
     model = CustomMegatronGPTModel(cfg.model, trainer)
 
-    trainer.loggers.append(MetricsLogger(trainer, model, custom_callback, cfg.model.custom.target_log_ppl,
-                                        cfg.model.custom.extend_run_evals,
-                                        ))
+    trainer.loggers.append(
+        MetricsLogger(
+            trainer,
+            model,
+            custom_callback,
+            cfg.model.custom.target_log_ppl,
+            cfg.model.custom.extend_run_evals,
+            benchmark_callback=benchmark_callback,
+        )
+    )
 
     if cfg.model.custom.pre_validate:
         configure_pre_validation_training_loop(trainer)

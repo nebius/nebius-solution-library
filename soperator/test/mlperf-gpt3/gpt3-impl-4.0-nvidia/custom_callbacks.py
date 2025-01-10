@@ -21,7 +21,8 @@ from datetime import datetime
 import math
 from itertools import repeat
 from pathlib import Path
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, TYPE_CHECKING
+from dataclasses import dataclass
 
 import pytorch_lightning
 import pytorch_lightning as pl
@@ -69,6 +70,9 @@ from mlperf_logger import mllogger
 from unified_checkpointing import generate_unified_state_dict
 from transformer_engine.common import recipe
 from transformer_engine.pytorch import make_graphed_callables
+
+if TYPE_CHECKING:
+    from benchmark import BenchmarkCallback
 
 _PATH = Union[str, Path]
 
@@ -168,14 +172,29 @@ def get_microbatch_schedule(num_microbatches, num_model_chunks):
         schedule = [1]*num_microbatches + [-1]*num_microbatches
     return schedule
 
+
+@dataclass
+class WarmupDurationMetrics:
+    cudagraph: float
+    training: float
+    validation: float
+
+
+warmup_metrics: Optional[WarmupDurationMetrics] = None
+
+
 def run_training_cudagraph(trainer, cfg):
+    global warmup_metrics
+
     # Function to perform CUDA graph capture for decoder layers optionally,
     # then perform warmup iterations for training and validation. CUDA graph
     # is currently supported only for training.
     torch.cuda.synchronize()
     torch.distributed.barrier()
+
     logger.info(f'In run_training_cudagraph')
-    start = time.time()
+    start_cudagraph = time.time()
+
     trainer.model._optimizer.zero_grad()
     torch.distributed.barrier()
     torch.cuda.set_stream(torch.cuda.default_stream())
@@ -231,13 +250,21 @@ def run_training_cudagraph(trainer, cfg):
     # Warmup for training
     # Run forward and backward (no optimizer step)
     torch.distributed.barrier()
+
     logger.info(f'Starting training warmup')
+    start_training_warmup = time.time()
+
     for i in range(cfg.custom.warmup_train_steps):
         trainer.model.training_step(trainer.model.get_synthetic_input_training())
-
     torch.distributed.barrier()
-    logger.info(f'Finished training warmup: {time.time() - start}s. Starting validation warmup')
+
+    training_warmup_duration = time.time() - start_training_warmup
+    logger.info(f'Finished training warmup: {training_warmup_duration}s')
+
     # Warmup for validation
+    logger.info(f'Starting validation warmup')
+    start_validation_warmup = time.time()
+
     if cfg.custom.warmup_validation_steps > 0:
         trainer.testing = True
         trainer.training = not trainer.testing
@@ -257,7 +284,18 @@ def run_training_cudagraph(trainer, cfg):
     trainer._logger_connector.reset_results()
     trainer._logger_connector.reset_metrics()
     torch.distributed.barrier()
-    logger.info(f'Time spent in run_training_cudagraph: {time.time() - start}s')
+
+    validation_warmup_duration = time.time() - start_validation_warmup
+    logger.info(f'Finished validation warmup: {validation_warmup_duration}s')
+
+    cudagraph_duration = time.time() - start_cudagraph
+    logger.info(f'Time spent in run_training_cudagraph: {cudagraph_duration}s')
+
+    warmup_metrics = WarmupDurationMetrics(
+        cudagraph=cudagraph_duration,
+        training=training_warmup_duration,
+        validation=validation_warmup_duration,
+    )
 
 
 def reset_fp8_state(model):
@@ -425,7 +463,8 @@ class MetricsLogger(Logger):
                  extend_run_evals=0,
                  train_loss_key='reduced_train_loss', val_loss_key='val_loss',
                  timing_keys=('train_step_timing', 'train_epoch_timing', 'validation_step_timing', 'validation_epoch_timing'),
-                 throughput_key='train_epoch_timing'):
+                 throughput_key='train_epoch_timing',
+                 benchmark_callback: Optional['BenchmarkCallback']=None):
         super().__init__()
         self.trainer = trainer
         self.model = model
@@ -440,18 +479,24 @@ class MetricsLogger(Logger):
         self.extension_eval_idx = 0
         self.is_target_reached = False
 
+        self.benchmark_callback = benchmark_callback
+
 
     def log_metrics(self, metrics: Dict[str, float],
                     step: Optional[int] = None) -> None:
         if self.val_loss_key in metrics:
             self._log_val_metrics(metrics, step)
         self._log_throughputs(metrics, step)
+
+        if self.benchmark_callback is not None:
+            self._log_benchmark_metrics(metrics, step)
+
         if bool(os.getenv('ENABLE_TRAIN_BARRIER','')):
             torch.cuda.synchronize()
             torch.distributed.barrier()
             if bool(os.getenv('LOG_TRAIN_BARRIER','')):
                 logger.info(f'Train Step End')
-        # Consumed samples is shifted by 1 (in terms of gbs), beacuse `trainer.global_step`
+        # Consumed samples is shifted by 1 (in terms of gbs), because `trainer.global_step`
         # is not incremented by the time `consumed_samples` is logged (in model forward)
         # Recomputing in here:
         if 'consumed_samples' in self.trainer.callback_metrics:
@@ -561,6 +606,14 @@ class MetricsLogger(Logger):
                        value=get_num_microbatches(), sync=False, unique=True)
         mllogger.event(key=mllogger.constants.EVAL_SAMPLES,
                        value=11590004, sync=False, unique=True)
+
+    def _log_benchmark_metrics(self, metrics: Dict[str, float], step: Optional[int]) -> None:
+        self.benchmark_callback.on_external_log_metrics(metrics, step)
+
+        global warmup_metrics
+        if warmup_metrics is not None:
+            self.benchmark_callback.log_warmup_duration_metrics(warmup_metrics, step)
+            warmup_metrics = None
 
     @property
     def name(self) -> Optional[str]:
