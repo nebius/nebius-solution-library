@@ -226,6 +226,8 @@ export NEXP=1
 export NCCL_SOCKET_IFNAME='eth0'
 export TORCH_CUDA_ARCH_LIST='9.0'
 
+export SEED_BASE=18384
+
 if [[ "${QUICK_START}" -eq 1 ]]; then
   h2 'Disabling everything except training...'
   export WARMUP_STEPS=0
