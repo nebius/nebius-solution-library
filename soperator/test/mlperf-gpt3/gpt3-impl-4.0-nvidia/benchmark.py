@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 from datetime import datetime as DateTime
 from datetime import timedelta as TimeDelta
@@ -34,6 +35,7 @@ class BenchmarkKeys(str, Enum):
     PARAM_SAMPLES_PER_TRAINING_BLOCK = f'{BENCHMARK}/samples_per_training_block'
     PARAM_SAMPLES_PER_TRAINING_STEP = f'{BENCHMARK}/samples_per_training_step'
 
+    METRIC_TIME_TO_RUN_DURATION = f'{BENCHMARK}.timeToRun.duration_{UNIT_SECONDS}'
     METRIC_TOTAL_RUNTIME_DURATION = f'{BENCHMARK}.totalRuntime.duration_{UNIT_SECONDS}'
     METRIC_TRAINING_DURATION = f'{BENCHMARK}.training.duration_{UNIT_SECONDS}'
     METRIC_INITIALIZATION_DURATION = f'{BENCHMARK}.initialization.duration_{UNIT_SECONDS}'
@@ -174,6 +176,7 @@ class SamplesPerSecondMetric(StatisticsMixin):
 
 @dataclass
 class BenchmarkMetrics:
+    time_to_run: DurationMetric = DurationMetric(metric_name=BenchmarkKeys.METRIC_TIME_TO_RUN_DURATION.value)
     total_runtime_duration: DurationMetric = DurationMetric(
         metric_name=BenchmarkKeys.METRIC_TOTAL_RUNTIME_DURATION.value
     )
@@ -200,6 +203,8 @@ class BenchmarkMetrics:
 
 
 class BenchmarkCallback(Callback):
+    ENV_VAR_TIMING_START_TIME = 'MLF_VALUE_TIMING_START_TIME'
+
     def __init__(self, cfg):
         super().__init__()
 
@@ -215,12 +220,15 @@ class BenchmarkCallback(Callback):
     @rank_zero_only
     def on_fit_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         now = DateTime.now()
+        self.metrics.time_to_run.reset(
+            DateTime.fromtimestamp(int(os.environ.get(self.ENV_VAR_TIMING_START_TIME, default=int(now.timestamp()))))
+        )
         self.metrics.total_runtime_duration.reset(now)
         self.metrics.initialization_duration.reset(now)
 
         self.log_metrics(
             trainer,
-            [],
+            [self._update_duration_metric(self.metrics.time_to_run, now)],
             timestamp=now,
             params=[
                 ParamKV(

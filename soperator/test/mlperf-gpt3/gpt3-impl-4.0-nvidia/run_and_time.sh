@@ -113,6 +113,10 @@ then
   START=$(date +%s)
   START_FMT=$(date +%Y-%m-%d\ %r)
   echo "STARTING TIMING RUN AT ${START_FMT}"
+
+  if [[ "${USE_MLFLOW_LOGGER}" == 'True' ]]; then
+    export MLF_VALUE_TIMING_START_TIME="${START}"
+  fi
 fi
 
 if [ "$USE_DIST_OPTIMIZER" = True ]; then
