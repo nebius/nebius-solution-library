@@ -17,34 +17,40 @@ from custom_callbacks import compute_consumed_mllog_tokens
 
 @dataclass
 class BenchmarkParams:
-    training_block_size: int = 0
-    samples_per_training_block: int = 0
-    samples_per_training_step: int = 0
+    # fmt: off
+
+    training_block_size:    int = 0
+    training_block_samples: int = 0
+    training_step_samples:  int = 0
+
+    # fmt: on
 
 
 class BenchmarkKeys(str, Enum):
-    BENCHMARK = 'benchmark'
-    UNIT_SECONDS = 's'
-    UNIT_SAMPLES_PER_SECOND = 'samples/s'
-    STAT_MEAN = 'mean'
-    STAT_STD = 'std'
-    STAT_MEDIAN = 'median'
-    STAT_PERC_75 = 'p75'
+    # fmt: off
 
-    PARAM_TRAINING_BLOCK_SIZE = f'{BENCHMARK}/training_block_size'
-    PARAM_SAMPLES_PER_TRAINING_BLOCK = f'{BENCHMARK}/samples_per_training_block'
-    PARAM_SAMPLES_PER_TRAINING_STEP = f'{BENCHMARK}/samples_per_training_step'
+    BENCHMARK               = 'benchmark'
+    STAT_MEAN               = 'mean'
+    STAT_STD                = 'std'
+    STAT_MEDIAN             = 'median'
+    STAT_PERC_75            = 'p75'
 
-    METRIC_TIME_TO_RUN_DURATION = f'{BENCHMARK}.timeToRun.duration_{UNIT_SECONDS}'
-    METRIC_TOTAL_RUNTIME_DURATION = f'{BENCHMARK}.totalRuntime.duration_{UNIT_SECONDS}'
-    METRIC_TRAINING_DURATION = f'{BENCHMARK}.training.duration_{UNIT_SECONDS}'
-    METRIC_INITIALIZATION_DURATION = f'{BENCHMARK}.initialization.duration_{UNIT_SECONDS}'
+    PARAM_TRAINING_BLOCK_SIZE        = f'{BENCHMARK}/training/block/size'
+    PARAM_TRAINING_BLOCK_SAMPLES     = f'{BENCHMARK}/training/block/samples'
+    PARAM_TRAINING_STEP_SAMPLES      = f'{BENCHMARK}/training/step/samples'
 
-    METRIC_EPOCH_SAMPLES_PER_SECOND = f'{BENCHMARK}.epoch_{UNIT_SAMPLES_PER_SECOND}'
-    METRIC_TRAINING_BLOCK_SAMPLES_PER_SECOND = f'{BENCHMARK}.trainingBlock_{UNIT_SAMPLES_PER_SECOND}'
-    METRIC_TRAINING_STEP_SAMPLES_PER_SECOND = f'{BENCHMARK}.trainingStep_{UNIT_SAMPLES_PER_SECOND}'
-    METRIC_VALIDATION_BLOCK_DURATION = f'{BENCHMARK}.validationBlock.duration_{UNIT_SECONDS}'
-    METRIC_VALIDATION_STEP_SAMPLES_PER_SECOND = f'{BENCHMARK}.validationStep_{UNIT_SAMPLES_PER_SECOND}'
+    METRIC_DURATION_TIME_TO_RUN      = f'{BENCHMARK}/duration/timeToRun'
+    METRIC_DURATION_TOTAL            = f'{BENCHMARK}/duration/total'
+    METRIC_DURATION_INITIALIZATION   = f'{BENCHMARK}/duration/initialization'
+    METRIC_DURATION_TRAINING         = f'{BENCHMARK}/duration/training'
+    METRIC_DURATION_VALIDATION_BLOCK = f'{BENCHMARK}/duration/validation/block'
+
+    METRIC_SAMPLES_PER_SECOND_TRAINING_EPOCH  = f'{BENCHMARK}/samplesPerSecond/training/epoch'
+    METRIC_SAMPLES_PER_SECOND_TRAINING_BLOCK  = f'{BENCHMARK}/samplesPerSecond/training/block'
+    METRIC_SAMPLES_PER_SECOND_TRAINING_STEP   = f'{BENCHMARK}/samplesPerSecond/training/step'
+    METRIC_SAMPLES_PER_SECOND_VALIDATION_STEP = f'{BENCHMARK}/samplesPerSecond/validation/step'
+
+    # fmt: on
 
     def __str__(self) -> str:
         return self.value
@@ -176,30 +182,20 @@ class SamplesPerSecondMetric(StatisticsMixin):
 
 @dataclass
 class BenchmarkMetrics:
-    time_to_run: DurationMetric = DurationMetric(metric_name=BenchmarkKeys.METRIC_TIME_TO_RUN_DURATION.value)
-    total_runtime_duration: DurationMetric = DurationMetric(
-        metric_name=BenchmarkKeys.METRIC_TOTAL_RUNTIME_DURATION.value
-    )
-    training_duration: DurationMetric = DurationMetric(metric_name=BenchmarkKeys.METRIC_TRAINING_DURATION.value)
-    initialization_duration: DurationMetric = DurationMetric(
-        metric_name=BenchmarkKeys.METRIC_INITIALIZATION_DURATION.value
-    )
+    # fmt: off
 
-    metric_epoch_samples_per_second: SamplesPerSecondMetric = SamplesPerSecondMetric(
-        metric_name=BenchmarkKeys.METRIC_EPOCH_SAMPLES_PER_SECOND.value
-    )
-    metric_training_block_samples_per_second: SamplesPerSecondMetric = SamplesPerSecondMetric(
-        metric_name=BenchmarkKeys.METRIC_TRAINING_BLOCK_SAMPLES_PER_SECOND.value
-    )
-    metric_training_step_samples_per_second: SamplesPerSecondMetric = SamplesPerSecondMetric(
-        metric_name=BenchmarkKeys.METRIC_TRAINING_STEP_SAMPLES_PER_SECOND.value
-    )
-    metric_validation_block_duration: DurationMetric = DurationMetric(
-        metric_name=BenchmarkKeys.METRIC_VALIDATION_BLOCK_DURATION.value
-    )
-    metric_validation_step_samples_per_second: SamplesPerSecondMetric = SamplesPerSecondMetric(
-        metric_name=BenchmarkKeys.METRIC_VALIDATION_STEP_SAMPLES_PER_SECOND.value
-    )
+    time_to_run_duration      = DurationMetric(BenchmarkKeys.METRIC_DURATION_TIME_TO_RUN.value)
+    total_duration            = DurationMetric(BenchmarkKeys.METRIC_DURATION_TOTAL.value)
+    training_duration         = DurationMetric(BenchmarkKeys.METRIC_DURATION_TRAINING.value)
+    initialization_duration   = DurationMetric(BenchmarkKeys.METRIC_DURATION_INITIALIZATION.value)
+    validation_block_duration = DurationMetric(BenchmarkKeys.METRIC_DURATION_VALIDATION_BLOCK.value)
+
+    training_epoch_samples_per_second  = SamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_TRAINING_EPOCH.value)
+    training_block_samples_per_second  = SamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_TRAINING_BLOCK.value)
+    training_step_samples_per_second   = SamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_TRAINING_STEP.value)
+    validation_step_samples_per_second = SamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_VALIDATION_STEP.value)
+
+    # fmt: on
 
 
 class BenchmarkCallback(Callback):
@@ -210,25 +206,25 @@ class BenchmarkCallback(Callback):
 
         self.params: BenchmarkParams = BenchmarkParams(
             training_block_size=cfg.trainer.val_check_interval,
-            samples_per_training_block=(
+            training_block_samples=(
                 cfg.trainer.val_check_interval * cfg.model.global_batch_size * cfg.model.encoder_seq_length
             ),
-            samples_per_training_step=cfg.model.global_batch_size * cfg.model.encoder_seq_length,
+            training_step_samples=cfg.model.global_batch_size * cfg.model.encoder_seq_length,
         )
         self.metrics: BenchmarkMetrics = BenchmarkMetrics()
 
     @rank_zero_only
     def on_fit_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
         now = DateTime.now()
-        self.metrics.time_to_run.reset(
+        self.metrics.time_to_run_duration.reset(
             DateTime.fromtimestamp(int(os.environ.get(self.ENV_VAR_TIMING_START_TIME, default=int(now.timestamp()))))
         )
-        self.metrics.total_runtime_duration.reset(now)
+        self.metrics.total_duration.reset(now)
         self.metrics.initialization_duration.reset(now)
 
         self.log_metrics(
             trainer,
-            [self._update_duration_metric(self.metrics.time_to_run, now)],
+            [self._update_duration_metric(self.metrics.time_to_run_duration, now)],
             timestamp=now,
             params=[
                 ParamKV(
@@ -236,12 +232,12 @@ class BenchmarkCallback(Callback):
                     value=str(self.params.training_block_size),
                 ),
                 ParamKV(
-                    key=BenchmarkKeys.PARAM_SAMPLES_PER_TRAINING_BLOCK.value,
-                    value=str(self.params.samples_per_training_block),
+                    key=BenchmarkKeys.PARAM_TRAINING_BLOCK_SAMPLES.value,
+                    value=str(self.params.training_block_samples),
                 ),
                 ParamKV(
-                    key=BenchmarkKeys.PARAM_SAMPLES_PER_TRAINING_STEP.value,
-                    value=str(self.params.samples_per_training_step),
+                    key=BenchmarkKeys.PARAM_TRAINING_STEP_SAMPLES.value,
+                    value=str(self.params.training_step_samples),
                 ),
             ],
         )
@@ -251,7 +247,7 @@ class BenchmarkCallback(Callback):
         now = DateTime.now()
         self.log_metrics(
             trainer,
-            [self._update_duration_metric(self.metrics.total_runtime_duration, now)],
+            [self._update_duration_metric(self.metrics.total_duration, now)],
             timestamp=now,
         )
 
@@ -277,20 +273,20 @@ class BenchmarkCallback(Callback):
                 self._update_duration_metric(self.metrics.training_duration, now),
             ],
             timestamp=now,
-            with_duration_metrics=[self.metrics.total_runtime_duration],
+            with_duration_metrics=[self.metrics.total_duration],
         )
 
     @rank_zero_only
     def on_train_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        self.metrics.metric_epoch_samples_per_second.start(DateTime.now())
+        self.metrics.training_epoch_samples_per_second.start(DateTime.now())
 
     @rank_zero_only
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         now = DateTime.now()
-        self.metrics.metric_epoch_samples_per_second.stop(now, compute_consumed_mllog_tokens(trainer, pl_module))
+        self.metrics.training_epoch_samples_per_second.stop(now, compute_consumed_mllog_tokens(trainer, pl_module))
         self.log_metrics(
             trainer,
-            metrics=self.metrics.metric_epoch_samples_per_second.stat_metrics,
+            metrics=self.metrics.training_epoch_samples_per_second.stat_metrics,
             timestamp=now,
         )
 
@@ -302,7 +298,7 @@ class BenchmarkCallback(Callback):
         batch: Any,
         batch_idx: int,
     ) -> None:
-        self.metrics.metric_training_block_samples_per_second.start(DateTime.now())
+        self.metrics.training_block_samples_per_second.start(DateTime.now())
 
     @rank_zero_only
     def on_train_batch_end(
@@ -314,30 +310,28 @@ class BenchmarkCallback(Callback):
         batch_idx: int,
     ) -> None:
         now = DateTime.now()
-        self.metrics.metric_training_block_samples_per_second.stop(
-            now, compute_consumed_mllog_tokens(trainer, pl_module)
-        )
+        self.metrics.training_block_samples_per_second.stop(now, compute_consumed_mllog_tokens(trainer, pl_module))
         self.log_metrics(
             trainer,
-            metrics=self.metrics.metric_training_block_samples_per_second.stat_metrics,
+            metrics=self.metrics.training_block_samples_per_second.stat_metrics,
             timestamp=now,
             with_duration_metrics=[
-                self.metrics.total_runtime_duration,
+                self.metrics.total_duration,
                 self.metrics.training_duration,
             ],
         )
 
     @rank_zero_only
     def on_validation_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        self.metrics.metric_validation_block_duration.reset(DateTime.now())
+        self.metrics.validation_block_duration.reset(DateTime.now())
 
     @rank_zero_only
     def on_validation_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         now = DateTime.now()
-        self._update_duration_metric(self.metrics.metric_validation_block_duration, now)
+        self._update_duration_metric(self.metrics.validation_block_duration, now)
         self.log_metrics(
             trainer,
-            metrics=self.metrics.metric_validation_block_duration.stat_metrics,
+            metrics=self.metrics.validation_block_duration.stat_metrics,
             timestamp=now,
         )
 
