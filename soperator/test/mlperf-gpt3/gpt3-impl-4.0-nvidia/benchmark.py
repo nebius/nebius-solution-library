@@ -357,7 +357,6 @@ class BenchmarkCallback(Callback):
             run_id=logger.run_id,
             metrics=full_metrics,
             params=([mlf.Param(key=param.key, value=param.value) for param in params] if params else ()),
-            synchronous=True,
         )
 
     @staticmethod
