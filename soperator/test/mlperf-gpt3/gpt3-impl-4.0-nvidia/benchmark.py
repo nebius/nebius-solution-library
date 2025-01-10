@@ -17,7 +17,8 @@ from custom_callbacks import compute_consumed_mllog_tokens
 @dataclass
 class BenchmarkParams:
     training_block_size: int = 0
-    samples_per_block: int = 0
+    samples_per_training_block: int = 0
+    samples_per_training_step: int = 0
 
 
 class BenchmarkKeys(str, Enum):
@@ -30,7 +31,8 @@ class BenchmarkKeys(str, Enum):
     STAT_PERC_75 = 'p75'
 
     PARAM_TRAINING_BLOCK_SIZE = f'{BENCHMARK}/training_block_size'
-    PARAM_SAMPLES_PER_BLOCK = f'{BENCHMARK}/samples_per_block'
+    PARAM_SAMPLES_PER_TRAINING_BLOCK = f'{BENCHMARK}/samples_per_training_block'
+    PARAM_SAMPLES_PER_TRAINING_STEP = f'{BENCHMARK}/samples_per_training_step'
 
     METRIC_TOTAL_RUNTIME_DURATION = f'{BENCHMARK}.totalRuntime.duration_{UNIT_SECONDS}'
     METRIC_TRAINING_DURATION = f'{BENCHMARK}.training.duration_{UNIT_SECONDS}'
@@ -203,9 +205,10 @@ class BenchmarkCallback(Callback):
 
         self.params: BenchmarkParams = BenchmarkParams(
             training_block_size=cfg.trainer.val_check_interval,
-            samples_per_block=(
+            samples_per_training_block=(
                 cfg.trainer.val_check_interval * cfg.model.global_batch_size * cfg.model.encoder_seq_length
             ),
+            samples_per_training_step=cfg.model.global_batch_size * cfg.model.encoder_seq_length,
         )
         self.metrics: BenchmarkMetrics = BenchmarkMetrics()
 
@@ -225,8 +228,12 @@ class BenchmarkCallback(Callback):
                     value=str(self.params.training_block_size),
                 ),
                 ParamKV(
-                    key=BenchmarkKeys.PARAM_SAMPLES_PER_BLOCK.value,
-                    value=str(self.params.samples_per_block),
+                    key=BenchmarkKeys.PARAM_SAMPLES_PER_TRAINING_BLOCK.value,
+                    value=str(self.params.samples_per_training_block),
+                ),
+                ParamKV(
+                    key=BenchmarkKeys.PARAM_SAMPLES_PER_TRAINING_STEP.value,
+                    value=str(self.params.samples_per_training_step),
                 ),
             ],
         )
