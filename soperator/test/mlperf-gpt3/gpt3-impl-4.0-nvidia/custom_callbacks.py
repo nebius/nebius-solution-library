@@ -489,7 +489,7 @@ class MetricsLogger(Logger):
         self._log_throughputs(metrics, step)
 
         if self.benchmark_callback is not None:
-            self._log_benchmark_metrics(metrics, step)
+            self._log_warmup_metrics(step)
 
         if bool(os.getenv('ENABLE_TRAIN_BARRIER','')):
             torch.cuda.synchronize()
@@ -608,9 +608,7 @@ class MetricsLogger(Logger):
                        value=11590004, sync=False, unique=True)
 
     @rank_zero_only
-    def _log_benchmark_metrics(self, metrics: Dict[str, float], step: Optional[int]) -> None:
-        self.benchmark_callback.on_external_log_metrics(metrics, step)
-
+    def _log_warmup_metrics(self, step: Optional[int]) -> None:
         global warmup_metrics
         if warmup_metrics is not None:
             self.benchmark_callback.log_warmup_duration_metrics(warmup_metrics, step)

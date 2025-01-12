@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import MLFlowLogger
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-from custom_callbacks import WarmupDurationMetrics, compute_consumed_mllog_tokens
+from custom_callbacks import WarmupDurationMetrics
 
 
 @dataclass
@@ -60,13 +60,10 @@ class BenchmarkKeys(str, Enum):
     METRIC_DURATION_WARMUP_TRAINING   = f'{BENCHMARK}/duration/warmup/training'
     METRIC_DURATION_WARMUP_VALIDATION = f'{BENCHMARK}/duration/warmup/validation'
     METRIC_DURATION_TRAINING          = f'{BENCHMARK}/duration/training'
-    METRIC_DURATION_TRAINING_BLOCK    = f'{BENCHMARK}/duration/training/block'
-    METRIC_DURATION_VALIDATION_BLOCK  = f'{BENCHMARK}/duration/validation/block'
+    METRIC_DURATION_TRAINING_STEP     = f'{BENCHMARK}/duration/training/step'
+    METRIC_DURATION_VALIDATION_STEP   = f'{BENCHMARK}/duration/validation/step'
 
-    METRIC_SAMPLES_PER_SECOND_TRAINING_EPOCH   = f'{BENCHMARK}/samplesPerSecond/training/epoch'
-    METRIC_SAMPLES_PER_SECOND_TRAINING_BLOCK   = f'{BENCHMARK}/samplesPerSecond/training/block'
     METRIC_SAMPLES_PER_SECOND_TRAINING_STEP    = f'{BENCHMARK}/samplesPerSecond/training/step'
-    METRIC_SAMPLES_PER_SECOND_VALIDATION_BLOCK = f'{BENCHMARK}/samplesPerSecond/validation/block'
     METRIC_SAMPLES_PER_SECOND_VALIDATION_STEP  = f'{BENCHMARK}/samplesPerSecond/validation/step'
 
     # fmt: on
@@ -88,12 +85,6 @@ class MetricKV:
 class DelayedMetricKV(MetricKV):
     timestamp: Optional[int] = None
     step: Optional[int] = None
-
-
-@dataclass
-class StepMetrics:
-    training: list[mlf.Metric] = field(default_factory=list)
-    validation: list[mlf.Metric] = field(default_factory=list)
 
 
 @dataclass
@@ -183,7 +174,7 @@ class SingleShotDurationMetric(MetricMixin):
 
 
 @dataclass
-class BlockDurationMetric(StatisticsMixin):
+class TimedDurationMetric(StatisticsMixin):
     _initial_timestamp: DateTime = DateTime.now()
     _elapsed_time: TimeDelta = TimeDelta()
 
@@ -202,7 +193,7 @@ class BlockDurationMetric(StatisticsMixin):
 
 
 @dataclass
-class BlockSamplesPerSecondMetric(StatisticsMixin):
+class TimedSamplesPerSecondMetric(StatisticsMixin):
     _timestamp_start: DateTime = DateTime.now()
     _timestamp_end: DateTime = DateTime.now()
     _consumed_samples_start: int = 0
@@ -211,7 +202,7 @@ class BlockSamplesPerSecondMetric(StatisticsMixin):
     def start(self, timestamp: DateTime, consumed: Optional[int] = None) -> None:
         self._timestamp_start = timestamp
         self._timestamp_end = timestamp
-        self._consumed_samples_start = consumed or self._consumed_samples_end
+        self._consumed_samples_start = consumed if consumed is not None else self._consumed_samples_end
 
     def stop(self, timestamp: DateTime, consumed_samples: int) -> None:
         self._timestamp_end = timestamp
@@ -224,9 +215,11 @@ class BlockSamplesPerSecondMetric(StatisticsMixin):
 
 
 @dataclass
-class StepSamplesPerSecondMetric(StatisticsMixin):
-    def append(self, value: float) -> None:
-        self._records.append(value)
+class DelayedSamplesPerSecondMetric:
+    timestamp_start: DateTime = DateTime.now()
+    timestamp_end: DateTime = DateTime.now()
+    consumed_samples_start: int = 0
+    consumed_samples_end: int = 0
 
 
 @dataclass
@@ -235,18 +228,14 @@ class BenchmarkMetrics:
 
     time_to_run_duration = SingleShotDurationMetric(BenchmarkKeys.METRIC_DURATION_TIME_TO_RUN.value)
 
-    total_duration            = BlockDurationMetric(BenchmarkKeys.METRIC_DURATION_TOTAL.value)
-    initialization_duration   = BlockDurationMetric(BenchmarkKeys.METRIC_DURATION_INITIALIZATION.value)
-    training_duration         = BlockDurationMetric(BenchmarkKeys.METRIC_DURATION_TRAINING.value)
-    training_block_duration   = BlockDurationMetric(BenchmarkKeys.METRIC_DURATION_VALIDATION_BLOCK.value)
-    validation_block_duration = BlockDurationMetric(BenchmarkKeys.METRIC_DURATION_VALIDATION_BLOCK.value)
+    total_duration            = TimedDurationMetric(BenchmarkKeys.METRIC_DURATION_TOTAL.value)
+    initialization_duration   = TimedDurationMetric(BenchmarkKeys.METRIC_DURATION_INITIALIZATION.value)
+    training_duration         = TimedDurationMetric(BenchmarkKeys.METRIC_DURATION_TRAINING.value)
+    training_step_duration    = TimedDurationMetric(BenchmarkKeys.METRIC_DURATION_TRAINING_STEP.value)
+    validation_step_duration  = TimedDurationMetric(BenchmarkKeys.METRIC_DURATION_VALIDATION_STEP.value)
 
-    training_epoch_samples_per_second  = BlockSamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_TRAINING_EPOCH.value)
-    training_block_samples_per_second  = BlockSamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_TRAINING_BLOCK.value)
-    validation_block_samples_per_second = BlockSamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_VALIDATION_BLOCK.value)
-
-    training_step_samples_per_second   = StepSamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_TRAINING_STEP.value)
-    validation_step_samples_per_second = StepSamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_VALIDATION_STEP.value)
+    training_step_samples_per_second   = TimedSamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_TRAINING_STEP.value)
+    validation_step_samples_per_second = TimedSamplesPerSecondMetric(BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_VALIDATION_STEP.value)
 
     # fmt: on
 
@@ -254,17 +243,15 @@ class BenchmarkMetrics:
 class BenchmarkCallback(Callback):
     ENV_VAR_TIMING_START_TIME = 'MLF_VALUE_TIMING_START_TIME'
 
-    STEP_TIMING_KEY_TRAINING = 'train_step_timing in s'
-    STEP_TIMING_KEY_VALIDATION = 'validation_step_timing in s'
-
     def __init__(self, cfg):
         super().__init__()
 
         self.params: BenchmarkParams = self._calculate_params(cfg)
         self.metrics: BenchmarkMetrics = BenchmarkMetrics()
-        self.step_metrics: StepMetrics = StepMetrics()
-
         self.warmup_metrics: list[DelayedMetricKV] = []
+
+        self._tmp_validation_step_metrics: list[DelayedSamplesPerSecondMetric] = []
+        self._tmp_validation_block_size: int = 0
 
     @staticmethod
     def _calculate_params(cfg) -> BenchmarkParams:
@@ -373,22 +360,6 @@ class BenchmarkCallback(Callback):
             with_duration_metrics=[self.metrics.total_duration],
         )
 
-    @rank_zero_only
-    def on_train_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        self.metrics.training_epoch_samples_per_second.start(DateTime.now())
-
-    @rank_zero_only
-    def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        now = DateTime.now()
-        self.metrics.training_epoch_samples_per_second.stop(
-            now, compute_consumed_mllog_tokens(trainer, pl_module) / self.params.sequence_size
-        )
-        self.log_metrics(
-            trainer,
-            metrics=self.metrics.training_epoch_samples_per_second.stat_metrics,
-            timestamp=now,
-        )
-
     def _process_warmup_metrics(self, trainer: Trainer, timestamp: DateTime) -> None:
         if len(self.warmup_metrics) == 0:
             return
@@ -410,9 +381,8 @@ class BenchmarkCallback(Callback):
         batch_idx: int,
     ) -> None:
         now = DateTime.now()
-        self.metrics.training_block_duration.reset(now)
-        self.metrics.training_block_samples_per_second.start(now, 0)
-        self._process_training_step_metrics(trainer, now)
+        self.metrics.training_step_duration.reset(now)
+        self.metrics.training_step_samples_per_second.start(now, 0)
         self._process_warmup_metrics(trainer, now)
 
     @rank_zero_only
@@ -425,14 +395,14 @@ class BenchmarkCallback(Callback):
         batch_idx: int,
     ) -> None:
         now = DateTime.now()
-        self._update_duration_metric(self.metrics.training_block_duration, now)
-        self.metrics.training_block_samples_per_second.stop(now, self.params.training_block_samples)
+        self._update_duration_metric(self.metrics.training_step_duration, now)
+        self.metrics.training_step_samples_per_second.stop(now, self.params.training_step_samples)
 
         self.log_metrics(
             trainer,
             metrics=[
-                *self.metrics.training_block_duration.stat_metrics,
-                *self.metrics.training_block_samples_per_second.stat_metrics,
+                *self.metrics.training_step_duration.stat_metrics,
+                *self.metrics.training_step_samples_per_second.stat_metrics,
             ],
             timestamp=now,
             with_duration_metrics=[
@@ -441,125 +411,94 @@ class BenchmarkCallback(Callback):
             ],
         )
 
-        self._process_training_step_metrics(trainer, now)
-
-    def _process_training_step_metrics(self, trainer: Trainer, timestamp: DateTime) -> None:
-        if len(self.step_metrics.training) == 0:
-            return
-
-        step_samples_per_second: list[mlf.Metric] = []
-        for metric in self.step_metrics.training:
-            step_samples_per_second.append(metric)
-            self.metrics.training_step_samples_per_second.append(metric.value)
-            for stat in self.metrics.training_step_samples_per_second.stat_metrics:
-                step_samples_per_second.append(
-                    mlf.Metric(
-                        key=stat.key,
-                        value=stat.value,
-                        timestamp=metric.timestamp,
-                        step=metric.step,
-                    )
-                )
-        self.step_metrics.training.clear()
-
-    @rank_zero_only
-    def on_validation_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        now = DateTime.now()
-        self.metrics.validation_block_duration.reset(now)
-        self.metrics.validation_block_samples_per_second.start(now, 0)
-        self._process_validation_step_metrics(trainer, now)
-
     @rank_zero_only
     def on_validation_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
-        now = DateTime.now()
-        self._update_duration_metric(self.metrics.validation_block_duration, now)
-        self.metrics.validation_block_samples_per_second.stop(now, self.params.validation_block_samples)
+        if self.params.validation_step_samples is not None:
+            return
+
+        self.params.validation_block_size = self._tmp_validation_block_size
+        self.params.validation_step_samples = self.params.validation_block_samples // self.params.validation_block_size
+        params = [
+            ParamKV(
+                key=BenchmarkKeys.PARAM_VALIDATION_BLOCK_SIZE.value,
+                value=str(self.params.validation_block_size),
+            ),
+            ParamKV(
+                key=BenchmarkKeys.PARAM_VALIDATION_STEP_SAMPLES.value,
+                value=str(self.params.validation_step_samples),
+            ),
+        ]
+        del self._tmp_validation_block_size
+
+        metrics: list[MetricKV] = []
+        for metric in self._tmp_validation_step_metrics:
+            self.metrics.validation_step_samples_per_second.start(metric.timestamp_start, metric.consumed_samples_start)
+            self.metrics.validation_step_samples_per_second.stop(
+                metric.timestamp_end, self.params.validation_step_samples
+            )
+            metrics.extend(self.metrics.validation_step_samples_per_second.stat_metrics)
+        del self._tmp_validation_step_metrics
 
         self.log_metrics(
             trainer,
-            metrics=[
-                *self.metrics.validation_block_duration.stat_metrics,
-                *self.metrics.validation_block_samples_per_second.stat_metrics,
-            ],
+            metrics=metrics,
+            timestamp=DateTime.now(),
+            params=params,
+        )
+
+    @rank_zero_only
+    def on_validation_batch_start(
+        self,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
+    ) -> None:
+        now = DateTime.now()
+        self.metrics.validation_step_duration.reset(now)
+
+        if self.params.validation_step_samples is not None:
+            self.metrics.validation_step_samples_per_second.start(now, 0)
+        else:
+            self._tmp_validation_block_size += 1
+            self._tmp_validation_step_metrics.append(
+                DelayedSamplesPerSecondMetric(
+                    timestamp_start=now,
+                    consumed_samples_start=0,
+                )
+            )
+
+    @rank_zero_only
+    def on_validation_batch_end(
+        self,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        outputs: STEP_OUTPUT,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
+    ) -> None:
+        now = DateTime.now()
+        self._update_duration_metric(self.metrics.validation_step_duration, now)
+        metrics = [
+            *self.metrics.validation_step_duration.stat_metrics,
+        ]
+
+        if self.params.validation_step_samples is not None:
+            self.metrics.validation_step_samples_per_second.stop(now, self.params.validation_step_samples)
+            metrics.extend(self.metrics.validation_step_samples_per_second.stat_metrics)
+        else:
+            self._tmp_validation_step_metrics[-1].timestamp_end = now
+
+        self.log_metrics(
+            trainer,
+            metrics=metrics,
             timestamp=now,
             with_duration_metrics=[
                 self.metrics.total_duration,
             ],
         )
-
-        self._process_validation_step_metrics(trainer, now)
-
-    def _process_validation_step_metrics(self, trainer: Trainer, timestamp: DateTime) -> None:
-        if len(self.step_metrics.validation) == 0:
-            return
-
-        params: Optional[list[ParamKV]] = None
-        if self.params.validation_block_size is None:
-            self.params.validation_block_size = len(self.step_metrics.validation)
-            self.params.validation_step_samples = self.params.validation_samples // self.params.validation_block_size
-
-            params = [
-                ParamKV(
-                    key=BenchmarkKeys.PARAM_VALIDATION_BLOCK_SIZE.value,
-                    value=str(self.params.validation_block_size),
-                ),
-                ParamKV(
-                    key=BenchmarkKeys.PARAM_VALIDATION_STEP_SAMPLES.value,
-                    value=str(self.params.validation_step_samples),
-                ),
-            ]
-
-        step_samples_per_second: list[mlf.Metric] = []
-        for metric in self.step_metrics.validation:
-            metric = mlf.Metric(
-                key=metric.key,
-                value=self.params.validation_step_samples / metric.value,
-                timestamp=metric.timestamp,
-                step=metric.step,
-            )
-            step_samples_per_second.append(metric)
-            self.metrics.validation_step_samples_per_second.append(metric.value)
-            for stat in self.metrics.validation_step_samples_per_second.stat_metrics:
-                step_samples_per_second.append(
-                    mlf.Metric(
-                        key=stat.key,
-                        value=stat.value,
-                        timestamp=metric.timestamp,
-                        step=metric.step,
-                    )
-                )
-        self.step_metrics.validation.clear()
-
-        self.log_metrics(
-            trainer,
-            metrics=[],
-            timestamp=timestamp,
-            params=params,
-            raw_metrics=step_samples_per_second,
-        )
-
-    @rank_zero_only
-    def on_external_log_metrics(self, metrics: dict[str, float], step: Optional[int]) -> None:
-        if self.STEP_TIMING_KEY_TRAINING in metrics:
-            m = mlf.Metric(
-                key=BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_TRAINING_STEP.value,
-                value=self.params.training_step_samples / metrics[self.STEP_TIMING_KEY_TRAINING],
-                timestamp=DateTime.now().microsecond // 1000,
-                step=step,
-            )
-            self.step_metrics.training.append(m)
-            return
-
-        if self.STEP_TIMING_KEY_VALIDATION in metrics:
-            m = mlf.Metric(
-                key=BenchmarkKeys.METRIC_SAMPLES_PER_SECOND_VALIDATION_STEP.value,
-                # temporary value while we don't know the number of validation steps
-                value=metrics[self.STEP_TIMING_KEY_VALIDATION],
-                timestamp=DateTime.now().microsecond // 1000,
-                step=step,
-            )
-            self.step_metrics.validation.append(m)
-            return
 
     @rank_zero_only
     def log_warmup_duration_metrics(self, warmup_metrics: WarmupDurationMetrics, step: Optional[int]) -> None:
@@ -587,9 +526,8 @@ class BenchmarkCallback(Callback):
         metrics: Sequence[MetricKV],
         timestamp: DateTime,
         params: Optional[Sequence[ParamKV]] = None,
-        raw_metrics: Optional[Sequence[mlf.Metric]] = None,
         warmup_metrics: Optional[list[DelayedMetricKV]] = None,
-        with_duration_metrics: Optional[Sequence[BlockDurationMetric]] = None,
+        with_duration_metrics: Optional[Sequence[TimedDurationMetric]] = None,
     ) -> None:
         logger = BenchmarkCallback._get_mlflow_logger(trainer)
         if logger is None:
@@ -623,9 +561,6 @@ class BenchmarkCallback(Callback):
                 ]
             )
 
-        if raw_metrics is not None and len(raw_metrics) > 0:
-            full_metrics.extend(raw_metrics)
-
         logger.experiment.log_batch(
             run_id=logger.run_id,
             metrics=full_metrics,
@@ -644,7 +579,7 @@ class BenchmarkCallback(Callback):
         return None
 
     @staticmethod
-    def _update_duration_metric(metric: BlockDurationMetric, timestamp: DateTime) -> MetricKV:
+    def _update_duration_metric(metric: TimedDurationMetric, timestamp: DateTime) -> MetricKV:
         metric.update(timestamp)
 
         return MetricKV(
