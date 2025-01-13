@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import hydra
-import torch
 
 from omegaconf.omegaconf import OmegaConf, open_dict
 from pytorch_lightning import Trainer
@@ -21,13 +20,11 @@ from pytorch_lightning.callbacks.timer import Timer
 import warnings
 import torch
 
-from nemo.collections.nlp.models.language_modeling.megatron_gpt_model import MegatronGPTModel
 from nemo.collections.nlp.parts.nlp_overrides import (
     GradScaler,
     MegatronHalfPrecisionPlugin,
     PipelineMixedPrecisionPlugin,
 )
-from nemo.core.config import hydra_runner
 from nemo.utils import logging
 from nemo.utils.exp_manager import StatelessTimer, exp_manager, TimingCallback, NeMoModelCheckpoint
 try:
@@ -35,6 +32,7 @@ try:
 except ImportError:
     from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 
+from benchmark import BenchmarkCallback
 import custom_optimizer  # noqa (this import just registers a new optimizer)
 import custom_schedulers  # noqa (this import just registers a new LR scheduler)
 from custom_callbacks import CustomCallback, MetricsLogger, \
@@ -124,7 +122,7 @@ def main(cfg) -> None:
             plugins.append(MegatronHalfPrecisionPlugin(precision=plugin_precision, device='cuda', scaler=scaler))
         else:
             plugins.append(PipelineMixedPrecisionPlugin(precision=plugin_precision, device='cuda', scaler=scaler))
-        
+
         cfg.trainer.precision = None
 
     #    if cfg.get('cluster_type', None) == 'BCP':
@@ -132,11 +130,22 @@ def main(cfg) -> None:
     plugins.append(TorchElasticEnvironment())
 
     custom_callback = CustomCallback(cfg)
-    trainer = Trainer(plugins=plugins, strategy=strategy, **cfg.trainer, callbacks=[custom_callback])
+    callbacks = [custom_callback]
+
+    benchmark_callback = None
+    if cfg.exp_manager.create_mlflow_logger:
+        benchmark_callback = BenchmarkCallback(cfg)
+        callbacks.append(benchmark_callback)
+
+        if cfg.exp_manager.mlflow_logger_kwargs.tracking_uri == 'None':
+            cfg.exp_manager.mlflow_logger_kwargs.tracking_uri = None
+
+    trainer = Trainer(
+        plugins=plugins, strategy=strategy, **cfg.trainer, callbacks=callbacks
+    )
 
     exp_manager(trainer, cfg.exp_manager)
     setup_auxiliary_loggers()
-
 
     # Override timer callback to a stateless one
     for idx, callback in enumerate(trainer.callbacks):
@@ -148,7 +157,7 @@ def main(cfg) -> None:
             elif cfg.model.custom.log_metrics == 'DELTA':
                 trainer.callbacks[idx] = DeltaTimingCallback()
             else:
-                del trainer.callbacks[idx] 
+                del trainer.callbacks[idx]
         if isinstance(callback, NeMoModelCheckpoint):
             # In the exp_manager, configure_checkpoint: https://github.com/NVIDIA/NeMo/blob/main/nemo/utils/exp_manager.py#L1022 method
             # is called which manipulates the configuration parameters before creating the NemoModelCheckpoint instance.
@@ -173,9 +182,16 @@ def main(cfg) -> None:
 
     model = CustomMegatronGPTModel(cfg.model, trainer)
 
-    trainer.loggers.append(MetricsLogger(trainer, model, custom_callback, cfg.model.custom.target_log_ppl,
-                                        cfg.model.custom.extend_run_evals, 
-                                        ))
+    trainer.loggers.append(
+        MetricsLogger(
+            trainer,
+            model,
+            custom_callback,
+            cfg.model.custom.target_log_ppl,
+            cfg.model.custom.extend_run_evals,
+            benchmark_callback=benchmark_callback,
+        )
+    )
 
     if cfg.model.custom.pre_validate:
         configure_pre_validation_training_loop(trainer)
@@ -189,4 +205,3 @@ def main(cfg) -> None:
 if __name__ == '__main__':
     mllogger.start(key=mllogger.constants.INIT_START)
     main()
-

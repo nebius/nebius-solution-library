@@ -7,7 +7,7 @@ set -e
 : "${NODE_COUNT:=8}"
 : "${GPU_TYPE:=H100}"
 : "${DATA_DIR:=/mlperf-gpt3}"
-: "${BASE_LOG_DIR:=./logs}"
+: "${BASE_RESULTS_DIR:=../results}"
 : "${CONTAINER_IMAGE:=cr.eu-north1.nebius.cloud#slurm-mlperf-training/gpt3-4.0-nvidia:$(cat ./VERSION)}"
 
 # endregion Defaults
@@ -27,8 +27,8 @@ usage() {
   echo '  -D  [path]  Path to the data directory' >&2
   echo '              This is where datasets and checkpoints are stored' >&2
   echo "              By default, ${DATA_DIR}" >&2
-  echo '  -L  [path]  Path to the directory for logs' >&2
-  echo "              By default, ${BASE_LOG_DIR}" >&2
+  echo '  -R  [path]  Path to the directory for results' >&2
+  echo "              By default, ${BASE_RESULTS_DIR}" >&2
   echo '  -S  [path]  Directory to store shared image cache' >&2
   echo '              By default, none' >&2
   echo '  -i  [path]  Path to the container image' >&2
@@ -42,12 +42,16 @@ usage() {
   echo '  -r  Whether to remove previous log files' >&2
   echo '  -d  Whether to enable debug logs' >&2
   echo '  -p  Whether to run only one step with NSYS profiling' >&2
+  echo '  -m  Whether to use MLFlow logging' >&2
+  echo '  -M  Whether to use external MLFlow. Following entities are required:' >&2
+  echo '      - MLFlow configuration in "../../common/mlflow.sh"' >&2
+  echo '      - CA certificate in "../../common/mlflow.ca.pem"' >&2
   echo '' >&2
   echo '  -h  Print help and exit' >&2
   exit 1
 }
 
-while getopts N:w:G:c:D:L:S:i:e:t:qrdph flag
+while getopts N:w:G:c:D:R:S:i:e:t:qrdpmMh flag
 do
   case "${flag}" in
     N) NODE_COUNT=${OPTARG};;
@@ -55,7 +59,7 @@ do
     G) GPU_TYPE=${OPTARG};;
     c) CONFIG_FILE=${OPTARG};;
     D) DATA_DIR=${OPTARG};;
-    L) BASE_LOG_DIR=${OPTARG};;
+    R) BASE_RESULTS_DIR=${OPTARG};;
     S) SHARED_IMAGE_CACHE_DIR=${OPTARG};;
     i) CONTAINER_IMAGE=${OPTARG};;
     e) EXPERIMENT_NAME=${OPTARG};;
@@ -64,6 +68,8 @@ do
     r) REMOVE_LOGS=1;;
     d) DEBUG=1;;
     p) NSYS_PROFILING=1;;
+    m) USE_MLFLOW_LOGGER='True';;
+    M) USE_EXTERNAL_MLFLOW_LOGGER='True';;
     h) usage;;
     *) usage;;
   esac
@@ -75,6 +81,22 @@ fi
 
 : "${TEST_DIR:=/opt/slurm-test}"
 source "${TEST_DIR}/common/printer.sh"
+
+# region Cleanup
+
+if [[ "${REMOVE_LOGS}" -eq 1 ]]; then
+  h1 'Cleaning up...'
+
+  h2 'Removing previous results...'
+  rm -rf "${BASE_RESULTS_DIR}"/* || true
+
+  h2 'Removing shared containers...'
+  rm -rf "${DATA_DIR}/containers"/* || true
+
+  hdone
+fi
+
+# endregion Cleanup
 
 # region Cluster name
 
@@ -142,6 +164,43 @@ hdone
 
 # endregion Config
 
+# region Job version
+
+h1 'Configuring job version...'
+
+JOB_VERSION="$(date +'%Y-%m-%d_%H-%M-%S_%Z')"
+if [ -n "${EXPERIMENT_NAME}" ]; then
+  JOB_VERSION="${JOB_VERSION}-${EXPERIMENT_NAME}"
+fi
+echo "${JOB_VERSION}"
+export JOB_VERSION
+
+hdone
+
+# endregion Job version
+
+# region Job name
+
+h1 'Configuring job name...'
+
+if [ -z "${EXPERIMENT_NAME}" ]; then
+  h2 'Using experiment-less name:'
+  JOB_NAME='gpt3'
+else
+  h2 'Using experiment-ful name:'
+  JOB_NAME="gpt3-${EXPERIMENT_NAME}"
+fi
+
+mkdir -p "${BASE_RESULTS_DIR}/${JOB_VERSION}"
+JOB_OUTPUT="${BASE_RESULTS_DIR}/${JOB_VERSION}/gpt3-%j.out"
+
+echo "Job name: ${JOB_NAME}"
+echo "Job out:  ${JOB_OUTPUT}"
+
+hdone
+
+# endregion Job name
+
 # region Paths
 
 h1 'Configuring paths...'
@@ -153,7 +212,7 @@ export CONT="${CONTAINER_IMAGE}"
 export PREPROC_DATA="${DATASET_DIR}/preprocessed_c4_spm"
 export SPM="${DATASET_DIR}/spm/c4_en_301_5Mexp2_spm.model"
 export LOAD_CHECKPOINTS_PATH="${CHECKPOINT_DIR}/ckpt4000-consumed_samples=0"
-export LOGDIR="${BASE_LOG_DIR}"
+export LOGDIR="${BASE_RESULTS_DIR}/${JOB_VERSION}"
 export CONTAINER_PRELOAD_SHARED_PATH="${SHARED_IMAGE_CACHE_DIR}"
 
 hdone
@@ -166,6 +225,8 @@ h1 'Configuring training parameters...'
 export NEXP=1
 export NCCL_SOCKET_IFNAME='eth0'
 export TORCH_CUDA_ARCH_LIST='9.0'
+
+export SEED_BASE=18384
 
 if [[ "${QUICK_START}" -eq 1 ]]; then
   h2 'Disabling everything except training...'
@@ -190,36 +251,9 @@ hdone
 
 # endregion Training
 
-# region Job name
-
-h1 'Configuring job name...'
-
-if [ -z "${EXPERIMENT_NAME}" ]; then
-  h2 'Using experiment-less name:'
-  JOB_NAME='gpt3'
-  JOB_OUTPUT='gpt3-%j.out'
-else
-  JOB_NAME="gpt3-${EXPERIMENT_NAME}"
-  JOB_OUTPUT="gpt3-%j-${EXPERIMENT_NAME}.out"
-fi
-JOB_OUTPUT="${BASE_LOG_DIR}/${JOB_OUTPUT}"
-
-echo "Job name: ${JOB_NAME}"
-echo "Job out:  ${JOB_OUTPUT}"
-
-hdone
-
-# endregion Job name
-
 # region Logging & Profiling
 
 h1 'Configuring logging & profiling...'
-
-if [[ "${REMOVE_LOGS}" -eq 1 ]]; then
-  h2 'Removing previous logs...'
-  rm "${BASE_LOG_DIR}"/gpt3-*.out || true
-  rm -rf ./api_logs/ || true
-fi
 
 if [[ "${DEBUG}" -eq 1 ]]; then
   h2 'Enabling debug logging...'
@@ -238,6 +272,41 @@ if [[ "${NSYS_PROFILING}" -eq 1 ]]; then
 
   # Early stopping
   export TARGET_LOG_PPL=2.75
+fi
+
+if [[ "${USE_MLFLOW_LOGGER}" == 'True' ]]; then
+  h2 'Configuring MLFlow logger...'
+  export USE_MLFLOW_LOGGER
+
+  if [[ "${USE_EXTERNAL_MLFLOW_LOGGER}" == 'True' ]]; then
+    if [[ ! -f "${TEST_DIR}/common/mlflow.sh" ]] || [[ ! -f "${TEST_DIR}/common/mlflow.ca.pem" ]]; then
+      usage
+    fi
+
+    h3 'Configuring external MLFlow logger...'
+    source "${TEST_DIR}/common/mlflow.sh"
+    export EXTRA_MOUNTS="${TEST_DIR}/common/mlflow.ca.pem:${MLFLOW_TRACKING_SERVER_CERT_PATH}"
+  fi
+
+  h3 'Configuring MLFlow logger tags...'
+  # TODO: Change these before run
+  : "${MLF_TAG_CLOUD:=nebius}"
+  : "${MLF_TAG_INSTALLATION:=installation}"
+  : "${MLF_TAG_IS_POC:=False}"
+  export MLF_TAG_CLOUD MLF_TAG_INSTALLATION MLF_TAG_IS_POC
+
+  export MLF_TAG_GPU_TYPE="${GPU_TYPE}"
+  export MLF_TAG_WORKER_COUNT="${NODE_COUNT}"
+  export MLF_TAG_EXPERIMENT_NAME="${EXPERIMENT_NAME}"
+
+  h3 'Configuring MLFlow experiment name...'
+  MLFLOW_EXPERIMENT_NAME="${MLF_TAG_CLOUD}-${MLF_TAG_INSTALLATION}"
+  if [[ "${MLF_TAG_IS_POC}" == 'True' ]]; then
+    MLFLOW_EXPERIMENT_NAME="${MLFLOW_EXPERIMENT_NAME}-poc"
+  fi
+  MLFLOW_EXPERIMENT_NAME="${MLFLOW_EXPERIMENT_NAME}-${GPU_TYPE}-gpt3"
+  echo "${MLFLOW_EXPERIMENT_NAME}"
+  export MLFLOW_EXPERIMENT_NAME
 fi
 
 hdone
