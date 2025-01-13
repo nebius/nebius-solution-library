@@ -72,18 +72,24 @@ module "filestore" {
 }
 
 module "nfs-server" {
-  count           = var.nfs.enabled ? 1 : 0
-  source          = "../../../modules/nfs-server"
-  parent_id       = data.nebius_iam_v1_project.this.id
-  subnet_id       = data.nebius_vpc_v1_subnet.this.id
+  count = var.nfs.enabled ? 1 : 0
+
+  source = "../../../modules/nfs-server"
+
+  parent_id = data.nebius_iam_v1_project.this.id
+  subnet_id = data.nebius_vpc_v1_subnet.this.id
+
+  platform      = var.nfs.resource.platform
+  preset        = var.nfs.resource.preset
+  instance_name = "${local.k8s_cluster_name}-nfs-server"
+
+  nfs_ip_range = data.nebius_vpc_v1_subnet.this.status.ipv4_private_cidrs[0]
+  nfs_size     = provider::units::from_gib(var.nfs.size_gibibytes)
+  nfs_path     = "/home"
+
   ssh_user_name   = "soperator"
   ssh_public_keys = var.slurm_login_ssh_root_public_keys
-  nfs_ip_range    = data.nebius_vpc_v1_subnet.this.ipv4_private_pools.pools[0].cidrs[0].cidr
-  nfs_size        = var.nfs.size_gibibytes * 1024 * 1024 * 1024
-  nfs_path        = "/home"
-  platform        = var.nfs.resource.platform
-  preset          = var.nfs.resource.preset
-  instance_name   = "${var.k8s_cluster_name}-nfs-server"
+
   providers = {
     nebius = nebius
   }
