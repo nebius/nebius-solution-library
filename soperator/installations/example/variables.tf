@@ -565,13 +565,41 @@ variable "accounting_enabled" {
 variable "slurmdbd_config" {
   description = "Slurmdbd.conf configuration. See https://slurm.schedmd.com/slurmdbd.conf.html.Not all options are supported."
   type        = map(any)
-  default     = {}
+  default = {
+    # archiveEvents : "yes"
+    # archiveJobs : "yes"
+    # archiveSteps : "yes"
+    # archiveSuspend : "yes"
+    # archiveResv : "yes"
+    # archiveUsage : "yes"
+    # archiveTXN : "yes"
+    # debugLevel : "info"
+    # tcpTimeout : 120
+    # purgeEventAfter : "1month"
+    # purgeJobAfter : "1month"
+    # purgeStepAfter : "1month"
+    # purgeSuspendAfter : "12month"
+    # purgeResvAfter : "1month"
+    # purgeUsageAfter : "1month"
+    # debugFlags : "DB_ARCHIVE"
+  }
 }
 
 variable "slurm_accounting_config" {
   description = "Slurm.conf accounting configuration. See https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
   type        = map(any)
-  default     = {}
+  default = {
+    # accountingStorageTRES: "gres/gpu,license/iop1"
+    # accountingStoreFlags: "job_comment,job_env,job_extra,job_script,no_stdio"
+    # acctGatherInterconnectType: "acct_gather_interconnect/ofed"
+    # acctGatherFilesystemType: "acct_gather_filesystem/lustre"
+    # jobAcctGatherType: "jobacct_gather/cgroup"
+    # jobAcctGatherFrequency: 30
+    # priorityWeightAge: 1
+    # priorityWeightFairshare: 1
+    # priorityWeightQOS: 1
+    # priorityWeightTRES: 1
+  }
 }
 
 # endregion Accounting
