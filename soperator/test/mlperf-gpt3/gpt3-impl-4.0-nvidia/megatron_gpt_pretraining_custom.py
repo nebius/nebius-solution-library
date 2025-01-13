@@ -137,6 +137,9 @@ def main(cfg) -> None:
         benchmark_callback = BenchmarkCallback(cfg)
         callbacks.append(benchmark_callback)
 
+        if cfg.exp_manager.mlflow_logger_kwargs.tracking_uri == 'None':
+            cfg.exp_manager.mlflow_logger_kwargs.tracking_uri = None
+
     trainer = Trainer(
         plugins=plugins, strategy=strategy, **cfg.trainer, callbacks=callbacks
     )
