@@ -177,13 +177,13 @@ slurmNodes:
     %{~ if length(nodes.accounting.slurmdbd_config) > 0 ~}
     slurmdbdConfig:
       %{~ for key, value in nodes.accounting.slurmdbd_config ~}
-      ${key}: "${value}"
+      ${key}: %{ if value == "yes" || value == "no" }"${value}"%{ else }${value}%{ endif }
       %{~ endfor ~}
     %{~ endif ~}
     %{~ if length(nodes.accounting.slurm_config) > 0 ~}
     slurmConfig:
       %{~ for key, value in nodes.accounting.slurm_config ~}
-      ${key}: "${value}"
+      ${key}: %{ if value == "yes" || value == "no" }"${value}"%{ else }${value}%{ endif }
       %{~ endfor ~}
     %{~ endif ~}
     slurmdbd:
