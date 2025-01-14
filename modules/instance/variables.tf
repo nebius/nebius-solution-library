@@ -68,15 +68,15 @@ variable "users" {
   }
 }
 
-variable "add_nfs_storage" {
+variable "add_extra_storage" {
   type = bool
   default = false
-  description = "if true, a new nfs disk will be created and mounted at <nfs_path>"
+  description = "if true, a new disk will be created and mounted at <extra_path>"
  }
 
-variable "nfs_path" {
+variable "extra_path" {
   type = string
-  default = "/mnt/nfs"
+  default = "/mnt/storage"
   description = "Folder where the network storage will be mounted on"
 }
 
@@ -86,7 +86,7 @@ variable "boot_disk_size_gb" {
   description = "size of the boot disk"
 }
 
-variable "nfs_size_gb" {
+variable "extra_storage_size_gb" {
   type = number
   default = 50
   description = "size of the newly created nfs storage"

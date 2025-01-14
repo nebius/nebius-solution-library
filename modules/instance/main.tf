@@ -1,4 +1,4 @@
-resource "nebius_compute_v1_disk" "nfs-boot-disk" {
+resource "nebius_compute_v1_disk" "boot-disk" {
   parent_id           = var.parent_id
   name                = join("-", ["nfs-boot-disk", var.instance_name])
   block_size_bytes    = 4096
@@ -7,12 +7,12 @@ resource "nebius_compute_v1_disk" "nfs-boot-disk" {
   source_image_family = { image_family = "ubuntu22.04-cuda12" }
 }
 
-resource "nebius_compute_v1_disk" "nfs-storage-disk" {
-  count            = var.add_nfs_storage ? 1 : 0
+resource "nebius_compute_v1_disk" "extra-storage-disk" {
+  count            = var.add_extra_storage ? 1 : 0
   parent_id        = var.parent_id
-  name             = join("-", ["nfs-storage-disk", var.instance_name])
+  name             = join("-", ["extra-storage-disk", var.instance_name])
   block_size_bytes = 4096
-  size_bytes       = 1024 * 1024 * 1024 * var.nfs_size_gb
+  size_bytes       = 1024 * 1024 * 1024 * var.extra_storage_size_gb
   type             = "NETWORK_SSD"
 }
 
@@ -37,14 +37,14 @@ resource "nebius_compute_v1_instance" "instance" {
 
   boot_disk = {
     attach_mode   = "READ_WRITE"
-    existing_disk = nebius_compute_v1_disk.nfs-boot-disk
+    existing_disk = nebius_compute_v1_disk.boot-disk
   }
 
-  secondary_disks = var.add_nfs_storage ? [
+  secondary_disks = var.add_extra_storage ? [
     {
       attach_mode   = "READ_WRITE"
       existing_disk = {
-        id = nebius_compute_v1_disk.nfs-storage-disk[0].id
+        id = nebius_compute_v1_disk.extra-storage-disk[0].id
       }
     }
   ] : []
@@ -62,8 +62,8 @@ resource "nebius_compute_v1_instance" "instance" {
 
   cloud_init_user_data = templatefile("../modules/cloud-init/simple-setup-init.tftpl", {
     users = local.users,
-    nfs_path       = local.nfs_path,
-    nfs_disk_id    = local.nfs_disk_id,
+    extra_path       = local.extra_path,
+    extra_disk_id    = local.extra_disk_id,
     shared_filesystem_id = var.shared_filesystem_id,
     shared_filesystem_mount = var.shared_filesystem_mount
   })

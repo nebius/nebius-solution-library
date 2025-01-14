@@ -69,22 +69,22 @@ variable "region" {
   default = "eu-north1"
 }
 
-variable "add_nfs_storage" {
+variable "add_extra_storage" {
   type = bool
   default = false
-  description = "if true, a new nfs disk will be created and mounted at <nfs_path>"
+  description = "if true, a new disk will be created and mounted <extra_path>"
  }
 
-variable "nfs_path" {
+variable "extra_path" {
   type = string
-  default = "/mnt/nfs"
+  default = "/mnt/storage"
   description = "Folder where the network storage will be mounted on"
 }
 
-variable "nfs_size_gb" {
+variable "extra_storage_size_gb" {
   type = number
   default = 50
-  description = "size of the newly created nfs storage"
+  description = "size of the newly created extra storage"
 }
 
 variable "public_ip" {

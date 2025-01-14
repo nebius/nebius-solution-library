@@ -13,7 +13,8 @@ module "instance-module" {
   boot_disk_size_gb = 500
   shared_filesystem_id = var.shared_filesystem_id
   shared_filesystem_mount = var.shared_filesystem_mount
-  nfs_path = var.nfs_path
-  add_nfs_storage = var.add_nfs_storage
-  nfs_size_gb = var.nfs_size_gb
+  extra_path = var.extra_path
+  add_extra_storage = var.add_extra_storage
+  extra_storage_size_gb = var.extra_storage_size_gb
+  public_ip = var.public_ip
 }
