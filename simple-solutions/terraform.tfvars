@@ -20,7 +20,6 @@ users = [
 ]
 
 add_extra_storage = false
-extra_size_gb = 7000
 public_ip = true
 instance_count = 1
 

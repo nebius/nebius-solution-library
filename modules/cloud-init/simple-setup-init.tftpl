@@ -15,21 +15,21 @@ runcmd:
 - apt-get upgrade
 
 
-# mount nfs if provided
-%{ if nfs_disk_id != "" }
+# mount disk if provided
+%{ if extra_disk_id != "" }
 # Prepare partition on secondary disk
-- mkdir -p ${nfs_path}
+- mkdir -p ${extra_path}
 - echo "mkdir" >> /home/tux/log.txt
-- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mklabel gpt >> /home/tux/log.txt
-- parted -s /dev/disk/by-id/virtio-${nfs_disk_id} mkpart primary ext4 0% 100% >> /home/tux/log.txt
+- parted -s /dev/disk/by-id/virtio-${extra_disk_id} mklabel gpt >> /home/tux/log.txt
+- parted -s /dev/disk/by-id/virtio-${extra_disk_id} mkpart primary ext4 0% 100% >> /home/tux/log.txt
 - sync
 - echo "sync" >> /home/tux/log.txt
-- mkfs.ext4 /dev/disk/by-id/virtio-${nfs_disk_id}-part1 >> /home/tux/log.txt
+- mkfs.ext4 /dev/disk/by-id/virtio-${extra_disk_id}-part1 >> /home/tux/log.txt
 - sync
-- mount -o rw /dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path} >> /home/tux/log.txt
-- echo "/dev/disk/by-id/virtio-${nfs_disk_id}-part1 ${nfs_path} ext4 defaults 0 2" >> /etc/fstab
-- chown nobody:nogroup ${nfs_path}
-- chmod 777 ${nfs_path}
+- mount -o rw /dev/disk/by-id/virtio-${extra_disk_id}-part1 ${extra_path} >> /home/tux/log.txt
+- echo "/dev/disk/by-id/virtio-${extra_disk_id}-part1 ${extra_path} ext4 defaults 0 2" >> /etc/fstab
+- chown nobody:nogroup ${extra_path}
+- chmod 777 ${extra_path}
 %{ endif }
 
 # mount shared filesystem if provided
