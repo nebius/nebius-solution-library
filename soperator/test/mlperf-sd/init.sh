@@ -90,7 +90,7 @@ hdone
 # region Test runner
 
 h1 'Patching test runner...'
-SBATCH_RUNNER_PATH='training_patch/stable_diffusion/scripts/slurm/sbatch.sh'
+SBATCH_RUNNER_PATH='sd-impl-3.0-mlcommons/scripts/slurm/sbatch.sh'
 
 h2 'Test dir...'
 sed -i -E \
@@ -109,7 +109,7 @@ sed -i -E \
 
 h2 'Container image...'
 sed -i -E \
-  -e "s|(CONTAINER_IMAGE:=)[^}]*|\1${NEBIUS_CR_ENDPOINT}#${NEBIUS_CR_REGISTRY}/stable_diffusion_mlcommons|" \
+  -e "s|(CONTAINER_IMAGE:=)[^}]*|\1${NEBIUS_CR_ENDPOINT}#${NEBIUS_CR_REGISTRY}/sd-3.0-mlcommons|" \
   ${SBATCH_RUNNER_PATH}
 
 h2 'Data dir...'
@@ -118,32 +118,6 @@ sed -i -E \
   ${SBATCH_RUNNER_PATH}
 
 # endregion Test runner
-
-# region MLCommons repo
-
-h1 'Configuring MLCommons training repository...'
-TRAINING_DIR='training'
-
-if [[ -d "${TRAINING_DIR}" ]]; then
-  h2 'Cleaning leftovers...'
-  rm -rf ${TRAINING_DIR}
-fi
-
-h2 'Checkout...'
-export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-git clone --depth=1 https://github.com/mlcommons/training ${TRAINING_DIR}
-pushd ${TRAINING_DIR}
-  git fetch --depth=1 origin 00f04c57d589721aabce4618922780d29f73cf4e
-  git checkout 00f04c57d589721aabce4618922780d29f73cf4e
-popd
-
-h2 'Patching...'
-rclone copy "${TRAINING_DIR}_patch" ${TRAINING_DIR}
-
-h2 'Setting execution flags...'
-chmod +x ${TRAINING_DIR}/stable_diffusion/scripts/slurm/*.sh
-
-# endregion MLCommons repo
 
 # region Data
 
