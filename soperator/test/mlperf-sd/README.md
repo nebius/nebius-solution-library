@@ -12,10 +12,10 @@ Or checking the sync job outputs:
 tail -f ./results/sync-<TAB*>.out
 ```
 
-Once they're done, go to the training directory and check defaults of the runner:
+Once they're done, go to the SD directory and check defaults of the runner:
 
 ```shell
-cd training/stable_diffusion
+cd sd-impl-3.0-mlcommons
 ./scripts/slurm/sbatch.sh -h
 ```
 

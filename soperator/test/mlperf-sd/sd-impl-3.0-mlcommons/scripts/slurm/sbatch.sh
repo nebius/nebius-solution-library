@@ -9,7 +9,7 @@
 : "${DATA_DIR:=/mlperf-sd}"
 : "${BASE_LOG_DIR:=./nogit/logs}"
 : "${BASE_RESULTS_DIR:=/mlperf-sd/data/results}"
-: "${CONTAINER_IMAGE:=cr.eu-north1.nebius.cloud#slurm-mlperf-training/stable_diffusion_mlcommons}"
+: "${CONTAINER_IMAGE:=cr.eu-north1.nebius.cloud#slurm-mlperf-training/sd-3.0-mlcommons:$(cat ./scripts/docker/VERSION)}"
 : "${CHECKPOINT:=sd/512-base-ema.ckpt}"
 
 # endregion Defaults
