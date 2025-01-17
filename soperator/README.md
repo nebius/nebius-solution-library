@@ -41,6 +41,7 @@ cp -r ../example/ ./
 # Set your Nebius project details
 export NEBIUS_TENANT_ID='<your-tenant-id>'
 export NEBIUS_PROJECT_ID='<your-project-id>'
+export NEBIUS_REGION='<your-region-id>'
 
 # Load environment variables 
 source .envrc
