@@ -1,4 +1,8 @@
 locals {
+  kube_rbac_proxy = {
+    image = "gcr.io/kubebuilder/kube-rbac-proxy"
+    tag   = "v0.15.0"
+  }
   helm = {
     repository = {
       slurm   = "oci://cr.eu-north1.nebius.cloud/soperator${!var.operator_stable ? "-unstable" : ""}"
