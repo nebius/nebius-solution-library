@@ -262,5 +262,5 @@ locals {
 }
 
 data "units_data_size" "k8s_ephemeral_storage_reserve" {
-  gibibytes = 64
+  gibibytes = 48
 }

@@ -224,7 +224,7 @@ module "slurm" {
       cpu_cores        = local.resources.system.cpu_cores
       memory_gibibytes = local.resources.system.memory_gibibytes
       ephemeral_storage_gibibytes = floor(
-        module.resources.k8s_ephemeral_storage_coefficient * var.slurm_nodeset_system.boot_disk.size_gibibytes
+        var.slurm_nodeset_system.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     }
@@ -232,7 +232,7 @@ module "slurm" {
       cpu_cores        = local.resources.controller.cpu_cores
       memory_gibibytes = local.resources.controller.memory_gibibytes
       ephemeral_storage_gibibytes = floor(
-        module.resources.k8s_ephemeral_storage_coefficient * var.slurm_nodeset_controller.boot_disk.size_gibibytes
+        var.slurm_nodeset_controller.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     }
@@ -240,16 +240,9 @@ module "slurm" {
       {
         cpu_cores        = local.resources.workers[i].cpu_cores
         memory_gibibytes = local.resources.workers[i].memory_gibibytes
-        ephemeral_storage_gibibytes = (
-          module.k8s.gpu_involved
-          ? floor(
-            module.resources.k8s_ephemeral_storage_coefficient * worker.boot_disk.size_gibibytes
-            -2 * module.resources.k8s_ephemeral_storage_reserve.gibibytes
-          )
-          : floor(
-            module.resources.k8s_ephemeral_storage_coefficient * worker.boot_disk.size_gibibytes
-            -module.resources.k8s_ephemeral_storage_reserve.gibibytes
-          )
+        ephemeral_storage_gibibytes = floor(
+          worker.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
+          -module.resources.k8s_ephemeral_storage_reserve.gibibytes
         )
         gpus = local.resources.workers[i].gpus
       }
@@ -258,7 +251,7 @@ module "slurm" {
       cpu_cores        = local.resources.login.cpu_cores
       memory_gibibytes = local.resources.login.memory_gibibytes
       ephemeral_storage_gibibytes = floor(
-        module.resources.k8s_ephemeral_storage_coefficient * var.slurm_nodeset_login.boot_disk.size_gibibytes
+        var.slurm_nodeset_login.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     }
@@ -266,7 +259,7 @@ module "slurm" {
       cpu_cores        = local.resources.accounting.cpu_cores
       memory_gibibytes = local.resources.accounting.memory_gibibytes
       ephemeral_storage_gibibytes = floor(
-        module.resources.k8s_ephemeral_storage_coefficient * var.slurm_nodeset_accounting.boot_disk.size_gibibytes
+        var.slurm_nodeset_accounting.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     } : null
