@@ -1,8 +1,19 @@
 locals {
+  reserve = {
+    cpu = {
+      coefficient = 1
+      count       = 1
+    }
+    ram = {
+      coefficient = 0.95
+      count       = 2
+    }
+  }
+
   cpu = {
     c-2vcpu-8gb = {
-      cpu_cores              = 2 - 1
-      memory_gibibytes       = 8 - 2
+      cpu_cores              = 2 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 8 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -13,9 +24,9 @@ locals {
         (module.labels.name_nodeset_accounting) = true
       }
     }
-    c-4vcpu-32gb = {
-      cpu_cores              = 4 - 1
-      memory_gibibytes       = 16 - 2
+    c-4vcpu-16gb = {
+      cpu_cores              = 4 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 16 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -27,8 +38,8 @@ locals {
       }
     }
     c-8vcpu-32gb = {
-      cpu_cores              = 8 - 2
-      memory_gibibytes       = 32 - 10
+      cpu_cores              = 8 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 32 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -40,8 +51,8 @@ locals {
       }
     }
     c-16vcpu-64gb = {
-      cpu_cores              = 16 - 2
-      memory_gibibytes       = 64 - 10
+      cpu_cores              = 16 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 64 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -53,8 +64,8 @@ locals {
       }
     }
     c-32vcpu-128gb = {
-      cpu_cores              = 32 - 2
-      memory_gibibytes       = 128 - 10
+      cpu_cores              = 32 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 128 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -66,8 +77,8 @@ locals {
       }
     }
     c-48vcpu-192gb = {
-      cpu_cores              = 48 - 2
-      memory_gibibytes       = 192 - 10
+      cpu_cores              = 48 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 192 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -79,8 +90,8 @@ locals {
       }
     }
     c-64vcpu-256gb = {
-      cpu_cores              = 64 - 2
-      memory_gibibytes       = 256 - 10
+      cpu_cores              = 64 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 256 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -92,8 +103,8 @@ locals {
       }
     }
     c-80vcpu-320gb = {
-      cpu_cores              = 80 - 2
-      memory_gibibytes       = 320 - 10
+      cpu_cores              = 80 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 320 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -105,8 +116,8 @@ locals {
       }
     }
     c-96vcpu-384gb = {
-      cpu_cores              = 96 - 2
-      memory_gibibytes       = 384 - 16
+      cpu_cores              = 96 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 384 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -118,8 +129,8 @@ locals {
       }
     }
     c-128vcpu-512gb = {
-      cpu_cores              = 128 - 2
-      memory_gibibytes       = 512 - 16
+      cpu_cores              = 128 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 512 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -131,8 +142,8 @@ locals {
       }
     }
     c-160vcpu-640gb = {
-      cpu_cores              = 160 - 2
-      memory_gibibytes       = 640 - 16
+      cpu_cores              = 160 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 640 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -144,8 +155,8 @@ locals {
       }
     }
     c-192vcpu-768gb = {
-      cpu_cores              = 192 - 2
-      memory_gibibytes       = 768 - 16
+      cpu_cores              = 192 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 768 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -157,8 +168,8 @@ locals {
       }
     }
     c-224vcpu-896gb = {
-      cpu_cores              = 224 - 2
-      memory_gibibytes       = 896 - 16
+      cpu_cores              = 224 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 896 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -170,8 +181,8 @@ locals {
       }
     }
     c-256vcpu-1024gb = {
-      cpu_cores              = 256 - 2
-      memory_gibibytes       = 1024 - 16
+      cpu_cores              = 256 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 1024 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
       sufficient = {
@@ -186,8 +197,8 @@ locals {
 
   gpu = {
     g-1gpu-16vcpu-200gb = {
-      cpu_cores              = 16 - 2
-      memory_gibibytes       = 200 - 15
+      cpu_cores              = 16 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 200 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 1
       gpu_cluster_compatible = false
       sufficient = {
@@ -199,8 +210,8 @@ locals {
       }
     }
     g-8gpu-128vcpu-1600gb = {
-      cpu_cores              = 128 - 2
-      memory_gibibytes       = 1600 - 350
+      cpu_cores              = 128 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 1600 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 8
       gpu_cluster_compatible = true
       sufficient = {
@@ -216,7 +227,7 @@ locals {
   resources = tomap({
     "cpu-e2" = tomap({
       "2vcpu-8gb"    = local.cpu.c-2vcpu-8gb
-      "4vcpu-16gb"   = local.cpu.c-4vcpu-32gb
+      "4vcpu-16gb"   = local.cpu.c-4vcpu-16gb
       "8vcpu-32gb"   = local.cpu.c-8vcpu-32gb
       "16vcpu-64gb"  = local.cpu.c-16vcpu-64gb
       "32vcpu-128gb" = local.cpu.c-32vcpu-128gb
@@ -226,7 +237,7 @@ locals {
     })
     "cpu-d3" = tomap({
       "2vcpu-8gb"      = local.cpu.c-2vcpu-8gb
-      "4vcpu-16gb"     = local.cpu.c-4vcpu-32gb
+      "4vcpu-16gb"     = local.cpu.c-4vcpu-16gb
       "8vcpu-32gb"     = local.cpu.c-8vcpu-32gb
       "16vcpu-64gb"    = local.cpu.c-16vcpu-64gb
       "32vcpu-128gb"   = local.cpu.c-32vcpu-128gb
@@ -251,5 +262,5 @@ locals {
 }
 
 data "units_data_size" "k8s_ephemeral_storage_reserve" {
-  gibibytes = 64
+  gibibytes = 48
 }
