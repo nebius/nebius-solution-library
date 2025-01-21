@@ -1,5 +1,19 @@
 # region Cloud
 
+variable "region" {
+  description = "Region of the project."
+  type        = string
+  nullable    = false
+}
+resource "terraform_data" "check_region" {
+  lifecycle {
+    precondition {
+      condition     = contains(module.resources.regions, var.region)
+      error_message = "Unknown region '${var.region}'. See https://docs.nebius.com/overview/regions"
+    }
+  }
+}
+
 variable "iam_token" {
   description = "IAM token used for communicating with Nebius services."
   type        = string
