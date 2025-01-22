@@ -188,6 +188,28 @@ variable "nfs" {
     error_message = "NFS size must be a multiple of 93 GiB and maximum value is 262074 GiB"
   }
 }
+resource "terraform_data" "check_nfs" {
+  depends_on = [
+    terraform_data.check_region,
+  ]
+
+  lifecycle {
+    precondition {
+      condition     = var.nfs.enabled ? contains(module.resources.platforms, var.nfs.resource.platform) : true
+      error_message = "Unsupported platform '${var.nfs.resource.platform}'."
+    }
+
+    precondition {
+      condition     = var.nfs.enabled ? contains(keys(module.resources.by_platform[var.nfs.resource.platform]), var.nfs.resource.preset) : true
+      error_message = "Unsupported preset '${var.nfs.resource.preset}' for platform '${var.nfs.resource.platform}'."
+    }
+
+    precondition {
+      condition     = var.nfs.enabled ? contains(module.resources.platform_regions[var.nfs.resource.platform], var.region) : true
+      error_message = "Unsupported platform '${var.nfs.resource.platform}' in region '${var.region}'. See https://docs.nebius.com/compute/virtual-machines/types"
+    }
+  }
+}
 
 # endregion nfs-server
 
@@ -423,6 +445,10 @@ resource "terraform_data" "check_slurm_nodeset" {
     "worker_${i}" => worker
   })
 
+  depends_on = [
+    terraform_data.check_region,
+  ]
+
   lifecycle {
     precondition {
       condition     = each.value.size > 0
@@ -437,6 +463,11 @@ resource "terraform_data" "check_slurm_nodeset" {
     precondition {
       condition     = contains(keys(module.resources.by_platform[each.value.resource.platform]), each.value.resource.preset)
       error_message = "Unsupported preset '${each.value.resource.preset}' for platform '${each.value.resource.platform}' in node set '${each.key}'."
+    }
+
+    precondition {
+      condition     = contains(module.resources.platform_regions[each.value.resource.platform], var.region)
+      error_message = "Unsupported platform '${each.value.resource.platform}' in region '${var.region}'. See https://docs.nebius.com/compute/virtual-machines/types"
     }
 
     # TODO: precondition for total node group count

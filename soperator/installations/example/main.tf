@@ -13,8 +13,20 @@ locals {
   k8s_cluster_name   = format("soperator-%s", var.company_name)
 }
 
+resource "terraform_data" "check_variables" {
+  depends_on = [
+    terraform_data.check_slurm_nodeset,
+    terraform_data.check_slurm_nodeset_accounting,
+    terraform_data.check_nfs,
+  ]
+}
+
 module "filestore" {
   source = "../../modules/filestore"
+
+  depends_on = [
+    terraform_data.check_variables,
+  ]
 
   iam_project_id = data.nebius_iam_v1_project.this.id
 
