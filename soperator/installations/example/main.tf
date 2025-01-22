@@ -1,10 +1,10 @@
 locals {
   resources = {
-    system     = module.resources.this[var.slurm_nodeset_system.resource.platform][var.slurm_nodeset_system.resource.preset]
-    controller = module.resources.this[var.slurm_nodeset_controller.resource.platform][var.slurm_nodeset_controller.resource.preset]
-    workers    = [for worker in var.slurm_nodeset_workers : module.resources.this[worker.resource.platform][worker.resource.preset]]
-    login      = module.resources.this[var.slurm_nodeset_login.resource.platform][var.slurm_nodeset_login.resource.preset]
-    accounting = var.slurm_nodeset_accounting != null ? module.resources.this[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset] : null
+    system     = module.resources.by_platform[var.slurm_nodeset_system.resource.platform][var.slurm_nodeset_system.resource.preset]
+    controller = module.resources.by_platform[var.slurm_nodeset_controller.resource.platform][var.slurm_nodeset_controller.resource.preset]
+    workers    = [for worker in var.slurm_nodeset_workers : module.resources.by_platform[worker.resource.platform][worker.resource.preset]]
+    login      = module.resources.by_platform[var.slurm_nodeset_login.resource.platform][var.slurm_nodeset_login.resource.preset]
+    accounting = var.slurm_nodeset_accounting != null ? module.resources.by_platform[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset] : null
   }
 
   use_node_port = var.slurm_login_service_type == "NodePort"
@@ -13,8 +13,20 @@ locals {
   k8s_cluster_name   = format("soperator-%s", var.company_name)
 }
 
+resource "terraform_data" "check_variables" {
+  depends_on = [
+    terraform_data.check_slurm_nodeset,
+    terraform_data.check_slurm_nodeset_accounting,
+    terraform_data.check_nfs,
+  ]
+}
+
 module "filestore" {
   source = "../../modules/filestore"
+
+  depends_on = [
+    terraform_data.check_variables,
+  ]
 
   iam_project_id = data.nebius_iam_v1_project.this.id
 
