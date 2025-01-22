@@ -430,13 +430,13 @@ resource "terraform_data" "check_slurm_nodeset" {
     }
 
     precondition {
-      condition     = contains(keys(module.resources.this), each.value.resource.platform)
-      error_message = "Unsupported platform ${each.value.resource.platform} in node set ${each.key}."
+      condition     = contains(module.resources.platforms, each.value.resource.platform)
+      error_message = "Unsupported platform '${each.value.resource.platform}' in node set '${each.key}'."
     }
 
     precondition {
-      condition     = contains(keys(module.resources.this[each.value.resource.platform]), each.value.resource.preset)
-      error_message = "Unsupported preset ${each.value.resource.preset} in node set ${each.key}."
+      condition     = contains(keys(module.resources.by_platform[each.value.resource.platform]), each.value.resource.preset)
+      error_message = "Unsupported preset '${each.value.resource.preset}' for platform '${each.value.resource.platform}' in node set '${each.key}'."
     }
 
     # TODO: precondition for total node group count

@@ -35,17 +35,7 @@ resource "terraform_data" "check_resource_preset_sufficiency" {
 
   lifecycle {
     precondition {
-      condition     = contains(keys(module.resources.this), each.value.resource.platform)
-      error_message = "Unsupported resource platform `${each.value.resource.platform}` for `${each.value.key}` node group."
-    }
-
-    precondition {
-      condition     = contains(keys(module.resources.this[each.value.resource.platform]), each.value.resource.preset)
-      error_message = "Unsupported resource preset `${each.value.resource.preset}` for `${each.value.key}` node group."
-    }
-
-    precondition {
-      condition     = module.resources.this[each.value.resource.platform][each.value.resource.preset].sufficient[each.value.key]
+      condition     = module.resources.by_platform[each.value.resource.platform][each.value.resource.preset].sufficient[each.value.key]
       error_message = "Insufficient resource preset `${each.value.resource.preset}` for `${each.value.key}` node group."
     }
   }
