@@ -103,8 +103,13 @@ runcmd:
 
   - echo "### kubectl mk8s config" >> /tmp/csa-install.log 2>&1
   - su - ${ssh_user_name} -c '/home/${ssh_user_name}/.nebius/bin/nebius mk8s v1 cluster list --parent-id ${parent_id} --format json | jq -r .items[0].metadata.id > /tmp/cluster.id'
-  - su - ${ssh_user_name} -c '/home/${ssh_user_name}/.nebius/bin/nebius mk8s cluster get-credentials --id $(cat /tmp/cluster.id) --internal' >> /tmp/csa-install.log 2>&1
-
+  - |
+    if ! grep -q "null" /tmp/cluster.id; then
+      su - ${ssh_user_name} -c '/home/${ssh_user_name}/.nebius/bin/nebius mk8s cluster get-credentials --id $(cat /tmp/cluster.id) --internal' >> /tmp/csa-install.log 2>&1
+    else
+      echo "Cluster ID is null. Skipping credential retrieval." >> /tmp/csa-install.log
+    fi
+    
   # Creating keys
   - wg genkey | sudo tee /etc/wireguard/private.key
   - sudo chmod go= /etc/wireguard/private.key
@@ -165,6 +170,3 @@ runcmd:
   - sudo systemctl start wgui.service
   - sudo systemctl enable wgui_server.service
   - sudo systemctl start wgui_server.service
-
-bootcmd:
-  - sudo systemctl restart wgui_server.service
