@@ -28,6 +28,5 @@ runcmd:
   - mount -o rw /dev/disk/by-id/virtio-nfs-disk ${nfs_path}
   - chown nobody:nogroup ${nfs_path}
   - chmod 777 ${nfs_path}
-  - netplan set ethernets.eth0.mtu=${mtu_size}
-  - netplan apply
-  - systemctl restart nfs-kernel-server
+  - export INTERFACE=$(ip route list default | sed -n 's/.*dev \([^\ ]*\).*/\1/p') 
+  - netplan set ethernets.$${INTERFACE}.mtu=${mtu_size}
