@@ -273,7 +273,7 @@ module "slurm" {
     } : null
   }
 
-  login_allocation_id            = module.k8s.allocation_id
+  login_allocation_id            = module.k8s.static_ip_allocation_id
   login_sshd_config_map_ref_name = var.slurm_login_sshd_config_map_ref_name
   login_ssh_root_public_keys     = var.slurm_login_ssh_root_public_keys
 
