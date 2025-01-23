@@ -4,6 +4,7 @@ locals {
 
 resource "null_resource" "check_bastion_instance" {
   count = var.test_mode ? 1 : 0
+  tenant_id = "tenant-e00f3wdfzwfjgbcyfv"
 
   connection {
     user = var.ssh_user_name
