@@ -7,5 +7,6 @@ run "test_mode_bastion_apply" {
 
   variables {
     test_mode = true
+    tenant_id = "tenant-e00f3wdfzwfjgbcyfv"
   }
 }
