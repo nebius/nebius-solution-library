@@ -62,7 +62,7 @@ resource "nebius_mk8s_v1_node_group" "login" {
 
     network_interfaces = [
       {
-        public_ip_address = (local.node_ssh_access.enabled || var.use_node_port) ? {} : null
+        public_ip_address = local.node_ssh_access.enabled ? {} : null
         subnet_id         = var.vpc_subnet_id
       }
     ]
@@ -80,8 +80,6 @@ resource "nebius_mk8s_v1_node_group" "login" {
 # TODO: Use allocation for static IPs when it's ready
 #
 # resource "nebius_vpc_v1_allocation" "this" {
-#   count = var.create_nlb ? 0 : 1
-#
 #   depends_on = [
 #     nebius_mk8s_v1_cluster.this,
 #   ]

@@ -118,16 +118,6 @@ variable "worker_sshd_config_map_ref_name" {
 
 # region Login
 
-variable "login_service_type" {
-  description = "Type of the k8s service to connect to login nodes."
-  type        = string
-}
-
-variable "login_node_port" {
-  description = "Port of the host to be opened in case of use of `NodePort` service type."
-  type        = number
-}
-
 variable "login_allocation_id" {
   description = "ID of the VPC allocation used in case of `LoadBalancer` service type."
   type        = string

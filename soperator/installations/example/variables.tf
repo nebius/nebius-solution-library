@@ -486,28 +486,6 @@ variable "slurm_worker_sshd_config_map_ref_name" {
 
 # region Login
 
-variable "slurm_login_service_type" {
-  description = "Type of the k8s service to connect to login nodes."
-  type        = string
-  nullable    = false
-
-  validation {
-    condition     = (contains(["LoadBalancer", "NodePort"], var.slurm_login_service_type))
-    error_message = "Invalid service type. It must be one of `LoadBalancer` or `NodePort`."
-  }
-}
-
-variable "slurm_login_node_port" {
-  description = "Port of the host to be opened in case of use of `NodePort` service type."
-  type        = number
-  default     = 30022
-
-  validation {
-    condition     = var.slurm_login_node_port >= 30000 && var.slurm_login_node_port < 32768
-    error_message = "Invalid node port. It must be in range [30000,32768)."
-  }
-}
-
 variable "slurm_login_sshd_config_map_ref_name" {
   description = "Name of configmap with SSHD config, which runs in slurmd container."
   type        = string

@@ -235,16 +235,6 @@ slurm_nodeset_accounting = {
 #----------------------------------------------------------------------------------------------------------------------#
 # region Login
 
-# Type of the k8s service to connect to login nodes.
-# Could be either "LoadBalancer" or "NodePort".
-# ---
-slurm_login_service_type = "LoadBalancer"
-
-# Port of the host to be opened in case of use of `NodePort` service type.
-# By default, 30022.
-# ---
-# slurm_login_node_port = 30022
-
 # Authorized keys accepted for connecting to Slurm login nodes via SSH as 'root' user.
 # ---
 slurm_login_ssh_root_public_keys = [
