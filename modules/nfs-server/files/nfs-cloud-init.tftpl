@@ -1,4 +1,9 @@
 #cloud-config
+package_update: true
+package_upgrade: false
+packages:
+  - nfs-kernel-server
+
 users:
   - name: ${ssh_user_name}
     groups: sudo
@@ -7,16 +12,22 @@ users:
     ssh-authorized-keys:
       - ${ssh_public_key}
 
+
+mounts:
+  - [ /dev/disk/by-id/virtio-nfs-disk, ${nfs_path}, ext4, "defaults,rw", "0", "0" ]
+
+write_files:
+  - path: /etc/exports
+    content: |
+      ${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)
+    append: true
+
 runcmd:
-- apt-get update
-- apt-get install -y nfs-kernel-server
-- mkdir -p ${nfs_path}
-- mkfs.ext4 /dev/vda
-- mount -o rw /dev/vda ${nfs_path}
-- echo "/dev/vdb ${nfs_path} ext4  rw,relatime" | tee -a /etc/fstab
-- chown nobody:nogroup ${nfs_path}
-- chmod 777 ${nfs_path}
-- echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)" >> /etc/exports
-- netplan set ethernets.eth0.mtu=${mtu_size}
-- netplan apply
-- systemctl restart nfs-kernel-server
+  - mkdir -p ${nfs_path}
+  - mkfs.ext4 /dev/disk/by-id/virtio-nfs-disk
+  - mount -o rw /dev/disk/by-id/virtio-nfs-disk ${nfs_path}
+  - chown nobody:nogroup ${nfs_path}
+  - chmod 777 ${nfs_path}
+  - netplan set ethernets.eth0.mtu=${mtu_size}
+  - netplan apply
+  - systemctl restart nfs-kernel-server
