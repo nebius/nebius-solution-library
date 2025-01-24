@@ -7,8 +7,6 @@ locals {
     accounting = var.slurm_nodeset_accounting != null ? module.resources.by_platform[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset] : null
   }
 
-  use_node_port = var.slurm_login_service_type == "NodePort"
-
   slurm_cluster_name = "soperator"
   k8s_cluster_name   = format("soperator-%s", var.company_name)
 }
@@ -119,10 +117,9 @@ module "k8s" {
   iam_project_id = data.nebius_iam_v1_project.this.id
   vpc_subnet_id  = data.nebius_vpc_v1_subnet.this.id
 
-  k8s_version        = var.k8s_version
-  name               = local.k8s_cluster_name
-  slurm_cluster_name = local.slurm_cluster_name
-  company_name       = var.company_name
+  k8s_version  = var.k8s_version
+  name         = local.k8s_cluster_name
+  company_name = var.company_name
 
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller
@@ -166,7 +163,6 @@ module "k8s" {
   }
 
   node_ssh_access_users = var.k8s_cluster_node_ssh_access_users
-  use_node_port         = local.use_node_port
 
   providers = {
     nebius = nebius
@@ -277,9 +273,7 @@ module "slurm" {
     } : null
   }
 
-  login_service_type             = var.slurm_login_service_type
-  login_node_port                = var.slurm_login_node_port
-  login_allocation_id            = module.k8s.allocation_id
+  login_allocation_id            = module.k8s.static_ip_allocation_id
   login_sshd_config_map_ref_name = var.slurm_login_sshd_config_map_ref_name
   login_ssh_root_public_keys     = var.slurm_login_ssh_root_public_keys
 
@@ -342,10 +336,6 @@ module "login_script" {
 
   source = "../../modules/login"
 
-  node_port = {
-    used = local.use_node_port
-    port = var.slurm_login_node_port
-  }
   slurm_cluster_name = local.slurm_cluster_name
 
   k8s_cluster_context = module.k8s.cluster_context

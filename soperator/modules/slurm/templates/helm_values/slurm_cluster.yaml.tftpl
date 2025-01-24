@@ -147,6 +147,9 @@ periodicChecks:
       thresholdMoreThan: ${nccl_benchmark.min_threshold}
       useInfiniband: ${nccl_benchmark.use_infiniband}
 
+slurmConfig:
+  defMemPerNode: ${floor(nodes.worker.resources.memory * 1024)}
+
 slurmNodes:
   accounting:
     enabled: ${nodes.accounting.enabled}
@@ -253,13 +256,10 @@ slurmNodes:
   login:
     size: ${nodes.login.size}
     k8sNodeFilterName: ${k8s_node_filters.login.name}
-    sshdServiceType: ${nodes.login.service_type}
-    %{~ if nodes.login.service_type == "LoadBalancer" && nodes.login.allocation_id != null ~}
+    sshdServiceType: "LoadBalancer"
+    %{~ if nodes.login.allocation_id != null ~}
     sshdServiceAnnotations:
       "nebius.com/load-balancer-allocation-id": "${nodes.login.allocation_id}"
-    %{~ endif ~}
-    %{~ if nodes.login.service_type == "NodePort" ~}
-    sshdServiceNodePort: ${nodes.login.node_port}
     %{~ endif ~}
     %{~ if length(nodes.login.root_public_keys) > 0 ~}
     sshdConfigMapRefName: "${nodes.login.sshd_config_map_ref_name}"
