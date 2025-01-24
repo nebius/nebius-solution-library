@@ -147,6 +147,9 @@ periodicChecks:
       thresholdMoreThan: ${nccl_benchmark.min_threshold}
       useInfiniband: ${nccl_benchmark.use_infiniband}
 
+slurmConfig:
+  defMemPerNode: ${floor(nodes.worker.resources.memory * 1024)}
+
 slurmNodes:
   accounting:
     enabled: ${nodes.accounting.enabled}
