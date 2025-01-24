@@ -1,0 +1,1 @@
+[{"uid":"91276d6b3a1c5fec","name":"test_mode_bastion_apply","time":{"duration":2997},"status":"broken","severity":"normal"},{"uid":"36b6676fc9151f32","name":"bastion_apply","time":{"duration":45751},"status":"passed","severity":"normal"}]
