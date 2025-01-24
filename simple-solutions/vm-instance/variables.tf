@@ -1,13 +1,11 @@
 variable "parent_id" {
   type        = string
   description = "Id of the folder where the resources going to be created."
-  default     = null
 }
 
 variable "subnet_id" {
   type        = string
   description = "ID of the subnet."
-  default     = null
 }
 
 variable "instance_count" {

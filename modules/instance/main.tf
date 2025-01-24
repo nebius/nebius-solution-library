@@ -60,7 +60,7 @@ resource "nebius_compute_v1_instance" "instance" {
   ] : []
 
 
-  cloud_init_user_data = templatefile("../modules/cloud-init/simple-setup-init.tftpl", {
+  cloud_init_user_data = templatefile("../../modules/cloud-init/simple-setup-init.tftpl", {
     users = local.users,
     extra_path       = local.extra_path,
     extra_disk_id    = local.extra_disk_id,

@@ -156,6 +156,10 @@ export TF_VAR_iam_token="${NEBIUS_IAM_TOKEN}"
 export TF_VAR_iam_tenant_id="${NEBIUS_TENANT_ID}"
 export TF_VAR_iam_project_id="${NEBIUS_PROJECT_ID}"
 export TF_VAR_vpc_subnet_id="${NEBIUS_VPC_SUBNET_ID}"
+export TF_VAR_iam_project_id="${NEBIUS_PROJECT_ID}"
+export TF_VAR_parent_id="${NEBIUS_PROJECT_ID}"
+export TF_VAR_subnet_id="${NEBIUS_VPC_SUBNET_ID}"
+
 export TFE_PARALLELISM=20
 
 echo "Exported variables:"
