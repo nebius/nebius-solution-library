@@ -65,7 +65,7 @@ variable "nfs_ip_range" {
 variable "mtu_size" {
   type        = string
   description = "MTU size to make network fater"
-  default     = "8910"
+  default     = "8800"
 }
 
 variable "nfs_size" {
