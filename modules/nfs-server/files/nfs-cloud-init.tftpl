@@ -28,7 +28,20 @@ runcmd:
   - mount -o rw /dev/disk/by-id/virtio-nfs-disk ${nfs_path}
   - chown nobody:nogroup ${nfs_path}
   - chmod 777 ${nfs_path}
-  # - export INTERFACE=$(ip route list default | sed -n 's/.*dev \([^\ ]*\).*/\1/p')
-  # - echo "Setting MTU for $INTERFACE to ${mtu_size}"
-  # - netplan set ethernets.$INTERFACE.mtu=${mtu_size}
-  # - cp /var/log/cloud-init*.log /nfs/
+  - echo "Writing netplan configuration..."
+  - |
+    cat <<EOF > /etc/netplan/50-cloud-init.yaml
+    network:
+      version: 2
+      ethernets:
+        enp:
+          match:
+            name: "enp*"
+          dhcp4: true
+          mtu: ${mtu_size}
+    EOF
+  - chmod 600 /etc/netplan/50-cloud-init.yaml
+  - echo "Netplan configuration written. Applying it..."
+  - netplan generate
+  - netplan apply
+  - echo "Netplan applied successfully."
