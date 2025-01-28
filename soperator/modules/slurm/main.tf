@@ -3,6 +3,7 @@ resource "helm_release" "mariadb_operator" {
 
   depends_on = [
     module.monitoring,
+    module.certificate_manager,
   ]
 
   name       = local.helm.chart.operator.mariadb
