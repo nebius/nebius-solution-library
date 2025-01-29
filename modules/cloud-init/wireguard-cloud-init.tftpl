@@ -115,5 +115,6 @@ runcmd:
   - sudo systemctl enable wgui_server.service
   - sudo systemctl start wgui_server.service
 
-bootcmd:
-  - sudo systemctl restart wgui_server.service
+# command create error in cloud init which cause git actions to fail
+#bootcmd:
+#  - sudo systemctl restart wgui_server.service
