@@ -45,10 +45,6 @@ runcmd:
   # Configure NFS export
   - echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)" >> /etc/exports
   
-  # Configure network MTU
-  - netplan set ethernets.eth0.mtu=${mtu_size}
-  - netplan apply
-  
   # Restart NFS service
   - systemctl restart nfs-kernel-server
 
