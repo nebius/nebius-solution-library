@@ -12,9 +12,17 @@ users:
     ssh-authorized-keys:
       - ${ssh_public_key}
 
+disk_setup:
+  /dev/disk/by-id/virtio-nfs-disk: # hardcoded device-label: nfs-disk
+    table_type: gpt
+    layout: true
+
+fs_setup:
+  - device: /dev/disk/by-id/virtio-nfs-disk-part1 # hardcoded device-label: nfs-disk
+    filesystem: ext4
 
 mounts:
-  - [ /dev/disk/by-id/virtio-nfs-disk, ${nfs_path}, ext4, "defaults,rw", "0", "0" ]
+  - [ /dev/disk/by-id/virtio-nfs-disk, ${nfs_path}, ext4, "defaults,relatime,rw", "0", "0" ] # hardcoded device-label: nfs-disk
 
 write_files:
   - path: /etc/exports
@@ -23,11 +31,28 @@ write_files:
     append: true
 
 runcmd:
+  # install nfs server package
+  - apt-get update
+  - apt-get install -y nfs-kernel-server
+  
+  # Prepare pnfs mountpoint
   - mkdir -p ${nfs_path}
-  - mkfs.ext4 /dev/disk/by-id/virtio-nfs-disk
-  - mount -o rw /dev/disk/by-id/virtio-nfs-disk ${nfs_path}
+  
+  # Configure permissions
   - chown nobody:nogroup ${nfs_path}
   - chmod 777 ${nfs_path}
+  
+  # Configure NFS export
+  - echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)" >> /etc/exports
+  
+  # Configure network MTU
+  - netplan set ethernets.eth0.mtu=${mtu_size}
+  - netplan apply
+  
+  # Restart NFS service
+  - systemctl restart nfs-kernel-server
+
+  # Netplan config for MTU
   - echo "Writing netplan configuration..."
   - |
     cat <<EOF > /etc/netplan/50-cloud-init.yaml

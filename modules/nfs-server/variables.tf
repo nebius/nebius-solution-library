@@ -72,3 +72,9 @@ variable "nfs_size" {
   type        = string
   description = "Size of the NFS in GB, should be divisbile by 93"
 }
+
+variable "nfs_device_label" {
+  type        = string
+  description = "device label to use later as device ID"
+  default     = "nfs-disk"
+}
