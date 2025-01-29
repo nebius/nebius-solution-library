@@ -6,4 +6,4 @@
 # key  = "put your public ssh key here" OR
 # path = "put path to ssh key here"
 # }
-nfs_ip_range = "192.168.0.0/16"
+# nfs_ip_range = "192.168.0.0/16"
