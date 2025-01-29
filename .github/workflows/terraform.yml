@@ -29,8 +29,8 @@ jobs:
         solution:
           - name: k8s-inference
           - name: k8s-training
-          - name: slurm
           - name: wireguard
+          - name: dsvm
 
     defaults:
       run:

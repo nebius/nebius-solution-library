@@ -6,7 +6,7 @@ resource "null_resource" "check_dsvm_instance" {
   count = var.test_mode ? 1 : 0
 
   connection {
-    user = "ubuntu"
+    user = var.ssh_user_name
     host = local.test_dsvm_host
   }
 
