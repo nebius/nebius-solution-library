@@ -1,1 +1,1 @@
-[{"uid":"ab6cb2ce560cdaf4","name":"bastion_apply","time":{"duration":43724},"status":"passed","severity":"normal"},{"uid":"3b6c0b453446bfe3","name":"test_mode_bastion_apply","time":{"duration":2862},"status":"broken","severity":"normal"}]
+[{"uid":"6f783ab980043c6b","name":"test_mode_bastion_apply","time":{"duration":2742},"status":"broken","severity":"normal"},{"uid":"da1735a475ddc42e","name":"bastion_apply","time":{"duration":54455},"status":"passed","severity":"normal"}]

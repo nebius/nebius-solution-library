@@ -1,3 +1,3 @@
 "Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
-"broken","","","2862","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_bastion_apply",""
-"passed","","","43724","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","bastion_apply",""
+"passed","","","54455","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","bastion_apply",""
+"broken","","","2742","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_bastion_apply",""
