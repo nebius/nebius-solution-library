@@ -97,3 +97,25 @@ variable "public_ip" {
   default = true
   description = "attach a public ip to the vm if true"
 }
+variable "mount_bucket" {
+  type = string
+  description = "name of a bucket that should be mounted into fs"
+  default = ""
+}
+
+variable "s3_mount_path" {
+  type = string
+  description = "mountpoint for s3 mount"
+  default = "/mnt/s3"
+}
+variable "aws_access_key_id" {
+  type = string
+  description = "S3 access key"
+  default = ""
+}
+
+variable "aws_secret_access_key" {
+  type = string
+  description = "S3 access key"
+  default = ""
+}

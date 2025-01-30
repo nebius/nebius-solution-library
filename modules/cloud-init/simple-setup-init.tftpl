@@ -39,3 +39,29 @@ runcmd:
 - chmod a+w ${shared_filesystem_mount}
 - echo "filesystem-0 ${shared_filesystem_mount} virtiofs rw 0 0" >> /etc/fstab
 %{endif}
+
+# install s3 access
+
+- snap install aws-cli --classic
+
+%{ for user in users}
+- mkdir -p /home/${user.user_name}/.aws
+- echo "[default]" > /home/${user.user_name}/.aws/credentials
+- echo "aws_access_key_id=${aws_access_key_id}" >> /home/${user.user_name}/.aws/credentials
+- echo "aws_secret_access_key=${aws_secret_access_key}" >> /home/${user.user_name}/.aws/credentials
+- echo "[default]" > /home/${user.user_name}/.aws/config
+- echo "endpoint_url = https://storage.eu-north1.nebius.cloud:443" >> /home/${user.user_name}/.aws/config
+- echo "region = eu-north1" >> /home/${user.user_name}/.aws/config
+- chown -R ${user.user_name}:${user.user_name} /home/${user.user_name}/.aws
+- chmod 600 /home/${user.user_name}/.aws/credentials
+%{ endfor }
+
+- mkdir -p /root/.aws
+- echo "[default]" > /root/.aws/credentials
+- echo "aws_access_key_id=${aws_access_key_id}" >> /root/.aws/credentials
+- echo "aws_secret_access_key=${aws_secret_access_key}" >> /root/.aws/credentials
+- echo "[default]" > /root/.aws/config
+- echo "endpoint_url = https://storage.eu-north1.nebius.cloud:443" >> /root/.aws/config
+- echo "region = eu-north1" >> /root/.aws/config
+
+

@@ -39,6 +39,7 @@ locals {
     extra_disk_id    = local.extra_disk_id
     state         = terraform.workspace
     users         = local.users
+
   })
   # current_region_defaults = local.regions_default[var.region]
   #

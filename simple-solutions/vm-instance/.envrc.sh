@@ -225,10 +225,10 @@ DATE_FORMAT='+%Y-%m-%dT%H:%M:%SZ'
 
 if [[ "$(uname)" == "Darwin" ]]; then
   # macOS
-  EXPIRATION_DATE=$(date -v +1d "${DATE_FORMAT}")
+  EXPIRATION_DATE=$(date -v +14d "${DATE_FORMAT}")
 else
   # Linux (assumes GNU date)
-  EXPIRATION_DATE=$(date -d '+1 day' "${DATE_FORMAT}")
+  EXPIRATION_DATE=$(date -d '+14 day' "${DATE_FORMAT}")
 fi
 
 echo 'Creating new access key for Object Storage'
@@ -279,6 +279,20 @@ if [ -z "${EXISTING_BUCKET}" ]; then
 else
   echo "Using existing bucket: ${NEBIUS_BUCKET_NAME}"
 fi
+
+aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+aws configure set region eu-north1
+aws configure set endpoint_url https://storage.eu-north1.nebius.cloud:443
+mkdir -p ./.aws
+echo "[default]" > ./.aws/credentials
+echo "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> ./.aws/credentials
+echo "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> ./.aws/credentials
+echo "[default]" > ./.aws/config
+echo "region = eu-north1" >> ./.aws/config
+echo "endpoint_url = https://storage.eu-north1.nebius.cloud:443" >> ./.aws/config
+export TF_VAR_aws_access_key_id=$AWS_ACCESS_KEY_ID
+export TF_VAR_aws_secret_access_key=$AWS_SECRET_ACCESS_KEY
 
 # endregion Bucket
 

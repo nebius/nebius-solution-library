@@ -65,11 +65,15 @@ resource "nebius_compute_v1_instance" "instance" {
     extra_path       = local.extra_path,
     extra_disk_id    = local.extra_disk_id,
     shared_filesystem_id = var.shared_filesystem_id,
-    shared_filesystem_mount = var.shared_filesystem_mount
+    shared_filesystem_mount = var.shared_filesystem_mount,
+    aws_access_key_id = var.aws_access_key_id,
+    aws_secret_access_key = var.aws_secret_access_key
   })
 }
 
 resource "local_file" "cloud_init_variables_log" {
   content  = local.cloud_init_log
   filename = "${path.module}/cloud-init-variables.log"
+
+
 }

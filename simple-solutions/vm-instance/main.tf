@@ -17,4 +17,8 @@ module "instance-module" {
   add_extra_storage = var.add_extra_storage
   extra_storage_size_gb = var.extra_storage_size_gb
   public_ip = var.public_ip
+  mount_bucket = var.mount_bucket
+  s3_mount_path = var.s3_mount_path
+  aws_access_key_id = var.aws_access_key_id
+  aws_secret_access_key = var.aws_secret_access_key
 }
