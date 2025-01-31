@@ -13,7 +13,7 @@
 
 1. Install [Nebius CLI](https://docs.nebius.ai/cli/install/):
    ```bash
-   curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
+   curl -sSL https://storage.eu-north1.nebius.cloud/cli/install.sh | bash
    ```
 
 2. Reload your shell session:
