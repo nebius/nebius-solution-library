@@ -92,6 +92,13 @@ variable "extra_storage_size_gb" {
   description = "size of the newly created nfs storage"
 }
 
+variable "extra_storage_class" {
+  type = string
+  default = "NETWORK_SSD"
+  description = "Network type of additional disk being added"
+}
+
+
 variable "public_ip" {
   type = bool
   default = true

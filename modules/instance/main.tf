@@ -1,6 +1,6 @@
 resource "nebius_compute_v1_disk" "boot-disk" {
   parent_id           = var.parent_id
-  name                = join("-", ["nfs-boot-disk", var.instance_name])
+  name                = join("-", ["instance-boot-disk", var.instance_name])
   block_size_bytes    = 4096
   size_bytes          = 1024 * 1024 * 1024 * var.boot_disk_size_gb
   type                = "NETWORK_SSD"
@@ -13,7 +13,7 @@ resource "nebius_compute_v1_disk" "extra-storage-disk" {
   name             = join("-", ["extra-storage-disk", var.instance_name])
   block_size_bytes = 4096
   size_bytes       = 1024 * 1024 * 1024 * var.extra_storage_size_gb
-  type             = "NETWORK_SSD"
+  type             = var.extra_storage_class
 }
 
 
@@ -60,14 +60,16 @@ resource "nebius_compute_v1_instance" "instance" {
   ] : []
 
 
-  cloud_init_user_data = templatefile("../../modules/cloud-init/simple-setup-init.tftpl", {
+  cloud_init_user_data = templatefile("../modules/cloud-init/simple-setup-init.tftpl", {
     users = local.users,
     extra_path       = local.extra_path,
     extra_disk_id    = local.extra_disk_id,
     shared_filesystem_id = var.shared_filesystem_id,
     shared_filesystem_mount = var.shared_filesystem_mount,
     aws_access_key_id = var.aws_access_key_id,
-    aws_secret_access_key = var.aws_secret_access_key
+    aws_secret_access_key = var.aws_secret_access_key,
+    mount_bucket = var.mount_bucket,
+    s3_mount_path = var.s3_mount_path
   })
 }
 

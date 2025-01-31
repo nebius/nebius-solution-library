@@ -1,8 +1,5 @@
 module "instance-module" {
-  providers = {
-    nebius = nebius
-  }
-  source         = "../../modules/instance"
+  source         = "../modules/instance"
   parent_id      = var.parent_id
   subnet_id      = var.subnet_id
   count          = var.instance_count
@@ -16,6 +13,7 @@ module "instance-module" {
   extra_path = var.extra_path
   add_extra_storage = var.add_extra_storage
   extra_storage_size_gb = var.extra_storage_size_gb
+  extra_storage_class = var.extra_storage_class
   public_ip = var.public_ip
   mount_bucket = var.mount_bucket
   s3_mount_path = var.s3_mount_path

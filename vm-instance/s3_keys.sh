@@ -1,5 +1,5 @@
-NEBIUS_TENANT_ID='tenant-e00f3wdfzwfjgbcyfv'
-NEBIUS_PROJECT_ID='project-e00z6b02t8ddk96c49'
+NEBIUS_TENANT_ID=''
+NEBIUS_PROJECT_ID=''
 
 if [ -z "${NEBIUS_TENANT_ID}" ]; then
   echo "Error: NEBIUS_TENANT_ID is not set"

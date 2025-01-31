@@ -41,7 +41,7 @@ runcmd:
 %{endif}
 
 # install s3 access
-
+%{if aws_access_key_id != ""}
 - snap install aws-cli --classic
 
 %{ for user in users}
@@ -65,3 +65,12 @@ runcmd:
 - echo "region = eu-north1" >> /root/.aws/config
 
 
+# install s3 mount
+
+%{if mount_bucket != "" }
+- wget https://s3.amazonaws.com/mountpoint-s3-release/1.14.0/x86_64/mount-s3-1.14.0-x86_64.deb
+- dpkg -i mount-s3-1.14.0-x86_64.deb
+- mkdir -p ${s3_mount_path}
+- mount-s3 --upload-checksums=off --maximum-throughput-gbps=200 --allow-delete --allow-overwrite --allow-other --endpoint-url=https://storage.eu-north1.nebius.cloud:443 ${mount_bucket} ${s3_mount_path}
+%{endif}
+%{endif}

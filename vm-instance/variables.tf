@@ -78,6 +78,11 @@ variable "extra_path" {
   default = "/mnt/storage"
   description = "Folder where the network storage will be mounted on"
 }
+variable "extra_storage_class" {
+  type = string
+  default = "NETWORK_SSD"
+  description = "Network type of additional disk being added"
+}
 
 variable "extra_storage_size_gb" {
   type = number
