@@ -73,7 +73,7 @@ jobs:
 
     - name: Install Nebius CLI
       run: |
-        curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
+        curl -sSL https://storage.eu-north1.nebius.cloud/cli/install.sh | bash
         echo "${HOME}/.nebius/bin" >> $GITHUB_PATH
 
     - name: Nebius CLI init
@@ -171,7 +171,7 @@ jobs:
 
     - name: Install Nebius CLI
       run: |
-        curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
+        curl -sSL https://storage.eu-north1.nebius.cloud/cli/install.sh | bash
         echo "${HOME}/.nebius/bin" >> $GITHUB_PATH
 
     - name: Nebius CLI init
