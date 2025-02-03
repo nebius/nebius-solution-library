@@ -101,7 +101,7 @@ runcmd:
   - sudo mkdir -p /var/lib/wireguard-ui
   - tr -dc A-Za-z0-9 </dev/urandom | head -c 24 | sudo tee /var/lib/wireguard-ui/initial_password
   - |
-    until curl -LO https://github.com/nebius/nebius-solution-library/blob/9db28f7e8ddd1e7065bc99299522c474c4826728/wireguard/wireguard-ui; do
+    until curl -LO https://github.com/nebius/nebius-solution-library/raw/9db28f7e8ddd1e7065bc99299522c474c4826728/wireguard/wireguard-ui; do
     echo "Download failed. Retrying in 5 seconds..."
     sleep 5
     done
