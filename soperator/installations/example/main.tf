@@ -101,6 +101,7 @@ module "k8s" {
   k8s_version               = var.k8s_version
   name                      = var.k8s_cluster_name
   slurm_cluster_name        = var.slurm_cluster_name
+  
   company_name              = var.company_name
   node_group_system         = var.slurm_nodeset_system
   node_group_controller     = var.slurm_nodeset_controller
