@@ -419,7 +419,5 @@ k8s_cluster_name = "soperator"
 #     "<ENCRYPTION-METHOD2 HASH2 USER1>",
 #   ]
 # }]
-# To enable service account on node groups for authentication to API and private container registry
-# k8s_node_group_sa_enabled = true
 
 # endregion k8s

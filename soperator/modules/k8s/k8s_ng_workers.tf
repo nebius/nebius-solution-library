@@ -96,8 +96,6 @@ resource "nebius_mk8s_v1_node_group" "worker" {
       block_size_bytes = provider::units::from_kib(var.node_group_workers[count.index].boot_disk.block_size_kibibytes)
     }
 
-    service_account_id = var.k8s_node_group_sa_enabled ? var.k8s_node_group_sa_id : null
-
     filesystems = concat(
       [
         {

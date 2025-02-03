@@ -102,8 +102,6 @@ module "k8s" {
   name                      = var.k8s_cluster_name
   slurm_cluster_name        = var.slurm_cluster_name
   company_name              = var.company_name
-  k8s_node_group_sa_id      = var.k8s_node_group_sa_id
-  k8s_node_group_sa_enabled = var.k8s_node_group_sa_enabled
   node_group_system         = var.slurm_nodeset_system
   node_group_controller     = var.slurm_nodeset_controller
   node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers :

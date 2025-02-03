@@ -34,17 +34,6 @@ data "nebius_vpc_v1_subnet" "this" {
   id = var.vpc_subnet_id
 }
 
-variable "k8s_node_group_sa_enabled" {
-  description = "Enable K8S Node Group Service Account"
-  type        = bool
-  default     = true
-}
-
-variable "k8s_node_group_sa_id" {
-  description = "Enable K8S Node Group Service Account"
-  type        = string
-}
-
 variable "company_name" {
   description = "Name of the company. It is used for context name of the cluster in .kubeconfig file."
   type        = string
@@ -222,11 +211,6 @@ variable "k8s_cluster_node_ssh_access_users" {
   default  = []
 }
 
-variable "enable-k8s-node-group-sa" {
-  description = "Enable K8S Node Group Service Account"
-  type        = bool
-  default     = true
-}
 # endregion k8s
 
 # endregion Infrastructure
