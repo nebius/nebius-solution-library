@@ -1,0 +1,172 @@
+users:
+  - name: ${ssh_user_name}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+packages:
+  - wireguard
+  - curl
+  - jq
+
+write_files:
+  - content: |
+      [Unit]
+      Description=Restart WireGuard
+      After=network.target
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/bin/systemctl restart wg-quick@wg0.service
+      [Install]
+      RequiredBy=wgui.path
+    path: /etc/systemd/system/wgui.service
+    permissions: "0400"
+    owner: root:root
+  - content: |
+      [Unit]
+      Description=Watch /etc/wireguard/wg0.conf for changes
+      [Path]
+      PathModified=/etc/wireguard/wg0.conf
+      [Install]
+      WantedBy=multi-user.target
+    path: /etc/systemd/system/wgui.path
+    permissions: "0400"
+    owner: root:root
+  - content: |
+      [Unit]
+      Description=wgui server.
+      After=network.target
+      Wants=network-online.target systemd-networkd-wait-online.service
+
+      [Service]
+      ExecStart=/opt/wireguard-ui
+      Restart=on-abnormal
+      User=root
+      Group=root
+      WorkingDirectory=/var/lib/wireguard-ui
+      Environment="WGUI_PASSWORD_FILE=/var/lib/wireguard-ui/initial_password"
+      Environment="WGUI_LOG_LEVEL=DEBUG"
+
+      [Install]
+      WantedBy=multi-user.target
+    path: /etc/systemd/system/wgui_server.service
+    permissions: "0400"
+    owner: root:root
+  - content: ${jsonencode(sa_private_key)}
+    path: /root/.ssh/sa_private_key.pem
+    permissions: "0400"
+    owner: root:root
+  - content: |
+      AllowUsers ${ssh_user_name}
+      AllowUsers bastion
+      AllowTcpForwarding yes
+      PermitTunnel yes
+      GatewayPorts yes
+      PermitRootLogin no
+      Banner none
+    path: /etc/ssh/sshd_config.d/65-bastion-settings.conf
+    permissions: "644"
+    owner: root:root
+  - content: |
+      #!/bin/bash
+      cat <<'EOF'
+
+       	██╗    ██╗███████╗██████╗ ██╗██╗   ██╗███████╗
+      	████╗  ██║██╔════╝██╔══██╗██║██║   ██║██╔════╝
+      	██╔██╗ ██║█████╗  ██████╔╝██║██║   ██║███████╗
+      	██║╚██╗██║██╔══╝  ██╔══██╗██║██║   ██║╚════██║
+      	██║ ╚████║███████╗██████╔╝██║╚╗████╔╝ ███████║
+      	╚═╝  ╚═══╝╚══════╝╚═════╝ ╚═╝ ╚════╝  ╚══════╝
+      EOF
+    path: /etc/update-motd.d/01-nebius
+    permissions: "0755"
+    owner: root:root
+
+runcmd:
+  - echo "### Install Nebius CLI" >> /tmp/csa-install.log 2>&1
+  - su - ${ssh_user_name} -c 'export HOME=/home/${ssh_user_name}' >> /tmp/csa-install.log 2>&1
+  - su - ${ssh_user_name} -c 'curl -sSL https://storage.eu-north1.nebius.cloud/cli/install.sh | bash' >> /tmp/csa-install.log 2>&1
+  - su - ${ssh_user_name} -c 'source "/home/${ssh_user_name}/.bashrc"' >> /tmp/csa-install.log 2>&1
+  
+  - echo "### Copy SA key to bastion user" >> /tmp/csa-install.log 2>&1
+  - sudo cp /root/.ssh/sa_private_key.pem /home/${ssh_user_name}/.ssh/sa_private_key.pem >> /tmp/csa-install.log 2>&1
+  - sudo chown ${ssh_user_name}:${ssh_user_name} /home/${ssh_user_name}/.ssh/sa_private_key.pem >> /tmp/csa-install.log 2>&1
+
+  - echo "### Nebius CLI profile create" >> /tmp/csa-install.log 2>&1
+  - su - ${ssh_user_name} -c '/home/${ssh_user_name}/.nebius/bin/nebius profile create --endpoint api.eu.nebius.cloud --service-account-id ${service_account_id} --public-key-id ${sa_public_key_id} --private-key-file /home/${ssh_user_name}/.ssh/sa_private_key.pem --profile default --parent-id ${parent_id}' >> /tmp/csa-install.log 2>&1
+ 
+  - echo "### Install kubectl" >> /tmp/csa-install.log 2>&1
+  - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" >> /tmp/csa-install.log 2>&1
+  - install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl >> /tmp/csa-install.log 2>&1
+
+  - echo "### kubectl mk8s config" >> /tmp/csa-install.log 2>&1
+  - su - ${ssh_user_name} -c '/home/${ssh_user_name}/.nebius/bin/nebius mk8s v1 cluster list --parent-id ${parent_id} --format json | jq -r .items[0].metadata.id > /tmp/cluster.id'
+  - |
+    if ! grep -q "null" /tmp/cluster.id; then
+      su - ${ssh_user_name} -c '/home/${ssh_user_name}/.nebius/bin/nebius mk8s cluster get-credentials --id $(cat /tmp/cluster.id) --internal' >> /tmp/csa-install.log 2>&1
+    else
+      echo "Cluster ID is null. Skipping credential retrieval." >> /tmp/csa-install.log
+    fi
+    
+  # Creating keys
+  - wg genkey | sudo tee /etc/wireguard/private.key
+  - sudo chmod go= /etc/wireguard/private.key
+  - sudo cat /etc/wireguard/private.key | wg pubkey | sudo tee /etc/wireguard/public.key
+
+  # Creating wg0.conf file
+  - export PRIVATE_KEY=$(sudo cat /etc/wireguard/private.key)
+  - export INTERFACE=$(ip route list default | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}')
+  - |
+    sudo tee /etc/wireguard/wg0.conf <<EOF
+    [Interface]
+    PrivateKey = $PRIVATE_KEY
+    Address = 10.8.0.1/24
+    ListenPort = 51820
+    SaveConfig = true
+
+    PostUp = ufw route allow in on wg0 out on $INTERFACE
+    PostUp = iptables -t nat -I POSTROUTING -o $INTERFACE -j MASQUERADE
+    PostUp = ip6tables -t nat -I POSTROUTING -o $INTERFACE -j MASQUERADE
+    PreDown = ufw route delete allow in on wg0 out on $INTERFACE
+    PreDown = iptables -t nat -D POSTROUTING -o $INTERFACE -j MASQUERADE
+    PreDown = ip6tables -t nat -D POSTROUTING -o $INTERFACE -j MASQUERADE
+    EOF
+
+  # Configuring network
+  - |
+    sudo tee -a /etc/sysctl.conf <<EOF
+    net.ipv4.ip_forward=1
+    net.ipv6.conf.all.forwarding=1
+    EOF
+  - sudo sysctl -p
+
+  # Configuring firewall
+  - sudo ufw allow 51820/udp
+  - sudo ufw allow 5000/tcp
+  - sudo ufw allow OpenSSH
+  - sudo ufw disable
+  - sudo ufw enable
+
+  # Starting WireGuard
+  - sudo systemctl enable wg-quick@wg0.service
+  - sudo systemctl start wg-quick@wg0.service
+
+  # Preparing wireguard-ui
+  - sudo mkdir -p /var/lib/wireguard-ui
+  - tr -dc A-Za-z0-9 </dev/urandom | head -c 24 | sudo tee /var/lib/wireguard-ui/initial_password
+  - |
+    until curl -LO https://github.com/nebius/nebius-solution-library/blob/9db28f7e8ddd1e7065bc99299522c474c4826728/wireguard/wireguard-ui; do
+    echo "Download failed. Retrying in 5 seconds..."
+    sleep 5
+    done
+  - sudo mv ./wireguard-ui /opt/wireguard-ui
+  - sudo chmod +x /opt/wireguard-ui
+  - sudo systemctl daemon-reload
+  - sudo systemctl enable wgui.path
+  - sudo systemctl enable wgui.service
+  - sudo systemctl start wgui.path
+  - sudo systemctl start wgui.service
+  - sudo systemctl enable wgui_server.service
+  - sudo systemctl start wgui_server.service

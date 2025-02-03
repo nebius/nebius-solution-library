@@ -134,6 +134,16 @@ resource "helm_release" "slurm_operator" {
   }
 
   set {
+    name  = "controllerManager.kubeRbacProxy.image.repository"
+    value = local.kube_rbac_proxy.image
+  }
+
+  set {
+    name  = "controllerManager.kubeRbacProxy.image.tag"
+    value = local.kube_rbac_proxy.tag
+  }
+
+  set {
     name  = "certManager.enabled"
     value = var.telemetry_enabled
   }

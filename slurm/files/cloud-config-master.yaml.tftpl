@@ -18,6 +18,7 @@ packages:
   %{~ endif ~}
 
 runcmd:
+  - hostname slurm-master
   - mkdir -p /home/slurm
   - chmod 700 /home/slurm
   - cp /home/ubuntu/.bashrc /home/slurm/
