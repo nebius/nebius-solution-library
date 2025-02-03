@@ -1,9 +1,4 @@
 # Global
-variable "tenant_id" {
-  description = "Tenant ID."
-  type        = string
-}
-
 variable "parent_id" {
   description = "Project ID."
   type        = string
@@ -187,12 +182,6 @@ variable "gpu_nodes_assign_public_ip" {
   description = "Assign public IP address to GPU nodes to make them directly accessible from the external internet."
   type        = bool
   default     = false
-}
-
-variable "enable_k8s_node_group_sa" {
-  description = "Enable K8S Node Group Service Account"
-  type        = bool
-  default     = true
 }
 
 # Observability
