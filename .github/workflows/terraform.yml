@@ -31,6 +31,7 @@ jobs:
           - name: k8s-inference
           - name: k8s-training
           - name: wireguard
+          - name: dsvm
           - name: bastion
 
     defaults:
