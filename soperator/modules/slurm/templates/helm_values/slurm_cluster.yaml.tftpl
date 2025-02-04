@@ -1,5 +1,7 @@
 clusterName: ${name}
 clusterType: ${ nodes.worker.resources.gpus > 0 ? "gpu" : "cpu" }
+useDefaultAppArmorProfile: ${useDefaultAppArmorProfile}
+maintenance: ${maintenance}
 
 partitionConfiguration:
   configType: ${partition_configuration.slurm_config_type}
@@ -116,6 +118,13 @@ volumeSources:
       server: ${nfs.host}
   %{~ endif ~}
 
+  %{~ if telemetry.enabled ~}
+  - name: motd-nebius-o11y
+    configMap:
+      name: motd-nebius-o11y
+      defaultMode: 500
+  %{~ endif ~}
+
   %{~ for sub_mount in jail_submounts ~}
   - name: jail-submount-${sub_mount.name}
     persistentVolumeClaim:
@@ -209,6 +218,7 @@ slurmNodes:
     cgroupVersion: v2
     enableGDRCopy: true
     slurmNodeExtra: "${nodes.worker.slurm_node_extra}"
+    sshdConfigMapRefName: "${nodes.worker.sshd_config_map_ref_name}"
     supervisordConfigMapRefName: custom-supervisord-config
     slurmd:
       resources:
@@ -252,6 +262,7 @@ slurmNodes:
     sshdServiceNodePort: ${nodes.login.node_port}
     %{~ endif ~}
     %{~ if length(nodes.login.root_public_keys) > 0 ~}
+    sshdConfigMapRefName: "${nodes.login.sshd_config_map_ref_name}"
     sshRootPublicKeys:
       %{~ for key in nodes.login.root_public_keys ~}
       - ${key}
@@ -274,6 +285,13 @@ slurmNodes:
         - mountPath: ${nfs.mount_path}
           name: nfs
           volumeSourceName: nfs
+        %{~ endif ~}
+        %{~ if telemetry.enabled ~}
+        - mountPath: /etc/update-motd.d/95-nebius-o11y
+          subPath: 95-nebius-o11y
+          readOnly: true
+          name: motd-nebius-o11y
+          volumeSourceName: motd-nebius-o11y
         %{~ endif ~}
         %{~ for sub_mount in jail_submounts ~}
         - name: ${sub_mount.name}

@@ -41,6 +41,80 @@ resources:
           "liveNow": false,
           "panels": [
             {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "fillOpacity": 70,
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineWidth": 1,
+                    "spanNulls": false
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 5,
+                "w": 24,
+                "x": 0,
+                "y": 0
+              },
+              "id": 324,
+              "options": {
+                "alignValue": "left",
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "mergeValues": true,
+                "rowHeight": 1,
+                "showValue": "never",
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.1.0",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                  },
+                  "editorMode": "code",
+                  "expr": "group by (node) (kube_pod_info{pod=\"$worker\",node!=\"\"})",
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Slurm Node Placement History",
+              "type": "state-timeline"
+            },
+            {
               "collapsed": false,
               "datasource": {
                 "type": "prometheus",
@@ -50,7 +124,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 0
+                "y": 5
               },
               "id": 261,
               "panels": [],
@@ -107,7 +181,7 @@ resources:
                 "h": 4,
                 "w": 3,
                 "x": 0,
-                "y": 1
+                "y": 6
               },
               "id": 323,
               "options": {
@@ -235,7 +309,7 @@ resources:
                 "h": 4,
                 "w": 3,
                 "x": 3,
-                "y": 1
+                "y": 6
               },
               "id": 20,
               "options": {
@@ -325,7 +399,7 @@ resources:
                 "h": 4,
                 "w": 3,
                 "x": 6,
-                "y": 1
+                "y": 6
               },
               "id": 155,
               "options": {
@@ -405,7 +479,7 @@ resources:
                 "h": 4,
                 "w": 3,
                 "x": 9,
-                "y": 1
+                "y": 6
               },
               "hideTimeOverride": false,
               "id": 16,
@@ -512,7 +586,7 @@ resources:
                 "h": 4,
                 "w": 3,
                 "x": 12,
-                "y": 1
+                "y": 6
               },
               "id": 21,
               "options": {
@@ -600,7 +674,7 @@ resources:
                 "h": 4,
                 "w": 3,
                 "x": 15,
-                "y": 1
+                "y": 6
               },
               "id": 154,
               "options": {
@@ -682,7 +756,7 @@ resources:
                 "h": 2,
                 "w": 2,
                 "x": 18,
-                "y": 1
+                "y": 6
               },
               "id": 14,
               "maxDataPoints": 100,
@@ -766,7 +840,7 @@ resources:
                 "h": 2,
                 "w": 4,
                 "x": 20,
-                "y": 1
+                "y": 6
               },
               "hideTimeOverride": true,
               "id": 15,
@@ -856,7 +930,7 @@ resources:
                 "h": 2,
                 "w": 2,
                 "x": 18,
-                "y": 3
+                "y": 8
               },
               "id": 23,
               "maxDataPoints": 100,
@@ -943,7 +1017,7 @@ resources:
                 "h": 2,
                 "w": 2,
                 "x": 20,
-                "y": 3
+                "y": 8
               },
               "id": 75,
               "maxDataPoints": 100,
@@ -1028,7 +1102,7 @@ resources:
                 "h": 2,
                 "w": 2,
                 "x": 22,
-                "y": 3
+                "y": 8
               },
               "id": 18,
               "maxDataPoints": 100,
@@ -1079,7 +1153,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 5
+                "y": 10
               },
               "id": 263,
               "panels": [],
@@ -1268,7 +1342,7 @@ resources:
                 "h": 7,
                 "w": 12,
                 "x": 0,
-                "y": 6
+                "y": 11
               },
               "id": 77,
               "options": {
@@ -1813,7 +1887,7 @@ resources:
                 "h": 7,
                 "w": 12,
                 "x": 12,
-                "y": 6
+                "y": 11
               },
               "id": 78,
               "options": {
@@ -2321,7 +2395,7 @@ resources:
                 "h": 7,
                 "w": 12,
                 "x": 0,
-                "y": 13
+                "y": 18
               },
               "id": 74,
               "options": {
@@ -2434,7 +2508,7 @@ resources:
                 "h": 7,
                 "w": 12,
                 "x": 12,
-                "y": 13
+                "y": 18
               },
               "id": 152,
               "options": {
@@ -2477,7 +2551,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 20
+                "y": 25
               },
               "id": 265,
               "panels": [],
@@ -2680,7 +2754,7 @@ resources:
                 "h": 12,
                 "w": 12,
                 "x": 0,
-                "y": 21
+                "y": 26
               },
               "id": 3,
               "options": {
@@ -3188,7 +3262,7 @@ resources:
                 "h": 12,
                 "w": 12,
                 "x": 12,
-                "y": 21
+                "y": 26
               },
               "id": 24,
               "options": {
@@ -3468,7 +3542,7 @@ resources:
                 "h": 12,
                 "w": 12,
                 "x": 0,
-                "y": 33
+                "y": 38
               },
               "id": 84,
               "options": {
@@ -3584,7 +3658,7 @@ resources:
                 "h": 12,
                 "w": 12,
                 "x": 12,
-                "y": 33
+                "y": 38
               },
               "id": 156,
               "options": {
@@ -4015,7 +4089,7 @@ resources:
                 "h": 12,
                 "w": 12,
                 "x": 0,
-                "y": 45
+                "y": 50
               },
               "id": 229,
               "options": {
@@ -4243,7 +4317,7 @@ resources:
                 "h": 12,
                 "w": 12,
                 "x": 12,
-                "y": 45
+                "y": 50
               },
               "id": 42,
               "options": {
@@ -4389,7 +4463,7 @@ resources:
                 "h": 12,
                 "w": 12,
                 "x": 0,
-                "y": 57
+                "y": 62
               },
               "id": 127,
               "options": {
@@ -4524,7 +4598,7 @@ resources:
                 "h": 12,
                 "w": 12,
                 "x": 12,
-                "y": 57
+                "y": 62
               },
               "id": 319,
               "options": {
@@ -4583,7 +4657,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 69
+                "y": 74
               },
               "id": 266,
               "panels": [],
@@ -4920,7 +4994,7 @@ resources:
                 "h": 10,
                 "w": 12,
                 "x": 0,
-                "y": 70
+                "y": 75
               },
               "id": 136,
               "options": {
@@ -5311,7 +5385,7 @@ resources:
                 "h": 10,
                 "w": 12,
                 "x": 12,
-                "y": 70
+                "y": 75
               },
               "id": 135,
               "options": {
@@ -5683,7 +5757,7 @@ resources:
                 "h": 10,
                 "w": 12,
                 "x": 0,
-                "y": 80
+                "y": 85
               },
               "id": 191,
               "options": {
@@ -6113,7 +6187,7 @@ resources:
                 "h": 10,
                 "w": 12,
                 "x": 12,
-                "y": 80
+                "y": 85
               },
               "id": 130,
               "options": {
@@ -6520,7 +6594,7 @@ resources:
                 "h": 10,
                 "w": 12,
                 "x": 0,
-                "y": 90
+                "y": 95
               },
               "id": 138,
               "options": {
@@ -6918,7 +6992,7 @@ resources:
                 "h": 10,
                 "w": 12,
                 "x": 12,
-                "y": 90
+                "y": 95
               },
               "id": 160,
               "options": {
@@ -7306,7 +7380,7 @@ resources:
                 "h": 10,
                 "w": 12,
                 "x": 0,
-                "y": 100
+                "y": 105
               },
               "id": 70,
               "options": {
@@ -7719,7 +7793,7 @@ resources:
                 "h": 10,
                 "w": 12,
                 "x": 12,
-                "y": 100
+                "y": 105
               },
               "id": 129,
               "options": {
@@ -8120,7 +8194,7 @@ resources:
                 "h": 10,
                 "w": 12,
                 "x": 0,
-                "y": 110
+                "y": 115
               },
               "id": 132,
               "options": {
@@ -8168,7 +8242,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 120
+                "y": 125
               },
               "id": 267,
               "panels": [
@@ -8247,7 +8321,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 41
+                    "y": 49
                   },
                   "id": 176,
                   "links": [],
@@ -8373,7 +8447,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 41
+                    "y": 49
                   },
                   "id": 22,
                   "links": [],
@@ -8762,7 +8836,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 51
+                    "y": 59
                   },
                   "id": 175,
                   "links": [],
@@ -9175,7 +9249,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 51
+                    "y": 59
                   },
                   "id": 307,
                   "links": [],
@@ -9238,7 +9312,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 121
+                "y": 126
               },
               "id": 293,
               "panels": [
@@ -9321,7 +9395,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 24
+                    "y": 32
                   },
                   "id": 260,
                   "links": [],
@@ -9453,7 +9527,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 24
+                    "y": 32
                   },
                   "id": 291,
                   "links": [],
@@ -9572,7 +9646,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 34
+                    "y": 42
                   },
                   "id": 168,
                   "links": [],
@@ -9688,7 +9762,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 34
+                    "y": 42
                   },
                   "id": 294,
                   "links": [],
@@ -9764,7 +9838,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 122
+                "y": 127
               },
               "id": 269,
               "panels": [
@@ -9831,7 +9905,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 26
+                    "y": 34
                   },
                   "id": 8,
                   "links": [],
@@ -9946,7 +10020,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 26
+                    "y": 34
                   },
                   "id": 7,
                   "links": [],
@@ -10146,7 +10220,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 36
+                    "y": 44
                   },
                   "id": 321,
                   "links": [],
@@ -10346,7 +10420,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 36
+                    "y": 44
                   },
                   "id": 322,
                   "links": [],
@@ -10550,7 +10624,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 46
+                    "y": 54
                   },
                   "id": 259,
                   "links": [],
@@ -10652,7 +10726,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 46
+                    "y": 54
                   },
                   "id": 306,
                   "links": [],
@@ -10755,7 +10829,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 56
+                    "y": 64
                   },
                   "id": 151,
                   "links": [],
@@ -10856,7 +10930,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 56
+                    "y": 64
                   },
                   "id": 308,
                   "links": [],
@@ -10979,7 +11053,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 66
+                    "y": 74
                   },
                   "id": 64,
                   "links": [],
@@ -11053,7 +11127,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 123
+                "y": 128
               },
               "id": 304,
               "panels": [
@@ -11159,7 +11233,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 59
+                    "y": 67
                   },
                   "id": 158,
                   "links": [],
@@ -11336,7 +11410,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 59
+                    "y": 67
                   },
                   "id": 300,
                   "links": [],
@@ -11452,7 +11526,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 69
+                    "y": 77
                   },
                   "id": 302,
                   "links": [],
@@ -11516,7 +11590,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 124
+                "y": 129
               },
               "id": 296,
               "panels": [
@@ -11583,7 +11657,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 46
+                    "y": 54
                   },
                   "id": 297,
                   "links": [],
@@ -11761,7 +11835,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 46
+                    "y": 54
                   },
                   "id": 298,
                   "links": [],
@@ -11876,7 +11950,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 125
+                "y": 130
               },
               "id": 270,
               "panels": [
@@ -12256,7 +12330,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 47
+                    "y": 55
                   },
                   "id": 9,
                   "links": [],
@@ -12681,7 +12755,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 47
+                    "y": 55
                   },
                   "id": 33,
                   "links": [],
@@ -13108,7 +13182,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 57
+                    "y": 65
                   },
                   "id": 37,
                   "links": [],
@@ -13526,7 +13600,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 57
+                    "y": 65
                   },
                   "id": 35,
                   "links": [],
@@ -13941,7 +14015,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 67
+                    "y": 75
                   },
                   "id": 133,
                   "links": [],
@@ -14355,7 +14429,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 67
+                    "y": 75
                   },
                   "id": 36,
                   "links": [],
@@ -14771,7 +14845,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 77
+                    "y": 85
                   },
                   "id": 34,
                   "links": [],
@@ -15174,7 +15248,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 77
+                    "y": 85
                   },
                   "id": 301,
                   "links": [],
@@ -15248,7 +15322,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 126
+                "y": 131
               },
               "id": 271,
               "panels": [
@@ -15316,7 +15390,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 62
+                    "y": 70
                   },
                   "id": 43,
                   "links": [],
@@ -15447,7 +15521,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 62
+                    "y": 70
                   },
                   "id": 41,
                   "links": [],
@@ -15551,7 +15625,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 72
+                    "y": 80
                   },
                   "id": 28,
                   "links": [],
@@ -15666,7 +15740,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 72
+                    "y": 80
                   },
                   "id": 219,
                   "links": [],
@@ -15787,7 +15861,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 82
+                    "y": 90
                   },
                   "id": 44,
                   "links": [],
@@ -15862,7 +15936,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 127
+                "y": 132
               },
               "id": 272,
               "panels": [
@@ -16003,7 +16077,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 31
+                    "y": 39
                   },
                   "id": 60,
                   "options": {
@@ -16133,7 +16207,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 31
+                    "y": 39
                   },
                   "id": 142,
                   "options": {
@@ -16261,7 +16335,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 41
+                    "y": 49
                   },
                   "id": 143,
                   "options": {
@@ -16397,7 +16471,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 41
+                    "y": 49
                   },
                   "id": 61,
                   "options": {
@@ -16513,7 +16587,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 51
+                    "y": 59
                   },
                   "id": 280,
                   "options": {
@@ -16615,7 +16689,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 51
+                    "y": 59
                   },
                   "id": 309,
                   "options": {
@@ -16688,7 +16762,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 128
+                "y": 133
               },
               "id": 274,
               "panels": [
@@ -16781,7 +16855,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 32
+                    "y": 40
                   },
                   "id": 55,
                   "options": {
@@ -16897,7 +16971,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 32
+                    "y": 40
                   },
                   "id": 109,
                   "options": {
@@ -17074,7 +17148,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 42
+                    "y": 50
                   },
                   "id": 299,
                   "options": {
@@ -17193,7 +17267,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 42
+                    "y": 50
                   },
                   "id": 104,
                   "options": {
@@ -17401,7 +17475,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 52
+                    "y": 60
                   },
                   "id": 85,
                   "options": {
@@ -17520,7 +17594,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 52
+                    "y": 60
                   },
                   "id": 82,
                   "options": {
@@ -17595,7 +17669,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 129
+                "y": 134
               },
               "id": 279,
               "panels": [
@@ -17662,7 +17736,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 66
+                    "y": 74
                   },
                   "id": 40,
                   "links": [],
@@ -17789,7 +17863,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 66
+                    "y": 74
                   },
                   "id": 157,
                   "links": [],
@@ -17872,10 +17946,36 @@ resources:
                   "type": "prometheus",
                   "uid": "prometheus"
                 },
-                "definition": "label_values(kube_pod_info{pod=\"$worker\"},node)",
-                "hide": 2,
+                "definition": "label_values(kube_pod_info,pod)",
+                "hide": 0,
                 "includeAll": false,
-                "label": "",
+                "label": "worker",
+                "multi": false,
+                "name": "worker",
+                "options": [],
+                "query": {
+                  "qryType": 1,
+                  "query": "label_values(kube_pod_info,pod)",
+                  "refId": "PrometheusVariableQueryEditor-VariableQuery"
+                },
+                "refresh": 1,
+                "regex": "^worker.*",
+                "skipUrlSync": false,
+                "sort": 0,
+                "type": "query"
+              },
+              {
+                "current": {
+                  "selected": false
+                },
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "definition": "label_values(kube_pod_info{pod=\"$worker\"},node)",
+                "hide": 0,
+                "includeAll": false,
+                "label": "instance",
                 "multi": false,
                 "name": "node",
                 "options": [],
@@ -17935,34 +18035,6 @@ resources:
                 },
                 "refresh": 1,
                 "regex": "",
-                "skipUrlSync": false,
-                "sort": 0,
-                "type": "query"
-              },
-              {
-                "current": {
-                  "selected": false,
-                  "text": "worker-0",
-                  "value": "worker-0"
-                },
-                "datasource": {
-                  "type": "prometheus",
-                  "uid": "prometheus"
-                },
-                "definition": "label_values(kube_pod_info,pod)",
-                "hide": 0,
-                "includeAll": false,
-                "label": "worker",
-                "multi": false,
-                "name": "worker",
-                "options": [],
-                "query": {
-                  "qryType": 1,
-                  "query": "label_values(kube_pod_info,pod)",
-                  "refId": "PrometheusVariableQueryEditor-VariableQuery"
-                },
-                "refresh": 1,
-                "regex": "^worker.*",
                 "skipUrlSync": false,
                 "sort": 0,
                 "type": "query"
