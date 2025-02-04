@@ -49,24 +49,28 @@
 
 To deploy a Kubernetes cluster, follow these steps:
 
-1. Load environment variables:
+1. Configure `NEBIUS_TENANT_ID`, `NEBIUS_PROJECT_ID` and `NEBIUS_REGION` in environment.sh.
+
+2. Load environment variables:
    ```bash
    source ./environment.sh
    ```
-2. Initialize Terraform:
+
+3. Initialize Terraform:
    ```bash
    terraform init
    ```
 
-3. Replace the placeholder content
+4. Replace the placeholder content
    in `terraform.tfvars` with configuration values that meet your specific
    requirements. See the details [below](#configuration-variables).
 
-4. Preview the deployment plan:
+5. Preview the deployment plan:
    ```bash
    terraform plan
    ```
-5. Apply the configuration:
+
+6. Apply the configuration:
    ```bash
    terraform apply
    ```
@@ -78,17 +82,14 @@ These are the basic configurations required to deploy Kubernetes for training in
 
 Additional configurable variables can be found in the `variables.tf` file.
 
-### Environment and network variables
+### SSH configuration
 
 ```hcl
-# Cloud environment and network
-parent_id      = "" # The project-id in this context
-subnet_id      = "" # Run the `nebius vpc v1alpha1 network list` command to see the subnet id
-region         = "" # The project region
+# SSH config
 ssh_user_name  = "" # Username you want to use to connect to the nodes
 ssh_public_key = {
   key  = "Enter your public SSH key here" OR
-  path = "Enter the path to your SSH key here"
+  path = "Enter the path to your public SSH key here"
 }
 ```
 
