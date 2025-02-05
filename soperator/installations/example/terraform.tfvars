@@ -350,6 +350,24 @@ accounting_enabled = true
 
 # endregion Accounting
 
+#----------------------------------------------------------------------------------------------------------------------#
+#                                                                                                                      #
+#                                                       Backups                                                        #
+#                                                                                                                      #
+#----------------------------------------------------------------------------------------------------------------------#
+# region Backups
+
+# Whether to enable Backups.
+# By default, false.
+# ---
+backups_enabled = false
+
+# Password to be used for encrypting jail backups.
+# ---
+backups_password = "password"
+
+# endregion Backups
+
 # endregion Slurm
 
 #----------------------------------------------------------------------------------------------------------------------#

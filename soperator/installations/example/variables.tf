@@ -48,6 +48,19 @@ data "nebius_vpc_v1_subnet" "this" {
   id = var.vpc_subnet_id
 }
 
+variable "aws_access_key_id" {
+  description = "AWS-like access key ID of the TF SA."
+  type        = string
+  nullable    = false
+}
+
+variable "aws_secret_access_key" {
+  description = "AWS-like secret access key of the TF SA."
+  type        = string
+  nullable    = false
+  sensitive   = true
+}
+
 variable "company_name" {
   description = "Name of the company. It is used for naming Slurm & K8s clusters."
   type        = string
@@ -246,6 +259,12 @@ variable "slurm_operator_version" {
   description = "Version of soperator."
   type        = string
   nullable    = false
+}
+
+variable "slurm_operator_stable" {
+  description = "Is the version of soperator stable."
+  type        = bool
+  default    = true
 }
 
 # region PartitionConfiguration
@@ -626,6 +645,23 @@ variable "slurm_accounting_config" {
 }
 
 # endregion Accounting
+
+# region Backups
+
+variable "backups_enabled" {
+  description = "Whether to enable jail backups."
+  type        = bool
+  default     = false
+}
+
+variable "backups_password" {
+  description = "Password for encrypting jail backups."
+  type        = string
+  nullable    = false
+  sensitive   = true
+}
+
+# endregion Backups
 
 # region Apparmor
 variable "use_default_apparmor_profile" {
