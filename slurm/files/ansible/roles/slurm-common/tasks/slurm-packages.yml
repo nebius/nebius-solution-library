@@ -1,9 +1,0 @@
-- name: Install slurm common packages
-  apt:
-    deb: "{{ item }}"
-  with_items:
-    - https://github.com/nebius/slurm-deb-packages/releases/download/{{ SLURM_BINARIES }}{{ SLURM_VERSION }}/slurm-smd_{{ SLURM_VERSION }}-1_amd64.deb
-    - https://github.com/nebius/slurm-deb-packages/releases/download/{{ SLURM_BINARIES }}{{ SLURM_VERSION }}/slurm-smd-slurmdbd_{{ SLURM_VERSION }}-1_amd64.deb
-    - https://github.com/nebius/slurm-deb-packages/releases/download/{{ SLURM_BINARIES }}{{ SLURM_VERSION }}/slurm-smd-client_{{ SLURM_VERSION }}-1_amd64.deb
-    - https://github.com/nebius/slurm-deb-packages/releases/download/{{ SLURM_BINARIES }}{{ SLURM_VERSION }}/slurm-smd-dev_{{ SLURM_VERSION }}-1_amd64.deb
-  register: slurm_common_packages
