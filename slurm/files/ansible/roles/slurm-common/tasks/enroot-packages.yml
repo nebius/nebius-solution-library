@@ -1,6 +1,0 @@
-- name: Install enroot packages
-  apt:
-    deb: "{{ item }}"
-  with_items:
-    - https://github.com/NVIDIA/enroot/releases/download/v{{ENROOT_VERSION}}/enroot_{{ENROOT_VERSION}}-1_amd64.deb
-    - https://github.com/NVIDIA/enroot/releases/download/v{{ENROOT_VERSION}}/enroot+caps_{{ENROOT_VERSION}}-1_amd64.deb

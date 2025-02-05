@@ -1,7 +1,0 @@
-- include_tasks: packages.yml
-- include_tasks: slurm-packages.yml
-- include_tasks: enroot-packages.yml
-- include_tasks: pyxis.yml
-- include_tasks: pmix.yml
-- include_tasks: files.yml
-- include_tasks: services.yml
