@@ -108,6 +108,7 @@ module "nfs-server" {
 module "k8s" {
   depends_on = [
     module.filestore,
+    module.nfs-server,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_slurm_nodeset,
   ]
