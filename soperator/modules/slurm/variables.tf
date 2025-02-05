@@ -283,7 +283,7 @@ variable "mariadb_operator_namespace" {
 variable "accounting_enabled" {
   description = "Whether to enable accounting."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "use_protected_secret" {
