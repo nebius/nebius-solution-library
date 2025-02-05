@@ -124,6 +124,10 @@ nfs = {
 # ---
 slurm_operator_version = "1.17.0"
 
+# Is the version of soperator stable or not.
+# ---
+slurm_operator_stable = true
+
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".
 # ---

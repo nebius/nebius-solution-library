@@ -215,6 +215,7 @@ module "slurm" {
 
   name                         = local.slurm_cluster_name
   operator_version             = var.slurm_operator_version
+  operator_stable              = var.slurm_operator_stable
   k8s_cluster_context          = module.k8s.cluster_context
   maintenance                  = var.maintenance
   use_default_apparmor_profile = var.use_default_apparmor_profile
