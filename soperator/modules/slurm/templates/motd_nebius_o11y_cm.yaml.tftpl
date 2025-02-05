@@ -10,6 +10,11 @@ resources:
         printf "\nTo open monitoring dashboards in your browser:\n"
         printf "  1. Execute this command on your local computer:\n"
         printf "     \`ssh -L 3000:prometheus-stack-grafana.monitoring-system.svc:80 -N <USER>@<LOGIN_IP>\`\n"
-        printf "  2. Open \`localhost:3000\` in your browser\n\n"
+        printf "  2. Open \`localhost:3000\` in your browser\n"
 
-        # TODO: Mention FluentBit logs here when they are fixed
+        printf "\nTo open logs explorer in your browser:\n"
+        printf "  1. Execute this command on your local computer:\n"
+        printf "     \`ssh -L 9428:vm-logs-server.logs-system.svc:9428 -N <USER>@<LOGIN_IP>\`\n"
+        printf "  2. Open \`localhost:9428/select/vmui\` in your browser\n"
+
+        printf "\n"
