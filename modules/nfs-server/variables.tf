@@ -78,3 +78,9 @@ variable "nfs_device_label" {
   description = "device label to use later as device ID"
   default     = "nfs-disk"
 }
+
+variable "nfs_disk_name_suffix" {
+  type        = string
+  description = "Name suffix to be able to create several NFS disks in the same parent"
+  default     = ""
+}
