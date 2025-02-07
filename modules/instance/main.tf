@@ -42,7 +42,7 @@ resource "nebius_compute_v1_instance" "instance" {
 
   secondary_disks = var.add_extra_storage ? [
     {
-      attach_mode   = "READ_WRITE"
+      attach_mode = "READ_WRITE"
       existing_disk = {
         id = nebius_compute_v1_disk.extra-storage-disk[0].id
       }
@@ -61,15 +61,15 @@ resource "nebius_compute_v1_instance" "instance" {
 
 
   cloud_init_user_data = templatefile("../modules/cloud-init/simple-setup-init.tftpl", {
-    users = local.users,
-    extra_path       = local.extra_path,
-    extra_disk_id    = local.extra_disk_id,
-    shared_filesystem_id = var.shared_filesystem_id,
+    users                   = local.users,
+    extra_path              = local.extra_path,
+    extra_disk_id           = local.extra_disk_id,
+    shared_filesystem_id    = var.shared_filesystem_id,
     shared_filesystem_mount = var.shared_filesystem_mount,
-    aws_access_key_id = var.aws_access_key_id,
-    aws_secret_access_key = var.aws_secret_access_key,
-    mount_bucket = var.mount_bucket,
-    s3_mount_path = var.s3_mount_path
+    aws_access_key_id       = var.aws_access_key_id,
+    aws_secret_access_key   = var.aws_secret_access_key,
+    mount_bucket            = var.mount_bucket,
+    s3_mount_path           = var.s3_mount_path
   })
 }
 

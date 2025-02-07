@@ -21,12 +21,12 @@ resource "nebius_compute_v1_instance" "bastion_instance" {
     preset   = "4vcpu-16gb"
   }
 
+  service_account_id = nebius_iam_v1_service_account.bastion-sa.id
+
   cloud_init_user_data = templatefile("../modules/cloud-init/bastion-cloud-init.tftpl", {
     ssh_user_name      = var.ssh_user_name
     ssh_public_key     = local.ssh_public_key
-    sa_private_key     = local.sa_private_key
     parent_id          = var.parent_id
-    sa_public_key_id   = local.sa_public_key_id
     service_account_id = local.service_account_id
   })
 }

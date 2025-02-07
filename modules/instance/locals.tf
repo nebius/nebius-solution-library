@@ -1,11 +1,11 @@
 locals {
 
   users = [
-    for user in var.users: {
+    for user in var.users : {
       user_name = user.user_name
       ssh_public_key = user.ssh_public_key != null ? user.ssh_public_key : (
-        fileexists(user.ssh_key_path) ? file(user.ssh_key_path) : null)
-      }
+      fileexists(user.ssh_key_path) ? file(user.ssh_key_path) : null)
+    }
   ]
 
   regions_default = {
@@ -30,13 +30,13 @@ locals {
   # gpu_nodes_platform = coalesce(var.gpu_nodes_platform, local.current_region_defaults.gpu_nodes_platform)
   # gpu_nodes_preset   = coalesce(var.gpu_nodes_preset, local.current_region_defaults.gpu_nodes_preset)
 
-  extra_path       = var.extra_path
-  extra_disk_id    = var.add_extra_storage ? substr(nebius_compute_v1_disk.extra-storage-disk[0].id, 0, 20) : ""
+  extra_path    = var.extra_path
+  extra_disk_id = var.add_extra_storage ? substr(nebius_compute_v1_disk.extra-storage-disk[0].id, 0, 20) : ""
 
 
   cloud_init_log = jsonencode({
-    extra_path       = local.extra_path
-    extra_disk_id    = local.extra_disk_id
+    extra_path    = local.extra_path
+    extra_disk_id = local.extra_disk_id
     state         = terraform.workspace
     users         = local.users
 

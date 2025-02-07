@@ -54,10 +54,6 @@ write_files:
     path: /etc/systemd/system/wgui_server.service
     permissions: "0400"
     owner: root:root
-  - content: ${jsonencode(sa_private_key)}
-    path: /root/.ssh/sa_private_key.pem
-    permissions: "0400"
-    owner: root:root
   - content: |
       AllowUsers ${ssh_user_name}
       AllowUsers bastion
@@ -90,13 +86,9 @@ runcmd:
   - su - ${ssh_user_name} -c 'curl -sSL https://storage.eu-north1.nebius.cloud/cli/install.sh | bash' >> /tmp/csa-install.log 2>&1
   - su - ${ssh_user_name} -c 'source "/home/${ssh_user_name}/.bashrc"' >> /tmp/csa-install.log 2>&1
   
-  - echo "### Copy SA key to bastion user" >> /tmp/csa-install.log 2>&1
-  - sudo cp /root/.ssh/sa_private_key.pem /home/${ssh_user_name}/.ssh/sa_private_key.pem >> /tmp/csa-install.log 2>&1
-  - sudo chown ${ssh_user_name}:${ssh_user_name} /home/${ssh_user_name}/.ssh/sa_private_key.pem >> /tmp/csa-install.log 2>&1
-
   - echo "### Nebius CLI profile create" >> /tmp/csa-install.log 2>&1
-  - su - ${ssh_user_name} -c '/home/${ssh_user_name}/.nebius/bin/nebius profile create --endpoint api.eu.nebius.cloud --service-account-id ${service_account_id} --public-key-id ${sa_public_key_id} --private-key-file /home/${ssh_user_name}/.ssh/sa_private_key.pem --profile default --parent-id ${parent_id}' >> /tmp/csa-install.log 2>&1
- 
+  - su - ${ssh_user_name} -c '/home/${ssh_user_name}/.nebius/bin/nebius profile create --endpoint api.eu.nebius.cloud --token-file /mnt/cloud-metadata/token --profile default --parent-id ${parent_id}' >> /tmp/csa-install.log 2>&1
+
   - echo "### Install kubectl" >> /tmp/csa-install.log 2>&1
   - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" >> /tmp/csa-install.log 2>&1
   - install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl >> /tmp/csa-install.log 2>&1
