@@ -106,6 +106,16 @@ resource "terraform_data" "check_worker_nodesets" {
 
 # endregion Resources
 
+# region Worker
+
+variable "worker_sshd_config_map_ref_name" {
+  description = "Name of configmap with SSHD config, which runs in slurmd container."
+  type        = string
+  default     = ""
+}
+
+# endregion Worker
+
 # region Login
 
 variable "login_service_type" {
@@ -123,6 +133,12 @@ variable "login_allocation_id" {
   type        = string
   nullable    = true
   default     = null
+}
+
+variable "login_sshd_config_map_ref_name" {
+  description = "Name of configmap with SSHD config, which runs in slurmd container."
+  type        = string
+  default     = ""
 }
 
 variable "login_ssh_root_public_keys" {
@@ -299,3 +315,26 @@ variable "slurm_accounting_config" {
 }
 
 # endregion Accounting
+
+# region Apparmor
+variable "use_default_apparmor_profile" {
+  description = "Whether to use default AppArmor profile."
+  type        = bool
+  default     = true
+}
+
+# endregion Apparmor
+
+# region Maintenance
+variable "maintenance" {
+  description = "Whether to enable maintenance mode."
+  type        = string
+  default     = "none"
+
+  validation {
+    condition     = contains(["downscaleAndDeletePopulateJail", "downscale", "none", "skipPopulateJail"], var.maintenance)
+    error_message = "The maintenance variable must be one of: downscaleAndDeletePopulateJail, downscale, none, skipPopulateJail."
+  }
+}
+
+# endregion Maintenance

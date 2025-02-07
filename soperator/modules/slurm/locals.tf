@@ -1,9 +1,14 @@
 locals {
+  kube_rbac_proxy = {
+    image = "gcr.io/kubebuilder/kube-rbac-proxy"
+    tag   = "v0.15.0"
+  }
   helm = {
     repository = {
       slurm   = "oci://cr.eu-north1.nebius.cloud/soperator${!var.operator_stable ? "-unstable" : ""}"
       mariadb = "https://helm.mariadb.com/mariadb-operator"
       raw     = "https://bedag.github.io/helm-charts/"
+      spo     = "oci://cr.eu-north1.nebius.cloud/e00xdc03sb7gpqfd0a"
     }
 
     chart = {
@@ -11,6 +16,7 @@ locals {
       slurm_cluster_storage = "slurm-cluster-storage"
       slurm_operator_crds   = "soperator-crds"
       raw                   = "raw"
+      spo                   = "security-profiles-operator"
 
       operator = {
         slurm   = "soperator"
@@ -22,6 +28,7 @@ locals {
       slurm   = var.operator_version
       mariadb = "0.31.0"
       raw     = "2.0.0"
+      spo     = "0.8.4-soperator"
     }
   }
 

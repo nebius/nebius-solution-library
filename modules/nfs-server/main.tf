@@ -23,6 +23,7 @@ resource "nebius_compute_v1_instance" "nfs_server" {
 
   secondary_disks = [
     {
+      device_id     = "nfs-disk" # hardcoded device-label
       attach_mode   = "READ_WRITE"
       existing_disk = nebius_compute_v1_disk.nfs-storage-disk
     }

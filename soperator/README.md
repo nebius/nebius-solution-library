@@ -132,7 +132,7 @@ Get the Slurm cluster IP address
 ```bash
 export SLURM_IP=$(terraform state show module.login_script.terraform_data.connection_ip | grep 'input' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n 1
 )
-ssh root@$SLURM_IP -i ~/.ssh/<public_id_rsa_key>  -p <node_port_if_not_default>
+ssh root@$SLURM_IP -i ~/.ssh/<private_id_rsa_key>  -p <node_port_if_not_default>
 ```
 
 or connect using the login script:

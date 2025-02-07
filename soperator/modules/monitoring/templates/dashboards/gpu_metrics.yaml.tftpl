@@ -32,6 +32,80 @@ resources:
           "links": [],
           "panels": [
             {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "fillOpacity": 70,
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineWidth": 1,
+                    "spanNulls": false
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 5,
+                "w": 24,
+                "x": 0,
+                "y": 0
+              },
+              "id": 324,
+              "options": {
+                "alignValue": "left",
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "mergeValues": true,
+                "rowHeight": 1,
+                "showValue": "never",
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.1.0",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                  },
+                  "editorMode": "code",
+                  "expr": "group by (node) (kube_pod_info{pod=\"$worker\",node!=\"\"})",
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Slurm Node Placement History",
+              "type": "state-timeline"
+            },
+            {
               "collapsed": false,
               "datasource": {
                 "type": "prometheus",
@@ -41,7 +115,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 0
+                "y": 5
               },
               "id": 19,
               "panels": [],
@@ -122,7 +196,7 @@ resources:
                 "h": 5,
                 "w": 6,
                 "x": 0,
-                "y": 1
+                "y": 6
               },
               "id": 21,
               "options": {
@@ -243,7 +317,7 @@ resources:
                 "h": 5,
                 "w": 8,
                 "x": 6,
-                "y": 1
+                "y": 6
               },
               "id": 24,
               "options": {
@@ -324,7 +398,7 @@ resources:
                 "h": 5,
                 "w": 3,
                 "x": 14,
-                "y": 1
+                "y": 6
               },
               "id": 30,
               "maxDataPoints": 100,
@@ -429,7 +503,7 @@ resources:
                 "h": 5,
                 "w": 7,
                 "x": 17,
-                "y": 1
+                "y": 6
               },
               "id": 35,
               "options": {
@@ -530,7 +604,7 @@ resources:
                 "h": 5,
                 "w": 6,
                 "x": 0,
-                "y": 6
+                "y": 11
               },
               "id": 46,
               "options": {
@@ -672,7 +746,7 @@ resources:
                 "h": 5,
                 "w": 8,
                 "x": 6,
-                "y": 6
+                "y": 11
               },
               "id": 25,
               "options": {
@@ -754,7 +828,7 @@ resources:
                 "h": 5,
                 "w": 3,
                 "x": 14,
-                "y": 6
+                "y": 11
               },
               "id": 31,
               "maxDataPoints": 100,
@@ -871,7 +945,7 @@ resources:
                 "h": 5,
                 "w": 7,
                 "x": 17,
-                "y": 6
+                "y": 11
               },
               "id": 36,
               "options": {
@@ -963,7 +1037,7 @@ resources:
                 "h": 5,
                 "w": 3,
                 "x": 0,
-                "y": 11
+                "y": 16
               },
               "id": 27,
               "maxDataPoints": 100,
@@ -1045,7 +1119,7 @@ resources:
                 "h": 5,
                 "w": 3,
                 "x": 3,
-                "y": 11
+                "y": 16
               },
               "id": 28,
               "maxDataPoints": 100,
@@ -1149,7 +1223,7 @@ resources:
                 "h": 5,
                 "w": 8,
                 "x": 6,
-                "y": 11
+                "y": 16
               },
               "id": 57,
               "options": {
@@ -1231,7 +1305,7 @@ resources:
                 "h": 5,
                 "w": 3,
                 "x": 14,
-                "y": 11
+                "y": 16
               },
               "id": 58,
               "maxDataPoints": 100,
@@ -1348,7 +1422,7 @@ resources:
                 "h": 5,
                 "w": 7,
                 "x": 17,
-                "y": 11
+                "y": 16
               },
               "id": 37,
               "options": {
@@ -1478,7 +1552,7 @@ resources:
                 "h": 5,
                 "w": 6,
                 "x": 0,
-                "y": 16
+                "y": 21
               },
               "id": 38,
               "options": {
@@ -1605,7 +1679,7 @@ resources:
                 "h": 5,
                 "w": 8,
                 "x": 6,
-                "y": 16
+                "y": 21
               },
               "id": 39,
               "options": {
@@ -1687,7 +1761,7 @@ resources:
                 "h": 5,
                 "w": 3,
                 "x": 14,
-                "y": 16
+                "y": 21
               },
               "id": 40,
               "maxDataPoints": 100,
@@ -1803,7 +1877,7 @@ resources:
                 "h": 5,
                 "w": 7,
                 "x": 17,
-                "y": 16
+                "y": 21
               },
               "id": 41,
               "options": {
@@ -1887,7 +1961,7 @@ resources:
                 "h": 2,
                 "w": 3,
                 "x": 0,
-                "y": 21
+                "y": 26
               },
               "id": 59,
               "maxDataPoints": 100,
@@ -1960,7 +2034,7 @@ resources:
                 "h": 2,
                 "w": 3,
                 "x": 3,
-                "y": 21
+                "y": 26
               },
               "id": 60,
               "maxDataPoints": 100,
@@ -2060,7 +2134,7 @@ resources:
                 "h": 5,
                 "w": 8,
                 "x": 6,
-                "y": 21
+                "y": 26
               },
               "id": 42,
               "options": {
@@ -2140,7 +2214,7 @@ resources:
                 "h": 5,
                 "w": 3,
                 "x": 14,
-                "y": 21
+                "y": 26
               },
               "id": 54,
               "maxDataPoints": 100,
@@ -2301,7 +2375,7 @@ resources:
                 "h": 5,
                 "w": 7,
                 "x": 17,
-                "y": 21
+                "y": 26
               },
               "id": 52,
               "options": {
@@ -2369,7 +2443,7 @@ resources:
                 "h": 2,
                 "w": 3,
                 "x": 0,
-                "y": 23
+                "y": 28
               },
               "id": 44,
               "maxDataPoints": 100,
@@ -2447,7 +2521,7 @@ resources:
                 "h": 2,
                 "w": 3,
                 "x": 3,
-                "y": 23
+                "y": 28
               },
               "id": 45,
               "maxDataPoints": 100,
@@ -2529,9 +2603,9 @@ resources:
                   "uid": "prometheus"
                 },
                 "definition": "label_values(kube_pod_info{pod=\"$worker\"},node)",
-                "hide": 2,
+                "hide": 0,
                 "includeAll": false,
-                "label": "hostname",
+                "label": "instance",
                 "multi": false,
                 "name": "hostname",
                 "options": [],
@@ -2581,7 +2655,7 @@ resources:
             ]
           },
           "time": {
-            "from": "now-15m",
+            "from": "now-30m",
             "to": "now"
           },
           "timepicker": {
