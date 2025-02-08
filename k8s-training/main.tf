@@ -12,21 +12,21 @@ resource "nebius_mk8s_v1_cluster" "k8s-cluster" {
 }
 
 data "nebius_iam_v1_group" "admins" {
-  count     = var.enable-k8s-node-group-sa ? 1 : 0
+  count     = var.enable_k8s_node_group_sa ? 1 : 0
   name      = "admins"
   parent_id = var.tenant_id
 }
 
-resource "nebius_iam_v1_service_account" "k8s-node-group-sa" {
-  count     = var.enable-k8s-node-group-sa ? 1 : 0
+resource "nebius_iam_v1_service_account" "k8s_node_group_sa" {
+  count     = var.enable_k8s_node_group_sa ? 1 : 0
   parent_id = var.parent_id
-  name      = "k8s-node-group-sa"
+  name      = "k8s_node_group_sa"
 }
 
-resource "nebius_iam_v1_group_membership" "k8s-node-group-sa-admin" {
-  count     = var.enable-k8s-node-group-sa ? 1 : 0
+resource "nebius_iam_v1_group_membership" "k8s_node_group_sa-admin" {
+  count     = var.enable_k8s_node_group_sa ? 1 : 0
   parent_id = data.nebius_iam_v1_group.admins[0].id
-  member_id = nebius_iam_v1_service_account.k8s-node-group-sa[count.index].id
+  member_id = nebius_iam_v1_service_account.k8s_node_group_sa[count.index].id
 }
 
 resource "nebius_mk8s_v1_node_group" "cpu-only" {
@@ -43,7 +43,7 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       type           = var.cpu_disk_type
     }
 
-    service_account_id = var.enable-k8s-node-group-sa ? nebius_iam_v1_service_account.k8s-node-group-sa[0].id : null
+    service_account_id = var.enable_k8s_node_group_sa ? nebius_iam_v1_service_account.k8s_node_group_sa[0].id : null
 
     network_interfaces = [
       {
@@ -88,7 +88,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
       type           = var.gpu_disk_type
     }
 
-    service_account_id = var.enable-k8s-node-group-sa ? nebius_iam_v1_service_account.k8s-node-group-sa[0].id : null
+    service_account_id = var.enable_k8s_node_group_sa ? nebius_iam_v1_service_account.k8s_node_group_sa[0].id : null
 
     network_interfaces = [
       {
