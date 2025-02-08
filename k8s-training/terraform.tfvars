@@ -17,7 +17,7 @@ gpu_nodes_count = 1 # Number of GPU nodes
 # gpu_nodes_platform =                 # GPU nodes platform
 # gpu_nodes_preset   =                 # GPU nodes preset
 # infiniband_fabric  =                 # Infiniband fabric name.
-enable-k8s-node-group-sa = true
+enable_k8s_node_group_sa = true
 
 
 # Observability
