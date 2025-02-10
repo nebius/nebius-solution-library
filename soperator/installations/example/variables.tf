@@ -1,5 +1,19 @@
 # region Cloud
 
+variable "region" {
+  description = "Region of the project."
+  type        = string
+  nullable    = false
+}
+resource "terraform_data" "check_region" {
+  lifecycle {
+    precondition {
+      condition     = contains(module.resources.regions, var.region)
+      error_message = "Unknown region '${var.region}'. See https://docs.nebius.com/overview/regions"
+    }
+  }
+}
+
 variable "iam_token" {
   description = "IAM token used for communicating with Nebius services."
   type        = string
@@ -172,6 +186,28 @@ variable "nfs" {
   validation {
     condition     = var.nfs.enabled ? var.nfs.size_gibibytes % 93 == 0 && var.nfs.size_gibibytes <= 262074 : true
     error_message = "NFS size must be a multiple of 93 GiB and maximum value is 262074 GiB"
+  }
+}
+resource "terraform_data" "check_nfs" {
+  depends_on = [
+    terraform_data.check_region,
+  ]
+
+  lifecycle {
+    precondition {
+      condition     = var.nfs.enabled ? contains(module.resources.platforms, var.nfs.resource.platform) : true
+      error_message = "Unsupported platform '${var.nfs.resource.platform}'."
+    }
+
+    precondition {
+      condition     = var.nfs.enabled ? contains(keys(module.resources.by_platform[var.nfs.resource.platform]), var.nfs.resource.preset) : true
+      error_message = "Unsupported preset '${var.nfs.resource.preset}' for platform '${var.nfs.resource.platform}'."
+    }
+
+    precondition {
+      condition     = var.nfs.enabled ? contains(module.resources.platform_regions[var.nfs.resource.platform], var.region) : true
+      error_message = "Unsupported platform '${var.nfs.resource.platform}' in region '${var.region}'. See https://docs.nebius.com/compute/virtual-machines/types"
+    }
   }
 }
 
@@ -409,6 +445,10 @@ resource "terraform_data" "check_slurm_nodeset" {
     "worker_${i}" => worker
   })
 
+  depends_on = [
+    terraform_data.check_region,
+  ]
+
   lifecycle {
     precondition {
       condition     = each.value.size > 0
@@ -416,13 +456,18 @@ resource "terraform_data" "check_slurm_nodeset" {
     }
 
     precondition {
-      condition     = contains(keys(module.resources.this), each.value.resource.platform)
-      error_message = "Unsupported platform ${each.value.resource.platform} in node set ${each.key}."
+      condition     = contains(module.resources.platforms, each.value.resource.platform)
+      error_message = "Unsupported platform '${each.value.resource.platform}' in node set '${each.key}'."
     }
 
     precondition {
-      condition     = contains(keys(module.resources.this[each.value.resource.platform]), each.value.resource.preset)
-      error_message = "Unsupported preset ${each.value.resource.preset} in node set ${each.key}."
+      condition     = contains(keys(module.resources.by_platform[each.value.resource.platform]), each.value.resource.preset)
+      error_message = "Unsupported preset '${each.value.resource.preset}' for platform '${each.value.resource.platform}' in node set '${each.key}'."
+    }
+
+    precondition {
+      condition     = contains(module.resources.platform_regions[each.value.resource.platform], var.region)
+      error_message = "Unsupported platform '${each.value.resource.platform}' in region '${var.region}'. See https://docs.nebius.com/compute/virtual-machines/types"
     }
 
     # TODO: precondition for total node group count
@@ -440,28 +485,6 @@ variable "slurm_worker_sshd_config_map_ref_name" {
 # endregion Worker
 
 # region Login
-
-variable "slurm_login_service_type" {
-  description = "Type of the k8s service to connect to login nodes."
-  type        = string
-  nullable    = false
-
-  validation {
-    condition     = (contains(["LoadBalancer", "NodePort"], var.slurm_login_service_type))
-    error_message = "Invalid service type. It must be one of `LoadBalancer` or `NodePort`."
-  }
-}
-
-variable "slurm_login_node_port" {
-  description = "Port of the host to be opened in case of use of `NodePort` service type."
-  type        = number
-  default     = 30022
-
-  validation {
-    condition     = var.slurm_login_node_port >= 30000 && var.slurm_login_node_port < 32768
-    error_message = "Invalid node port. It must be in range [30000,32768)."
-  }
-}
 
 variable "slurm_login_sshd_config_map_ref_name" {
   description = "Name of configmap with SSHD config, which runs in slurmd container."
@@ -565,15 +588,66 @@ variable "accounting_enabled" {
 variable "slurmdbd_config" {
   description = "Slurmdbd.conf configuration. See https://slurm.schedmd.com/slurmdbd.conf.html.Not all options are supported."
   type        = map(any)
-  default     = {}
+  default = {
+    # archiveEvents : "yes"
+    # archiveJobs : "yes"
+    # archiveSteps : "yes"
+    # archiveSuspend : "yes"
+    # archiveResv : "yes"
+    # archiveUsage : "yes"
+    # archiveTXN : "yes"
+    # debugLevel : "info"
+    # tcpTimeout : 120
+    # purgeEventAfter : "1month"
+    # purgeJobAfter : "1month"
+    # purgeStepAfter : "1month"
+    # purgeSuspendAfter : "12month"
+    # purgeResvAfter : "1month"
+    # purgeUsageAfter : "1month"
+    # debugFlags : "DB_ARCHIVE"
+  }
 }
 
 variable "slurm_accounting_config" {
   description = "Slurm.conf accounting configuration. See https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
   type        = map(any)
-  default     = {}
+  default = {
+    # accountingStorageTRES: "gres/gpu,license/iop1"
+    # accountingStoreFlags: "job_comment,job_env,job_extra,job_script,no_stdio"
+    # acctGatherInterconnectType: "acct_gather_interconnect/ofed"
+    # acctGatherFilesystemType: "acct_gather_filesystem/lustre"
+    # jobAcctGatherType: "jobacct_gather/cgroup"
+    # jobAcctGatherFrequency: 30
+    # priorityWeightAge: 1
+    # priorityWeightFairshare: 1
+    # priorityWeightQOS: 1
+    # priorityWeightTRES: 1
+  }
 }
 
 # endregion Accounting
+
+# region Apparmor
+variable "use_default_apparmor_profile" {
+  description = "Whether to use default AppArmor profile."
+  type        = bool
+  default     = true
+}
+
+# endregion Apparmor
+
+# region Maintenance
+variable "maintenance" {
+  description = "Whether to enable maintenance mode."
+  type        = string
+  default     = "none"
+
+  validation {
+    condition     = contains(["downscaleAndDeletePopulateJail", "downscaleAndOverwritePopulateJail", "downscale", "none", "skipPopulateJail"], var.maintenance)
+    error_message = "The maintenance variable must be one of: downscaleAndDeletePopulateJail, downscaleAndOverwritePopulateJail, downscale, none, skipPopulateJail."
+  }
+}
+
+# endregion Maintenance
 
 # endregion Slurm

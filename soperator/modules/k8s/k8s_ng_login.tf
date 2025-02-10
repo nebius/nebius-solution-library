@@ -62,7 +62,7 @@ resource "nebius_mk8s_v1_node_group" "login" {
 
     network_interfaces = [
       {
-        public_ip_address = (local.node_ssh_access.enabled || var.use_node_port) ? {} : null
+        public_ip_address = local.node_ssh_access.enabled ? {} : null
         subnet_id         = var.vpc_subnet_id
       }
     ]
@@ -77,38 +77,13 @@ resource "nebius_mk8s_v1_node_group" "login" {
   }
 }
 
-# TODO: Use allocation for static IPs when it's ready
-#
-# resource "nebius_vpc_v1_allocation" "this" {
-#   count = var.create_nlb ? 0 : 1
-#
-#   depends_on = [
-#     nebius_mk8s_v1_cluster.this,
-#   ]
-#
-#   parent_id = var.iam_project_id
-#
-#   name = "${var.name}-${var.slurm_cluster_name}"
-#   labels = tomap({
-#     (module.labels.key_k8s_cluster_id)     = (nebius_mk8s_v1_cluster.this.id)
-#     (module.labels.key_k8s_cluster_name)   = (nebius_mk8s_v1_cluster.this.name)
-#     (module.labels.key_slurm_cluster_name) = (var.slurm_cluster_name)
-#   })
-#
-#   ipv4_public = {
-#     cidr = "/32"
-#     subnet_id = var.vpc_subnet_id
-#   }
-#
-#   lifecycle {
-#     ignore_changes = [
-#       labels,
-#       ipv4_public.subnet_id,
-#     ]
-#   }
-# }
+resource "nebius_vpc_v1_allocation" "this" {
+  parent_id = var.iam_project_id
 
-locals {
-  # allocation_id = nebius_vpc_v1_allocation.this.id
-  allocation_id = null
+  name = "${var.name}-static-ip"
+
+  ipv4_public = {
+    cidr      = "/32"
+    subnet_id = var.vpc_subnet_id
+  }
 }

@@ -34,9 +34,10 @@ variable "preset" {
 }
 
 # SSH KEY
-variable "ssh_public_key" {
-  description = "SSH public key for the 'root' user."
-  type        = string
+variable "ssh_public_keys" {
+  type        = list(string)
+  description = "List of SSH public keys allowed to access the NFS server."
+  default     = []
 }
 
 variable "instance_name" {

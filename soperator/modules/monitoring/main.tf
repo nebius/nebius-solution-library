@@ -23,29 +23,15 @@ locals {
   }
 }
 
-resource "helm_release" "certificate_manager" {
-  name       = "cert-manager"
-  repository = "https://charts.jetstack.io"
-  chart      = "cert-manager"
-  version    = "v1.15.2"
-
-  create_namespace = true
-  namespace        = "cert-manager"
-
-  values = [templatefile("${path.module}/templates/helm_values/cert_manager.yaml.tftpl", {})]
-
-  wait = true
-}
-
 resource "helm_release" "prometheus_stack" {
   depends_on = [
-    helm_release.certificate_manager,
+    module.certificate_manager,
   ]
 
   name       = "prometheus-stack"
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "kube-prometheus-stack"
-  version    = "61.8.0"
+  version    = "67.9.0"
   timeout    = 600
 
   create_namespace = true
@@ -61,7 +47,7 @@ resource "helm_release" "prometheus_stack" {
 
 resource "helm_release" "vm_operator" {
   depends_on = [
-    helm_release.certificate_manager,
+    module.certificate_manager,
     helm_release.prometheus_stack,
   ]
 

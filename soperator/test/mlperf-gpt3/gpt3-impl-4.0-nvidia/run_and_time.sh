@@ -71,7 +71,7 @@ readonly local_rank="${LOCAL_RANK:=${SLURM_LOCALID:=${OMPI_COMM_WORLD_LOCAL_RANK
 if [ "${NEMO_RESULTS_IN_TMP:-0}" -eq 1 ]; then
   readonly _explicit_log_dir=/tmp/${NEMO_RESULTS_SUBDIR:-""}
 else
-  readonly _explicit_log_dir=/results/${NEMO_RESULTS_SUBDIR:-""}
+  readonly _explicit_log_dir=/results:-""}
 fi
 
 if [ -n "${LOAD_CHECKPOINT}" ]; then
@@ -87,7 +87,8 @@ else
     unset LOAD_CHECKPOINT
 fi
 
-if [ -n "${NEMO_RESULTS_SUBDIR}" ]; then
+# Providing explicit_log_dir breaks runName generation and leads to inability of metrics exporting to MLFlow
+if [ -n "${NEMO_RESULTS_SUBDIR}" ] && [ -z "${USE_MLFLOW_LOGGER}"]; then
   EXTRA_ARGS+=" exp_manager.explicit_log_dir=\"${_explicit_log_dir}\""
 fi
 
@@ -112,6 +113,10 @@ then
   START=$(date +%s)
   START_FMT=$(date +%Y-%m-%d\ %r)
   echo "STARTING TIMING RUN AT ${START_FMT}"
+
+  if [[ "${USE_MLFLOW_LOGGER}" == 'True' ]]; then
+    export MLF_VALUE_TIMING_START_TIME="${START}"
+  fi
 fi
 
 if [ "$USE_DIST_OPTIMIZER" = True ]; then

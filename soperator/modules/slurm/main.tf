@@ -3,6 +3,7 @@ resource "helm_release" "mariadb_operator" {
 
   depends_on = [
     module.monitoring,
+    module.certificate_manager,
   ]
 
   name       = local.helm.chart.operator.mariadb
@@ -312,9 +313,7 @@ resource "helm_release" "slurm_cluster" {
 
       login = {
         size                     = var.node_count.login
-        service_type             = var.login_service_type
         allocation_id            = var.login_allocation_id
-        node_port                = var.login_node_port
         sshd_config_map_ref_name = var.login_sshd_config_map_ref_name
         root_public_keys         = var.login_ssh_root_public_keys
         resources = {
