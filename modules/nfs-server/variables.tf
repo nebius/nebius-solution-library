@@ -66,10 +66,22 @@ variable "nfs_ip_range" {
 variable "mtu_size" {
   type        = string
   description = "MTU size to make network fater"
-  default     = "8910"
+  default     = "8800"
 }
 
 variable "nfs_size" {
   type        = string
   description = "Size of the NFS in GB, should be divisbile by 93"
+}
+
+variable "nfs_device_label" {
+  type        = string
+  description = "device label to use later as device ID"
+  default     = "nfs-disk"
+}
+
+variable "nfs_disk_name_suffix" {
+  type        = string
+  description = "Name suffix to be able to create several NFS disks in the same parent"
+  default     = ""
 }

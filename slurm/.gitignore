@@ -1,4 +1,0 @@
-.terraform*
-*.tfstate*
-.DS_Store
-**/*.zip

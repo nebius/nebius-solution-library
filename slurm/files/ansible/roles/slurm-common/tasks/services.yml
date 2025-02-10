@@ -1,9 +1,0 @@
-- name: Disable and stop services
-  ansible.builtin.service:
-    name: "{{ item }}"
-    enabled: no
-    state: stopped
-  with_items:
-    - apt-daily.timer
-    - apt-daily-upgrade.timer
-    - unattended-upgrades

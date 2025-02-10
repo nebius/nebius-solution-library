@@ -46,4 +46,5 @@ variable "ssh_user_name" {
 variable "nfs_ip_range" {
   type        = string
   description = "Ip range from where NFS will be available"
+  default     = "192.168.0.0/16"
 }

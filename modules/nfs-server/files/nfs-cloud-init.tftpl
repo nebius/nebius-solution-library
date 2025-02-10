@@ -1,4 +1,9 @@
 #cloud-config
+package_update: true
+package_upgrade: false
+packages:
+  - nfs-kernel-server
+
 users:
   - name: ${ssh_user_name}
     groups: sudo
@@ -9,16 +14,53 @@ users:
       - ${key}
 %{ endfor ~}
 
-runcmd:
-- apt-get update
-- apt-get install -y nfs-kernel-server
-- mkdir -p ${nfs_path}
-- mkfs.ext4 /dev/vda
-- mount -o rw /dev/vda ${nfs_path}
-- echo "/dev/vdb ${nfs_path} ext4  rw,relatime" | tee -a /etc/fstab
-- chown nobody:nogroup ${nfs_path}
-- chmod 777 ${nfs_path}
-- echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)" >> /etc/exports
-- netplan set ethernets.eth0.mtu=${mtu_size}
-- netplan apply
-- systemctl restart nfs-kernel-server
+disk_setup:
+  /dev/disk/by-id/virtio-nfs-disk: # hardcoded device-label: nfs-disk
+    table_type: gpt
+    layout: true
+
+fs_setup:
+  - device: /dev/disk/by-id/virtio-nfs-disk-part1 # hardcoded device-label: nfs-disk
+    filesystem: ext4
+
+mounts:
+  - [ /dev/disk/by-id/virtio-nfs-disk, ${nfs_path}, ext4, "defaults,relatime,rw", "0", "0" ] # hardcoded device-label: nfs-disk
+
+write_files:
+  - path: /etc/exports
+    content: |
+      ${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)
+    append: true
+
+runcmd:  
+  # Prepare pnfs mountpoint
+  - mkdir -p ${nfs_path}
+  
+  # Configure permissions
+  - chown nobody:nogroup ${nfs_path}
+  - chmod 777 ${nfs_path}
+  
+  # Configure NFS export
+  - echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)" >> /etc/exports
+
+  # Netplan config for MTU
+  - echo "Writing netplan configuration..."
+  - |
+    cat <<EOF > /etc/netplan/50-cloud-init.yaml
+    network:
+      version: 2
+      ethernets:
+        enp:
+          match:
+            name: "enp*"
+          dhcp4: true
+          mtu: ${mtu_size}
+    EOF
+  - chmod 600 /etc/netplan/50-cloud-init.yaml
+  - echo "Netplan configuration written. Applying it..."
+  - netplan generate
+  - netplan apply
+  - echo "Netplan applied successfully."
+
+  # Restart NFS service
+  - systemctl restart nfs-kernel-server
