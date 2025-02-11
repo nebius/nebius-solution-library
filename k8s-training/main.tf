@@ -20,7 +20,7 @@ data "nebius_iam_v1_group" "admins" {
 resource "nebius_iam_v1_service_account" "k8s_node_group_sa" {
   count     = var.enable_k8s_node_group_sa ? 1 : 0
   parent_id = var.parent_id
-  name      = "k8s_node_group_sa"
+  name      = join("-", ["k8s_node_group_sa", local.release-suffix])
 }
 
 resource "nebius_iam_v1_group_membership" "k8s_node_group_sa-admin" {
