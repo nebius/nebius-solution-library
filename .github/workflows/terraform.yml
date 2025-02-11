@@ -87,6 +87,7 @@ jobs:
           --public-key-id ${{ secrets.TERRAFORM_SA_PUBLIC_KEY_ID }} \
           --parent-id ${{ env.TF_VAR_parent_id }} \
           --private-key-file /tmp/sa.pem
+          --debug
         export NEBIUS_IAM_TOKEN=$(nebius iam get-access-token)
         echo "::add-mask::$NEBIUS_IAM_TOKEN"
         export TF_VAR_iam_token=$NEBIUS_IAM_TOKEN
