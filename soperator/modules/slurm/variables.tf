@@ -289,7 +289,7 @@ variable "accounting_enabled" {
 variable "use_protected_secret" {
   description = "If true, protected user secret MariaDB will not be deleted after the MariaDB CR is deleted."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "slurmdbd_config" {
