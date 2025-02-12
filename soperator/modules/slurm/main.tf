@@ -364,9 +364,9 @@ resource "helm_release" "slurm_cluster" {
       worker = {
         size = one(var.node_count.worker)
         resources = {
-          cpu               = one(var.resources.worker).cpu_cores - local.resources.munge.cpu
-          memory            = one(var.resources.worker).memory_gibibytes - local.resources.munge.memory
-          ephemeral_storage = one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
+          cpu               = floor(one(var.resources.worker).cpu_cores - local.resources.munge.cpu)
+          memory            = floor(one(var.resources.worker).memory_gibibytes - local.resources.munge.memory)
+          ephemeral_storage = floor(one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
           gpus              = one(var.resources.worker).gpus
         }
         shared_memory            = var.shared_memory_size_gibibytes
@@ -380,9 +380,9 @@ resource "helm_release" "slurm_cluster" {
         sshd_config_map_ref_name = var.login_sshd_config_map_ref_name
         root_public_keys         = var.login_ssh_root_public_keys
         resources = {
-          cpu               = var.resources.login.cpu_cores - local.resources.munge.cpu
-          memory            = var.resources.login.memory_gibibytes - local.resources.munge.memory
-          ephemeral_storage = var.resources.login.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
+          cpu               = floor(var.resources.login.cpu_cores - local.resources.munge.cpu)
+          memory            = floor(var.resources.login.memory_gibibytes - local.resources.munge.memory)
+          ephemeral_storage = floor(var.resources.login.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
         }
       }
 

@@ -240,7 +240,7 @@ module "slurm" {
     }
     controller = {
       cpu_cores        = local.resources.controller.cpu_cores
-      memory_gibibytes = local.resources.controller.memory_gibibytes
+      memory_gibibytes = floor(local.resources.controller.memory_gibibytes)
       ephemeral_storage_gibibytes = floor(
         var.slurm_nodeset_controller.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
@@ -249,7 +249,7 @@ module "slurm" {
     worker = [for i, worker in var.slurm_nodeset_workers :
       {
         cpu_cores        = local.resources.workers[i].cpu_cores
-        memory_gibibytes = local.resources.workers[i].memory_gibibytes
+        memory_gibibytes = floor(local.resources.workers[i].memory_gibibytes)
         ephemeral_storage_gibibytes = floor(
           worker.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
           -module.resources.k8s_ephemeral_storage_reserve.gibibytes
@@ -259,7 +259,7 @@ module "slurm" {
     ]
     login = {
       cpu_cores        = local.resources.login.cpu_cores
-      memory_gibibytes = local.resources.login.memory_gibibytes
+      memory_gibibytes = floor(local.resources.login.memory_gibibytes)
       ephemeral_storage_gibibytes = floor(
         var.slurm_nodeset_login.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
@@ -267,7 +267,7 @@ module "slurm" {
     }
     accounting = var.accounting_enabled ? {
       cpu_cores        = local.resources.accounting.cpu_cores
-      memory_gibibytes = local.resources.accounting.memory_gibibytes
+      memory_gibibytes = floor(local.resources.accounting.memory_gibibytes)
       ephemeral_storage_gibibytes = floor(
         var.slurm_nodeset_accounting.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
