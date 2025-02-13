@@ -1,4 +1,5 @@
 # Cloud environment and network
+# tenant_id      = "" # Tenant ID
 # parent_id      = "" # The project-id in this context
 # subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
 # region         = "" # Project region
@@ -16,6 +17,7 @@ gpu_nodes_count = 1 # Number of GPU nodes
 # gpu_nodes_platform =                 # GPU nodes platform
 # gpu_nodes_preset   =                 # GPU nodes preset
 # infiniband_fabric  =                 # Infiniband fabric name.
+enable_k8s_node_group_sa = true
 
 
 # Observability

@@ -61,7 +61,7 @@ jobs:
     - name: Setup s3cmd
       run: |
         pip3 install s3cmd --no-cache --quiet
-        s3cmd --dump-config \
+        s3cmd --configure --dump-config \
         --access_key="${{ secrets.SA_ACCESS_KEY_ID }}" \
         --secret_key="${{ secrets.SA_SECRET_KEY }}" \
         --host="storage.eu-north1.nebius.cloud:443" \

@@ -11,15 +11,15 @@ variable "subnet_id" {
 }
 
 variable "region" {
-  type = string
+  type        = string
   description = "region"
-  default = "eu-north1"
+  default     = "eu-north1"
 }
 
 variable "instance_name" {
-  type = string
+  type        = string
   description = "name of the instance"
-  default = "instance"
+  default     = "instance"
 }
 
 variable "platform" {
@@ -42,21 +42,21 @@ variable "cpu_nodes_preset" {
 
 variable "shared_filesystem_id" {
   description = "Id of an existing shared file system"
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "shared_filesystem_mount" {
   description = "mounting point of the shared file system"
-  type = string
-  default = "/mnt/share"
+  type        = string
+  default     = "/mnt/share"
 }
 
 variable "users" {
   description = "List of users with their SSH keys"
   type = list(object({
-    user_name           = string
-    ssh_public_key = optional(string) # Inline SSH key
+    user_name      = string
+    ssh_public_key = optional(string)                      # Inline SSH key
     ssh_key_path   = optional(string, "~/.ssh/id_rsa.pub") # Path to SSH key file
   }))
   default = []
@@ -69,60 +69,60 @@ variable "users" {
 }
 
 variable "add_extra_storage" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "if true, a new disk will be created and mounted at <extra_path>"
- }
+}
 
 variable "extra_path" {
-  type = string
-  default = "/mnt/storage"
+  type        = string
+  default     = "/mnt/storage"
   description = "Folder where the network storage will be mounted on"
 }
 
 variable "boot_disk_size_gb" {
-  type = number
-  default = 50
+  type        = number
+  default     = 50
   description = "size of the boot disk"
 }
 
 variable "extra_storage_size_gb" {
-  type = number
-  default = 50
+  type        = number
+  default     = 50
   description = "size of the newly created nfs storage"
 }
 
 variable "extra_storage_class" {
-  type = string
-  default = "NETWORK_SSD"
+  type        = string
+  default     = "NETWORK_SSD"
   description = "Network type of additional disk being added"
 }
 
 
 variable "public_ip" {
-  type = bool
-  default = true
+  type        = bool
+  default     = true
   description = "attach a public ip to the vm if true"
 }
 variable "mount_bucket" {
-  type = string
+  type        = string
   description = "name of a bucket that should be mounted into fs"
-  default = ""
+  default     = ""
 }
 
 variable "s3_mount_path" {
-  type = string
+  type        = string
   description = "mountpoint for s3 mount"
-  default = "/mnt/s3"
+  default     = "/mnt/s3"
 }
 variable "aws_access_key_id" {
-  type = string
+  type        = string
   description = "S3 access key"
-  default = ""
+  default     = ""
 }
 
 variable "aws_secret_access_key" {
-  type = string
+  type        = string
   description = "S3 access key"
-  default = ""
+  default     = ""
 }

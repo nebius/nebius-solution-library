@@ -73,6 +73,7 @@ There are additional configurable variables in `variables.tf`.
 ### Environment and network variables
 ```hcl
 # Cloud environment and network
+tenant_id      = "" # The tenant id
 parent_id      = "" # The project-id in this context
 subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
 region         = "" # The project region.
