@@ -2,6 +2,8 @@
 
 set -e
 
+: "${DOWNLOAD_DATA:=1}"
+
 usage() {
   echo "Usage: ${0} <REQUIRED_FLAGS> [-h]" >&2
   echo 'Required flags:' >&2
@@ -9,14 +11,17 @@ usage() {
   echo '              This is where datasets and checkpoints will be stored' >&2
   echo '' >&2
   echo 'Flags:' >&2
+  echo '  -n  Whether to not run data downloading jobs' >&2
+  echo '' >&2
   echo '  -h  Print help and exit' >&2
   exit 1
 }
 
-while getopts d:h flag
+while getopts d:nh flag
 do
   case "${flag}" in
     d) DATA_DIR=${OPTARG};;
+    n) DOWNLOAD_DATA=0;;
     h) usage;;
     *) usage;;
   esac
@@ -85,7 +90,7 @@ hdone
 # region Test runner
 
 h1 'Patching test runner...'
-SBATCH_RUNNER_PATH='training_patch/stable_diffusion/scripts/slurm/sbatch.sh'
+SBATCH_RUNNER_PATH='sd-impl-3.0-mlcommons/scripts/slurm/sbatch.sh'
 
 h2 'Test dir...'
 sed -i -E \
@@ -104,7 +109,7 @@ sed -i -E \
 
 h2 'Container image...'
 sed -i -E \
-  -e "s|(CONTAINER_IMAGE:=)[^}]*|\1${NEBIUS_CR_ENDPOINT}#${NEBIUS_CR_REGISTRY}/stable_diffusion_mlcommons|" \
+  -e "s|(CONTAINER_IMAGE:=)[^}]*|\1${NEBIUS_CR_ENDPOINT}#${NEBIUS_CR_REGISTRY}/sd-3.0-mlcommons|" \
   ${SBATCH_RUNNER_PATH}
 
 h2 'Data dir...'
@@ -114,48 +119,26 @@ sed -i -E \
 
 # endregion Test runner
 
-# region MLCommons repo
-
-h1 'Configuring MLCommons training repository...'
-TRAINING_DIR='training'
-
-if [[ -d "${TRAINING_DIR}" ]]; then
-  h2 'Cleaning leftovers...'
-  rm -rf ${TRAINING_DIR}
-fi
-
-h2 'Checkout...'
-export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-git clone --depth=1 https://github.com/mlcommons/training ${TRAINING_DIR}
-pushd ${TRAINING_DIR}
-  git fetch --depth=1 origin 00f04c57d589721aabce4618922780d29f73cf4e
-  git checkout 00f04c57d589721aabce4618922780d29f73cf4e
-popd
-
-h2 'Patching...'
-rclone copy "${TRAINING_DIR}_patch" ${TRAINING_DIR}
-
-h2 'Setting execution flags...'
-chmod +x ${TRAINING_DIR}/stable_diffusion/scripts/slurm/*.sh
-
-# endregion MLCommons repo
-
 # region Data
 
-h1 'Downloading data...'
+if [[ "${DOWNLOAD_DATA}" -eq 1 ]]; then
+  h1 'Downloading data...'
 
-h2 'Creating a job to download SD dataset...'
-sbatch ../common/sync.sh \
-  -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${DATASET_NAME}" \
-  -t "${DATASET_DIR}"
+  h2 'Creating a job to download SD dataset...'
+  sbatch ../common/sync.sh \
+    -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${DATASET_NAME}" \
+    -t "${DATASET_DIR}"
 
-h2 'Creating a job to download SD checkpoint...'
-sbatch ../common/sync.sh \
-  -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${CHECKPOINT_NAME}" \
-  -t "${CHECKPOINT_DIR}"
+  h2 'Creating a job to download SD checkpoint...'
+  sbatch ../common/sync.sh \
+    -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${CHECKPOINT_NAME}" \
+    -t "${CHECKPOINT_DIR}"
 
-h2 'Current Slurm job queue:'
-squeue
+  h2 'Current Slurm job queue:'
+  squeue
+else
+  h1 'Skipping data downloading...'
+fi
 
 hdone
 

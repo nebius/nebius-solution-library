@@ -16,9 +16,9 @@ output "cluster_context" {
   value       = local.context_name
 }
 
-output "allocation_id" {
+output "static_ip_allocation_id" {
   description = "ID of the VPC allocation used for SSH connection into Slurm cluster."
-  value       = local.allocation_id
+  value       = nebius_vpc_v1_allocation.this.id
 }
 
 output "gpu_involved" {

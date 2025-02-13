@@ -1,8 +1,72 @@
+resource "helm_release" "k8up_crds" {
+  name       = "k8up-crds"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.k8up_operator_namespace
+
+  values = [templatefile("${path.module}/templates/k8up_crds.yaml.tftpl", {})]
+
+  wait = true
+}
+
+resource "helm_release" "k8up" {
+  count = var.backups_enabled ? 1 : 0
+
+  depends_on = [
+    module.monitoring,
+    helm_release.k8up_crds,
+  ]
+
+  name       = "k8up"
+  repository = local.helm.repository.k8up
+  chart      = local.helm.chart.k8up
+  version    = local.helm.version.k8up
+
+  create_namespace = true
+  namespace        = var.k8up_operator_namespace
+
+  set {
+    name  = "k8up.envVars[0].name"
+    value = "BACKUP_SKIP_WITHOUT_ANNOTATION"
+  }
+
+  set {
+    name  = "k8up.envVars[0].value"
+    value = "true"
+    type  = "string"
+  }
+
+  wait          = true
+  wait_for_jobs = true
+}
+
+resource "helm_release" "k8up_secret" {
+  name       = "k8up-secret"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.name
+
+  values = [templatefile("${path.module}/templates/k8up_secret.yaml.tftpl", {
+    aws_access_key_id_base64     = base64encode(var.backups_aws_access_key_id)
+    aws_secret_access_key_base64 = base64encode(var.backups_aws_secret_access_key)
+    repo_password_base64         = base64encode(var.backups_repo_password)
+  })]
+
+  wait = true
+}
+
 resource "helm_release" "mariadb_operator" {
   count = var.accounting_enabled ? 1 : 0
 
   depends_on = [
     module.monitoring,
+    module.certificate_manager,
   ]
 
   name       = local.helm.chart.operator.mariadb
@@ -300,9 +364,9 @@ resource "helm_release" "slurm_cluster" {
       worker = {
         size = one(var.node_count.worker)
         resources = {
-          cpu               = one(var.resources.worker).cpu_cores - local.resources.munge.cpu
-          memory            = one(var.resources.worker).memory_gibibytes - local.resources.munge.memory
-          ephemeral_storage = one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
+          cpu               = floor(one(var.resources.worker).cpu_cores - local.resources.munge.cpu)
+          memory            = floor(one(var.resources.worker).memory_gibibytes - local.resources.munge.memory)
+          ephemeral_storage = floor(one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
           gpus              = one(var.resources.worker).gpus
         }
         shared_memory            = var.shared_memory_size_gibibytes
@@ -312,15 +376,13 @@ resource "helm_release" "slurm_cluster" {
 
       login = {
         size                     = var.node_count.login
-        service_type             = var.login_service_type
         allocation_id            = var.login_allocation_id
-        node_port                = var.login_node_port
         sshd_config_map_ref_name = var.login_sshd_config_map_ref_name
         root_public_keys         = var.login_ssh_root_public_keys
         resources = {
-          cpu               = var.resources.login.cpu_cores - local.resources.munge.cpu
-          memory            = var.resources.login.memory_gibibytes - local.resources.munge.memory
-          ephemeral_storage = var.resources.login.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
+          cpu               = floor(var.resources.login.cpu_cores - local.resources.munge.cpu)
+          memory            = floor(var.resources.login.memory_gibibytes - local.resources.munge.memory)
+          ephemeral_storage = floor(var.resources.login.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
         }
       }
 

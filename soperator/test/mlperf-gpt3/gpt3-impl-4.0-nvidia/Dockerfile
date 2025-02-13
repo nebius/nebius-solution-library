@@ -24,14 +24,14 @@ FROM ${FROM_IMAGE_NAME}
 
 # Document build setup
 ARG FROM_IMAGE_NAME
-ENV CUSTOM_FROM_IMAGE_NAME ${FROM_IMAGE_NAME}
+ENV CUSTOM_FROM_IMAGE_NAME=${FROM_IMAGE_NAME}
 
 # Custom libraries version
 WORKDIR /workspace/
 
 ## 1. Apex
 ARG APEX_REVISION=SKIP
-ENV CUSTOM_APEX_REVISION ${APEX_REVISION}
+ENV CUSTOM_APEX_REVISION=${APEX_REVISION}
 ARG APEX_MAX_JOBS=4
 
 RUN if [ "${APEX_REVISION}" != SKIP ]; then \
@@ -45,7 +45,7 @@ RUN if [ "${APEX_REVISION}" != SKIP ]; then \
 
 ## 2. Transformer Engine
 ARG TE_REVISION=v1.6rc1
-ENV CUSTOM_TE_REVISION ${TE_REVISION}
+ENV CUSTOM_TE_REVISION=${TE_REVISION}
 
 RUN if [ "${TE_REVISION}" != SKIP ]; then \
       NVTE_WITH_USERBUFFERS=1 MPI_HOME=/usr/local/mpi pip install --force-reinstall --no-deps git+https://github.com/NVIDIA/TransformerEngine.git@${TE_REVISION} \
@@ -53,9 +53,9 @@ RUN if [ "${TE_REVISION}" != SKIP ]; then \
 
 ## 3. NeMo
 ARG NEMO_REVISION=v2.0.0.rc0.beta
-ENV CUSTOM_NEMO_REVISION ${NEMO_REVISION}
+ENV CUSTOM_NEMO_REVISION=${NEMO_REVISION}
 ARG NEMO_BASE_VERSION=r2.0.0
-ENV CUSTOM_NEMO_BASE_VERSION ${NEMO_BASE_VERSION}
+ENV CUSTOM_NEMO_BASE_VERSION=${NEMO_BASE_VERSION}
 
 ### Base version
 RUN if [ "${NEMO_REVISION}" == SKIP ]; then \
@@ -69,7 +69,7 @@ RUN if [ "${NEMO_REVISION}" == SKIP ]; then \
       git clone https://github.com/NVIDIA/NeMo.git && \
       cd NeMo && \
       git config user.email "email@email.com" && \
-      git config user.name "name name" && \  
+      git config user.name "name name" && \
       echo NEMO_REVISION=${NEMO_REVISION} && \
       git checkout ${NEMO_REVISION} && \
       echo NEMO_COMMIT_HASH=$(git rev-parse HEAD) && \
@@ -85,7 +85,7 @@ RUN cd NeMo && \
 
 # 4. Megatron-core
 ARG MEGATRON_REVISION=core_v0.7.0.beta
-ENV CUSTOM_MEGATRON_REVISION ${MEGATRON_REVISION}
+ENV CUSTOM_MEGATRON_REVISION=${MEGATRON_REVISION}
 
 RUN if [ "${MEGATRON_REVISION}" != SKIP ]; then \
       pip uninstall -y megatron-core && \
@@ -100,7 +100,7 @@ RUN if [ "${MEGATRON_REVISION}" != SKIP ]; then \
       make \
     ; fi
 
-ENV PYTHONPATH "${PYTHONPATH}:/workspace/Megatron-LM"
+ENV PYTHONPATH="${PYTHONPATH}:/workspace/Megatron-LM"
 
 ## 5. Benchmark dependencies
 COPY requirements.txt .
@@ -140,5 +140,4 @@ RUN pip install -v "transformers<=4.40.2"
 WORKDIR /workspace/llm
 
 COPY . .
-ENV PYTHONPATH "/workspace/llm:/workspace/NeMo:${PYTHONPATH}"
-
+ENV PYTHONPATH="/workspace/llm:/workspace/NeMo:${PYTHONPATH}"

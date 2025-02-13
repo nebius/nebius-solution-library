@@ -77,6 +77,8 @@ There are `init.sh` scripts for both [Stable Diffusion](./mlperf-sd/init.sh) and
       This is where datasets and checkpoints will be stored
 
     Flags:
+      -n  Whether to not run data downloading jobs
+    
       -h  Print help and exit
     ```
 
@@ -134,7 +136,7 @@ The init script will:
 - Create needed directories
 - Configure **rclone** and **enroot**
 - Configure running scripts
-- Run Slurm jobs to download datasets and checkpoints
+- Run Slurm jobs to download datasets and checkpoints. This step could be skipped with `-n` flag.
 
 Once downloading is done, you can proceed with following steps of each particular benchmark:
 - [Stable Diffusion](./mlperf-sd)

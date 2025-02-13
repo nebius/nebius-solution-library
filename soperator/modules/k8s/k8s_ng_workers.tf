@@ -74,7 +74,7 @@ resource "nebius_mk8s_v1_node_group" "worker" {
     }
     taints = local.node_group_gpu_present.worker[count.index] ? [{
       key    = module.labels.key_nvidia_gpu,
-      value  = module.resources.this[var.node_group_workers[count.index].resource.platform][var.node_group_workers[count.index].resource.preset].gpus
+      value  = module.resources.by_platform[var.node_group_workers[count.index].resource.platform][var.node_group_workers[count.index].resource.preset].gpus
       effect = "NO_SCHEDULE"
     }] : null
 

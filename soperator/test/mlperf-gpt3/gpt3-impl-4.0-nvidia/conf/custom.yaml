@@ -23,16 +23,36 @@ trainer:
   num_sanity_val_steps: 0
 
 exp_manager:
-  explicit_log_dir: '/results'
+  exp_dir: '/results/experiments'
+  use_datetime_version: True
+  version: ${oc.env:JOB_VERSION,default}
+
+  create_tensorboard_logger: ${oc.decode:${oc.env:CREATE_TENSORBOARD_LOGGER,False}}
+
+  create_checkpoint_callback: False
   resume_if_exists: ${oc.decode:${oc.env:ENABLE_RERUNS,0}}
-  create_checkpoint_callback: ${oc.decode:${oc.env:ENABLE_RERUNS,0}}
   checkpoint_callback_params:
     save_top_k: 1
-    mode: max  # we don't really want to save those checkpoints
+    mode: max
     every_n_epochs: 0
     save_last: True
+
+  create_mlflow_logger: ${oc.decode:${oc.env:USE_MLFLOW_LOGGER,False}}
+  mlflow_logger_kwargs:
+    tracking_uri: ${oc.decode:${oc.env:MLFLOW_TRACKING_URI,None}}
+    save_dir: '/results/mlruns'
+
+    experiment_name: ${oc.env:MLFLOW_EXPERIMENT_NAME,experiment}
+    tags:
+      benchmark.cloud: ${oc.env:MLF_TAG_CLOUD,NA}
+      benchmark.installation: ${oc.env:MLF_TAG_INSTALLATION,NA}
+      benchmark.isPoc: ${oc.env:MLF_TAG_IS_POC,NA}
+      benchmark.gpuType: ${oc.env:MLF_TAG_GPU_TYPE,NA}
+      benchmark.workerCount: ${oc.env:MLF_TAG_WORKER_COUNT,NA}
+      benchmark.type: gpt3
+      benchmark.experiment: ${oc.env:MLF_TAG_EXPERIMENT_NAME,NA}
+
   log_step_timing: True
-  create_tensorboard_logger: ${oc.decode:${oc.env:CREATE_TENSORBOARD_LOGGER,False}}
   log_global_rank_0_only: True
 
 model:

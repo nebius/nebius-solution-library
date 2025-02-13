@@ -34,9 +34,10 @@ variable "preset" {
 }
 
 # SSH KEY
-variable "ssh_public_key" {
-  description = "SSH public key for the 'root' user."
-  type        = string
+variable "ssh_public_keys" {
+  type        = list(string)
+  description = "List of SSH public keys allowed to access the NFS server."
+  default     = []
 }
 
 variable "instance_name" {
@@ -77,4 +78,10 @@ variable "nfs_device_label" {
   type        = string
   description = "device label to use later as device ID"
   default     = "nfs-disk"
+}
+
+variable "nfs_disk_name_suffix" {
+  type        = string
+  description = "Name suffix to be able to create several NFS disks in the same parent"
+  default     = ""
 }
