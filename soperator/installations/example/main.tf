@@ -108,6 +108,7 @@ module "nfs-server" {
 module "k8s" {
   depends_on = [
     module.filestore,
+    module.nfs-server,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_slurm_nodeset,
   ]
@@ -215,6 +216,7 @@ module "slurm" {
 
   name                         = local.slurm_cluster_name
   operator_version             = var.slurm_operator_version
+  operator_stable              = var.slurm_operator_stable
   k8s_cluster_context          = module.k8s.cluster_context
   maintenance                  = var.maintenance
   use_default_apparmor_profile = var.use_default_apparmor_profile
@@ -238,7 +240,7 @@ module "slurm" {
     }
     controller = {
       cpu_cores        = local.resources.controller.cpu_cores
-      memory_gibibytes = local.resources.controller.memory_gibibytes
+      memory_gibibytes = floor(local.resources.controller.memory_gibibytes)
       ephemeral_storage_gibibytes = floor(
         var.slurm_nodeset_controller.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
@@ -247,7 +249,7 @@ module "slurm" {
     worker = [for i, worker in var.slurm_nodeset_workers :
       {
         cpu_cores        = local.resources.workers[i].cpu_cores
-        memory_gibibytes = local.resources.workers[i].memory_gibibytes
+        memory_gibibytes = floor(local.resources.workers[i].memory_gibibytes)
         ephemeral_storage_gibibytes = floor(
           worker.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
           -module.resources.k8s_ephemeral_storage_reserve.gibibytes
@@ -257,7 +259,7 @@ module "slurm" {
     ]
     login = {
       cpu_cores        = local.resources.login.cpu_cores
-      memory_gibibytes = local.resources.login.memory_gibibytes
+      memory_gibibytes = floor(local.resources.login.memory_gibibytes)
       ephemeral_storage_gibibytes = floor(
         var.slurm_nodeset_login.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
@@ -265,7 +267,7 @@ module "slurm" {
     }
     accounting = var.accounting_enabled ? {
       cpu_cores        = local.resources.accounting.cpu_cores
-      memory_gibibytes = local.resources.accounting.memory_gibibytes
+      memory_gibibytes = floor(local.resources.accounting.memory_gibibytes)
       ephemeral_storage_gibibytes = floor(
         var.slurm_nodeset_accounting.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
@@ -279,11 +281,15 @@ module "slurm" {
 
   worker_sshd_config_map_ref_name = var.slurm_worker_sshd_config_map_ref_name
 
-  exporter_enabled        = var.slurm_exporter_enabled
-  rest_enabled            = var.slurm_rest_enabled
-  accounting_enabled      = var.accounting_enabled
-  slurmdbd_config         = var.slurmdbd_config
-  slurm_accounting_config = var.slurm_accounting_config
+  exporter_enabled              = var.slurm_exporter_enabled
+  rest_enabled                  = var.slurm_rest_enabled
+  accounting_enabled            = var.accounting_enabled
+  backups_enabled               = var.backups_enabled
+  backups_aws_access_key_id     = var.aws_access_key_id
+  backups_aws_secret_access_key = var.aws_secret_access_key
+  backups_repo_password         = var.backups_password
+  slurmdbd_config               = var.slurmdbd_config
+  slurm_accounting_config       = var.slurm_accounting_config
 
   filestores = {
     controller_spool = {

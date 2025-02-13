@@ -283,13 +283,13 @@ variable "mariadb_operator_namespace" {
 variable "accounting_enabled" {
   description = "Whether to enable accounting."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "use_protected_secret" {
   description = "If true, protected user secret MariaDB will not be deleted after the MariaDB CR is deleted."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "slurmdbd_config" {
@@ -305,6 +305,42 @@ variable "slurm_accounting_config" {
 }
 
 # endregion Accounting
+
+# region Backups
+
+variable "k8up_operator_namespace" {
+  description = "Namespace for k8up operator."
+  type        = string
+  default     = "k8up-system"
+}
+
+variable "backups_enabled" {
+  description = "Whether to enable jail backups."
+  type        = bool
+  default     = false
+}
+
+variable "backups_aws_access_key_id" {
+  description = "AWS-like access key id for accessing S3 bucket with backups."
+  type        = string
+  nullable    = false
+}
+
+variable "backups_aws_secret_access_key" {
+  description = "AWS-like secret access key for accessing S3 bucket with backups."
+  type        = string
+  nullable    = false
+  sensitive   = true
+}
+
+variable "backups_repo_password" {
+  description = "Password for encrypting backups."
+  type        = string
+  nullable    = false
+  sensitive   = true
+}
+
+# endregion Backups
 
 # region Apparmor
 variable "use_default_apparmor_profile" {
