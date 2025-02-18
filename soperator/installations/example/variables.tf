@@ -35,6 +35,20 @@ data "nebius_iam_v1_project" "this" {
   id = var.iam_project_id
 }
 
+variable "iam_tenant_id" {
+  description = "ID of the IAM tenant."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = startswith(var.iam_tenant_id, "tenant-")
+    error_message = "ID of the IAM tenant must start with `tenant-`."
+  }
+}
+data "nebius_iam_v1_tenant" "this" {
+  id = var.iam_tenant_id
+}
+
 variable "vpc_subnet_id" {
   description = "ID of VPC subnet."
   type        = string
@@ -659,6 +673,23 @@ variable "backups_password" {
   type        = string
   nullable    = false
   sensitive   = true
+}
+
+variable "backups_schedule" {
+  description = "Cron schedule for backup task."
+  type        = string
+  nullable    = false
+}
+
+variable "backups_prune_schedule" {
+  description = "Cron schedule for prune task."
+  type        = string
+  nullable    = false
+}
+
+variable "backups_retention" {
+  description = "Backups retention policy."
+  type        = map
 }
 
 # endregion Backups
