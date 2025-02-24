@@ -16,14 +16,16 @@ locals {
       slurm_cluster         = "slurm-cluster"
       slurm_cluster_storage = "slurm-cluster-storage"
       slurm_operator_crds   = "soperator-crds"
+      nodeconfigurator      = "nodeconfigurator"
       raw                   = "raw"
       spo                   = "security-profiles-operator"
       k8up                 = "k8up"
       k8up_crds            = "k8up-crds"
 
       operator = {
-        slurm   = "soperator"
-        mariadb = "mariadb-operator"
+        slurm       = "soperator"
+        slurmchecks = "soperatorchecks"
+        mariadb     = "mariadb-operator"
       }
     }
 
@@ -34,6 +36,11 @@ locals {
       spo     = "0.8.4-soperator"
       k8up   = "4.8.3"
     }
+  }
+
+  image = {
+    repository = "cr.eu-north1.nebius.cloud/soperator${!var.operator_stable ? "-unstable" : ""}"
+    tag        = var.operator_version
   }
 
   node_filters = {
@@ -91,6 +98,24 @@ locals {
       cpu               = 2
       memory            = 12
       ephemeral_storage = 16
+    }
+    node_configurator = {
+      limits = {
+        memory = 1
+      }
+      requests = {
+        memory = 1
+        cpu    = 1
+      }
+    }
+    slurm_checks = {
+      limits = {
+        memory = 1
+      }
+      requests = {
+        memory = 1
+        cpu    = 1
+      }
     }
   }
 

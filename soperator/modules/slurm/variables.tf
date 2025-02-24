@@ -364,3 +364,29 @@ variable "maintenance" {
 }
 
 # endregion Maintenance
+
+# region NodeConfigurator
+
+variable "enable_node_configurator" {
+  description = "Defined whether it's need to deploy node configurator"
+  type        = bool
+  default     = true
+}
+
+variable "node_configurator_log_level" {
+  description = "Log level of node configurator"
+  type        = string
+  default     = "info"
+}
+
+# endregion NodeConfigurator
+
+# region SoperatorChecks
+
+variable "enable_soperator_checks" {
+  description = "Defined whether it's need to deploy soperator checks"
+  type        = bool
+  default     = true
+}
+
+# endregion SoperatorChecks
