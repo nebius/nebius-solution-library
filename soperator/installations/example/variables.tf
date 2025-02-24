@@ -140,6 +140,18 @@ variable "filestore_jail" {
   }
 }
 
+data "nebius_compute_v1_filesystem" "existing_jail" {
+  count = var.filestore_jail.existing != null ? 1 : 0
+
+  id = var.filestore_jail.existing.id
+}
+
+locals {
+  filestore_jail_calculated_size_gibibytes = (var.filestore_jail.existing != null ?
+    data.nebius_compute_v1_filesystem.existing_jail[0].size_bytes / 1024 / 1024 / 1024 :
+    var.filestore_jail.spec.size_gibibytes)
+}
+
 variable "filestore_jail_submounts" {
   description = "Shared filesystems to be mounted inside jail."
   type = list(object({
@@ -663,9 +675,14 @@ variable "slurm_accounting_config" {
 # region Backups
 
 variable "backups_enabled" {
-  description = "Whether to enable jail backups."
-  type        = bool
-  default     = false
+  description = "Whether to enable jail backups. Choose from 'auto', 'force_enable' and 'force_disable'. 'auto' enables backups for jails with max size < 12 TB."
+  type        = string
+  default     = "auto"
+
+  validation {
+    condition = contains(["auto", "force_enable", "force_disable"], var.backups_enabled)
+    error_message = "Valid values for backups_enabled are 'auto', 'force_enable' and 'force_disable'"
+  }
 }
 
 variable "backups_password" {

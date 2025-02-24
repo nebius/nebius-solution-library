@@ -9,6 +9,9 @@ locals {
 
   slurm_cluster_name = "soperator"
   k8s_cluster_name   = format("soperator-%s", var.company_name)
+
+  backups_enabled = (var.backups_enabled == "force_enable" ||
+    (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
 }
 
 resource "terraform_data" "check_variables" {
@@ -348,7 +351,7 @@ module "login_script" {
 }
 
 module "backups_store" {
-  count = var.backups_enabled ? 1 : 0
+  count = local.backups_enabled ? 1 : 0
 
   source = "../../modules/backups_store"
 
@@ -361,7 +364,7 @@ module "backups_store" {
 }
 
 module "backups" {
-  count = var.backups_enabled ? 1 : 0
+  count = local.backups_enabled ? 1 : 0
 
   source = "../../modules/backups"
 

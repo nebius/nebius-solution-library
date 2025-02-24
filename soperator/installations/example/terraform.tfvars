@@ -42,6 +42,8 @@ filestore_controller_spool = {
 # }
 
 # Shared filesystem to be used on controller, worker, and login nodes.
+# Notice that auto-backups are enabled for filesystems with size less than 12 TiB.
+# If you need backups for jail larger than 12 TiB, set 'backups_enabled' to 'force_enable' down below.
 # ---
 # filestore_jail = {
 #   spec = {
@@ -359,10 +361,10 @@ accounting_enabled = true
 #----------------------------------------------------------------------------------------------------------------------#
 # region Backups
 
-# Whether to enable Backups.
-# By default, false.
+# Whether to enable Backups. Choose from 'auto', 'force_enable', 'force_disable'.
+# 'auto' turns backups on for jails with max size less than 12 TB and is a default option.
 # ---
-backups_enabled = false
+backups_enabled = "auto"
 
 # Password to be used for encrypting jail backups.
 # ---
