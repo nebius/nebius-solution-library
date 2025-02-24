@@ -373,12 +373,12 @@ backups_password = "password"
 # Cron schedule for backup task.
 # See https://docs.k8up.io/k8up/references/schedule-specification.html for more info.
 # ---
-backups_schedule = "@hourly-random"
+backups_schedule = "@daily-random"
 
 # Cron schedule for prune task (when old backups are discarded).
 # See https://docs.k8up.io/k8up/references/schedule-specification.html for more info.
 # ---
-backups_prune_schedule = "@hourly-random"
+backups_prune_schedule = "@daily-random"
 
 # Backups retention policy - how many last automatic backups to save.
 # Helps to save storage and to get rid of old backups as they age.
@@ -387,13 +387,9 @@ backups_prune_schedule = "@hourly-random"
 # You can set keepLast, keepHourly, keepDaily, keepWeekly, keepMonthly and keepYearly.
 # ---
 backups_retention = {
-  # How many latest backup snapshots to save.
-  # ---
-  keepLast = 3
-
   # How many daily snapshots to save.
   # ---
-  keepDaily = 14
+  keepDaily = 7
 }
 
 # endregion Backups
