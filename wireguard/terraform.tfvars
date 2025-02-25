@@ -1,3 +1,4 @@
+# tenant_id      = "" # Tenant ID
 # parent_id      = "" # The project-id in this context
 # subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
 # region         = "" # Project region
