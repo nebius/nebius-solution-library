@@ -1,0 +1,8 @@
+checks:
+  manager:
+    resources:
+      limits:
+        memory: ${checks.resources.requests.memory}Gi
+      requests:
+        memory: ${checks.resources.requests.memory}Gi
+        cpu: ${checks.resources.requests.cpu * 1000}m

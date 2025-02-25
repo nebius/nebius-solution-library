@@ -153,6 +153,69 @@ resource "helm_release" "slurm_operator" {
   wait_for_jobs = true
 }
 
+resource "helm_release" "nodeconfigurator" {
+  depends_on = [
+    helm_release.slurm_operator,
+  ]
+  count = var.enable_node_configurator ? 1 : 0
+
+  name       = local.helm.chart.nodeconfigurator
+  repository = local.helm.repository.slurm
+  chart      = "helm-${local.helm.chart.nodeconfigurator}"
+  version    = local.helm.version.slurm
+
+  values = [templatefile("${path.module}/templates/helm_values/node_configurator.yaml.tftpl", {
+    rebooter =  {
+      log_level = var.node_configurator_log_level
+      image = {
+        repository = "${local.image.repository}/rebooter"
+        tag = local.image.tag
+      }
+      resources = {
+        limits = {
+          memory = local.resources.node_configurator.limits.memory
+        }
+        requests = {
+          cpu = local.resources.node_configurator.requests.cpu
+          memory = local.resources.node_configurator.requests.memory
+        }
+      }
+    }
+  })]
+
+  create_namespace = true
+  namespace        = "${local.helm.chart.operator.slurm}-system"
+}
+
+resource "helm_release" "slurm_checks_operator" {
+  depends_on = [
+    helm_release.slurm_operator,
+  ]
+  count = var.enable_soperator_checks ? 1 : 0
+
+  name       = local.helm.chart.operator.slurmchecks
+  repository = local.helm.repository.slurm
+  chart      = "helm-${local.helm.chart.operator.slurmchecks}"
+  version    = local.helm.version.slurm
+
+  values = [templatefile("${path.module}/templates/helm_values/slurm_checks.yaml.tftpl", {
+    checks: {
+      resources: {
+        limits: {
+          memory: local.resources.slurm_checks.limits.memory
+        }
+        requests: {
+          cpu: local.resources.slurm_checks.requests.cpu
+          memory: local.resources.slurm_checks.requests.memory
+        }
+      }
+    }
+  })]
+
+  create_namespace = true
+  namespace        = "${local.helm.chart.operator.slurm}-system"
+}
+
 resource "helm_release" "custom_supervisord_config" {
   name       = "custom-supervisord-config"
   repository = local.helm.repository.raw
