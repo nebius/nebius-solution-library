@@ -195,35 +195,7 @@ resource "helm_release" "spo" {
   create_namespace = true
   namespace        = "security-profiles-operator-system"
 
-  set {
-    name  = "spoImage.tag"
-    value = "v0.8.4"
-  }
-
-  set {
-    name  = "enableAppArmor"
-    value = var.use_default_apparmor_profile
-  }
-
-  set {
-    name  = "daemon.tolerations[0].operator"
-    value = "Exists"
-  }
-
-  set {
-    name  = "daemon.tolerations[1].effect"
-    value = "NoSchedule"
-  }
-
-  set {
-    name  = "daemon.tolerations[1].key"
-    value = "node.kubernetes.io/not-ready"
-  }
-
-  set {
-    name  = "daemon.tolerations[1].operator"
-    value = "Exists"
-  }
+  values = [templatefile("${path.module}/templates/spo_values.tftpl", {})]
 }
 
 resource "helm_release" "slurm_cluster" {
