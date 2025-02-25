@@ -9,6 +9,9 @@ locals {
 
   slurm_cluster_name = "soperator"
   k8s_cluster_name   = format("soperator-%s", var.company_name)
+
+  backups_enabled = (var.backups_enabled == "force_enable" ||
+  (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
 }
 
 resource "terraform_data" "check_variables" {
@@ -284,10 +287,6 @@ module "slurm" {
   exporter_enabled              = var.slurm_exporter_enabled
   rest_enabled                  = var.slurm_rest_enabled
   accounting_enabled            = var.accounting_enabled
-  backups_enabled               = var.backups_enabled
-  backups_aws_access_key_id     = var.aws_access_key_id
-  backups_aws_secret_access_key = var.aws_secret_access_key
-  backups_repo_password         = var.backups_password
   slurmdbd_config               = var.slurmdbd_config
   slurm_accounting_config       = var.slurm_accounting_config
 
@@ -349,4 +348,46 @@ module "login_script" {
   providers = {
     kubernetes = kubernetes
   }
+}
+
+module "backups_store" {
+  count = local.backups_enabled ? 1 : 0
+
+  source = "../../modules/backups_store"
+
+  iam_project_id = var.iam_project_id
+  instance_name  = local.k8s_cluster_name
+
+  depends_on = [
+    module.k8s,
+  ]
+}
+
+module "backups" {
+  count = local.backups_enabled ? 1 : 0
+
+  source = "../../modules/backups"
+
+  k8s_cluster_context = module.k8s.cluster_context
+
+  iam_project_id      = var.iam_project_id
+  iam_tenant_id       = var.iam_tenant_id
+  instance_name       = local.k8s_cluster_name
+  soperator_namespace = local.slurm_cluster_name
+  bucket_name         = module.backups_store[count.index].name
+  bucket_endpoint     = module.backups_store[count.index].endpoint
+
+  backups_password  = var.backups_password
+  backups_schedule  = var.backups_schedule
+  prune_schedule    = var.backups_prune_schedule
+  backups_retention = var.backups_retention
+
+  providers = {
+    nebius = nebius
+    helm   = helm
+  }
+
+  depends_on = [
+    module.slurm,
+  ]
 }

@@ -9,7 +9,6 @@ locals {
       mariadb = "https://helm.mariadb.com/mariadb-operator"
       raw     = "https://bedag.github.io/helm-charts/"
       spo     = "oci://cr.eu-north1.nebius.cloud/e00xdc03sb7gpqfd0a"
-      k8up    = "https://k8up-io.github.io/k8up"
     }
 
     chart = {
@@ -18,8 +17,6 @@ locals {
       slurm_operator_crds   = "soperator-crds"
       raw                   = "raw"
       spo                   = "security-profiles-operator"
-      k8up                  = "k8up"
-      k8up_crds             = "k8up-crds"
 
       operator = {
         slurm   = "soperator"
@@ -32,7 +29,6 @@ locals {
       mariadb = "0.31.0"
       raw     = "2.0.0"
       spo     = "0.8.4-soperator"
-      k8up    = "4.8.3"
     }
   }
 

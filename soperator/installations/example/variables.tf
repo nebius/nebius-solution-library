@@ -35,6 +35,20 @@ data "nebius_iam_v1_project" "this" {
   id = var.iam_project_id
 }
 
+variable "iam_tenant_id" {
+  description = "ID of the IAM tenant."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = startswith(var.iam_tenant_id, "tenant-")
+    error_message = "ID of the IAM tenant must start with `tenant-`."
+  }
+}
+data "nebius_iam_v1_tenant" "this" {
+  id = var.iam_tenant_id
+}
+
 variable "vpc_subnet_id" {
   description = "ID of VPC subnet."
   type        = string
@@ -124,6 +138,18 @@ variable "filestore_jail" {
     condition     = (var.filestore_jail.existing != null && var.filestore_jail.spec == null) || (var.filestore_jail.existing == null && var.filestore_jail.spec != null)
     error_message = "One of `existing` or `spec` must be provided."
   }
+}
+
+data "nebius_compute_v1_filesystem" "existing_jail" {
+  count = var.filestore_jail.existing != null ? 1 : 0
+
+  id = var.filestore_jail.existing.id
+}
+
+locals {
+  filestore_jail_calculated_size_gibibytes = (var.filestore_jail.existing != null ?
+    data.nebius_compute_v1_filesystem.existing_jail[0].size_bytes / 1024 / 1024 / 1024 :
+  var.filestore_jail.spec.size_gibibytes)
 }
 
 variable "filestore_jail_submounts" {
@@ -649,9 +675,14 @@ variable "slurm_accounting_config" {
 # region Backups
 
 variable "backups_enabled" {
-  description = "Whether to enable jail backups."
-  type        = bool
-  default     = false
+  description = "Whether to enable jail backups. Choose from 'auto', 'force_enable' and 'force_disable'. 'auto' enables backups for jails with max size < 12 TB."
+  type        = string
+  default     = "auto"
+
+  validation {
+    condition     = contains(["auto", "force_enable", "force_disable"], var.backups_enabled)
+    error_message = "Valid values for backups_enabled are 'auto', 'force_enable' and 'force_disable'"
+  }
 }
 
 variable "backups_password" {
@@ -659,6 +690,23 @@ variable "backups_password" {
   type        = string
   nullable    = false
   sensitive   = true
+}
+
+variable "backups_schedule" {
+  description = "Cron schedule for backup task."
+  type        = string
+  nullable    = false
+}
+
+variable "backups_prune_schedule" {
+  description = "Cron schedule for prune task."
+  type        = string
+  nullable    = false
+}
+
+variable "backups_retention" {
+  description = "Backups retention policy."
+  type        = map(any)
 }
 
 # endregion Backups

@@ -42,6 +42,8 @@ filestore_controller_spool = {
 # }
 
 # Shared filesystem to be used on controller, worker, and login nodes.
+# Notice that auto-backups are enabled for filesystems with size less than 12 TiB.
+# If you need backups for jail larger than 12 TiB, set 'backups_enabled' to 'force_enable' down below.
 # ---
 # filestore_jail = {
 #   spec = {
@@ -350,6 +352,8 @@ accounting_enabled = true
 
 # endregion Accounting
 
+# endregion Slurm
+
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                                       Backups                                                        #
@@ -357,18 +361,38 @@ accounting_enabled = true
 #----------------------------------------------------------------------------------------------------------------------#
 # region Backups
 
-# Whether to enable Backups.
-# By default, false.
+# Whether to enable Backups. Choose from 'auto', 'force_enable', 'force_disable'.
+# 'auto' turns backups on for jails with max size less than 12 TB and is a default option.
 # ---
-backups_enabled = false
+backups_enabled = "auto"
 
 # Password to be used for encrypting jail backups.
 # ---
 backups_password = "password"
 
-# endregion Backups
+# Cron schedule for backup task.
+# See https://docs.k8up.io/k8up/references/schedule-specification.html for more info.
+# ---
+backups_schedule = "@daily-random"
 
-# endregion Slurm
+# Cron schedule for prune task (when old backups are discarded).
+# See https://docs.k8up.io/k8up/references/schedule-specification.html for more info.
+# ---
+backups_prune_schedule = "@daily-random"
+
+# Backups retention policy - how many last automatic backups to save.
+# Helps to save storage and to get rid of old backups as they age.
+# Manually created backups (without autobackup tag) are not discarded.
+#
+# You can set keepLast, keepHourly, keepDaily, keepWeekly, keepMonthly and keepYearly.
+# ---
+backups_retention = {
+  # How many daily snapshots to save.
+  # ---
+  keepDaily = 7
+}
+
+# endregion Backups
 
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
