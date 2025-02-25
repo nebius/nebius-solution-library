@@ -11,7 +11,7 @@ locals {
   k8s_cluster_name   = format("soperator-%s", var.company_name)
 
   backups_enabled = (var.backups_enabled == "force_enable" ||
-    (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
+  (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
 }
 
 resource "terraform_data" "check_variables" {
@@ -356,7 +356,7 @@ module "backups_store" {
   source = "../../modules/backups_store"
 
   iam_project_id = var.iam_project_id
-  instance_name = local.k8s_cluster_name
+  instance_name  = local.k8s_cluster_name
 
   depends_on = [
     module.k8s,
@@ -370,21 +370,21 @@ module "backups" {
 
   k8s_cluster_context = module.k8s.cluster_context
 
-  iam_project_id = var.iam_project_id
-  iam_tenant_id = var.iam_tenant_id
-  instance_name = local.k8s_cluster_name
+  iam_project_id      = var.iam_project_id
+  iam_tenant_id       = var.iam_tenant_id
+  instance_name       = local.k8s_cluster_name
   soperator_namespace = local.slurm_cluster_name
-  bucket_name = module.backups_store[count.index].name
-  bucket_endpoint = module.backups_store[count.index].endpoint
+  bucket_name         = module.backups_store[count.index].name
+  bucket_endpoint     = module.backups_store[count.index].endpoint
 
-  backups_password = var.backups_password
-  backups_schedule = var.backups_schedule
-  prune_schedule = var.backups_prune_schedule
+  backups_password  = var.backups_password
+  backups_schedule  = var.backups_schedule
+  prune_schedule    = var.backups_prune_schedule
   backups_retention = var.backups_retention
 
   providers = {
     nebius = nebius
-    helm = helm
+    helm   = helm
   }
 
   depends_on = [

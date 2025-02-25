@@ -149,7 +149,7 @@ data "nebius_compute_v1_filesystem" "existing_jail" {
 locals {
   filestore_jail_calculated_size_gibibytes = (var.filestore_jail.existing != null ?
     data.nebius_compute_v1_filesystem.existing_jail[0].size_bytes / 1024 / 1024 / 1024 :
-    var.filestore_jail.spec.size_gibibytes)
+  var.filestore_jail.spec.size_gibibytes)
 }
 
 variable "filestore_jail_submounts" {
@@ -680,7 +680,7 @@ variable "backups_enabled" {
   default     = "auto"
 
   validation {
-    condition = contains(["auto", "force_enable", "force_disable"], var.backups_enabled)
+    condition     = contains(["auto", "force_enable", "force_disable"], var.backups_enabled)
     error_message = "Valid values for backups_enabled are 'auto', 'force_enable' and 'force_disable'"
   }
 }
@@ -706,7 +706,7 @@ variable "backups_prune_schedule" {
 
 variable "backups_retention" {
   description = "Backups retention policy."
-  type        = map
+  type        = map(any)
 }
 
 # endregion Backups

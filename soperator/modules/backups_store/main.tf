@@ -1,6 +1,6 @@
 resource "nebius_storage_v1_bucket" "backups_bucket" {
   parent_id = var.iam_project_id
-  name = "${var.instance_name}-backups"
+  name      = "${var.instance_name}-backups"
 }
 
 output "name" {
