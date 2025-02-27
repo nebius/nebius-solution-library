@@ -1,12 +1,8 @@
-# Cloud environment and network
-# tenant_id      = "" # Tenant ID
-# parent_id      = "" # The project-id in this context
-# subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
-# region         = "" # Project region
+# SSH config
 # ssh_user_name  = "" # Username you want to use to connect to the nodes
 # ssh_public_key = {
 # key  = "put your public ssh key here" OR
-# path = "put path to ssh key here"
+# path = "put path to public ssh key here"
 # }
 
 # K8s nodes
@@ -18,7 +14,6 @@ gpu_nodes_count = 1 # Number of GPU nodes
 # gpu_nodes_preset   =                 # GPU nodes preset
 # infiniband_fabric  =                 # Infiniband fabric name.
 enable_k8s_node_group_sa = true
-
 
 # Observability
 enable_grafana    = true  # Enable or disable Grafana deployment with true or false

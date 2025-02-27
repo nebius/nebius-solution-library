@@ -14,5 +14,5 @@ locals {
 
   cpu_nodes_preset   = coalesce(var.cpu_nodes_preset, local.current_region_defaults.cpu_nodes_preset)
   cpu_nodes_platform = coalesce(var.cpu_nodes_platform, local.current_region_defaults.cpu_nodes_platform)
-  ssh_public_keys = var.ssh_public_keys
+  ssh_public_keys    = var.ssh_public_keys
 }
