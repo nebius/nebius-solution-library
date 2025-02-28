@@ -17,7 +17,7 @@ resource "nebius_compute_v1_instance" "bastion_instance" {
   ]
 
   resources = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "4vcpu-16gb"
   }
 

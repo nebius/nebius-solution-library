@@ -24,7 +24,7 @@ variable "disk_block_size" {
 variable "platform" {
   description = "VM platform."
   type        = string
-  default     = "cpu-e2"
+  default     = "cpu-d3"
 }
 
 variable "preset" {

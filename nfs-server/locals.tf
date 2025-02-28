@@ -5,7 +5,7 @@ locals {
       cpu_nodes_preset   = "16vcpu-64gb"
     }
     eu-north1 = {
-      cpu_nodes_platform = "cpu-e2"
+      cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
     }
   }
