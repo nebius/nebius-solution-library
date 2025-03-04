@@ -3,7 +3,7 @@
 
 
 #preset = "16vcpu-64gb"
-#platform = "cpu-e2"
+#platform = "cpu-d3"
 preset = "8gpu-128vcpu-1600gb"
 #preset = "1gpu-16vcpu-200gb"
 platform = "gpu-h100-sxm"
