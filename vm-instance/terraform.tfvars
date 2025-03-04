@@ -4,8 +4,8 @@
 
 #preset = "16vcpu-64gb"
 #platform = "cpu-e2"
-#preset = "8gpu-128vcpu-1600gb"
-preset = "1gpu-16vcpu-200gb"
+preset = "8gpu-128vcpu-1600gb"
+#preset = "1gpu-16vcpu-200gb"
 platform = "gpu-h100-sxm"
 
 users = [
@@ -18,9 +18,6 @@ users = [
     ssh_public_key = "<SSH KEY STRING>"
   }
 ]
-
-add_extra_storage = false
-
 
 public_ip = true
 instance_count = 1
