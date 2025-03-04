@@ -52,7 +52,7 @@ source common/printer.sh
 h1 "Creating directory for tests on ${ADDRESS}..."
 ssh \
   -i "${KEY}" \
-  -P "${PORT}" \
+  -p "${PORT}" \
   "${USER}@${ADDRESS}" \
   mkdir -p "${TEST_DIR}"
 hdone
