@@ -1,0 +1,202 @@
+# Optional field is ignored if it's value can't be found
+defaults:
+  - optional override tp_overlap@model.ub_tp_comm_overlap_cfg: ${oc.env:GPU_ARCH,h}100tp${oc.env:TENSOR_MODEL_PARALLEL}mbs${oc.env:MICRO_BATCH_SIZE}
+
+
+proxy_gbs: ${oc.decode:${oc.env:PROXY_GBS,${model.global_batch_size}}}
+is_proxy_run: ${neq:${proxy_gbs},${model.global_batch_size}}
+
+trainer:
+  devices: ${oc.decode:${oc.env:DGXNGPU,8}}
+  num_nodes: ${oc.decode:${oc.env:DGXNNODES,1}}
+  precision: bf16
+  max_steps: ${oc.decode:${oc.env:MAX_STEPS,${if:${is_proxy_run},${oc.decode:${oc.env:LIMIT_TRAIN_BATCHES,500}},${ceil_div:20000000,${proxy_gbs}}}}}
+  log_every_n_steps: ${oc.decode:${oc.env:LOG_EVERY_N_STEPS,1}}
+
+  val_check_interval: ${oc.decode:${oc.env:VAL_CHECK_INTERVAL,${ceil_div:24576,${proxy_gbs}}}}
+
+  limit_val_batches: ${oc.decode:${oc.env:LIMIT_VAL_BATCHES,${if:${is_proxy_run},${ceil_div:5662,${proxy_gbs}},1.0}}}
+  
+  limit_test_batches: ${oc.decode:${oc.env:LIMIT_TEST_BATCHES,1}}
+  limit_train_batches: ${oc.decode:${oc.env:LIMIT_TRAIN_BATCHES,500}}
+  enable_progress_bar: ${oc.decode:${oc.env:ENABLE_PROGRESS_BAR,False}}
+  num_sanity_val_steps: 0
+
+exp_manager:
+  exp_dir: '/results/experiments'
+  use_datetime_version: True
+  version: ${oc.env:JOB_VERSION,default}
+
+  create_tensorboard_logger: ${oc.decode:${oc.env:CREATE_TENSORBOARD_LOGGER,False}}
+
+  create_checkpoint_callback: False
+  resume_if_exists: ${oc.decode:${oc.env:ENABLE_RERUNS,0}}
+  checkpoint_callback_params:
+    save_top_k: 1
+    mode: max
+    every_n_epochs: 0
+    save_last: True
+
+  create_mlflow_logger: ${oc.decode:${oc.env:USE_MLFLOW_LOGGER,False}}
+  mlflow_logger_kwargs:
+    tracking_uri: ${oc.decode:${oc.env:MLFLOW_TRACKING_URI,None}}
+    save_dir: '/results/mlruns'
+
+    experiment_name: ${oc.env:MLFLOW_EXPERIMENT_NAME,experiment}
+    tags:
+      benchmark.cloud: ${oc.env:MLF_TAG_CLOUD,NA}
+      benchmark.installation: ${oc.env:MLF_TAG_INSTALLATION,NA}
+      benchmark.isPoc: ${oc.env:MLF_TAG_IS_POC,NA}
+      benchmark.gpuType: ${oc.env:MLF_TAG_GPU_TYPE,NA}
+      benchmark.workerCount: ${oc.env:MLF_TAG_WORKER_COUNT,NA}
+      benchmark.type: gpt3
+      benchmark.experiment: ${oc.env:MLF_TAG_EXPERIMENT_NAME,NA}
+
+  log_step_timing: True
+  log_global_rank_0_only: True
+
+model:
+  mcore_gpt: True
+  name: megatron_gpt_full_te_layer_autocast
+  micro_batch_size: ${oc.decode:${oc.env:MICRO_BATCH_SIZE}} # limited by GPU memory
+
+  # Global batch size is being calculated based on other env vars
+  # GBS = MINIBS * ((DGXNGPU * DGXNNODES) // (TENSOR_MODEL_PARALLEL * PIPELINE_MODEL_PARALLEL))
+  global_batch_size: ${multiply:${oc.decode:${oc.env:MINIBS}},${floor_div:${multiply:${trainer.devices},${trainer.num_nodes}},${multiply:${model.tensor_model_parallel_size},${model.pipeline_model_parallel_size}}}}
+  #global_batch_size: "${multiply:
+  #                      ${oc.decode:${oc.env:MINIBS}},
+  #                      ${floor_div:
+  #                        ${multiply:
+  #                          ${trainer.devices},
+  #                          ${trainer.num_nodes}
+  #                          },
+  #                        ${multiply:
+  #                          ${model.tensor_model_parallel_size},
+  #                          ${model.pipeline_model_parallel_size}
+  #                          }
+  #                        }
+  #                      }
+  #                    "
+
+  tensor_model_parallel_size: ${oc.decode:${oc.env:TENSOR_MODEL_PARALLEL}} # intra-layer model parallelism
+  pipeline_model_parallel_size: ${oc.decode:${oc.env:PIPELINE_MODEL_PARALLEL}} # inter-layer model parallelism
+  virtual_pipeline_model_parallel_size: ${oc.decode:${oc.env:INTERLEAVED_PIPELINE,12}} # interleaved pipeline
+  use_tp_pp_dp_mapping: ${oc.decode:${oc.env:TP_PP_DP_MAPPING,False}}
+
+  encoder_seq_length: 2048
+  num_layers: ${oc.decode:${oc.env:NUM_LAYERS,96}}
+  hidden_size: ${oc.decode:${oc.env:HIDDEN_SIZE,12288}}
+  ffn_hidden_size: ${oc.decode:${oc.env:FFN_HIDDEN_SIZE,${multiply:4, ${.hidden_size}}}} #either setup in env or derive from hidden size
+  num_attention_heads: ${oc.decode:${oc.env:NUM_ATTENTION_HEADS,96}}
+  init_method_std: 0.006 # Standard deviation of the zero mean normal distribution used for weight initialization.')
+  use_scaled_init_method: False # use scaled residuals initialization
+  hidden_dropout: 0.0 # Dropout probability for hidden state transformer.
+  attention_dropout: 0.0
+  apply_query_key_layer_scaling: False # scale Q * K^T by 1 / layer-number.
+  normalization: 'layernorm1p' # Normalization layer to use. Options are 'layernorm', 'rmsnorm'
+  do_layer_norm_weight_decay: True # True means weight decay on all params
+  overlap_p2p_comm: ${oc.decode:${oc.env:OVERLAP_P2P_COMM,True}} # Overlap p2p communication with computes. This argument is valid only when `virtual_pipeline_model_parallel_size` is larger than 1
+  batch_p2p_comm: ${oc.decode:${oc.env:BATCH_P2P_COMM,False}} # Batch consecutive inter-peer send/recv operations. This argument is valid only when `virtual_pipeline_model_parallel_size` is larger than 1
+ 
+  fp8_params: ${oc.decode:${oc.env:FP8_PARAMS,False}}
+  enable_cuda_graph: ${oc.decode:${oc.env:LAYER_CUDA_GRAPH,False}}
+
+  # Only turn on if PP is larger than 1 and MINIBS <= 256 and microBS==1. It consumes too much memory for large GA
+  defer_embedding_wgrad_compute: ${if:${or:${eq:1,${oc.decode:${oc.env:PIPELINE_MODEL_PARALLEL}}},${lt:256,${oc.decode:${oc.env:MINIBS}}},${neq:1,${oc.decode:${oc.env:MICRO_BATCH_SIZE}}}},False,True}
+
+  tokenizer:
+    library: 'sentencepiece'
+    type: 'bpe'
+    model: '/workspace/llm/tokenizer.model'
+    vocab_file: null
+    merge_file: null
+    delimiter: null # only used for tabular tokenizer
+
+  megatron_amp_O2: True # Enable O2-level automatic mixed precision using main parameters
+  gradient_accumulation_fusion: True # Fuse weight gradient accumulation to GEMMs. Only used with pipeline parallelism and O2.
+
+  seed: ${oc.decode:${oc.env:SEED,1234}}
+  resume_from_checkpoint: ${oc.env:LOAD_CHECKPOINT,null}
+  sync_batch_comm: ${oc.decode:${oc.env:SYNC_BATCH_COMM,False}} # Enable stream synchronization after each p2p communication between pipeline stages
+
+  activations_checkpoint_granularity: ${oc.decode:${oc.env:ACT_CKPT_GRANULARITY,null}} # 'selective' or 'full'
+  activations_checkpoint_method: ${oc.decode:${oc.env:ACT_CKPT_METHOD,null}} # 'uniform', 'block', not used with 'selective'
+  activations_checkpoint_num_layers: ${oc.decode:${oc.env:ACT_CKPT_NUM_LAYERS,null}} # not used with 'selective'
+  sequence_parallel: ${oc.decode:${oc.env:SEQ_PARALLEL,True}}
+
+  ## Transformer Engine
+  transformer_engine: ${oc.decode:${oc.env:TRANSFORMER_ENGINE,True}}
+  fp8: ${oc.decode:${oc.env:FP8,False}} # enables fp8 in TransformerLayer forward
+  fp8_hybrid: ${oc.decode:${oc.env:FP8_HYBRID,False}} # sets fp8_format = recipe.Format.HYBRID
+  fp8_amax_history_len: ${oc.decode:${oc.env:FP8_AMAX_HISTORY,1}} # Number of steps for which amax history is recorded per tensor
+  fp8_amax_compute_algo: ${oc.env:FP8_AMAX_ALGO,most_recent} # 'most_recent' or 'max'. Algorithm for computing amax from history
+  reduce_amax: ${oc.decode:${oc.env:FP8_REDUCE_AMAX,True}} # Perform reduction to sync amax tensors across GPUs after every iteration
+
+  use_te_rng_tracker: True
+  ub_tp_comm_overlap: ${oc.decode:${oc.env:TP_COMM_OVERLAP,False}}
+  tp_comm_overlap_ag: ${oc.decode:${oc.env:MC_TP_OVERLAP_AG,False}}
+  tp_comm_overlap_rs: ${oc.decode:${oc.env:MC_TP_OVERLAP_RS,False}}
+  # Use userbuffer backend to overlap tensor-parallel communications with computes.
+  # This feature is only available with Transformer Engine and squence parallelism enabled and, currently, supports only GPT models.
+  
+  nccl_communicator_config_path: ${oc.decode:${oc.env:NCCL_CFG_PATH,null}} # Path to the yaml file with NCCL communicator options (min_ctas, max_ctas, and cga_cluster_size)
+  sharp: ${oc.decode:${oc.env:SHARP,False}}
+
+  data:
+    index_mapping_dir: '/npy_index' # path to save index mapping .npy files, by default will save in the same location as data_prefix
+    splits_string: null
+    validation_drop_last: False # Set to false if the last partial validation samples is to be consumed
+    pad_samples_to_global_batch_size: True # Set to True if you want to pad the last partial batch with -1's to equal global batch size
+    shuffle_documents: False # Set to False to disable documents shuffling. Sample index will still be shuffled
+    delay_data_init: True
+    delay_data_mmap: ${model.data.delay_data_init} # Set to True to delay the mmap creation of the dataset .bin files. Default is False
+    no_seqlen_plus_one_input_tokens: ${oc.decode:${oc.env:CUSTOM_INPUT_PIPELINE,True}} # Set to True to disable fetching (sequence length + 1) input tokens, instead get (sequence length) input tokens and mask the last token
+    exchange_indices_distributed: ${oc.decode:${oc.env:EXCHANGE_INDICES_DISTRIBUTED,True}} # Set to True to exchange indices via torch.distributed instead of filesystem
+    legacy_dataset: True
+  # The following lines implement this logic:
+  #os.env.get('LR', 
+  #           2e-5 if os.env.get('PROXY_GBS', os.env['GLOBAL_BATCH_SIZE']) < 3600
+  #           else 3e-5)
+  # Explanation: LR and MIN_LR env variables take precedense over all default values
+  # If LR is undefined and if PROXY_GBS < 3600 then lr=2e-5, else lr=3e-5
+  optim:
+    lr: ${oc.decode:${oc.env:LR,${if:${lt:${proxy_gbs},3600},2e-5,3e-5}}}
+    sched:
+      min_lr: ${oc.decode:${oc.env:MIN_LR,${if:${lt:${proxy_gbs},3600},2e-6,3e-6}}}
+      warmup_steps: ${oc.decode:${oc.env:WARMUP_STEPS,${div:407040,${proxy_gbs}}}}
+      max_steps_for_lr_sched: ${oc.decode:${oc.env:MAX_STEPS_FOR_LR_SCHED,${div:166809600,${proxy_gbs}}}}  # overwritten in run_and_time
+    lock_timeout: ${oc.decode:${oc.env:OPTIM_LOCK_TIMEOUT,null}}
+
+
+  gc_interval: 1000
+
+  nsys_profile:
+    enabled: ${oc.decode:${oc.env:PROFILE,False}}
+    start_step: ${oc.decode:${oc.env:PROFILE_START_STEP,10}}
+    end_step: ${oc.decode:${oc.env:PROFILE_END_STEP,10}}
+    ranks: [0]
+    trace: [nvtx,cuda]
+    gen_shape: False
+
+  custom:
+    log_metrics: ${oc.decode:${oc.env:LOG_METRICS,NEMO}} # options: NEMO, DELTA, OFF
+    init_global_step: ${oc.decode:${oc.env:INIT_GLOBAL_STEP,${if:${is_proxy_run},0,${ceil_div:6144000,${proxy_gbs}}}}} # 4000 * 1536 = 6144000
+    target_log_ppl: ${oc.decode:${oc.env:TARGET_LOG_PPL,2.69}} 
+    use_distributed_checkpointing: ${oc.decode:${oc.env:USE_DIST_CHECKPOINTING,1}}  # Use 1: save Distributed Ckpt, 0: save Default Ckpt
+    use_two_stage_loading: ${oc.decode:${oc.env:USE_TWO_STAGE_LOADING,1}} 
+    use_two_stage_cpu_transfer: 0 # matters only if `use_two_stage_loading == 1`
+    run_warmup_on_synth_data: ${oc.decode:${oc.env:RUN_WARMUP_ON_SYNTH_DATA,1}} 
+    reset_fp8_stats_after_warmup: ${oc.decode:${oc.env:RESET_FP8_STATS_AFTER_WARMUP,1}} 
+    pre_validate: ${oc.decode:${oc.env:PRE_VALIDATE,0}} # 1 to run validation before training. Note: validation is done outside timed region. Might affect first training step time and fill data buffers.
+    override_zero_consumed_samples: ${oc.decode:${oc.env:OVERRIDE_ZERO_CONSUMED_SAMPLES,${if:${is_proxy_run},0,1}}} # if True, will set consumed samples to `init_global_step` * GBS
+    force_success_status: ${oc.decode:${oc.env:FORCE_SUCCESS_STATUS,0}} # If True, sets the MLLOG status to SUCCESS at run_stop even if target accuracy was not reached so the dryrun report parsing works
+    load_directly_on_device: ${oc.decode:${oc.env:LOAD_DIRECTLY_ON_DEVICE,1}} # if True, directly loads distributed checkpoint on the GPUs. Else, distributed checkpoint is first loaded on the CPU
+    warmup_train_steps: ${oc.decode:${oc.env:WARMUP_TRAIN_STEPS,2}} # number of training warmup steps
+    warmup_validation_steps: ${oc.decode:${oc.env:WARMUP_VALIDATION_STEPS,2}} # number of validation warmup steps
+    extend_run_evals: ${oc.decode:${oc.env:EXTEND_RUN_EVALS,${if:${eq:'1',${oc.env:MLPERF_POWER_TRAIN_AFTER_RUN_STOP,0}},2,0}}} # number of extra eval intervals after converging
+    disable_nemo_logs: ${oc.decode:${oc.env:DISABLE_NEMO_LOGS,False}}
+
+    cpu_offloading: ${oc.decode:${oc.env:CPU_OFFLOADING,False}}
+    cpu_offloading_num_layers: 95
+    cpu_offloading_activations: true
+    cpu_offloading_weights: true

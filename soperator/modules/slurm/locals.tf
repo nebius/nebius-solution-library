@@ -1,14 +1,25 @@
 locals {
+  kube_rbac_proxy = {
+    image = "gcr.io/kubebuilder/kube-rbac-proxy"
+    tag   = "v0.15.0"
+  }
   helm = {
     repository = {
       slurm   = "oci://cr.eu-north1.nebius.cloud/soperator${!var.operator_stable ? "-unstable" : ""}"
       mariadb = "https://helm.mariadb.com/mariadb-operator"
+      raw     = "https://bedag.github.io/helm-charts/"
+      spo     = "oci://cr.eu-north1.nebius.cloud/e00xdc03sb7gpqfd0a"
+      k8up    = "https://k8up-io.github.io/k8up"
     }
 
     chart = {
       slurm_cluster         = "slurm-cluster"
       slurm_cluster_storage = "slurm-cluster-storage"
       slurm_operator_crds   = "soperator-crds"
+      raw                   = "raw"
+      spo                   = "security-profiles-operator"
+      k8up                  = "k8up"
+      k8up_crds             = "k8up-crds"
 
       operator = {
         slurm   = "soperator"
@@ -19,6 +30,9 @@ locals {
     version = {
       slurm   = var.operator_version
       mariadb = "0.31.0"
+      raw     = "2.0.0"
+      spo     = "0.8.4-soperator"
+      k8up    = "4.8.3"
     }
   }
 
@@ -74,9 +88,11 @@ locals {
       ephemeral_storage = 0.5
     }
     mariadb = {
-      cpu               = 1
-      memory            = 1
-      ephemeral_storage = 5
+      cpu               = 2
+      memory            = 12
+      ephemeral_storage = 16
     }
   }
+
+  slurm_node_extra = "\\\"{ \\\\\\\"monitoring\\\\\\\": \\\\\\\"https://console.eu.nebius.com/${var.iam_project_id}/compute/instances/$INSTANCE_ID/monitoring\\\\\\\" }\\\""
 }

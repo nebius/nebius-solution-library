@@ -7,7 +7,7 @@ module "instance-module" {
   users = var.users
   preset     = var.preset
   platform = var.platform
-  boot_disk_size_gb = 5000
+  boot_disk_size_gb = 500
   shared_filesystem_id = var.shared_filesystem_id
   shared_filesystem_mount = var.shared_filesystem_mount
   extra_path = var.extra_path
@@ -20,4 +20,3 @@ module "instance-module" {
   aws_access_key_id = var.aws_access_key_id
   aws_secret_access_key = var.aws_secret_access_key
 }
-

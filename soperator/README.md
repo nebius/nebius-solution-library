@@ -19,7 +19,6 @@ Before starting, ensure you have these tools installed:
 - [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 - [Nebius CLI ](https://nebius.com/docs/cli/quickstart)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
-- AWS CLI: `python -m pip install awscli`
 - [jq](https://jqlang.github.io/jq/download/)
 - coreutils: 
   - macOS: `brew install coreutils`
@@ -31,18 +30,17 @@ Before starting, ensure you have these tools installed:
 
 1. **Create Your Installation Directory**
 ```bash
-mkdir -p installations/<your-name>
-cd installations/<your-name>
+export INSTALLATION_NAME=<your-name> # e.g. customer name
+mkdir -p installations/$INSTALLATION_NAME
+cd installations/$INSTALLATION_NAME
 cp -r ../example/ ./
 ```
 
 2. **Set Up Your Environment**
-```bash
-# Set your Nebius project details
-export NEBIUS_TENANT_ID='<your-tenant-id>'
-export NEBIUS_PROJECT_ID='<your-project-id>'
 
-# Load environment variables 
+Set your NEBIUS_TENANT_ID and NEBIUS_PROJECT_ID in the `.envrc` file, then run:
+
+```bash
 source .envrc
 ```
 
@@ -132,9 +130,8 @@ kubectl get pods --all-namespaces
 
 Get the Slurm cluster IP address
 ```bash
-export SLURM_IP=$(terraform state show module.login_script.terraform_data.connection_ip | grep 'input' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n 1
-)
-ssh root@$SLURM_IP -i ~/.ssh/<public_id_rsa_key>  -p <node_port_if_not_default>
+export SLURM_IP=$(terraform state show module.login_script.terraform_data.connection_ip | grep 'input' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+ssh root@$SLURM_IP -i ~/.ssh/<private_id_rsa_key>
 ```
 
 or connect using the login script:

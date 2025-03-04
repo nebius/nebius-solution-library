@@ -20,7 +20,6 @@ resource "null_resource" "check_wireguard_instance" {
   }
 }
 
-
 resource "null_resource" "check_wireguard_web_ui" {
   depends_on = [null_resource.check_wireguard_instance]
   count      = var.test_mode ? 1 : 0

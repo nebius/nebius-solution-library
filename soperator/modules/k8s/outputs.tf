@@ -11,9 +11,14 @@ output "cluster_id" {
   value       = nebius_mk8s_v1_cluster.this.id
 }
 
-output "allocation_id" {
+output "cluster_context" {
+  description = "Context name of the K8s cluster."
+  value       = local.context_name
+}
+
+output "static_ip_allocation_id" {
   description = "ID of the VPC allocation used for SSH connection into Slurm cluster."
-  value       = local.allocation_id
+  value       = nebius_vpc_v1_allocation.this.id
 }
 
 output "gpu_involved" {

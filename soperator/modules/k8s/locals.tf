@@ -9,13 +9,13 @@ locals {
   node_group_gpu_present = {
     worker = [
       for worker in var.node_group_workers :
-      (module.resources.this[worker.resource.platform][worker.resource.preset].gpus > 0 ? true : false)
+      (module.resources.by_platform[worker.resource.platform][worker.resource.preset].gpus > 0 ? true : false)
     ]
   }
 
   node_group_gpu_cluster_compatible = {
     worker = [for worker in var.node_group_workers :
-      module.resources.this[worker.resource.platform][worker.resource.preset].gpu_cluster_compatible
+      module.resources.by_platform[worker.resource.platform][worker.resource.preset].gpu_cluster_compatible
     ]
   }
 
@@ -24,4 +24,13 @@ locals {
       (worker ? module.labels.label_workload_gpu : module.labels.label_workload_cpu)
     ]
   }
+
+  context_name = join(
+    "-",
+    [
+      "nebius",
+      replace(lower(var.company_name), " ", "-"),
+      "slurm"
+    ]
+  )
 }

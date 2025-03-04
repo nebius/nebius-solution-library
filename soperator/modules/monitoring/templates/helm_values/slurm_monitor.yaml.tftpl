@@ -40,6 +40,8 @@ resources:
           cpu: ${resources.vm_agent.cpu}
         limits:
           memory: ${resources.vm_agent.memory}
+      extraArgs:
+        promscrape.maxScrapeSize: '167772160'
 
   - apiVersion: v1
     kind: Service

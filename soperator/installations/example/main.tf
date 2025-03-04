@@ -1,21 +1,34 @@
 locals {
   resources = {
-    system     = module.resources.this[var.slurm_nodeset_system.resource.platform][var.slurm_nodeset_system.resource.preset]
-    controller = module.resources.this[var.slurm_nodeset_controller.resource.platform][var.slurm_nodeset_controller.resource.preset]
-    workers    = [for worker in var.slurm_nodeset_workers : module.resources.this[worker.resource.platform][worker.resource.preset]]
-    login      = module.resources.this[var.slurm_nodeset_login.resource.platform][var.slurm_nodeset_login.resource.preset]
-    accounting = var.slurm_nodeset_accounting != null ? module.resources.this[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset] : null
+    system     = module.resources.by_platform[var.slurm_nodeset_system.resource.platform][var.slurm_nodeset_system.resource.preset]
+    controller = module.resources.by_platform[var.slurm_nodeset_controller.resource.platform][var.slurm_nodeset_controller.resource.preset]
+    workers    = [for worker in var.slurm_nodeset_workers : module.resources.by_platform[worker.resource.platform][worker.resource.preset]]
+    login      = module.resources.by_platform[var.slurm_nodeset_login.resource.platform][var.slurm_nodeset_login.resource.preset]
+    accounting = var.slurm_nodeset_accounting != null ? module.resources.by_platform[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset] : null
   }
 
-  use_node_port = var.slurm_login_service_type == "NodePort"
+  slurm_cluster_name = "soperator"
+  k8s_cluster_name   = format("soperator-%s", var.company_name)
+}
+
+resource "terraform_data" "check_variables" {
+  depends_on = [
+    terraform_data.check_slurm_nodeset,
+    terraform_data.check_slurm_nodeset_accounting,
+    terraform_data.check_nfs,
+  ]
 }
 
 module "filestore" {
   source = "../../modules/filestore"
 
+  depends_on = [
+    terraform_data.check_variables,
+  ]
+
   iam_project_id = data.nebius_iam_v1_project.this.id
 
-  k8s_cluster_name = var.k8s_cluster_name
+  k8s_cluster_name = local.k8s_cluster_name
 
   controller_spool = {
     spec = var.filestore_controller_spool.spec != null ? {
@@ -68,9 +81,34 @@ module "filestore" {
   }
 }
 
+module "nfs-server" {
+  count = var.nfs.enabled ? 1 : 0
+
+  source = "../../../modules/nfs-server"
+
+  parent_id = data.nebius_iam_v1_project.this.id
+  subnet_id = data.nebius_vpc_v1_subnet.this.id
+
+  platform      = var.nfs.resource.platform
+  preset        = var.nfs.resource.preset
+  instance_name = "${local.k8s_cluster_name}-nfs-server"
+
+  nfs_ip_range = data.nebius_vpc_v1_subnet.this.status.ipv4_private_cidrs[0]
+  nfs_size     = provider::units::from_gib(var.nfs.size_gibibytes)
+  nfs_path     = "/home"
+
+  ssh_user_name   = "soperator"
+  ssh_public_keys = var.slurm_login_ssh_root_public_keys
+
+  providers = {
+    nebius = nebius
+  }
+}
+
 module "k8s" {
   depends_on = [
     module.filestore,
+    module.nfs-server,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_slurm_nodeset,
   ]
@@ -80,17 +118,17 @@ module "k8s" {
   iam_project_id = data.nebius_iam_v1_project.this.id
   vpc_subnet_id  = data.nebius_vpc_v1_subnet.this.id
 
-  k8s_version        = var.k8s_version
-  name               = var.k8s_cluster_name
-  slurm_cluster_name = var.slurm_cluster_name
+  k8s_version  = var.k8s_version
+  name         = local.k8s_cluster_name
+  company_name = var.company_name
 
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller
   node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers :
     [
-      for subset in range(ceil(nodeset.size / nodeset.split_factor)) :
+      for subset in range(ceil(nodeset.size / nodeset.nodes_per_nodegroup)) :
       {
-        size                    = nodeset.split_factor
+        size                    = nodeset.nodes_per_nodegroup
         max_unavailable_percent = nodeset.max_unavailable_percent
         resource                = nodeset.resource
         boot_disk               = nodeset.boot_disk
@@ -126,7 +164,6 @@ module "k8s" {
   }
 
   node_ssh_access_users = var.k8s_cluster_node_ssh_access_users
-  use_node_port         = local.use_node_port
 
   providers = {
     nebius = nebius
@@ -177,8 +214,14 @@ module "slurm" {
 
   source = "../../modules/slurm"
 
-  name             = var.slurm_cluster_name
-  operator_version = var.slurm_operator_version
+  name                         = local.slurm_cluster_name
+  operator_version             = var.slurm_operator_version
+  operator_stable              = var.slurm_operator_stable
+  k8s_cluster_context          = module.k8s.cluster_context
+  maintenance                  = var.maintenance
+  use_default_apparmor_profile = var.use_default_apparmor_profile
+
+  iam_project_id = var.iam_project_id
 
   node_count = {
     controller = var.slurm_nodeset_controller.size
@@ -188,45 +231,65 @@ module "slurm" {
 
   resources = {
     system = {
-      cpu_cores                   = local.resources.system.cpu_cores
-      memory_gibibytes            = local.resources.system.memory_gibibytes
-      ephemeral_storage_gibibytes = ceil(var.slurm_nodeset_system.boot_disk.size_gibibytes / 2)
+      cpu_cores        = local.resources.system.cpu_cores
+      memory_gibibytes = local.resources.system.memory_gibibytes
+      ephemeral_storage_gibibytes = floor(
+        var.slurm_nodeset_system.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
+        -module.resources.k8s_ephemeral_storage_reserve.gibibytes
+      )
     }
     controller = {
-      cpu_cores                   = local.resources.controller.cpu_cores
-      memory_gibibytes            = local.resources.controller.memory_gibibytes
-      ephemeral_storage_gibibytes = ceil(var.slurm_nodeset_controller.boot_disk.size_gibibytes / 2)
+      cpu_cores        = local.resources.controller.cpu_cores
+      memory_gibibytes = floor(local.resources.controller.memory_gibibytes)
+      ephemeral_storage_gibibytes = floor(
+        var.slurm_nodeset_controller.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
+        -module.resources.k8s_ephemeral_storage_reserve.gibibytes
+      )
     }
     worker = [for i, worker in var.slurm_nodeset_workers :
       {
-        cpu_cores                   = local.resources.workers[i].cpu_cores
-        memory_gibibytes            = local.resources.workers[i].memory_gibibytes
-        ephemeral_storage_gibibytes = ceil(worker.boot_disk.size_gibibytes / 2)
-        gpus                        = local.resources.workers[i].gpus
+        cpu_cores        = local.resources.workers[i].cpu_cores
+        memory_gibibytes = floor(local.resources.workers[i].memory_gibibytes)
+        ephemeral_storage_gibibytes = floor(
+          worker.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
+          -module.resources.k8s_ephemeral_storage_reserve.gibibytes
+        )
+        gpus = local.resources.workers[i].gpus
       }
     ]
     login = {
-      cpu_cores                   = local.resources.login.cpu_cores
-      memory_gibibytes            = local.resources.login.memory_gibibytes
-      ephemeral_storage_gibibytes = ceil(var.slurm_nodeset_login.boot_disk.size_gibibytes / 2)
+      cpu_cores        = local.resources.login.cpu_cores
+      memory_gibibytes = floor(local.resources.login.memory_gibibytes)
+      ephemeral_storage_gibibytes = floor(
+        var.slurm_nodeset_login.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
+        -module.resources.k8s_ephemeral_storage_reserve.gibibytes
+      )
     }
     accounting = var.accounting_enabled ? {
-      cpu_cores                   = local.resources.accounting.cpu_cores
-      memory_gibibytes            = local.resources.accounting.memory_gibibytes
-      ephemeral_storage_gibibytes = ceil(var.slurm_nodeset_accounting.boot_disk.size_gibibytes / 2)
+      cpu_cores        = local.resources.accounting.cpu_cores
+      memory_gibibytes = floor(local.resources.accounting.memory_gibibytes)
+      ephemeral_storage_gibibytes = floor(
+        var.slurm_nodeset_accounting.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
+        -module.resources.k8s_ephemeral_storage_reserve.gibibytes
+      )
     } : null
   }
 
-  login_service_type         = var.slurm_login_service_type
-  login_node_port            = var.slurm_login_node_port
-  login_allocation_id        = module.k8s.allocation_id
-  login_ssh_root_public_keys = var.slurm_login_ssh_root_public_keys
+  login_allocation_id            = module.k8s.static_ip_allocation_id
+  login_sshd_config_map_ref_name = var.slurm_login_sshd_config_map_ref_name
+  login_ssh_root_public_keys     = var.slurm_login_ssh_root_public_keys
 
-  exporter_enabled        = var.slurm_exporter_enabled
-  rest_enabled            = var.slurm_rest_enabled
-  accounting_enabled      = var.accounting_enabled
-  slurmdbd_config         = var.slurmdbd_config
-  slurm_accounting_config = var.slurm_accounting_config
+  worker_sshd_config_map_ref_name = var.slurm_worker_sshd_config_map_ref_name
+
+  exporter_enabled              = var.slurm_exporter_enabled
+  rest_enabled                  = var.slurm_rest_enabled
+  accounting_enabled            = var.accounting_enabled
+  backups_enabled               = var.backups_enabled
+  backups_aws_access_key_id     = var.aws_access_key_id
+  backups_aws_secret_access_key = var.aws_secret_access_key
+  backups_repo_password         = var.backups_password
+  slurmdbd_config               = var.slurmdbd_config
+  slurm_accounting_config       = var.slurm_accounting_config
 
   filestores = {
     controller_spool = {
@@ -249,9 +312,16 @@ module "slurm" {
     } : null
   }
 
+  nfs = {
+    enabled    = var.nfs.enabled
+    path       = var.nfs.enabled ? module.nfs-server[0].nfs_export_path : null
+    host       = var.nfs.enabled ? module.nfs-server[0].nfs_server_internal_ip : null
+    mount_path = var.nfs.enabled ? var.nfs.mount_path : null
+  }
+
   shared_memory_size_gibibytes = var.slurm_shared_memory_size_gibibytes
 
-  nccl_topology_type           = var.slurm_nodeset_workers[0].resource.platform == "gpu-h100-sxm" ? "H100 GPU cluster" : "auto"
+  nccl_topology_type           = "auto"
   nccl_benchmark_enable        = var.nccl_benchmark_enable
   nccl_benchmark_schedule      = var.nccl_benchmark_schedule
   nccl_benchmark_min_threshold = var.nccl_benchmark_min_threshold
@@ -272,11 +342,9 @@ module "login_script" {
 
   source = "../../modules/login"
 
-  node_port = {
-    used = local.use_node_port
-    port = var.slurm_login_node_port
-  }
-  slurm_cluster_name = var.slurm_cluster_name
+  slurm_cluster_name = local.slurm_cluster_name
+
+  k8s_cluster_context = module.k8s.cluster_context
 
   providers = {
     kubernetes = kubernetes

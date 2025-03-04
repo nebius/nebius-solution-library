@@ -21,15 +21,20 @@ variable "name" {
   type        = string
 }
 
-variable "slurm_cluster_name" {
-  description = "Name of the Slurm cluster in k8s cluster."
-  type        = string
-}
-
 variable "etcd_cluster_size" {
   description = "Size of the etcd cluster."
   type        = number
   default     = 3
+}
+
+variable "company_name" {
+  description = "Name of the company. It is used for context name of the cluster in .kubeconfig file."
+  type        = string
+
+  validation {
+    condition     = var.company_name != ""
+    error_message = "Company name is not provided"
+  }
 }
 
 #---
@@ -162,9 +167,4 @@ variable "node_ssh_access_users" {
     public_keys = list(string)
   }))
   default = []
-}
-
-variable "use_node_port" {
-  description = "Whether NodePort Service type is used for Login."
-  type        = bool
 }

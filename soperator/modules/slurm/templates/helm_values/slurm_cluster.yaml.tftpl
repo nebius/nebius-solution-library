@@ -1,5 +1,7 @@
 clusterName: ${name}
 clusterType: ${ nodes.worker.resources.gpus > 0 ? "gpu" : "cpu" }
+useDefaultAppArmorProfile: ${useDefaultAppArmorProfile}
+maintenance: ${maintenance}
 
 partitionConfiguration:
   configType: ${partition_configuration.slurm_config_type}
@@ -108,6 +110,21 @@ volumeSources:
     emptyDir:
       sizeLimit: ${nodes.worker.resources.ephemeral_storage}Gi
 
+  %{~ if nfs.enabled ~}
+  - name: nfs
+    nfs:
+      path: ${nfs.path}
+      readOnly: false
+      server: ${nfs.host}
+  %{~ endif ~}
+
+  %{~ if telemetry.enabled ~}
+  - name: motd-nebius-o11y
+    configMap:
+      name: motd-nebius-o11y
+      defaultMode: 500
+  %{~ endif ~}
+
   %{~ for sub_mount in jail_submounts ~}
   - name: jail-submount-${sub_mount.name}
     persistentVolumeClaim:
@@ -130,6 +147,9 @@ periodicChecks:
       thresholdMoreThan: ${nccl_benchmark.min_threshold}
       useInfiniband: ${nccl_benchmark.use_infiniband}
 
+slurmConfig:
+  defMemPerNode: ${floor(nodes.worker.resources.memory * 1024)}
+
 slurmNodes:
   accounting:
     enabled: ${nodes.accounting.enabled}
@@ -138,6 +158,7 @@ slurmNodes:
     mariadbOperator:
       enabled: ${nodes.accounting.mariadb_operator.enabled}
       %{~ if nodes.accounting.mariadb_operator.enabled  ~}
+      protectedSecret: ${nodes.accounting.use_protected_secret}
       resources:
         cpu: ${nodes.accounting.mariadb_operator.resources.cpu * 1000}m
         memory: ${nodes.accounting.mariadb_operator.resources.memory}Gi
@@ -159,13 +180,13 @@ slurmNodes:
     %{~ if length(nodes.accounting.slurmdbd_config) > 0 ~}
     slurmdbdConfig:
       %{~ for key, value in nodes.accounting.slurmdbd_config ~}
-      ${key}: "${value}"
+      ${key}: %{ if value == "yes" || value == "no" }"${value}"%{ else }${value}%{ endif }
       %{~ endfor ~}
     %{~ endif ~}
     %{~ if length(nodes.accounting.slurm_config) > 0 ~}
     slurmConfig:
       %{~ for key, value in nodes.accounting.slurm_config ~}
-      ${key}: "${value}"
+      ${key}: %{ if value == "yes" || value == "no" }"${value}"%{ else }${value}%{ endif }
       %{~ endfor ~}
     %{~ endif ~}
     slurmdbd:
@@ -198,6 +219,10 @@ slurmNodes:
     size: ${nodes.worker.size}
     k8sNodeFilterName: ${k8s_node_filters.worker.name}
     cgroupVersion: v2
+    enableGDRCopy: true
+    slurmNodeExtra: "${nodes.worker.slurm_node_extra}"
+    sshdConfigMapRefName: "${nodes.worker.sshd_config_map_ref_name}"
+    supervisordConfigMapRefName: custom-supervisord-config
     slurmd:
       resources:
         cpu: ${nodes.worker.resources.cpu * 1000}m
@@ -213,8 +238,13 @@ slurmNodes:
       spool:
         volumeClaimTemplateSpec: null
         volumeSourceName: worker-spool
-      %{~ if length(jail_submounts) > 0 ~}
+      %{~ if length(jail_submounts) > 0 || nfs.enabled ~}
       jailSubMounts:
+        %{~ if nfs.enabled ~}
+        - mountPath: ${nfs.mount_path}
+          name: nfs
+          volumeSourceName: nfs
+        %{~ endif ~}
         %{~ for sub_mount in jail_submounts ~}
         - name: ${sub_mount.name}
           mountPath: ${sub_mount.mount_path}
@@ -226,21 +256,18 @@ slurmNodes:
   login:
     size: ${nodes.login.size}
     k8sNodeFilterName: ${k8s_node_filters.login.name}
-    sshdServiceType: ${nodes.login.service_type}
-    %{~ if nodes.login.service_type == "LoadBalancer" && nodes.login.allocation_id != null ~}
+    sshdServiceType: "LoadBalancer"
+    %{~ if nodes.login.allocation_id != null ~}
     sshdServiceAnnotations:
       "nebius.com/load-balancer-allocation-id": "${nodes.login.allocation_id}"
     %{~ endif ~}
-    %{~ if nodes.login.service_type == "NodePort" ~}
-    sshdServiceNodePort: ${nodes.login.node_port}
-    %{~ endif ~}
     %{~ if length(nodes.login.root_public_keys) > 0 ~}
+    sshdConfigMapRefName: "${nodes.login.sshd_config_map_ref_name}"
     sshRootPublicKeys:
       %{~ for key in nodes.login.root_public_keys ~}
       - ${key}
       %{~ endfor ~}
     %{~ endif ~}
-    %{~ if length(jail_submounts) > 0 ~}
     sshd:
       resources:
         cpu: ${nodes.login.resources.cpu * 1000}m
@@ -251,8 +278,21 @@ slurmNodes:
         cpu: ${nodes.munge.resources.cpu * 1000}m
         memory: ${nodes.munge.resources.memory}Gi
         ephemeralStorage: ${nodes.munge.resources.ephemeral_storage}Gi
+    %{~ if length(jail_submounts) > 0 || nfs.enabled ~}
     volumes:
       jailSubMounts:
+        %{~ if nfs.enabled ~}
+        - mountPath: ${nfs.mount_path}
+          name: nfs
+          volumeSourceName: nfs
+        %{~ endif ~}
+        %{~ if telemetry.enabled ~}
+        - mountPath: /etc/update-motd.d/95-nebius-o11y
+          subPath: 95-nebius-o11y
+          readOnly: true
+          name: motd-nebius-o11y
+          volumeSourceName: motd-nebius-o11y
+        %{~ endif ~}
         %{~ for sub_mount in jail_submounts ~}
         - name: ${sub_mount.name}
           mountPath: ${sub_mount.mount_path}

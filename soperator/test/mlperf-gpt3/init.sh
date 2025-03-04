@@ -2,177 +2,137 @@
 
 set -e
 
-usage() { echo "usage: ${0} [-g <cluster_wide_gpu_count>] [-h]" >&2; exit 1; }
+: "${DOWNLOAD_DATA:=1}"
 
-while getopts g:u:k:a:p:n:h flag
+usage() {
+  echo "Usage: ${0} <REQUIRED_FLAGS> [-h]" >&2
+  echo 'Required flags:' >&2
+  echo '  -d  [path]  Path to data directory' >&2
+  echo '              This is where datasets and checkpoints will be stored' >&2
+  echo '' >&2
+  echo 'Flags:' >&2
+  echo '  -n  Whether to not run data downloading jobs' >&2
+  echo '' >&2
+  echo '  -h  Print help and exit' >&2
+  exit 1
+}
+
+while getopts d:nh flag
 do
-    case "${flag}" in
-        g) GPUS=${OPTARG};;
-        h) usage;;
-        *) usage;;
-    esac
+  case "${flag}" in
+    d) DATA_DIR=${OPTARG};;
+    n) DOWNLOAD_DATA=0;;
+    h) usage;;
+    *) usage;;
+  esac
 done
 
-if [ -z "${GPUS}" ]; then
-    GPUS=64
+if [ -z "${DATA_DIR}" ]; then
+  usage
 fi
 
-h1() { echo -e "$(tput setab 12)$(tput setaf 0)$(tput bold) ${1} $(tput sgr0)"; }
-h2() { echo -e "$(tput setab 14)$(tput setaf 0) ${1} $(tput sgr0)"; }
-hdone() { echo -e "$(tput setab 10)$(tput setaf 0) Done $(tput sgr0)"; }
-
-ROOT_DIR="${1:-/gpt3}"
-DATA_DIR="${ROOT_DIR}/dataset"
-CKPT_DIR="${ROOT_DIR}/checkpoint"
-TRAIN_DIR="${ROOT_DIR}/training"
-LOG_DIR="${ROOT_DIR}/logs"
+source ../common/enroot.sh
+source ../common/env.sh
+source ../common/printer.sh
+source ../common/rclone.sh
 
 # region Dirs
 
 h1 'Creating directories...'
 
-mkdir -p "${DATA_DIR}"
-mkdir -p "${CKPT_DIR}"
-mkdir -p "${LOG_DIR}"
+DATASET_NAME='gpt3-dataset-4.0'
+DATASET_DIR="${DATA_DIR}/${DATASET_NAME}"
+
+CHECKPOINT_NAME='gpt3-checkpoint-4.0'
+CHECKPOINT_DIR="${DATA_DIR}/${CHECKPOINT_NAME}"
+
+h2 "Datasets..." \
+  && mkdir -p "${DATASET_DIR}"
+h2 "Checkpoints..." \
+  && mkdir -p "${CHECKPOINT_DIR}"
+h2 'Results...' \
+  && mkdir -p "${TEST_MLPERF_GPT3_RESULTS_DIR}"
 
 hdone
 
 # endregion Dirs
-
-# region MLCommons training repo
-
-h1 'Preparing MLCommons/training repository...'
-
-h2 'Cloning repository...'
-git clone --depth 1 https://github.com/mlcommons/training "${TRAIN_DIR}"
-pushd "${TRAIN_DIR}"
-  git fetch --depth 1 origin 00f04c57d589721aabce4618922780d29f73cf4e
-  git checkout 00f04c57d589721aabce4618922780d29f73cf4e
-popd
-
-h2 'Patching...'
-cp patches/megatron.diff "${TRAIN_DIR}/large_language_model/megatron-lm/"
-pushd "${TRAIN_DIR}/large_language_model/megatron-lm"
-  patch -i megatron.diff
-popd
-
-h2 'Cleaning up...'
-pushd "${TRAIN_DIR}"
-  rm -rf \
-    .github \
-    benchmark_readme_template.md \
-    image_classification \
-    image_segmentation \
-    language_model \
-    large_language_model/paxml \
-    object_detection\
-    recommendation\
-    recommendation_v2\
-    reference_results.md\
-    retired_benchmarks\
-    rnn_speech_recognition\
-    single_stage_detector\
-    stable_diffusion
-popd
-
-hdone
-
-# endregion MLCommons training repo
 
 # region Rclone
 
 h1 'Configuring Rclone...'
 
 h2 'Installing...'
-curl https://rclone.org/install.sh | bash
+rclone_install
 
 h2 'Creating config...'
-rclone \
-  config \
-    create \
-      mlc-training \
-      s3 \
-        provider=Cloudflare \
-        access_key_id=76ea42eadb867e854061a1806220ee1e \
-        secret_access_key=a53625c4d45e3ca8ac0df8a353ea3a41ffc3292aa25259addd8b7dc5a6ce2936 \
-        endpoint=https://c2686074cb2caf5cbaf6d134bdba8b47.r2.cloudflarestorage.com
+rclone_create_config "${RCLONE_PROFILE_NEBIUS_S3}" "${NEBIUS_S3_ENDPOINT}"
 
 hdone
 
 # endregion Rclone
 
-# region Dataset
+#region Enroot
 
-h1 'Preparing dataset...'
+h1 'Configuring enroot...'
 
-pushd "${DATA_DIR}"
-  h2 'Downloading BPE related files...'
-  mkdir "bpe"
-  wget -O bpe/vocab.json https://huggingface.co/gpt2/resolve/main/vocab.json
-  wget -O bpe/merges.txt https://huggingface.co/gpt2/resolve/main/merges.txt
+h2 'Creating config directory...'
+enroot_create_config_dir
 
-  h2 'Downloading C4:en dataset archive...'
-  rclone \
-    copy \
-      -P \
-      mlc-training:mlcommons-training-wg-public/gpt3/megatron-lm/dataset_c4_spm.tar \
-      ./
-
-  h2 'Unpacking C4:en dataset archive...'
-  tar --blocking-factor=8192 -xvf dataset_c4_spm.tar
-
-  h2 'Cleaning up...'
-  rm -rf \
-    dataset_c4_spm.tar \
-    spm
-popd
+# h2 'Creating config...'
+# enroot_create_config "${NEBIUS_CR_ENDPOINT}" "${NEBIUS_CR_USER}" "${NEBIUS_CR_PASSWORD}"
 
 hdone
 
-# endregion Dataset
+#endregion Enroot
 
-# region Checkpoint
+# region Test runner
 
-# TODO: Describe checkpoint downloading process
+h1 'Patching test runner...'
+SBATCH_RUNNER_PATH='gpt3-impl-4.0-nvidia/start.sh'
 
-# endregion Checkpoint
+h2 'Test dir...'
+sed -i -E \
+  -e "s|(TEST_DIR:=)[^}]*|\1${TEST_DIR}|" \
+  ${SBATCH_RUNNER_PATH}
 
-# region Run script
+h2 'Log dir...'
+sed -i -E \
+  -e "s|(BASE_RESULTS_DIR:=)[^}]*|\1${TEST_MLPERF_GPT3_RESULTS_DIR}|" \
+  ${SBATCH_RUNNER_PATH}
 
-h1 'Generating run script...'
+h2 'Container image...'
+sed -i -E \
+  -e "s|(CONTAINER_IMAGE:=)[^}]*|\1${NEBIUS_CR_ENDPOINT}#${NEBIUS_CR_REGISTRY}/gpt3-4.0-nvidia:\$(cat ./VERSION)|" \
+  ${SBATCH_RUNNER_PATH}
 
-cat > "${ROOT_DIR}/run.sh" << EOF
-export MASTER_ADDR='worker-0'
-export WORLD_SIZE="${GPUS}"
+h2 'Data dir...'
+sed -i -E \
+  -e "s|(DATA_DIR:=)[^}]*|\1${DATA_DIR}|" \
+  ${SBATCH_RUNNER_PATH}
 
-export COM_DIR="${DATA_DIR}/preprocessed_c4_spm"
-export BPE_DIR="${DATA_DIR}/bpe"
+# endregion Test runner
 
-export EXTERNAL_MODEL_CHECKPOINT_DIR="${CKPT_DIR}/bf16/ckpt4000"
-export USE_BF16='true'
+# region Data
 
-export LOG_DIR="${LOG_DIR}"
+if [[ "${DOWNLOAD_DATA}" -eq 1 ]]; then
+  h1 'Downloading data...'
 
-export CONT='cr.nemax.nebius.cloud/crn02m09qcuniqo1fh1s/llm-gpt'
+  h2 'Creating a job to download GPT3 dataset...'
+  sbatch ../common/sync.sh \
+    -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${DATASET_NAME}" \
+    -t "${DATASET_DIR}"
 
-pushd "${TRAIN_DIR}/large_language_model/megatron-lm"
-  sbatch run_gpt3.sh "\${LOG_DIR}" "\${BPE_DIR}" "\${CONT}"
-popd
-EOF
+  h2 'Creating a job to download GPT3 checkpoint...'
+  sbatch ../common/sync.sh \
+    -f "${RCLONE_PROFILE_NEBIUS_S3}:${NEBIUS_S3_BUCKET_NAME}/${CHECKPOINT_NAME}" \
+    -t "${CHECKPOINT_DIR}"
 
-chmod +x "${ROOT_DIR}/run.sh"
+  h2 'Current Slurm job queue:'
+  squeue
+else
+  h1 'Skipping data downloading...'
+fi
 
 hdone
 
-# endregion Run script
-
-# region Finalizing
-
-h1 'Finalizing...'
-
-h2 'Setting rights...'
-chown -R 0:0 "${ROOT_DIR}"
-
-hdone
-
-# endregion Finalizing
+# endregion Data

@@ -17,8 +17,8 @@ variable "resources_vm_operator" {
     cpu    = string
   })
   default = {
-    memory = "256Mi"
-    cpu    = "50m"
+    memory = "512Mi"
+    cpu    = "250m"
   }
 }
 
@@ -29,8 +29,8 @@ variable "resources_vm_logs_server" {
     size   = string
   })
   default = {
-    memory = "512Mi"
-    cpu    = "250m"
+    memory = "2Gi"
+    cpu    = "1000m"
     size   = "40Gi"
   }
 }
@@ -42,8 +42,8 @@ variable "resources_vm_single" {
     size   = string
   })
   default = {
-    memory = "1536Mi"
-    cpu    = "250m"
+    memory = "4Gi"
+    cpu    = "2000m"
     size   = "40Gi"
   }
 }
@@ -54,19 +54,33 @@ variable "resources_vm_agent" {
     cpu    = string
   })
   default = {
-    memory = "1Gi"
-    cpu    = "500m"
+    memory = "4Gi"
+    cpu    = "2000m"
   }
 }
 
 variable "resources_fb_logs_collector" {
   type = object({
-    memory = string
-    cpu    = string
+    requests = object({
+      memory = string
+      cpu    = string
+    })
+    limits = object({
+      memory = string
+      cpu    = string
+    })
   })
   default = {
-    memory = "256Mi"
-    cpu    = "200m"
+    requests = {
+      memory = "200Mi"
+      cpu    = "200m"
+    }
+    limits = {
+      memory = "256Mi"
+      cpu    = "200m"
+    }
+    memory = "512Mi"
+    cpu    = "400m"
   }
 }
 

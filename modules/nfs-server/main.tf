@@ -23,16 +23,17 @@ resource "nebius_compute_v1_instance" "nfs_server" {
 
   secondary_disks = [
     {
+      device_id     = "nfs-disk" # hardcoded device-label
       attach_mode   = "READ_WRITE"
       existing_disk = nebius_compute_v1_disk.nfs-storage-disk
     }
   ]
 
-  cloud_init_user_data = templatefile("../modules/cloud-init/nfs-cloud-init.tftpl", {
-    ssh_user_name  = var.ssh_user_name,
-    ssh_public_key = var.ssh_public_key,
-    nfs_ip_range   = var.nfs_ip_range,
-    nfs_path       = var.nfs_path,
-    mtu_size       = var.mtu_size
+  cloud_init_user_data = templatefile("${path.module}/files/nfs-cloud-init.tftpl", {
+    ssh_user_name   = var.ssh_user_name,
+    ssh_public_keys = var.ssh_public_keys,
+    nfs_ip_range    = var.nfs_ip_range,
+    nfs_path        = var.nfs_path,
+    mtu_size        = var.mtu_size
   })
 }

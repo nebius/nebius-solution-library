@@ -14,6 +14,17 @@ variable "operator_stable" {
   default     = true
 }
 
+variable "iam_project_id" {
+  description = "ID of the IAM project."
+  type        = string
+}
+
+variable "k8s_cluster_context" {
+  description = "Context name of the K8s cluster."
+  type        = string
+  nullable    = false
+}
+
 # region PartitionConfiguration
 
 variable "slurm_partition_config_type" {
@@ -95,23 +106,29 @@ resource "terraform_data" "check_worker_nodesets" {
 
 # endregion Resources
 
-# region Login
+# region Worker
 
-variable "login_service_type" {
-  description = "Type of the k8s service to connect to login nodes."
+variable "worker_sshd_config_map_ref_name" {
+  description = "Name of configmap with SSHD config, which runs in slurmd container."
   type        = string
+  default     = ""
 }
 
-variable "login_node_port" {
-  description = "Port of the host to be opened in case of use of `NodePort` service type."
-  type        = number
-}
+# endregion Worker
+
+# region Login
 
 variable "login_allocation_id" {
   description = "ID of the VPC allocation used in case of `LoadBalancer` service type."
   type        = string
   nullable    = true
   default     = null
+}
+
+variable "login_sshd_config_map_ref_name" {
+  description = "Name of configmap with SSHD config, which runs in slurmd container."
+  type        = string
+  default     = ""
 }
 
 variable "login_ssh_root_public_keys" {
@@ -170,6 +187,27 @@ variable "filestores" {
 }
 
 # endregion Filestore
+
+# region nfs-server
+
+variable "nfs" {
+  type = object({
+    enabled    = bool
+    mount_path = optional(string, "/mnt/nfs")
+    path       = optional(string)
+    host       = optional(string)
+  })
+  default = {
+    enabled = false
+  }
+
+  validation {
+    condition     = var.nfs.enabled ? var.nfs.path != null && var.nfs.host != null : true
+    error_message = "NFS path and host must be set."
+  }
+}
+
+# endregion nfs-server
 
 # region Config
 
@@ -245,7 +283,13 @@ variable "mariadb_operator_namespace" {
 variable "accounting_enabled" {
   description = "Whether to enable accounting."
   type        = bool
-  default     = false
+  default     = true
+}
+
+variable "use_protected_secret" {
+  description = "If true, protected user secret MariaDB will not be deleted after the MariaDB CR is deleted."
+  type        = bool
+  default     = true
 }
 
 variable "slurmdbd_config" {
@@ -261,3 +305,62 @@ variable "slurm_accounting_config" {
 }
 
 # endregion Accounting
+
+# region Backups
+
+variable "k8up_operator_namespace" {
+  description = "Namespace for k8up operator."
+  type        = string
+  default     = "k8up-system"
+}
+
+variable "backups_enabled" {
+  description = "Whether to enable jail backups."
+  type        = bool
+  default     = false
+}
+
+variable "backups_aws_access_key_id" {
+  description = "AWS-like access key id for accessing S3 bucket with backups."
+  type        = string
+  nullable    = false
+}
+
+variable "backups_aws_secret_access_key" {
+  description = "AWS-like secret access key for accessing S3 bucket with backups."
+  type        = string
+  nullable    = false
+  sensitive   = true
+}
+
+variable "backups_repo_password" {
+  description = "Password for encrypting backups."
+  type        = string
+  nullable    = false
+  sensitive   = true
+}
+
+# endregion Backups
+
+# region Apparmor
+variable "use_default_apparmor_profile" {
+  description = "Whether to use default AppArmor profile."
+  type        = bool
+  default     = true
+}
+
+# endregion Apparmor
+
+# region Maintenance
+variable "maintenance" {
+  description = "Whether to enable maintenance mode."
+  type        = string
+  default     = "none"
+
+  validation {
+    condition     = contains(["downscaleAndDeletePopulateJail", "downscaleAndOverwritePopulateJail", "downscale", "none", "skipPopulateJail"], var.maintenance)
+    error_message = "The maintenance variable must be one of: downscaleAndDeletePopulateJail, downscaleAndOverwritePopulateJail, downscale, none, skipPopulateJail."
+  }
+}
+
+# endregion Maintenance

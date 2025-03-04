@@ -6,6 +6,9 @@
 #                                                                                                                      #
 #----------------------------------------------------------------------------------------------------------------------#
 
+# Name of the company. It is used for context name of the cluster in .kubeconfig file.
+company_name = ""
+
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                                                                                                      #
@@ -57,8 +60,8 @@ filestore_jail = {
 # Additional (Optional) shared filesystems to be mounted inside jail.
 # ---
 # filestore_jail_submounts = [{
-#   name       = "datasets"
-#   mount_path = "/datasets"
+#   name       = "shared"
+#   mount_path = "/mnt/shared"
 #   spec = {
 #     size_gibibytes       = 2048
 #     block_size_kibibytes = 4
@@ -66,13 +69,13 @@ filestore_jail = {
 # }]
 # Or use existing filestores.
 # ---
-# filestore_jail_submounts = [{
-#   name                 = "datasets"
-#   mount_path           = "/datasets"
-#   existing = {
-#     id = "computefilesystem-<YOUR-FILESTORE-ID>"
-#   }
-# }]
+filestore_jail_submounts = [{
+  name       = "shared"
+  mount_path = "/mnt/shared"
+  existing = {
+    id = "computefilesystem-<YOUR-FILESTORE-ID>"
+  }
+}]
 
 # Shared filesystem to be used for accounting DB.
 # By default, null.
@@ -94,36 +97,19 @@ filestore_accounting = {
 
 # endregion Storage
 
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                                                                                      #
-#                                                                                                                      #
-#                                                         Cloud                                                        #
-#                                                                                                                      #
-#                                                                                                                      #
-#----------------------------------------------------------------------------------------------------------------------#
-# region Cloud
+# region nfs-server
 
-# IAM token used for communicating with Nebius services.
-# Token is being passed via .envrc file.
-# Uncomment to override.
-# ---
-# iam_token = "<YOUR-IAM-TOKEN>"
+nfs = {
+  enabled        = true
+  size_gibibytes = 3720
+  mount_path     = "/home"
+  resource = {
+    platform = "cpu-e2"
+    preset   = "32vcpu-128gb"
+  }
+}
 
-# ID of the IAM project.
-# Project ID is being passed via .envrc file.
-# Uncomment to override.
-# ---
-# iam_project_id = "project-<YOUR-PROJECT-ID>"
-
-# ID of VPC subnet.
-# Subnet ID is being passed via .envrc file.
-# Uncomment to override.
-# ---
-#vpc_subnet_id = "vpcsubnet-<YOUR-SUBNET-ID>"
-
-# endregion Cloud
-
-# endregion Infrastructure
+# endregion nfs-server
 
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
@@ -134,13 +120,13 @@ filestore_accounting = {
 #----------------------------------------------------------------------------------------------------------------------#
 # region Slurm
 
-# Name of the Slurm cluster in k8s cluster.
-# ---
-slurm_cluster_name = "soperator"
-
 # Version of soperator.
 # ---
-slurm_operator_version = "1.15.5"
+slurm_operator_version = "1.18.0"
+
+# Is the version of soperator stable or not.
+# ---
+slurm_operator_stable = true
 
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".
@@ -152,8 +138,8 @@ slurm_partition_config_type = "default"
 # By default, empty list.
 # ---
 # slurm_partition_raw_config = [
-#   "PartitionName=low_priority Nodes=worker-[0-15] Default=YES MaxTime=INFINITE State=UP PriorityTier=1",
-#   "PartitionName=high_priority  Nodes=worker-[10-20] Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
+#   "PartitionName=low_priority Nodes=worker-[0-7] Default=YES MaxTime=INFINITE State=UP PriorityTier=1",
+#   "PartitionName=high_priority  Nodes=worker-[8-15] Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
 # ]
 
 #----------------------------------------------------------------------------------------------------------------------#
@@ -166,22 +152,7 @@ slurm_partition_config_type = "default"
 # Configuration of System node set for system resources created by Soperator.
 # ---
 slurm_nodeset_system = {
-  size = 1
-  resource = {
-    platform = "cpu-e2"
-    preset   = "16vcpu-64gb"
-  }
-  boot_disk = {
-    type                 = "NETWORK_SSD"
-    size_gibibytes       = 128
-    block_size_kibibytes = 4
-  }
-}
-
-# Configuration of Slurm Controller node set.
-# ---
-slurm_nodeset_controller = {
-  size = 1
+  size = 3
   resource = {
     platform = "cpu-e2"
     preset   = "8vcpu-32gb"
@@ -193,15 +164,30 @@ slurm_nodeset_controller = {
   }
 }
 
+# Configuration of Slurm Controller node set.
+# ---
+slurm_nodeset_controller = {
+  size = 2
+  resource = {
+    platform = "cpu-e2"
+    preset   = "4vcpu-16gb"
+  }
+  boot_disk = {
+    type                 = "NETWORK_SSD"
+    size_gibibytes       = 128
+    block_size_kibibytes = 4
+  }
+}
+
 # Configuration of Slurm Worker node sets.
 # There can be only one Worker node set for a while.
-# Split factor allows you to split node set into equally-sized node groups to keep your cluster accessible and working
-# during maintenance. Example: split_factor 3 for 12 nodes will create for you 3 groups with 4 nodes in every group.
+# nodes_per_nodegroup allows you to split node set into equally-sized node groups to keep your cluster accessible and working
+# during maintenance. Example: nodes_per_nodegroup=3 for size=12 nodes will create 4 groups with 3 nodes in every group.
 # infiniband_fabric is required field
 # ---
 slurm_nodeset_workers = [{
   size                    = 16
-  split_factor            = 4
+  nodes_per_nodegroup     = 4
   max_unavailable_percent = 50
   resource = {
     platform = "gpu-h100-sxm"
@@ -209,7 +195,7 @@ slurm_nodeset_workers = [{
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 256
+    size_gibibytes       = 2048
     block_size_kibibytes = 4
   }
   gpu_cluster = {
@@ -220,7 +206,7 @@ slurm_nodeset_workers = [{
 # Configuration of Slurm Login node set.
 # ---
 slurm_nodeset_login = {
-  size = 1
+  size = 2
   resource = {
     platform = "cpu-e2"
     preset   = "32vcpu-128gb"
@@ -239,7 +225,7 @@ slurm_nodeset_login = {
 slurm_nodeset_accounting = {
   resource = {
     platform = "cpu-e2"
-    preset   = "16vcpu-64gb"
+    preset   = "8vcpu-32gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -252,16 +238,6 @@ slurm_nodeset_accounting = {
 #                                                         Login                                                        #
 #----------------------------------------------------------------------------------------------------------------------#
 # region Login
-
-# Type of the k8s service to connect to login nodes.
-# Could be either "LoadBalancer" or "NodePort".
-# ---
-slurm_login_service_type = "LoadBalancer"
-
-# Port of the host to be opened in case of use of `NodePort` service type.
-# By default, 30022.
-# ---
-# slurm_login_node_port = 30022
 
 # Authorized keys accepted for connecting to Slurm login nodes via SSH as 'root' user.
 # ---
@@ -307,7 +283,7 @@ slurm_rest_enabled = false
 # Shared memory size for Slurm controller and worker nodes in GiB.
 # By default, 64.
 # ---
-slurm_shared_memory_size_gibibytes = 384
+slurm_shared_memory_size_gibibytes = 1024
 
 # endregion Config
 
@@ -368,11 +344,29 @@ telemetry_grafana_admin_password = "password"
 # region Accounting
 
 # Whether to enable Accounting.
-# By default, false.
+# By default, true.
 # ---
 accounting_enabled = true
 
 # endregion Accounting
+
+#----------------------------------------------------------------------------------------------------------------------#
+#                                                                                                                      #
+#                                                       Backups                                                        #
+#                                                                                                                      #
+#----------------------------------------------------------------------------------------------------------------------#
+# region Backups
+
+# Whether to enable Backups.
+# By default, false.
+# ---
+backups_enabled = false
+
+# Password to be used for encrypting jail backups.
+# ---
+backups_password = "password"
+
+# endregion Backups
 
 # endregion Slurm
 
@@ -386,10 +380,6 @@ accounting_enabled = true
 # Version of the k8s to be used.
 # ---
 k8s_version = "1.30"
-
-# Name of the k8s cluster.
-# ---
-k8s_cluster_name = "soperator"
 
 # SSH user credentials for accessing k8s nodes.
 # That option add public ip address to every node.

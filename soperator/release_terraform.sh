@@ -23,6 +23,7 @@ if [ ! -f "$tarball" ] || [ -n "$force" ]; then
   tar -czf "soperator/$tarball" \
     modules/gpu-operator \
     modules/network-operator \
+    modules/nfs-server \
     soperator/installations \
     soperator/modules \
     soperator/test \

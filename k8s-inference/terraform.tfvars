@@ -1,4 +1,5 @@
 # Cloud environment and network
+# tenant_id      = "" # The tenant-id in this context
 # parent_id      = "" # The project-id in this context
 # subnet_id      = "" # Use the command "nebius vpc v1alpha1 network list" to see the subnet id
 # region         = "" # Project region
@@ -15,6 +16,7 @@ gpu_nodes_count = 1 # Number of GPU nodes
 # cpu_nodes_preset   =                 # CPU nodes preset
 # gpu_nodes_platform =                 # GPU nodes platform
 # gpu_nodes_preset   =                 # GPU nodes preset
+enable_k8s_node_group_sa = true
 
 # Observability
 enable_grafana    = true  # Enable or disable Grafana deployment with true or false

@@ -22,4 +22,4 @@ if [ -z "$${user}" ]; then
     user=root
 fi
 
-ssh -i "$${key}" -p ${port} "$${user}"@"${address}"
+ssh -i "$${key}" "$${user}"@"${address}"
