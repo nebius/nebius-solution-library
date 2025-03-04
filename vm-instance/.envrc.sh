@@ -177,12 +177,12 @@ echo "TFE_PARALLELISM: ${TFE_PARALLELISM}"
 NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account list \
   --parent-id "${NEBIUS_PROJECT_ID}" \
   --format json \
-  | jq -r '.items[] | select(.metadata.name == "slurm-terraform-sa").metadata.id')
+  | jq -r '.items[] | select(.metadata.name == "vm-terraform-sa").metadata.id')
 
 if [ -z "$NEBIUS_SA_TERRAFORM_ID" ]; then
   NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account create \
     --parent-id "${NEBIUS_PROJECT_ID}" \
-    --name 'slurm-terraform-sa' \
+    --name 'vm-terraform-sa' \
     --format json \
     | jq -r '.metadata.id')
   echo "Created new service account with ID: $NEBIUS_SA_TERRAFORM_ID"
@@ -234,7 +234,7 @@ fi
 echo 'Creating new access key for Object Storage'
 NEBIUS_SA_ACCESS_KEY_ID=$(nebius iam access-key create \
   --parent-id "${NEBIUS_PROJECT_ID}" \
-  --name "slurm-tf-ak-$(date +%s)" \
+  --name "vm-tf-ak-$(date +%s)" \
   --account-service-account-id "${NEBIUS_SA_TERRAFORM_ID}" \
   --description 'Temporary S3 Access' \
   --expires-at "${EXPIRATION_DATE}" \
@@ -262,7 +262,7 @@ export AWS_SECRET_ACCESS_KEY
 
 # region Bucket
 
-NEBIUS_BUCKET_NAME="tfstate-slurm-k8s-$(echo -n "${NEBIUS_TENANT_ID}-${NEBIUS_PROJECT_ID}" | md5sum | awk '$0=$1')"
+NEBIUS_BUCKET_NAME="tfstate-vm-$(echo -n "${NEBIUS_TENANT_ID}-${NEBIUS_PROJECT_ID}" | md5sum | awk '$0=$1')"
 export NEBIUS_BUCKET_NAME
 # Check if bucket exists
 EXISTING_BUCKET=$(nebius storage bucket list \
@@ -302,7 +302,7 @@ cat > terraform_backend_override.tf << EOF
 terraform {
   backend "s3" {
     bucket = "${NEBIUS_BUCKET_NAME}"
-    key    = "slurm-k8s.tfstate"
+    key    = "vm.tfstate"
 
     endpoints = {
       s3 = "https://storage.eu-north1.nebius.cloud:443"
