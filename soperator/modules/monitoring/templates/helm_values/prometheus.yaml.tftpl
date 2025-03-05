@@ -13,7 +13,30 @@ grafana:
   sidecar:
     datasources:
       url: "http://${metrics_collector.host}.:${metrics_collector.port}"
+    additionalDataSources:
+      - name: accounting-mariadb
+        type: mysql
+        url: soperator-acct-db.soperator:3306
+        user: slurm
+        jsonData:
+          database: slurm_acct_db
+          maxOpenConns: 100
+          maxIdleConns: 100
+          maxIdleConnsAuto: true
+          connMaxLifetime: 14400
+        secureJsonData:
+          password: $GRAFANA_ACCOUNTING_MARIADB_PASSWORD
+
+  envValueFrom:
+    GRAFANA_ACCOUNTING_MARIADB_PASSWORD:
+      secretKeyRef:
+        name: mariadb-password
+        key: password
+
   defaultDashboardsEnabled: false
+
+  plugins:
+  - marcusolsson-gantt-panel
 
 kubeStateMetrics:
   enabled: true
