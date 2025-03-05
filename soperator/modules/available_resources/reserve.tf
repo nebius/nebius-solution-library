@@ -13,7 +13,7 @@ locals {
       count       = 2
     }
     ephemeral_storage = {
-      coefficient = 0.9
+      coefficient = 0.85
       count       = data.units_data_size.k8s_ephemeral_storage_reserve
     }
   }
