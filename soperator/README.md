@@ -130,7 +130,7 @@ kubectl get pods --all-namespaces
 
 Get the Slurm cluster IP address
 ```bash
-export SLURM_IP=$(terraform state show module.login_script.terraform_data.connection_ip | grep 'input' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+export SLURM_IP=$(terraform state show module.login_script.terraform_data.lb_service_ip | grep 'input' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
 ssh root@$SLURM_IP -i ~/.ssh/<private_id_rsa_key>
 ```
 
