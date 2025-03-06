@@ -60,10 +60,12 @@ filestore_jail = {
 }
 
 # Additional (Optional) shared filesystems to be mounted inside jail.
+# If a big filesystem is needed it's better to deploy this additional storage because jails bigger than 12 TiB
+# ARE NOT BACKED UP by default.
 # ---
 # filestore_jail_submounts = [{
-#   name       = "shared"
-#   mount_path = "/mnt/shared"
+#   name       = "data"
+#   mount_path = "/mnt/data"
 #   spec = {
 #     size_gibibytes       = 2048
 #     block_size_kibibytes = 4
@@ -72,8 +74,8 @@ filestore_jail = {
 # Or use existing filestores.
 # ---
 filestore_jail_submounts = [{
-  name       = "shared"
-  mount_path = "/mnt/shared"
+  name       = "data"
+  mount_path = "/mnt/data"
   existing = {
     id = "computefilesystem-<YOUR-FILESTORE-ID>"
   }
@@ -161,7 +163,7 @@ slurm_nodeset_system = {
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 128
+    size_gibibytes       = 192
     block_size_kibibytes = 4
   }
 }
@@ -215,7 +217,7 @@ slurm_nodeset_login = {
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 128
+    size_gibibytes       = 256
     block_size_kibibytes = 4
   }
 }
@@ -318,12 +320,12 @@ nccl_benchmark_schedule = "0 */3 * * *"
 # Minimal threshold of NCCL benchmark for GPU performance to be considered as acceptable.
 # By default, 45.
 # ---
-nccl_benchmark_min_threshold = 45
+nccl_benchmark_min_threshold = 450
 
 # Use infiniband defines using NCCL_P2P_DISABLE=1 NCCL_SHM_DISABLE=1 NCCL_ALGO=Ring env variables for test.
-# By default, true
+# By default, false
 # ---
-nccl_use_infiniband = true
+nccl_use_infiniband = false
 
 # endregion NCCL benchmark
 

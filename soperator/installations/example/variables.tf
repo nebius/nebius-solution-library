@@ -612,7 +612,7 @@ variable "nccl_benchmark_min_threshold" {
 variable "nccl_use_infiniband" {
   description = "Use infiniband defines using NCCL_P2P_DISABLE=1 NCCL_SHM_DISABLE=1 NCCL_ALGO=Ring env variables for test."
   type        = bool
-  default     = true
+  default     = false
 }
 
 # endregion NCCL benchmark
