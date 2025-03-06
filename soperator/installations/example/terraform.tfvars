@@ -60,10 +60,12 @@ filestore_jail = {
 }
 
 # Additional (Optional) shared filesystems to be mounted inside jail.
+# If a big filesystem is needed it's better to deploy this additional storage because jails bigger than 12 TiB
+# ARE NOT BACKED UP by default.
 # ---
 # filestore_jail_submounts = [{
-#   name       = "shared"
-#   mount_path = "/mnt/shared"
+#   name       = "data"
+#   mount_path = "/mnt/data"
 #   spec = {
 #     size_gibibytes       = 2048
 #     block_size_kibibytes = 4
@@ -72,8 +74,8 @@ filestore_jail = {
 # Or use existing filestores.
 # ---
 filestore_jail_submounts = [{
-  name       = "shared"
-  mount_path = "/mnt/shared"
+  name       = "data"
+  mount_path = "/mnt/data"
   existing = {
     id = "computefilesystem-<YOUR-FILESTORE-ID>"
   }
@@ -106,7 +108,7 @@ nfs = {
   size_gibibytes = 3720
   mount_path     = "/home"
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "32vcpu-128gb"
   }
 }
@@ -161,7 +163,7 @@ slurm_nodeset_system = {
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 128
+    size_gibibytes       = 192
     block_size_kibibytes = 4
   }
 }
@@ -171,7 +173,7 @@ slurm_nodeset_system = {
 slurm_nodeset_controller = {
   size = 2
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "4vcpu-16gb"
   }
   boot_disk = {
@@ -215,7 +217,7 @@ slurm_nodeset_login = {
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 128
+    size_gibibytes       = 256
     block_size_kibibytes = 4
   }
 }
@@ -226,7 +228,7 @@ slurm_nodeset_login = {
 # ---
 slurm_nodeset_accounting = {
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "8vcpu-32gb"
   }
   boot_disk = {
@@ -267,9 +269,10 @@ slurm_exporter_enabled = true
 # region REST API
 
 # Whether to enable Slurm REST API.
-# By default, false.
+# If disabled, node auto-replacement in case of maintenance events DOESN'T WORK.
+# By default, true.
 # ---
-slurm_rest_enabled = false
+slurm_rest_enabled = true
 
 # endregion REST API
 
@@ -316,14 +319,14 @@ nccl_benchmark_enable = true
 nccl_benchmark_schedule = "0 */3 * * *"
 
 # Minimal threshold of NCCL benchmark for GPU performance to be considered as acceptable.
-# By default, 45.
+# By default, 420.
 # ---
-nccl_benchmark_min_threshold = 45
+nccl_benchmark_min_threshold = 420
 
 # Use infiniband defines using NCCL_P2P_DISABLE=1 NCCL_SHM_DISABLE=1 NCCL_ALGO=Ring env variables for test.
-# By default, true
+# By default, false
 # ---
-nccl_use_infiniband = true
+nccl_use_infiniband = false
 
 # endregion NCCL benchmark
 
