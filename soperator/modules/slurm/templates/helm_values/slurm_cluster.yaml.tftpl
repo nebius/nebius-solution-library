@@ -131,6 +131,20 @@ volumeSources:
       claimName: jail-submount-${sub_mount.name}-pvc
       readOnly: false
   %{~ endfor ~}
+  
+  %{~ if default_prolog_enabled ~}
+  - name: slurm-prolog
+    configMap:
+      name: slurm-prolog
+      defaultMode: 500
+  %{~ endif ~}
+  
+  %{~ if default_epilog_enabled ~}
+  - name: slurm-epilog
+    configMap:
+      name: slurm-epilog
+      defaultMode: 500
+  %{~ endif ~}
 
 populateJail:
   k8sNodeFilterName: ${k8s_node_filters.system.name}
@@ -149,6 +163,12 @@ periodicChecks:
 
 slurmConfig:
   defMemPerNode: ${floor(nodes.worker.resources.memory * 1024)}
+  %{~ if default_prolog_enabled ~}
+  prolog: /etc/slurm-scripts/prolog.sh
+  %{~ endif ~}
+  %{~ if default_epilog_enabled ~}
+  epilog: /etc/slurm-scripts/epilog.sh
+  %{~ endif ~}
 
 slurmNodes:
   accounting:
@@ -251,6 +271,21 @@ slurmNodes:
           volumeSourceName: jail-submount-${sub_mount.name}
         %{~ endfor ~}
       %{~ endif ~}
+      customMounts:
+        %{~ if default_prolog_enabled ~}
+        - name: slurm-prolog
+          mountPath: /etc/slurm-scripts/prolog.sh
+          subPath: prolog.sh
+          readOnly: true
+          volumeSourceName: slurm-prolog
+        %{~ endif ~}
+        %{~ if default_epilog_enabled ~}
+        - name: slurm-epilog
+          mountPath: /etc/slurm-scripts/epilog.sh
+          subPath: epilog.sh
+          readOnly: true
+          volumeSourceName: slurm-epilog
+        %{~ endif ~}
       sharedMemorySize: ${nodes.worker.shared_memory}Gi
 
   login:
@@ -278,7 +313,6 @@ slurmNodes:
         cpu: ${nodes.munge.resources.cpu * 1000}m
         memory: ${nodes.munge.resources.memory}Gi
         ephemeralStorage: ${nodes.munge.resources.ephemeral_storage}Gi
-    %{~ if length(jail_submounts) > 0 || nfs.enabled ~}
     volumes:
       jailSubMounts:
         %{~ if nfs.enabled ~}
@@ -298,7 +332,21 @@ slurmNodes:
           mountPath: ${sub_mount.mount_path}
           volumeSourceName: jail-submount-${sub_mount.name}
         %{~ endfor ~}
-      %{~ endif ~}
+      customMounts:
+        %{~ if default_prolog_enabled ~}
+        - name: slurm-prolog
+          mountPath: /etc/slurm-scripts/prolog.sh
+          subPath: prolog.sh
+          readOnly: true
+          volumeSourceName: slurm-prolog
+        %{~ endif ~}
+        %{~ if default_epilog_enabled ~}
+        - name: slurm-epilog
+          mountPath: /etc/slurm-scripts/epilog.sh
+          subPath: epilog.sh
+          readOnly: true
+          volumeSourceName: slurm-epilog
+        %{~ endif ~}
 
   exporter:
     enabled: ${nodes.exporter.enabled}
