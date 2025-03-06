@@ -319,7 +319,8 @@ variable "slurm_partition_raw_config" {
 variable "slurm_nodeset_system" {
   description = "Configuration of System node set for system resources created by Soperator."
   type = object({
-    size = number
+    min_size = number
+    max_size = number
     resource = object({
       platform = string
       preset   = string
@@ -332,7 +333,8 @@ variable "slurm_nodeset_system" {
   })
   nullable = false
   default = {
-    size = 1
+    min_size = 3
+    max_size = 9
     resource = {
       platform = "cpu-e2"
       preset   = "16vcpu-64gb"
@@ -496,8 +498,8 @@ resource "terraform_data" "check_slurm_nodeset" {
 
   lifecycle {
     precondition {
-      condition     = each.value.size > 0
-      error_message = "Size must be greater than zero in node set ${each.key}."
+      condition     = try(each.value.size, 0) > 0 || try(each.value.min_size, 0) > 0
+      error_message = "Either size or min_size must be greater than zero in node set ${each.key}."
     }
 
     precondition {
