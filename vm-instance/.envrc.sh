@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PRODUCT="vm-test"
+PRODUCT="vm"
 
 
 unset NEBIUS_IAM_TOKEN
