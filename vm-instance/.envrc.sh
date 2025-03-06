@@ -1,4 +1,8 @@
 #!/bin/bash
+
+PRODUCT="vm"
+
+
 unset NEBIUS_IAM_TOKEN
 export NEBIUS_IAM_TOKEN=$(nebius iam get-access-token)
 export TF_VAR_iam_token=$NEBIUS_IAM_TOKEN
@@ -140,8 +144,13 @@ export NEBIUS_PROJECT_ID=$project_id
 echo "Selected tenant: $tenant_name ($tenant_id)"
 echo "Selected project: $project_name ($project_id)"
 
-# region VPC subnet
+#region
+NEBIUS_REGION=$(nebius iam project get --id "$project_id" | awk '/region:/ {print $2}')
 
+#end region
+
+
+# region VPC subnet
 NEBIUS_VPC_SUBNET_ID=$(nebius vpc subnet list \
   --parent-id "${NEBIUS_PROJECT_ID}" \
   --format json \
@@ -159,6 +168,7 @@ export TF_VAR_vpc_subnet_id="${NEBIUS_VPC_SUBNET_ID}"
 export TF_VAR_iam_project_id="${NEBIUS_PROJECT_ID}"
 export TF_VAR_parent_id="${NEBIUS_PROJECT_ID}"
 export TF_VAR_subnet_id="${NEBIUS_VPC_SUBNET_ID}"
+export TF_VAR_region="${NEBIUS_REGION}"
 
 export TFE_PARALLELISM=20
 
@@ -167,6 +177,7 @@ echo "NEBIUS_TENANT_ID: ${NEBIUS_TENANT_ID}"
 echo "NEBIUS_PROJECT_ID: ${NEBIUS_PROJECT_ID}"
 echo "NEBIUS_VPC_SUBNET_ID: ${NEBIUS_VPC_SUBNET_ID}"
 echo "TFE_PARALLELISM: ${TFE_PARALLELISM}"
+echo "NEBIUS_REGION: ${NEBIUS_REGION}"
 
 # endregion TF variables
 
@@ -177,12 +188,12 @@ echo "TFE_PARALLELISM: ${TFE_PARALLELISM}"
 NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account list \
   --parent-id "${NEBIUS_PROJECT_ID}" \
   --format json \
-  | jq -r '.items[] | select(.metadata.name == "vm-terraform-sa").metadata.id')
+  | jq -r ".items[] | select(.metadata.name == \"${PRODUCT}-terraform-sa\").metadata.id")
 
 if [ -z "$NEBIUS_SA_TERRAFORM_ID" ]; then
   NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account create \
     --parent-id "${NEBIUS_PROJECT_ID}" \
-    --name 'vm-terraform-sa' \
+    --name "${PRODUCT}-terraform-sa" \
     --format json \
     | jq -r '.metadata.id')
   echo "Created new service account with ID: $NEBIUS_SA_TERRAFORM_ID"
@@ -234,7 +245,7 @@ fi
 echo 'Creating new access key for Object Storage'
 NEBIUS_SA_ACCESS_KEY_ID=$(nebius iam access-key create \
   --parent-id "${NEBIUS_PROJECT_ID}" \
-  --name "vm-tf-ak-$(date +%s)" \
+  --name "${PRODUCT}-tf-ak-$(date +%s)" \
   --account-service-account-id "${NEBIUS_SA_TERRAFORM_ID}" \
   --description 'Temporary S3 Access' \
   --expires-at "${EXPIRATION_DATE}" \
@@ -262,7 +273,7 @@ export AWS_SECRET_ACCESS_KEY
 
 # region Bucket
 
-NEBIUS_BUCKET_NAME="tfstate-vm-$(echo -n "${NEBIUS_TENANT_ID}-${NEBIUS_PROJECT_ID}" | md5sum | awk '$0=$1')"
+NEBIUS_BUCKET_NAME="tfstate-${PRODUCT}-$(echo -n "${NEBIUS_TENANT_ID}-${NEBIUS_PROJECT_ID}" | md5sum | awk '$0=$1')"
 export NEBIUS_BUCKET_NAME
 # Check if bucket exists
 EXISTING_BUCKET=$(nebius storage bucket list \
@@ -302,7 +313,7 @@ cat > terraform_backend_override.tf << EOF
 terraform {
   backend "s3" {
     bucket = "${NEBIUS_BUCKET_NAME}"
-    key    = "vm.tfstate"
+    key    = "${PRODUCT}.tfstate"
 
     endpoints = {
       s3 = "https://storage.eu-north1.nebius.cloud:443"
