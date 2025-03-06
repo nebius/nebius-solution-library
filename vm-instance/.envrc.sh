@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PRODUCT="vm"
+PRODUCT="vm-test"
 
 
 unset NEBIUS_IAM_TOKEN
@@ -26,7 +26,7 @@ elif command -v brew &>/dev/null; then
     INSTALL_COMMAND="brew install"
 else
     echo "Unsupported package manager. Please install required tools manually: ${REQUIRED_TOOLS[*]}"
-    exit 1
+    return 1
 fi
 
 # Check and install missing tools
@@ -36,7 +36,7 @@ for tool in "${REQUIRED_TOOLS[@]}"; do
         $INSTALL_COMMAND "$tool"
         if [[ $? -ne 0 ]]; then
             echo "Failed to install $tool. Please install it manually."
-            exit 1
+            return 1
         fi
     fi
 done
@@ -56,7 +56,7 @@ done < <(echo "$OUTPUT" | jq -c '.items[]')
 # Check if tenant list is empty
 if [[ ${#TENANTS[@]} -eq 0 ]]; then
     echo "No tenants found. Exiting."
-    exit 0
+    return 0
 fi
 
 # Create a list with both names and IDs
@@ -76,7 +76,7 @@ selected=$(echo "$tenant_list" | fzf --prompt="Select a tenant: " --height=20 --
 # Check if the selection is empty
 if [[ -z "$selected" ]]; then
     echo "No tenant selected."
-    exit 0
+    return 0
 fi
 
 # Extract the selected name and ID safely
@@ -101,7 +101,7 @@ done < <(echo "$OUTPUT" | jq -c '.items[]')
 # Check if project list is empty
 if [[ ${#PROJECTS[@]} -eq 0 ]]; then
     echo "No projects found. Exiting."
-    exit 0
+    return 0
 fi
 
 
@@ -126,7 +126,7 @@ selected=$(echo "$project_list" | fzf --prompt="Select a project: " --height=20 
 # Check if the selection is empty
 if [[ -z "$selected" ]]; then
     echo "No project selected."
-    exit 0
+    return 0
 fi
 
 # Extract the selected name and ID safely
@@ -143,6 +143,26 @@ export NEBIUS_PROJECT_ID=$project_id
 # Output the result
 echo "Selected tenant: $tenant_name ($tenant_id)"
 echo "Selected project: $project_name ($project_id)"
+
+
+if [ "$1" == "destroy" ]; then
+  NEBIUS_BUCKET_NAME="tfstate-${PRODUCT}-$(echo -n "${NEBIUS_TENANT_ID}-${NEBIUS_PROJECT_ID}" | md5sum | awk '$0=$1')"
+
+  read -p "Are you sure you want to destroy ${NEBIUS_BUCKET_NAME}? Type 'yes' to confirm: " CONFIRM
+  if [ "$CONFIRM" != "yes" ]; then
+    echo "Aborting."
+    return 1
+  fi
+
+  BUCKET_ID=$(nebius storage bucket get-by-name --name ${NEBIUS_BUCKET_NAME} --format json | jq -r '.metadata.id')
+  echo ${BUCKET_ID}
+  nebius storage bucket delete --id ${BUCKET_ID} --ttl 0
+  return 0
+fi
+
+
+
+
 
 #region
 NEBIUS_REGION=$(nebius iam project get --id "$project_id" | awk '/region:/ {print $2}')
