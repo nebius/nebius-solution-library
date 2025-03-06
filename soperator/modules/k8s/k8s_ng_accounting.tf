@@ -26,7 +26,7 @@ resource "nebius_mk8s_v1_node_group" "accounting" {
     taints = [{
       key    = module.labels.key_slurm_nodeset_name,
       value  = module.labels.name_nodeset_accounting
-      effect = "PREFER_NO_SCHEDULE"
+      effect = "NO_SCHEDULE"
     }]
 
     resources = {
