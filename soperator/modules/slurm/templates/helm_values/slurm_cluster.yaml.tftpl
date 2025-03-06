@@ -38,7 +38,7 @@ k8sNodeFilters:
       - key: ${k8s_node_filters.label.nodeset}
         operator: Equal
         value: ${k8s_node_filters.label.accounting}
-        effect: PreferNoSchedule
+        effect: NoSchedule
 
   - name: ${k8s_node_filters.controller.name}
     affinity:
@@ -54,7 +54,7 @@ k8sNodeFilters:
       - key: ${k8s_node_filters.label.nodeset}
         operator: Equal
         value: ${k8s_node_filters.label.controller}
-        effect: PreferNoSchedule
+        effect: NoSchedule
 
   - name: ${k8s_node_filters.login.name}
     affinity:
@@ -70,7 +70,7 @@ k8sNodeFilters:
       - key: ${k8s_node_filters.label.nodeset}
         operator: Equal
         value: ${k8s_node_filters.label.login}
-        effect: PreferNoSchedule
+        effect: NoSchedule
 
   - name: ${k8s_node_filters.worker.name}
     affinity:
@@ -88,7 +88,7 @@ k8sNodeFilters:
       - key: ${k8s_node_filters.label.nodeset}
         operator: Equal
         value: ${k8s_node_filters.label.worker}
-        effect: PreferNoSchedule
+        effect: NoSchedule
     %{~ if nodes.worker.resources.gpus > 0 ~}
       - key: ${k8s_node_filters.label.gpu}
         operator: Exists

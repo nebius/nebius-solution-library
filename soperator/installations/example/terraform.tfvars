@@ -154,9 +154,12 @@ slurm_partition_config_type = "default"
 # region Nodes
 
 # Configuration of System node set for system resources created by Soperator.
+# Keep in mind that the k8s nodegroup will have auto-scaling enabled and the actual number of nodes depends on the size
+# of the cluster.
 # ---
 slurm_nodeset_system = {
-  size = 3
+  min_size = 3
+  max_size = 9
   resource = {
     platform = "cpu-e2"
     preset   = "8vcpu-32gb"
