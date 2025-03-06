@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/zsh
 
 PRODUCT="vm"
-
 
 unset NEBIUS_IAM_TOKEN
 export NEBIUS_IAM_TOKEN=$(nebius iam get-access-token)
@@ -16,13 +15,13 @@ REQUIRED_TOOLS=("fzf" "jq")
 INSTALL_COMMAND=""
 
 # Determine the package manager
-if command -v apt &>/dev/null; then
+if (( $+commands[apt] )); then
     INSTALL_COMMAND="sudo apt install -y"
-elif command -v yum &>/dev/null; then
+elif (( $+commands[yum] )); then
     INSTALL_COMMAND="sudo yum install -y"
-elif command -v dnf &>/dev/null; then
+elif (( $+commands[dnf] )); then
     INSTALL_COMMAND="sudo dnf install -y"
-elif command -v brew &>/dev/null; then
+elif (( $+commands[brew] )); then
     INSTALL_COMMAND="brew install"
 else
     echo "Unsupported package manager. Please install required tools manually: ${REQUIRED_TOOLS[*]}"
@@ -31,7 +30,7 @@ fi
 
 # Check and install missing tools
 for tool in "${REQUIRED_TOOLS[@]}"; do
-    if ! command -v "$tool" &>/dev/null; then
+    if (( ! $+commands[$tool] )); then
         echo "$tool is not installed. Installing..."
         $INSTALL_COMMAND "$tool"
         if [[ $? -ne 0 ]]; then
@@ -41,155 +40,157 @@ for tool in "${REQUIRED_TOOLS[@]}"; do
     fi
 done
 
-# Fetch the data from the command
+# Ensure TENANTS is declared as an associative array in Zsh
+typeset -A TENANTS
+
+# Fetch the tenant list
 OUTPUT=$(nebius iam tenant list --page-size 100 --format json)
 
-# Parse the names and IDs from the output
-declare -A TENANTS
+# Parse the names and IDs from JSON output
 while IFS= read -r line; do
-    # Extract tenant names and IDs
     name=$(echo "$line" | jq -r '.metadata.name')
     id=$(echo "$line" | jq -r '.metadata.id')
-    [[ -n "$name" && -n "$id" ]] && TENANTS["$name"]=$id
+    [[ -n "$name" && -n "$id" ]] && TENANTS[$name]=$id
 done < <(echo "$OUTPUT" | jq -c '.items[]')
 
-# Check if tenant list is empty
+# Check if tenants are available
 if [[ ${#TENANTS[@]} -eq 0 ]]; then
     echo "No tenants found. Exiting."
-    return 0
+    return 1
 fi
 
-# Create a list with both names and IDs
-tenant_list=$(for name in "${!TENANTS[@]}"; do
-    echo "$name (${TENANTS[$name]})"
-done)
+# Create the selection list (proper multi-line output)
+tenant_list=()
+for name in "${(@k)TENANTS}"; do
+    tenant_list+=("$name (${TENANTS[$name]})")
+done
 
-# Prepend the last selected tenant to the list, if it exists
+# Load last selection if available
 if [[ -f "$LAST_SELECTED_TENANT_FILE" ]]; then
     last_selected=$(<"$LAST_SELECTED_TENANT_FILE")
-    tenant_list=$(echo "$last_selected"; echo "$tenant_list" | grep -v -F "$last_selected")
+    if [[ -n "$last_selected" ]]; then
+        tenant_list=("$last_selected" "${(@)tenant_list:#$last_selected}")
+    fi
 fi
 
-# Use fzf for selection
-selected=$(echo "$tenant_list" | fzf --prompt="Select a tenant: " --height=20 --reverse --exact --header="Arrow keys to navigate, Enter to select")
+# Ensure tenant list prints each item on a new line
+selected=$(printf "%s\n" "${tenant_list[@]}" | fzf --prompt="Select a tenant: " --height=20 --reverse --exact --header="Arrow keys to navigate, Enter to select")
 
-# Check if the selection is empty
+# Validate selection
 if [[ -z "$selected" ]]; then
     echo "No tenant selected."
-    return 0
+    return 1
 fi
 
-# Extract the selected name and ID safely
+# Extract selected tenant name and ID
 tenant_name=$(echo "$selected" | sed -E 's/^(.*)[[:space:]]\(.*/\1/')
 tenant_id=$(echo "$selected" | sed -E 's/^.*\((.*)\)$/\1/')
 
+# Save the selection
+echo "$selected" > "$LAST_SELECTED_TENANT_FILE"
+
+# Export variables
+export NEBIUS_TENANT_ID="$tenant_id"
+echo "Selected tenant: $tenant_name ($tenant_id)"
+
 # Save the selection for the next run
 echo "$selected" > "$LAST_SELECTED_TENANT_FILE"
-# Fetch the data from the command
 
-# Now, execute the command
+# Fetch projects
+# Fetch the data for projects
 OUTPUT=$(nebius iam project list --page-size 100 --parent-id "$tenant_id" --format json)
 
-declare -A PROJECTS
+# Declare the PROJECTS associative array
+typeset -A PROJECTS
+
+# Parse the names and IDs from the output
 while IFS= read -r line; do
-    # Extract tenant names and IDs
     name=$(echo "$line" | jq -r '.metadata.name')
     id=$(echo "$line" | jq -r '.metadata.id')
-    [[ -n "$name" && -n "$id" ]] && PROJECTS["$name"]=$id
+    [[ -n "$name" && -n "$id" ]] && PROJECTS[$name]=$id
 done < <(echo "$OUTPUT" | jq -c '.items[]')
 
 # Check if project list is empty
 if [[ ${#PROJECTS[@]} -eq 0 ]]; then
     echo "No projects found. Exiting."
-    return 0
+    return 1
 fi
 
-
-# Create a list with both names and IDs
-project_list=$(for name in "${!PROJECTS[@]}"; do
-    echo "$name (${PROJECTS[$name]})"
-done)
+# Create the project list (proper multi-line output)
+project_list=()
+for name in "${(@k)PROJECTS}"; do
+    project_list+=("$name (${PROJECTS[$name]})")
+done
 
 # Prepend the last selected project to the list, if it exists
 if [[ -f "$LAST_SELECTED_PROJECT_FILE" ]]; then
     last_selected=$(<"$LAST_SELECTED_PROJECT_FILE")
     echo "LAST SELECTION: $last_selected"
-    # Check if the last selected item exists in the current tenant list
+    # Check if the last selected project exists in the current list
     if echo "$project_list" | grep -q -F "$last_selected"; then
-        project_list=$(echo "$last_selected"; echo "$project_list" | grep -v -F "$last_selected")
+        project_list=("$last_selected" "${(@)project_list:#$last_selected}")
     fi
 fi
 
-# Use fzf for selection
-selected=$(echo "$project_list" | fzf --prompt="Select a project: " --height=20 --reverse --exact --header="Arrow keys to navigate, Enter to select")
+# Use fzf to select the project
+selected=$(printf "%s\n" "${project_list[@]}" | fzf --prompt="Select a project: " --height=20 --reverse --exact --header="Arrow keys to navigate, Enter to select")
 
 # Check if the selection is empty
 if [[ -z "$selected" ]]; then
     echo "No project selected."
-    return 0
+    return 1
 fi
 
-# Extract the selected name and ID safely
+# Extract the selected project name and ID
 project_name=$(echo "$selected" | sed -E 's/^(.*)[[:space:]]\(.*/\1/')
 project_id=$(echo "$selected" | sed -E 's/^.*\((.*)\)$/\1/')
-unset TENANTS
-unset PROJECTS
 
 # Save the selection for the next run
 echo "$selected" > "$LAST_SELECTED_PROJECT_FILE"
 
-export NEBIUS_TENANT_ID=$tenant_id
-export NEBIUS_PROJECT_ID=$project_id
-# Output the result
-echo "Selected tenant: $tenant_name ($tenant_id)"
+# Export variables
+export NEBIUS_PROJECT_ID="$project_id"
 echo "Selected project: $project_name ($project_id)"
 
+export NEBIUS_TENANT_ID=$tenant_id
+export NEBIUS_PROJECT_ID=$project_id
 
-if [ "$1" == "destroy" ]; then
+if [[ "$1" == "destroy" ]]; then
   NEBIUS_BUCKET_NAME="tfstate-${PRODUCT}-$(echo -n "${NEBIUS_TENANT_ID}-${NEBIUS_PROJECT_ID}" | md5sum | awk '$0=$1')"
 
-  read -p "Are you sure you want to destroy ${NEBIUS_BUCKET_NAME}? Type 'yes' to confirm: " CONFIRM
-  if [ "$CONFIRM" != "yes" ]; then
+  # Using Zsh's read prompt
+  read "?Are you sure you want to destroy ${NEBIUS_BUCKET_NAME}? Type 'yes' to confirm: " CONFIRM
+  if [[ "$CONFIRM" != "yes" ]]; then
     echo "Aborting."
     return 1
   fi
 
-  BUCKET_ID=$(nebius storage bucket get-by-name --name ${NEBIUS_BUCKET_NAME} --format json | jq -r '.metadata.id')
-  echo ${BUCKET_ID}
-  nebius storage bucket delete --id ${BUCKET_ID} --ttl 0
+  # Fetch the bucket ID using the given bucket name
+  BUCKET_ID=$(nebius storage bucket get-by-name --name "${NEBIUS_BUCKET_NAME}" --format json | jq -r '.metadata.id')
+  echo "${BUCKET_ID}"
+
+  # Delete the bucket with the fetched ID
+  nebius storage bucket delete --id "${BUCKET_ID}" --ttl 0
   return 0
 fi
 
-
-
-
-
-#region
+# Region setup
 NEBIUS_REGION=$(nebius iam project get --id "$project_id" | awk '/region:/ {print $2}')
+export NEBIUS_REGION
 
-#end region
-
-
-# region VPC subnet
+# VPC subnet
 NEBIUS_VPC_SUBNET_ID=$(nebius vpc subnet list \
   --parent-id "${NEBIUS_PROJECT_ID}" \
   --format json \
   | jq -r '.items[0].metadata.id')
 export NEBIUS_VPC_SUBNET_ID
 
-# endregion VPC subnet
-
-# region TF variables
-
+# Export Terraform variables
 export TF_VAR_iam_token="${NEBIUS_IAM_TOKEN}"
 export TF_VAR_iam_tenant_id="${NEBIUS_TENANT_ID}"
 export TF_VAR_iam_project_id="${NEBIUS_PROJECT_ID}"
 export TF_VAR_vpc_subnet_id="${NEBIUS_VPC_SUBNET_ID}"
-export TF_VAR_iam_project_id="${NEBIUS_PROJECT_ID}"
-export TF_VAR_parent_id="${NEBIUS_PROJECT_ID}"
-export TF_VAR_subnet_id="${NEBIUS_VPC_SUBNET_ID}"
 export TF_VAR_region="${NEBIUS_REGION}"
-
 export TFE_PARALLELISM=20
 
 echo "Exported variables:"

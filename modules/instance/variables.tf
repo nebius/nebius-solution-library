@@ -126,3 +126,9 @@ variable "aws_secret_access_key" {
   description = "S3 access key"
   default     = ""
 }
+
+variable "gpu_cluster" {
+  type        = string
+  description = "gpu cluster id"
+  default     = ""
+}

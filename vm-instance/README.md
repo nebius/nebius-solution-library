@@ -8,17 +8,17 @@ This Terraform configuration script provisions cloud instances with specific har
 * Installing and configuration of aws cli for s3 access
 * Mount S3 Bucket to all instances
 * Attach extra storage to all instances
-
+* Add VMs to a GPU cluster and connect them over Infiniband
 
 ## Configuring Terraform for Nebius Cloud
 
 - Install [Nebius CLI](https://docs.nebius.com/cli/install/).
 - Add environment variables for Terraform authentication in Nebuis Cloud.
 
-```
-source ./env.sh
-```
-the `env.sh` script will set all necessary environment variables, as well as create a bucket where to store the terraform state file. 
+
+Run `source ./env.sh` if you run bash, or `source ./env.zsh` if you prefer zsh.
+
+These scripts will set all necessary environment variables, as well as create a bucket where to store the terraform state file. 
 It will also attempt to install all necessary dependencies and let you select the tenant and project where you want to deploy your solution. 
 ## Usage
 
@@ -105,3 +105,26 @@ instance_count = 2
 
 This will mount the bucket into the given directory, or into `/mnt/s3` if no directory is given. 
 
+### Example 4: Provision vms inside a GPU Cluster
+
+
+```
+preset = "8gpu-128vcpu-1600gb"
+platform = "gpu-h100-sxm"
+
+users = [
+  {
+    user_name = "admin",
+    ssh_key_path = "~/.ssh/id_rsa.pub"
+  }
+]
+
+public_ip = true
+instance_count = 2
+
+fabric = "fabric-6"
+
+```
+This will create a GPU cluster and add all vms inside there. This gives them the possibility to connect over Infiniband. 
+
+It is not possible to change that for already running instances
