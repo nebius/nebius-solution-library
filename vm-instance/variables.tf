@@ -119,3 +119,9 @@ variable "aws_secret_access_key" {
   description = "S3 access key"
   default     = ""
 }
+
+variable "fabric" {
+  type        = string
+  description = "if provided, will create gpu cluster in this fabric for all vms"
+  default     = ""
+}

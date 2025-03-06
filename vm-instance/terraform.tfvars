@@ -23,4 +23,6 @@ public_ip = true
 instance_count = 1
 
 shared_filesystem_id = ""
-mount_bucket = ""
+mount_bucket = "fabric-6"
+
+fabric = ""

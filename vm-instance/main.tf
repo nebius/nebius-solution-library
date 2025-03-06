@@ -1,8 +1,17 @@
+resource "nebius_compute_v1_gpu_cluster" "gpu-cluster" {
+  count            = var.fabric != "" ? 1 : 0  # Create the resource only if fabric is set
+  infiniband_fabric = var.fabric
+  parent_id         = var.parent_id
+  name              = join("-", [var.fabric, "cluster"])
+}
+
+
 module "instance-module" {
   source         = "../modules/instance"
   parent_id      = var.parent_id
   subnet_id      = var.subnet_id
   count          = var.instance_count
+  gpu_cluster    = var.fabric != "" ? nebius_compute_v1_gpu_cluster.gpu-cluster[0].id : ""
   instance_name = "instance-${count.index}"
   users = var.users
   preset     = var.preset
