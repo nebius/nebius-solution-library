@@ -198,6 +198,20 @@ locals {
         (module.labels.name_nodeset_accounting) = true
       }
     }
+    g-1gpu-40vcpu-160gb = {
+      cpu_cores              = 40 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 160 * local.reserve.ram.coefficient - local.reserve.ram.count
+      gpus                   = 1
+      gpu_cluster_compatible = false
+      sufficient = {
+        (module.labels.name_nodeset_system)     = true
+        (module.labels.name_nodeset_controller) = true
+        (module.labels.name_nodeset_worker)     = true
+        (module.labels.name_nodeset_login)      = true
+        (module.labels.name_nodeset_accounting) = true
+      }
+    }
+
     g-8gpu-128vcpu-1600gb = {
       cpu_cores              = 128 * local.reserve.cpu.coefficient - local.reserve.cpu.count
       memory_gibibytes       = 1600 * local.reserve.ram.coefficient - local.reserve.ram.count
@@ -240,10 +254,13 @@ locals {
       "224vcpu-896gb"  = local.presets_cpu.c-224vcpu-896gb
       "256vcpu-1024gb" = local.presets_cpu.c-256vcpu-1024gb
     })
-
     "gpu-h100-sxm" = tomap({
       "1gpu-16vcpu-200gb"   = local.presets_gpu.g-1gpu-16vcpu-200gb
       "8gpu-128vcpu-1600gb" = local.presets_gpu.g-8gpu-128vcpu-1600gb
+    })
+
+    "gpu-l40s-a" = tomap({
+      "1gpu-40vcpu-160gb"   = local.presets_gpu.g-1gpu-40vcpu-160gb
     })
 
     "gpu-h200-sxm" = tomap({
