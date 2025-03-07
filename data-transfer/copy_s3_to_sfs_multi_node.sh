@@ -30,8 +30,8 @@ rclone lsf $S3_BUCKET --files-only --recursive > $FILE_LIST
 
 
 # Split the file list into equal parts, using numeric suffixes (00, 01, etc.)
-#NUM_NODES=${#NODES[@]}
-NUM_NODES=20
+NUM_NODES=${#NODES[@]}
+#NUM_NODES=20
 split -d -n l/$NUM_NODES $FILE_LIST $SPLIT_PREFIX
 # TODO: Sort by size, split round robin
 

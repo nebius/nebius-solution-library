@@ -33,8 +33,6 @@ for i in "${!NODES[@]}"; do
                     --size=20G \
                     --random_distribution=random
                  > $LOG_DIR/fio_progress.log 2>&1 &" &
-
-
 done
 
 echo "All transfers started in parallel. Logs are being written to $LOG_DIR."
