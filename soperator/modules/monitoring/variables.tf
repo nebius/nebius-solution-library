@@ -37,14 +37,16 @@ variable "resources_vm_logs_server" {
 
 variable "resources_vm_single" {
   type = object({
-    memory = string
-    cpu    = string
-    size   = string
+    memory     = string
+    cpu        = string
+    size       = string
+    gomaxprocs = number
   })
   default = {
-    memory = "4Gi"
-    cpu    = "2000m"
-    size   = "40Gi"
+    memory     = "24Gi"
+    cpu        = "6000m"
+    size       = "80Gi"
+    gomaxprocs = 6
   }
 }
 

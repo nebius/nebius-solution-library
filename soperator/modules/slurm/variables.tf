@@ -217,9 +217,21 @@ variable "shared_memory_size_gibibytes" {
   default     = 64
 }
 
+variable "default_prolog_enabled" {
+  description = "Whether to enable default Slurm Prolog script that drain nodes with bad GPUs."
+  type        = bool
+  default     = true
+}
+
+variable "default_epilog_enabled" {
+  description = "Whether to enable default Slurm Epilog script that drain nodes with bad GPUs."
+  type        = bool
+  default     = true
+}
+
 # endregion Config
 
-# region NCCL
+# region NCCLSettings
 
 variable "nccl_topology_type" {
   description = "NCCL topology type."
@@ -227,7 +239,9 @@ variable "nccl_topology_type" {
   default     = "auto"
 }
 
-# Benchmark
+# endregion NCCLSettings
+
+# region NCCLBenchmark
 
 variable "nccl_benchmark_enable" {
   description = "Whether to enable NCCL benchmark CronJob to benchmark GPU performance. It won't take effect in case of 1-GPU hosts."
@@ -253,9 +267,7 @@ variable "nccl_use_infiniband" {
   default     = true
 }
 
-# endregion NCCL benchmark
-
-# endregion NCCL
+# endregion NCCLBenchmark
 
 # region Telemetry
 

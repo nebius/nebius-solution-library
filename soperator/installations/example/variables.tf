@@ -319,7 +319,8 @@ variable "slurm_partition_raw_config" {
 variable "slurm_nodeset_system" {
   description = "Configuration of System node set for system resources created by Soperator."
   type = object({
-    size = number
+    min_size = number
+    max_size = number
     resource = object({
       platform = string
       preset   = string
@@ -332,7 +333,8 @@ variable "slurm_nodeset_system" {
   })
   nullable = false
   default = {
-    size = 1
+    min_size = 3
+    max_size = 9
     resource = {
       platform = "cpu-e2"
       preset   = "16vcpu-64gb"
@@ -496,8 +498,8 @@ resource "terraform_data" "check_slurm_nodeset" {
 
   lifecycle {
     precondition {
-      condition     = each.value.size > 0
-      error_message = "Size must be greater than zero in node set ${each.key}."
+      condition     = try(each.value.size, 0) > 0 || try(each.value.min_size, 0) > 0
+      error_message = "Either size or min_size must be greater than zero in node set ${each.key}."
     }
 
     precondition {
@@ -575,6 +577,18 @@ variable "slurm_shared_memory_size_gibibytes" {
   default     = 64
 }
 
+variable "default_prolog_enabled" {
+  description = "Whether to enable default Slurm Prolog script that drain nodes with bad GPUs."
+  type        = bool
+  default     = true
+}
+
+variable "default_epilog_enabled" {
+  description = "Whether to enable default Slurm Epilog script that drain nodes with bad GPUs."
+  type        = bool
+  default     = true
+}
+
 # endregion Config
 
 # region NCCL benchmark
@@ -594,13 +608,13 @@ variable "nccl_benchmark_schedule" {
 variable "nccl_benchmark_min_threshold" {
   description = "Minimal threshold of NCCL benchmark for GPU performance to be considered as acceptable."
   type        = number
-  default     = 45
+  default     = 420
 }
 
 variable "nccl_use_infiniband" {
   description = "Use infiniband defines using NCCL_P2P_DISABLE=1 NCCL_SHM_DISABLE=1 NCCL_ALGO=Ring env variables for test."
   type        = bool
-  default     = true
+  default     = false
 }
 
 # endregion NCCL benchmark

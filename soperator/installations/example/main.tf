@@ -320,6 +320,9 @@ module "slurm" {
 
   shared_memory_size_gibibytes = var.slurm_shared_memory_size_gibibytes
 
+  default_prolog_enabled = var.default_prolog_enabled
+  default_epilog_enabled = var.default_epilog_enabled
+
   nccl_topology_type           = "auto"
   nccl_benchmark_enable        = var.nccl_benchmark_enable
   nccl_benchmark_schedule      = var.nccl_benchmark_schedule
