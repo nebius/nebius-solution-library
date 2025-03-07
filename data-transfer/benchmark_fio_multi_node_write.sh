@@ -3,7 +3,6 @@
 DEST_DIR="${1:-/mnt/shared}"
 
 # Configuration
-S3_BUCKET="s3mlperf:renes-bucket"
 NODES=("worker-0" "worker-1" "worker-2" "worker-3")  # List of worker nodes
 LOG_DIR="/root/benchmark_fio_multi_node"  # Local log directory
 
