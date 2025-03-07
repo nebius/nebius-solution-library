@@ -5,7 +5,7 @@ SOURCE_BASE="/mnt/shared/src"          # Base directory for source files
 DEST_BASE="/mnt/shared/dest"          # Base directory for destination files
 DEST_USER="root"                       # Username for destination node
 DEST_NODE="worker-1"                  # Destination node (hostname or IP)
-MAX_PARALLEL=16                        # Maximum number of parallel transfers
+MAX_PARALLEL=64                        # Maximum number of parallel transfers
 
 find $SOURCE_BASE -type f -exec basename {} \; > file_list.txt
 FILE_LIST="file_list.txt"              # File containing list of files to copy (one per line)
