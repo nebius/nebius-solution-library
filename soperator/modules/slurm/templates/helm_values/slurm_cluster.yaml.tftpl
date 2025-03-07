@@ -131,6 +131,11 @@ volumeSources:
       claimName: jail-submount-${sub_mount.name}-pvc
       readOnly: false
   %{~ endfor ~}
+
+  - name: sys-host
+    hostPath:
+      path: /sys
+      type: Directory
   
   %{~ if default_prolog_enabled ~}
   - name: slurm-prolog
@@ -258,7 +263,6 @@ slurmNodes:
       spool:
         volumeClaimTemplateSpec: null
         volumeSourceName: worker-spool
-      %{~ if length(jail_submounts) > 0 || nfs.enabled ~}
       jailSubMounts:
         %{~ if nfs.enabled ~}
         - mountPath: ${nfs.mount_path}
@@ -270,8 +274,11 @@ slurmNodes:
           mountPath: ${sub_mount.mount_path}
           volumeSourceName: jail-submount-${sub_mount.name}
         %{~ endfor ~}
-      %{~ endif ~}
       customMounts:
+        - name: sys-host
+          mountPath: /mnt/jail.upper/sys-host
+          readOnly: true
+          volumeSourceName: sys-host
         %{~ if default_prolog_enabled ~}
         - name: slurm-prolog
           mountPath: /etc/slurm-scripts/prolog.sh
@@ -333,6 +340,10 @@ slurmNodes:
           volumeSourceName: jail-submount-${sub_mount.name}
         %{~ endfor ~}
       customMounts:
+        - name: sys-host
+          mountPath: /mnt/jail.upper/sys-host
+          readOnly: true
+          volumeSourceName: sys-host
         %{~ if default_prolog_enabled ~}
         - name: slurm-prolog
           mountPath: /etc/slurm-scripts/prolog.sh
