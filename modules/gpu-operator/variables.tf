@@ -19,3 +19,9 @@ variable "enable_dcgm_service_monitor" {
   type        = bool
   default     = false
 }
+
+variable "relabel_dcgm_exporter" {
+  description = "Whether to add 'app.kubernetes.io/name' label to DCGM metrics"
+  type        = bool
+  default     = false
+}

@@ -204,6 +204,7 @@ module "nvidia_operator_gpu" {
   parent_id  = data.nebius_iam_v1_project.this.id
 
   enable_dcgm_service_monitor = var.telemetry_enabled
+  relabel_dcgm_exporter       = var.telemetry_enabled
 
   providers = {
     nebius = nebius
