@@ -42,7 +42,8 @@ variable "company_name" {
 variable "node_group_system" {
   description = "System node group specification."
   type = object({
-    size = number
+    min_size = number
+    max_size = number
     resource = object({
       platform = string
       preset   = string

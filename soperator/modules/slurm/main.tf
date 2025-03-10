@@ -230,6 +230,34 @@ resource "helm_release" "custom_supervisord_config" {
   wait = true
 }
 
+resource "helm_release" "default_prolog_script" {
+  name       = "slurm-prolog"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.name
+
+  values = [templatefile("${path.module}/templates/slurm_prolog_cm.yaml.tftpl", {})]
+
+  wait = true
+}
+
+resource "helm_release" "default_epilog_script" {
+  name       = "slurm-epilog"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.name
+
+  values = [templatefile("${path.module}/templates/slurm_epilog_cm.yaml.tftpl", {})]
+
+  wait = true
+}
+
 resource "helm_release" "motd_nebius_o11y_script" {
   name       = "motd-nebius-o11y-script"
   repository = local.helm.repository.raw
@@ -239,7 +267,9 @@ resource "helm_release" "motd_nebius_o11y_script" {
   create_namespace = true
   namespace        = var.name
 
-  values = [templatefile("${path.module}/templates/motd_nebius_o11y_cm.yaml.tftpl", {})]
+  values = [templatefile("${path.module}/templates/motd_nebius_o11y_cm.yaml.tftpl", {
+    telemetry_grafana_admin_password = var.telemetry_grafana_admin_password
+  })]
 
   wait = true
 }
@@ -266,6 +296,8 @@ resource "helm_release" "slurm_cluster" {
     helm_release.slurm_operator,
     helm_release.slurm_cluster_storage,
     helm_release.custom_supervisord_config,
+    helm_release.default_prolog_script,
+    helm_release.default_epilog_script,
     helm_release.motd_nebius_o11y_script,
     helm_release.spo,
   ]
@@ -296,6 +328,9 @@ resource "helm_release" "slurm_cluster" {
     }]
 
     nfs = var.nfs
+
+    default_prolog_enabled = var.default_prolog_enabled
+    default_epilog_enabled = var.default_epilog_enabled
 
     nccl_topology_type = var.nccl_topology_type
     nccl_benchmark = {

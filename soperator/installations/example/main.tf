@@ -204,6 +204,7 @@ module "nvidia_operator_gpu" {
   parent_id  = data.nebius_iam_v1_project.this.id
 
   enable_dcgm_service_monitor = var.telemetry_enabled
+  relabel_dcgm_exporter       = var.telemetry_enabled
 
   providers = {
     nebius = nebius
@@ -319,6 +320,9 @@ module "slurm" {
   }
 
   shared_memory_size_gibibytes = var.slurm_shared_memory_size_gibibytes
+
+  default_prolog_enabled = var.default_prolog_enabled
+  default_epilog_enabled = var.default_epilog_enabled
 
   nccl_topology_type           = "auto"
   nccl_benchmark_enable        = var.nccl_benchmark_enable
