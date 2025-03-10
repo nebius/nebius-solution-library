@@ -8,6 +8,7 @@ resources:
       retentionPeriod: "30"
       extraArgs:
         dedup.minScrapeInterval: 30s
+        search.maxQueryLen: "18765"
       extraEnvs:
         - name: GOMAXPROCS
           value: "${resources.vm_single.gomaxprocs}"
