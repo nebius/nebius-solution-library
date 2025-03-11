@@ -68,6 +68,7 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
 
   provisioner "local-exec" {
     when        = destroy
+    working_dir = path.root
     interpreter = ["/bin/bash", "-c"]
     command = join(
       "",
@@ -85,12 +86,15 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
   }
 
   provisioner "local-exec" {
+    when        = create
+    working_dir = path.root
     interpreter = ["/bin/bash", "-c"]
     command = join(
       "",
       [
         "AKID=$(nebius iam access-key create ",
-        "--account-service-account-id ${self.triggers_replace.service_account_id} | yq '.resource_id'); ",
+        "--parent-id ${var.iam_project_id} ",
+        "--account-service-account-id ${self.triggers_replace.service_account_id} | yq .resource_id); ",
         "{ echo \"",
         join(
           "\"; echo \"",
