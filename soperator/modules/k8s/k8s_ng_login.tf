@@ -24,7 +24,7 @@ resource "nebius_mk8s_v1_node_group" "login" {
     taints = [{
       key    = module.labels.key_slurm_nodeset_name,
       value  = module.labels.name_nodeset_login
-      effect = "PREFER_NO_SCHEDULE"
+      effect = "NO_SCHEDULE"
     }]
 
     resources = {
