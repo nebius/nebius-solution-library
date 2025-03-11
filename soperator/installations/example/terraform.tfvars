@@ -108,7 +108,7 @@ nfs = {
   size_gibibytes = 3720
   mount_path     = "/home"
   resource = {
-    platform = "cpu-d3"
+    platform = "cpu-e2"
     preset   = "32vcpu-128gb"
   }
 }
@@ -176,7 +176,7 @@ slurm_nodeset_system = {
 slurm_nodeset_controller = {
   size = 2
   resource = {
-    platform = "cpu-d3"
+    platform = "cpu-e2"
     preset   = "4vcpu-16gb"
   }
   boot_disk = {
@@ -231,7 +231,7 @@ slurm_nodeset_login = {
 # ---
 slurm_nodeset_accounting = {
   resource = {
-    platform = "cpu-d3"
+    platform = "cpu-e2"
     preset   = "8vcpu-32gb"
   }
   boot_disk = {
