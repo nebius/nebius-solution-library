@@ -25,6 +25,13 @@ resource "helm_release" "k8up" {
   create_namespace = true
   namespace        = var.k8up_operator_namespace
 
+  values = [templatefile("${path.module}/templates/k8up_operator_values.yaml.tftpl", {
+    monitoring = {
+      enabled   = var.monitoring.enabled
+      namespace = var.monitoring.namespace
+    }
+  })]
+
   set {
     name  = "k8up.envVars[0].name"
     value = "BACKUP_SKIP_WITHOUT_ANNOTATION"
@@ -143,6 +150,7 @@ resource "helm_release" "backups_schedule" {
     backups_schedule  = var.backups_schedule
     prune_schedule    = var.prune_schedule
     backups_retention = var.backups_retention
+    monitoring        = var.monitoring
   })]
 
   wait = true
