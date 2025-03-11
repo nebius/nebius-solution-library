@@ -290,7 +290,7 @@ variable "slurm_operator_version" {
 variable "slurm_operator_stable" {
   description = "Is the version of soperator stable."
   type        = bool
-  default    = true
+  default     = true
 }
 
 # region PartitionConfiguration

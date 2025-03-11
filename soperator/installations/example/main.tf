@@ -286,11 +286,11 @@ module "slurm" {
 
   worker_sshd_config_map_ref_name = var.slurm_worker_sshd_config_map_ref_name
 
-  exporter_enabled              = var.slurm_exporter_enabled
-  rest_enabled                  = var.slurm_rest_enabled
-  accounting_enabled            = var.accounting_enabled
-  slurmdbd_config               = var.slurmdbd_config
-  slurm_accounting_config       = var.slurm_accounting_config
+  exporter_enabled        = var.slurm_exporter_enabled
+  rest_enabled            = var.slurm_rest_enabled
+  accounting_enabled      = var.accounting_enabled
+  slurmdbd_config         = var.slurmdbd_config
+  slurm_accounting_config = var.slurm_accounting_config
 
   filestores = {
     controller_spool = {
