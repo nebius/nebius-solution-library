@@ -25,6 +25,13 @@ resource "helm_release" "k8up" {
   create_namespace = true
   namespace        = var.k8up_operator_namespace
 
+  values = [templatefile("${path.module}/templates/k8up_operator_values.yaml.tftpl", {
+    monitoring = {
+      enabled   = var.monitoring.enabled
+      namespace = var.monitoring.namespace
+    }
+  })]
+
   set {
     name  = "k8up.envVars[0].name"
     value = "BACKUP_SKIP_WITHOUT_ANNOTATION"
@@ -68,6 +75,7 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
 
   provisioner "local-exec" {
     when        = destroy
+    working_dir = path.root
     interpreter = ["/bin/bash", "-c"]
     command = join(
       "",
@@ -85,12 +93,15 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
   }
 
   provisioner "local-exec" {
+    when        = create
+    working_dir = path.root
     interpreter = ["/bin/bash", "-c"]
     command = join(
       "",
       [
         "AKID=$(nebius iam access-key create ",
-        "--account-service-account-id ${self.triggers_replace.service_account_id} | yq '.resource_id'); ",
+        "--parent-id ${var.iam_project_id} ",
+        "--account-service-account-id ${self.triggers_replace.service_account_id} | yq .resource_id); ",
         "{ echo \"",
         join(
           "\"; echo \"",
@@ -139,6 +150,7 @@ resource "helm_release" "backups_schedule" {
     backups_schedule  = var.backups_schedule
     prune_schedule    = var.prune_schedule
     backups_retention = var.backups_retention
+    monitoring        = var.monitoring
   })]
 
   wait = true

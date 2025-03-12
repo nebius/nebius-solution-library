@@ -1,8 +1,6 @@
-.aws_secret_access_key
-terraform_backend_override.tf
-login.sh
+*
+!.gitignore
+!example
 
-# Internal use
-msp-slurm-sandbox
-msp-slurm-prod
-msp-slurm-test
+./**/terraform_backend_override.tf
+./**/login*.sh

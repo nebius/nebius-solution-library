@@ -96,9 +96,10 @@ module "nfs-server" {
   preset        = var.nfs.resource.preset
   instance_name = "${local.k8s_cluster_name}-nfs-server"
 
-  nfs_ip_range = data.nebius_vpc_v1_subnet.this.status.ipv4_private_cidrs[0]
-  nfs_size     = provider::units::from_gib(var.nfs.size_gibibytes)
-  nfs_path     = "/home"
+  nfs_disk_name_suffix = local.k8s_cluster_name
+  nfs_ip_range         = data.nebius_vpc_v1_subnet.this.status.ipv4_private_cidrs[0]
+  nfs_size             = provider::units::from_gib(var.nfs.size_gibibytes)
+  nfs_path             = "/home"
 
   ssh_user_name   = "soperator"
   ssh_public_keys = var.slurm_login_ssh_root_public_keys
@@ -285,11 +286,11 @@ module "slurm" {
 
   worker_sshd_config_map_ref_name = var.slurm_worker_sshd_config_map_ref_name
 
-  exporter_enabled              = var.slurm_exporter_enabled
-  rest_enabled                  = var.slurm_rest_enabled
-  accounting_enabled            = var.accounting_enabled
-  slurmdbd_config               = var.slurmdbd_config
-  slurm_accounting_config       = var.slurm_accounting_config
+  exporter_enabled        = var.slurm_exporter_enabled
+  rest_enabled            = var.slurm_rest_enabled
+  accounting_enabled      = var.accounting_enabled
+  slurmdbd_config         = var.slurmdbd_config
+  slurm_accounting_config = var.slurm_accounting_config
 
   filestores = {
     controller_spool = {
@@ -385,6 +386,12 @@ module "backups" {
   backups_schedule  = var.backups_schedule
   prune_schedule    = var.backups_prune_schedule
   backups_retention = var.backups_retention
+
+  monitoring = {
+    enabled                    = var.telemetry_enabled
+    namespace                  = module.slurm.monitoring.namespace.monitoring
+    metrics_collector_endpoint = module.slurm.monitoring.metrics_collector_endpoint
+  }
 
   providers = {
     nebius = nebius

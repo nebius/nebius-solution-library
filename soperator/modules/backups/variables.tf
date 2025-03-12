@@ -59,3 +59,23 @@ variable "bucket_endpoint" {
   description = "S3 bucket endpoint."
   type        = string
 }
+
+variable "monitoring" {
+  description = "Monitoring configuration."
+  type = object({
+    enabled   = bool
+    namespace = string
+    metrics_collector_endpoint = object({
+      http_host = string
+      port      = number
+    })
+  })
+  default = {
+    enabled   = false
+    namespace = ""
+    metrics_collector_endpoint = {
+      http_host = ""
+      port      = 0
+    }
+  }
+}

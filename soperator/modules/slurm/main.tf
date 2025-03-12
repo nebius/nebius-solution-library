@@ -165,18 +165,18 @@ resource "helm_release" "nodeconfigurator" {
   version    = local.helm.version.slurm
 
   values = [templatefile("${path.module}/templates/helm_values/node_configurator.yaml.tftpl", {
-    rebooter =  {
+    rebooter = {
       log_level = var.node_configurator_log_level
       image = {
         repository = "${local.image.repository}/rebooter"
-        tag = local.image.tag
+        tag        = local.image.tag
       }
       resources = {
         limits = {
           memory = local.resources.node_configurator.limits.memory
         }
         requests = {
-          cpu = local.resources.node_configurator.requests.cpu
+          cpu    = local.resources.node_configurator.requests.cpu
           memory = local.resources.node_configurator.requests.memory
         }
       }
@@ -199,14 +199,14 @@ resource "helm_release" "slurm_checks_operator" {
   version    = local.helm.version.slurm
 
   values = [templatefile("${path.module}/templates/helm_values/slurm_checks.yaml.tftpl", {
-    checks: {
-      resources: {
-        limits: {
-          memory: local.resources.slurm_checks.limits.memory
+    checks : {
+      resources : {
+        limits : {
+          memory : local.resources.slurm_checks.limits.memory
         }
-        requests: {
-          cpu: local.resources.slurm_checks.requests.cpu
-          memory: local.resources.slurm_checks.requests.memory
+        requests : {
+          cpu : local.resources.slurm_checks.requests.cpu
+          memory : local.resources.slurm_checks.requests.memory
         }
       }
     }
