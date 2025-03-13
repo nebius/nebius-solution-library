@@ -53,14 +53,10 @@ if ! command -v nebius &> /dev/null; then
   exit 1
 fi
 
-# Function to save tenant ID
-save_tenant_id() {
-  echo "$TENANT_ID" > ~/.nebius/NEBIUS_TENANT_ID.txt
-  echo "Tenant ID saved to ~/.nebius/NEBIUS_TENANT_ID.txt"
-}
+
 
 # Function to display interactive tenant selection menu
-select_tenant() {
+select_and_save_tenant() {
   echo "Fetching available tenants..."
   TENANTS_JSON=$(nebius iam tenant list --page-size 100 --format json)
 
@@ -104,10 +100,12 @@ select_tenant() {
       echo "Invalid selection. Please enter a number between 1 and $TENANT_COUNT."
     fi
   done
+  echo "$TENANT_ID" > ~/.nebius/NEBIUS_TENANT_ID.txt
+  echo "Tenant ID saved to ~/.nebius/NEBIUS_TENANT_ID.txt"
 }
 
 # Function to display interactive project selection menu
-select_project() {
+select_and_save_project() {
   echo "Fetching available projects..."
   PROJECTS_JSON=$(nebius iam project list --page-size 100 --parent-id "$TENANT_ID" --format json)
 
@@ -150,12 +148,13 @@ select_project() {
       echo "Invalid selection. Please enter a number between 1 and $PROJECT_COUNT."
     fi
   done
+  echo "$PROJECT_ID" > ~/.nebius/NEBIUS_PROJECT_ID.txt
+  echo "Project ID saved to ~/.nebius/NEBIUS_PROJECT_ID.txt"
 }
 
 # Select tenant and project
-select_tenant
-save_tenant_id
-select_project
+select_and_save_tenant
+select_and_save_project
 
 echo "Step 1: Checking if service account exists..."
 # Check if service account exists
@@ -188,12 +187,7 @@ else
   echo "   Found existing service account ID: $SA_ID"
 fi
 
-echo "Step 2: Creating service account key..."
-
-# Derive KEY_NAME from SERVICE_ACCOUNT_NAME
-KEY_NAME="${SERVICE_ACCOUNT_NAME}-key"
-
-echo "Step 3: Generating key pair..."
+echo "Step 2: Generating key pair..."
 
 nebius iam auth-public-key generate \
   --service-account-id "$SA_ID" \
@@ -201,11 +195,11 @@ nebius iam auth-public-key generate \
 
 echo "   Key pair generated successfully."
 
-# Save project ID to a text file
-echo "$PROJECT_ID" > ~/.nebius/NEBIUS_PROJECT_ID.txt
-
 echo
-echo "SUCCESS! ~/.nebius/credentials.json and ~/.nebius/NEBIUS_PROJECT_ID.txt have been created."
+echo "SUCCESS! The following files have been created:"
+echo "  ~/.nebius/credentials.json"
+echo "  ~/.nebius/NEBIUS_TENANT_ID.txt"
+echo "  ~/.nebius/NEBIUS_PROJECT_ID.txt"
 echo
 echo "You can test your Nebius setup with SkyPilot using the following command:"
 echo "  sky check nebius"
