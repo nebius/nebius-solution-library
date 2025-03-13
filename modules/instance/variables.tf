@@ -25,7 +25,7 @@ variable "instance_name" {
 variable "platform" {
   description = "VM platform."
   type        = string
-  default     = "cpu-e2"
+  default     = "cpu-d3"
 }
 
 variable "preset" {
@@ -124,5 +124,11 @@ variable "aws_access_key_id" {
 variable "aws_secret_access_key" {
   type        = string
   description = "S3 access key"
+  default     = ""
+}
+
+variable "gpu_cluster" {
+  type        = string
+  description = "gpu cluster id"
   default     = ""
 }

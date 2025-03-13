@@ -136,14 +136,14 @@ volumeSources:
     hostPath:
       path: /sys
       type: Directory
-  
+
   %{~ if default_prolog_enabled ~}
   - name: slurm-prolog
     configMap:
       name: slurm-prolog
       defaultMode: 500
   %{~ endif ~}
-  
+
   %{~ if default_epilog_enabled ~}
   - name: slurm-epilog
     configMap:

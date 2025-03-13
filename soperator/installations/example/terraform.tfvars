@@ -143,7 +143,7 @@ slurm_partition_config_type = "default"
 # ---
 # slurm_partition_raw_config = [
 #   "PartitionName=low_priority Nodes=worker-[0-7] Default=YES MaxTime=INFINITE State=UP PriorityTier=1",
-#   "PartitionName=high_priority  Nodes=worker-[8-15] Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
+#   "PartitionName=high_priority Nodes=worker-[8-15] Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
 # ]
 
 #----------------------------------------------------------------------------------------------------------------------#
