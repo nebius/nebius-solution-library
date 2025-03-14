@@ -1,0 +1,18 @@
+nodeConfigurator:
+  enabled: false
+rebooter:
+  enabled: true
+  generateRBAC: true
+  logLevel: "${rebooter.log_level}"
+  logFormat: json
+  image:
+    repository: "${rebooter.image.repository}"
+    tag: "${rebooter.image.tag}"
+    resources:
+      limits:
+        memory: ${rebooter.resources.requests.memory}Gi
+      requests:
+        memory: ${rebooter.resources.requests.memory}Gi
+        cpu: ${rebooter.resources.requests.cpu * 1000}m
+  tolerations:
+    - operator: "Exists"

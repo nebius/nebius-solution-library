@@ -1,66 +1,3 @@
-resource "helm_release" "k8up_crds" {
-  name       = "k8up-crds"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-
-  create_namespace = true
-  namespace        = var.k8up_operator_namespace
-
-  values = [templatefile("${path.module}/templates/k8up_crds.yaml.tftpl", {})]
-
-  wait = true
-}
-
-resource "helm_release" "k8up" {
-  count = var.backups_enabled ? 1 : 0
-
-  depends_on = [
-    module.monitoring,
-    helm_release.k8up_crds,
-  ]
-
-  name       = "k8up"
-  repository = local.helm.repository.k8up
-  chart      = local.helm.chart.k8up
-  version    = local.helm.version.k8up
-
-  create_namespace = true
-  namespace        = var.k8up_operator_namespace
-
-  set {
-    name  = "k8up.envVars[0].name"
-    value = "BACKUP_SKIP_WITHOUT_ANNOTATION"
-  }
-
-  set {
-    name  = "k8up.envVars[0].value"
-    value = "true"
-    type  = "string"
-  }
-
-  wait          = true
-  wait_for_jobs = true
-}
-
-resource "helm_release" "k8up_secret" {
-  name       = "k8up-secret"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-
-  create_namespace = true
-  namespace        = var.name
-
-  values = [templatefile("${path.module}/templates/k8up_secret.yaml.tftpl", {
-    aws_access_key_id_base64     = base64encode(var.backups_aws_access_key_id)
-    aws_secret_access_key_base64 = base64encode(var.backups_aws_secret_access_key)
-    repo_password_base64         = base64encode(var.backups_repo_password)
-  })]
-
-  wait = true
-}
-
 resource "helm_release" "mariadb_operator" {
   count = var.accounting_enabled ? 1 : 0
 
@@ -216,6 +153,69 @@ resource "helm_release" "slurm_operator" {
   wait_for_jobs = true
 }
 
+resource "helm_release" "nodeconfigurator" {
+  depends_on = [
+    helm_release.slurm_operator,
+  ]
+  count = var.enable_node_configurator ? 1 : 0
+
+  name       = local.helm.chart.nodeconfigurator
+  repository = local.helm.repository.slurm
+  chart      = "helm-${local.helm.chart.nodeconfigurator}"
+  version    = local.helm.version.slurm
+
+  values = [templatefile("${path.module}/templates/helm_values/node_configurator.yaml.tftpl", {
+    rebooter = {
+      log_level = var.node_configurator_log_level
+      image = {
+        repository = "${local.image.repository}/rebooter"
+        tag        = local.image.tag
+      }
+      resources = {
+        limits = {
+          memory = local.resources.node_configurator.limits.memory
+        }
+        requests = {
+          cpu    = local.resources.node_configurator.requests.cpu
+          memory = local.resources.node_configurator.requests.memory
+        }
+      }
+    }
+  })]
+
+  create_namespace = true
+  namespace        = "${local.helm.chart.operator.slurm}-system"
+}
+
+resource "helm_release" "slurm_checks_operator" {
+  depends_on = [
+    helm_release.slurm_operator,
+  ]
+  count = var.enable_soperator_checks ? 1 : 0
+
+  name       = local.helm.chart.operator.slurmchecks
+  repository = local.helm.repository.slurm
+  chart      = "helm-${local.helm.chart.operator.slurmchecks}"
+  version    = local.helm.version.slurm
+
+  values = [templatefile("${path.module}/templates/helm_values/slurm_checks.yaml.tftpl", {
+    checks : {
+      resources : {
+        limits : {
+          memory : local.resources.slurm_checks.limits.memory
+        }
+        requests : {
+          cpu : local.resources.slurm_checks.requests.cpu
+          memory : local.resources.slurm_checks.requests.memory
+        }
+      }
+    }
+  })]
+
+  create_namespace = true
+  namespace        = "${local.helm.chart.operator.slurm}-system"
+}
+
 resource "helm_release" "custom_supervisord_config" {
   name       = "custom-supervisord-config"
   repository = local.helm.repository.raw
@@ -230,6 +230,34 @@ resource "helm_release" "custom_supervisord_config" {
   wait = true
 }
 
+resource "helm_release" "default_prolog_script" {
+  name       = "slurm-prolog"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.name
+
+  values = [templatefile("${path.module}/templates/slurm_prolog_cm.yaml.tftpl", {})]
+
+  wait = true
+}
+
+resource "helm_release" "default_epilog_script" {
+  name       = "slurm-epilog"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.name
+
+  values = [templatefile("${path.module}/templates/slurm_epilog_cm.yaml.tftpl", {})]
+
+  wait = true
+}
+
 resource "helm_release" "motd_nebius_o11y_script" {
   name       = "motd-nebius-o11y-script"
   repository = local.helm.repository.raw
@@ -239,7 +267,9 @@ resource "helm_release" "motd_nebius_o11y_script" {
   create_namespace = true
   namespace        = var.name
 
-  values = [templatefile("${path.module}/templates/motd_nebius_o11y_cm.yaml.tftpl", {})]
+  values = [templatefile("${path.module}/templates/motd_nebius_o11y_cm.yaml.tftpl", {
+    telemetry_grafana_admin_password = var.telemetry_grafana_admin_password
+  })]
 
   wait = true
 }
@@ -258,35 +288,7 @@ resource "helm_release" "spo" {
   create_namespace = true
   namespace        = "security-profiles-operator-system"
 
-  set {
-    name  = "spoImage.tag"
-    value = "v0.8.4"
-  }
-
-  set {
-    name  = "enableAppArmor"
-    value = var.use_default_apparmor_profile
-  }
-
-  set {
-    name  = "daemon.tolerations[0].operator"
-    value = "Exists"
-  }
-
-  set {
-    name  = "daemon.tolerations[1].effect"
-    value = "NoSchedule"
-  }
-
-  set {
-    name  = "daemon.tolerations[1].key"
-    value = "node.kubernetes.io/not-ready"
-  }
-
-  set {
-    name  = "daemon.tolerations[1].operator"
-    value = "Exists"
-  }
+  values = [templatefile("${path.module}/templates/spo_values.tftpl", {})]
 }
 
 resource "helm_release" "slurm_cluster" {
@@ -294,6 +296,8 @@ resource "helm_release" "slurm_cluster" {
     helm_release.slurm_operator,
     helm_release.slurm_cluster_storage,
     helm_release.custom_supervisord_config,
+    helm_release.default_prolog_script,
+    helm_release.default_epilog_script,
     helm_release.motd_nebius_o11y_script,
     helm_release.spo,
   ]
@@ -324,6 +328,9 @@ resource "helm_release" "slurm_cluster" {
     }]
 
     nfs = var.nfs
+
+    default_prolog_enabled = var.default_prolog_enabled
+    default_epilog_enabled = var.default_epilog_enabled
 
     nccl_topology_type = var.nccl_topology_type
     nccl_benchmark = {

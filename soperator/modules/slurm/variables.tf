@@ -217,9 +217,21 @@ variable "shared_memory_size_gibibytes" {
   default     = 64
 }
 
+variable "default_prolog_enabled" {
+  description = "Whether to enable default Slurm Prolog script that drain nodes with bad GPUs."
+  type        = bool
+  default     = true
+}
+
+variable "default_epilog_enabled" {
+  description = "Whether to enable default Slurm Epilog script that drain nodes with bad GPUs."
+  type        = bool
+  default     = true
+}
+
 # endregion Config
 
-# region NCCL
+# region NCCLSettings
 
 variable "nccl_topology_type" {
   description = "NCCL topology type."
@@ -227,7 +239,9 @@ variable "nccl_topology_type" {
   default     = "auto"
 }
 
-# Benchmark
+# endregion NCCLSettings
+
+# region NCCLBenchmark
 
 variable "nccl_benchmark_enable" {
   description = "Whether to enable NCCL benchmark CronJob to benchmark GPU performance. It won't take effect in case of 1-GPU hosts."
@@ -253,9 +267,7 @@ variable "nccl_use_infiniband" {
   default     = true
 }
 
-# endregion NCCL benchmark
-
-# endregion NCCL
+# endregion NCCLBenchmark
 
 # region Telemetry
 
@@ -306,42 +318,6 @@ variable "slurm_accounting_config" {
 
 # endregion Accounting
 
-# region Backups
-
-variable "k8up_operator_namespace" {
-  description = "Namespace for k8up operator."
-  type        = string
-  default     = "k8up-system"
-}
-
-variable "backups_enabled" {
-  description = "Whether to enable jail backups."
-  type        = bool
-  default     = false
-}
-
-variable "backups_aws_access_key_id" {
-  description = "AWS-like access key id for accessing S3 bucket with backups."
-  type        = string
-  nullable    = false
-}
-
-variable "backups_aws_secret_access_key" {
-  description = "AWS-like secret access key for accessing S3 bucket with backups."
-  type        = string
-  nullable    = false
-  sensitive   = true
-}
-
-variable "backups_repo_password" {
-  description = "Password for encrypting backups."
-  type        = string
-  nullable    = false
-  sensitive   = true
-}
-
-# endregion Backups
-
 # region Apparmor
 variable "use_default_apparmor_profile" {
   description = "Whether to use default AppArmor profile."
@@ -364,3 +340,29 @@ variable "maintenance" {
 }
 
 # endregion Maintenance
+
+# region NodeConfigurator
+
+variable "enable_node_configurator" {
+  description = "Defined whether it's need to deploy node configurator"
+  type        = bool
+  default     = true
+}
+
+variable "node_configurator_log_level" {
+  description = "Log level of node configurator"
+  type        = string
+  default     = "info"
+}
+
+# endregion NodeConfigurator
+
+# region SoperatorChecks
+
+variable "enable_soperator_checks" {
+  description = "Defined whether it's need to deploy soperator checks"
+  type        = bool
+  default     = true
+}
+
+# endregion SoperatorChecks

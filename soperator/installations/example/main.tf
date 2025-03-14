@@ -9,6 +9,9 @@ locals {
 
   slurm_cluster_name = "soperator"
   k8s_cluster_name   = format("soperator-%s", var.company_name)
+
+  backups_enabled = (var.backups_enabled == "force_enable" ||
+  (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
 }
 
 resource "terraform_data" "check_variables" {
@@ -93,9 +96,10 @@ module "nfs-server" {
   preset        = var.nfs.resource.preset
   instance_name = "${local.k8s_cluster_name}-nfs-server"
 
-  nfs_ip_range = data.nebius_vpc_v1_subnet.this.status.ipv4_private_cidrs[0]
-  nfs_size     = provider::units::from_gib(var.nfs.size_gibibytes)
-  nfs_path     = "/home"
+  nfs_disk_name_suffix = local.k8s_cluster_name
+  nfs_ip_range         = data.nebius_vpc_v1_subnet.this.status.ipv4_private_cidrs[0]
+  nfs_size             = provider::units::from_gib(var.nfs.size_gibibytes)
+  nfs_path             = "/home"
 
   ssh_user_name   = "soperator"
   ssh_public_keys = var.slurm_login_ssh_root_public_keys
@@ -201,6 +205,7 @@ module "nvidia_operator_gpu" {
   parent_id  = data.nebius_iam_v1_project.this.id
 
   enable_dcgm_service_monitor = var.telemetry_enabled
+  relabel_dcgm_exporter       = var.telemetry_enabled
 
   providers = {
     nebius = nebius
@@ -281,15 +286,11 @@ module "slurm" {
 
   worker_sshd_config_map_ref_name = var.slurm_worker_sshd_config_map_ref_name
 
-  exporter_enabled              = var.slurm_exporter_enabled
-  rest_enabled                  = var.slurm_rest_enabled
-  accounting_enabled            = var.accounting_enabled
-  backups_enabled               = var.backups_enabled
-  backups_aws_access_key_id     = var.aws_access_key_id
-  backups_aws_secret_access_key = var.aws_secret_access_key
-  backups_repo_password         = var.backups_password
-  slurmdbd_config               = var.slurmdbd_config
-  slurm_accounting_config       = var.slurm_accounting_config
+  exporter_enabled        = var.slurm_exporter_enabled
+  rest_enabled            = var.slurm_rest_enabled
+  accounting_enabled      = var.accounting_enabled
+  slurmdbd_config         = var.slurmdbd_config
+  slurm_accounting_config = var.slurm_accounting_config
 
   filestores = {
     controller_spool = {
@@ -321,6 +322,9 @@ module "slurm" {
 
   shared_memory_size_gibibytes = var.slurm_shared_memory_size_gibibytes
 
+  default_prolog_enabled = var.default_prolog_enabled
+  default_epilog_enabled = var.default_epilog_enabled
+
   nccl_topology_type           = "auto"
   nccl_benchmark_enable        = var.nccl_benchmark_enable
   nccl_benchmark_schedule      = var.nccl_benchmark_schedule
@@ -349,4 +353,52 @@ module "login_script" {
   providers = {
     kubernetes = kubernetes
   }
+}
+
+module "backups_store" {
+  count = local.backups_enabled ? 1 : 0
+
+  source = "../../modules/backups_store"
+
+  iam_project_id = var.iam_project_id
+  instance_name  = local.k8s_cluster_name
+
+  depends_on = [
+    module.k8s,
+  ]
+}
+
+module "backups" {
+  count = local.backups_enabled ? 1 : 0
+
+  source = "../../modules/backups"
+
+  k8s_cluster_context = module.k8s.cluster_context
+
+  iam_project_id      = var.iam_project_id
+  iam_tenant_id       = var.iam_tenant_id
+  instance_name       = local.k8s_cluster_name
+  soperator_namespace = local.slurm_cluster_name
+  bucket_name         = module.backups_store[count.index].name
+  bucket_endpoint     = module.backups_store[count.index].endpoint
+
+  backups_password  = var.backups_password
+  backups_schedule  = var.backups_schedule
+  prune_schedule    = var.backups_prune_schedule
+  backups_retention = var.backups_retention
+
+  monitoring = {
+    enabled                    = var.telemetry_enabled
+    namespace                  = module.slurm.monitoring.namespace.monitoring
+    metrics_collector_endpoint = module.slurm.monitoring.metrics_collector_endpoint
+  }
+
+  providers = {
+    nebius = nebius
+    helm   = helm
+  }
+
+  depends_on = [
+    module.slurm,
+  ]
 }

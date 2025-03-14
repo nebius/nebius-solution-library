@@ -12,7 +12,10 @@ resource "nebius_mk8s_v1_node_group" "system" {
     module.labels.label_workload_cpu,
   )
 
-  fixed_node_count = var.node_group_system.size
+  autoscaling = {
+    min_node_count = var.node_group_system.min_size
+    max_node_count = var.node_group_system.max_size
+  }
 
   template = {
     metadata = {

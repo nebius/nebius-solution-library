@@ -31,7 +31,7 @@ storage:
       - key: ${scheduling.label.nodeset}
         operator: Equal
         value: ${scheduling.label.accounting}
-        effect: PreferNoSchedule
+        effect: NoSchedule
 
   controllerSpool:
     matchExpressions:
@@ -43,7 +43,7 @@ storage:
       - key: ${scheduling.label.nodeset}
         operator: Equal
         value: ${scheduling.label.controller}
-        effect: PreferNoSchedule
+        effect: NoSchedule
 
   jail:
     matchExpressions:
@@ -60,7 +60,7 @@ storage:
     tolerations:
       - key: ${scheduling.label.nodeset}
         operator: Exists
-        effect: PreferNoSchedule
+        effect: NoSchedule
     %{~ if scheduling.worker.gpu_present ~}
       - key: ${scheduling.label.gpu}
         operator: Exists

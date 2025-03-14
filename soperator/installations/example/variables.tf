@@ -35,6 +35,20 @@ data "nebius_iam_v1_project" "this" {
   id = var.iam_project_id
 }
 
+variable "iam_tenant_id" {
+  description = "ID of the IAM tenant."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = startswith(var.iam_tenant_id, "tenant-")
+    error_message = "ID of the IAM tenant must start with `tenant-`."
+  }
+}
+data "nebius_iam_v1_tenant" "this" {
+  id = var.iam_tenant_id
+}
+
 variable "vpc_subnet_id" {
   description = "ID of VPC subnet."
   type        = string
@@ -46,19 +60,6 @@ variable "vpc_subnet_id" {
 }
 data "nebius_vpc_v1_subnet" "this" {
   id = var.vpc_subnet_id
-}
-
-variable "aws_access_key_id" {
-  description = "AWS-like access key ID of the TF SA."
-  type        = string
-  nullable    = false
-}
-
-variable "aws_secret_access_key" {
-  description = "AWS-like secret access key of the TF SA."
-  type        = string
-  nullable    = false
-  sensitive   = true
 }
 
 variable "company_name" {
@@ -124,6 +125,18 @@ variable "filestore_jail" {
     condition     = (var.filestore_jail.existing != null && var.filestore_jail.spec == null) || (var.filestore_jail.existing == null && var.filestore_jail.spec != null)
     error_message = "One of `existing` or `spec` must be provided."
   }
+}
+
+data "nebius_compute_v1_filesystem" "existing_jail" {
+  count = var.filestore_jail.existing != null ? 1 : 0
+
+  id = var.filestore_jail.existing.id
+}
+
+locals {
+  filestore_jail_calculated_size_gibibytes = (var.filestore_jail.existing != null ?
+    data.nebius_compute_v1_filesystem.existing_jail[0].size_bytes / 1024 / 1024 / 1024 :
+  var.filestore_jail.spec.size_gibibytes)
 }
 
 variable "filestore_jail_submounts" {
@@ -293,7 +306,8 @@ variable "slurm_partition_raw_config" {
 variable "slurm_nodeset_system" {
   description = "Configuration of System node set for system resources created by Soperator."
   type = object({
-    size = number
+    min_size = number
+    max_size = number
     resource = object({
       platform = string
       preset   = string
@@ -306,7 +320,8 @@ variable "slurm_nodeset_system" {
   })
   nullable = false
   default = {
-    size = 1
+    min_size = 3
+    max_size = 9
     resource = {
       platform = "cpu-e2"
       preset   = "16vcpu-64gb"
@@ -470,8 +485,8 @@ resource "terraform_data" "check_slurm_nodeset" {
 
   lifecycle {
     precondition {
-      condition     = each.value.size > 0
-      error_message = "Size must be greater than zero in node set ${each.key}."
+      condition     = try(each.value.size, 0) > 0 || try(each.value.min_size, 0) > 0
+      error_message = "Either size or min_size must be greater than zero in node set ${each.key}."
     }
 
     precondition {
@@ -549,6 +564,18 @@ variable "slurm_shared_memory_size_gibibytes" {
   default     = 64
 }
 
+variable "default_prolog_enabled" {
+  description = "Whether to enable default Slurm Prolog script that drain nodes with bad GPUs."
+  type        = bool
+  default     = true
+}
+
+variable "default_epilog_enabled" {
+  description = "Whether to enable default Slurm Epilog script that drain nodes with bad GPUs."
+  type        = bool
+  default     = true
+}
+
 # endregion Config
 
 # region NCCL benchmark
@@ -568,13 +595,13 @@ variable "nccl_benchmark_schedule" {
 variable "nccl_benchmark_min_threshold" {
   description = "Minimal threshold of NCCL benchmark for GPU performance to be considered as acceptable."
   type        = number
-  default     = 45
+  default     = 420
 }
 
 variable "nccl_use_infiniband" {
   description = "Use infiniband defines using NCCL_P2P_DISABLE=1 NCCL_SHM_DISABLE=1 NCCL_ALGO=Ring env variables for test."
   type        = bool
-  default     = true
+  default     = false
 }
 
 # endregion NCCL benchmark
@@ -649,9 +676,14 @@ variable "slurm_accounting_config" {
 # region Backups
 
 variable "backups_enabled" {
-  description = "Whether to enable jail backups."
-  type        = bool
-  default     = false
+  description = "Whether to enable jail backups. Choose from 'auto', 'force_enable' and 'force_disable'. 'auto' enables backups for jails with max size < 12 TB."
+  type        = string
+  default     = "auto"
+
+  validation {
+    condition     = contains(["auto", "force_enable", "force_disable"], var.backups_enabled)
+    error_message = "Valid values for backups_enabled are 'auto', 'force_enable' and 'force_disable'"
+  }
 }
 
 variable "backups_password" {
@@ -659,6 +691,23 @@ variable "backups_password" {
   type        = string
   nullable    = false
   sensitive   = true
+}
+
+variable "backups_schedule" {
+  description = "Cron schedule for backup task."
+  type        = string
+  nullable    = false
+}
+
+variable "backups_prune_schedule" {
+  description = "Cron schedule for prune task."
+  type        = string
+  nullable    = false
+}
+
+variable "backups_retention" {
+  description = "Backups retention policy."
+  type        = map(any)
 }
 
 # endregion Backups

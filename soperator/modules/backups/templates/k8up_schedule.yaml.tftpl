@@ -1,0 +1,38 @@
+resources:
+  - apiVersion: k8up.io/v1
+    kind: Schedule
+    metadata:
+      name: soperator-jail
+    spec:
+      backend:
+        s3:
+          endpoint: "${s3_endpoint}"
+          bucket: "${s3_bucket}"
+          accessKeyIDSecretRef:
+            name: "${backups_secret}"
+            key: aws-access-key-id
+          secretAccessKeySecretRef:
+            name: "${backups_secret}"
+            key: aws-access-secret-key
+        repoPasswordSecretRef:
+          name: "${backups_secret}"
+          key: backup-password
+
+      backup:
+        schedule: "${backups_schedule}"
+        failedJobsHistoryLimit: 2
+        successfulJobsHistoryLimit: 2
+        concurrentRunsAllowed: false
+        tags: ["soperator-jail-schedule"]
+
+        %{~ if monitoring.enabled ~}
+        promURL: "${monitoring.metrics_collector_endpoint.http_host}:${monitoring.metrics_collector_endpoint.port}/api/v1/import/prometheus"
+        %{~ endif ~}
+
+      prune:
+        schedule: "${prune_schedule}"
+        retention: ${jsonencode(merge(backups_retention, {"tags": ["soperator-jail-schedule"]}))}
+
+        %{~ if monitoring.enabled ~}
+        promURL: "${monitoring.metrics_collector_endpoint.http_host}:${monitoring.metrics_collector_endpoint.port}/api/v1/import/prometheus"
+        %{~ endif ~}
