@@ -62,19 +62,6 @@ data "nebius_vpc_v1_subnet" "this" {
   id = var.vpc_subnet_id
 }
 
-variable "aws_access_key_id" {
-  description = "AWS-like access key ID of the TF SA."
-  type        = string
-  nullable    = false
-}
-
-variable "aws_secret_access_key" {
-  description = "AWS-like secret access key of the TF SA."
-  type        = string
-  nullable    = false
-  sensitive   = true
-}
-
 variable "company_name" {
   description = "Name of the company. It is used for naming Slurm & K8s clusters."
   type        = string
