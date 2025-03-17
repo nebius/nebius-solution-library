@@ -14,9 +14,8 @@ Before getting started, ensure you have:
   - Run the setup script:
     ```bash
     chmod +x nebius-setup.sh 
-    ./nebius-setup.sh -n <SERVICE_ACCOUNT_NAME>
+    ./nebius-setup.sh -n skypilot-service-account # or some other SA name
     ```
-    - Choose any SERVICE_ACCOUNT_NAME you prefer
     - You'll be prompted to select a Nebius tenant and project ID
 
 - **Python Requirements**:
