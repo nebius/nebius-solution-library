@@ -8,7 +8,7 @@ locals {
       preset   = "16vcpu-64gb"
     }
     eu-north1 = {
-      platform = "cpu-e2"
+      platform = "cpu-d3"
       preset   = "16vcpu-64gb"
     }
   }
