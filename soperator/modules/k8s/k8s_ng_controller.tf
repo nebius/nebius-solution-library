@@ -10,6 +10,7 @@ resource "nebius_mk8s_v1_node_group" "controller" {
   labels = merge(
     module.labels.label_nodeset_controller,
     module.labels.label_workload_cpu,
+    module.labels.label_jail,
   )
 
   fixed_node_count = var.node_group_controller.size
@@ -19,6 +20,7 @@ resource "nebius_mk8s_v1_node_group" "controller" {
       labels = merge(
         module.labels.label_nodeset_controller,
         module.labels.label_workload_cpu,
+        module.labels.label_jail,
       )
     }
     taints = [{
