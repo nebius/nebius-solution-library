@@ -10,6 +10,7 @@ resource "nebius_mk8s_v1_node_group" "system" {
   labels = merge(
     module.labels.label_nodeset_system,
     module.labels.label_workload_cpu,
+    module.labels.label_jail
   )
 
   autoscaling = {
@@ -22,6 +23,7 @@ resource "nebius_mk8s_v1_node_group" "system" {
       labels = merge(
         module.labels.label_nodeset_system,
         module.labels.label_workload_cpu,
+        module.labels.label_jail,
       )
     }
 
