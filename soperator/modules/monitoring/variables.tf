@@ -61,32 +61,41 @@ variable "resources_vm_agent" {
   }
 }
 
-variable "resources_fb_logs_collector" {
+variable "resources_events_collector" {
   type = object({
-    requests = object({
-      memory = string
-      cpu    = string
-    })
-    limits = object({
-      memory = string
-      cpu    = string
-    })
+    memory = string
+    cpu    = string
   })
   default = {
-    requests = {
-      memory = "200Mi"
-      cpu    = "200m"
-    }
-    limits = {
-      memory = "256Mi"
-      cpu    = "200m"
-    }
-    memory = "512Mi"
-    cpu    = "400m"
+    memory = "128Mi"
+    cpu    = "100m"
+  }
+}
+
+
+variable "resources_logs_collector" {
+  type = object({
+    memory = string
+    cpu    = string
+  })
+  default = {
+    memory = "200Mi"
+    cpu    = "200m"
   }
 }
 
 variable "grafana_admin_password" {
   description = "Password of `admin` user of Grafana."
   type        = string
+}
+
+variable "cluster_name" {
+  description = "the cluster name to use for the monitoring"
+  type        = string
+}
+
+variable "k8s_cluster_context" {
+  description = "Context name of the K8s cluster."
+  type        = string
+  nullable    = false
 }
