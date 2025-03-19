@@ -7,6 +7,7 @@ locals {
     }
 
     name = {
+      jail    = "jail"
       nodeset = "nodeset"
       nodesets = {
         system     = "system"
@@ -30,10 +31,13 @@ locals {
 
     slurm_nodeset  = "${local.const.domain.slurm}/${local.const.name.nodeset}"
     slurm_workload = "${local.const.domain.slurm}/${local.const.name.workload}"
+    jail           = "${local.const.domain.slurm}/${local.const.name.jail}"
   }
 
   label = {
     nebius_gpu = tomap({ (local.label_key.nebius_gpu) = ("true") })
+
+    jail = tomap({ (local.label_key.jail) = ("true") })
 
     nodeset = {
       system     = tomap({ (local.label_key.slurm_nodeset) = (local.const.name.nodesets.system) })

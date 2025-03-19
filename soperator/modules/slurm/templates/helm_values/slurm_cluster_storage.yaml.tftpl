@@ -47,16 +47,10 @@ storage:
 
   jail:
     matchExpressions:
-      - key: ${scheduling.label.nodeset}
+      - key: slurm.nebius.ai/jail
         operator: In
         values:
-          - ${scheduling.system.match}
-          - ${scheduling.controller.match}
-        %{~ for worker in scheduling.worker.matches ~}
-          - ${worker}
-        %{~ endfor ~}
-          - ${scheduling.login.match}
-          - ${scheduling.accounting.match}
+          - "true"
     tolerations:
       - key: ${scheduling.label.nodeset}
         operator: Exists

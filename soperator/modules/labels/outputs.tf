@@ -92,3 +92,8 @@ output "key_slurm_workload_name" {
   description = "Slurm workload label key."
   value       = local.label_key.slurm_workload
 }
+
+output "label_jail" {
+  description = "System nodeset label."
+  value       = local.label.jail
+}

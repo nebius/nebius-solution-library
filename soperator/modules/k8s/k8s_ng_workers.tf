@@ -50,6 +50,7 @@ resource "nebius_mk8s_v1_node_group" "worker" {
       ])
     }),
     local.node_group_workload_label.worker[count.index],
+    module.labels.label_jail,
   )
 
   fixed_node_count = var.node_group_workers[count.index].size
@@ -62,6 +63,7 @@ resource "nebius_mk8s_v1_node_group" "worker" {
   template = {
     metadata = {
       labels = merge(
+        module.labels.label_jail,
         tomap({
           (module.labels.key_slurm_nodeset_name) = join("-", [
             module.labels.name_nodeset_worker,
