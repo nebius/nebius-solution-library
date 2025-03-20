@@ -53,8 +53,6 @@ if ! command -v nebius &> /dev/null; then
   exit 1
 fi
 
-
-
 # Function to display interactive tenant selection menu
 select_and_save_tenant() {
   echo "Fetching available tenants..."
@@ -194,6 +192,40 @@ nebius iam auth-public-key generate \
   --output ~/.nebius/credentials.json
 
 echo "   Key pair generated successfully."
+
+echo "Step 3: Setting up Object Storage..."
+# Prompt for Object Storage setup
+read -p "Would you like to configure Object Storage support? (y/n): " SETUP_STORAGE
+
+if [[ "$SETUP_STORAGE" =~ ^[Yy]$ ]]; then
+  # Prompt for region
+  read -p "Enter a region for your Object Storage (e.g., eu-north1, eu-west1): " STORAGE_REGION
+  
+  # Create access key for Object Storage
+  echo "   Creating access key for Object Storage..."
+  ACCESS_KEY_ID=$(nebius iam access-key create \
+    --account-service-account-id "$SA_ID" \
+    --description 'AWS CLI' \
+    --format json | jq -r '.resource_id')
+  
+  ACCESS_KEY_AWS_ID=$(nebius iam access-key get-by-id \
+    --id "$ACCESS_KEY_ID" \
+    --format json | jq -r '.status.aws_access_key_id')
+  
+  SECRET_ACCESS_KEY=$(nebius iam access-key get-secret-once \
+    --id "$ACCESS_KEY_ID" --format json \
+    | jq -r '.secret')
+  
+  # Configure AWS CLI profile for Nebius
+  echo "   Configuring AWS CLI profile for Nebius..."
+  aws configure set aws_access_key_id "$ACCESS_KEY_AWS_ID" --profile nebius-$STORAGE_REGION
+  aws configure set aws_secret_access_key "$SECRET_ACCESS_KEY" --profile nebius-$STORAGE_REGION
+  aws configure set region "$STORAGE_REGION" --profile nebius-$STORAGE_REGION
+  aws configure set endpoint_url "https://storage.$STORAGE_REGION.nebius.cloud:443" --profile nebius-$STORAGE_REGION
+  
+  echo "   Object Storage configured successfully with region: $STORAGE_REGION"
+  echo "   Your AWS CLI is now configured with a 'nebius-$STORAGE_REGION' profile."
+fi
 
 echo
 echo "SUCCESS! The following files have been created:"

@@ -41,6 +41,15 @@ sky launch -c basic-test examples/basic-job.yaml
 
 This example launches a single node with 8 H100 GPUs and runs `nvidia-smi` to verify GPU access.
 
+### Mount Cloud Buckets
+
+Run a job that mounts Nebius Object Storage to filesystem:
+
+```bash
+sky launch -c test-cloud-bucket examples/test-cloud-bucket.yaml
+```
+
+
 ### AI Training
 
 Run a single-node AI training job using PyTorch:
