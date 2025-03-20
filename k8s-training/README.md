@@ -280,17 +280,6 @@ To enable alert messages for Slack, refer to this [article](https://grafana.com/
 
 ## Accessing storage
 
-### Prerequisites:
-
-1. To use csi-driver, you must set 'enable_filestore = true' in the `terraform.tfvars` file.
-2. Deploy the helm release that manages this csi-driver in the `helm.tf` file by applying the "csi-mounted-fs-path" module.
-3. Keep in mind that the 'csi-mounted-fs-path' module can only be applied while instances are booting, using the following /nebius-solution-library/modules/cloud-init/k8s-cloud-init.tftpl commands:
-   ```shell
-     - sudo mkdir -p /mnt/data
-     - sudo mount -t virtiofs data /mnt/data
-     - echo data /mnt/data \"virtiofs\" \"defaults\" \"0\" \"2\" | sudo tee -a /etc/fstab"
-   ```
-
 ### Using mounted StorageClass
 
 To use mounted storage, you need to manually create Persistent Volumes (PVs). Use the template below to create a PV and PVC.
