@@ -28,6 +28,7 @@ jobs:
       max-parallel: 2
       matrix:
         solution:
+          - name: k8s-training
           - name: wireguard
           - name: dsvm
           - name: bastion
