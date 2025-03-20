@@ -1,15 +1,32 @@
 locals {
   namespace = {
-    logs       = "logs-system"
-    monitoring = "monitoring-system"
+    logs          = "logs-system"
+    monitoring    = "monitoring-system"
   }
 
   repository = {
     victoria_metrics = "https://victoriametrics.github.io/helm-charts/"
+    logs_collector = {
+      repository = "https://open-telemetry.github.io/opentelemetry-helm-charts"
+      chart      = "opentelemetry-collector"
+      version    = "0.117.1"
+      name       = "logs"
+    }
     raw = {
       repository = "https://bedag.github.io/helm-charts/"
       chart      = "raw"
       version    = "2.0.0"
+    }
+  }
+
+  images_open_telemetry_operator = {
+    opentelemetry_operator = {
+      repository = "ghcr.io/open-telemetry/opentelemetry-operator/opentelemetry-operator"
+      tag   = "0.119.0"
+    }
+    collector_image = {
+      repository = "cr.eu-north1.nebius.cloud/observability/nebius-o11y-agent"
+      tag   = "0.2.241"
     }
   }
 
@@ -19,7 +36,7 @@ locals {
   }
 
   vm_logs_server = {
-    name = "vm-logs-server"
+    name = "vm"
   }
 }
 
@@ -74,7 +91,7 @@ resource "helm_release" "vm_logs_server" {
   name       = local.vm_logs_server.name
   repository = local.repository.victoria_metrics
   chart      = "victoria-logs-single"
-  version    = "0.5.4"
+  version    = "0.9.3"
   timeout    = 600
 
   create_namespace = true
@@ -94,17 +111,40 @@ resource "helm_release" "fb_logs_collector" {
     helm_release.vm_logs_server,
   ]
 
-  name       = "fb-logs-collector"
-  repository = "https://fluent.github.io/helm-charts"
-  chart      = "fluent-bit"
-  version    = "0.47.7"
+  name       = local.repository.logs_collector.name
+  repository = local.repository.logs_collector.repository
+  chart      = local.repository.logs_collector.chart
+  version    = local.repository.logs_collector.version
 
   namespace = local.namespace.logs
 
-  values = [templatefile("${path.module}/templates/helm_values/fb_logs_collector.yaml.tftpl", {
+  values = [templatefile("${path.module}/templates/helm_values/logs_collector.yaml.tftpl", {
     namespace            = local.namespace.logs,
-    resources            = var.resources_fb_logs_collector
-    vm_logs_service_name = local.vm_logs_server.name
+    image                = local.images_open_telemetry_operator.collector_image
+    resources            = var.resources_logs_collector
+    vm_logs_service_name = format("%s-victoria-logs-single-server.%s.svc.cluster.local.", local.vm_logs_server.name, local.namespace.logs)
+  })]
+
+  wait = true
+}
+
+resource "helm_release" "events_collector" {
+  depends_on = [
+    helm_release.vm_logs_server,
+  ]
+
+  name       = "events"
+  repository = local.repository.logs_collector.repository
+  chart      = local.repository.logs_collector.chart
+  version    = local.repository.logs_collector.version
+
+  namespace = local.namespace.logs
+
+  values = [templatefile("${path.module}/templates/helm_values/events_collector.yaml.tftpl", {
+    namespace            = local.namespace.logs,
+    image                = local.images_open_telemetry_operator.collector_image
+    resources            = var.resources_events_collector
+    vm_logs_service_name = format("%s-victoria-logs-single-server.%s.svc.cluster.local.", local.vm_logs_server.name, local.namespace.logs)
   })]
 
   wait = true
