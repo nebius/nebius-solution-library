@@ -10,4 +10,5 @@ module "monitoring" {
   providers = {
     helm = helm
   }
+  cluster_name = var.cluster_name
 }
