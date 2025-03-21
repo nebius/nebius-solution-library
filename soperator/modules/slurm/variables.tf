@@ -366,3 +366,39 @@ variable "enable_soperator_checks" {
 }
 
 # endregion SoperatorChecks
+
+# region SConfigController
+
+variable "sconfigcontroller" {
+  description = "Configuration for the sConfigController"
+  type = object({
+    slurm_api_server = string
+    node = object({
+      k8s_node_filter_name = string
+      size                 = number
+    })
+    container = object({
+      image_pull_policy = string
+      resources = object({
+        cpu               = number
+        memory            = number
+        ephemeral_storage = number
+      })
+    })
+  })
+  default = {
+    slurm_api_server = "http://soperator-rest-svc.soperator:6820"
+    node = {
+      k8s_node_filter_name = "system"
+      size                 = 2
+    }
+    container = {
+      image_pull_policy = "IfNotPresent"
+      resources = {
+        cpu               = 250
+        memory            = 256
+        ephemeral_storage = 500
+      }
+    }
+  }
+}
