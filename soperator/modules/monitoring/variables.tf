@@ -88,3 +88,8 @@ variable "grafana_admin_password" {
   description = "Password of `admin` user of Grafana."
   type        = string
 }
+
+variable "cluster_name" {
+  description = "the cluster name to use for the monitoring"
+  type        = string
+}

@@ -10,6 +10,8 @@ extraEnvs:
     valueFrom:
       fieldRef:
         fieldPath: spec.nodeName
+  - name: CLUSTER_NAME
+    value: ${cluster_name}
   - name: "GOMAXPROCS"
     value: "1"
 
@@ -63,8 +65,20 @@ config:
       retry_on_failure:
         initial_interval: 200ms
       timeout: 5s
-
+    otlp:
+      endpoint: dns:///write.logging.eu-north1.nebius.cloud.:443
+      balancer_name: round_robin
+      compression: snappy
+      retry_on_failure:
+        initial_interval: 200ms
+      timeout: 5s
+      headers:
+        iam-container: project-e00h61cxzwnf6zksvdn77
+      auth:
+        authenticator: bearertokenauth
   extensions:
+    bearertokenauth:
+      filename: "/o11ytoken/accessToken"
     health_check:
       endpoint: '0.0.0.0:13133'
     file_storage:
@@ -75,6 +89,7 @@ config:
         - context: log
           error_mode: ignore
           statements:
+          - set(attributes["cluster"], "$${env:CLUSTER_NAME}")
           - set(attributes["k8s.node.name"], "$${env:K8S_NODE_NAME}")
     batch:
       send_batch_max_size: 700
@@ -226,14 +241,17 @@ config:
     extensions:
       - health_check
       - file_storage
+      - bearertokenauth
     pipelines:
       traces: null
       metrics: null
       logs:
         exporters:
           - otlphttp/victoriametrics
+          - otlp
         processors:
           - k8sattributes
+          - transform
           - memory_limiter
           - batch
         receivers:
@@ -249,6 +267,9 @@ extraVolumes:
   - name: varlibdockercontainers
     hostPath:
       path: /var/lib/docker/containers
+  - name: o11ytoken
+    secret:
+      secretName: o11y-writer-sa-token
 extraVolumeMounts:
   - name: varlogpods
     mountPath: /var/log/pods
@@ -258,6 +279,9 @@ extraVolumeMounts:
     readOnly: true
   - name: varlibotelcol
     mountPath: /var/lib/otelcol
+  - mountPath: /o11ytoken
+    name: o11ytoken
+    readOnly: true
 
 securityContext:
   runAsGroup: 0

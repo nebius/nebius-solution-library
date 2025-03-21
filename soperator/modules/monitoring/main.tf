@@ -1,7 +1,7 @@
 locals {
   namespace = {
-    logs          = "logs-system"
-    monitoring    = "monitoring-system"
+    logs       = "logs-system"
+    monitoring = "monitoring-system"
   }
 
   repository = {
@@ -22,11 +22,11 @@ locals {
   images_open_telemetry_operator = {
     opentelemetry_operator = {
       repository = "ghcr.io/open-telemetry/opentelemetry-operator/opentelemetry-operator"
-      tag   = "0.119.0"
+      tag        = "0.119.0"
     }
     collector_image = {
       repository = "cr.eu-north1.nebius.cloud/observability/nebius-o11y-agent"
-      tag   = "0.2.241"
+      tag        = "0.2.241"
     }
   }
 
@@ -123,6 +123,7 @@ resource "helm_release" "fb_logs_collector" {
     image                = local.images_open_telemetry_operator.collector_image
     resources            = var.resources_logs_collector
     vm_logs_service_name = format("%s-victoria-logs-single-server.%s.svc.cluster.local.", local.vm_logs_server.name, local.namespace.logs)
+    cluster_name         = var.cluster_name
   })]
 
   wait = true
@@ -145,6 +146,7 @@ resource "helm_release" "events_collector" {
     image                = local.images_open_telemetry_operator.collector_image
     resources            = var.resources_events_collector
     vm_logs_service_name = format("%s-victoria-logs-single-server.%s.svc.cluster.local.", local.vm_logs_server.name, local.namespace.logs)
+    cluster_name         = var.cluster_name
   })]
 
   wait = true

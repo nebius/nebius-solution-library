@@ -220,6 +220,7 @@ module "slurm" {
   source = "../../modules/slurm"
 
   name                         = local.slurm_cluster_name
+  cluster_name                 = var.company_name
   operator_version             = var.slurm_operator_version
   operator_stable              = var.slurm_operator_stable
   k8s_cluster_context          = module.k8s.cluster_context
