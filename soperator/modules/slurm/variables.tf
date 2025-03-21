@@ -366,3 +366,10 @@ variable "enable_soperator_checks" {
 }
 
 # endregion SoperatorChecks
+
+# region Monitoring
+variable "cluster_name" {
+  description = "the cluster name to use for the monitoring"
+  type        = string
+}
+# endregion Monitoring
