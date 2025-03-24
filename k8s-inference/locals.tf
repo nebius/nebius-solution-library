@@ -8,22 +8,19 @@ locals {
       cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-h200-sxm"
-      gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
-      infiniband_fabric  = "fabric-5"
+      gpu_nodes_preset   = "1gpu-16vcpu-200gb"
     }
     eu-north1 = {
       cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-h100-sxm"
-      gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
-      infiniband_fabric  = "fabric-3"
+      gpu_nodes_preset   = "1gpu-16vcpu-200gb"
     }
     eu-north2 = {
       cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-h200-sxm"
-      gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
-      infiniband_fabric  = "eu-north2-a"
+      gpu_nodes_preset   = "1gpu-16vcpu-200gb"
     }
   }
 
@@ -33,7 +30,6 @@ locals {
   cpu_nodes_platform = coalesce(var.cpu_nodes_platform, local.current_region_defaults.cpu_nodes_platform)
   gpu_nodes_platform = coalesce(var.gpu_nodes_platform, local.current_region_defaults.gpu_nodes_platform)
   gpu_nodes_preset   = coalesce(var.gpu_nodes_preset, local.current_region_defaults.gpu_nodes_preset)
-  infiniband_fabric  = coalesce(var.infiniband_fabric, local.current_region_defaults.infiniband_fabric)
 }
 
 resource "random_string" "random" {
