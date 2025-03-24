@@ -372,7 +372,6 @@ variable "enable_soperator_checks" {
 variable "sconfigcontroller" {
   description = "Configuration for the sConfigController"
   type = object({
-    slurm_api_server = string
     node = object({
       k8s_node_filter_name = string
       size                 = number
@@ -387,7 +386,6 @@ variable "sconfigcontroller" {
     })
   })
   default = {
-    slurm_api_server = "http://soperator-rest-svc.soperator:6820"
     node = {
       k8s_node_filter_name = "system"
       size                 = 2

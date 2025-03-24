@@ -409,7 +409,6 @@ resource "helm_release" "slurm_cluster" {
     }
 
     sconfigcontroller = {
-      slurm_api_server = var.sconfigcontroller.slurm_api_server
       node = {
         k8s_node_filter_name = var.sconfigcontroller.node.k8s_node_filter_name
         size                 = var.sconfigcontroller.node.size

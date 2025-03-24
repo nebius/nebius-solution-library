@@ -396,7 +396,6 @@ telemetry:
 %{ endif }
 
 sConfigController:
-  slurmAPIServer: ${ sconfigcontroller.slurm_api_server }
   node:
     k8sNodeFilterName: ${ sconfigcontroller.node.k8s_node_filter_name }
     size: ${ sconfigcontroller.node.size }
