@@ -394,3 +394,14 @@ telemetry:
     sendJobsEvents: true
     sendOtelMetrics: true
 %{ endif }
+
+sConfigController:
+  node:
+    k8sNodeFilterName: ${ sconfigcontroller.node.k8s_node_filter_name }
+    size: ${ sconfigcontroller.node.size }
+  container:
+    imagePullPolicy: ${ sconfigcontroller.container.image_pull_policy }
+    resources:
+      cpu: ${ sconfigcontroller.container.resources.cpu }m
+      memory: ${ sconfigcontroller.container.resources.memory }Mi
+      ephemeralStorage: ${ sconfigcontroller.container.resources.ephemeral_storage }Mi
