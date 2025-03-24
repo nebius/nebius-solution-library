@@ -350,6 +350,8 @@ telemetry_enabled = true
 # ---
 telemetry_grafana_admin_password = "password"
 
+public_o11y_enabled = true
+
 # endregion Telemetry
 
 #----------------------------------------------------------------------------------------------------------------------#

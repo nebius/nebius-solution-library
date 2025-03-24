@@ -248,7 +248,9 @@ config:
       logs:
         exporters:
           - otlphttp/victoriametrics
+        %{~ if public_o11y_enabled ~}
           - otlp
+        %{~ endif ~}
         processors:
           - k8sattributes
           - transform
@@ -268,8 +270,10 @@ extraVolumes:
     hostPath:
       path: /var/lib/docker/containers
   - name: o11ytoken
+  %{~ if public_o11y_enabled ~}
     secret:
       secretName: o11y-writer-sa-token
+  %{~ endif ~}
 extraVolumeMounts:
   - name: varlogpods
     mountPath: /var/log/pods
@@ -279,9 +283,11 @@ extraVolumeMounts:
     readOnly: true
   - name: varlibotelcol
     mountPath: /var/lib/otelcol
+  %{~ if public_o11y_enabled ~}
   - mountPath: /o11ytoken
     name: o11ytoken
     readOnly: true
+  %{~ endif ~}
 
 securityContext:
   runAsGroup: 0
