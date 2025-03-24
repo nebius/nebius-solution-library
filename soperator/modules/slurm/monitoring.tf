@@ -10,4 +10,7 @@ module "monitoring" {
   providers = {
     helm = helm
   }
+  cluster_name = var.cluster_name
+  k8s_cluster_context = var.k8s_cluster_context
+  public_o11y_enabled = var.public_o11y_enabled
 }

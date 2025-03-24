@@ -621,6 +621,12 @@ variable "telemetry_grafana_admin_password" {
   sensitive   = true
 }
 
+variable "public_o11y_enabled" {
+  description = "Whether to enable public observability endpoints."
+  type        = bool
+  default     = true
+}
+
 # endregion Telemetry
 
 # region Accounting

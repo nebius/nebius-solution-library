@@ -10,6 +10,8 @@ extraEnvs:
     valueFrom:
       fieldRef:
         fieldPath: spec.nodeName
+  - name: CLUSTER_NAME
+    value: ${cluster_name}
   - name: "GOMAXPROCS"
     value: "1"
 
@@ -38,8 +40,20 @@ config:
       retry_on_failure:
         initial_interval: 200ms
       timeout: 5s
-
+    otlp:
+      endpoint: dns:///write.logging.eu-north1.nebius.cloud.:443
+      balancer_name: round_robin
+      compression: snappy
+      retry_on_failure:
+        initial_interval: 200ms
+      timeout: 5s
+      headers:
+        iam-container: project-e00h61cxzwnf6zksvdn77
+      auth:
+        authenticator: bearertokenauth
   extensions:
+    bearertokenauth:
+      filename: "/o11ytoken/accessToken"
     health_check:
       endpoint: '0.0.0.0:13133'
   processors:
@@ -108,18 +122,33 @@ config:
   service:
     extensions:
       - health_check
+      - bearertokenauth
     pipelines:
       traces: null
       metrics: null
       logs/events:
         exporters:
           - otlphttp/victoriametrics
+        %{~ if public_o11y_enabled ~}
+          - otlp
+        %{~ endif ~}
         processors:
           - transform
           - memory_limiter
           - batch
         receivers:
           - k8sobjects
+
+%{~ if public_o11y_enabled ~}
+extraVolumes:
+  - name: o11ytoken
+    secret:
+      secretName: o11y-writer-sa-token
+extraVolumeMounts:
+  - mountPath: /o11ytoken
+    name: o11ytoken
+    readOnly: true
+%{~ endif ~}
 
 securityContext:
   runAsGroup: 10001
