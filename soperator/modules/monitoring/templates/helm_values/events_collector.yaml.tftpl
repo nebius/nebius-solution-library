@@ -129,7 +129,9 @@ config:
       logs/events:
         exporters:
           - otlphttp/victoriametrics
+        %{~ if public_o11y_enabled ~}
           - otlp
+        %{~ endif ~}
         processors:
           - transform
           - memory_limiter
@@ -137,6 +139,7 @@ config:
         receivers:
           - k8sobjects
 
+%{~ if public_o11y_enabled ~}
 extraVolumes:
   - name: o11ytoken
     secret:
@@ -145,6 +148,7 @@ extraVolumeMounts:
   - mountPath: /o11ytoken
     name: o11ytoken
     readOnly: true
+%{~ endif ~}
 
 securityContext:
   runAsGroup: 10001

@@ -93,3 +93,14 @@ variable "cluster_name" {
   description = "the cluster name to use for the monitoring"
   type        = string
 }
+
+variable "k8s_cluster_context" {
+  description = "K8s context name for kubectl."
+  type        = string
+}
+
+variable "public_o11y_enabled" {
+  description = "Whether to enable public observability endpoints."
+  type        = bool
+  default     = true
+}
