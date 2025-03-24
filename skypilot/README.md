@@ -36,7 +36,29 @@ The `examples` directory contains several YAML configurations that demonstrate d
 Run a simple job to verify GPU access:
 
 ```bash
-sky launch -c basic-test examples/basic-job.yaml
+$ sky launch -c basic-test examples/basic-job.yaml
+...
+(task, pid=3791) Do we have GPUs?
+(task, pid=3791) Mon Mar 24 11:57:22 2025       
+(task, pid=3791) +-----------------------------------------------------------------------------------------+
+(task, pid=3791) | NVIDIA-SMI 550.127.08             Driver Version: 550.127.08     CUDA Version: 12.4     |
+(task, pid=3791) |-----------------------------------------+------------------------+----------------------+
+(task, pid=3791) | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+(task, pid=3791) | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+(task, pid=3791) |                                         |                        |               MIG M. |
+(task, pid=3791) |=========================================+========================+======================|
+(task, pid=3791) |   0  NVIDIA H100 80GB HBM3          On  |   00000000:8A:00.0 Off |                    0 |
+(task, pid=3791) | N/A   28C    P0             68W /  700W |       1MiB /  81559MiB |      0%      Default |
+(task, pid=3791) |                                         |                        |             Disabled |
+(task, pid=3791) +-----------------------------------------+------------------------+----------------------+
+(task, pid=3791)                                                                                          
+(task, pid=3791) +-----------------------------------------------------------------------------------------+
+(task, pid=3791) | Processes:                                                                              |
+(task, pid=3791) |  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+(task, pid=3791) |        ID   ID                                                               Usage      |
+(task, pid=3791) |=========================================================================================|
+(task, pid=3791) |  No running processes found                                                             |
+(task, pid=3791) +-----------------------------------------------------------------------------------------+
 ```
 
 This example launches a single node with 8 H100 GPUs and runs `nvidia-smi` to verify GPU access.
@@ -46,7 +68,18 @@ This example launches a single node with 8 H100 GPUs and runs `nvidia-smi` to ve
 Run a job that mounts Nebius Object Storage to filesystem:
 
 ```bash
-sky launch -c test-cloud-bucket examples/test-cloud-bucket.yaml
+$ sky launch -c test-cloud-bucket examples/test-cloud-bucket.yaml
+...
+(task, pid=3791) total 377487364
+(task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:21 file_1
+(task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:21 file_2
+(task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:22 file_3
+(task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:22 file_4
+(task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:23 file_5
+(task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:23 file_6
+(task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:24 file_7
+(task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:24 file_8
+(task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:25 file_9
 ```
 
 

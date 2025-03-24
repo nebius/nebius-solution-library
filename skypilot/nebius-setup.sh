@@ -11,10 +11,10 @@ mkdir -p ~/.nebius
 
 # Function to display script usage
 show_usage() {
-  echo "Usage: $0 -n SERVICE_ACCOUNT_NAME"
+  echo "Usage: $0 [-n SERVICE_ACCOUNT_NAME]"
   echo
   echo "Options:"
-  echo "  -n SERVICE_ACCOUNT_NAME  Name of your Nebius service account"
+  echo "  -n SERVICE_ACCOUNT_NAME  Name of your Nebius service account (default: skypilot-sa)"
   echo "  -h                       Show this help message"
   echo
   echo "Example:"
@@ -30,11 +30,9 @@ while getopts "n:h" opt; do
   esac
 done
 
-# Check if required parameters are provided
+# Set default service account name if not provided
 if [ -z "$SERVICE_ACCOUNT_NAME" ]; then
-  echo "Error: Service account name is required."
-  show_usage
-  exit 1
+  SERVICE_ACCOUNT_NAME="skypilot-sa"
 fi
 
 # Check if jq is installed
@@ -218,13 +216,13 @@ if [[ "$SETUP_STORAGE" =~ ^[Yy]$ ]]; then
   
   # Configure AWS CLI profile for Nebius
   echo "   Configuring AWS CLI profile for Nebius..."
-  aws configure set aws_access_key_id "$ACCESS_KEY_AWS_ID" --profile nebius-$STORAGE_REGION
-  aws configure set aws_secret_access_key "$SECRET_ACCESS_KEY" --profile nebius-$STORAGE_REGION
-  aws configure set region "$STORAGE_REGION" --profile nebius-$STORAGE_REGION
-  aws configure set endpoint_url "https://storage.$STORAGE_REGION.nebius.cloud:443" --profile nebius-$STORAGE_REGION
+  aws configure set aws_access_key_id "$ACCESS_KEY_AWS_ID" --profile nebius
+  aws configure set aws_secret_access_key "$SECRET_ACCESS_KEY" --profile nebius
+  aws configure set region "$STORAGE_REGION" --profile nebius
+  aws configure set endpoint_url "https://storage.$STORAGE_REGION.nebius.cloud:443" --profile nebius
   
   echo "   Object Storage configured successfully with region: $STORAGE_REGION"
-  echo "   Your AWS CLI is now configured with a 'nebius-$STORAGE_REGION' profile."
+  echo "   Your AWS CLI is now configured with a 'nebius' profile."
 fi
 
 echo
