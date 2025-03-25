@@ -77,8 +77,10 @@ config:
       auth:
         authenticator: bearertokenauth
   extensions:
+    %{~ if public_o11y_enabled ~}
     bearertokenauth:
       filename: "/o11ytoken/accessToken"
+    %{~ endif ~}
     health_check:
       endpoint: '0.0.0.0:13133'
     file_storage:
@@ -241,7 +243,9 @@ config:
     extensions:
       - health_check
       - file_storage
+    %{~ if public_o11y_enabled ~}
       - bearertokenauth
+    %{~ endif ~}
     pipelines:
       traces: null
       metrics: null
