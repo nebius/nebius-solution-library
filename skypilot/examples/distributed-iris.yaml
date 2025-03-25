@@ -19,4 +19,4 @@ run: |
      --master_addr=$MASTER_ADDR \
      --master_port=$MASTER_PORT \
      --node_rank=${SKYPILOT_NODE_RANK} \
-     train_dist.py
+     train_dist_dpp.py
