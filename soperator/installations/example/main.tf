@@ -228,6 +228,7 @@ module "slurm" {
   k8s_cluster_context          = module.k8s.cluster_context
   maintenance                  = var.maintenance
   use_default_apparmor_profile = var.use_default_apparmor_profile
+  public_o11y_enabled          = var.public_o11y_enabled
 
   iam_project_id = var.iam_project_id
 
