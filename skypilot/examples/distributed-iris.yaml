@@ -1,0 +1,22 @@
+# sky launch -c dist-iris distributed-iris.yaml
+resources:
+  cloud: nebius
+  accelerators: H100:8
+  region: eu-north1
+  
+num_nodes: 2
+
+workdir: .
+
+setup: |
+    uv pip install torch scikit-learn
+    
+run: |
+    MASTER_ADDR=$(echo "$SKYPILOT_NODE_IPS" | head -n1)
+    MASTER_PORT=8008
+    torchrun --nnodes=$SKYPILOT_NUM_NODES \
+     --nproc_per_node=$SKYPILOT_NUM_GPUS_PER_NODE \
+     --master_addr=$MASTER_ADDR \
+     --master_port=$MASTER_PORT \
+     --node_rank=${SKYPILOT_NODE_RANK} \
+     train_dist.py
