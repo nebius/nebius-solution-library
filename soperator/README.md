@@ -164,3 +164,5 @@ tail -f outputs/nccl.out
 sbatch enroot.sh
 tail -f outputs/enroot.out
 ```
+
+
