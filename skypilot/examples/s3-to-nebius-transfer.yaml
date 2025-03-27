@@ -1,0 +1,151 @@
+# sky launch -c test s3-to-nebius-transfer.yaml --env AWS_ACCESS_KEY_ID --env AWS_SECRET_ACCESS_KEY --env AWS_REGION --env S3_BUCKET_NAME
+
+resources:
+  cloud: nebius
+  region: eu-north1
+  cpus: 32
+
+num_nodes: 2  # Use multiple nodes for parallel transfers
+
+file_mounts:
+   /my_data:
+    source: nebius://my-nebius-bucket  # Replace with your actual Nebius bucket name. Must be empty before the transfer
+
+
+envs:
+  NEBIUS_MOUNT_PATH: /my_data
+  AWS_ACCESS_KEY_ID:
+  AWS_SECRET_ACCESS_KEY:
+  AWS_REGION:
+  S3_BUCKET_NAME:
+
+setup: |
+  echo 'Installing s5cmd for efficient S3 transfers'
+  # Download and install s5cmd
+  curl -L https://github.com/peak/s5cmd/releases/download/v2.1.0/s5cmd_2.1.0_Linux-64bit.tar.gz -o s5cmd.tar.gz
+  tar -xzvf s5cmd.tar.gz
+  chmod +x s5cmd
+  sudo mv s5cmd /usr/local/bin/
+  
+  # Verify installation
+  echo "s5cmd version"
+  s5cmd version
+
+run: |
+  echo "Running on node ${SKYPILOT_NODE_RANK} out of ${SKYPILOT_NUM_NODES}"
+
+  rm -rf $NEBIUS_MOUNT_PATH/*
+  
+  # Create a temporary work directory for this node
+  WORK_DIR=$(mktemp -d)
+  echo "Node ${SKYPILOT_NODE_RANK}: Working directory: ${WORK_DIR}"
+  
+  # Get list of all objects in the S3 bucket
+  echo "Node ${SKYPILOT_NODE_RANK}: Listing objects in S3 bucket ${S3_BUCKET_NAME}"
+  s5cmd ls s3://${S3_BUCKET_NAME}/* > ${WORK_DIR}/all_objects.txt
+  
+  # Count total objects and calculate chunk size for each node
+  TOTAL_OBJECTS=$(wc -l < ${WORK_DIR}/all_objects.txt)
+  CHUNK_SIZE=$(( (TOTAL_OBJECTS + SKYPILOT_NUM_NODES - 1) / SKYPILOT_NUM_NODES ))
+  
+  # Calculate start and end indices for this node's chunk
+  START_INDEX=$(( SKYPILOT_NODE_RANK * CHUNK_SIZE ))
+  END_INDEX=$(( START_INDEX + CHUNK_SIZE - 1 ))
+  if [ $END_INDEX -ge $TOTAL_OBJECTS ]; then
+    END_INDEX=$(( TOTAL_OBJECTS - 1 ))
+  fi
+  
+  echo "Node ${SKYPILOT_NODE_RANK}: Processing objects ${START_INDEX} to ${END_INDEX} out of ${TOTAL_OBJECTS}"
+  
+  # Extract this node's chunk of objects
+  sed -n "$((START_INDEX + 1)),$((END_INDEX + 1))p" ${WORK_DIR}/all_objects.txt > ${WORK_DIR}/node_objects.txt
+  
+  # Count objects assigned to this node
+  NODE_OBJECTS=$(wc -l < ${WORK_DIR}/node_objects.txt)
+  echo "Node ${SKYPILOT_NODE_RANK}: Assigned ${NODE_OBJECTS} objects to process"
+  
+  # Prepare a batch file for s5cmd to process in parallel
+  # Preserve directory structure by not removing directories from the path
+  cat ${WORK_DIR}/node_objects.txt | awk '{print "cp s3://'${S3_BUCKET_NAME}'/" $4, "'${NEBIUS_MOUNT_PATH}'/" $4}' > ${WORK_DIR}/transfer_commands.txt
+  
+  # Extract full paths of files for verification later
+  cat ${WORK_DIR}/node_objects.txt | awk '{print $4}' > ${WORK_DIR}/expected_files.txt
+  
+  # Create necessary directory structure before transfer
+  cat ${WORK_DIR}/expected_files.txt | xargs -I{} dirname "${NEBIUS_MOUNT_PATH}/{}" | sort -u | xargs -I{} mkdir -p {}
+  
+  # Execute transfers with high parallelism (adjust --numworkers based on CPU count)
+  echo "Node ${SKYPILOT_NODE_RANK}: Starting parallel transfer to ${NEBIUS_MOUNT_PATH}"
+  s5cmd --numworkers $(( $(nproc) * 4 )) run ${WORK_DIR}/transfer_commands.txt
+  
+  # Create verification directory in shared mount
+  mkdir -p ${NEBIUS_MOUNT_PATH}/.verification
+
+  # Wait for all nodes to finish and then check if number of files in all_objects.txt and the same as in NEBIUS_MOUNT_PATH
+  
+  # Create a completion marker file for this node
+  touch ${NEBIUS_MOUNT_PATH}/.verification/node_${SKYPILOT_NODE_RANK}_completed
+
+  echo "Node ${SKYPILOT_NODE_RANK}: Waiting for all nodes to complete transfers..."
+  
+  # Wait for all node completion markers (with timeout)
+  TIMEOUT_SECS=3600  # 1 hour timeout
+  START_TIME=$(date +%s)
+  while true; do
+    COMPLETED_NODES=$(ls ${NEBIUS_MOUNT_PATH}/.verification/node_*_completed 2>/dev/null | wc -l)
+    if [ "$COMPLETED_NODES" -eq "${SKYPILOT_NUM_NODES}" ]; then
+      echo "Node ${SKYPILOT_NODE_RANK}: All nodes have completed their transfers"
+      break
+    fi
+    
+    # Check for timeout
+    CURRENT_TIME=$(date +%s)
+    ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
+    if [ $ELAPSED_TIME -gt $TIMEOUT_SECS ]; then
+      echo "Node ${SKYPILOT_NODE_RANK}: ERROR - Timeout waiting for all nodes to complete"
+      exit 1
+    fi
+    
+    echo "Node ${SKYPILOT_NODE_RANK}: Waiting for other nodes to complete (${COMPLETED_NODES}/${SKYPILOT_NUM_NODES})..."
+    sleep 10
+  done
+  
+  # Perform verification only on the primary node (node 0)
+  if [ "${SKYPILOT_NODE_RANK}" -eq 0 ]; then
+    echo "Primary node: Performing verification of transferred files..."
+    
+    # Count total expected files
+    EXPECTED_FILE_COUNT=$(cat ${WORK_DIR}/all_objects.txt | wc -l)
+    
+    # Count actual transferred files (excluding verification directory)
+    TRANSFERRED_FILE_COUNT=$(find ${NEBIUS_MOUNT_PATH} -type f -not -path "${NEBIUS_MOUNT_PATH}/.verification*" | wc -l)
+    
+    echo "Primary node: Verification results:"
+    echo "  - Expected files: ${EXPECTED_FILE_COUNT}"
+    echo "  - Transferred files: ${TRANSFERRED_FILE_COUNT}"
+    
+    if [ "$TRANSFERRED_FILE_COUNT" -eq "$EXPECTED_FILE_COUNT" ]; then
+      echo "Primary node: TRANSFER SUCCESSFUL - All files were transferred correctly"
+    else
+      echo "Primary node: TRANSFER ERROR - File count mismatch"
+      echo "  - Missing files: $((EXPECTED_FILE_COUNT - TRANSFERRED_FILE_COUNT))"
+      exit 1
+    fi
+    
+    # Clean up verification directory
+    rm -rf ${NEBIUS_MOUNT_PATH}/.verification
+    
+    # Calculate total transfer size
+    TOTAL_SIZE_BYTES=$(du -sb ${NEBIUS_MOUNT_PATH} | cut -f1)
+    TOTAL_SIZE_GB=$(echo "scale=2; ${TOTAL_SIZE_BYTES} / 1024 / 1024 / 1024" | bc)
+    
+    echo "Primary node: Transfer completed successfully"
+    echo "Primary node: Total data transferred: ${TOTAL_SIZE_GB} GB"
+    date
+  else
+    echo "Node ${SKYPILOT_NODE_RANK}: Transfer task completed"
+  fi
+  
+  # Clean up temporary directory
+  rm -rf ${WORK_DIR}
+
