@@ -39,7 +39,7 @@ resource "nebius_compute_v1_instance" "instance" {
     attach_mode   = "READ_WRITE"
     existing_disk = nebius_compute_v1_disk.boot-disk
   }
-  gpu_cluster    = var.gpu_cluster != "" ? {id = var.gpu_cluster} : {}
+  gpu_cluster = var.gpu_cluster != "" ? { id = var.gpu_cluster } : {}
   secondary_disks = var.add_extra_storage ? [
     {
       attach_mode = "READ_WRITE"

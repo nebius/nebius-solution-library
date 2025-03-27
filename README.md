@@ -24,12 +24,6 @@ For those who prefer containerized environments, our Kubernetes solution include
 
 Our SLURM solutions offer a streamlined approach for users who prefer traditional HPC environments. These solutions include ready-to-use images pre-configured with NVIDIA drivers and are ideal for those looking to take advantage of SLURM’s robust job scheduling capabilities.  Similar to our Kubernetes offerings, the SLURM solutions are optimized for InfiniBand connectivity, ensuring peak performance and efficiency in data transfer and communication between nodes.
 
-### Inference
-
-[Kubernetes prepared for Inference](./k8s-inference/README.md)
-
-This solution can be used to effectively scale-out your inference, if you are utilizing ML Inference servers such as TextGenerationInference, vLLM, or your own containerized application. The Kubernetes runbook creates a Kubernetes managed service and installs Nvidia’s GPU-Operator, which simplifies NVIDIA GPU management and automates driver and plugin deployment.
-
 ### Network
 
 [Wireguard](./wireguard/README.md)

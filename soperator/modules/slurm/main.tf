@@ -408,6 +408,21 @@ resource "helm_release" "slurm_cluster" {
       }
     }
 
+    sconfigcontroller = {
+      node = {
+        k8s_node_filter_name = var.sconfigcontroller.node.k8s_node_filter_name
+        size                 = var.sconfigcontroller.node.size
+      }
+      container = {
+        image_pull_policy = var.sconfigcontroller.container.image_pull_policy
+        resources = {
+          cpu               = var.sconfigcontroller.container.resources.cpu
+          memory            = var.sconfigcontroller.container.resources.memory
+          ephemeral_storage = var.sconfigcontroller.container.resources.ephemeral_storage
+        }
+      }
+    }
+
     telemetry = {
       enabled = var.telemetry_enabled
       metrics_collector = var.telemetry_enabled ? {
