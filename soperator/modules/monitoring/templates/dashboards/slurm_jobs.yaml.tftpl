@@ -1,0 +1,280 @@
+resources:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      namespace: ${namespace}
+      name: ${name}
+      labels:
+        grafana_dashboard: "1"
+    data:
+      ${filename}: |-
+        {
+          "annotations": {
+            "list": [
+              {
+                "builtIn": 1,
+                "datasource": {
+                  "type": "grafana",
+                  "uid": "-- Grafana --"
+                },
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "type": "dashboard"
+              }
+            ]
+          },
+          "editable": true,
+          "fiscalYearStartMonth": 0,
+          "graphTooltip": 0,
+          "id": 11,
+          "links": [],
+          "panels": [
+            {
+              "datasource": {
+                "type": "mysql",
+                "uid": "accounting-mariadb"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "fixed"
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "dark-orange",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 13,
+                "w": 24,
+                "x": 0,
+                "y": 0
+              },
+              "id": 1,
+              "options": {
+                "colorByField": "state",
+                "colors": [
+                  {
+                    "color": "#777777",
+                    "text": "pending"
+                  },
+                  {
+                    "color": "#5794F2",
+                    "text": "running"
+                  },
+                  {
+                    "color": "#B877D9",
+                    "text": "suspended"
+                  },
+                  {
+                    "color": "green",
+                    "text": "complete"
+                  },
+                  {
+                    "color": "#FADE2A",
+                    "text": "cancelled"
+                  },
+                  {
+                    "color": "#F2495C",
+                    "text": "failed"
+                  },
+                  {
+                    "color": "#FF9830",
+                    "text": "timeout"
+                  },
+                  {
+                    "color": "#C4162A",
+                    "text": "node_fail"
+                  },
+                  {
+                    "color": "#C4162A",
+                    "text": "preempted"
+                  },
+                  {
+                    "color": "#C4162A",
+                    "text": "boot_fail"
+                  },
+                  {
+                    "color": "#FA6400",
+                    "text": "deadline"
+                  },
+                  {
+                    "color": "#C4162A",
+                    "text": "oom"
+                  },
+                  {
+                    "color": "#7f7f7f",
+                    "text": "awaits_start"
+                  }
+                ],
+                "labelFields": [
+                  "job_name",
+                  "state",
+                  "submit_line"
+                ],
+                "showYAxis": true,
+                "sortBy": "startTime",
+                "sortOrder": "asc"
+              },
+              "pluginVersion": "0.8.1",
+              "targets": [
+                {
+                  "dataset": "slurm_acct_db",
+                  "datasource": {
+                    "type": "mysql",
+                    "uid": "accounting-mariadb"
+                  },
+                  "editorMode": "code",
+                  "format": "table",
+                  "rawQuery": true,
+                  "rawSql": "SELECT\n  FROM_UNIXTIME(time_submit) AS start,\n  FROM_UNIXTIME(time_start) AS\nend,\nCONVERT(id_job, char) AS job_id,\njob_name,\n'awaits_start' AS state,\nnodelist,\nsubmit_line,\nexit_code\nFROM\n  slurm_acct_db.soperator_job_table\nWHERE\n  state != 4\n  /* not cancelled */\n  AND (\n    (\n      FROM_UNIXTIME(time_submit) >= $__timeFrom()\n      AND FROM_UNIXTIME(time_submit) <= $__timeTo()\n    )\n    OR (\n      FROM_UNIXTIME(time_start) >= $__timeFrom()\n      AND FROM_UNIXTIME(time_start) <= $__timeTo()\n    )\n  )\nUNION\nSELECT\n  FROM_UNIXTIME(time_submit) AS start,\n  FROM_UNIXTIME(time_end) AS\nend,\nCONVERT(id_job, char) AS job_id,\njob_name,\n'cancelled' AS state,\nnodelist,\nsubmit_line,\nexit_code\nFROM\n  slurm_acct_db.soperator_job_table\nWHERE\n  state = 4\n  /* cancelled */\n  AND (\n    (\n      FROM_UNIXTIME(time_submit) >= $__timeFrom()\n      AND FROM_UNIXTIME(time_submit) <= $__timeTo()\n    )\n    OR (\n      FROM_UNIXTIME(time_end) >= $__timeFrom()\n      AND FROM_UNIXTIME(time_end) <= $__timeTo()\n    )\n  )\nUNION\nSELECT\n  FROM_UNIXTIME(time_start) AS start,\n  FROM_UNIXTIME(time_end) AS\nend,\nCONVERT(id_job, char) AS job_id,\njob_name,\nELT(\n  state + 1,\n  'pending',\n  'running',\n  'suspended',\n  'complete',\n  'cancelled',\n  'failed',\n  'timeout',\n  'node_fail',\n  'preempted',\n  'boot_fail',\n  'deadline',\n  'oom'\n) AS state,\nnodelist,\nsubmit_line,\nexit_code\nFROM\n  slurm_acct_db.soperator_job_table\nWHERE\n  time_start != 0\n  AND (\n    (\n      FROM_UNIXTIME(time_start) >= $__timeFrom()\n      AND FROM_UNIXTIME(time_start) <= $__timeTo()\n    )\n    OR (\n      FROM_UNIXTIME(time_end) >= $__timeFrom()\n      AND FROM_UNIXTIME(time_end) <= $__timeTo()\n    )\n  )",
+                  "refId": "A",
+                  "sql": {
+                    "columns": [
+                      {
+                        "parameters": [],
+                        "type": "function"
+                      }
+                    ],
+                    "groupBy": [
+                      {
+                        "property": {
+                          "type": "string"
+                        },
+                        "type": "groupBy"
+                      }
+                    ],
+                    "limit": 50
+                  }
+                }
+              ],
+              "title": "Slurm Jobs timeline",
+              "type": "marcusolsson-gantt-panel"
+            },
+            {
+              "datasource": {
+                "type": "mysql",
+                "uid": "accounting-mariadb"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "inspect": false
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "submit_line"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 263
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 5,
+                "w": 24,
+                "x": 0,
+                "y": 13
+              },
+              "id": 2,
+              "options": {
+                "cellHeight": "sm",
+                "footer": {
+                  "countRows": false,
+                  "fields": "",
+                  "reducer": [
+                    "sum"
+                  ],
+                  "show": false
+                },
+                "showHeader": true,
+                "sortBy": []
+              },
+              "pluginVersion": "11.4.0",
+              "targets": [
+                {
+                  "dataset": "slurm_acct_db",
+                  "datasource": {
+                    "type": "mysql",
+                    "uid": "accounting-mariadb"
+                  },
+                  "editorMode": "code",
+                  "format": "table",
+                  "rawQuery": true,
+                  "rawSql": "SELECT\nCONVERT(id_job, char) AS job_id,\njob_name,\n`partition`,\naccount,\nELT(\n  state + 1,\n  'pending',\n  'running',\n  'suspended',\n  'complete',\n  'cancelled',\n  'failed',\n  'timeout',\n  'node_fail',\n  'preempted',\n  'boot_fail',\n  'deadline',\n  'oom'\n) AS state,\nnodes_alloc,\nsubmit_line,\nnodelist,\ntimelimit,\ncount(job_db_inx) AS restarts,\nexit_code\nFROM\n  slurm_acct_db.soperator_job_table\nWHERE\n\n  (\n    (\n      FROM_UNIXTIME(time_start) >= $__timeFrom()\n      AND FROM_UNIXTIME(time_start) <= $__timeTo()\n    )\n    OR (\n      FROM_UNIXTIME(time_end) >= $__timeFrom()\n      AND FROM_UNIXTIME(time_end) <= $__timeTo()\n    )\n    OR (\n      FROM_UNIXTIME(time_submit) >= $__timeFrom()\n      AND FROM_UNIXTIME(time_submit) <= $__timeTo()\n    )\n  )\n  GROUP BY id_job",
+                  "refId": "A",
+                  "sql": {
+                    "columns": [
+                      {
+                        "parameters": [],
+                        "type": "function"
+                      }
+                    ],
+                    "groupBy": [
+                      {
+                        "property": {
+                          "type": "string"
+                        },
+                        "type": "groupBy"
+                      }
+                    ],
+                    "limit": 50
+                  }
+                }
+              ],
+              "title": "Latest jobs",
+              "type": "table"
+            }
+          ],
+          "preload": false,
+          "schemaVersion": 40,
+          "tags": [],
+          "templating": {
+            "list": []
+          },
+          "time": {
+            "from": "now-3h",
+            "to": "now"
+          },
+          "timepicker": {},
+          "timezone": "browser",
+          "title": "Jobs",
+          "uid": "deewooao42fpcb",
+          "version": 18,
+          "weekStart": ""
+        }
+

@@ -222,6 +222,7 @@ resource "helm_release" "dashboard" {
     kube_state_metrics = "kube-state-metrics"
     node_exporter      = "node-exporter"
     pod_resources      = "pod-resources"
+    slurm_jobs         = "slurm-jobs"
   })
 
   depends_on = [
