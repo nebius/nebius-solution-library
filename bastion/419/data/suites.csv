@@ -1,0 +1,2 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Thu Mar 27 00:09:14 GMT 2025","Thu Mar 27 00:11:10 GMT 2025","116861","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","test_mode_bastion_apply",""
