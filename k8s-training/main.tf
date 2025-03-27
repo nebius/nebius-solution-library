@@ -83,6 +83,12 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
   }
   version = var.k8s_version
   template = {
+    metadata = {
+      labels = var.mig_parted_config != null ? {
+        "nvidia.com/mig.config" = var.mig_parted_config
+      } : {}
+    }
+
     boot_disk = {
       size_gibibytes = var.gpu_disk_size
       type           = var.gpu_disk_type
