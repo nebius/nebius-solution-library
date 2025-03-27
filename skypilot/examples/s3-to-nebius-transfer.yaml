@@ -33,8 +33,6 @@ setup: |
 
 run: |
   echo "Running on node ${SKYPILOT_NODE_RANK} out of ${SKYPILOT_NUM_NODES}"
-
-  rm -rf $NEBIUS_MOUNT_PATH/*
   
   # Create a temporary work directory for this node
   WORK_DIR=$(mktemp -d)
