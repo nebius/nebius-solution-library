@@ -197,8 +197,8 @@ variable "enable_k8s_node_group_sa" {
 
 variable "mig_parted_config" {
   description = "MIG partition config to be assigned to node group label"
-  type = string
-  default = null
+  type        = string
+  default     = null
 
   validation {
     condition     = var.mig_parted_config == null || contains(local.valid_mig_parted_configs[local.gpu_nodes_platform], coalesce(var.mig_parted_config, "null"))
