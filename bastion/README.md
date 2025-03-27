@@ -6,14 +6,14 @@ It improves the security by minimizing the use of Public IPs and limiting access
 Also create a Service Account with generated Auhorization key pair to authentificate Nebius CLI on the host.
 
 Also installed on the host:
-- Wireguard VPN solution with UI
+- WireGuard VPN solution with UI
 - Nebius CLI and configured with profile authentificated by Service account
 - kubectl and configured to connect to first mk8s cluster available in project by --internal flag
   (scanned by: `nebius mk8s v1 cluster list`)
 
 ## How to connect over bastion
 
-### Edit you local ssh config
+### Edit your local ssh config
 
 `~/.ssh/config`
 
@@ -68,20 +68,26 @@ ssh target
 
 To deploy the solution, follow these steps:
 
-1. Load environment variables:
+1. Configure `NEBIUS_TENANT_ID`, `NEBIUS_PROJECT_ID` and `NEBIUS_REGION` in environment.sh.
+
+2. Load environment variables:
    ```bash
    source ./environment.sh
    ```
-2. Initialize Terraform:
+
+3. Initialize Terraform:
    ```bash
    terraform init
    ```
-3. Replace the placeholder content in `terraform.tfvars` with the configuration values that you need. See the details [below](#configuration-variables).
-4. Preview the deployment plan:
+
+4. Replace the placeholder content in `terraform.tfvars` with the configuration values that you need. See the details [below](#configuration-variables).
+
+5. Preview the deployment plan:
    ```bash
    terraform plan
    ```
-5. Apply the configuration:
+
+6. Apply the configuration:
    ```bash
    terraform apply
    ```
@@ -91,9 +97,6 @@ To deploy the solution, follow these steps:
 
 Update the following variables in the `terraform.tfvars` file with your own values:
 
-- `tenant-id`
-- `parent_id`
-- `subnet_id`
 - `ssh_user_name`
 - `ssh_public_key`
 
@@ -113,19 +116,19 @@ This step allows you to retain the IP address even if the VM is deleted. If you 
 public_ip_allocation_id = <public_ip_allocation_id>
 ```
 
-### Logging into Wireguard UI
+### Logging into WireGuard UI
 
-1. SSH into the Wireguard instance:
+1. SSH into the WireGuard instance:
    ```bash
    ssh -i <path_to_private_ssh_key> <ssh_user_name>@<instance_public_ip>
    ```
 
-2. Retrieve the Wireguard UI password:
+2. Retrieve the WireGuard UI password:
    ```bash
-   sudo cat /var/lib/wireguard-ui/initial_password
+   sudo cat /var/lib/wireGuard-ui/initial_password
    ```
 
-3. Open the Wireguard UI in your browser:
+3. Open the WireGuard UI in your browser:
    ```
    http://<instance_public_ip>:5000
    ```
@@ -136,5 +139,5 @@ public_ip_allocation_id = <public_ip_allocation_id>
 
 ### Notes
 
-- **Apply Config:** After creating, deleting or changing Wireguard users, select "Apply Config".
+- **Apply Config:** After creating, deleting or changing WireGuard users, select "Apply Config".
 - **Allowed IPs:** When adding new users, specify the CIDRs of your existing infrastructure in the "Allowed IPs" field.
