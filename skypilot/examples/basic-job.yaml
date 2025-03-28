@@ -4,9 +4,9 @@ resources:
   region: eu-north1
 
 setup: |
-  echo "Setup will be executed on every `sky launch` command on all nodes"
+  echo 'Setup will be executed on every `sky launch` command on all nodes'
 
 run: |
-  echo "Run will be executed on every `sky exec` command on all nodes"
-  echo "Do we have GPUs?"
+  echo 'Run will be executed on every `sky exec` command on all nodes'
+  echo 'Do we have GPUs?'
   nvidia-smi 

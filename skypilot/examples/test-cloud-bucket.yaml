@@ -8,9 +8,9 @@ file_mounts:
     source: nebius://my-nebius-bucket # must be unique; replace with your own bucket name
 
 setup: |
-  echo "Setup will be executed on every `sky launch` command on all nodes"
+  echo 'Setup will be executed on every `sky launch` command on all nodes'
 
 run: |
-  echo "Run will be executed on every `sky exec` command on all nodes"
-  echo "Do we have data?"
+  echo 'Run will be executed on every `sky exec` command on all nodes'
+  echo 'Do we have data?'
   ls -l /my_data
