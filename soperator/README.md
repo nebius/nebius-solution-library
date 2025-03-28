@@ -1,7 +1,7 @@
 # Slurm on Kubernetes with Soperator - Installation Guide
 
 Welcome! This guide will help you set up a Slurm cluster running on Kubernetes using Nebius Cloud.
-The entire setup process is automated with Terraform, allowing you to deploy your cluster with a single command.
+The entire setup process is automated with Terraform, allowing you to deploy your cluster with a few commands.
 
 ## Why Run Slurm on Kubernetes?
 
@@ -44,7 +44,7 @@ git fetch --all --tags && git checkout tags/soperator-[VERSION]
 Assuming you are in the repository root or unpacked directory.
 
 ```bash
-cd soperator # This file directory.
+cd soperator
 export INSTALLATION_NAME=<your-name> # e.g. company name
 mkdir -p installations/$INSTALLATION_NAME
 cd installations/$INSTALLATION_NAME
@@ -143,10 +143,10 @@ You probably don't need this unless you want to manage the K8S cluster manually.
 
 #### 6.a. (Optional) Set Up Terraform Workspace
 
-This is a required step for the Nebius Soperator dev team.
-If you don't need to handle several installations in one Object Storage bucket for the terraform state, you can skip it.
+This is a required step if you want to have several Soperator clusters in one Terraform state storage.
 
 ```bash
+terraform workspace list # Explore existing workspaces.
 terraform workspace new <MY-CLUSTER-NAME>
 ```
 
@@ -156,21 +156,13 @@ terraform workspace new <MY-CLUSTER-NAME>
 terraform init
 ```
 
-#### 6.c. (Optional) Create a K8S Cluster separately
-
-```bash
-terraform apply -target module.k8s
-```
-
-This will take ~20 min for a small GPU cluster.
-
-#### 6.d. Deploy the Slurm Cluster
+#### 6.c. Deploy the Slurm Cluster
 
 ```bash
 terraform apply
 ```
 
-This will take ~15 min in addition to the K8S cluster creation time.
+This will take ~40 min for a small GPU cluster (2 nodes with 8 GPUs each).
 
 ### 7. (Optional) Verify Kubernetes Setup
 - List kubectl contexts to verify that the new cluster was added
@@ -210,23 +202,9 @@ or connect using the login script:
 ## (Optional) Test Your Installation
 
 Copy the test files to the Slurm cluster:
-```bash
-cd soperator/test
-scp -i ~/.ssh/<private-key> -r ./quickcheck root@"$SLURM_IP":/
-```
-
-Connect to the Slurm cluster and run the tests:
 
 ```bash
-ssh root@$SLURM_IP
-cd /quickcheck
-# Basic Slurm test
-sbatch hello.sh
-tail -f results/hello.out    
-# GPU interconnect test
-sbatch nccl.sh
-tail -f results/nccl.out
-# Container test
-sbatch enroot.sh
-tail -f results/enroot.out
+scp -i ~/.ssh/<private-key> -r soperator/test/quickcheck root@"$SLURM_IP":/opt/slurm-test
 ```
+
+Run quick tests as described in [test/quickcheck](./test/quickcheck/README.md).
