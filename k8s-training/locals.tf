@@ -18,6 +18,13 @@ locals {
       gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
       infiniband_fabric  = "fabric-3"
     }
+    eu-north2 = {
+      cpu_nodes_platform = "cpu-d3"
+      cpu_nodes_preset   = "16vcpu-64gb"
+      gpu_nodes_platform = "gpu-h200-sxm"
+      gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
+      infiniband_fabric  = "eu-north2-a"
+    }
   }
 
   current_region_defaults = local.regions_default[var.region]
