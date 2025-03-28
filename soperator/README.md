@@ -1,6 +1,7 @@
 # Slurm on Kubernetes with Soperator - Installation Guide
 
-Welcome! This guide will help you set up a Slurm cluster running on Kubernetes using Nebius Cloud. The entire setup process is automated with Terraform, allowing you to deploy your cluster with a single command.
+Welcome! This guide will help you set up a Slurm cluster running on Kubernetes using Nebius Cloud.
+The entire setup process is automated with Terraform, allowing you to deploy your cluster with a single command.
 
 ## Why Run Slurm on Kubernetes?
 
@@ -24,21 +25,35 @@ Before starting, ensure you have these tools installed:
   - macOS: `brew install coreutils`
   - Ubuntu: `sudo apt-get install coreutils`
 
-
-
 ## Installation Steps
 
-1. **Create Your Installation Directory**
+### 1. Get Terraform Files
+
+The recommended way: download and unpack [the lastest release](https://github.com/nebius/nebius-solution-library/releases):
 ```bash
-export INSTALLATION_NAME=<your-name> # e.g. customer name
+tar -xvf soperator-tf-*.**.**-*.tar.gz
+```
+
+An alternative way: checkout a release git tag:
+```bash
+git fetch --all --tags && git checkout tags/soperator-[VERSION]
+```
+
+### 2. Create Your Installation Directory
+
+Assuming you are in the repository root or unpacked directory.
+
+```bash
+cd soperator # This file directory.
+export INSTALLATION_NAME=<your-name> # e.g. company name
 mkdir -p installations/$INSTALLATION_NAME
 cd installations/$INSTALLATION_NAME
 cp -r ../example/ ./
 ```
 
-2. **Set Up Your Environment**
+### 3. Set Up Your Environment
 
-Set your NEBIUS_TENANT_ID and NEBIUS_PROJECT_ID in the `.envrc` file, then run:
+Set your `NEBIUS_TENANT_ID` and `NEBIUS_PROJECT_ID` in the `.envrc` file, then run:
 
 ```bash
 source .envrc
@@ -47,13 +62,20 @@ source .envrc
 This command loads environment variables and performs several important setup tasks:
 - Authenticates with Nebius CLI and exports IAM token
 - Creates/retrieves service account for Terraform
-- Configures Object Storage access
-- Exports necessary resource IDs
+- Configures Object Storage access for the Terraform state
+- Exports environment variables with resource IDs 
 
+Check that NEBIUS_IAM_TOKEN is valid:
+```bash
+nebius iam whoami
+```
 
-3. **Create Storage Infrastructure**
+### 4. (Optional) Create Storage Infrastructure
 
 Create a "[jail](https://en.wikipedia.org/wiki/FreeBSD_jail)" filesystem in the Nebius Console.
+
+This step is required for those who wants to persist their jail data after the cluster deletion.
+You can offload storage creation to the Terraform script instead, but it will be deleted with the cluster in this case.
 
 ![Create Filesystem 1](imgs/create_fs_1.png)
 ![Create Filesystem 2](imgs/create_fs_2.png)
@@ -63,11 +85,16 @@ Create a "[jail](https://en.wikipedia.org/wiki/FreeBSD_jail)" filesystem in the 
 > - Note down the filesystem ID for your terraform configuration
 > ![Create Filesystem 2](imgs/create_fs_3.png)
 
-4. **Configure Your Cluster**
+### 5. Configure Your Cluster
 
 Edit `terraform.tfvars` with your requirements:
 
 ```hcl
+# Name of the company. It is used for context name of the cluster in .kubeconfig file.
+company_name = "<YOUR-COMPANY-NAME>"
+
+# ...
+
 # Use your manually created jail filesystem
 filestore_jail = {
   existing = {
@@ -75,18 +102,28 @@ filestore_jail = {
   }
 }
 
-# Configure GPU cluster
-k8s_cluster_node_group_gpu = {
+# ...
+
+# Configuration of Slurm Worker node sets.
+slurm_nodeset_workers = [{
+  size                    = <TOTAL_NODES_NUMBER> # Must be divisible by nodes_per_nodegroup. Recommended value for soperator development is 2.   
+  nodes_per_nodegroup     = <NUMBER_OF_NODES_PER_NODEGROUP> # Recommended value for soperator development is 1.
+  max_unavailable_percent = 50
   resource = {
-    platform = "gpu-h100-sxm"
+    platform = "gpu-h100-sxm" # For a CPU-only cluster, see https://docs.nebius.com/compute/virtual-machines/types.
     preset   = "8gpu-128vcpu-1600gb"
   }
-  gpu_cluster = {
-    infiniband_fabric = "fabric-3"
+  boot_disk = {
+    type                 = "NETWORK_SSD"
+    size_gibibytes       = 2048
+    block_size_kibibytes = 4
   }
-}
+  gpu_cluster = {
+    infiniband_fabric = "" # Contact support for the correct value.
+  }
+}]
 
-# Add your SSH public key here to connect to the Slurm cluster 
+# Add your SSH public key here to connect to the Slurm cluster. 
 slurm_login_ssh_root_public_keys = [
   "ssh-rsa AAAAB3N... your-key"
 ]
@@ -102,21 +139,50 @@ You probably don't need this unless you want to manage the K8S cluster manually.
 > - Contact support to increase quotas if needed
 > - Ensure SSH keys are added to the correct location
 
-5. **Deploy Your Cluster**
+### 6. Deploy Your Cluster
+
+#### 6.a. (Optional) Set Up Terraform Workspace
+
+This is a required step for the Nebius Soperator dev team.
+If you don't need to handle several installations in one Object Storage bucket for the terraform state, you can skip it.
+
 ```bash
-terraform init
-terraform apply # This will take ~40 mins
+terraform workspace new <MY-CLUSTER-NAME>
 ```
 
-6. **(Optionally) Verify Kubernetes Setup**
+#### 6.b. Init terraform
+
+```bash
+terraform init
+```
+
+#### 6.c. (Optional) Create a K8S Cluster separately
+
+```bash
+terraform apply -target module.k8s
+```
+
+This will take ~20 min for a small GPU cluster.
+
+#### 6.d. Deploy the Slurm Cluster
+
+```bash
+terraform apply
+```
+
+This will take ~15 min in addition to the K8S cluster creation time.
+
+### 7. (Optional) Verify Kubernetes Setup
 - List kubectl contexts to verify that the new cluster was added
 ```bash
 kubectl config get-contexts
 ```
 
-- Set the new context 
+The new context should be named `nebius-<your-company-name>-slurm`.
+
+- Set the new context if it is not the current one
 ```bash
-kubectl config use-context <your-context-name>
+kubectl config use-context nebius-<your-company-name>-slurm
 ```
 
 - Verify that you can list the pods in the cluster and there are no pods in the error state
@@ -126,18 +192,18 @@ kubectl get pods --all-namespaces
 
 - Verify all resources show green status in the console
 
-7. **Get Cluster Connection Details**
+### 8. Get Cluster Connection Details
 
 Get the Slurm cluster IP address
 ```bash
 export SLURM_IP=$(terraform state show module.login_script.terraform_data.lb_service_ip | grep 'input' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
-ssh root@$SLURM_IP -i ~/.ssh/<private_id_rsa_key>
+ssh root@$SLURM_IP -i ~/.ssh/<private_key>
 ```
 
 or connect using the login script:
 
 ```bash
-./login.sh -k ~/.ssh/id_rsa
+./login.sh -k ~/.ssh/<private_key>
 ```
 
 
@@ -146,7 +212,7 @@ or connect using the login script:
 Copy the test files to the Slurm cluster:
 ```bash
 cd soperator/test
-./prepare_for_quickcheck.sh -u root -k ~/.ssh/<private_id_rsa_key> -a $SLURM_IP
+scp -i ~/.ssh/<private-key> -r ./quickcheck root@"$SLURM_IP":/
 ```
 
 Connect to the Slurm cluster and run the tests:
@@ -156,11 +222,11 @@ ssh root@$SLURM_IP
 cd /quickcheck
 # Basic Slurm test
 sbatch hello.sh
-tail -f outputs/hello.out    
+tail -f results/hello.out    
 # GPU interconnect test
 sbatch nccl.sh
-tail -f outputs/nccl.out
+tail -f results/nccl.out
 # Container test
 sbatch enroot.sh
-tail -f outputs/enroot.out
+tail -f results/enroot.out
 ```
