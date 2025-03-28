@@ -1,0 +1,2 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Fri Mar 28 17:30:02 GMT 2025","Fri Mar 28 17:30:42 GMT 2025","40072","","tests/main.tftest.hcl","","tests/main.tftest.hcl","","dsvm_apply",""
