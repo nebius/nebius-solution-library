@@ -58,8 +58,3 @@ module "nccl-test" {
   source          = "../modules/nccl-test"
   number_of_hosts = nebius_mk8s_v1_node_group.gpu.fixed_node_count
 }
-
-module "csi-mounted-fs-path" {
-  source = "../modules/csi-mounted-fs-path"
-  count  = var.enable_filestore ? 1 : 0
-}
