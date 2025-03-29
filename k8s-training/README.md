@@ -95,7 +95,7 @@ ssh_public_key = {
 ### Kubernetes nodes
 
 ```hcl
-# K8s modes
+# K8s nodes
 cpu_nodes_count  = 3 # Number of CPU nodes
 cpu_nodes_preset = "16vcpu-64gb" # CPU node preset
 gpu_nodes_count  = 1 # Number of GPU nodes
@@ -103,6 +103,16 @@ gpu_nodes_count  = 1 # Number of GPU nodes
 gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 8 GPU can be added to gpu cluster with infiniband connection.
 
 ```
+
+### Nvidia Multi Instance GPU (MIG) configuration
+
+```hcl
+# MIG configuration
+mig_strategy = "single" # If set, possible values include 'single', 'mixed', 'none'
+mig_parted_config = "all-disabled" # If set, value will be checked against allowed for the selected 'gpu_nodes_platform'
+```
+
+See [NVIDIA documentation for different MIG strategies](https://docs.nvidia.com/datacenter/cloud-native/kubernetes/latest/index.html#testing-with-different-strategies) and [MIG partitioning configurations for different GPU platforms](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/).
 
 ### Observability options
 
