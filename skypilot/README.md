@@ -82,6 +82,32 @@ $ sky launch -c test-cloud-bucket examples/test-cloud-bucket.yaml
 (task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:25 file_9
 ```
 
+### S3 Migration
+
+Run a distributed data migration job from AWS S3 to Nebius Object Storage:
+
+```bash
+# First launch
+sky launch -c s3-migration examples/s3_migration.yaml \
+  --env SOURCE_BUCKET=source-bucket \
+  --env TARGET_BUCKET=target-bucket \
+  --env SOURCE_PROFILE=default \
+  --env TARGET_PROFILE=nebius
+
+# Or rerun in case of failure
+sky exec s3-migration examples/s3_migration.yaml \
+  --env SOURCE_BUCKET=source-bucket \
+  --env TARGET_BUCKET=target-bucket \
+  --env SOURCE_PROFILE=default \
+  --env TARGET_PROFILE=nebius
+```
+
+This example launches a distributed data migration task across multiple nodes that:
+- Connects to source and target S3-compatible storage using AWS profiles
+- Distributes the migration work across multiple nodes and processes
+- Handles large files with multipart transfers
+- Provides detailed verification reports and tracks failed transfers
+- Supports resuming partial migrations
 
 ### AI Training
 
