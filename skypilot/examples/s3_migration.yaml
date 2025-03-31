@@ -38,7 +38,7 @@ run: |
   export WORLD_SIZE=${SKYPILOT_NUM_NODES}
   export MASTER_ADDR=$(echo "$SKYPILOT_NODE_IPS" | head -n1)
   export MASTER_PORT=29500
-  export GLOO_SOCKET_IFNAME=enp130s0
+  export GLOO_SOCKET_IFNAME=$(ip -o -4 route show to default | awk '{print $5}')
 
   echo "Starting S3 migration task: ${SKYPILOT_TASK_ID}"
   echo "Cluster information: ${SKYPILOT_CLUSTER_INFO}"
