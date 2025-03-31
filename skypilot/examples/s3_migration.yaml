@@ -1,0 +1,54 @@
+# When launching the first time:
+# sky launch -c s3-migration s3_migration.yaml \
+#   --env SOURCE_BUCKET=source-bucket \
+#   --env TARGET_BUCKET=target-bucket \
+#   --env SOURCE_PROFILE=default \
+#   --env TARGET_PROFILE=nebius 
+# When rerunning in case of failure:
+# sky exec s3-migration s3_migration.yaml \
+#   --env SOURCE_BUCKET=source-bucket \
+#   --env TARGET_BUCKET=target-bucket \
+#   --env SOURCE_PROFILE=default \
+#   --env TARGET_PROFILE=nebius 
+resources:
+  cloud: nebius
+  region: eu-north1
+  cpus: 16
+
+num_nodes: 2  # Use multiple nodes for parallel transfers
+
+file_mounts:
+  # Mount AWS credentials - assuming you have configured profiles locally
+  ~/.aws: ~/.aws
+
+workdir: .
+
+setup: |
+  uv pip install torch boto3 numpy
+envs:
+  SOURCE_BUCKET:  # Required, will be provided via --env
+  TARGET_BUCKET:  # Required, will be provided via --env
+  SOURCE_PROFILE: default  # Default AWS profile for source bucket
+  TARGET_PROFILE: nebius  # Nebius AWS profile for target bucket
+  PREFIX: ""  # Optional prefix for filtering objects
+  NUM_PROCS: 4  # Number of processes to use for parallel transfers
+
+run: |
+  export RANK=${SKYPILOT_NODE_RANK}
+  export WORLD_SIZE=${SKYPILOT_NUM_NODES}
+  export MASTER_ADDR=$(echo "$SKYPILOT_NODE_IPS" | head -n1)
+  export MASTER_PORT=29500
+  export GLOO_SOCKET_IFNAME=enp130s0
+
+  echo "Starting S3 migration task: ${SKYPILOT_TASK_ID}"
+  echo "Cluster information: ${SKYPILOT_CLUSTER_INFO}"
+  echo "Running on ${SKYPILOT_NUM_NODES} nodes"
+  echo "Node IPs: ${SKYPILOT_NODE_IPS}"
+  echo "Current node rank: ${SKYPILOT_NODE_RANK}"
+  
+  torchrun --nnodes=$SKYPILOT_NUM_NODES \
+  --nproc_per_node=$NUM_PROCS \
+  --master_addr=$MASTER_ADDR \
+  --master_port=$MASTER_PORT \
+  --node_rank=${SKYPILOT_NODE_RANK} \
+  s3_migration.py
