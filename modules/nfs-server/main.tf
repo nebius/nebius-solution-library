@@ -4,7 +4,7 @@ resource "nebius_compute_v1_instance" "nfs_server" {
 
   network_interfaces = [
     {
-      name              = var.network_interface_name
+      name              = "eth0"
       subnet_id         = var.subnet_id
       ip_address        = {}
       public_ip_address = {}

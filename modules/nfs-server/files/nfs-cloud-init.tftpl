@@ -50,9 +50,9 @@ runcmd:
     network:
       version: 2
       ethernets:
-        eth:
+        enp:
           match:
-            name: "${network_interface_name}"
+            name: "enp*"
           dhcp4: true
           mtu: ${mtu_size}
     EOF
