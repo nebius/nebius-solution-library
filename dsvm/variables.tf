@@ -9,12 +9,6 @@ variable "subnet_id" {
   type        = string
 }
 
-variable "network_interface_name" {
-  type        = string
-  description = "Name of the VM network interface"
-  default     = "eth0"
-}
-
 variable "region" {
   description = "Project region."
   type        = string
