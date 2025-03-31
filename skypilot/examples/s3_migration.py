@@ -36,7 +36,8 @@ def verify_object_exists(bucket, key):
             s3.head_object(Bucket=bucket, Key=key)
             return True
     except Exception as e:
-        print(f"Verification error for {key}: {str(e)}")
+        # Change error message to be clearer that this is just a check, not an actual error
+        print(f"Object {key} not found in target bucket, will copy it: {str(e)}")
         return False
 
 def local_file_exists_and_matches(key, target_bucket):
@@ -95,6 +96,8 @@ def copy_object(source_bucket, target_bucket, key):
         print(f"Object {key} already exists in target bucket, skipping.")
         return True
     
+    print(f"Copying object {key} to target bucket...")
+    
     try:
         # Get object size to determine if multipart is appropriate
         response = source_s3.head_object(Bucket=source_bucket, Key=key)
@@ -107,9 +110,7 @@ def copy_object(source_bucket, target_bucket, key):
         # Create proper directory structure for the file
         basename = os.path.basename(key) or "empty_file"  # Handle empty basename
         temp_file = os.path.join(temp_dir, basename)
-        
-        # For small files, use single-part transfer to avoid EntityTooSmall errors
-        # S3 minimum part size is 5MB, so use multipart only for files larger than 10MB
+
         if object_size < 10 * 1024 * 1024:  # Less than 10MB
             print(f"Small file detected ({object_size} bytes), using single-part transfer for {key}")
             
@@ -153,7 +154,7 @@ def copy_object(source_bucket, target_bucket, key):
                 Config=config
             )
         
-        print(f"Copied {key}")
+        print(f"Successfully copied {key}")
         return True
     except Exception as e:
         print(f"Failed to copy {key}: {e}")
