@@ -8,12 +8,6 @@ variable "subnet_id" {
   description = "ID of the subnet."
 }
 
-variable "network_interface_name" {
-  type        = string
-  description = "Name of the VM network interface"
-  default     = "eth0"
-}
-
 # NUMBER OF VMs for cluster
 variable "storage_nodes" {
   type        = number
