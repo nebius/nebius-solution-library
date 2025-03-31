@@ -5,7 +5,7 @@ resource "nebius_compute_v1_instance" "gluster-fs-instance" {
 
   network_interfaces = [
     {
-      name      = "eth0"
+      name      = var.network_interface_name
       subnet_id = var.subnet_id
       ip_address : {
         allocation_id = nebius_vpc_v1alpha1_allocation.glusterfs[count.index].id
