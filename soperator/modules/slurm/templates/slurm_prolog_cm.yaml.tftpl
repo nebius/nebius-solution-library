@@ -4,17 +4,24 @@ resources:
     metadata:
       name: slurm-prolog
     data:
+      # language=bash
       prolog.sh: |-
         #!/bin/bash
 
-        if [ -n "$SLURM_JOB_GPUS" ]; then
-          cd /tmp
-
-          echo "Execute nvidia-smi health check"
-          rm /tmp/nvidia-smi.out 2> /dev/null
-          nvidia-smi 1> /tmp/nvidia-smi.out
-          if [ $? -gt 0 ]; then
-            scontrol update nodename=$SLURMD_NODENAME state=drain reason="Failed nvidia-smi, see /tmp/nvidia-smi.out"
-            exit 0
-          fi
+        if [ -z "$SLURM_JOB_GPUS" ]; then
+          echo 'Skipping GPU health check as there are no GPUs requested for this job'
+          exit
         fi
+
+        cd /tmp
+
+        echo 'Executing nvidia-smi health check'
+        rm /tmp/nvidia-smi-prolog.out 2> /dev/null
+        nvidia-smi 1> /tmp/nvidia-smi-prolog.out
+        rc=$?
+        if [ ${rc} -ne 0 ]; then
+          echo "Failed nvidia-smi with return code ${rc}, see /tmp/nvidia-smi-prolog.out"
+          echo 'Node will be drained by Slurm'
+          exit ${rc}
+        fi
+        echo 'nvidia-smi health check passed'
