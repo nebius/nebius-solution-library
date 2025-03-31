@@ -9,7 +9,7 @@ resource "nebius_compute_v1_instance" "dsvm_instance" {
 
   network_interfaces = [
     {
-      name              = "eth0"
+      name              = var.network_interface_name
       subnet_id         = var.subnet_id
       ip_address        = {}
       public_ip_address = {}
