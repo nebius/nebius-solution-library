@@ -25,3 +25,14 @@ variable "relabel_dcgm_exporter" {
   type        = bool
   default     = false
 }
+
+variable "mig_strategy" {
+  description = "MIG strategy for GPU nodes."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.mig_strategy == null || contains(["none", "single", "mixed"], coalesce(var.mig_strategy, "null"))
+    error_message = "Invalid MIG strategy '${coalesce(var.mig_strategy, "null")}'. Must be one of ['none', 'single', 'mixed'] or left unset."
+  }
+}

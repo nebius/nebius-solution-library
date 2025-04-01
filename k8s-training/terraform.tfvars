@@ -15,6 +15,10 @@ gpu_nodes_count = 1 # Number of GPU nodes
 # infiniband_fabric  =                 # Infiniband fabric name.
 enable_k8s_node_group_sa = true
 
+# MIG configuration
+# mig_strategy =        # If set, possible values include 'single', 'mixed', 'none'
+# mig_parted_config =   # If set, value will be checked against allowed for the selected 'gpu_nodes_platform'
+
 # Observability
 enable_grafana    = true  # Enable or disable Grafana deployment with true or false
 enable_prometheus = true  # Enable or disable Prometheus deployment with true or false
