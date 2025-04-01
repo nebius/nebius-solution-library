@@ -7,7 +7,6 @@ module "kuberay" {
     nebius_mk8s_v1_node_group.gpu,
     module.network-operator,
     module.gpu-operator,
-    module.csi-mounted-fs-path,
   ]
 
   parent_id        = var.parent_id
