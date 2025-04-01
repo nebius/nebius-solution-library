@@ -45,8 +45,53 @@ variable "iam_tenant_id" {
     error_message = "ID of the IAM tenant must start with `tenant-`."
   }
 }
+
 data "nebius_iam_v1_tenant" "this" {
   id = var.iam_tenant_id
+}
+
+variable "o11y_iam_project_id" {
+  description = "ID of the IAM project for O11y."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = startswith(var.o11y_iam_project_id, "project-")
+    error_message = "ID of the IAM project must start with `project-`."
+  }
+}
+
+variable "o11y_iam_tenant_id" {
+  description = "ID of the IAM tenant for O11y."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = startswith(var.o11y_iam_tenant_id, "tenant-")
+    error_message = "ID of the IAM tenant must start with `tenant-`."
+  }
+}
+
+variable "o11y_iam_group_id" {
+  description = "ID of the IAM group for O11y."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = startswith(var.o11y_iam_group_id, "group-")
+    error_message = "ID of the IAM group must start with `group-`."
+  }
+}
+
+variable "o11y_profile" {
+  description = "Profile for nebius CLI for public o11y."
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = (length(var.o11y_profile) >= 1 && var.public_o11y_enabled) || !var.public_o11y_enabled
+    error_message = "O11y profile must be not empty if public o11y enabled is true."
+  }
 }
 
 variable "vpc_subnet_id" {
