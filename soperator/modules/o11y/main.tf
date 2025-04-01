@@ -53,16 +53,13 @@ EOT
     when        = destroy
     working_dir = path.root
     interpreter = ["/bin/bash", "-c"]
-    command = join(
-      "",
-      [
-        "unset NEBIUS_IAM_TOKEN",
-        # Delete SA (group membership and static key will be deleted automatically)
-        "echo \"Retrieving service account.\"",
-        "SA=$(nebius --profile \"${self.triggers_replace.o11y_profile}\" iam service-account get-by-name --name \"${self.triggers_replace.service_account_name}\" --parent-id \"${self.triggers_replace.o11y_iam_project_id}\" | yq .metadata.id)",
-        "echo \"Deleting service account...\"",
-        "nebius --profile \"${self.triggers_replace.o11y_profile}\" iam service-account delete --id \"$SA\"",
-      ]
-    )
+    command     = <<EOT
+unset NEBIUS_IAM_TOKEN
+# Delete SA (group membership and static key will be deleted automatically)
+echo "Retrieving service account."
+SA=$(nebius --profile "${self.triggers_replace.o11y_profile}" iam service-account get-by-name --name "${self.triggers_replace.service_account_name}" --parent-id "${self.triggers_replace.o11y_iam_project_id}" | yq .metadata.id)
+echo "Deleting service account..."
+nebius --profile "${self.triggers_replace.o11y_profile}" iam service-account delete --id "$SA"
+EOT
   }
 }
