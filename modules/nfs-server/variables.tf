@@ -85,3 +85,9 @@ variable "nfs_disk_name_suffix" {
   description = "Name suffix to be able to create several NFS disks in the same parent"
   default     = ""
 }
+
+variable "network_interface_name" {
+  type        = string
+  description = "Name of the VM network interface"
+  default     = "eth0"
+}
