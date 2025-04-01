@@ -217,7 +217,6 @@ module "o11y" {
 
   depends_on = [
     module.k8s,
-    null_resource.validate_o11y_profile,
   ]
 
   source = "../../modules/o11y"
