@@ -215,8 +215,11 @@ module "nvidia_operator_gpu" {
 }
 
 module "o11y" {
+  count = var.public_o11y_enabled ? 1 : 0
+
   depends_on = [
     module.k8s,
+    null_resource.validate_o11y_profile,
   ]
 
   source = "../../modules/o11y"

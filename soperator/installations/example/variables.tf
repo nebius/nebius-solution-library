@@ -84,13 +84,13 @@ variable "o11y_iam_group_id" {
 }
 
 variable "o11y_profile" {
-  description = "Profile for nebius CLI for o11y."
+  description = "Profile for nebius CLI for public o11y."
   type        = string
   nullable    = false
 
   validation {
-    condition     = length(var.o11y_profile) >= 1
-    error_message = "O11y profile must be not empty."
+    condition     = (length(var.o11y_profile) >= 1 && var.public_o11y_enabled) || !var.public_o11y_enabled
+    error_message = "O11y profile must be not empty if public o11y enabled is true."
   }
 }
 
