@@ -6,7 +6,7 @@ DEST_NODES=("185.82.69.46" "185.82.69.40" "185.82.69.127" "185.82.69.126" ) # Li
 DEST_USER="tux"                            # Username for destination nodes
 
 SOURCE_BASE="/mnt/shared"            # Base directory for source files
-DEST_BASE="/mnt/share/dest_full_4"               # Base directory for destination files
+DEST_BASE="/mnt/share/"               # Base directory for destination files
 MAX_PARALLEL=64                            # Maximum number of parallel transfers
 REMOTE_SPLIT_DIR="/tmp/split_files"        # Directory on worker nodes for part files
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)           # Timestamp for log files
