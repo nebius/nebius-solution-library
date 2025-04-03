@@ -18,7 +18,7 @@ Our solution offers several key benefits:
 Before starting, ensure you have these tools installed:
 
 - [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
-- [Nebius CLI ](https://nebius.com/docs/cli/quickstart)
+- [Nebius CLI](https://nebius.com/docs/cli/quickstart)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [jq](https://jqlang.github.io/jq/download/)
 - coreutils: 
@@ -29,7 +29,7 @@ Before starting, ensure you have these tools installed:
 
 ### 1. Get Terraform Files
 
-The recommended way: download and unpack [the lastest release](https://github.com/nebius/nebius-solution-library/releases):
+The recommended way: download and unpack [the latest release](https://github.com/nebius/nebius-solution-library/releases):
 ```bash
 tar -xvf soperator-tf-*.**.**-*.tar.gz
 ```
@@ -77,7 +77,8 @@ By default, `soperator-telemetry` is used as a profile for public o11y setup. Yo
 
 ### 4. (Optional) Create Storage Infrastructure
 
-Create a "[jail](https://en.wikipedia.org/wiki/FreeBSD_jail)" filesystem in the Nebius Console.
+Create a "jail" filesystem in the Nebius Console. Jail is a shared filesystem for all Slurm nodes.
+It is called "jail" because it resembles [FreeBSD jail mechanism](https://en.wikipedia.org/wiki/FreeBSD_jail).
 
 This step is required for those who wants to persist their jail data after the cluster deletion.
 You can offload storage creation to the Terraform script instead, but it will be deleted with the cluster in this case.
@@ -146,19 +147,19 @@ You probably don't need this unless you want to manage the K8S cluster manually.
 
 ### 6. Deploy Your Cluster
 
-#### 6.a. (Optional) Set Up Terraform Workspace
+#### 6.a. Init terraform
+
+```bash
+terraform init
+```
+
+#### 6.b. (Optional) Set Up Terraform Workspace
 
 This is a required step if you want to have several Soperator clusters in one Terraform state storage.
 
 ```bash
 terraform workspace list # Explore existing workspaces.
 terraform workspace new <MY-CLUSTER-NAME>
-```
-
-#### 6.b. Init terraform
-
-```bash
-terraform init
 ```
 
 #### 6.c. Deploy the Slurm Cluster
