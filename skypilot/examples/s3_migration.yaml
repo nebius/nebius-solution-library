@@ -1,54 +1,235 @@
-# When launching the first time:
-# sky launch -c s3-migration s3_migration.yaml \
-#   --env SOURCE_BUCKET=source-bucket \
-#   --env TARGET_BUCKET=target-bucket \
-#   --env SOURCE_PROFILE=default \
-#   --env TARGET_PROFILE=nebius 
-# When rerunning in case of failure:
-# sky exec s3-migration s3_migration.yaml \
-#   --env SOURCE_BUCKET=source-bucket \
-#   --env TARGET_BUCKET=target-bucket \
-#   --env SOURCE_PROFILE=default \
-#   --env TARGET_PROFILE=nebius 
 resources:
   cloud: nebius
   region: eu-north1
   cpus: 16
 
-num_nodes: 2  # Use multiple nodes for parallel transfers
-
-file_mounts:
-  # Mount AWS credentials - assuming you have configured profiles locally
-  ~/.aws: ~/.aws
-
+num_nodes: 4
 workdir: .
-
-setup: |
-  uv pip install torch boto3 numpy
+file_mounts:
+  # Assumes AWS profiles for both source and target are configured in
+  #  ~/.aws/config and ~/.aws/credentials.
+  ~/.aws: ~/.aws
 envs:
-  SOURCE_BUCKET:  # Required, will be provided via --env
-  TARGET_BUCKET:  # Required, will be provided via --env
-  SOURCE_PROFILE: default  # Default AWS profile for source bucket
-  TARGET_PROFILE: nebius  # Nebius AWS profile for target bucket
-  PREFIX: ""  # Optional prefix for filtering objects
-  NUM_PROCS: 4  # Number of processes to use for parallel transfers
-
-run: |
-  export RANK=${SKYPILOT_NODE_RANK}
-  export WORLD_SIZE=${SKYPILOT_NUM_NODES}
-  export MASTER_ADDR=$(echo "$SKYPILOT_NODE_IPS" | head -n1)
-  export MASTER_PORT=29500
-  export GLOO_SOCKET_IFNAME=$(ip -o -4 route show to default | awk '{print $5}')
-
-  echo "Starting S3 migration task: ${SKYPILOT_TASK_ID}"
-  echo "Cluster information: ${SKYPILOT_CLUSTER_INFO}"
-  echo "Running on ${SKYPILOT_NUM_NODES} nodes"
-  echo "Node IPs: ${SKYPILOT_NODE_IPS}"
-  echo "Current node rank: ${SKYPILOT_NODE_RANK}"
+  # Required variables - must be set before launching
+  SOURCE_AWS_PROFILE: default
+  SOURCE_ENDPOINT_URL: https://s3.us-east-1.amazonaws.com
+  SOURCE_BUCKET:         # Source bucket, e.g. s3://source-bucket     
+  TARGET_AWS_PROFILE: nebius
+  TARGET_ENDPOINT_URL: https://storage.eu-north1.nebius.cloud:443
+  TARGET_BUCKET:            # Target bucket, e.g. s3://target-bucket
+  NUM_CONCURRENT: 16 # Number of concurrent transfer processes
   
-  torchrun --nnodes=$SKYPILOT_NUM_NODES \
-  --nproc_per_node=$NUM_PROCS \
-  --master_addr=$MASTER_ADDR \
-  --master_port=$MASTER_PORT \
-  --node_rank=${SKYPILOT_NODE_RANK} \
-  s3_migration.py
+setup: |
+  echo 'Installing required tools...'
+  
+  # Install s5cmd
+  wget https://github.com/peak/s5cmd/releases/download/v2.3.0/s5cmd_2.3.0_Linux-64bit.tar.gz
+  tar -xvf s5cmd_2.3.0_Linux-64bit.tar.gz
+  sudo mv s5cmd /usr/local/bin/
+  rm s5cmd_2.3.0_Linux-64bit.tar.gz
+  
+  # Install other utilities
+  sudo apt-get update
+  sudo apt-get install -y jq bc parallel
+  
+  # Create temp directory
+  mkdir -p ~/s3migration/temp
+  
+run: |
+  # Configuration and environment setup
+  export TASK_ID=${SKYPILOT_TASK_ID}
+  export NODE_RANK=${SKYPILOT_NODE_RANK}
+  export NUM_NODES=${SKYPILOT_NUM_NODES}
+  export TEMP_DIR=~/s3migration/temp
+  export TEMP_S3_PREFIX="_skypilot_temp/${TASK_ID}"
+  mkdir -p $TEMP_DIR
+  
+  echo "Starting S3 migration task: ${TASK_ID}"
+  echo "Running on node ${NODE_RANK} of ${NUM_NODES} nodes"
+  
+  # Verify that target bucket is accessible
+  echo "Verifying target bucket access..."
+  if ! s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL ls $TARGET_BUCKET &>/dev/null; then
+    echo "Error: Cannot access target bucket. Check credentials and permissions."
+    exit 1
+  fi
+  
+  # Head node lists all objects and distributes work
+  if [ "${NODE_RANK}" = "0" ]; then
+    echo "Head node: Listing all objects in source bucket"
+    
+    # List all objects
+    s5cmd --profile $SOURCE_AWS_PROFILE --endpoint-url $SOURCE_ENDPOINT_URL ls $SOURCE_BUCKET/* > ~/all_objects.txt
+    
+    # Filter out directories
+    grep -v " DIR " ~/all_objects.txt > ~/filtered_objects.txt
+    
+    # Count total objects and calculate estimated size
+    TOTAL_OBJECTS=$(wc -l < ~/filtered_objects.txt)
+    TOTAL_SIZE_BYTES=$(awk '{sum += $3} END {print sum}' ~/filtered_objects.txt)
+    TOTAL_SIZE_GB=$(echo "scale=2; $TOTAL_SIZE_BYTES / 1024 / 1024 / 1024" | bc)
+    
+    echo "Found $TOTAL_OBJECTS objects with total size of approximately $TOTAL_SIZE_GB GB"
+    
+    # Distribute objects evenly among nodes
+    echo "Distributing objects among $NUM_NODES nodes"
+    
+    # Split files by node using modulo on line number
+    for i in $(seq 0 $((NUM_NODES-1))); do
+      awk -v node=$i -v nodes=$NUM_NODES 'NR % nodes == node' ~/filtered_objects.txt > ~/node_${i}_objects.txt
+      
+      # Count files and total size for this node
+      NODE_OBJECTS=$(wc -l < ~/node_${i}_objects.txt)
+      NODE_SIZE_BYTES=$(awk '{sum += $3} END {print sum}' ~/node_${i}_objects.txt)
+      NODE_SIZE_GB=$(echo "scale=2; $NODE_SIZE_BYTES / 1024 / 1024 / 1024" | bc)
+      
+      echo "Node $i assigned $NODE_OBJECTS objects with total size of approximately $NODE_SIZE_GB GB"
+      
+      # Upload the file list to S3 for each node to access
+      s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
+        cp ~/node_${i}_objects.txt $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${i}_objects.txt
+    done
+    
+    echo "Object lists uploaded to S3 for all nodes to access"
+  fi
+  
+  # Wait for head node to finish distribution
+  sleep 10
+  
+  # Each node downloads its assigned object list
+  echo "Node ${NODE_RANK}: Downloading assigned object list"
+  
+  # Try multiple times with exponential backoff
+  retry_count=0
+  max_retries=5
+  success=false
+  
+  while [ $retry_count -lt $max_retries ] && [ "$success" = false ]; do
+    if s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
+      cp $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${NODE_RANK}_objects.txt ~/my_objects.txt; then
+      success=true
+      echo "Successfully downloaded object list"
+    else
+      retry_count=$((retry_count+1))
+      sleep_time=$((2 ** retry_count))
+      echo "Attempt $retry_count failed. Waiting $sleep_time seconds before retry..."
+      sleep $sleep_time
+    fi
+  done
+  
+  if [ "$success" = false ]; then
+    echo "Error: Failed to download object list after $max_retries attempts."
+    exit 1
+  fi
+  
+  # Count objects assigned to this node
+  MY_OBJECTS=$(wc -l < ~/my_objects.txt)
+  if [ $MY_OBJECTS -eq 0 ]; then
+    echo "No objects assigned to node ${NODE_RANK}. Exiting."
+    
+    # Upload completion marker
+    echo "Node ${NODE_RANK} completed with no objects at $(date)" > ~/node_${NODE_RANK}_done
+    s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
+      cp ~/node_${NODE_RANK}_done $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${NODE_RANK}_done
+    
+    exit 0
+  fi
+  
+  echo "Node ${NODE_RANK}: Processing $MY_OBJECTS objects"
+  
+  # Create a function to process a single object
+  process_object() {
+    local line="$1"
+    local size=$(echo $line | awk '{print $3}')
+    local object_path=$(echo $line | awk '{print $NF}')
+    local object_key=${object_path#$SOURCE_BUCKET/}
+    local local_file_path="${TEMP_DIR}/${object_key##*/}"
+    
+    # Create directory structure if needed
+    mkdir -p "$(dirname "$local_file_path")"
+    
+    echo "Processing: ${object_key}"
+    
+    # Download the object
+    if s5cmd --profile $SOURCE_AWS_PROFILE --endpoint-url $SOURCE_ENDPOINT_URL \
+         cp --concurrency $NUM_CONCURRENT "${SOURCE_BUCKET}/${object_key}" "${local_file_path}"; then
+      
+      # Upload the object to the target
+      if s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
+           cp --concurrency $NUM_CONCURRENT "${local_file_path}" "${TARGET_BUCKET}/${object_key}"; then
+        echo "Successfully migrated: ${object_key}"
+      else
+        echo "Error: Failed to upload ${object_key}"
+      fi
+    else
+      echo "Error: Failed to download ${object_key}"
+    fi
+    
+    # Remove the temporary file
+    rm -f "${local_file_path}"
+  }
+  
+  # Export the function for use with parallel
+  export -f process_object
+  export SOURCE_AWS_PROFILE SOURCE_ENDPOINT_URL SOURCE_BUCKET
+  export TARGET_AWS_PROFILE TARGET_ENDPOINT_URL TARGET_BUCKET
+  export TEMP_DIR
+  
+  # Process objects in parallel using GNU parallel
+  cat ~/my_objects.txt | parallel -j $NUM_CONCURRENT process_object
+  
+  # Signal completion by uploading a marker to S3
+  echo "Node ${NODE_RANK} completed all objects at $(date)" > ~/node_${NODE_RANK}_done
+  s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
+    cp ~/node_${NODE_RANK}_done $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${NODE_RANK}_done
+  
+  echo "Node ${NODE_RANK}: Migration completed!"
+  
+  # Head node verifies all nodes have completed
+  if [ "${NODE_RANK}" = "0" ]; then
+    echo "Head node: Waiting for all worker nodes to complete"
+    
+    # Wait for all workers to complete
+    for worker in $(seq 1 $((NUM_NODES-1))); do
+      echo "Waiting for worker $worker to complete..."
+      
+      while true; do
+        if s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
+          ls $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${worker}_done &>/dev/null; then
+          echo "Worker $worker has completed"
+          break
+        fi
+        sleep 10
+      done
+    done
+    
+    echo "All workers have completed. Verifying object counts..."
+    
+    # Count objects in source and target buckets
+    s5cmd --profile $SOURCE_AWS_PROFILE --endpoint-url $SOURCE_ENDPOINT_URL ls $SOURCE_BUCKET/* > ~/final_source_objects.txt
+    s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL ls $TARGET_BUCKET/* > ~/final_target_objects.txt
+    
+    # Filter out directory entries and temp files
+    grep -v " DIR " ~/final_source_objects.txt > ~/final_source_files.txt
+    grep -v " DIR " ~/final_target_objects.txt | grep -v "_skypilot_temp" > ~/final_target_files.txt
+    
+    # Compare counts
+    SOURCE_COUNT=$(wc -l < ~/final_source_files.txt)
+    TARGET_COUNT=$(wc -l < ~/final_target_files.txt)
+    
+    echo "Final verification:"
+    echo "Source bucket: $SOURCE_COUNT objects"
+    echo "Target bucket: $TARGET_COUNT objects"
+    
+    if [ $SOURCE_COUNT -eq $TARGET_COUNT ]; then
+      echo "✅ Migration completed successfully! Object counts match."
+    else
+      echo "⚠️ Migration completed with warnings. Object counts don't match."
+      echo "Source: $SOURCE_COUNT, Target: $TARGET_COUNT"
+    fi
+    
+    # Clean up temporary files in S3
+    echo "Cleaning up temporary files from S3..."
+    s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
+      rm $TARGET_BUCKET/${TEMP_S3_PREFIX}/*
+  fi

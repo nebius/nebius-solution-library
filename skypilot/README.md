@@ -87,19 +87,30 @@ $ sky launch -c test-cloud-bucket examples/test-cloud-bucket.yaml
 Run a distributed data migration job from AWS S3 to Nebius Object Storage:
 
 ```bash
+export SOURCE_AWS_PROFILE=... # e.g. default
+export SOURCE_ENDPOINT_URL=... # e.g. https://s3.us-east-1.amazonaws.com
+export SOURCE_BUCKET= # e.g. s3://source-bucket
+export TARGET_AWS_PROFILE=nebius
+export TARGET_ENDPOINT_URL=https://storage.eu-north1.nebius.cloud:443 # change to your region
+export TARGET_BUCKET= # e.g. s3://target-bucket
+
 # First launch
 sky launch -c s3-migration examples/s3_migration.yaml \
-  --env SOURCE_BUCKET=source-bucket \
-  --env TARGET_BUCKET=target-bucket \
-  --env SOURCE_PROFILE=default \
-  --env TARGET_PROFILE=nebius
+  --env SOURCE_AWS_PROFILE \
+  --env SOURCE_ENDPOINT_URL \
+  --env SOURCE_BUCKET \
+  --env TARGET_AWS_PROFILE \
+  --env TARGET_ENDPOINT_URL \
+  --env TARGET_BUCKET
 
 # Or rerun in case of failure
 sky exec s3-migration examples/s3_migration.yaml \
-  --env SOURCE_BUCKET=source-bucket \
-  --env TARGET_BUCKET=target-bucket \
-  --env SOURCE_PROFILE=default \
-  --env TARGET_PROFILE=nebius
+  --env SOURCE_AWS_PROFILE \
+  --env SOURCE_ENDPOINT_URL \
+  --env SOURCE_BUCKET \
+  --env TARGET_AWS_PROFILE \
+  --env TARGET_ENDPOINT_URL \
+  --env TARGET_BUCKET
 ```
 
 This example launches a distributed data migration task across multiple nodes that:
