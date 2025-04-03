@@ -3,17 +3,19 @@
 # Usage: ./copy_s3_to_sfs_single_node.sh <bucket_name> [source_directory]
 
 # Set variables with defaults
-BUCKET_NAME=$1
-SOURCE_DIR=${2:-/mnt/shared}
+SOURCE_DIR=$1
+DEST_DIR=${2:-/mnt/shared}
 
 # Ensure bucket name is provided
-if [ -z "$BUCKET_NAME" ]; then
+if [ -z "$DEST_DIR" ]; then
     echo "Usage: $0 <bucket_name> [source_directory]"
+    echo "Or: $0 [source_directory] s3:<bucket_name> "
+
     return 1
 fi
 
 # Run rclone sync command
-rclone sync "s3mlperf:$BUCKET_NAME" "$SOURCE_DIR" \
+rclone copy "$SOURCE_DIR" "$DEST_DIR" \
     --progress --links \
     --use-mmap \
     --bwlimit=1000M \

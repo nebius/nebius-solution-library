@@ -22,8 +22,51 @@ access_key_id = NAKI50IKWMRP76VI9Y7K
 secret_access_key = sqMJyY/xvvCVDdIrfcKzn28651GE32WwUK3SqKqr
 
 # Data Transfer
+This repository contains solutions for high-performance data transfer between Amazon S3 and local file storage across multiple nodes. The primary script provided is copy_s3_to_sfs_multi_node.sh, which enables efficient data synchronization.
 
-## From S3 to SFS
+## From S3 to file system / File system to S3
+
+Script: copy_s3_to_sfs_multi_node.sh
+
+This script facilitates file transfers:
+
+From S3 to local file storage
+
+From local file storage to S3
+
+Across multiple nodes simultaneously
+
+It operates with or without SLURM, as long as SSH access to the nodes is available.
+
+### Configuration
+
+
+1. Define worker nodes: Specify the nodes that should be used in the script by modifying the NODES array: 
+```
+NODES=("worker-0" "worker-1" "worker-2" "worker-3")
+```
+
+Nodes can be identified by either IP addresses or hostnames.
+
+
+2. S3 Configuration
+
+Ensure that the S3 configuration is correctly set up in `~/.config/rclone/rclone.conf`. Below is an example configuration:
+
+```
+[s3]
+type = s3
+provider = AWS
+env_auth = false
+region = eu-north1
+no_check_bucket = true
+endpoint = https://storage.eu-north1.nebius.cloud:443
+acl = private
+bucket_acl = private
+access_key_id = xxx
+secret_access_key = xxx
+```
+
 
 ### On slurm
 

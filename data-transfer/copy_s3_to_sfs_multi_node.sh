@@ -3,17 +3,18 @@
 # Usage: ./copy_s3_to_sfs_multi_node.sh <bucket_name> [source_directory]
 
 # Set variables with defaults
-BUCKET_NAME=$1
+SOURCE_DIR=$1
 DEST_DIR=${2:-/mnt/shared}
 
 # Ensure bucket name is provided
-if [ -z "$BUCKET_NAME" ]; then
-    echo "Usage: $0 <bucket_name> [source_directory]"
+if [ -z "DEST_DIR" ]; then
+    echo "Usage: $0 s3:<bucket_name> [dest_directory]"
+    echo "Or: $0 [source_directory] s3:<bucket_name> "
+
     return 1
 fi
 
 # Configuration
-S3_BUCKET="s3mlperf:$BUCKET_NAME"
 NODES=("worker-0" "worker-1" "worker-2" "worker-3")  # List of worker nodes
 
 
@@ -25,8 +26,8 @@ LOG_DIR="/var/log/rclone_sync"  # Local log directory
 mkdir -p "$LOG_DIR"
 
 
-echo "Fetching file list from S3..."
-rclone lsf $S3_BUCKET --files-only --recursive > $FILE_LIST
+echo "Fetching file list from SOURCE..."
+rclone lsf $SOURCE_DIR --files-only --recursive > $FILE_LIST
 
 
 # Split the file list into equal parts, using numeric suffixes (00, 01, etc.)
@@ -47,7 +48,7 @@ for i in "${!NODES[@]}"; do
 
     echo "Starting rclone on $NODE... Logging to $LOG_FILE"
     ssh -o StrictHostKeyChecking=no "$NODE" "mkdir -p $REMOTE_WORK_DIR && \
-                 nohup rclone copy --files-from $REMOTE_WORK_DIR/$PART_FILE $S3_BUCKET $DEST_DIR \
+                 nohup rclone copy --files-from $REMOTE_WORK_DIR/$PART_FILE $SOURCE_DIR $DEST_DIR \
                  --progress --links --use-mmap \
                  --transfers=64 --buffer-size=512Mi \
                  --multi-thread-streams=24 --multi-thread-chunk-size=128Mi --multi-thread-cutoff=4Gi \
