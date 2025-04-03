@@ -143,7 +143,8 @@ run: |
     local size=$(echo $line | awk '{print $3}')
     local object_path=$(echo $line | awk '{print $NF}')
     local object_key=${object_path#$SOURCE_BUCKET/}
-    local local_file_path="${TEMP_DIR}/${object_key##*/}"
+    local relative_path=${object_key}
+    local local_file_path="${TEMP_DIR}/${relative_path}"
     
     # Create directory structure if needed
     mkdir -p "$(dirname "$local_file_path")"
@@ -213,6 +214,10 @@ run: |
     grep -v " DIR " ~/final_source_objects.txt > ~/final_source_files.txt
     grep -v " DIR " ~/final_target_objects.txt | grep -v "_skypilot_temp" > ~/final_target_files.txt
     
+    # Extract just the object keys for comparison
+    cat ~/final_source_files.txt | awk '{print $NF}' | sort > ~/source_keys.txt
+    cat ~/final_target_files.txt | awk '{print $NF}' | sort > ~/target_keys.txt
+    
     # Compare counts
     SOURCE_COUNT=$(wc -l < ~/final_source_files.txt)
     TARGET_COUNT=$(wc -l < ~/final_target_files.txt)
@@ -223,13 +228,47 @@ run: |
     
     if [ $SOURCE_COUNT -eq $TARGET_COUNT ]; then
       echo "✅ Migration completed successfully! Object counts match."
+      
+      # Even if counts match, check for differences in file lists
+      if diff ~/source_keys.txt ~/target_keys.txt > ~/diff_output.txt; then
+        echo "✅ All objects match between source and target buckets."
+      else
+        echo "⚠️ Warning: Although counts match, some objects differ between buckets."
+        echo "Objects in source but not in target (first 10):"
+        grep "^<" ~/diff_output.txt | head -10
+        echo "Objects in target but not in source (first 10):"
+        grep "^>" ~/diff_output.txt | head -10
+      fi
     else
       echo "⚠️ Migration completed with warnings. Object counts don't match."
       echo "Source: $SOURCE_COUNT, Target: $TARGET_COUNT"
+      
+      # Show detailed differences
+      echo "Analyzing differences between source and target buckets..."
+      
+      # Find files in source but not in target
+      comm -23 ~/source_keys.txt ~/target_keys.txt > ~/missing_in_target.txt
+      MISSING_TARGET=$(wc -l < ~/missing_in_target.txt)
+      
+      # Find files in target but not in source
+      comm -13 ~/source_keys.txt ~/target_keys.txt > ~/missing_in_source.txt
+      MISSING_SOURCE=$(wc -l < ~/missing_in_source.txt)
+      
+      echo "$MISSING_TARGET files exist in source but not in target"
+      echo "$MISSING_SOURCE files exist in target but not in source"
+      
+      if [ $MISSING_TARGET -gt 0 ]; then
+        echo "Sample of missing files in target (first 10):"
+        head -10 ~/missing_in_target.txt
+      fi
+      
+      if [ $MISSING_SOURCE -gt 0 ]; then
+        echo "Sample of extra files in target (first 10):"
+        head -10 ~/missing_in_source.txt
+      fi
     fi
     
     # Clean up temporary files in S3
-    echo "Cleaning up temporary files from S3..."
     s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
       rm $TARGET_BUCKET/${TEMP_S3_PREFIX}/*
   fi
