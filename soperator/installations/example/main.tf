@@ -248,6 +248,8 @@ module "slurm" {
   maintenance                  = var.maintenance
   use_default_apparmor_profile = var.use_default_apparmor_profile
   public_o11y_enabled          = var.public_o11y_enabled
+  slurm_partition_config_type  = var.slurm_partition_config_type
+  slurm_partition_raw_config   = var.slurm_partition_raw_config
 
   iam_project_id = var.iam_project_id
 
