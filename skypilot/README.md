@@ -113,12 +113,11 @@ sky exec s3-migration examples/s3_migration.yaml \
   --env TARGET_BUCKET
 ```
 
-This example launches a distributed data migration task across multiple nodes that:
-- Connects to source and target S3-compatible storage using AWS profiles
-- Distributes the migration work across multiple nodes and processes
-- Handles large files with multipart transfers
-- Provides detailed verification reports and tracks failed transfers
-- Supports resuming partial migrations
+This example launches a distributed data migration task across multiple nodes:
+- SkyPilot for provisioning multiple nodes
+- `s5cmd` parallel downloading
+- Performs post-transfer verification
+- Supports different AWS profiles for source and target buckets (by mounting `~/.aws` directory from the local machine) 
 
 ### AI Training
 
