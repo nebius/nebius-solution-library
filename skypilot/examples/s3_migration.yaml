@@ -3,7 +3,7 @@ resources:
   region: eu-north1
   cpus: 16
 
-num_nodes: 4
+num_nodes: 8
 workdir: .
 file_mounts:
   # Assumes AWS profiles for both source and target are configured in
@@ -32,20 +32,31 @@ setup: |
   sudo apt-get update
   sudo apt-get install -y jq bc parallel
   
-  # Create temp directory
-  mkdir -p ~/s3migration/temp
+  # Create RAM disk mount point
+  sudo mkdir -p /mnt/ramdisk
+  # Mount 8GB RAM disk (adjust size as needed based on your VM memory)
+  sudo mount -t tmpfs -o size=8g tmpfs /mnt/ramdisk
+  # Set permissions for the RAM disk
+  sudo chmod 777 /mnt/ramdisk
+  # Create temp directory on RAM disk
+  mkdir -p /mnt/ramdisk/s3migration/temp
   
 run: |
   # Configuration and environment setup
   export TASK_ID=${SKYPILOT_TASK_ID}
   export NODE_RANK=${SKYPILOT_NODE_RANK}
   export NUM_NODES=${SKYPILOT_NUM_NODES}
-  export TEMP_DIR=~/s3migration/temp
+  export TEMP_DIR=/mnt/ramdisk/s3migration/temp
   export TEMP_S3_PREFIX="_skypilot_temp/${TASK_ID}"
   mkdir -p $TEMP_DIR
   
+  # Record start time
+  START_TIME=$(date +%s)
+  
   echo "Starting S3 migration task: ${TASK_ID}"
   echo "Running on node ${NODE_RANK} of ${NUM_NODES} nodes"
+  echo "Migration started at $(date)"
+  echo "Using RAM disk for temporary storage at ${TEMP_DIR}"
   
   # Verify that target bucket is accessible
   echo "Verifying target bucket access..."
@@ -59,14 +70,14 @@ run: |
     echo "Head node: Listing all objects in source bucket"
     
     # List all objects
-    s5cmd --profile $SOURCE_AWS_PROFILE --endpoint-url $SOURCE_ENDPOINT_URL ls $SOURCE_BUCKET/* > ~/all_objects.txt
+    s5cmd --profile $SOURCE_AWS_PROFILE --endpoint-url $SOURCE_ENDPOINT_URL ls $SOURCE_BUCKET/* > $TEMP_DIR/all_objects.txt
     
     # Filter out directories
-    grep -v " DIR " ~/all_objects.txt > ~/filtered_objects.txt
+    grep -v " DIR " $TEMP_DIR/all_objects.txt > $TEMP_DIR/filtered_objects.txt
     
     # Count total objects and calculate estimated size
-    TOTAL_OBJECTS=$(wc -l < ~/filtered_objects.txt)
-    TOTAL_SIZE_BYTES=$(awk '{sum += $3} END {print sum}' ~/filtered_objects.txt)
+    TOTAL_OBJECTS=$(wc -l < $TEMP_DIR/filtered_objects.txt)
+    TOTAL_SIZE_BYTES=$(awk '{sum += $3} END {print sum}' $TEMP_DIR/filtered_objects.txt)
     TOTAL_SIZE_GB=$(echo "scale=2; $TOTAL_SIZE_BYTES / 1024 / 1024 / 1024" | bc)
     
     echo "Found $TOTAL_OBJECTS objects with total size of approximately $TOTAL_SIZE_GB GB"
@@ -76,18 +87,18 @@ run: |
     
     # Split files by node using modulo on line number
     for i in $(seq 0 $((NUM_NODES-1))); do
-      awk -v node=$i -v nodes=$NUM_NODES 'NR % nodes == node' ~/filtered_objects.txt > ~/node_${i}_objects.txt
+      awk -v node=$i -v nodes=$NUM_NODES 'NR % nodes == node' $TEMP_DIR/filtered_objects.txt > $TEMP_DIR/node_${i}_objects.txt
       
       # Count files and total size for this node
-      NODE_OBJECTS=$(wc -l < ~/node_${i}_objects.txt)
-      NODE_SIZE_BYTES=$(awk '{sum += $3} END {print sum}' ~/node_${i}_objects.txt)
+      NODE_OBJECTS=$(wc -l < $TEMP_DIR/node_${i}_objects.txt)
+      NODE_SIZE_BYTES=$(awk '{sum += $3} END {print sum}' $TEMP_DIR/node_${i}_objects.txt)
       NODE_SIZE_GB=$(echo "scale=2; $NODE_SIZE_BYTES / 1024 / 1024 / 1024" | bc)
       
       echo "Node $i assigned $NODE_OBJECTS objects with total size of approximately $NODE_SIZE_GB GB"
       
       # Upload the file list to S3 for each node to access
       s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
-        cp ~/node_${i}_objects.txt $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${i}_objects.txt
+        cp $TEMP_DIR/node_${i}_objects.txt $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${i}_objects.txt
     done
     
     echo "Object lists uploaded to S3 for all nodes to access"
@@ -106,7 +117,7 @@ run: |
   
   while [ $retry_count -lt $max_retries ] && [ "$success" = false ]; do
     if s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
-      cp $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${NODE_RANK}_objects.txt ~/my_objects.txt; then
+      cp $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${NODE_RANK}_objects.txt $TEMP_DIR/my_objects.txt; then
       success=true
       echo "Successfully downloaded object list"
     else
@@ -123,14 +134,14 @@ run: |
   fi
   
   # Count objects assigned to this node
-  MY_OBJECTS=$(wc -l < ~/my_objects.txt)
+  MY_OBJECTS=$(wc -l < $TEMP_DIR/my_objects.txt)
   if [ $MY_OBJECTS -eq 0 ]; then
     echo "No objects assigned to node ${NODE_RANK}. Exiting."
     
     # Upload completion marker
-    echo "Node ${NODE_RANK} completed with no objects at $(date)" > ~/node_${NODE_RANK}_done
+    echo "Node ${NODE_RANK} completed with no objects at $(date)" > $TEMP_DIR/node_${NODE_RANK}_done
     s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
-      cp ~/node_${NODE_RANK}_done $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${NODE_RANK}_done
+      cp $TEMP_DIR/node_${NODE_RANK}_done $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${NODE_RANK}_done
     
     exit 0
   fi
@@ -177,12 +188,12 @@ run: |
   export TEMP_DIR
   
   # Process objects in parallel using GNU parallel
-  cat ~/my_objects.txt | parallel -j $NUM_CONCURRENT process_object
+  cat $TEMP_DIR/my_objects.txt | parallel -j $NUM_CONCURRENT process_object
   
   # Signal completion by uploading a marker to S3
-  echo "Node ${NODE_RANK} completed all objects at $(date)" > ~/node_${NODE_RANK}_done
+  echo "Node ${NODE_RANK} completed all objects at $(date)" > $TEMP_DIR/node_${NODE_RANK}_done
   s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
-    cp ~/node_${NODE_RANK}_done $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${NODE_RANK}_done
+    cp $TEMP_DIR/node_${NODE_RANK}_done $TARGET_BUCKET/${TEMP_S3_PREFIX}/node_${NODE_RANK}_done
   
   echo "Node ${NODE_RANK}: Migration completed!"
   
@@ -207,37 +218,47 @@ run: |
     echo "All workers have completed. Verifying object counts..."
     
     # Count objects in source and target buckets
-    s5cmd --profile $SOURCE_AWS_PROFILE --endpoint-url $SOURCE_ENDPOINT_URL ls $SOURCE_BUCKET/* > ~/final_source_objects.txt
-    s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL ls $TARGET_BUCKET/* > ~/final_target_objects.txt
+    s5cmd --profile $SOURCE_AWS_PROFILE --endpoint-url $SOURCE_ENDPOINT_URL ls $SOURCE_BUCKET/* > $TEMP_DIR/final_source_objects.txt
+    s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL ls $TARGET_BUCKET/* > $TEMP_DIR/final_target_objects.txt
     
     # Filter out directory entries and temp files
-    grep -v " DIR " ~/final_source_objects.txt > ~/final_source_files.txt
-    grep -v " DIR " ~/final_target_objects.txt | grep -v "_skypilot_temp" > ~/final_target_files.txt
+    grep -v " DIR " $TEMP_DIR/final_source_objects.txt > $TEMP_DIR/final_source_files.txt
+    grep -v " DIR " $TEMP_DIR/final_target_objects.txt | grep -v "_skypilot_temp" > $TEMP_DIR/final_target_files.txt
     
     # Extract just the object keys for comparison
-    cat ~/final_source_files.txt | awk '{print $NF}' | sort > ~/source_keys.txt
-    cat ~/final_target_files.txt | awk '{print $NF}' | sort > ~/target_keys.txt
+    cat $TEMP_DIR/final_source_files.txt | awk '{print $NF}' | sort > $TEMP_DIR/source_keys.txt
+    cat $TEMP_DIR/final_target_files.txt | awk '{print $NF}' | sort > $TEMP_DIR/target_keys.txt
     
     # Compare counts
-    SOURCE_COUNT=$(wc -l < ~/final_source_files.txt)
-    TARGET_COUNT=$(wc -l < ~/final_target_files.txt)
+    SOURCE_COUNT=$(wc -l < $TEMP_DIR/final_source_files.txt)
+    TARGET_COUNT=$(wc -l < $TEMP_DIR/final_target_files.txt)
     
-    echo "Final verification:"
+    # Calculate and print migration duration
+    END_TIME=$(date +%s)
+    DURATION=$((END_TIME - START_TIME))
+    HOURS=$((DURATION / 3600))
+    MINUTES=$(( (DURATION % 3600) / 60 ))
+    SECONDS=$((DURATION % 60))
+    
+    echo "------------------------------------------------------"
+    echo "📊 Migration Statistics:"
+    echo "Total migration time: ${HOURS}h ${MINUTES}m ${SECONDS}s"
     echo "Source bucket: $SOURCE_COUNT objects"
     echo "Target bucket: $TARGET_COUNT objects"
+    echo "------------------------------------------------------"
     
     if [ $SOURCE_COUNT -eq $TARGET_COUNT ]; then
       echo "✅ Migration completed successfully! Object counts match."
       
       # Even if counts match, check for differences in file lists
-      if diff ~/source_keys.txt ~/target_keys.txt > ~/diff_output.txt; then
+      if diff $TEMP_DIR/source_keys.txt $TEMP_DIR/target_keys.txt > $TEMP_DIR/diff_output.txt; then
         echo "✅ All objects match between source and target buckets."
       else
         echo "⚠️ Warning: Although counts match, some objects differ between buckets."
         echo "Objects in source but not in target (first 10):"
-        grep "^<" ~/diff_output.txt | head -10
+        grep "^<" $TEMP_DIR/diff_output.txt | head -10
         echo "Objects in target but not in source (first 10):"
-        grep "^>" ~/diff_output.txt | head -10
+        grep "^>" $TEMP_DIR/diff_output.txt | head -10
       fi
     else
       echo "⚠️ Migration completed with warnings. Object counts don't match."
@@ -247,28 +268,23 @@ run: |
       echo "Analyzing differences between source and target buckets..."
       
       # Find files in source but not in target
-      comm -23 ~/source_keys.txt ~/target_keys.txt > ~/missing_in_target.txt
-      MISSING_TARGET=$(wc -l < ~/missing_in_target.txt)
-      
-      # Find files in target but not in source
-      comm -13 ~/source_keys.txt ~/target_keys.txt > ~/missing_in_source.txt
-      MISSING_SOURCE=$(wc -l < ~/missing_in_source.txt)
-      
+      comm -23 $TEMP_DIR/source_keys.txt $TEMP_DIR/target_keys.txt > $TEMP_DIR/missing_in_target.txt
+      MISSING_TARGET=$(wc -l < $TEMP_DIR/missing_in_target.txt)
+
       echo "$MISSING_TARGET files exist in source but not in target"
-      echo "$MISSING_SOURCE files exist in target but not in source"
       
       if [ $MISSING_TARGET -gt 0 ]; then
         echo "Sample of missing files in target (first 10):"
-        head -10 ~/missing_in_target.txt
+        head -10 $TEMP_DIR/missing_in_target.txt
       fi
       
-      if [ $MISSING_SOURCE -gt 0 ]; then
-        echo "Sample of extra files in target (first 10):"
-        head -10 ~/missing_in_source.txt
-      fi
     fi
     
     # Clean up temporary files in S3
     s5cmd --profile $TARGET_AWS_PROFILE --endpoint-url $TARGET_ENDPOINT_URL \
       rm $TARGET_BUCKET/${TEMP_S3_PREFIX}/*
+      
+    # Clean up RAM disk temp files to free memory
+    echo "Cleaning up RAM disk files..."
+    rm -rf $TEMP_DIR/*
   fi
