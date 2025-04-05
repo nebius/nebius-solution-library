@@ -105,14 +105,14 @@ run: |
   fi
   
   # Wait for head node to finish distribution
-  sleep 10
+  sleep 2
   
   # Each node downloads its assigned object list
   echo "Node ${NODE_RANK}: Downloading assigned object list"
   
   # Try multiple times with exponential backoff
   retry_count=0
-  max_retries=5
+  max_retries=3
   success=false
   
   while [ $retry_count -lt $max_retries ] && [ "$success" = false ]; do
@@ -211,7 +211,7 @@ run: |
           echo "Worker $worker has completed"
           break
         fi
-        sleep 10
+        sleep 2
       done
     done
     
