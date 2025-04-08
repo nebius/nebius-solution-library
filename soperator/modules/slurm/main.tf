@@ -320,6 +320,8 @@ resource "helm_release" "slurm_cluster" {
       slurm_raw_config  = var.slurm_partition_raw_config
     }
 
+    slurm_worker_features = var.slurm_worker_features
+
     k8s_node_filters = local.node_filters
 
     jail_submounts = [for submount in var.filestores.jail_submounts : {

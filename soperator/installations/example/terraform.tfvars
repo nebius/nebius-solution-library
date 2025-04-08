@@ -142,8 +142,31 @@ slurm_partition_config_type = "default"
 # By default, empty list.
 # ---
 # slurm_partition_raw_config = [
-#   "PartitionName=low_priority Nodes=worker-[0-7] Default=YES MaxTime=INFINITE State=UP PriorityTier=1",
-#   "PartitionName=high_priority Nodes=worker-[8-15] Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
+#   "PartitionName=low_priority Nodes=low_priority Default=YES MaxTime=INFINITE State=UP PriorityTier=1",
+#   "PartitionName=high_priority Nodes=low_priority Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
+# ]
+# If Nodes present, they must not contain node names: use only nodeset values, "ALL" or "".
+# Specifying specific nodes is not supported since Dynamic Nodes are used.
+# For more details, see https://slurm.schedmd.com/dynamic_nodes.html#partitions.
+
+# List of features to be enabled on worker nodes. Each feature object has:
+# - name: (Required) The name of the feature.
+# - hostlist_expr: (Required) A Slurm hostlist expression, e.g. "workers-[0-2,10],workers-[3-5]".
+#   Soperator will run these workers with the feature name.
+# - nodeset_name: (Optional) The Slurm nodeset name to be provisioned using this feature.
+#   This nodeset may be used in conjunction with partitions.
+#
+# slurm_worker_features = [
+#   {
+#     name = "low_priority"
+#     hostlist_expr = "worker-[0-0]"
+#     nodeset_name = "low_priority"
+#   },
+#   {
+#     name = "low_priority"
+#     hostlist_expr = "worker-1"
+#     nodeset_name = "high_priority"
+#   }
 # ]
 
 #----------------------------------------------------------------------------------------------------------------------#
