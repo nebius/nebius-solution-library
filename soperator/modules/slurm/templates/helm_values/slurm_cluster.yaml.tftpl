@@ -12,6 +12,13 @@ partitionConfiguration:
     %{~ endfor ~}
   %{~ endif ~}
 
+workerFeatures:
+  %{~ for feature in slurm_worker_features ~}
+  - name: ${feature.name}
+    hostlistExpr: "${feature.hostlist_expr}"
+    nodesetName: "${feature.nodeset_name}"
+  %{~ endfor ~}
+
 k8sNodeFilters:
   - name: ${k8s_node_filters.system.name}
     affinity:

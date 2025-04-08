@@ -39,6 +39,22 @@ variable "slurm_partition_raw_config" {
   default     = []
 }
 
+# endregion PartitionConfiguration
+
+# region WorkerFeatures
+
+variable "slurm_worker_features" {
+  description = "List of features to be enabled on worker nodes."
+  type        = list(object({
+    name         = string
+    hostlist_expr = string
+    nodeset_name  = optional(string)
+  }))
+  default     = []
+}
+
+# endregion WorkerFeatures
+
 # region Nodes
 
 variable "node_count" {
@@ -49,6 +65,8 @@ variable "node_count" {
     login      = number
   })
 }
+
+# endregion Nodes
 
 # region Resources
 
