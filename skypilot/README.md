@@ -82,6 +82,42 @@ $ sky launch -c test-cloud-bucket examples/test-cloud-bucket.yaml
 (task, pid=3791) -rw-r--r-- 1 ubuntu ubuntu 32212254720 Mar 10 14:25 file_9
 ```
 
+### S3 Migration
+
+Run a distributed data migration job from AWS S3 to Nebius Object Storage:
+
+```bash
+export SOURCE_AWS_PROFILE=... # e.g. default
+export SOURCE_ENDPOINT_URL=... # e.g. https://s3.us-east-1.amazonaws.com
+export SOURCE_BUCKET= # e.g. s3://source-bucket
+export TARGET_AWS_PROFILE=nebius
+export TARGET_ENDPOINT_URL=https://storage.eu-north1.nebius.cloud:443 # change to your region
+export TARGET_BUCKET= # e.g. s3://target-bucket
+
+# First launch
+sky launch -c s3-migration examples/s3_migration.yaml \
+  --env SOURCE_AWS_PROFILE \
+  --env SOURCE_ENDPOINT_URL \
+  --env SOURCE_BUCKET \
+  --env TARGET_AWS_PROFILE \
+  --env TARGET_ENDPOINT_URL \
+  --env TARGET_BUCKET
+
+# Or rerun in case of failure
+sky exec s3-migration examples/s3_migration.yaml \
+  --env SOURCE_AWS_PROFILE \
+  --env SOURCE_ENDPOINT_URL \
+  --env SOURCE_BUCKET \
+  --env TARGET_AWS_PROFILE \
+  --env TARGET_ENDPOINT_URL \
+  --env TARGET_BUCKET
+```
+
+This example launches a distributed data migration task across multiple nodes:
+- SkyPilot for provisioning multiple nodes
+- `s5cmd` parallel downloading
+- Performs post-transfer verification
+- Supports different AWS profiles for source and target buckets (by mounting `~/.aws` directory from the local machine) 
 
 ### AI Training
 
