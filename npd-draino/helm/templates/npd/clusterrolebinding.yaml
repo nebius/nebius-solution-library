@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nebius-npd-binding
+subjects:
+- kind: ServiceAccount
+  name: nebius-npd-sa
+  namespace: {{ .Values.global.namespace }}
+roleRef:
+  kind: ClusterRole
+  name: nebius-npd-role
+  apiGroup: rbac.authorization.k8s.io 

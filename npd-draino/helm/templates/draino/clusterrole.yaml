@@ -1,0 +1,30 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: draino
+  labels:
+    component: draino
+rules:
+- apiGroups: ['']
+  resources: [events]
+  verbs: [create, patch, update]
+- apiGroups: ['']
+  resources: [nodes]
+  verbs: [get, watch, list, update, patch]
+- apiGroups: ['']
+  resources: [nodes/status]
+  verbs: [patch, watch, list, update, patch]
+- apiGroups: ['']
+  resources: [endpoints]
+  verbs: [get, watch, list, create, patch, update]
+- apiGroups: ['']
+  resources: [pods]
+  verbs: [get, watch, list]
+- apiGroups: ['']
+  resources: [pods/eviction]
+  verbs: [create]
+- apiGroups:
+    - extensions
+    - apps
+  resources: [daemonsets]
+  verbs: [get, watch, list] 

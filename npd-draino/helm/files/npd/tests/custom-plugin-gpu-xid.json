@@ -1,0 +1,34 @@
+{
+  "plugin": "custom",
+  "pluginConfig": {
+    "invoke_interval": "60s",
+    "timeout": "35s",
+    "max_output_length": 80,
+    "concurrency": 3,
+    "enable_message_change_based_condition_update": false
+  },
+  "source": "custom-plugin-gpu-xid",
+  "metricsReporting": false,
+  "conditions": [
+    {
+      "type": "GpuXid",
+      "reason": "GpuXidGood",
+      "message": "GPU XID is ok"
+    }
+  ],
+  "rules": [
+    {
+      "type": "temporary",
+      "reason": "GpuXidBad",
+      "path": "./config/plugin/check_gpu_xid.sh",
+      "timeout": "20s"
+    },
+    {
+      "type": "permanent",
+      "condition": "GpuXid",
+      "reason": "GpuXidBad",
+      "path": "./config/plugin/check_gpu_xid.sh",
+      "timeout": "20s"
+    }
+  ]
+} 

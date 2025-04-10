@@ -1,0 +1,34 @@
+{
+  "plugin": "custom",
+  "pluginConfig": {
+    "invoke_interval": "60s",
+    "timeout": "30s",
+    "max_output_length": 80,
+    "concurrency": 3,
+    "enable_message_change_based_condition_update": false
+  },
+  "source": "custom-plugin-gpu-throttle",
+  "metricsReporting": false,
+  "conditions": [
+    {
+      "type": "GpuThrottle",
+      "reason": "GpuThrottleNo",
+      "message": "No GPU throttling"
+    }
+  ],
+  "rules": [
+    {
+      "type": "temporary",
+      "reason": "GpuThrottleYes",
+      "path": "./config/plugin/check_gpu_throttle.sh",
+      "timeout": "20s"
+    },
+    {
+      "type": "permanent",
+      "condition": "GpuThrottle",
+      "reason": "GpuThrottleYes",
+      "path": "./config/plugin/check_gpu_throttle.sh",
+      "timeout": "20s"
+    }
+  ]
+} 

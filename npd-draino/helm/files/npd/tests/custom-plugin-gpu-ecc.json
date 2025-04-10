@@ -1,0 +1,34 @@
+{
+  "plugin": "custom",
+  "pluginConfig": {
+    "invoke_interval": "60s",
+    "timeout": "35s",
+    "max_output_length": 80,
+    "concurrency": 3,
+    "enable_message_change_based_condition_update": false
+  },
+  "source": "custom-plugin-gpu-ecc",
+  "metricsReporting": false,
+  "conditions": [
+    {
+      "type": "GpuEcc",
+      "reason": "GpuEccGood",
+      "message": "GPU ECC is ok"
+    }
+  ],
+  "rules": [
+    {
+      "type": "temporary",
+      "reason": "GpuEccBad",
+      "path": "./config/plugin/check_gpu_ecc.sh",
+      "timeout": "25s"
+    },
+    {
+      "type": "permanent",
+      "condition": "GpuEcc",
+      "reason": "GpuEccBad",
+      "path": "./config/plugin/check_gpu_ecc.sh",
+      "timeout": "25s"
+    }
+  ]
+} 

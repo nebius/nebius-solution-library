@@ -1,0 +1,34 @@
+{
+  "plugin": "custom",
+  "pluginConfig": {
+    "invoke_interval": "180s",
+    "timeout": "45s",
+    "max_output_length": 80,
+    "concurrency": 3,
+    "enable_message_change_based_condition_update": false
+  },
+  "source": "custom-plugin-gpu-nvlink",
+  "metricsReporting": false,
+  "conditions": [
+    {
+      "type": "GpuNvlink",
+      "reason": "GpuNvlinkGood",
+      "message": "GPU NVlink is ok"
+    }
+  ],
+  "rules": [
+    {
+      "type": "temporary",
+      "reason": "GpuNvlinkBad",
+      "path": "./config/plugin/check_gpu_nvlink.sh",
+      "timeout": "35s"
+    },
+    {
+      "type": "permanent",
+      "condition": "GpuNvlink",
+      "reason": "GpuNvlinkBad",
+      "path": "./config/plugin/check_gpu_nvlink.sh",
+      "timeout": "35s"
+    }
+  ]
+} 

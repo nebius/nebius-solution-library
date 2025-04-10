@@ -1,0 +1,34 @@
+{
+  "plugin": "custom",
+  "pluginConfig": {
+    "invoke_interval": "60s",
+    "timeout": "35s",
+    "max_output_length": 80,
+    "concurrency": 3,
+    "enable_message_change_based_condition_update": false
+  },
+  "source": "custom-plugin-ib",
+  "metricsReporting": false,
+  "conditions": [
+    {
+      "type": "IbDev",
+      "reason": "IbDevGood",
+      "message": "IB device is ok"
+    }
+  ],
+  "rules": [
+    {
+      "type": "temporary",
+      "reason": "IbDevBad",
+      "path": "./config/plugin/check_ib.sh",
+      "timeout": "20s"
+    },
+    {
+      "type": "permanent",
+      "condition": "IbDev",
+      "reason": "IbDevBad",
+      "path": "./config/plugin/check_ib.sh",
+      "timeout": "20s"
+    }
+  ]
+} 

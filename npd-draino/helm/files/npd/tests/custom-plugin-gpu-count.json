@@ -1,0 +1,34 @@
+{
+  "plugin": "custom",
+  "pluginConfig": {
+    "invoke_interval": "60s",
+    "timeout": "20s",
+    "max_output_length": 80,
+    "concurrency": 3,
+    "enable_message_change_based_condition_update": false
+  },
+  "source": "custom-plugin-gpu-count",
+  "metricsReporting": false,
+  "conditions": [
+    {
+      "type": "GpuCount",
+      "reason": "GpuCountGood",
+      "message": "GPU count is correct"
+    }
+  ],
+  "rules": [
+    {
+      "type": "temporary",
+      "reason": "GpuCountBad",
+      "path": "./config/plugin/check_gpu_count.sh",
+      "timeout": "10s"
+    },
+    {
+      "type": "permanent",
+      "condition": "GpuCount",
+      "reason": "GpuCountBad",
+      "path": "./config/plugin/check_gpu_count.sh",
+      "timeout": "10s"
+    }
+  ]
+} 

@@ -1,0 +1,50 @@
+global:
+  namespace: kube-system
+
+kernel:
+  enabled: true
+docker:
+  enabled: true
+gpu_count:
+  enabled: true
+gpu_xid:
+  enabled: true
+gpu_ecc:
+  enabled: true
+gpu_nvlink:
+  enabled: true
+gpu_ib:
+  enabled: true
+gpu_throttle:
+  enabled: true
+
+draino:
+  image: planetlabs/draino:latest
+  replicas: 1
+  nodeLabel: "nebius.com/gpu=true"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 200Mi
+    limits:
+      cpu: 200m
+      memory: 400Mi
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: nebius.com/gpu
+            operator: DoesNotExist
+
+npd:
+  image: registry.k8s.io/node-problem-detector/node-problem-detector:v0.8.20
+  resources:
+    requests:
+      cpu: 100m
+      memory: 200Mi
+    limits:
+      cpu: 200m
+      memory: 400Mi
+  nodeSelector:
+    nebius.com/gpu: "true" 

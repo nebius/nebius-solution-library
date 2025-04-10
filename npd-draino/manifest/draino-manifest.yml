@@ -1,0 +1,92 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels: {component: draino}
+  name: draino-sa
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    component: draino
+  name: draino
+rules:
+- apiGroups: ['']
+  resources: [events]
+  verbs: [create, patch, update]
+- apiGroups: ['']
+  resources: [nodes]
+  verbs: [get, watch, list, update, patch]
+- apiGroups: ['']
+  resources: [nodes/status]
+  verbs: [patch, watch, list, update, patch]
+- apiGroups: ['']
+  resources: [endpoints]
+  verbs: [get,watch, list, create, patch, update]
+- apiGroups: ['']
+  resources: [pods]
+  verbs: [get, watch, list]
+- apiGroups: ['']
+  resources: [pods/eviction]
+  verbs: [create]
+- apiGroups:
+    - extensions
+    - apps
+  resources: [daemonsets]
+  verbs: [get, watch, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels: {component: draino}
+  name: draino
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: draino}
+subjects:
+- {kind: ServiceAccount, name: draino-sa, namespace: kube-system}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels: {component: draino}
+  name: draino
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {component: draino}
+  template:
+    metadata:
+      labels: {component: draino}
+      name: draino
+      namespace: kube-system
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nebius.com/gpu
+                operator: DoesNotExist
+      containers:
+      - name: draino
+        image: planetlabs/draino:latest
+        livenessProbe:
+          httpGet: {path: /healthz, port: 10002}
+          initialDelaySeconds: 30
+        command:
+        - /draino
+        - --evict-emptydir-pods
+        - --evict-daemonset-pods
+        - --evict-unreplicated-pods
+        - --node-label=nebius.com/gpu=true
+        - GpuCount
+        - GpuXid
+        - GpuEcc
+        - GpuNvlink
+        - GpuIb
+        - GpuThrottle
+        # --dry-run to test without actual draining
+        # --debug
+      serviceAccountName: draino-sa

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: nebius-npd-draino
+description: A Helm chart for Nebius NPD and Draino
+type: application
+version: 0.1.1
+appVersion: "1.0.1"

@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: draino
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    component: draino
+spec:
+  replicas: {{ .Values.draino.replicas }}
+  selector:
+    matchLabels:
+      component: draino
+  template:
+    metadata:
+      labels:
+        component: draino
+    spec:
+      serviceAccountName: nebius-draino-sa
+      {{- with .Values.draino.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: draino
+        image: {{ .Values.draino.image }}
+        resources:
+          requests:
+            cpu: {{ .Values.draino.resources.requests.cpu }}
+            memory: {{ .Values.draino.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.draino.resources.limits.cpu }}
+            memory: {{ .Values.draino.resources.limits.memory }}
+        command:
+        - /draino
+        - --evict-emptydir-pods
+        - --evict-daemonset-pods
+        - --evict-unreplicated-pods
+        - --node-label={{ .Values.draino.nodeLabel }}
+        {{- if .Values.gpu_count.enabled }}
+        - GpuCount
+        {{- end }}
+        {{- if .Values.gpu_xid.enabled }}
+        - GpuXid
+        {{- end }}
+        {{- if .Values.gpu_ecc.enabled }}
+        - GpuEcc
+        {{- end }}
+        {{- if .Values.gpu_nvlink.enabled }}
+        - GpuNvlink
+        {{- end }}
+        {{- if .Values.gpu_ib.enabled }}
+        - GpuIb
+        {{- end }}
+        {{- if .Values.gpu_throttle.enabled }}
+        - GpuThrottle
+        {{- end }} 

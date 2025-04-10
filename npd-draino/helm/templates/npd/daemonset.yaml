@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nebius-npd
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: node-problem-detector
+spec:
+  selector:
+    matchLabels:
+      app: node-problem-detector
+  template:
+    metadata:
+      labels:
+        app: node-problem-detector
+    spec:
+      serviceAccountName: nebius-npd-sa
+      containers:
+      - name: node-problem-detector
+        image: {{ .Values.npd.image }}
+        imagePullPolicy: IfNotPresent
+        command:
+        - /node-problem-detector
+        - --logtostderr
+        - --system-log-monitors={{- include "npd.systemLogMonitors" . }}
+        - --config.custom-plugin-monitor={{- include "npd.customPluginMonitors" . }}
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: log
+          mountPath: /var/log
+          readOnly: true
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: nvidia-bin
+          mountPath: /usr/bin/nvidia-smi
+          readOnly: true
+        resources:
+          requests:
+            cpu: {{ .Values.npd.resources.requests.cpu }}
+            memory: {{ .Values.npd.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.npd.resources.limits.cpu }}
+            memory: {{ .Values.npd.resources.limits.memory }}
+            nvidia.com/gpu: 1 # To allow access to nvidia-smi
+      volumes:
+      - name: log
+        hostPath:
+          path: /var/log
+      - name: nvidia-bin
+        hostPath:
+          path: /usr/bin/nvidia-smi
+      - name: config
+        configMap:
+          name: nebius-npd-config
+          defaultMode: 0777
+          items:
+          {{- if .Values.kernel.enabled }}
+          - key: kernel-monitor.json
+            path: kernel-monitor.json
+          {{- end }}
+          {{- if .Values.docker.enabled }}
+          - key: docker-monitor.json
+            path: docker-monitor.json
+          {{- end }}
+          {{- if .Values.gpu_count.enabled }}
+          - key: custom-plugin-gpu-count.json
+            path: custom-plugin-gpu-count.json
+          - key: check_gpu_count.sh
+            path: plugin/check_gpu_count.sh
+          {{- end }}
+          {{- if .Values.gpu_nvlink.enabled }}
+          - key: custom-plugin-gpu-nvlink.json
+            path: custom-plugin-gpu-nvlink.json
+          - key: check_gpu_nvlink.sh
+            path: plugin/check_gpu_nvlink.sh
+          {{- end }}
+          {{- if .Values.gpu_xid.enabled }}
+          - key: custom-plugin-gpu-xid.json
+            path: custom-plugin-gpu-xid.json
+          - key: check_gpu_xid.sh
+            path: plugin/check_gpu_xid.sh
+          {{- end }}
+          {{- if .Values.gpu_ecc.enabled }}
+          - key: custom-plugin-gpu-ecc.json
+            path: custom-plugin-gpu-ecc.json
+          - key: check_gpu_ecc.sh
+            path: plugin/check_gpu_ecc.sh
+          {{- end }}
+          {{- if .Values.gpu_ib.enabled }}
+          - key: custom-plugin-ib.json
+            path: custom-plugin-ib.json
+          - key: check_ib.sh
+            path: plugin/check_ib.sh
+          {{- end }}
+          {{- if .Values.gpu_throttle.enabled }}
+          - key: custom-plugin-gpu-throttle.json
+            path: custom-plugin-gpu-throttle.json
+          - key: check_gpu_throttle.sh
+            path: plugin/check_gpu_throttle.sh
+          {{- end }}
+      serviceAccountName: nebius-npd-sa
+      nodeSelector:
+        {{- range $key, $value := .Values.npd.nodeSelector }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }} 
