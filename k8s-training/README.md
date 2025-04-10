@@ -34,7 +34,7 @@
 
 3. [Configure Nebius CLI](https://docs.nebius.com/cli/configure/) (it is recommended to use [service account](https://docs.nebius.com/iam/service-accounts/manage/) for configuration)
 
-4. Install JQuery:
+4. Install JQ:
    - MacOS:
      ```bash
      brew install jq
