@@ -19,7 +19,7 @@ users = [
   }
 ]
 
-public_ip = true
+public_ip = false
 instance_count = 1
 
 shared_filesystem_id = ""

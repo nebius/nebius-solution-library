@@ -10,7 +10,7 @@ resource "nebius_compute_v1_instance" "gluster-fs-instance" {
       ip_address : {
         allocation_id = nebius_vpc_v1alpha1_allocation.glusterfs[count.index].id
       }
-      public_ip_address : count.index == 0 ? {} : null
+      public_ip_address : (var.public_ip && count.index == 0) ? {} : null
     }
   ]
   resources = {
