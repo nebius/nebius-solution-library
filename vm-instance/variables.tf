@@ -96,6 +96,12 @@ variable "public_ip" {
   description = "attach a public ip to the vm if true"
 }
 
+variable "create_public_ip_for_all_instances" {
+  type        = bool
+  default     = false
+  description = "attach a public ip to all vms if true"
+}
+
 variable "mount_bucket" {
   type        = string
   description = "name of a bucket that should be mounted into fs"

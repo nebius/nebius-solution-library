@@ -36,6 +36,11 @@ terraform apply
 
 ### Example 1: Basic Configuration with One User
 
+The module is configured to enable public IP only for the first instance created by it.
+*Overrider this behaviour by setting `create_public_ip_for_all_instances`to `true` in `terraform.tfvars`
+*Consider setting the value of public_ip to False if you do not require public IP addresses. 
+*Consider using [Bastion](https://github.com/nebius/nebius-solution-library/tree/main/bastion) solution if you need to manage a set of virtual machines in the same network.
+
 ```
 preset = "16vcpu-64gb"
 platform = "cpu-e2"
