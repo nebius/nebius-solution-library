@@ -60,6 +60,9 @@ echo "Retrieving service account."
 SA=$(nebius --profile "${self.triggers_replace.o11y_profile}" iam service-account get-by-name --name "${self.triggers_replace.service_account_name}" --parent-id "${self.triggers_replace.o11y_iam_project_id}" | yq .metadata.id)
 echo "Deleting service account..."
 nebius --profile "${self.triggers_replace.o11y_profile}" iam service-account delete --id "$SA"
+echo "Deleting static key..."
+STATIC_KEY=$(nebius --profile "${self.triggers_replace.o11y_profile}" iam static-key get-by-name --name "${self.triggers_replace.service_account_name}" --parent-id "${self.triggers_replace.o11y_iam_project_id}" | yq .metadata.id)
+nebius --profile "${self.triggers_replace.o11y_profile}" iam static-key delete --id $STATIC_KEY
 EOT
   }
 }
