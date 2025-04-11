@@ -19,6 +19,16 @@ workerFeatures:
     nodesetName: "${feature.nodeset_name}"
   %{~ endfor ~}
 
+%{~ if slurm_health_check_config != null ~}
+healthCheckConfig:
+  healthCheckInterval: ${slurm_health_check_config.health_check_interval}
+  healthCheckProgram: ${slurm_health_check_config.health_check_program}
+  healthCheckNodeState:
+  %{~ for state in slurm_health_check_config.health_check_node_state ~}
+    - state: ${state.state}
+  %{~ endfor ~}
+%{~ endif ~}
+
 k8sNodeFilters:
   - name: ${k8s_node_filters.system.name}
     affinity:

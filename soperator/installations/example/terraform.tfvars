@@ -170,6 +170,24 @@ slurm_partition_config_type = "default"
 #   }
 # ]
 
+# Health check config:
+# - health_check_interval: (Required) Interval for health check run in seconds.
+# - health_check_program: (Required) Program for health check run.
+# - health_check_node_state: (Required) What node states should execute the program.
+#
+# slurm_health_check_config = {
+#   health_check_interval: 30,
+#   health_check_program: "/usr/bin/gpu_healthcheck.sh",
+#   health_check_node_state: [
+#     {
+#       state: "ANY"
+#     },
+#     {
+#       state: "CYCLE"
+#     }
+#   ]
+# }
+
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                                         Nodes                                                        #

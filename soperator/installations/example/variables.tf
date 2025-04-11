@@ -362,6 +362,23 @@ variable "slurm_worker_features" {
 
 # endregion WorkerFeatures
 
+# region HealthCheckConfig
+
+variable "slurm_health_check_config" {
+  description = "Health check configuration."
+  type = object({
+    health_check_interval = number
+    health_check_program = string
+    health_check_node_state = list(object({
+      state = string
+    }))
+  })
+  nullable = true
+  default = null
+}
+
+# endregion HealthCheckConfig
+
 # region Nodes
 
 variable "slurm_nodeset_system" {
