@@ -250,7 +250,7 @@ variable "nfs" {
     enabled        = false
     size_gibibytes = 93
     resource = {
-      platform = "cpu-e2"
+      platform = "cpu-d3"
       preset   = "32vcpu-128gb"
     }
     public_ip = false
@@ -384,7 +384,7 @@ variable "slurm_nodeset_system" {
     min_size = 3
     max_size = 9
     resource = {
-      platform = "cpu-e2"
+      platform = "cpu-d3"
       preset   = "16vcpu-64gb"
     }
     boot_disk = {
@@ -413,7 +413,7 @@ variable "slurm_nodeset_controller" {
   default = {
     size = 1
     resource = {
-      platform = "cpu-e2"
+      platform = "cpu-d3"
       preset   = "16vcpu-64gb"
     }
     boot_disk = {
@@ -449,7 +449,7 @@ variable "slurm_nodeset_workers" {
     nodes_per_nodegroup     = 1
     max_unavailable_percent = 50
     resource = {
-      platform = "cpu-e2"
+      platform = "cpu-d3"
       preset   = "16vcpu-64gb"
     }
     boot_disk = {
@@ -491,7 +491,7 @@ variable "slurm_nodeset_login" {
   default = {
     size = 1
     resource = {
-      platform = "cpu-e2"
+      platform = "cpu-d3"
       preset   = "16vcpu-64gb"
     }
     boot_disk = {
