@@ -308,19 +308,6 @@ slurm_exporter_enabled = true
 
 # endregion Exporter
 
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                       REST API                                                       #
-#----------------------------------------------------------------------------------------------------------------------#
-# region REST API
-
-# Whether to enable Slurm REST API.
-# If disabled, node auto-replacement in case of maintenance events DOESN'T WORK.
-# By default, true.
-# ---
-slurm_rest_enabled = true
-
-# endregion REST API
-
 # endregion Nodes
 
 #----------------------------------------------------------------------------------------------------------------------#
