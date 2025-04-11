@@ -108,7 +108,7 @@ nfs = {
   size_gibibytes = 3720
   mount_path     = "/home"
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "32vcpu-128gb"
   }
   public_ip = false
@@ -203,7 +203,7 @@ slurm_nodeset_system = {
   min_size = 3
   max_size = 9
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "8vcpu-32gb"
   }
   boot_disk = {
@@ -218,7 +218,7 @@ slurm_nodeset_system = {
 slurm_nodeset_controller = {
   size = 2
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "4vcpu-16gb"
   }
   boot_disk = {
@@ -257,7 +257,7 @@ slurm_nodeset_workers = [{
 slurm_nodeset_login = {
   size = 2
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "32vcpu-128gb"
   }
   boot_disk = {
@@ -273,7 +273,7 @@ slurm_nodeset_login = {
 # ---
 slurm_nodeset_accounting = {
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "8vcpu-32gb"
   }
   boot_disk = {
