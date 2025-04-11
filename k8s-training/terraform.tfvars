@@ -13,7 +13,8 @@ gpu_nodes_count = 1 # Number of GPU nodes
 # gpu_nodes_platform =                 # GPU nodes platform
 # gpu_nodes_preset   =                 # GPU nodes preset
 # infiniband_fabric  =                 # Infiniband fabric name.
-enable_k8s_node_group_sa = true
+gpu_nodes_driverfull_image = true
+enable_k8s_node_group_sa   = true
 
 # MIG configuration
 # mig_strategy =        # If set, possible values include 'single', 'mixed', 'none'
