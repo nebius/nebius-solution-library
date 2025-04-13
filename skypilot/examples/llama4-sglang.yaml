@@ -1,0 +1,28 @@
+# To launch this job, run:
+# export HF_TOKEN=<your_huggingface_token>
+# sky launch llama4-sglang.yaml -c llama4 --env HF_TOKEN -y
+
+resources:
+  accelerators: H100:8
+  region: eu-north1
+  cloud: nebius
+  disk_size: 512
+  ports: 8000
+
+num_nodes: 1
+
+envs:
+  MODEL_NAME: meta-llama/Llama-4-Scout-17B-16E-Instruct
+  HF_TOKEN: 
+
+setup: |
+  uv pip install "sglang[all]>=0.4.5" --find-links https://flashinfer.ai/whl/cu124/torch2.5/flashinfer-python
+
+run: |
+  python -m sglang.launch_server \
+  --model-path $MODEL_NAME \
+  --tp-size $SKYPILOT_NUM_GPUS_PER_NODE \
+  --context-length 1000000 \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --trust-remote-code 

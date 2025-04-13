@@ -149,6 +149,74 @@ sky launch -c ib-test examples/infiniband-test.yaml
 
 This example launches 2 nodes and tests the Infiniband bandwidth between them using the `ib_send_bw` utility.
 
+### Llama 4 Inference with SGLang
+
+Run [Llama 4](https://ai.meta.com/blog/llama-4-multimodal-intelligence/) inference server using SGLang:
+
+```bash
+# Set your HuggingFace token
+export HF_TOKEN=<your_huggingface_token>
+
+# Launch the inference server
+sky launch -c llama4 examples/llama4-sglang.yaml --env HF_TOKEN -y
+```
+
+This example launches a Llama 4 inference server:
+- Uses 8xH100 GPUs with tensor parallelism for efficient inference
+- Supports massive context length: 8xH100 supports 1M tokens, 8xH200 supports up to 2.5M tokens (see https://docs.sglang.ai/references/llama4.html)
+- Exposes an API server on port 8000 for sending inference requests
+
+After launching, you can send requests to the inference API:
+
+```bash
+export ENDPOINT=$(sky status --endpoint 8000 llama4)
+curl http://$ENDPOINT/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Tell me about Nebius AI"
+      }
+    ]
+  }' | jq .
+> {
+  "id": "a71c00a45ede482cb049d5ecbe6c3143",
+  "object": "chat.completion",
+  "created": 1744567791,
+  "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Nebius AI! After conducting research, here's what I found:\n\n**Overview**\nNebius AI is a relatively new player in the artificial intelligence (AI) 
+        ...
+```
+
+```python
+import os
+import openai
+
+ENDPOINT = os.getenv("ENDPOINT")
+client = openai.Client(base_url=f"http://{ENDPOINT}/v1", api_key="None")
+
+response = client.chat.completions.create(
+    model="meta-llama/Llama-4-Scout-17B-16E-Instruct",
+    messages=[
+        {"role": "user", "content": "Tell me about Nebius AI"},
+    ],
+    temperature=0
+)
+
+print(response.choices[0].message.content)
+> Nebius AI! After conducting research, I found that Nebius AI is a relatively new player in the artificial intelligence (AI) landscape. 
+...
+```
+
+The server supports various parameters like temperature, top_p, max_tokens, etc., for controlling the generation.
+
 ### Managing Clusters
 
 View all your clusters:
