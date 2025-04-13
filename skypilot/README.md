@@ -151,7 +151,7 @@ This example launches 2 nodes and tests the Infiniband bandwidth between them us
 
 ### Llama 4 Inference with SGLang
 
-Run [Llama 4](https://ai.meta.com/blog/llama-4-multimodal-intelligence/) inference server using SGLang:
+Run [Llama 4](https://ai.meta.com/blog/llama-4-multimodal-intelligence/) inference server using [SGLang](https://docs.sglang.ai/index.html):
 
 ```bash
 # Set your HuggingFace token
