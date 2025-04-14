@@ -38,9 +38,6 @@ spec:
         - name: config
           mountPath: /config
           readOnly: true
-        - name: nvidia-bin
-          mountPath: /usr/bin/nvidia-smi
-          readOnly: true
         resources:
           requests:
             cpu: {{ .Values.npd.resources.requests.cpu }}
@@ -48,7 +45,6 @@ spec:
           limits:
             cpu: {{ .Values.npd.resources.limits.cpu }}
             memory: {{ .Values.npd.resources.limits.memory }}
-            nvidia.com/gpu: 1 # To allow access to nvidia-smi
       volumes:
       - name: log
         hostPath:

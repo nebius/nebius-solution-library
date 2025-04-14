@@ -21,7 +21,7 @@ spec:
         operator: Exists
       containers:
       - name: node-problem-detector
-        image: registry.k8s.io/node-problem-detector/node-problem-detector:v0.8.20
+        image: registry.gitlab.com/jadnov/nebius/npd:latest
         imagePullPolicy: IfNotPresent
         command:
         - /node-problem-detector
@@ -42,9 +42,6 @@ spec:
         - name: config
           mountPath: /config
           readOnly: true
-        - name: nvidia-bin
-          mountPath: /usr/bin/nvidia-smi
-          readOnly: true
         resources:
           requests:
             cpu: 100m
@@ -52,7 +49,6 @@ spec:
           limits:
             cpu: 200m
             memory: 400Mi
-            nvidia.com/gpu: 1
       volumes:
       - name: log
         hostPath:
