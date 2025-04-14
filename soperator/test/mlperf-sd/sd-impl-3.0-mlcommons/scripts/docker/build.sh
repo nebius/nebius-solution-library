@@ -14,3 +14,9 @@ docker tag "${IMAGE_NAME}:${TAG}" "${REGISTRY}/${IMAGE_NAME}:${TAG}"
 
 echo 'Push image'
 docker push "${REGISTRY}/${IMAGE_NAME}:${TAG}"
+
+echo 'Tag image [latest]'
+docker tag "${IMAGE_NAME}:${TAG}" "${REGISTRY}/${IMAGE_NAME}:latest"
+
+echo 'Push image [latest]'
+docker push "${REGISTRY}/${IMAGE_NAME}:latest"
