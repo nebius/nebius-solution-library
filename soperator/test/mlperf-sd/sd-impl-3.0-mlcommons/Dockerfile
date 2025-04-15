@@ -12,5 +12,8 @@ RUN apt-get update && \
 # install LDM
 COPY . /diffusion
 RUN cd /diffusion && \
+    python -m pip install --upgrade pip && \
+    python -m pip uninstall --no-cache-dir -y opencv-python opencv-python-headless && \
+    rm -rf /usr/local/lib/python3.8/dist-packages/opencv-* /usr/local/lib/python3.8/dist-packages/cv2 && \
     python -m pip install --no-cache-dir -r requirements.txt && \
     rm -rf /root/.cache/pip
