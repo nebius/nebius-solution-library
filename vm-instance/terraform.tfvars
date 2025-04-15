@@ -20,6 +20,7 @@ users = [
 ]
 
 public_ip = true
+create_public_ip_for_all_instances = false
 instance_count = 1
 
 shared_filesystem_id = ""

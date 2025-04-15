@@ -26,7 +26,7 @@ resource "nebius_compute_v1_instance" "instance" {
       name              = "eth0"
       subnet_id         = var.subnet_id
       ip_address        = {}
-      public_ip_address = var.public_ip ? {} : null
+      public_ip_address = var.public_ip ? (var.create_public_ip_for_all_instances || count.index == 0 ? {} : null) : null
     }
   ]
 
