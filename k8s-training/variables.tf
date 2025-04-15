@@ -159,6 +159,12 @@ variable "gpu_nodes_platform" {
   default     = null
 }
 
+variable "gpu_nodes_driverfull_image" {
+  description = "Use driver full images for GPU node gropus. Disabled GPU-Operator."
+  type        = bool
+  default     = false
+}
+
 variable "gpu_nodes_preset" {
   description = "Configuration for GPU amount, CPU, and RAM for nodes in the GPU node group."
   type        = string

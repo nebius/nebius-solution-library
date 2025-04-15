@@ -9,6 +9,8 @@ module "network-operator" {
 }
 
 module "gpu-operator" {
+  count = var.gpu_nodes_driverfull_image ? 0 : 1
+
   depends_on = [
     module.network-operator
   ]
@@ -16,6 +18,14 @@ module "gpu-operator" {
   parent_id    = var.parent_id
   cluster_id   = nebius_mk8s_v1_cluster.k8s-cluster.id
   mig_strategy = var.mig_strategy
+}
+
+module "device-plugin" {
+  count = var.gpu_nodes_driverfull_image ? 1 : 0
+
+  source     = "../modules/device-plugin"
+  parent_id  = var.parent_id
+  cluster_id = nebius_mk8s_v1_cluster.k8s-cluster.id
 }
 
 module "o11y" {
