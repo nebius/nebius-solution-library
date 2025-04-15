@@ -109,7 +109,7 @@ sed -i -E \
 
 h2 'Container image...'
 sed -i -E \
-  -e "s|(CONTAINER_IMAGE:=)[^}]*|\1${NEBIUS_CR_ENDPOINT}#${NEBIUS_CR_REGISTRY}/sd-3.0-mlcommons|" \
+  -e "s|(CONTAINER_IMAGE:=)[^}]*|\1${NEBIUS_CR_ENDPOINT}#${NEBIUS_CR_REGISTRY}/sd-3.0-mlcommons:$(cat sd-impl-3.0-mlcommons/scripts/docker/VERSION)|" \
   ${SBATCH_RUNNER_PATH}
 
 h2 'Data dir...'
