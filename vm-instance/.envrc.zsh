@@ -314,15 +314,15 @@ fi
 
 aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
 aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-aws configure set region eu-north1
-aws configure set endpoint_url https://storage.eu-north1.nebius.cloud:443
+aws configure set region $NEBIUS_REGION
+aws configure set endpoint_url https://storage.$NEBIUS_REGION.nebius.cloud:443
 mkdir -p ./.aws
 echo "[default]" > ./.aws/credentials
 echo "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> ./.aws/credentials
 echo "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> ./.aws/credentials
 echo "[default]" > ./.aws/config
-echo "region = eu-north1" >> ./.aws/config
-echo "endpoint_url = https://storage.eu-north1.nebius.cloud:443" >> ./.aws/config
+echo "region = $NEBIUS_REGION" >> ./.aws/config
+echo "endpoint_url = https://storage.$NEBIUS_REGION.nebius.cloud:443" >> ./.aws/config
 export TF_VAR_aws_access_key_id=$AWS_ACCESS_KEY_ID
 export TF_VAR_aws_secret_access_key=$AWS_SECRET_ACCESS_KEY
 
@@ -337,9 +337,9 @@ terraform {
     key    = "${PRODUCT}.tfstate"
 
     endpoints = {
-      s3 = "https://storage.eu-north1.nebius.cloud:443"
+      s3 = "https://storage.$NEBIUS_REGION.nebius.cloud:443"
     }
-    region = "eu-north1"
+    region = "$NEBIUS_REGION"
 
     skip_region_validation      = true
     skip_credentials_validation = true
