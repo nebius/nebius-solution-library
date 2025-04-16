@@ -18,6 +18,13 @@ resource "terraform_data" "o11y_static_key_secret" {
     command     = <<EOT
 unset NEBIUS_IAM_TOKEN
 
+# Ensuring that profile exists
+if ! nebius profile list | grep -Fxq ${self.triggers_replace.o11y_profile}; then
+  CURRENT_PROFILE=$(nebius profile current)
+  nebius profile create --endpoint api.eu.nebius.cloud --federation-endpoint auth.eu.nebius.com --parent-id ${self.triggers_replace.o11y_iam_tenant_id} ${self.triggers_replace.o11y_profile}
+  nebius profile activate $CURRENT_PROFILE
+fi
+
 # Creating service account and adding it to the iam group.
 echo "Creating service account..."
 SA=$(nebius --profile ${self.triggers_replace.o11y_profile} iam service-account create --name "${self.triggers_replace.service_account_name}" --parent-id "${self.triggers_replace.o11y_iam_project_id}" | yq .metadata.id)
