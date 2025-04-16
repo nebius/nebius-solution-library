@@ -113,6 +113,10 @@ locals {
         cpu    = 1
       }
     }
+    kruise_daemon = {
+      cpu = 0.05
+      memory = 0.128
+    }
   }
 
   slurm_node_extra = "\\\"{ \\\\\\\"monitoring\\\\\\\": \\\\\\\"https://console.eu.nebius.com/${var.iam_project_id}/compute/instances/$INSTANCE_ID/monitoring\\\\\\\" }\\\""
