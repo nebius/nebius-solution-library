@@ -1,19 +1,26 @@
-global:
-  victoriaLogs:
-    server:
-      fullnameOverride: ${vm_logs_service_name}
+resources:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: vm-logs
+    data:
+      values.yaml: |
+        global:
+          victoriaLogs:
+            server:
+              fullnameOverride: ${vm_logs_service_name}
 
-server:
-  persistentVolume:
-  %{~ if create_pvcs ~}
-    enabled: true
-  %{~ else ~}
-    enabled: false
-  %{~ endif ~}
-    size: ${resources.size}
-  resources:
-    limits:
-      memory: "${resources.memory}"
-    requests:
-      cpu: "${resources.cpu}"
-      memory: "${resources.memory}"
+        server:
+          persistentVolume:
+          %{~ if create_pvcs ~}
+            enabled: true
+          %{~ else ~}
+            enabled: false
+          %{~ endif ~}
+            size: ${resources.size}
+          resources:
+            limits:
+              memory: "${resources.memory}"
+            requests:
+              cpu: "${resources.cpu}"
+              memory: "${resources.memory}"
