@@ -108,7 +108,7 @@ nfs = {
   size_gibibytes = 3720
   mount_path     = "/home"
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "32vcpu-128gb"
   }
 }
@@ -202,7 +202,7 @@ slurm_nodeset_system = {
   min_size = 3
   max_size = 9
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "8vcpu-32gb"
   }
   boot_disk = {
@@ -217,7 +217,7 @@ slurm_nodeset_system = {
 slurm_nodeset_controller = {
   size = 2
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "4vcpu-16gb"
   }
   boot_disk = {
@@ -256,7 +256,7 @@ slurm_nodeset_workers = [{
 slurm_nodeset_login = {
   size = 2
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "32vcpu-128gb"
   }
   boot_disk = {
@@ -272,7 +272,7 @@ slurm_nodeset_login = {
 # ---
 slurm_nodeset_accounting = {
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "8vcpu-32gb"
   }
   boot_disk = {
@@ -306,19 +306,6 @@ slurm_login_ssh_root_public_keys = [
 slurm_exporter_enabled = true
 
 # endregion Exporter
-
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                       REST API                                                       #
-#----------------------------------------------------------------------------------------------------------------------#
-# region REST API
-
-# Whether to enable Slurm REST API.
-# If disabled, node auto-replacement in case of maintenance events DOESN'T WORK.
-# By default, true.
-# ---
-slurm_rest_enabled = true
-
-# endregion REST API
 
 # endregion Nodes
 
