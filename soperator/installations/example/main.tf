@@ -269,6 +269,7 @@ module "slurm" {
     module.k8s_storage_class,
     module.o11y,
     module.fluxcd,
+    module.fluxcd,
   ]
 
   source = "../../modules/slurm"
