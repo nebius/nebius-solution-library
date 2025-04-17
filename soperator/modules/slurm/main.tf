@@ -365,8 +365,8 @@ resource "helm_release" "slurm_cluster" {
       controller = {
         size = var.node_count.controller
         resources = {
-          cpu               = var.resources.controller.cpu_cores - local.resources.munge.cpu
-          memory            = var.resources.controller.memory_gibibytes - local.resources.munge.memory
+          cpu               = var.resources.controller.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu
+          memory            = var.resources.controller.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory
           ephemeral_storage = var.resources.controller.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
         }
       }
@@ -374,8 +374,8 @@ resource "helm_release" "slurm_cluster" {
       worker = {
         size = one(var.node_count.worker)
         resources = {
-          cpu               = floor(one(var.resources.worker).cpu_cores - local.resources.munge.cpu)
-          memory            = floor(one(var.resources.worker).memory_gibibytes - local.resources.munge.memory)
+          cpu               = floor(one(var.resources.worker).cpu_cores - local.resources.munge.cpu) - local.resources.kruise_daemon.cpu
+          memory            = floor(one(var.resources.worker).memory_gibibytes - local.resources.munge.memory) - local.resources.kruise_daemon.memory
           ephemeral_storage = floor(one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
           gpus              = one(var.resources.worker).gpus
         }
@@ -390,8 +390,8 @@ resource "helm_release" "slurm_cluster" {
         sshd_config_map_ref_name = var.login_sshd_config_map_ref_name
         root_public_keys         = var.login_ssh_root_public_keys
         resources = {
-          cpu               = floor(var.resources.login.cpu_cores - local.resources.munge.cpu)
-          memory            = floor(var.resources.login.memory_gibibytes - local.resources.munge.memory)
+          cpu               = floor(var.resources.login.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
+          memory            = floor(var.resources.login.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory)
           ephemeral_storage = floor(var.resources.login.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
         }
       }
