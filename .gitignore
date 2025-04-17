@@ -37,3 +37,4 @@ terraform.rc
 
 # IDE
 .idea
+/soperator/modules/fluxcd
