@@ -37,7 +37,7 @@ resource "helm_release" "flux2_sync" {
   set {
     name = "gitRepository.spec.ref.branch"
     # value = "dev"
-    value = "dev653"
+    value = "dev"
   }
 
   set {
