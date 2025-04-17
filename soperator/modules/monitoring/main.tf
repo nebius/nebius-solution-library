@@ -5,13 +5,6 @@ locals {
   }
 
   repository = {
-    victoria_metrics = "https://victoriametrics.github.io/helm-charts/"
-    logs_collector = {
-      repository = "https://open-telemetry.github.io/opentelemetry-helm-charts"
-      chart      = "opentelemetry-collector"
-      version    = "0.117.1"
-      name       = "logs"
-    }
     raw = {
       repository = "https://bedag.github.io/helm-charts/"
       chart      = "raw"
@@ -20,82 +13,31 @@ locals {
   }
 
   images_open_telemetry_operator = {
-    opentelemetry_operator = {
-      repository = "ghcr.io/open-telemetry/opentelemetry-operator/opentelemetry-operator"
-      tag        = "0.119.0"
-    }
     collector_image = {
       repository = "cr.eu-north1.nebius.cloud/observability/nebius-o11y-agent"
-      tag        = "0.2.241"
+      tag        = "0.2.252"
     }
   }
 
   metrics_collector = {
-    host = "vmsingle-slurm.${local.namespace.monitoring}.svc.cluster.local"
+    host = "vmsingle-metrics-victoria-metrics-k8s-stack.${local.namespace.monitoring}.svc.cluster.local"
     port = 8429
   }
 
   vm_logs_server = {
-    name = "vm"
+    name = "logs"
   }
 }
 
-resource "helm_release" "prometheus_stack" {
-  depends_on = [
-    module.certificate_manager,
-  ]
-
-  name       = "prometheus-stack"
-  repository = "https://prometheus-community.github.io/helm-charts"
-  chart      = "kube-prometheus-stack"
-  version    = "67.9.0"
-  timeout    = 600
-
-  create_namespace = true
-  namespace        = local.namespace.monitoring
-
-  values = [templatefile("${path.module}/templates/helm_values/prometheus.yaml.tftpl", {
-    admin_password    = var.grafana_admin_password
-    metrics_collector = local.metrics_collector
-  })]
-
-  wait = true
-}
-
-resource "helm_release" "vm_operator" {
-  depends_on = [
-    module.certificate_manager,
-    helm_release.prometheus_stack,
-  ]
-
-  name       = "victoria-metrics-operator"
-  repository = local.repository.victoria_metrics
-  chart      = "victoria-metrics-operator"
-  version    = "0.33.6"
-
-  create_namespace = true
-  namespace        = local.namespace.monitoring
-
-  values = [templatefile("${path.module}/templates/helm_values/vm_operator.yaml.tftpl", {
-    resources = var.resources_vm_operator
-  })]
-
-  wait = true
-}
-
 resource "helm_release" "vm_logs_server" {
-  depends_on = [
-    helm_release.vm_operator,
-  ]
-
-  name       = local.vm_logs_server.name
-  repository = local.repository.victoria_metrics
-  chart      = "victoria-logs-single"
-  version    = "0.9.3"
+  name       = "vm-logs-cm"
+  repository = local.repository.raw.repository
+  chart      = local.repository.raw.chart
+  version    = local.repository.raw.version
   timeout    = 600
 
   create_namespace = true
-  namespace        = local.namespace.logs
+  namespace        = "flux-system"
 
   values = [templatefile("${path.module}/templates/helm_values/vm_logs_server.yaml.tftpl", {
     vm_logs_service_name = local.vm_logs_server.name
@@ -148,12 +90,12 @@ resource "helm_release" "fb_logs_collector" {
     helm_release.vm_logs_server,
   ]
 
-  name       = local.repository.logs_collector.name
-  repository = local.repository.logs_collector.repository
-  chart      = local.repository.logs_collector.chart
-  version    = local.repository.logs_collector.version
+  name       = "logs-cm"
+  repository = local.repository.raw.repository
+  chart      = local.repository.raw.chart
+  version    = local.repository.raw.version
 
-  namespace = local.namespace.logs
+  namespace = "flux-system"
 
   values = [templatefile("${path.module}/templates/helm_values/logs_collector.yaml.tftpl", {
     namespace            = local.namespace.logs,
@@ -172,12 +114,12 @@ resource "helm_release" "events_collector" {
     helm_release.vm_logs_server,
   ]
 
-  name       = "events"
-  repository = local.repository.logs_collector.repository
-  chart      = local.repository.logs_collector.chart
-  version    = local.repository.logs_collector.version
+  name       = "events-cm"
+  repository = local.repository.raw.repository
+  chart      = local.repository.raw.chart
+  version    = local.repository.raw.version
 
-  namespace = local.namespace.logs
+  namespace = "flux-system"
 
   values = [templatefile("${path.module}/templates/helm_values/events_collector.yaml.tftpl", {
     namespace            = local.namespace.logs,
@@ -192,16 +134,12 @@ resource "helm_release" "events_collector" {
 }
 
 resource "helm_release" "slurm_monitor" {
-  depends_on = [
-    helm_release.vm_operator,
-  ]
-
-  name       = "slurm-monitor"
+  name       = "slurm-monitor-cm"
   repository = local.repository.raw.repository
   chart      = local.repository.raw.chart
   version    = local.repository.raw.version
 
-  namespace = local.namespace.monitoring
+  namespace = "flux-system"
 
   values = [templatefile("${path.module}/templates/helm_values/slurm_monitor.yaml.tftpl", {
     metrics_collector = local.metrics_collector
