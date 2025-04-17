@@ -309,6 +309,12 @@ variable "k8s_cluster_node_ssh_access_users" {
   default  = []
 }
 
+variable "etcd_cluster_size" {
+  description = "Size of the etcd cluster."
+  type        = number
+  default     = 3
+}
+
 # endregion k8s
 
 # endregion Infrastructure
@@ -820,3 +826,17 @@ variable "maintenance" {
 # endregion Maintenance
 
 # endregion Slurm
+
+# region GitHub
+variable "github_org" {
+  description = "GitHub organization"
+  type        = string
+  default     = "nebius"
+}
+
+variable "github_repository" {
+  description = "GitHub repository"
+  type        = string
+  default     = "soperator"
+}
+# endregion GitHub

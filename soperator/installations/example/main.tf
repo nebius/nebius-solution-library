@@ -128,6 +128,8 @@ module "k8s" {
   name         = local.k8s_cluster_name
   company_name = var.company_name
 
+  etcd_cluster_size = var.etcd_cluster_size
+
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller
   node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers :
