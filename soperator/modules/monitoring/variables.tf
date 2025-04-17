@@ -7,7 +7,7 @@ variable "slurm_cluster_name" {
 variable "create_pvcs" {
   description = "Whether to create PVCs. Uses emptyDir if false."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "resources_vm_operator" {

@@ -236,6 +236,7 @@ module "slurm" {
   depends_on = [
     module.k8s,
     module.o11y,
+    module.fluxcd,
   ]
 
   source = "../../modules/slurm"
@@ -428,4 +429,12 @@ module "backups" {
   depends_on = [
     module.slurm,
   ]
+}
+
+module "fluxcd" {
+  depends_on = [
+    module.k8s,
+  ]
+  source = "../../modules/fluxcd"
+  k8s_cluster_context = module.k8s.cluster_context
 }

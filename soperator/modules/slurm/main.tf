@@ -1,74 +1,13 @@
-resource "helm_release" "mariadb_operator" {
-  count = var.accounting_enabled ? 1 : 0
-
-  depends_on = [
-    module.monitoring,
-    module.certificate_manager,
-  ]
-
-  name       = local.helm.chart.operator.mariadb
-  repository = local.helm.repository.mariadb
-  chart      = local.helm.chart.operator.mariadb
-  version    = local.helm.version.mariadb
-
-  create_namespace = true
-  namespace        = var.mariadb_operator_namespace
-
-  set {
-    name  = "metrics.enabled"
-    value = var.telemetry_enabled
-  }
-  set {
-    name  = "metrics.serviceMonitor.enabled"
-    value = var.telemetry_enabled
-  }
-  set {
-    name  = "metrics.serviceMonitor.interval"
-    value = "30s"
-  }
-  set {
-    name  = "metrics.serviceMonitor.scrapeTimeout"
-    value = "25s"
-  }
-  set {
-    name  = "serviceAccount.enabled"
-    value = true
-  }
-
-  set {
-    name  = "cert.certManager.enabled"
-    value = var.telemetry_enabled
-  }
-
-  wait          = true
-  wait_for_jobs = true
-}
-
-resource "helm_release" "slurm_cluster_crd" {
-  name       = local.helm.chart.slurm_operator_crds
-  repository = local.helm.repository.slurm
-  chart      = "helm-${local.helm.chart.slurm_operator_crds}"
-  version    = local.helm.version.slurm
-
-  create_namespace = true
-  namespace        = "${local.helm.chart.operator.slurm}-system"
-
-  wait          = true
-  wait_for_jobs = true
-}
-
 resource "helm_release" "slurm_cluster_storage" {
   depends_on = [
     terraform_data.check_worker_nodesets,
   ]
 
-  name       = local.helm.chart.slurm_cluster_storage
-  repository = local.helm.repository.slurm
-  chart      = "helm-${local.helm.chart.slurm_cluster_storage}"
-  version    = local.helm.version.slurm
-
-  create_namespace = true
-  namespace        = var.name
+  name       = "slurm-cluster-storage-cm"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+  namespace  = "flux-system"
 
   values = [templatefile("${path.module}/templates/helm_values/slurm_cluster_storage.yaml.tftpl", {
     scheduling = local.node_filters
@@ -101,18 +40,14 @@ resource "helm_release" "slurm_cluster_storage" {
 
 resource "helm_release" "slurm_operator" {
   depends_on = [
-    helm_release.slurm_cluster_crd,
-    helm_release.mariadb_operator,
     module.monitoring,
   ]
 
-  name       = local.helm.chart.operator.slurm
-  repository = local.helm.repository.slurm
-  chart      = "helm-${local.helm.chart.operator.slurm}"
-  version    = local.helm.version.slurm
-
-  create_namespace = true
-  namespace        = "${local.helm.chart.operator.slurm}-system"
+  name       = "soperator-cm"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+  namespace  = "flux-system"
 
   set {
     name  = "fullnameOverride"
@@ -159,10 +94,11 @@ resource "helm_release" "nodeconfigurator" {
   ]
   count = var.enable_node_configurator ? 1 : 0
 
-  name       = local.helm.chart.nodeconfigurator
-  repository = local.helm.repository.slurm
-  chart      = "helm-${local.helm.chart.nodeconfigurator}"
-  version    = local.helm.version.slurm
+  name       = "nodeconfigurator-cm"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+  namespace  = "flux-system"
 
   values = [templatefile("${path.module}/templates/helm_values/node_configurator.yaml.tftpl", {
     rebooter = {
@@ -182,9 +118,6 @@ resource "helm_release" "nodeconfigurator" {
       }
     }
   })]
-
-  create_namespace = true
-  namespace        = "${local.helm.chart.operator.slurm}-system"
 }
 
 resource "helm_release" "slurm_checks_operator" {
@@ -193,10 +126,11 @@ resource "helm_release" "slurm_checks_operator" {
   ]
   count = var.enable_soperator_checks ? 1 : 0
 
-  name       = local.helm.chart.operator.slurmchecks
-  repository = local.helm.repository.slurm
-  chart      = "helm-${local.helm.chart.operator.slurmchecks}"
-  version    = local.helm.version.slurm
+  name       = "slurm-checks-cm"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+  namespace  = "flux-system"
 
   values = [templatefile("${path.module}/templates/helm_values/slurm_checks.yaml.tftpl", {
     checks : {
@@ -212,103 +146,15 @@ resource "helm_release" "slurm_checks_operator" {
     }
   })]
 
-  create_namespace = true
-  namespace        = "${local.helm.chart.operator.slurm}-system"
-}
-
-resource "helm_release" "custom_supervisord_config" {
-  name       = "custom-supervisord-config"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-
-  create_namespace = true
-  namespace        = var.name
-
-  values = [templatefile("${path.module}/templates/custom_supervisord_cm.yaml.tftpl", {})]
-
-  wait = true
-}
-
-resource "helm_release" "default_prolog_script" {
-  name       = "slurm-prolog"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-
-  create_namespace = true
-  namespace        = var.name
-
-  values = [templatefile("${path.module}/templates/slurm_prolog_cm.yaml.tftpl", {})]
-
-  wait = true
-}
-
-resource "helm_release" "default_epilog_script" {
-  name       = "slurm-epilog"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-
-  create_namespace = true
-  namespace        = var.name
-
-  values = [templatefile("${path.module}/templates/slurm_epilog_cm.yaml.tftpl", {})]
-
-  wait = true
-}
-
-resource "helm_release" "motd_nebius_o11y_script" {
-  name       = "motd-nebius-o11y-script"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-
-  create_namespace = true
-  namespace        = var.name
-
-  values = [templatefile("${path.module}/templates/motd_nebius_o11y_cm.yaml.tftpl", {
-    telemetry_grafana_admin_password = var.telemetry_grafana_admin_password
-  })]
-
-  wait = true
-}
-
-resource "helm_release" "spo" {
-  depends_on = [
-    module.monitoring,
-  ]
-  count = var.use_default_apparmor_profile ? 1 : 0
-
-  name       = "security-profiles-operator"
-  repository = local.helm.repository.spo
-  chart      = local.helm.chart.spo
-  version    = local.helm.version.spo
-
-  create_namespace = true
-  namespace        = "security-profiles-operator-system"
-
-  values = [templatefile("${path.module}/templates/spo_values.tftpl", {})]
 }
 
 resource "helm_release" "slurm_cluster" {
-  depends_on = [
-    helm_release.slurm_operator,
-    helm_release.slurm_cluster_storage,
-    helm_release.custom_supervisord_config,
-    helm_release.default_prolog_script,
-    helm_release.default_epilog_script,
-    helm_release.motd_nebius_o11y_script,
-    helm_release.spo,
-  ]
 
-  name       = local.helm.chart.slurm_cluster
-  repository = local.helm.repository.slurm
-  chart      = "helm-${local.helm.chart.slurm_cluster}"
-  version    = local.helm.version.slurm
-
-  create_namespace = true
-  namespace        = var.name
+  name       = "slurm-cluster-cm"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+  namespace  = "flux-system"
 
   values = [templatefile("${path.module}/templates/helm_values/slurm_cluster.yaml.tftpl", {
     name                      = var.name
@@ -320,7 +166,7 @@ resource "helm_release" "slurm_cluster" {
       slurm_raw_config  = var.slurm_partition_raw_config
     }
 
-    slurm_worker_features = var.slurm_worker_features
+    slurm_worker_features     = var.slurm_worker_features
     slurm_health_check_config = var.slurm_health_check_config
 
     k8s_node_filters = local.node_filters
