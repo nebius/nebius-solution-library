@@ -147,6 +147,8 @@ slurm_partition_config_type = "default"
 #   "PartitionName=high_priority Nodes=low_priority Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
 # ]
 # If Nodes present, they must not contain node names: use only nodeset values, "ALL" or "".
+# If nodesets are used in the partition config, slurm_worker_features with non-empty nodeset_name
+# must be declared (see below).
 # Specifying specific nodes is not supported since Dynamic Nodes are used.
 # For more details, see https://slurm.schedmd.com/dynamic_nodes.html#partitions.
 
@@ -156,6 +158,7 @@ slurm_partition_config_type = "default"
 #   Soperator will run these workers with the feature name.
 # - nodeset_name: (Optional) The Slurm nodeset name to be provisioned using this feature.
 #   This nodeset may be used in conjunction with partitions.
+#   It is required if `Nodes=<nodeset_name>` is used for a partition.
 #
 # slurm_worker_features = [
 #   {
