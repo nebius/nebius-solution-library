@@ -49,9 +49,6 @@ spec:
       - name: log
         hostPath:
           path: /var/log
-      - name: nvidia-bin
-        hostPath:
-          path: /usr/bin/nvidia-smi
       - name: config
         configMap:
           name: nebius-npd-config

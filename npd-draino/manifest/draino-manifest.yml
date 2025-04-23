@@ -86,7 +86,7 @@ spec:
         - GpuEcc
         - GpuNvlink
         - GpuIb
-        - GpuThrottle
+        # - GpuThrottle
         # --dry-run to test without actual draining
         # --debug
       serviceAccountName: draino-sa

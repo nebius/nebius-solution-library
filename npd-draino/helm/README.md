@@ -42,7 +42,7 @@ Default autoscaled timeout is 10 min for draining. Means after NPD will detect a
 Install from local directory:
 
 ```
-helm install nebius-npd-draino ./nebius-npd-draino
+helm install nebius-npd-draino .
 ```
 
 ## Configuration
@@ -140,3 +140,10 @@ The chart includes several test scripts for monitoring GPU health:
 
 Each script reports problems as node conditions that Draino can act upon.
 
+## Uninstall
+
+Unistall from local directory:
+
+```
+helm delete nebius-npd-draino .
+```

@@ -91,8 +91,8 @@ data:
     {
       "plugin": "custom",
       "pluginConfig": {
-      "invoke_interval": "60s",
-      "timeout": "20s",
+      "invoke_interval": "180s",
+      "timeout": "30s",
       "max_output_length": 80,
       "concurrency": 3,
       "enable_message_change_based_condition_update": false
@@ -111,14 +111,14 @@ data:
           "type": "temporary",
           "reason": "GpuCountBad",
           "path": "./config/plugin/check_gpu_count.sh",
-          "timeout": "10s"
+          "timeout": "25s"
         },
         {
           "type": "permanent",
           "condition": "GpuCount",
           "reason": "GpuCountBad",
           "path": "./config/plugin/check_gpu_count.sh",
-          "timeout": "10s"
+          "timeout": "25s"
         }
       ]
     }
@@ -132,14 +132,8 @@ data:
     readonly UNKNOWN=2
 
     readonly EXPECTED_NUM_GPU=8
-    readonly GPU_TYPE="nvidia"
 
-
-    if [ "$GPU_TYPE" == "rocm" ]; then
-       gpu_count=$(rocm-smi -l | grep 'GPU' | wc -l)
-    else
-       gpu_count=$(nvidia-smi --list-gpus | wc -l)
-    fi
+    gpu_count=$(nvidia-smi --list-gpus | wc -l)
 
     if [ "$gpu_count" -ne "$EXPECTED_NUM_GPU" ]; then
        echo "Expected to see $EXPECTED_NUM_GPU but found $gpu_count. FaultCode: NHC2009"
@@ -153,7 +147,7 @@ data:
       "plugin": "custom",
       "pluginConfig": {
       "invoke_interval": "180s",
-      "timeout": "45s",
+      "timeout": "35s",
       "max_output_length": 80,
       "concurrency": 3,
       "enable_message_change_based_condition_update": false
@@ -172,14 +166,14 @@ data:
           "type": "temporary",
           "reason": "GpuNvlinkBad",
           "path": "./config/plugin/check_gpu_nvlink.sh",
-          "timeout": "35s"
+          "timeout": "30s"
         },
         {
           "type": "permanent",
           "condition": "GpuNvlink",
           "reason": "GpuNvlinkBad",
           "path": "./config/plugin/check_gpu_nvlink.sh",
-          "timeout": "35s"
+          "timeout": "30s"
         }
       ]
     }
@@ -236,8 +230,8 @@ data:
     {
       "plugin": "custom",
       "pluginConfig": {
-      "invoke_interval": "60s",
-      "timeout": "35s",
+      "invoke_interval": "180s",
+      "timeout": "30s",
       "max_output_length": 80,
       "concurrency": 3,
       "enable_message_change_based_condition_update": false
@@ -256,14 +250,14 @@ data:
           "type": "temporary",
           "reason": "GpuXidBad",
           "path": "./config/plugin/check_gpu_xid.sh",
-          "timeout": "20s"
+          "timeout": "25s"
         },
         {
           "type": "permanent",
           "condition": "GpuXid",
           "reason": "GpuXidBad",
           "path": "./config/plugin/check_gpu_xid.sh",
-          "timeout": "20s"
+          "timeout": "25s"
         }
       ]
     }
@@ -327,8 +321,8 @@ data:
     {
       "plugin": "custom",
       "pluginConfig": {
-      "invoke_interval": "60s",
-      "timeout": "35s",
+      "invoke_interval": "180s",
+      "timeout": "30s",
       "max_output_length": 80,
       "concurrency": 3,
       "enable_message_change_based_condition_update": false
@@ -522,8 +516,8 @@ data:
     {
       "plugin": "custom",
       "pluginConfig": {
-      "invoke_interval": "60s",
-      "timeout": "35s",
+      "invoke_interval": "180s",
+      "timeout": "30s",
       "max_output_length": 80,
       "concurrency": 3,
       "enable_message_change_based_condition_update": false
@@ -542,14 +536,14 @@ data:
           "type": "temporary",
           "reason": "IbDevBad",
           "path": "./config/plugin/check_ib.sh",
-          "timeout": "20s"
+          "timeout": "25s"
         },
         {
           "type": "permanent",
           "condition": "IbDev",
           "reason": "IbDevBad",
           "path": "./config/plugin/check_ib.sh",
-          "timeout": "20s"
+          "timeout": "25s"
         }
       ]
     }
@@ -651,7 +645,7 @@ data:
     {
       "plugin": "custom",
       "pluginConfig": {
-      "invoke_interval": "60s",
+      "invoke_interval": "300s",
       "timeout": "30s",
       "max_output_length": 80,
       "concurrency": 3,
@@ -671,14 +665,14 @@ data:
           "type": "temporary",
           "reason": "GpuThrottleYes",
           "path": "./config/plugin/check_gpu_throttle.sh",
-          "timeout": "20s"
+          "timeout": "25s"
         },
         {
           "type": "permanent",
           "condition": "GpuThrottle",
           "reason": "GpuThrottleYes",
           "path": "./config/plugin/check_gpu_throttle.sh",
-          "timeout": "20s"
+          "timeout": "25s"
         }
       ]
     }

@@ -1,8 +1,8 @@
 {
   "plugin": "custom",
   "pluginConfig": {
-    "invoke_interval": "60s",
-    "timeout": "20s",
+    "invoke_interval": "180s",
+    "timeout": "30s",
     "max_output_length": 80,
     "concurrency": 3,
     "enable_message_change_based_condition_update": false
@@ -21,14 +21,14 @@
       "type": "temporary",
       "reason": "GpuCountBad",
       "path": "./config/plugin/check_gpu_count.sh",
-      "timeout": "10s"
+      "timeout": "25s"
     },
     {
       "type": "permanent",
       "condition": "GpuCount",
       "reason": "GpuCountBad",
       "path": "./config/plugin/check_gpu_count.sh",
-      "timeout": "10s"
+      "timeout": "25s"
     }
   ]
 } 

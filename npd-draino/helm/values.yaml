@@ -16,7 +16,7 @@ gpu_nvlink:
 gpu_ib:
   enabled: true
 gpu_throttle:
-  enabled: true
+  enabled: false
 
 draino:
   image: planetlabs/draino:latest

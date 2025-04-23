@@ -1,7 +1,7 @@
 {
   "plugin": "custom",
   "pluginConfig": {
-    "invoke_interval": "60s",
+    "invoke_interval": "300s",
     "timeout": "30s",
     "max_output_length": 80,
     "concurrency": 3,
@@ -21,14 +21,14 @@
       "type": "temporary",
       "reason": "GpuThrottleYes",
       "path": "./config/plugin/check_gpu_throttle.sh",
-      "timeout": "20s"
+      "timeout": "25s"
     },
     {
       "type": "permanent",
       "condition": "GpuThrottle",
       "reason": "GpuThrottleYes",
       "path": "./config/plugin/check_gpu_throttle.sh",
-      "timeout": "20s"
+      "timeout": "25s"
     }
   ]
 } 
