@@ -438,11 +438,6 @@ slurmNodes:
         cpu: ${nodes.rest.resources.cpu * 1000}m
         memory: ${nodes.rest.resources.memory}Gi
         ephemeralStorage: ${nodes.rest.resources.ephemeral_storage}Gi
-    customInitContainers:
-      - name: ensure-jail-virtiofs
-        image: cr.eu-north1.nebius.cloud/soperator/busybox
-        volumeMounts: [{ name: jail, mountPath: /volume-mount }]
-        command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
 
 %{ if telemetry.enabled ~}
 telemetry:
