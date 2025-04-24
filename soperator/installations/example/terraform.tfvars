@@ -81,6 +81,19 @@ filestore_jail_submounts = [{
   }
 }]
 
+# Additional (Optional) node-local Network-SSD disks to be mounted inside jail on worker nodes.
+# It will create compute disks with provided spec for each node via CSI.
+# ---
+# node_local_jail_submounts = []
+# ---
+node_local_jail_submounts = [{
+  name            = "local-data"
+  mount_path      = "/mnt/local-data"
+  size_gibibytes  = 1024
+  disk_type       = "NETWORK_SSD"
+  filesystem_type = "ext4"
+}]
+
 # Shared filesystem to be used for accounting DB.
 # By default, null.
 # Required if accounting_enabled is true.
