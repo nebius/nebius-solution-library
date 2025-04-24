@@ -253,8 +253,14 @@ variable "test_mode" {
   default     = false
 }
 
-variable "enable_kuberay" {
-  description = "Enable kuberay"
+variable "enable_kuberay_cluster" {
+  description = "Enable kuberay and deploy RayCluster"
+  type        = bool
+  default     = false
+}
+
+variable "enable_kuberay_service" {
+  description = "Enable kuberay and deploy RayService"
   type        = bool
   default     = false
 }
