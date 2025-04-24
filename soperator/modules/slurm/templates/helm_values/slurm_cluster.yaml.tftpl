@@ -297,6 +297,12 @@ slurmNodes:
         volumeMounts: [{ name: '${sub_mount.name}', mountPath: /volume-mount }]
         command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
       %{~ endfor ~}
+      %{~ for sub_mount in node_local_jail_submounts ~}
+      - name: ensure-node-local-jail-submount-${sub_mount.name}-${sub_mount.filesystem_type}
+        image: cr.eu-north1.nebius.cloud/soperator/busybox
+        volumeMounts: [{ name: '${sub_mount.name}', mountPath: /volume-mount }]
+        command: ["grep", ' /volume-mount ${sub_mount.filesystem_type} ', "/proc/mounts"]
+      %{~ endfor ~}
     volumes:
       spool:
         volumeClaimTemplateSpec: null
@@ -311,6 +317,17 @@ slurmNodes:
         - name: ${sub_mount.name}
           mountPath: ${sub_mount.mount_path}
           volumeSourceName: jail-submount-${sub_mount.name}
+        %{~ endfor ~}
+        %{~ for sub_mount in node_local_jail_submounts ~}
+        - name: ${sub_mount.name}
+          mountPath: ${sub_mount.mount_path}
+          volumeClaimTemplateSpec:
+            accessModes:
+              - ReadWriteOnce
+            storageClassName: ${sub_mount.storage_class_name}
+            resources:
+              requests:
+                storage: ${sub_mount.size_gibibytes}Gi
         %{~ endfor ~}
       customMounts:
         - name: sys-host
