@@ -208,6 +208,30 @@ variable "filestore_jail_submounts" {
   }
 }
 
+variable "node_local_jail_submounts" {
+  description = "Node-local disks to be mounted inside jail on worker nodes."
+  type = list(object({
+    name            = string
+    mount_path      = string
+    size_gibibytes  = number
+    disk_type       = string
+    filesystem_type = string
+  }))
+  nullable = false
+  default  = []
+
+  validation {
+    condition = length([for sm in var.node_local_jail_submounts :
+      1 if !(sm.disk_type == module.resources.disk_types.network_ssd || sm.disk_type == module.resources.disk_types.network_ssd_non_replicated || sm.disk_type == module.resources.disk_types.network_ssd_io_m3)
+    ]) == 0
+    error_message = "Disk type must be one of `NETWORK_SSD`, `NETWORK_SSD_NON_REPLICATED` or `NETWORK_SSD_IO_M3`. See https://docs.nebius.com/compute/storage/types#disks-types"
+  }
+  validation {
+    condition     = var.node_local_image_disk.spec == null ? true : var.node_local_image_disk.spec.filesystem_type == module.resources.filesystem_types.ext4 || var.node_local_image_disk.spec.filesystem_type == module.resources.filesystem_types.xfs
+    error_message = "Filesystem type must be one of `ext4` or `xfs`."
+  }
+}
+
 variable "filestore_accounting" {
   description = "Shared filesystem to be used for accounting DB"
   type = object({

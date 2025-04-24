@@ -179,6 +179,25 @@ module "k8s" {
   }
 }
 
+module "k8s_storage_class" {
+  count = length(var.node_local_jail_submounts) > 0 ? 1 : 0
+
+  depends_on = [
+    module.k8s,
+  ]
+
+  source = "../../modules/k8s/storage_class"
+
+  storage_class_requirements = [for sm in var.node_local_jail_submounts : {
+    disk_type = sm.disk_type
+    filesystem_type = sm.filesystem_type
+  }]
+
+  providers = {
+    kubernetes = kubernetes
+  }
+}
+
 module "nvidia_operator_network" {
   count = module.k8s.gpu_involved ? 1 : 0
 
