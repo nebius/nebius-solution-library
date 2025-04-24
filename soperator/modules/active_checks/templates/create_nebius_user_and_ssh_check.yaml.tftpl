@@ -1,0 +1,52 @@
+resources:
+  - apiVersion: slurm.nebius.ai/v1alpha1
+    kind: ActiveCheck
+    metadata:
+      name: create-nebius-user-and-ssh-check
+      namespace: ${slurm_cluster_namespace}
+    spec:
+      checkType: k8sJob
+      suspend: true
+      k8sJobSpec:
+        command:
+          - bash
+          - -c
+          - |
+            set -e
+
+            apt-get update && apt-get install -y openssh-client && rm -rf /var/lib/apt/lists/*
+
+            echo "Generating ssh key..."
+            ssh-keygen -t ecdsa -f /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa -N '' -C soperatorchecks
+            cat /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa.pub >> /mnt/jail/root/.ssh/authorized_keys
+
+            echo "Checking ssh connectivity to login nodes..."
+            for ((i=0; i<${num_of_login_nodes}; i++)); do
+              echo "Connecting to node login-$i via jumphost..."
+              ssh -i /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa \
+                  -o StrictHostKeyChecking=no \
+                  -o UserKnownHostsFile=/dev/null \
+                  -o "ProxyCommand=ssh -i /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p root@${slurm_cluster_ip} " \
+                  root@login-$i.soperator-login-svc.soperator.svc hostname
+            done
+
+            echo "Creating nebius user..."
+            ssh -i /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa \
+                -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null \
+                root@${slurm_cluster_ip} 'id "nebius" &>/dev/null || echo "" | createuser nebius --gecos ""'
+
+            echo "Cleaning up ssh keys..."
+            rm /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa.pub
+            sed -i '/soperatorchecks/d' /mnt/jail/root/.ssh/authorized_keys
+        image: ubuntu:jammy
+        volumes:
+        - name: jail
+          persistentVolumeClaim:
+            claimName: jail-pvc
+        volumeMounts:
+        - name: jail
+          mountPath: /mnt/jail
+      name: create-nebius-user-and-ssh-check
+      runAfterCreation: true
+      slurmClusterRefName: ${slurm_cluster_name}
