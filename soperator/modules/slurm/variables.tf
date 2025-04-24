@@ -223,6 +223,24 @@ variable "filestores" {
 
 # endregion Filestore
 
+# region Disks
+
+variable "node_local_jail_submounts" {
+  description = "Node-local disks to be mounted inside jail."
+  type = list(object({
+    name               = string
+    mount_path         = string
+    size_gibibytes     = number
+    disk_type          = string
+    filesystem_type    = string
+    storage_class_name = string
+  }))
+  nullable = false
+  default  = []
+}
+
+# endregion Disks
+
 # region nfs-server
 
 variable "nfs" {

@@ -329,6 +329,7 @@ resource "helm_release" "slurm_cluster" {
       name       = submount.name
       mount_path = submount.mount_path
     }]
+    node_local_jail_submounts = var.node_local_jail_submounts
 
     nfs = var.nfs
 
