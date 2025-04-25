@@ -95,6 +95,22 @@ node_local_jail_submounts = [{
   filesystem_type = "ext4"
 }]
 
+# Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node.
+# It will create compute disks with provided spec for each node via CSI.
+# Note that size must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
+# ---
+# node_local_image_disk = {
+#   enabled = false
+# }
+# ---
+node_local_image_disk = {
+  enabled = true
+  spec = {
+    size_gibibytes  = 930
+    filesystem_type = "ext4"
+  }
+}
+
 # Shared filesystem to be used for accounting DB.
 # By default, null.
 # Required if accounting_enabled is true.
@@ -112,22 +128,6 @@ filestore_accounting = {
 #     id = "computefilesystem-<YOUR-FILESTORE-ID>"
 #   }
 # }
-
-# Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node.
-# It will create compute disks with provided spec for each node via CSI.
-# Note that size must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
-# ---
-# node_local_image_disk = {
-#   enabled = false
-# }
-# ---
-node_local_image_disk = {
-  enabled = true
-  spec = {
-    size_gibibytes  = 930
-    filesystem_type = "ext4"
-  }
-}
 
 # endregion Storage
 
