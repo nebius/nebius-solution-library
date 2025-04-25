@@ -110,7 +110,7 @@ resource "terraform_data" "wait_for_manual_o11y_token_creation" {
   count = var.public_o11y_enabled ? 1 : 0
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<-EOF
+    command     = <<-EOF
       set -e
 
       MAX_RETRIES=30
