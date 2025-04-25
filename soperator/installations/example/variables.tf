@@ -259,32 +259,6 @@ variable "node_local_jail_submounts" {
   }
 }
 
-variable "filestore_accounting" {
-  description = "Shared filesystem to be used for accounting DB"
-  type = object({
-    existing = optional(object({
-      id = string
-    }))
-    spec = optional(object({
-      size_gibibytes       = number
-      block_size_kibibytes = number
-    }))
-  })
-  default  = null
-  nullable = true
-
-  validation {
-    condition = (var.filestore_accounting != null
-      ? (
-        (var.filestore_accounting.existing != null && var.filestore_accounting.spec == null) ||
-        (var.filestore_accounting.existing == null && var.filestore_accounting.spec != null)
-      )
-      : true
-    )
-    error_message = "One of `existing` or `spec` must be provided."
-  }
-}
-
 variable "node_local_image_disk" {
   description = "Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node."
   type = object({
@@ -317,6 +291,32 @@ variable "node_local_image_disk" {
       ))
     )
     error_message = "Filesystem type must be one of `ext4` or `xfs`."
+  }
+}
+
+variable "filestore_accounting" {
+  description = "Shared filesystem to be used for accounting DB"
+  type = object({
+    existing = optional(object({
+      id = string
+    }))
+    spec = optional(object({
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    }))
+  })
+  default  = null
+  nullable = true
+
+  validation {
+    condition = (var.filestore_accounting != null
+      ? (
+        (var.filestore_accounting.existing != null && var.filestore_accounting.spec == null) ||
+        (var.filestore_accounting.existing == null && var.filestore_accounting.spec != null)
+      )
+      : true
+    )
+    error_message = "One of `existing` or `spec` must be provided."
   }
 }
 
