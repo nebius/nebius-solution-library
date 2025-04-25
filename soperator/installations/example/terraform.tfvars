@@ -277,7 +277,7 @@ slurm_nodeset_workers = [{
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 2048
+    size_gibibytes       = 512
     block_size_kibibytes = 4
   }
   gpu_cluster = {
