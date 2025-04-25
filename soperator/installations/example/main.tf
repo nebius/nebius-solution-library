@@ -178,7 +178,14 @@ module "k8s" {
 }
 
 module "k8s_storage_class" {
-  count = length(var.node_local_jail_submounts) > 0 ? 1 : 0
+  count = (
+    (
+      length(var.node_local_jail_submounts) > 0 ||
+      var.node_local_image_disk.enabled
+    )
+    ? 1
+    : 0
+  )
 
   depends_on = [
     module.k8s,
