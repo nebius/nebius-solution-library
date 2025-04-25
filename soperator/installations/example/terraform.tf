@@ -48,7 +48,7 @@ provider "flux" {
   git = {
     url = "ssh://git@github.com/${var.github_org}/${var.github_repository}.git"
     ssh = {
-      username    = "git"
+      username = "git"
     }
   }
 }
