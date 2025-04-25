@@ -112,6 +112,22 @@ filestore_accounting = {
 #   }
 # }
 
+# Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node.
+# It will create compute disks with provided spec for each node via CSI.
+# Note that size must be divisible by 93Gi.
+# ---
+# node_local_image_disk = {
+#   enabled = false
+# }
+# ---
+node_local_image_disk = {
+  enabled = true
+  spec = {
+    size_gibibytes  = 930
+    filesystem_type = "ext4"
+  }
+}
+
 # endregion Storage
 
 # region nfs-server

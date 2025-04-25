@@ -239,6 +239,22 @@ variable "node_local_jail_submounts" {
   default  = []
 }
 
+variable "node_local_image_storage" {
+  description = "Node-local disk to store Docker/Enroot data."
+  type = object({
+    enabled = bool
+    spec = optional(object({
+      size_gibibytes     = number
+      filesystem_type    = string
+      storage_class_name = string
+    }))
+  })
+  nullable = false
+  default = {
+    enabled = false
+  }
+}
+
 # endregion Disks
 
 # region nfs-server
