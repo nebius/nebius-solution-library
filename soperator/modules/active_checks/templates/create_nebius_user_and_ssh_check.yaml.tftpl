@@ -25,16 +25,14 @@ resources:
               echo "Connecting to node login-$i via jumphost..."
               ssh -i /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa \
                   -o StrictHostKeyChecking=no \
-                  -o UserKnownHostsFile=/dev/null \
-                  -o "ProxyCommand=ssh -i /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p root@${slurm_cluster_ip} " \
+                  -o "ProxyCommand=ssh -i /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa -o StrictHostKeyChecking=no -W %h:%p root@${slurm_cluster_ip} " \
                   root@login-$i.soperator-login-svc.soperator.svc hostname
             done
 
-            echo "Creating nebius user..."
+            echo "Creating ${nebius_user_name} user..."
             ssh -i /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa \
                 -o StrictHostKeyChecking=no \
-                -o UserKnownHostsFile=/dev/null \
-                root@${slurm_cluster_ip} 'id "nebius" &>/dev/null || echo "" | createuser nebius --gecos ""'
+                root@${slurm_cluster_ip} 'id "nebius" &>/dev/null || echo "" | createuser ${nebius_user_name} --gecos ""'
 
             echo "Cleaning up ssh keys..."
             rm /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa.pub

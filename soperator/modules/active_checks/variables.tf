@@ -27,3 +27,9 @@ variable "num_of_login_nodes" {
   type        = number
   nullable    = false
 }
+
+variable "nebius_user_name" {
+  description = "Name of the default created user for Nebius operations."
+  type        = string
+  default     = "nebius"
+}

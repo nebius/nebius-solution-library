@@ -12,6 +12,7 @@ resource "helm_release" "create_nebius_user_and_ssh_check" {
     slurm_cluster_ip        = var.slurm_cluster_ip
     slurm_cluster_name      = var.slurm_cluster_name
     num_of_login_nodes      = var.num_of_login_nodes
+    nebius_user_name        = var.nebius_user_name
   })]
 
   wait = true
