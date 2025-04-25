@@ -2,7 +2,7 @@
 
 Within an SSH session to the Slurm cluster, go to the test directory:
 ```shell
-cd /opt/slurm-test
+cd /opt/slurm-test/quickcheck
 ```
 
 <details>

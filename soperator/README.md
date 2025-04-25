@@ -138,7 +138,6 @@ slurm_login_ssh_root_public_keys = [
 `k8s_cluster_node_ssh_access_users` is for connecting to the K8S cluster itself.
 You probably don't need this unless you want to manage the K8S cluster manually.
 
-
 > [!NOTE] 
 > - For large clusters: Use larger presets for CPU-only nodes
 > - Adjust storage sizes based on your needs
@@ -204,13 +203,6 @@ or connect using the login script:
 ./login.sh -k ~/.ssh/<private_key>
 ```
 
-
 ## (Optional) Test Your Installation
 
-Copy the test files to the Slurm cluster:
-
-```bash
-scp -i ~/.ssh/<private-key> -r soperator/test/quickcheck root@"$SLURM_IP":/opt/slurm-test
-```
-
-Run quick tests as described in [test/quickcheck](./test/quickcheck/README.md).
+See the process of delivery and running of tests in [test](./test/README.md).
