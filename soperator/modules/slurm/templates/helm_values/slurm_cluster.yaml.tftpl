@@ -168,12 +168,12 @@ resources:
               defaultMode: 500
           %{~ endif ~}
 
-          %{~ if default_epilog_enabled ~}
-          - name: slurm-epilog
-            configMap:
-              name: slurm-epilog
-              defaultMode: 500
-          %{~ endif ~}
+  %{~ if default_epilog_enabled ~}
+  - name: slurm-epilog
+    configMap:
+      name: slurm-epilog
+      defaultMode: 500
+  %{~ endif ~}
 
 populateJail:
   k8sNodeFilterName: ${k8s_node_filters.system.name}
@@ -337,6 +337,18 @@ populateJail:
           subPath: epilog.sh
           readOnly: true
           volumeSourceName: slurm-epilog
+        %{~ endif ~}
+        %{~ if node_local_image_storage.enabled ~}
+        - name: enroot-on-image-storage
+          mountPath: /etc/enroot/enroot.conf.d/image-storage.conf
+          subPath: enroot.conf
+          readOnly: true
+          volumeSourceName: image-storage
+        - name: docker-on-image-storage
+          mountPath: /etc/docker/daemon.json
+          subPath: daemon.json
+          readOnly: true
+          volumeSourceName: image-storage
         %{~ endif ~}
       sharedMemorySize: ${nodes.worker.shared_memory}Gi
 
