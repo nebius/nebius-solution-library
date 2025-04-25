@@ -48,7 +48,7 @@ cd soperator
 export INSTALLATION_NAME=<your-name> # e.g. company name
 mkdir -p installations/$INSTALLATION_NAME
 cd installations/$INSTALLATION_NAME
-cp -r ../example/ ./
+cp -r ../example/* ../example/.* .
 ```
 
 ### 3. Set Up Your Environment
