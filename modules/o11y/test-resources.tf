@@ -1,6 +1,6 @@
 locals {
   resources = {
-    grafana                             = var.o11y.grafana.enabled ? { kind = "Deployment" } : null
+    grafana                             = var.o11y.prometheus.enabled ? { kind = "Deployment" } : null
     prometheus-server                   = var.o11y.prometheus.enabled ? { kind = "Deployment" } : null
     prometheus-prometheus-node-exporter = var.o11y.prometheus.enabled ? { kind = "DaemonSet" } : null
     promtail                            = var.o11y.loki.enabled ? { kind = "DaemonSet" } : null
@@ -9,9 +9,8 @@ locals {
 
 data "kubernetes_resource" "o11y" {
   depends_on = [
-    helm_release.grafana,
-    helm_release.loki,
-    helm_release.prometheus,
+    nebius_applications_v1alpha1_k8s_release.prometheus,
+    nebius_applications_v1alpha1_k8s_release.loki,
   ]
 
   for_each = var.test_mode ? { for key, resource in local.resources : key => resource if resource != null } : {}

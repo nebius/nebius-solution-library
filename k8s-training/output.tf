@@ -7,3 +7,8 @@ output "kube_cluster" {
     endpoints = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.endpoints
   }
 }
+
+output "grafana_password" {
+  sensitive = true
+  value     = module.o11y.grafana_password
+}
