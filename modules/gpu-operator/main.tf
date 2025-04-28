@@ -7,7 +7,6 @@ resource "nebius_applications_v1alpha1_k8s_release" "this" {
   product_slug     = "nebius/nvidia-gpu-operator"
 
   set = {
-    "driver.version" : var.driver_version,
     "dcgmExporter.serviceMonitor.enabled" : var.enable_dcgm_service_monitor,
     "dcgmExporter.serviceMonitor.honorLabels" : var.relabel_dcgm_exporter ? "false" : null,
     "dcgmExporter.serviceMonitor.relabelings[0].action" : var.relabel_dcgm_exporter ? "replace" : null,
