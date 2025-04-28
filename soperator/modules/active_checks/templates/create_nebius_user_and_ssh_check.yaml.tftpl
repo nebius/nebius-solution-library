@@ -32,7 +32,7 @@ resources:
             echo "Creating ${nebius_user_name} user..."
             ssh -i /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa \
                 -o StrictHostKeyChecking=no \
-                root@${slurm_cluster_ip} 'id "nebius" &>/dev/null || echo "" | createuser ${nebius_user_name} --gecos ""'
+                root@${slurm_cluster_ip} 'id "nebius" || echo "" | createuser ${nebius_user_name} --gecos ""'
 
             echo "Cleaning up ssh keys..."
             rm /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa.pub
