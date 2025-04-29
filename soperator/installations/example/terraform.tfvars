@@ -83,7 +83,7 @@ filestore_jail_submounts = [{
 
 # Additional (Optional) node-local Network-SSD disks to be mounted inside jail on worker nodes.
 # It will create compute disks with provided spec for each node via CSI.
-# Note that in case of `NETWORK_SSD_NON_REPLICATED` disk type, size must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
+# NOTE: in case of `NETWORK_SSD_NON_REPLICATED` disk type, `size` must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
 # ---
 # node_local_jail_submounts = []
 # ---
@@ -97,7 +97,8 @@ node_local_jail_submounts = [{
 
 # Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node.
 # It will create compute disks with provided spec for each node via CSI.
-# Note that size must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
+# NOTE: In case you're not going to use Docker/Enroot in your workloads, it's worth disabling this feature.
+# NOTE: `size` must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
 # ---
 # node_local_image_disk = {
 #   enabled = false
