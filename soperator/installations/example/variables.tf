@@ -89,7 +89,10 @@ variable "o11y_profile" {
   nullable    = false
 
   validation {
-    condition     = (length(var.o11y_profile) >= 1 && var.public_o11y_enabled) || !var.public_o11y_enabled
+    condition = (
+      (length(var.o11y_profile) >= 1 && var.public_o11y_enabled) ||
+      !var.public_o11y_enabled
+    )
     error_message = "O11y profile must be not empty if public o11y enabled is true."
   }
 }
@@ -148,7 +151,10 @@ variable "filestore_controller_spool" {
   nullable = false
 
   validation {
-    condition     = (var.filestore_controller_spool.existing != null && var.filestore_controller_spool.spec == null) || (var.filestore_controller_spool.existing == null && var.filestore_controller_spool.spec != null)
+    condition = (
+      (var.filestore_controller_spool.existing != null && var.filestore_controller_spool.spec == null) ||
+      (var.filestore_controller_spool.existing == null && var.filestore_controller_spool.spec != null)
+    )
     error_message = "One of `existing` or `spec` must be provided."
   }
 }
@@ -167,7 +173,10 @@ variable "filestore_jail" {
   nullable = false
 
   validation {
-    condition     = (var.filestore_jail.existing != null && var.filestore_jail.spec == null) || (var.filestore_jail.existing == null && var.filestore_jail.spec != null)
+    condition = (
+      (var.filestore_jail.existing != null && var.filestore_jail.spec == null) ||
+      (var.filestore_jail.existing == null && var.filestore_jail.spec != null)
+    )
     error_message = "One of `existing` or `spec` must be provided."
   }
 }
@@ -201,10 +210,87 @@ variable "filestore_jail_submounts" {
 
   validation {
     condition = length([
-      for sm in var.filestore_jail_submounts : true
-      if(sm.existing != null && sm.spec == null) || (sm.existing == null && sm.spec != null)
+      for sm in var.filestore_jail_submounts : true if
+      (sm.existing != null && sm.spec == null) ||
+      (sm.existing == null && sm.spec != null)
     ]) == length(var.filestore_jail_submounts)
     error_message = "All submounts must have one of `existing` or `spec` provided."
+  }
+}
+
+variable "node_local_jail_submounts" {
+  description = "Node-local disks to be mounted inside jail on worker nodes."
+  type = list(object({
+    name            = string
+    mount_path      = string
+    size_gibibytes  = number
+    disk_type       = string
+    filesystem_type = string
+  }))
+  nullable = false
+  default  = []
+
+  validation {
+    condition = alltrue([
+      for sm in var.node_local_jail_submounts : (
+        contains(
+          [
+            module.resources.disk_types.network_ssd,
+            module.resources.disk_types.network_ssd_non_replicated,
+            module.resources.disk_types.network_ssd_io_m3,
+          ],
+          sm.disk_type
+        )
+    )])
+    error_message = "Disk type must be one of `NETWORK_SSD`, `NETWORK_SSD_NON_REPLICATED` or `NETWORK_SSD_IO_M3`. See https://docs.nebius.com/compute/storage/types#disks-types"
+  }
+  validation {
+    condition = alltrue([
+      for sm in var.node_local_jail_submounts : (
+        contains(
+          [
+            module.resources.filesystem_types.ext4,
+            module.resources.filesystem_types.xfs,
+          ],
+          sm.filesystem_type
+        )
+    )])
+    error_message = "Filesystem type must be one of `ext4` or `xfs`."
+  }
+}
+
+variable "node_local_image_disk" {
+  description = "Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node."
+  type = object({
+    enabled = bool
+    spec = optional(object({
+      size_gibibytes  = number
+      filesystem_type = string
+    }))
+  })
+  default = {
+    enabled = false
+  }
+
+  validation {
+    condition = (var.node_local_image_disk.enabled
+      ? var.node_local_image_disk.spec != null
+      : true
+    )
+    error_message = "Spec must be provided if enabled."
+  }
+  validation {
+    condition = (var.node_local_image_disk.spec == null
+      ? true
+      : (contains(
+        [
+          module.resources.filesystem_types.ext4,
+          module.resources.filesystem_types.xfs,
+        ],
+        var.node_local_image_disk.spec.filesystem_type
+      ))
+    )
+    error_message = "Filesystem type must be one of `ext4` or `xfs`."
   }
 }
 
@@ -223,10 +309,13 @@ variable "filestore_accounting" {
   nullable = true
 
   validation {
-    condition = var.filestore_accounting != null ? (
-      (var.filestore_accounting.existing != null && var.filestore_accounting.spec == null) ||
-      (var.filestore_accounting.existing == null && var.filestore_accounting.spec != null)
-    ) : true
+    condition = (var.filestore_accounting != null
+      ? (
+        (var.filestore_accounting.existing != null && var.filestore_accounting.spec == null) ||
+        (var.filestore_accounting.existing == null && var.filestore_accounting.spec != null)
+      )
+      : true
+    )
     error_message = "One of `existing` or `spec` must be provided."
   }
 }
@@ -255,7 +344,13 @@ variable "nfs" {
   }
 
   validation {
-    condition     = var.nfs.enabled ? var.nfs.size_gibibytes % 93 == 0 && var.nfs.size_gibibytes <= 262074 : true
+    condition = (var.nfs.enabled
+      ? (
+        var.nfs.size_gibibytes % 93 == 0 &&
+        var.nfs.size_gibibytes <= 262074
+      )
+      : true
+    )
     error_message = "NFS size must be a multiple of 93 GiB and maximum value is 262074 GiB"
   }
 }
@@ -266,17 +361,26 @@ resource "terraform_data" "check_nfs" {
 
   lifecycle {
     precondition {
-      condition     = var.nfs.enabled ? contains(module.resources.platforms, var.nfs.resource.platform) : true
+      condition = (var.nfs.enabled
+        ? contains(module.resources.platforms, var.nfs.resource.platform)
+        : true
+      )
       error_message = "Unsupported platform '${var.nfs.resource.platform}'."
     }
 
     precondition {
-      condition     = var.nfs.enabled ? contains(keys(module.resources.by_platform[var.nfs.resource.platform]), var.nfs.resource.preset) : true
+      condition = (var.nfs.enabled
+        ? contains(keys(module.resources.by_platform[var.nfs.resource.platform]), var.nfs.resource.preset)
+        : true
+      )
       error_message = "Unsupported preset '${var.nfs.resource.preset}' for platform '${var.nfs.resource.platform}'."
     }
 
     precondition {
-      condition     = var.nfs.enabled ? contains(module.resources.platform_regions[var.nfs.resource.platform], var.region) : true
+      condition = (var.nfs.enabled
+        ? contains(module.resources.platform_regions[var.nfs.resource.platform], var.region)
+        : true
+      )
       error_message = "Unsupported platform '${var.nfs.resource.platform}' in region '${var.region}'. See https://docs.nebius.com/compute/virtual-machines/types"
     }
   }
@@ -356,12 +460,12 @@ variable "slurm_partition_raw_config" {
 
 variable "slurm_worker_features" {
   description = "List of features to be enabled on worker nodes."
-  type        = list(object({
-    name         = string
+  type = list(object({
+    name          = string
     hostlist_expr = string
     nodeset_name  = optional(string)
   }))
-  default     = []
+  default = []
 }
 
 # endregion WorkerFeatures
@@ -372,13 +476,13 @@ variable "slurm_health_check_config" {
   description = "Health check configuration."
   type = object({
     health_check_interval = number
-    health_check_program = string
+    health_check_program  = string
     health_check_node_state = list(object({
       state = string
     }))
   })
   nullable = true
-  default = null
+  default  = null
 }
 
 # endregion HealthCheckConfig
@@ -487,9 +591,10 @@ variable "slurm_nodeset_workers" {
   }
 
   validation {
-    condition = length([for worker in var.slurm_nodeset_workers :
-      1 if worker.size % worker.nodes_per_nodegroup != 0
-    ]) == 0
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      (worker.size % worker.nodes_per_nodegroup == 0)
+    ])
     error_message = "Worker count must be divisible by nodes_per_nodegroup."
   }
 }
@@ -567,7 +672,10 @@ resource "terraform_data" "check_slurm_nodeset" {
 
   lifecycle {
     precondition {
-      condition     = try(each.value.size, 0) > 0 || try(each.value.min_size, 0) > 0
+      condition = (
+        try(each.value.size, 0) > 0 ||
+        try(each.value.min_size, 0) > 0
+      )
       error_message = "Either size or min_size must be greater than zero in node set ${each.key}."
     }
 

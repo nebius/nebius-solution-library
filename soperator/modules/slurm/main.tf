@@ -274,6 +274,22 @@ resource "helm_release" "motd_nebius_o11y_script" {
   wait = true
 }
 
+resource "helm_release" "image_storage_conf" {
+  count = var.node_local_image_storage.enabled ? 1 : 0
+
+  name       = "image-storage"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.name
+
+  values = [templatefile("${path.module}/templates/image_storage_cm.yaml.tftpl", {})]
+
+  wait = true
+}
+
 resource "helm_release" "spo" {
   depends_on = [
     module.monitoring,
@@ -320,7 +336,7 @@ resource "helm_release" "slurm_cluster" {
       slurm_raw_config  = var.slurm_partition_raw_config
     }
 
-    slurm_worker_features = var.slurm_worker_features
+    slurm_worker_features     = var.slurm_worker_features
     slurm_health_check_config = var.slurm_health_check_config
 
     k8s_node_filters = local.node_filters
@@ -329,6 +345,8 @@ resource "helm_release" "slurm_cluster" {
       name       = submount.name
       mount_path = submount.mount_path
     }]
+    node_local_jail_submounts = var.node_local_jail_submounts
+    node_local_image_storage  = var.node_local_image_storage
 
     nfs = var.nfs
 

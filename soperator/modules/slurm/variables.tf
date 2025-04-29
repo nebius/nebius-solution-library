@@ -45,12 +45,12 @@ variable "slurm_partition_raw_config" {
 
 variable "slurm_worker_features" {
   description = "List of features to be enabled on worker nodes."
-  type        = list(object({
-    name         = string
+  type = list(object({
+    name          = string
     hostlist_expr = string
     nodeset_name  = optional(string)
   }))
-  default     = []
+  default = []
 }
 
 # endregion WorkerFeatures
@@ -61,13 +61,13 @@ variable "slurm_health_check_config" {
   description = "Health check configuration."
   type = object({
     health_check_interval = number
-    health_check_program = string
+    health_check_program  = string
     health_check_node_state = list(object({
       state = string
     }))
   })
   nullable = true
-  default = null
+  default  = null
 }
 
 # endregion HealthCheckConfig
@@ -222,6 +222,40 @@ variable "filestores" {
 }
 
 # endregion Filestore
+
+# region Disks
+
+variable "node_local_jail_submounts" {
+  description = "Node-local disks to be mounted inside jail."
+  type = list(object({
+    name               = string
+    mount_path         = string
+    size_gibibytes     = number
+    disk_type          = string
+    filesystem_type    = string
+    storage_class_name = string
+  }))
+  nullable = false
+  default  = []
+}
+
+variable "node_local_image_storage" {
+  description = "Node-local disk to store Docker/Enroot data."
+  type = object({
+    enabled = bool
+    spec = optional(object({
+      size_gibibytes     = number
+      filesystem_type    = string
+      storage_class_name = string
+    }))
+  })
+  nullable = false
+  default = {
+    enabled = false
+  }
+}
+
+# endregion Disks
 
 # region nfs-server
 

@@ -114,7 +114,7 @@ locals {
       }
     }
     kruise_daemon = {
-      cpu = 0.05
+      cpu    = 0.05
       memory = 0.128
     }
   }
