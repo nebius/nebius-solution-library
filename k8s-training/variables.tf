@@ -147,10 +147,16 @@ variable "cpu_disk_size" {
 }
 
 # K8s GPU node group
-variable "gpu_nodes_count" {
+variable "gpu_nodes_count_per_group" {
   description = "Number of nodes in the GPU node group."
   type        = number
   default     = 2
+}
+
+variable "gpu_node_groups" {
+  description = "Number of GPU node groups."
+  type        = number
+  default     = 1
 }
 
 variable "gpu_nodes_platform" {
@@ -174,7 +180,7 @@ variable "gpu_nodes_preset" {
 variable "gpu_disk_type" {
   description = "Disk type for nodes in the GPU node group."
   type        = string
-  default     = "NETWORK_SSD"
+  default     = "NETWORK_SSD" # NETWORK_SSD NETWORK_SSD_NON_REPLICATED NETWORK_SSD_IO_M3
 }
 
 variable "gpu_disk_size" {

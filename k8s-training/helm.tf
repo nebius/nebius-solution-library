@@ -51,7 +51,7 @@ module "o11y" {
       node_groups = {
         node_group_name = {
           gpus              = tonumber(split("gpu-", local.gpu_nodes_preset)[0])
-          instance_group_id = nebius_mk8s_v1_node_group.gpu.id
+          instance_group_id = nebius_mk8s_v1_node_group.gpu[0].id
         }
       }
       pv_root_path = var.enable_filestore ? "/mnt/filestore" : "/data"
@@ -67,5 +67,5 @@ module "nccl-test" {
 
   count           = var.test_mode ? 1 : 0
   source          = "../modules/nccl-test"
-  number_of_hosts = nebius_mk8s_v1_node_group.gpu.fixed_node_count
+  number_of_hosts = nebius_mk8s_v1_node_group.gpu[0].fixed_node_count
 }

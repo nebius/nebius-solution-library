@@ -75,7 +75,8 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
 }
 
 resource "nebius_mk8s_v1_node_group" "gpu" {
-  fixed_node_count = var.gpu_nodes_count
+  count     = var.gpu_node_groups
+  fixed_node_count = var.gpu_nodes_count_per_group
   parent_id        = nebius_mk8s_v1_cluster.k8s-cluster.id
   name             = join("-", ["k8s-ng-gpu", local.release-suffix])
   labels = {
