@@ -241,6 +241,12 @@ variable "loki_secret_key" {
   default = null
 }
 
+variable "loki_custom_replication_factor" {
+  description = "By default there will be one replica of Loki for each 20 nodes in the cluster. Configure this variable if you want to set number of replicas manually"
+  type        = number
+  default     = null
+}
+
 # Helm
 variable "iam_token" {
   description = "Token for Helm provider authentication. (source environment.sh)"
