@@ -110,28 +110,6 @@ resource "helm_release" "install_package_check" {
   wait = true
 }
 
-resource "terraform_data" "wait_for_install_package_check" {
-  depends_on = [
-    helm_release.install_package_check
-  ]
-
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command = join(
-      " ",
-      [
-        "kubectl", "wait",
-        "--for=jsonpath='{.status.k8sJobsStatus.lastK8sJobStatus}'=Complete",
-        "--timeout", "2m",
-        "--context", var.k8s_cluster_context,
-        "-n", var.slurm_cluster_namespace,
-        "activechecks.slurm.nebius.ai/install-package"
-      ]
-    )
-  }
-}
-
-
 resource "helm_release" "ssh_check" {
   count = var.checks.ssh_check_enabled ? 1 : 0
 
@@ -159,6 +137,7 @@ resource "helm_release" "ssh_check" {
 
 resource "terraform_data" "wait_for_ssh_check" {
   depends_on = [
+    helm_release.install_package_check,
     helm_release.ssh_check
   ]
 
@@ -172,7 +151,7 @@ resource "terraform_data" "wait_for_ssh_check" {
         "--timeout", "2m",
         "--context", var.k8s_cluster_context,
         "-n", var.slurm_cluster_namespace,
-        "activechecks.slurm.nebius.ai/ssh"
+        "activechecks.slurm.nebius.ai --all"
       ]
     )
   }
