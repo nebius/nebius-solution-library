@@ -24,7 +24,7 @@ resources:
               echo "Creating ${user_name} user..."
               ssh -i /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa \
                   -o StrictHostKeyChecking=no \
-                  root@login-0.soperator-login-svc.soperator.svc 'id "${user_name}" || echo "" | createuser ${user_name} --gecos ""'
+                  root@login-0.soperator-login-svc.soperator.svc 'id "${user_name}" || echo "" | screateuser ${user_name} --gecos ""'
 
               echo "Cleaning up ssh keys..."
               if [ "${save_ssh_key}" == "true" ] && [ ! -e /mnt/jail/home/${user_name}/.ssh/soperatorchecks_id_ecdsa ]; then
