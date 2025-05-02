@@ -1,0 +1,48 @@
+resources:
+  - apiVersion: slurm.nebius.ai/v1alpha1
+    kind: ActiveCheck
+    metadata:
+      name: create-user-${user_name}
+      namespace: ${slurm_cluster_namespace}
+    spec:
+      checkType: k8sJob
+      suspend: true
+      k8sJobSpec:
+        jobContainer:
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              apt-get update && apt-get install -y openssh-client && rm -rf /var/lib/apt/lists/*
+
+              echo "Generating ssh key..."
+              ssh-keygen -t ecdsa -f /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa -N '' -C soperatorchecks
+              cat /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa.pub >> /mnt/jail/root/.ssh/authorized_keys
+
+              echo "Creating ${user_name} user..."
+              ssh -i /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa \
+                  -o StrictHostKeyChecking=no \
+                  root@login-0.soperator-login-svc.soperator.svc 'id "${user_name}" || echo "" | createuser ${user_name} --gecos ""'
+
+              echo "Cleaning up ssh keys..."
+              if [ "${save_ssh_key}" == "true" ] && [ ! -e /mnt/jail/home/${user_name}/.ssh/soperatorchecks_id_ecdsa ]; then
+                cat /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa.pub >> /mnt/jail/home/${user_name}/.ssh/authorized_keys
+                mv /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa /mnt/jail/home/${user_name}/.ssh/soperatorchecks_id_ecdsa 
+                mv /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa.pub /mnt/jail/home/${user_name}/.ssh/soperatorchecks_id_ecdsa.pub
+              else
+                rm -f /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa /mnt/jail/root/.ssh/soperatorchecks_id_ecdsa.pub
+              fi
+              sed -i '/soperatorchecks/d' /mnt/jail/root/.ssh/authorized_keys
+          image: ubuntu:jammy
+          volumes:
+          - name: jail
+            persistentVolumeClaim:
+              claimName: jail-pvc
+          volumeMounts:
+          - name: jail
+            mountPath: /mnt/jail
+      name: create-user-${user_name}-check
+      runAfterCreation: true
+      slurmClusterRefName: ${slurm_cluster_name}

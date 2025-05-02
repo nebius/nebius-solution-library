@@ -1,0 +1,38 @@
+resources:
+  - apiVersion: slurm.nebius.ai/v1alpha1
+    kind: ActiveCheck
+    metadata:
+      name: ssh
+      namespace: ${slurm_cluster_namespace}
+    spec:
+      checkType: k8sJob
+      suspend: true
+      k8sJobSpec:
+        jobContainer:
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              apt-get update && apt-get install -y openssh-client && rm -rf /var/lib/apt/lists/*
+
+              echo "Checking ssh connectivity to login nodes..."
+              for ((i=0; i<${num_of_login_nodes}; i++)); do
+                echo "Connecting to node login-$i via jumphost..."
+                ssh -i /mnt/jail/home/${user_name}/.ssh/soperatorchecks_id_ecdsa \
+                    -o StrictHostKeyChecking=no \
+                    -o "ProxyCommand=ssh -i /mnt/jail/home/${user_name}/.ssh/soperatorchecks_id_ecdsa -o StrictHostKeyChecking=no -W %h:%p ${user_name}@login-0.soperator-login-svc.soperator.svc " \
+                    ${user_name}@login-$i.soperator-login-svc.soperator.svc hostname
+              done
+          image: ubuntu:jammy
+          volumes:
+          - name: jail
+            persistentVolumeClaim:
+              claimName: jail-pvc
+          volumeMounts:
+          - name: jail
+            mountPath: /mnt/jail
+      name: ssh-check
+      runAfterCreation: true
+      slurmClusterRefName: ${slurm_cluster_name}

@@ -1,0 +1,34 @@
+resources:
+  - apiVersion: slurm.nebius.ai/v1alpha1
+    kind: ActiveCheck
+    metadata:
+      name: install-package
+      namespace: ${slurm_cluster_namespace}
+    spec:
+      checkType: k8sJob
+      suspend: true
+      k8sJobSpec:
+        jobContainer:
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              apt-get update && apt-get install -y openssh-client && rm -rf /var/lib/apt/lists/*
+
+              echo "Installing libcudnn8"
+              ssh -i /mnt/jail/home/${user_name}/.ssh/soperatorchecks_id_ecdsa \
+                  -o StrictHostKeyChecking=no \
+                  ${user_name}@login-0.soperator-login-svc.soperator.svc 'sudo apt install -y libcudnn8'
+          image: ubuntu:jammy
+          volumes:
+          - name: jail
+            persistentVolumeClaim:
+              claimName: jail-pvc
+          volumeMounts:
+          - name: jail
+            mountPath: /mnt/jail
+      name: install-package-check
+      runAfterCreation: true
+      slurmClusterRefName: ${slurm_cluster_name}
