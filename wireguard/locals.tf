@@ -16,6 +16,12 @@ locals {
       platform = "cpu-d3"
       preset   = "16vcpu-64gb"
     }
+
+    us-central1 = {
+      platform = "cpu-d3"
+      preset   = "16vcpu-64gb"
+    }
+
   }
 
   current_region_defaults = local.regions_default[var.region]
