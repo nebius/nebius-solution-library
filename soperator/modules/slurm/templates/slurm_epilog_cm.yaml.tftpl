@@ -7,8 +7,6 @@ resources:
       epilog.sh: |-
         #!/bin/bash
 
-        set -ex
-
         if [ -n "$SLURM_JOB_GPUS" ]; then
           cd /tmp
 
