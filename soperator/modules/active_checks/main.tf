@@ -135,7 +135,7 @@ resource "helm_release" "ssh_check" {
   wait = true
 }
 
-resource "terraform_data" "wait_for_ssh_check" {
+resource "terraform_data" "wait_for_checks" {
   depends_on = [
     helm_release.install_package_check,
     helm_release.ssh_check
