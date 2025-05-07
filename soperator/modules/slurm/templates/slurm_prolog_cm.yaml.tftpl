@@ -7,6 +7,14 @@ resources:
       prolog.sh: |-
         #!/bin/bash
 
+        echo "Cleanup enroot containers if it's requeue and there're leftovers of previous run"
+        containers=$(enroot list | grep -E "^pyxis_${SLURM_JOB_ID}[._]")
+        if [ -n "$containers" ]; then
+            for c in $containers; do
+                enroot remove -f "$c"
+            done
+        fi
+
         if [ -n "$SLURM_JOB_GPUS" ]; then
           cd /tmp
 
