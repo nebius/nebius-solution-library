@@ -1,58 +1,26 @@
-resource "kubernetes_namespace" "flux_system" {
-  metadata {
-    name = "flux-system"
-  }
-}
-
 resource "helm_release" "flux2" {
-  depends_on = [kubernetes_namespace.flux_system]
+  depends_on = [terraform_data.flux_namespace]
 
   repository = "https://fluxcd-community.github.io/helm-charts"
   chart      = "flux2"
-  version    = "2.15.0"
+  version    = var.flux_version
 
   name      = "flux2"
   namespace = "flux-system"
-
 }
 
-
-resource "helm_release" "flux2_sync" {
-  depends_on = [helm_release.flux2]
-
-  repository = "https://fluxcd-community.github.io/helm-charts"
-  chart      = "flux2-sync"
-  version    = "1.8.2"
-
-  # Note: Do not change the name or namespace of this resource. The below mimics the behaviour of "flux bootstrap".
-  name      = "flux-system"
-  namespace = "flux-system"
-
-  set {
-    name = "gitRepository.spec.url"
-    # value = "ssh://git@github.com/${var.github_org}/${var.github_repository}.git"
-    value = "https://github.com/${var.github_org}/${var.github_repository}"
+resource "terraform_data" "flux_namespace" {
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command = join(
+      " ",
+      [
+        "kubectl", "create", "namespace", "flux-system",
+        "--context", var.k8s_cluster_context,
+      ]
+    )
   }
-
-  set {
-    name = "gitRepository.spec.ref.branch"
-    # value = "dev"
-    value = "dev"
+  triggers_replace = {
+    first_run = "true"
   }
-
-  set {
-    name  = "gitRepository.spec.interval"
-    value = "1m"
-  }
-
-  set {
-    name  = "kustomization.spec.interval"
-    value = "1m"
-  }
-
-  set {
-    name  = "kustomization.spec.path"
-    value = "fluxcd/enviroment/nebius-cloud/soperator-infra"
-  }
-
 }

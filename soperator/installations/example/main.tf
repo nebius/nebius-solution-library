@@ -285,6 +285,13 @@ module "slurm" {
   slurm_partition_raw_config   = var.slurm_partition_raw_config
   slurm_worker_features        = var.slurm_worker_features
   slurm_health_check_config    = var.slurm_health_check_config
+  backups_enabled              = local.backups_enabled
+
+  github_org              = var.github_org
+  github_repository       = var.github_repository
+  github_branch           = var.github_branch
+  flux_interval           = var.flux_interval
+  flux_kustomization_path = var.slurm_operator_stable ? "fluxcd/environment/nebius-cloud/prod" : "fluxcd/environment/nebius-cloud/dev"
 
   iam_project_id = var.iam_project_id
 
@@ -483,6 +490,6 @@ module "fluxcd" {
   depends_on = [
     module.k8s,
   ]
-  source = "../../modules/fluxcd"
+  source              = "../../modules/fluxcd"
   k8s_cluster_context = module.k8s.cluster_context
 }

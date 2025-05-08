@@ -935,16 +935,28 @@ variable "maintenance" {
 
 # endregion Slurm
 
-# region GitHub
+# region fluxcd
 variable "github_org" {
-  description = "GitHub organization"
+  description = "The GitHub organization."
   type        = string
   default     = "nebius"
 }
 
 variable "github_repository" {
-  description = "GitHub repository"
+  description = "The GitHub repository."
   type        = string
   default     = "soperator"
 }
-# endregion GitHub
+
+variable "github_branch" {
+  description = "The GitHub branch."
+  type        = string
+  default     = "main"
+}
+variable "flux_interval" {
+  description = "The interval for Flux to check for changes."
+  type        = string
+  default     = "1m"
+}
+
+# endregion fluxcd
