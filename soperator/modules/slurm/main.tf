@@ -1,117 +1,77 @@
-resource "terraform_data" "wait_for_slurm_cluster" {
+resource "helm_release" "mariadb_operator" {
+  count = var.accounting_enabled ? 1 : 0
+
   depends_on = [
-    helm_release.flux2_sync,
+    module.monitoring,
+    module.certificate_manager,
   ]
 
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<-EOF
-      set -e
+  name       = local.helm.chart.operator.mariadb
+  repository = local.helm.repository.mariadb
+  chart      = local.helm.chart.operator.mariadb
+  version    = local.helm.version.mariadb
 
-      CONTEXT="${var.k8s_cluster_context}"
-      NAMESPACE="flux-system"
-      HELMRELEASE_NAME="flux-system-soperator-fluxcd-slurm-cluster"
-      TIMEOUT_MINUTES=60
-      MAX_RETRIES=$((TIMEOUT_MINUTES * 12))  # Check every 5 seconds
-      SLEEP_SECONDS=5
+  create_namespace = true
+  namespace        = var.mariadb_operator_namespace
 
-      echo "Waiting for HelmRelease CRD to be available..."
-      for i in $(seq 1 $MAX_RETRIES); do
-        if kubectl get crd helmreleases.helm.toolkit.fluxcd.io --context "$CONTEXT" 2>/dev/null; then
-          echo "HelmRelease CRD is available."
-          break
-        fi
-
-        if [ $i -eq $MAX_RETRIES ]; then
-          echo "Timeout reached waiting for HelmRelease CRD."
-          exit 1
-        fi
-
-        echo "($i/$MAX_RETRIES) Waiting for HelmRelease CRD..."
-        sleep "$SLEEP_SECONDS"
-      done
-
-      echo "Waiting for HelmRelease $HELMRELEASE_NAME to be created..."
-      for i in $(seq 1 $MAX_RETRIES); do
-        if kubectl get helmreleases.helm.toolkit.fluxcd.io "$HELMRELEASE_NAME" -n "$NAMESPACE" --context "$CONTEXT" 2>/dev/null; then
-          echo "HelmRelease $HELMRELEASE_NAME exists."
-          break
-        fi
-
-        if [ $i -eq $MAX_RETRIES ]; then
-          echo "Timeout reached waiting for HelmRelease $HELMRELEASE_NAME to be created."
-          exit 1
-        fi
-
-        echo "($i/$MAX_RETRIES) Waiting for HelmRelease $HELMRELEASE_NAME to be created..."
-        sleep "$SLEEP_SECONDS"
-      done
-
-      echo "Waiting for HelmRelease $HELMRELEASE_NAME to be successfully installed..."
-      for i in $(seq 1 $MAX_RETRIES); do
-        # Check if the HelmRelease is in the "Released" state
-        RELEASE_STATUS=$(kubectl get helmreleases.helm.toolkit.fluxcd.io "$HELMRELEASE_NAME" -n "$NAMESPACE" --context "$CONTEXT" -o jsonpath='{.status.conditions[?(@.type=="Released")]}' 2>/dev/null)
-        
-        if [ -n "$RELEASE_STATUS" ]; then
-          RELEASE_STATUS_REASON=$(echo "$RELEASE_STATUS" | jq -r '.reason')
-          RELEASE_STATUS_STATUS=$(echo "$RELEASE_STATUS" | jq -r '.status')
-          
-          if [ "$RELEASE_STATUS_REASON" == "InstallSucceeded" ] && [ "$RELEASE_STATUS_STATUS" == "True" ]; then
-            echo "HelmRelease $HELMRELEASE_NAME has been successfully installed."
-            echo "Details:"
-            echo "$RELEASE_STATUS" | jq .
-            exit 0
-          fi
-        fi
-
-        if [ $i -eq $MAX_RETRIES ]; then
-          echo "Timeout reached waiting for HelmRelease $HELMRELEASE_NAME to be successfully installed."
-          echo "Current status:"
-          kubectl get helmreleases.helm.toolkit.fluxcd.io "$HELMRELEASE_NAME" -n "$NAMESPACE" --context "$CONTEXT" -o yaml
-          exit 1
-        fi
-
-        echo "($i/$MAX_RETRIES) Waiting for HelmRelease $HELMRELEASE_NAME to be successfully installed..."
-        sleep "$SLEEP_SECONDS"
-      done
-    EOF
+  set {
+    name  = "metrics.enabled"
+    value = var.telemetry_enabled
   }
+  set {
+    name  = "metrics.serviceMonitor.enabled"
+    value = var.telemetry_enabled
+  }
+  set {
+    name  = "metrics.serviceMonitor.interval"
+    value = "30s"
+  }
+  set {
+    name  = "metrics.serviceMonitor.scrapeTimeout"
+    value = "25s"
+  }
+  set {
+    name  = "serviceAccount.enabled"
+    value = true
+  }
+
+  set {
+    name  = "cert.certManager.enabled"
+    value = var.telemetry_enabled
+  }
+
+  wait          = true
+  wait_for_jobs = true
 }
 
-resource "helm_release" "soperator_fluxcd_cm" {
-  name       = "terraform-fluxcd-values"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-  namespace  = "flux-system"
+resource "helm_release" "slurm_cluster_crd" {
+  name       = local.helm.chart.slurm_operator_crds
+  repository = local.helm.repository.slurm
+  chart      = "helm-${local.helm.chart.slurm_operator_crds}"
+  version    = local.helm.version.slurm
 
-  values = [templatefile("${path.module}/templates/helm_values/terraform_fluxcd_values.yaml.tftpl", {
-    backups_enabled    = var.backups_enabled
-    telemetry_enabled  = var.telemetry_enabled
-    accounting_enabled = var.accounting_enabled
+  create_namespace = true
+  namespace        = "${local.helm.chart.operator.slurm}-system"
 
-    apparmor_enabled        = var.use_default_apparmor_profile
-    enable_soperator_checks = var.enable_soperator_checks
+  wait          = true
+  wait_for_jobs = true
+}
 
-    operator_version                   = var.operator_version
-    cert_manager_version               = var.cert_manager_version
-    k8up_version                       = var.k8up_version
-    mariadb_operator_version           = var.mariadb_operator_version
-    opentelemetry_collector_version    = var.opentelemetry_collector_version
-    prometheus_crds_version            = var.prometheus_crds_version
-    security_profiles_operator_version = var.security_profiles_operator_version
-    vmstack_version                    = var.vmstack_version
-    vmstack_crds_version               = var.vmstack_crds_version
-    vmlogs_version                     = var.vmlogs_version
+resource "helm_release" "slurm_cluster_storage" {
+  depends_on = [
+    terraform_data.check_worker_nodesets,
+  ]
 
+  name       = local.helm.chart.slurm_cluster_storage
+  repository = local.helm.repository.slurm
+  chart      = "helm-${local.helm.chart.slurm_cluster_storage}"
+  version    = local.helm.version.slurm
 
-    cluster_name        = var.cluster_name
-    public_o11y_enabled = var.public_o11y_enabled
-    metrics_collector   = local.metrics_collector
-    create_pvcs         = var.create_pvcs
+  create_namespace = true
+  namespace        = var.name
 
-    slurm_cluster_storage = {
-      scheduling = local.node_filters
+  values = [templatefile("${path.module}/templates/helm_values/slurm_cluster_storage.yaml.tftpl", {
+    scheduling = local.node_filters
 
     volume = {
       controller_spool = {
