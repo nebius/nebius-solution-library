@@ -206,10 +206,11 @@ echo "NEBIUS_REGION: ${NEBIUS_REGION}"
 
 # region Service account
 
-NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account list \
+NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account get-by-name \
   --parent-id "${NEBIUS_PROJECT_ID}" \
+  --name "${PRODUCT}-terraform-sa" \
   --format json \
-  | jq -r ".items[] | select(.metadata.name == \"${PRODUCT}-terraform-sa\").metadata.id")
+  | jq -r '.metadata.id')
 
 if [ -z "$NEBIUS_SA_TERRAFORM_ID" ]; then
   NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account create \

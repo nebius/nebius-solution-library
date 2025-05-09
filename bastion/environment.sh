@@ -49,10 +49,11 @@ fi
 
 # Nebius service account
 NEBIUS_SA_NAME="bastion-tfstate-sa"
-NEBIUS_SA_ID=$(nebius iam service-account list \
+NEBIUS_SA_ID=$(nebius iam service-account get-by-name \
   --parent-id "${NEBIUS_PROJECT_ID}" \
+  --name "${NEBIUS_SA_NAME}" \
   --format json \
-  | jq -r --arg SANAME "${NEBIUS_SA_NAME}" 'try .items[] | select(.metadata.name == $SANAME).metadata.id')
+  | jq -r '.metadata.id')
 
 if [ -z "$NEBIUS_SA_ID" ]; then
   NEBIUS_SA_ID=$(nebius iam service-account create \

@@ -24,6 +24,6 @@ create_public_ip_for_all_instances = false
 instance_count = 1
 
 shared_filesystem_id = ""
-mount_bucket = "fabric-6"
+mount_bucket = ""
 
-fabric = ""
+fabric = "fabric-n"
