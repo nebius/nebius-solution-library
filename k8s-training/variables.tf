@@ -195,6 +195,17 @@ variable "enable_k8s_node_group_sa" {
   default     = true
 }
 
+variable "mig_parted_config" {
+  description = "MIG partition config to be assigned to node group label"
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.mig_parted_config == null || contains(local.valid_mig_parted_configs[local.gpu_nodes_platform], coalesce(var.mig_parted_config, "null"))
+    error_message = "Invalid MIG config '${coalesce(var.mig_parted_config, "null")}' for the selected GPU platform '${local.gpu_nodes_platform}'. Must be one of ${join(", ", local.valid_mig_parted_configs[local.gpu_nodes_platform])} or left unset."
+  }
+}
+
 # Observability
 variable "enable_grafana" {
   description = "Enable Grafana."
@@ -230,6 +241,12 @@ variable "loki_secret_key" {
   default = null
 }
 
+variable "loki_custom_replication_factor" {
+  description = "By default there will be one replica of Loki for each 20 nodes in the cluster. Configure this variable if you want to set number of replicas manually"
+  type        = number
+  default     = null
+}
+
 # Helm
 variable "iam_token" {
   description = "Token for Helm provider authentication. (source environment.sh)"
@@ -258,4 +275,10 @@ variable "kuberay_max_gpu_replicas" {
   description = "Minimum amount of kuberay gpu worker pods"
   type        = number
   default     = 1
+}
+
+variable "mig_strategy" {
+  description = "MIG strategy for GPU operator"
+  type        = string
+  default     = null
 }

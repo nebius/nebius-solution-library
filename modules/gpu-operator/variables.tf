@@ -8,12 +8,6 @@ variable "parent_id" {
   type        = string
 }
 
-variable "driver_version" {
-  description = "GPU driver version."
-  type        = string
-  default     = "550.54.15"
-}
-
 variable "enable_dcgm_service_monitor" {
   description = "Whether to enable DCGM service monitor."
   type        = bool
@@ -24,4 +18,15 @@ variable "relabel_dcgm_exporter" {
   description = "Whether to add 'app.kubernetes.io/name' label to DCGM metrics"
   type        = bool
   default     = false
+}
+
+variable "mig_strategy" {
+  description = "MIG strategy for GPU nodes."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.mig_strategy == null || contains(["none", "single", "mixed"], coalesce(var.mig_strategy, "null"))
+    error_message = "Invalid MIG strategy '${coalesce(var.mig_strategy, "null")}'. Must be one of ['none', 'single', 'mixed'] or left unset."
+  }
 }

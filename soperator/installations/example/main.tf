@@ -104,6 +104,8 @@ module "nfs-server" {
   ssh_user_name   = "soperator"
   ssh_public_keys = var.slurm_login_ssh_root_public_keys
 
+  public_ip = var.nfs.public_ip
+
   providers = {
     nebius = nebius
   }

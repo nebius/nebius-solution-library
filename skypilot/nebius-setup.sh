@@ -150,11 +150,13 @@ select_and_save_project() {
 
 # Select tenant and project
 select_and_save_tenant
+TENANT_ID=$(cat ~/.nebius/NEBIUS_TENANT_ID.txt)
 select_and_save_project
-
+PROJECT_ID=$(cat ~/.nebius/NEBIUS_PROJECT_ID.txt)
 echo "Step 1: Checking if service account exists..."
 # Check if service account exists
 SA_JSON=$(nebius iam service-account get-by-name \
+  --parent-id "$PROJECT_ID" \
   --name "$SERVICE_ACCOUNT_NAME" \
   --format json 2>/dev/null || echo '{"metadata":{"id":""}}')
 SA_ID=$(echo "$SA_JSON" | jq -r ".metadata.id")
@@ -162,6 +164,7 @@ SA_ID=$(echo "$SA_JSON" | jq -r ".metadata.id")
 if [ -z "$SA_ID" ] || [ "$SA_ID" == "null" ]; then
   echo "   Service account '$SERVICE_ACCOUNT_NAME' not found. Creating new service account..."
   SA_JSON=$(nebius iam service-account create \
+    --parent-id "$PROJECT_ID" \
     --name "$SERVICE_ACCOUNT_NAME" \
     --format json)
   SA_ID=$(echo "$SA_JSON" | jq -r '.metadata.id')
@@ -186,6 +189,7 @@ fi
 echo "Step 2: Generating key pair..."
 
 nebius iam auth-public-key generate \
+  --parent-id "$PROJECT_ID" \
   --service-account-id "$SA_ID" \
   --output ~/.nebius/credentials.json
 
@@ -202,6 +206,7 @@ if [[ "$SETUP_STORAGE" =~ ^[Yy]$ ]]; then
   # Create access key for Object Storage
   echo "   Creating access key for Object Storage..."
   ACCESS_KEY_ID=$(nebius iam access-key create \
+    --parent-id "$PROJECT_ID" \
     --account-service-account-id "$SA_ID" \
     --description 'AWS CLI' \
     --format json | jq -r '.resource_id')

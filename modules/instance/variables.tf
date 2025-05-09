@@ -98,12 +98,18 @@ variable "extra_storage_class" {
   description = "Network type of additional disk being added"
 }
 
-
 variable "public_ip" {
   type        = bool
   default     = true
-  description = "attach a public ip to the vm if true"
+  description = "attach a public ip to the first created vm if true"
 }
+
+variable "create_public_ip_for_all_instances" {
+  type        = bool
+  default     = false
+  description = "attach a public ip to all vms if true"
+}
+
 variable "mount_bucket" {
   type        = string
   description = "name of a bucket that should be mounted into fs"

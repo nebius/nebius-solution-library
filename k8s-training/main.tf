@@ -11,9 +11,9 @@ resource "nebius_mk8s_v1_cluster" "k8s-cluster" {
   }
 }
 
-data "nebius_iam_v1_group" "admins" {
+data "nebius_iam_v1_group" "editors" {
   count     = var.enable_k8s_node_group_sa ? 1 : 0
-  name      = "admins"
+  name      = "editors"
   parent_id = var.tenant_id
 }
 
@@ -25,7 +25,7 @@ resource "nebius_iam_v1_service_account" "k8s_node_group_sa" {
 
 resource "nebius_iam_v1_group_membership" "k8s_node_group_sa-admin" {
   count     = var.enable_k8s_node_group_sa ? 1 : 0
-  parent_id = data.nebius_iam_v1_group.admins[0].id
+  parent_id = data.nebius_iam_v1_group.editors[0].id
   member_id = nebius_iam_v1_service_account.k8s_node_group_sa[count.index].id
 }
 
@@ -83,6 +83,12 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
   }
   version = var.k8s_version
   template = {
+    metadata = {
+      labels = var.mig_parted_config != null ? {
+        "nvidia.com/mig.config" = var.mig_parted_config
+      } : {}
+    }
+
     boot_disk = {
       size_gibibytes = var.gpu_disk_size
       type           = var.gpu_disk_type

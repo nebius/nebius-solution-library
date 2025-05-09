@@ -34,7 +34,7 @@
 
 3. [Configure Nebius CLI](https://docs.nebius.com/cli/configure/) (it is recommended to use [service account](https://docs.nebius.com/iam/service-accounts/manage/) for configuration)
 
-4. Install JQuery:
+4. Install JQ:
    - MacOS:
      ```bash
      brew install jq
@@ -95,7 +95,7 @@ ssh_public_key = {
 ### Kubernetes nodes
 
 ```hcl
-# K8s modes
+# K8s nodes
 cpu_nodes_count  = 3 # Number of CPU nodes
 cpu_nodes_preset = "16vcpu-64gb" # CPU node preset
 gpu_nodes_count  = 1 # Number of GPU nodes
@@ -103,6 +103,16 @@ gpu_nodes_count  = 1 # Number of GPU nodes
 gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 8 GPU can be added to gpu cluster with infiniband connection.
 
 ```
+
+### Nvidia Multi Instance GPU (MIG) configuration
+
+```hcl
+# MIG configuration
+mig_strategy = "single" # If set, possible values include 'single', 'mixed', 'none'
+mig_parted_config = "all-disabled" # If set, value will be checked against allowed for the selected 'gpu_nodes_platform'
+```
+
+See [NVIDIA documentation for different MIG strategies](https://docs.nvidia.com/datacenter/cloud-native/kubernetes/latest/index.html#testing-with-different-strategies) and [MIG partitioning configurations for different GPU platforms](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/).
 
 ### Observability options
 
@@ -279,17 +289,6 @@ To access the NVIDIA DCGM Exporter dashboard, go to `http://localhost:8080/d/Oxe
 To enable alert messages for Slack, refer to this [article](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-slack/)
 
 ## Accessing storage
-
-### Prerequisites:
-
-1. To use csi-driver, you must set 'enable_filestore = true' in the `terraform.tfvars` file.
-2. Deploy the helm release that manages this csi-driver in the `helm.tf` file by applying the "csi-mounted-fs-path" module.
-3. Keep in mind that the 'csi-mounted-fs-path' module can only be applied while instances are booting, using the following /nebius-solution-library/modules/cloud-init/k8s-cloud-init.tftpl commands:
-   ```shell
-     - sudo mkdir -p /mnt/data
-     - sudo mount -t virtiofs data /mnt/data
-     - echo data /mnt/data \"virtiofs\" \"defaults\" \"0\" \"2\" | sudo tee -a /etc/fstab"
-   ```
 
 ### Using mounted StorageClass
 

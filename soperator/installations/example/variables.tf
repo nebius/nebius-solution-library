@@ -333,6 +333,7 @@ variable "nfs" {
       platform = string
       preset   = string
     })
+    public_ip = bool
   })
   default = {
     enabled        = false
@@ -341,6 +342,7 @@ variable "nfs" {
       platform = "cpu-d3"
       preset   = "32vcpu-128gb"
     }
+    public_ip = false
   }
 
   validation {

@@ -142,6 +142,7 @@ nfs = {
     platform = "cpu-d3"
     preset   = "32vcpu-128gb"
   }
+  public_ip = false
 }
 
 # endregion nfs-server

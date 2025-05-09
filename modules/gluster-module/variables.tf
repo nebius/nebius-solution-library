@@ -58,3 +58,10 @@ variable "ssh_public_key" {
   description = "SSH public key for the 'root' user."
   type        = string
 }
+
+# PUBLIC IP
+variable "public_ip" {
+  type        = bool
+  default     = false
+  description = "attach a public ip to the vm if true"
+}
