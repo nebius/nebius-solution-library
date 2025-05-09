@@ -25,10 +25,10 @@ variable "num_of_login_nodes" {
 variable "checks" {
   description = "Defines what checks should be enabled."
   type = object({
+    create_soperatorchecks_user = bool
+
     create_nebius_user = bool
     nebius_username = string
-    create_soperatorchecks_user = bool
-    soperatorchecks_username = string
 
     ssh_check_enabled = bool
     install_package_check_enabled = bool
@@ -41,6 +41,11 @@ variable "checks" {
 
     ssh_check_enabled = true
     install_package_check_enabled = true
+  }
+
+  validation {
+    condition = !var.checks.create_soperatorchecks_user || var.checks.create_nebius_user
+    error_message = "Create nebius user check could not be performed without soperatorchecks user creation."
   }
 
   validation {

@@ -20,10 +20,10 @@ resources:
               echo "Checking ssh connectivity to login nodes..."
               for ((i=0; i<${num_of_login_nodes}; i++)); do
                 echo "Connecting to node login-$i via jumphost..."
-                ssh -i /mnt/jail/home/${user_name}/.ssh/soperatorchecks_id_ecdsa \
+                ssh -i /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa \
                     -o StrictHostKeyChecking=no \
-                    -o "ProxyCommand=ssh -i /mnt/jail/home/${user_name}/.ssh/soperatorchecks_id_ecdsa -o StrictHostKeyChecking=no -W %h:%p ${user_name}@login-0.soperator-login-svc.soperator.svc " \
-                    ${user_name}@login-$i.soperator-login-svc.soperator.svc hostname
+                    -o "ProxyCommand=ssh -i /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa -o StrictHostKeyChecking=no -W %h:%p soperatorchecks@login-0.soperator-login-svc.soperator.svc " \
+                    soperatorchecks@login-$i.soperator-login-svc.soperator.svc hostname
               done
           image: ubuntu:jammy
           volumes:
