@@ -470,12 +470,6 @@ module "backups" {
   prune_schedule    = var.backups_prune_schedule
   backups_retention = var.backups_retention
 
-  monitoring = {
-    enabled                    = var.telemetry_enabled
-    namespace                  = module.slurm.monitoring.namespace.monitoring
-    metrics_collector_endpoint = module.slurm.monitoring.metrics_collector_endpoint
-  }
-
   providers = {
     nebius = nebius
     helm   = helm

@@ -28,7 +28,3 @@ resources:
       prune:
         schedule: "${prune_schedule}"
         retention: ${jsonencode(merge(backups_retention, {"tags": ["soperator-jail-schedule"]}))}
-
-        %{~ if monitoring.enabled ~}
-        promURL: "${monitoring.metrics_collector_endpoint.http_host}:${monitoring.metrics_collector_endpoint.port}/api/v1/import/prometheus"
-        %{~ endif ~}
