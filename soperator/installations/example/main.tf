@@ -290,7 +290,7 @@ module "slurm" {
 
   github_org              = var.github_org
   github_repository       = var.github_repository
-  github_branch           = var.github_branch
+  github_branch           = var.slurm_operator_stable ? "main" : "dev"
   flux_interval           = var.flux_interval
   flux_kustomization_path = var.slurm_operator_stable ? "fluxcd/environment/nebius-cloud/prod" : "fluxcd/environment/nebius-cloud/dev"
 
