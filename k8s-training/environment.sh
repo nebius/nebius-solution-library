@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Set the following environment variables:
-NEBIUS_TENANT_ID='tenant-e00rr47h6zdsmk530x'
-NEBIUS_PROJECT_ID='project-e00t8g0ftxd5mvx6h4n77'
-NEBIUS_REGION='eu-north1'
+# NEBIUS_TENANT_ID='tenant-...'
+# NEBIUS_PROJECT_ID='project-...'
+# NEBIUS_REGION='eu-north1'
 
 if [ -z "${NEBIUS_TENANT_ID}" ]; then
   echo "Error: NEBIUS_TENANT_ID is not set"

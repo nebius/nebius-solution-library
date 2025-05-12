@@ -1,20 +1,20 @@
 # SSH config
 ssh_user_name  = "ubuntu" # Username you want to use to connect to the nodes
   ssh_public_key = {
-    key  = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG7cMN4N4XmiRPM+gJ2X+/6fKjdHlMfmSBJMZnw5WOCe keyvan@NB-PF59YX83"
+    key  = "put customers public ssh key here"
     # path = "put path to public ssh key here"
   }
 
 # K8s nodes
 cpu_nodes_count = 2 # Number of CPU nodes
-gpu_nodes_count_per_group = 1 # Number of GPU nodes per group
+gpu_nodes_count_per_group = 2 # Number of GPU nodes per group
 gpu_node_groups = 1 # In case you need more then 100 nodes in cluster you have to put multiple node groups
 cpu_nodes_platform = "cpu-d3"              # CPU nodes platform
 cpu_nodes_preset   = "4vcpu-16gb"          # CPU nodes preset
-gpu_nodes_platform = "gpu-h100-sxm"        # GPU nodes platform
+gpu_nodes_platform = "gpu-h200-sxm"        # GPU nodes platform
 gpu_nodes_preset   = "8gpu-128vcpu-1600gb" # GPU nodes preset
-infiniband_fabric  = "fabric-6"                    # Infiniband fabric name.
-gpu_nodes_driverfull_image = false
+infiniband_fabric  = ""                    # Infiniband fabric name.
+gpu_nodes_driverfull_image = true
 enable_k8s_node_group_sa   = true
 
 # MIG configuration
@@ -45,5 +45,3 @@ glusterfs_disk_size         = 100 * (1024 * 1024 * 1024)    # Set disk size in b
 enable_kuberay           = false                            # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
 kuberay_min_gpu_replicas = 1
 kuberay_max_gpu_replicas = 2
-
-subnet_id = "vpcsubnet-e00e7k92qbvrv17gp3"

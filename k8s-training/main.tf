@@ -47,7 +47,7 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
 
     network_interfaces = [
       {
-        public_ip_address = null
+        public_ip_address = {}
         subnet_id         = var.subnet_id
       }
     ]
