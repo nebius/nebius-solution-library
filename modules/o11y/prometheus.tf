@@ -36,7 +36,7 @@ resource "kubernetes_annotations" "restart_grafana" {
   api_version = "apps/v1"
   kind        = "Deployment"
   metadata {
-    name = "grafana-and-prometheus"
+    name      = "grafana-and-prometheus"
     namespace = var.namespace
   }
   template_annotations = {
