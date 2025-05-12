@@ -29,32 +29,23 @@ module "device-plugin" {
 }
 
 module "o11y" {
-  source    = "../modules/o11y"
-  parent_id = var.parent_id
+  source          = "../modules/o11y"
+  parent_id       = var.parent_id
+  cluster_id      = nebius_mk8s_v1_cluster.k8s-cluster.id
+  cpu_nodes_count = var.cpu_nodes_count
+  gpu_nodes_count = var.gpu_nodes_count
+
   o11y = {
-    grafana = {
-      enabled = var.enable_grafana
-      pv_size = "25Gi"
-    }
     loki = {
-      enabled           = var.enable_loki
-      aws_access_key_id = var.loki_access_key_id
-      secret_key        = var.loki_secret_key
+      enabled            = var.enable_loki
+      aws_access_key_id  = var.loki_access_key_id
+      secret_key         = var.loki_secret_key
+      replication_factor = var.loki_custom_replication_factor
+      region             = var.region
     }
     prometheus = {
-      enabled       = var.enable_prometheus
-      node_exporter = var.enable_prometheus
-      pv_size       = "25Gi"
-    },
-    dcgm = {
-      enabled = var.enable_dcgm,
-      node_groups = {
-        node_group_name = {
-          gpus              = tonumber(split("gpu-", local.gpu_nodes_preset)[0])
-          instance_group_id = nebius_mk8s_v1_node_group.gpu[0].id
-        }
-      }
-      pv_root_path = var.enable_filestore ? "/mnt/filestore" : "/data"
+      enabled = var.enable_prometheus
+      pv_size = "25Gi"
     }
   }
   test_mode = var.test_mode
