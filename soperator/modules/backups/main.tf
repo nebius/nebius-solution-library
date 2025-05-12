@@ -82,7 +82,6 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
 
 resource "helm_release" "backups_schedule" {
   depends_on = [
-    helm_release.k8up_crds,
     terraform_data.k8s_backups_bucket_access_secret
   ]
 
