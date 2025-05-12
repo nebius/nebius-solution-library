@@ -84,42 +84,42 @@ resources:
             %{~ if vmstack_version != "" ~}
             version: ${vmstack_version}
             %{~ endif ~}
-                values:
-                  vmagent:
-                    spec:
-                      extraArgs:
-                        promscrape.maxScrapeSize: "33554432"
-                      resources:
-                        requests:
-                          memory: ${resources.vm_agent.memory}
-                          cpu: ${resources.vm_agent.cpu}
-                        limits:
-                          memory: ${resources.vm_agent.memory}
-                  vmsingle:
-                    spec:
-                      extraArgs:
-                        dedup.minScrapeInterval: 30s
-                        maxLabelsPerTimeseries: "40"
-                        search.maxQueryLen: "18765"
-                        search.maxUniqueTimeseries: "500000"
-                      retentionPeriod: 30d
-                      extraEnvs:
-                      - name: GOMAXPROCS
-                        value: "${resources.vm_single.gomaxprocs}"
-                      %{~ if create_pvcs ~}
-                      storage:
-                        accessModes:
-                          - ReadWriteOnce
-                        resources:
-                          requests:
-                            storage: ${resources.vm_single.size}
-                      %{~ endif ~}
-                      resources:
-                        requests:
-                          memory: ${resources.vm_single.memory}
-                          cpu: ${resources.vm_single.cpu}
-                        limits:
-                          memory: ${resources.vm_single.memory}
+            values:
+              vmagent:
+                spec:
+                  extraArgs:
+                    promscrape.maxScrapeSize: "33554432"
+                  resources:
+                    requests:
+                      memory: ${resources.vm_agent.memory}
+                      cpu: ${resources.vm_agent.cpu}
+                    limits:
+                      memory: ${resources.vm_agent.memory}
+              vmsingle:
+                spec:
+                  extraArgs:
+                    dedup.minScrapeInterval: 30s
+                    maxLabelsPerTimeseries: "40"
+                    search.maxQueryLen: "18765"
+                    search.maxUniqueTimeseries: "500000"
+                  retentionPeriod: 30d
+                  extraEnvs:
+                  - name: GOMAXPROCS
+                    value: "${resources.vm_single.gomaxprocs}"
+                  %{~ if create_pvcs ~}
+                  storage:
+                    accessModes:
+                      - ReadWriteOnce
+                    resources:
+                      requests:
+                        storage: ${resources.vm_single.size}
+                  %{~ endif ~}
+                  resources:
+                    requests:
+                      memory: ${resources.vm_single.memory}
+                      cpu: ${resources.vm_single.cpu}
+                    limits:
+                      memory: ${resources.vm_single.memory}
           vmLogs:
             enabled: ${telemetry_enabled}
             interval: 5m
@@ -611,7 +611,7 @@ resources:
             enabled: true
             interval: 5m
             timeout: 5m
-            values:
+            overrideValues:
               volume:
                 controllerSpool:
                   size: ${slurm_cluster_storage.volume.controller_spool.size}
@@ -683,6 +683,10 @@ resources:
           values:
             manager:
               resources: {}
+          kruise:
+            enabled: true
+            interval: 5m
+            timeout: 5m
           soperatorChecks:
             enabled: true
             interval: 5m
