@@ -2,6 +2,7 @@ module "monitoring" {
   count = var.telemetry_enabled ? 1 : 0
   depends_on = [
     helm_release.flux2_sync,
+    terraform_data.wait_for_monitoring_namespace,
   ]
 
   source = "../monitoring"
