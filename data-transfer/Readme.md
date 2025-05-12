@@ -1,25 +1,3 @@
-rclone sync s3mlperf:renes-bucket /datasets \
-	--progress --links \
-	--use-mmap \
-	--bwlimit=1000M \
-	--transfers=64 --buffer-size=512Mi \
-	--multi-thread-streams=24 --multi-thread-chunk-size=128Mi --multi-thread-cutoff=4Gi --multi-thread-write-buffer-size=256Mi \
-	--checkers=16 --size-only \
-	--update --use-server-modtime --fast-list --s3-no-head-object --s3-chunk-size=32M
-
-
-.config/rclone/rclone.conf
-[s3mlperf]
-type = s3
-provider = AWS
-env_auth = false
-region = eu-north1
-no_check_bucket = true
-endpoint = https://storage.eu-north1.nebius.cloud:443
-acl = private
-bucket_acl = private
-access_key_id = <access_key>
-secret_access_key = <secret_key>
 
 # Data Transfer
 This repository contains solutions for high-performance data transfer between Amazon S3 and local file storage across multiple nodes. The primary script provided is copy_s3_to_sfs_multi_node.sh, which enables efficient data synchronization.
