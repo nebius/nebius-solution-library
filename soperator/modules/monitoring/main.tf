@@ -136,11 +136,11 @@ resource "helm_release" "slurm_monitor" {
 
 resource "helm_release" "dashboard" {
   for_each = tomap({
-    gpu_metrics        = "gpu-metrics"
-    slurm_exporter     = "exporter"
-    kube_state_metrics = "kube-state-metrics"
-    node_exporter      = "node-exporter"
-    pod_resources      = "pod-resources"
+    slurm_exporter         = "exporter"
+    kube_state_metrics     = "kube-state-metrics"
+    pod_resources          = "pod-resources"
+    workers_overview       = "workers-overview"
+    workers_detailed_stats = "workers-detailed-stats"
   })
 
   depends_on = [
