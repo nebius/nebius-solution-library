@@ -346,11 +346,6 @@ variable "telemetry_enabled" {
   default     = true
 }
 
-variable "telemetry_grafana_admin_password" {
-  description = "Password of `admin` user of Grafana."
-  type        = string
-}
-
 # endregion Telemetry
 
 # region Accounting
