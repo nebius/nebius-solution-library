@@ -45,38 +45,31 @@ locals {
   }
 }
 
-resource "terraform_data" "wait_for_manual_o11y_token_creation" {
-  count = var.telemetry_enabled || var.public_o11y_enabled ? 1 : 0
+resource "terraform_data" "wait_for_monitoring_namespace" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<-EOF
       set -e
 
-      MAX_RETRIES=30
+      MAX_RETRIES=50
       SLEEP_SECONDS=5
 
-      SECRET_NAME="o11y-writer-sa-token"
-      KEY_NAME="accessToken"
-
-      NAMESPACE="${local.namespace.logs}"
+      NAMESPACE="monitoring-system"
       CONTEXT="${var.k8s_cluster_context}"
 
-      # Loop until the secret with the specified key is found or we reach MAX_RETRIES
+      # Loop until the namespace is found or we reach MAX_RETRIES
       for i in $(seq 1 $MAX_RETRIES); do
-        # Try to retrieve the 'accessToken' data from the secret
-        if kubectl get secret "$SECRET_NAME" \
-          -n "$NAMESPACE" \
-          --context "$CONTEXT" \
-          -o "jsonpath={.data.$KEY_NAME}" 2>/dev/null | grep -q '[^[:space:]]'; then
-          echo "Secret '$SECRET_NAME' with key '$KEY_NAME' is present."
+        # Try to retrieve the namespace
+        if kubectl get namespace "$NAMESPACE" --context "$CONTEXT" 2>/dev/null; then
+          echo "Namespace '$NAMESPACE' is present and ready."
           exit 0
         fi
 
-        echo "($i/$MAX_RETRIES) Waiting for the secret '$SECRET_NAME' to contain '$KEY_NAME'..."
+        echo "($i/$MAX_RETRIES) Waiting for namespace '$NAMESPACE' to be created..."
         sleep "$SLEEP_SECONDS"
       done
 
-      echo "Timeout reached. Secret '$SECRET_NAME' does not contain '$KEY_NAME'."
+      echo "Timeout reached. Namespace '$NAMESPACE' was not created within the allowed time."
       exit 1
     EOF
   }
