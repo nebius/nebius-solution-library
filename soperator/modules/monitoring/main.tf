@@ -38,7 +38,6 @@ resource "helm_release" "prometheus_stack" {
   namespace        = local.namespace.monitoring
 
   values = [templatefile("${path.module}/templates/helm_values/prometheus.yaml.tftpl", {
-    admin_password    = var.grafana_admin_password
     metrics_collector = local.metrics_collector
   })]
 

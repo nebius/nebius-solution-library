@@ -85,8 +85,3 @@ variable "resources_fb_logs_collector" {
     cpu    = "400m"
   }
 }
-
-variable "grafana_admin_password" {
-  description = "Password of `admin` user of Grafana."
-  type        = string
-}

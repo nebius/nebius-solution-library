@@ -267,9 +267,7 @@ resource "helm_release" "motd_nebius_o11y_script" {
   create_namespace = true
   namespace        = var.name
 
-  values = [templatefile("${path.module}/templates/motd_nebius_o11y_cm.yaml.tftpl", {
-    telemetry_grafana_admin_password = var.telemetry_grafana_admin_password
-  })]
+  values = [templatefile("${path.module}/templates/motd_nebius_o11y_cm.yaml.tftpl")]
 
   wait = true
 }
