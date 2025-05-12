@@ -33,7 +33,7 @@ module "o11y" {
   parent_id       = var.parent_id
   cluster_id      = nebius_mk8s_v1_cluster.k8s-cluster.id
   cpu_nodes_count = var.cpu_nodes_count
-  gpu_nodes_count = var.gpu_nodes_count
+  gpu_nodes_count = var.gpu_nodes_count_per_group * var.gpu_node_groups
 
   o11y = {
     loki = {

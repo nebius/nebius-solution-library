@@ -219,12 +219,6 @@ variable "mig_parted_config" {
 }
 
 # Observability
-variable "enable_grafana" {
-  description = "Enable Grafana."
-  type        = bool
-  default     = true
-}
-
 variable "enable_loki" {
   description = "Enable Loki for logs aggregation."
   type        = bool
@@ -233,12 +227,6 @@ variable "enable_loki" {
 
 variable "enable_prometheus" {
   description = "Enable Prometheus for metrics collection."
-  type        = bool
-  default     = true
-}
-
-variable "enable_dcgm" {
-  description = "Enable dcgm for GPU metrics collection."
   type        = bool
   default     = true
 }

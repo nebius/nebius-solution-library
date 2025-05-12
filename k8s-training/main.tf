@@ -47,7 +47,7 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
 
     network_interfaces = [
       {
-        public_ip_address = {}
+        public_ip_address = null
         subnet_id         = var.subnet_id
       }
     ]
@@ -115,9 +115,8 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
       }
     ] : null
     gpu_cluster = nebius_compute_v1_gpu_cluster.fabric_2
-    gpu_settings = var.gpu_nodes_driverfull_image == true ? {
-      drivers_preset = "cuda12"
-    } : {}
+    gpu_settings = var.gpu_nodes_driverfull_image ? { drivers_preset = "cuda12" } : null
+
     underlay_required = false
     cloud_init_user_data = templatefile("../modules/cloud-init/k8s-cloud-init.tftpl", {
       enable_filestore = var.enable_filestore ? "true" : "false",
