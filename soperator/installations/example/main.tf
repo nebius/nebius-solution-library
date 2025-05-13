@@ -269,7 +269,7 @@ module "slurm" {
     module.k8s_storage_class,
     module.o11y,
     module.fluxcd,
-    module.fluxcd,
+
   ]
 
   source = "../../modules/slurm"
@@ -286,7 +286,7 @@ module "slurm" {
   slurm_partition_raw_config   = var.slurm_partition_raw_config
   slurm_worker_features        = var.slurm_worker_features
   slurm_health_check_config    = var.slurm_health_check_config
-  backups_enabled              = local.backups_enabled
+    backups_enabled              = local.backups_enabled
 
   github_org              = var.github_org
   github_repository       = var.github_repository
@@ -387,7 +387,15 @@ module "slurm" {
     disk_type          = sm.disk_type
     filesystem_type    = sm.filesystem_type
     storage_class_name = one(module.k8s_storage_class).storage_classes[sm.disk_type][sm.filesystem_type]
-  }] : []
+  }]
+  node_local_image_storage = {
+    enabled = var.node_local_image_disk.enabled
+    spec = {
+      size_gibibytes     = var.node_local_image_disk.spec.size_gibibytes
+      filesystem_type    = var.node_local_image_disk.spec.filesystem_type
+      storage_class_name = one(module.k8s_storage_class).storage_classes[module.resources.disk_types.network_ssd_non_replicated][var.node_local_image_disk.spec.filesystem_type]
+    }
+  }
 
   nfs = {
     enabled    = var.nfs.enabled

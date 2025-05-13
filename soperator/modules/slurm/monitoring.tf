@@ -1,19 +1,3 @@
-module "monitoring" {
-  count = var.telemetry_enabled ? 1 : 0
-  depends_on = [
-    helm_release.flux2_sync,
-    terraform_data.wait_for_monitoring_namespace,
-  ]
-
-  source = "../monitoring"
-
-  slurm_cluster_name = var.name
-
-  providers = {
-    helm = helm
-  }
-}
-
 locals {
   namespace = {
     logs       = "logs-system"
@@ -42,6 +26,22 @@ locals {
 
   vm_logs_server = {
     name = "logs"
+  }
+}
+
+module "monitoring" {
+  count = var.telemetry_enabled ? 1 : 0
+  depends_on = [
+    helm_release.flux2_sync,
+    terraform_data.wait_for_monitoring_namespace,
+  ]
+
+  source = "../monitoring"
+
+  slurm_cluster_name = var.name
+
+  providers = {
+    helm = helm
   }
 }
 
