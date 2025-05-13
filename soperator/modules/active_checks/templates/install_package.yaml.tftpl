@@ -15,13 +15,11 @@ resources:
             - |
               set -e
 
-              apt-get update && apt-get install -y openssh-client && rm -rf /var/lib/apt/lists/*
-
               echo "Installing libcudnn8"
               ssh -i /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa \
                   -o StrictHostKeyChecking=no \
                   soperatorchecks@login-0.soperator-login-svc.soperator.svc 'sudo apt install -y libcudnn8'
-          image: ubuntu:jammy
+          image: cr.eu-north1.nebius.cloud/soperator-unstable/k8s_check_job:1.19.0-jammy-slurm24.05.5-4bbb4258
           volumes:
           - name: jail
             persistentVolumeClaim:

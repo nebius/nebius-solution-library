@@ -15,8 +15,6 @@ resources:
             - |
               set -ex
 
-              apt-get update && apt-get install -y openssh-client && rm -rf /var/lib/apt/lists/*
-
               echo "Creating soperatorchecks user..."
               chroot /mnt/jail /bin/bash -c 'id "soperatorchecks" || echo "" | screateuser soperatorchecks --home /opt/soperatorchecks --gecos ""'
 
@@ -25,7 +23,7 @@ resources:
                 ssh-keygen -t ecdsa -f /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa -N '' -C soperatorchecks
                 cat /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa.pub >> /mnt/jail/opt/soperatorchecks/.ssh/authorized_keys
               fi
-          image: ubuntu:jammy
+          image: cr.eu-north1.nebius.cloud/soperator-unstable/k8s_check_job:1.19.0-jammy-slurm24.05.5-4bbb4258
           volumes:
           - name: jail
             persistentVolumeClaim:
