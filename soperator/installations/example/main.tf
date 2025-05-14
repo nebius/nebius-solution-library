@@ -111,10 +111,17 @@ module "nfs-server" {
   }
 }
 
+module "cleanup" {
+  source = "../../modules/cleanup"
+
+  iam_project_id = var.iam_project_id
+}
+
 module "k8s" {
   depends_on = [
     module.filestore,
     module.nfs-server,
+    module.cleanup,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_slurm_nodeset,
   ]
