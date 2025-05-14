@@ -306,6 +306,6 @@ resource "helm_release" "flux2_sync" {
   }
   set {
     name  = "kustomization.spec.prune"
-    value = "false"
+    value = "true"
   }
 }
