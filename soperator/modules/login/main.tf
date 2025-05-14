@@ -7,9 +7,9 @@ resource "terraform_data" "wait_for_slurm_login_service" {
       CONTEXT="${var.k8s_cluster_context}"
       NAMESPACE="${var.slurm_cluster_name}"
       SERVICE_NAME="${var.slurm_cluster_name}-login-svc"
-      TIMEOUT_MINUTES=5
-      CHECK_INTERVAL_SECONDS=5
-      MAX_RETRIES=$(( TIMEOUT_MINUTES * 60 / CHECK_INTERVAL_SECONDS ))
+      TIMEOUT_MINUTES=10
+      CHECK_INTERVAL_SECONDS=10
+      MAX_RETRIES=$(( TIMEOUT_MINUTES * 120 / CHECK_INTERVAL_SECONDS ))
       
       echo "Waiting for service $SERVICE_NAME to be created in namespace $NAMESPACE..."
       
