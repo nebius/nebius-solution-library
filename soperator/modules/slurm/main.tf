@@ -136,7 +136,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     }
 
     slurm_cluster = {
-      maintenance               = var.maintenance
+      maintenance = var.maintenance
 
       partition_configuration = {
         slurm_config_type = var.slurm_partition_config_type

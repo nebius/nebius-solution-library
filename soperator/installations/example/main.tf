@@ -293,7 +293,7 @@ module "slurm" {
   slurm_partition_raw_config   = var.slurm_partition_raw_config
   slurm_worker_features        = var.slurm_worker_features
   slurm_health_check_config    = var.slurm_health_check_config
-    backups_enabled              = local.backups_enabled
+  backups_enabled              = local.backups_enabled
 
   github_org              = var.github_org
   github_repository       = var.github_repository
@@ -504,7 +504,7 @@ module "active_checks" {
   slurm_cluster_namespace = local.slurm_cluster_name
   num_of_login_nodes      = var.slurm_nodeset_login.size
 
-  depends_on = [ 
+  depends_on = [
     module.slurm
   ]
 }
