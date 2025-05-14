@@ -83,8 +83,8 @@ resources:
                 "overrides": []
               },
               "gridPos": {
-                "h": 5,
-                "w": 6,
+                "h": 6,
+                "w": 8,
                 "x": 0,
                 "y": 1
               },
@@ -95,7 +95,7 @@ resources:
                   "showLineNumbers": false,
                   "showMiniMap": false
                 },
-                "content": "* You can select multiple Jobs, list of Workers will be filtered based on that\n  * By default only one of the jobs is selected\n* You can select multiple Workers, All are selected by default\n* Stats in all panels will be based on selected Jobs and Workers\n",
+                "content": "* You can select multiple Jobs, list of Workers will be filtered based on that, only one of the jobs is selected by default\n* You can select multiple Workers, All are selected by default\n* Stats in all panels will be based on selected Jobs and Workers\n",
                 "mode": "markdown"
               },
               "pluginVersion": "11.4.0",
@@ -138,15 +138,15 @@ resources:
                 "overrides": []
               },
               "gridPos": {
-                "h": 5,
-                "w": 2,
-                "x": 6,
+                "h": 3,
+                "w": 4,
+                "x": 8,
                 "y": 1
               },
               "id": 327,
               "options": {
                 "colorMode": "value",
-                "graphMode": "area",
+                "graphMode": "none",
                 "justifyMode": "auto",
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
@@ -175,90 +175,6 @@ resources:
                 }
               ],
               "title": "CPU",
-              "type": "stat"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "description": "",
-              "fieldConfig": {
-                "defaults": {
-                  "mappings": [
-                    {
-                      "options": {
-                        "match": "null",
-                        "result": {
-                          "text": "N/A"
-                        }
-                      },
-                      "type": "special"
-                    }
-                  ],
-                  "max": 100,
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "#299c46",
-                        "value": null
-                      },
-                      {
-                        "color": "rgba(237, 129, 40, 0.89)",
-                        "value": 80
-                      },
-                      {
-                        "color": "#d44a3a",
-                        "value": 90
-                      }
-                    ]
-                  },
-                  "unit": "percent"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 5,
-                "w": 2,
-                "x": 8,
-                "y": 1
-              },
-              "id": 28,
-              "maxDataPoints": 100,
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": ["mean"],
-                  "fields": "",
-                  "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "pluginVersion": "11.4.0",
-              "targets": [
-                {
-                  "datasource": {
-                    "uid": "prometheus"
-                  },
-                  "editorMode": "code",
-                  "expr": "avg(\n    (\n        node_memory_MemTotal_bytes - \n        node_memory_MemFree_bytes  - \n        node_memory_Buffers_bytes - \n        node_memory_Cached_bytes\n    ) / \n    node_memory_MemTotal_bytes{instance=~\"$ip\"}\n    * on(instance) group_left(nodename) node_uname_info\n    * on(nodename) group_left(hpc_job) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{hpc_job=~\"$slurm_job\"}, \"Hostname\", \"nodename\")), 1, 1)\n) * 100",
-                  "format": "time_series",
-                  "interval": "",
-                  "intervalFactor": 2,
-                  "legendFormat": "",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Memory",
               "type": "stat"
             },
             {
@@ -298,8 +214,8 @@ resources:
               },
               "gridPos": {
                 "h": 3,
-                "w": 2,
-                "x": 10,
+                "w": 4,
+                "x": 12,
                 "y": 1
               },
               "id": 45,
@@ -385,16 +301,16 @@ resources:
                 "overrides": []
               },
               "gridPos": {
-                "h": 5,
-                "w": 3,
-                "x": 12,
+                "h": 3,
+                "w": 4,
+                "x": 16,
                 "y": 1
               },
               "id": 58,
               "maxDataPoints": 100,
               "options": {
                 "colorMode": "value",
-                "graphMode": "area",
+                "graphMode": "none",
                 "justifyMode": "auto",
                 "orientation": "horizontal",
                 "percentChangeColorMode": "standard",
@@ -424,92 +340,6 @@ resources:
                 }
               ],
               "title": "GPU Total Utilization",
-              "type": "stat"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "fixedColor": "light-green",
-                    "mode": "thresholds"
-                  },
-                  "mappings": [
-                    {
-                      "options": {
-                        "match": "null",
-                        "result": {
-                          "text": "N/A"
-                        }
-                      },
-                      "type": "special"
-                    }
-                  ],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "#299c46",
-                        "value": null
-                      },
-                      {
-                        "color": "rgba(237, 129, 40, 0.89)",
-                        "value": 1800
-                      },
-                      {
-                        "color": "#d44a3a",
-                        "value": 2200
-                      }
-                    ]
-                  },
-                  "unit": "watt"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 5,
-                "w": 3,
-                "x": 15,
-                "y": 1
-              },
-              "id": 30,
-              "maxDataPoints": 100,
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "horizontal",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": ["lastNotNull"],
-                  "fields": "",
-                  "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "pluginVersion": "11.4.0",
-              "targets": [
-                {
-                  "datasource": {
-                    "uid": "prometheus"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(DCGM_FI_DEV_POWER_USAGE{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
-                  "format": "time_series",
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "GPU Power Total",
               "type": "stat"
             },
             {
@@ -555,16 +385,16 @@ resources:
                 "overrides": []
               },
               "gridPos": {
-                "h": 5,
-                "w": 3,
-                "x": 18,
+                "h": 3,
+                "w": 4,
+                "x": 20,
                 "y": 1
               },
               "id": 31,
               "maxDataPoints": 100,
               "options": {
                 "colorMode": "value",
-                "graphMode": "area",
+                "graphMode": "none",
                 "justifyMode": "auto",
                 "orientation": "horizontal",
                 "percentChangeColorMode": "standard",
@@ -626,7 +456,7 @@ resources:
                       },
                       {
                         "color": "rgba(237, 129, 40, 0.89)",
-                        "value": 70
+                        "value": 80
                       },
                       {
                         "color": "#d44a3a",
@@ -639,21 +469,21 @@ resources:
                 "overrides": []
               },
               "gridPos": {
-                "h": 5,
-                "w": 3,
-                "x": 21,
-                "y": 1
+                "h": 3,
+                "w": 4,
+                "x": 8,
+                "y": 4
               },
-              "id": 40,
+              "id": 28,
               "maxDataPoints": 100,
               "options": {
                 "colorMode": "value",
-                "graphMode": "area",
+                "graphMode": "none",
                 "justifyMode": "auto",
-                "orientation": "horizontal",
+                "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": ["mean"],
                   "fields": "",
                   "values": false
                 },
@@ -668,16 +498,16 @@ resources:
                     "uid": "prometheus"
                   },
                   "editorMode": "code",
-                  "expr": "avg(DCGM_FI_DEV_MEM_COPY_UTIL{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
+                  "expr": "avg(\n    (\n        node_memory_MemTotal_bytes - \n        node_memory_MemFree_bytes  - \n        node_memory_Buffers_bytes - \n        node_memory_Cached_bytes\n    ) / \n    node_memory_MemTotal_bytes{instance=~\"$ip\"}\n    * on(instance) group_left(nodename) node_uname_info\n    * on(nodename) group_left(hpc_job) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{hpc_job=~\"$slurm_job\"}, \"Hostname\", \"nodename\")), 1, 1)\n) * 100",
                   "format": "time_series",
                   "interval": "",
-                  "intervalFactor": 1,
+                  "intervalFactor": 2,
                   "legendFormat": "",
                   "range": true,
                   "refId": "A"
                 }
               ],
-              "title": "GPU Avg. Mem. Cpy Utilization",
+              "title": "Memory",
               "type": "stat"
             },
             {
@@ -716,9 +546,9 @@ resources:
                 "overrides": []
               },
               "gridPos": {
-                "h": 2,
-                "w": 2,
-                "x": 10,
+                "h": 3,
+                "w": 4,
+                "x": 12,
                 "y": 4
               },
               "id": 44,
@@ -758,12 +588,182 @@ resources:
               "type": "stat"
             },
             {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "fixedColor": "light-green",
+                    "mode": "thresholds"
+                  },
+                  "mappings": [
+                    {
+                      "options": {
+                        "match": "null",
+                        "result": {
+                          "text": "N/A"
+                        }
+                      },
+                      "type": "special"
+                    }
+                  ],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "#299c46",
+                        "value": null
+                      },
+                      {
+                        "color": "rgba(237, 129, 40, 0.89)",
+                        "value": 1800
+                      },
+                      {
+                        "color": "#d44a3a",
+                        "value": 2200
+                      }
+                    ]
+                  },
+                  "unit": "watt"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 16,
+                "y": 4
+              },
+              "id": 30,
+              "maxDataPoints": 100,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": ["lastNotNull"],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "pluginVersion": "11.4.0",
+              "targets": [
+                {
+                  "datasource": {
+                    "uid": "prometheus"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(DCGM_FI_DEV_POWER_USAGE{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
+                  "format": "time_series",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "GPU Power Total",
+              "type": "stat"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "description": "",
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    {
+                      "options": {
+                        "match": "null",
+                        "result": {
+                          "text": "N/A"
+                        }
+                      },
+                      "type": "special"
+                    }
+                  ],
+                  "max": 100,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "#299c46",
+                        "value": null
+                      },
+                      {
+                        "color": "rgba(237, 129, 40, 0.89)",
+                        "value": 70
+                      },
+                      {
+                        "color": "#d44a3a",
+                        "value": 90
+                      }
+                    ]
+                  },
+                  "unit": "percent"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 3,
+                "w": 4,
+                "x": 20,
+                "y": 4
+              },
+              "id": 40,
+              "maxDataPoints": 100,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": ["lastNotNull"],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "pluginVersion": "11.4.0",
+              "targets": [
+                {
+                  "datasource": {
+                    "uid": "prometheus"
+                  },
+                  "editorMode": "code",
+                  "expr": "avg(DCGM_FI_DEV_MEM_COPY_UTIL{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
+                  "format": "time_series",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "GPU Avg. Mem. Cpy Utilization",
+              "type": "stat"
+            },
+            {
               "collapsed": false,
               "gridPos": {
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 6
+                "y": 7
               },
               "id": 331,
               "panels": [],
@@ -779,7 +779,7 @@ resources:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 7
+                "y": 8
               },
               "id": 368,
               "options": {
@@ -820,7 +820,7 @@ resources:
                 "h": 7,
                 "w": 18,
                 "x": 6,
-                "y": 7
+                "y": 8
               },
               "id": 367,
               "interval": "1m",
@@ -894,7 +894,7 @@ resources:
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 14
+                "y": 15
               },
               "id": 356,
               "panels": [],
@@ -1014,7 +1014,7 @@ resources:
                 "h": 7,
                 "w": 8,
                 "x": 0,
-                "y": 15
+                "y": 16
               },
               "id": 357,
               "interval": "2m",
@@ -1199,7 +1199,7 @@ resources:
                 "h": 7,
                 "w": 8,
                 "x": 8,
-                "y": 15
+                "y": 16
               },
               "id": 360,
               "interval": "2m",
@@ -1393,7 +1393,7 @@ resources:
                 "h": 7,
                 "w": 8,
                 "x": 16,
-                "y": 15
+                "y": 16
               },
               "id": 358,
               "interval": "2m",
@@ -1569,7 +1569,7 @@ resources:
                 "h": 7,
                 "w": 8,
                 "x": 0,
-                "y": 22
+                "y": 23
               },
               "id": 359,
               "interval": "2m",
@@ -1749,7 +1749,7 @@ resources:
                 "h": 7,
                 "w": 8,
                 "x": 8,
-                "y": 22
+                "y": 23
               },
               "id": 361,
               "interval": "2m",
@@ -1914,7 +1914,7 @@ resources:
                 "h": 7,
                 "w": 8,
                 "x": 16,
-                "y": 22
+                "y": 23
               },
               "id": 362,
               "interval": "1m",
@@ -2110,6 +2110,6 @@ resources:
           },
           "timezone": "browser",
           "title": "Jobs Overview",
-          "version": 26,
+          "version": 27,
           "weekStart": ""
         }
