@@ -105,10 +105,11 @@ resource "helm_release" "soperator_fluxcd_cm" {
     vmlogs_version                     = var.vmlogs_version
 
 
-    cluster_name        = var.name
-    public_o11y_enabled = var.public_o11y_enabled
-    metrics_collector   = local.metrics_collector
-    create_pvcs         = var.create_pvcs
+    cluster_name           = var.name
+    public_o11y_enabled    = var.public_o11y_enabled
+    metrics_collector      = local.metrics_collector
+    grafana_admin_password = var.telemetry_grafana_admin_password
+    create_pvcs            = var.create_pvcs
 
     slurm_cluster_storage = {
       scheduling = local.node_filters
