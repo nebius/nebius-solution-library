@@ -1,0 +1,32 @@
+resources:
+  - apiVersion: slurm.nebius.ai/v1alpha1
+    kind: ActiveCheck
+    metadata:
+      name: create-user-${user_name}
+      namespace: ${slurm_cluster_namespace}
+    spec:
+      checkType: k8sJob
+      suspend: true
+      k8sJobSpec:
+        jobContainer:
+          command:
+            - bash
+            - -c
+            - |
+              set -ex
+
+              echo "Creating ${user_name} user..."
+              ssh -i /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa \
+                  -o StrictHostKeyChecking=no \
+                  soperatorchecks@login-0.soperator-login-svc.soperator.svc /bin/bash -c 'id "${user_name}" || echo "" | sudo screateuser ${user_name} --gecos "" --home /opt/${user_name}'
+          image: cr.eu-north1.nebius.cloud/soperator-unstable/k8s_check_job:1.19.0-jammy-slurm24.05.5-4bbb4258
+          volumes:
+          - name: jail
+            persistentVolumeClaim:
+              claimName: jail-pvc
+          volumeMounts:
+          - name: jail
+            mountPath: /mnt/jail
+      name: create-user-${user_name}-check
+      runAfterCreation: true
+      slurmClusterRefName: ${slurm_cluster_name}

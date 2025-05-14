@@ -495,3 +495,16 @@ module "fluxcd" {
   source              = "../../modules/fluxcd"
   k8s_cluster_context = module.k8s.cluster_context
 }
+
+module "active_checks" {
+  source = "../../modules/active_checks"
+
+  k8s_cluster_context     = module.k8s.cluster_context
+  slurm_cluster_name      = local.slurm_cluster_name
+  slurm_cluster_namespace = local.slurm_cluster_name
+  num_of_login_nodes      = var.slurm_nodeset_login.size
+
+  depends_on = [ 
+    module.slurm
+  ]
+}
