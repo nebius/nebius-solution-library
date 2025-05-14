@@ -29,3 +29,21 @@ resource "nebius_applications_v1alpha1_k8s_release" "prometheus" {
     "prometheus.server.persistentVolume.size" : var.o11y.prometheus.pv_size
   }
 }
+
+resource "time_static" "restarted_at" {}
+
+resource "kubernetes_annotations" "restart_grafana" {
+  api_version = "apps/v1"
+  kind        = "Deployment"
+  metadata {
+    name      = "grafana-and-prometheus"
+    namespace = var.namespace
+  }
+  template_annotations = {
+    "kubectl.kubernetes.io/restartedAt" = time_static.restarted_at.rfc3339
+  }
+
+  depends_on = [
+    nebius_applications_v1alpha1_k8s_release.prometheus
+  ]
+}

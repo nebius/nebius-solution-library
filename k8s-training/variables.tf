@@ -147,16 +147,28 @@ variable "cpu_disk_size" {
 }
 
 # K8s GPU node group
-variable "gpu_nodes_count" {
+variable "gpu_nodes_count_per_group" {
   description = "Number of nodes in the GPU node group."
   type        = number
   default     = 2
+}
+
+variable "gpu_node_groups" {
+  description = "Number of GPU node groups."
+  type        = number
+  default     = 1
 }
 
 variable "gpu_nodes_platform" {
   description = "Platform for nodes in the GPU node group."
   type        = string
   default     = null
+}
+
+variable "gpu_nodes_driverfull_image" {
+  description = "Use driver full images for GPU node gropus. Disabled GPU-Operator."
+  type        = bool
+  default     = false
 }
 
 variable "gpu_nodes_preset" {
@@ -168,7 +180,7 @@ variable "gpu_nodes_preset" {
 variable "gpu_disk_type" {
   description = "Disk type for nodes in the GPU node group."
   type        = string
-  default     = "NETWORK_SSD"
+  default     = "NETWORK_SSD" # NETWORK_SSD NETWORK_SSD_NON_REPLICATED NETWORK_SSD_IO_M3
 }
 
 variable "gpu_disk_size" {
@@ -207,12 +219,6 @@ variable "mig_parted_config" {
 }
 
 # Observability
-variable "enable_grafana" {
-  description = "Enable Grafana."
-  type        = bool
-  default     = true
-}
-
 variable "enable_loki" {
   description = "Enable Loki for logs aggregation."
   type        = bool
@@ -221,12 +227,6 @@ variable "enable_loki" {
 
 variable "enable_prometheus" {
   description = "Enable Prometheus for metrics collection."
-  type        = bool
-  default     = true
-}
-
-variable "enable_dcgm" {
-  description = "Enable dcgm for GPU metrics collection."
   type        = bool
   default     = true
 }
