@@ -48,10 +48,10 @@ resources:
           "editable": true,
           "fiscalYearStartMonth": 0,
           "graphTooltip": 1,
-          "id": 11,
+          "id": 100,
           "links": [
             {
-              "asDropdown": true,
+              "asDropdown": false,
               "icon": "external link",
               "includeVars": true,
               "keepTime": true,
@@ -98,7 +98,7 @@ resources:
                 "content": "* You can select multiple workers from the Drop Down above\n* Stats in all panels will be based on selected workers\n",
                 "mode": "markdown"
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "title": "Usage Guide",
               "type": "text"
             },
@@ -159,7 +159,7 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -242,14 +242,14 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "avg(\n    (\n        node_memory_MemTotal_bytes{instance=~\"$ip\"} - \n        node_memory_MemFree_bytes{instance=~\"$ip\"}  - \n        node_memory_Buffers_bytes{instance=~\"$ip\"} - \n        node_memory_Cached_bytes{instance=~\"$ip\"}\n    ) / \n    node_memory_MemTotal_bytes{instance=~\"$ip\"}\n) * 100",
+                  "expr": "avg(\n    (\n        node_memory_MemTotal_bytes - \n        node_memory_MemFree_bytes - \n        node_memory_Buffers_bytes - \n        node_memory_Cached_bytes\n    ) / \n    node_memory_MemTotal_bytes{instance=~\"$ip\"}\n) * 100",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 2,
@@ -326,7 +326,7 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -414,7 +414,7 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -500,7 +500,7 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -584,7 +584,7 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -668,7 +668,7 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -745,7 +745,7 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -822,7 +822,7 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -875,7 +875,7 @@ resources:
                 "content": "* It shows the compute instance that a particular worker was scheduled on at any time\n* Worker that were moved to a different node will have more than one row for placement on each node\n* Workers that are added later (as scale up) would show with partial lines",
                 "mode": "markdown"
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "title": "Usage Guide",
               "type": "text"
             },
@@ -1089,7 +1089,7 @@ resources:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -1141,6 +1141,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "none",
@@ -1238,7 +1239,7 @@ resources:
                 "y": 16
               },
               "id": 357,
-              "interval": "10m",
+              "interval": "2m",
               "options": {
                 "legend": {
                   "calcs": ["lastNotNull"],
@@ -1251,7 +1252,7 @@ resources:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -1317,6 +1318,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "none",
@@ -1422,6 +1424,7 @@ resources:
                 "y": 16
               },
               "id": 360,
+              "interval": "2m",
               "options": {
                 "legend": {
                   "calcs": ["lastNotNull"],
@@ -1434,6 +1437,7 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -1501,6 +1505,7 @@ resources:
                     "axisSoftMax": 90,
                     "axisSoftMin": 10,
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "none",
@@ -1613,7 +1618,7 @@ resources:
                 "y": 16
               },
               "id": 358,
-              "interval": "10m",
+              "interval": "2m",
               "options": {
                 "legend": {
                   "calcs": ["lastNotNull"],
@@ -1626,6 +1631,7 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -1691,6 +1697,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "none",
@@ -1787,7 +1794,7 @@ resources:
                 "y": 23
               },
               "id": 359,
-              "interval": "10m",
+              "interval": "2m",
               "options": {
                 "legend": {
                   "calcs": [],
@@ -1800,6 +1807,7 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -1861,6 +1869,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "none",
@@ -1965,7 +1974,7 @@ resources:
                 "y": 23
               },
               "id": 361,
-              "interval": "10m",
+              "interval": "2m",
               "options": {
                 "legend": {
                   "calcs": [],
@@ -1978,13 +1987,14 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "max((node_memory_MemTotal_bytes{instance=~\"$ip\"} - node_memory_MemFree_bytes{instance=~\"$ip\"} - node_memory_Buffers_bytes{instance=~\"$ip\"} - node_memory_Cached_bytes{instance=~\"$ip\"})\n/\nnode_memory_MemTotal_bytes{instance=~\"$ip\"})",
+                  "expr": "max(\n    (\n        node_memory_MemTotal_bytes - \n        node_memory_MemFree_bytes - \n        node_memory_Buffers_bytes - \n        node_memory_Cached_bytes\n    )\n    /\n    node_memory_MemTotal_bytes{instance=~\"$ip\"}\n)",
                   "format": "time_series",
                   "hide": false,
                   "instant": false,
@@ -1998,7 +2008,7 @@ resources:
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "avg((node_memory_MemTotal_bytes{instance=~\"$ip\"} - node_memory_MemFree_bytes{instance=~\"$ip\"} - node_memory_Buffers_bytes{instance=~\"$ip\"} - node_memory_Cached_bytes{instance=~\"$ip\"})\n/\nnode_memory_MemTotal_bytes{instance=~\"$ip\"})",
+                  "expr": "avg(\n    (\n        node_memory_MemTotal_bytes - \n        node_memory_MemFree_bytes - \n        node_memory_Buffers_bytes - \n        node_memory_Cached_bytes\n    )\n    /\n    node_memory_MemTotal_bytes{instance=~\"$ip\"}\n)",
                   "format": "time_series",
                   "hide": false,
                   "instant": false,
@@ -2012,7 +2022,7 @@ resources:
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "min((node_memory_MemTotal_bytes{instance=~\"$ip\"} - node_memory_MemFree_bytes{instance=~\"$ip\"} - node_memory_Buffers_bytes{instance=~\"$ip\"} - node_memory_Cached_bytes{instance=~\"$ip\"})\n/\nnode_memory_MemTotal_bytes{instance=~\"$ip\"})",
+                  "expr": "min(\n    (\n        node_memory_MemTotal_bytes - \n        node_memory_MemFree_bytes - \n        node_memory_Buffers_bytes - \n        node_memory_Cached_bytes\n    )\n    /\n    node_memory_MemTotal_bytes{instance=~\"$ip\"}\n)",
                   "format": "time_series",
                   "hide": false,
                   "instant": false,
@@ -2042,6 +2052,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "opacity",
@@ -2139,6 +2150,7 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -2200,6 +2212,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2245,10 +2258,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 0,
-                    "y": 22
+                    "y": 101
                   },
                   "id": 340,
-                  "interval": "10m",
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -2261,7 +2274,7 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "11.1.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -2299,6 +2312,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2344,9 +2358,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 8,
-                    "y": 22
+                    "y": 101
                   },
                   "id": 341,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -2359,6 +2374,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -2396,6 +2412,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2443,10 +2460,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 16,
-                    "y": 22
+                    "y": 101
                   },
                   "id": 39,
-                  "interval": "10m",
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -2459,6 +2476,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -2496,6 +2514,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2538,9 +2557,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 0,
-                    "y": 29
+                    "y": 164
                   },
                   "id": 24,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -2553,6 +2573,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -2590,6 +2611,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2635,10 +2657,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 8,
-                    "y": 29
+                    "y": 164
                   },
                   "id": 344,
-                  "interval": "10m",
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -2651,6 +2673,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -2688,6 +2711,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 10,
                         "gradientMode": "opacity",
@@ -2746,9 +2770,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 16,
-                    "y": 29
+                    "y": 164
                   },
                   "id": 338,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": [],
@@ -2761,6 +2786,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -2814,6 +2840,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2858,10 +2885,10 @@ resources:
                     "h": 7,
                     "w": 12,
                     "x": 0,
-                    "y": 17
+                    "y": 102
                   },
                   "id": 347,
-                  "interval": "10m",
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": [],
@@ -2874,6 +2901,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -2909,6 +2937,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2953,10 +2982,10 @@ resources:
                     "h": 7,
                     "w": 12,
                     "x": 12,
-                    "y": 17
+                    "y": 102
                   },
                   "id": 354,
-                  "interval": "10m",
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": [],
@@ -2969,13 +2998,14 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "(node_memory_MemTotal_bytes{instance=~\"$ip\"} - node_memory_MemFree_bytes{instance=~\"$ip\"} - node_memory_Buffers_bytes{instance=~\"$ip\"} - node_memory_Cached_bytes{instance=~\"$ip\"})\n/\nnode_memory_MemTotal_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(pod) label_move(kube_pod_info{pod=~\"worker.*\"}, \"node\", \"nodename\")",
+                      "expr": "(\n    node_memory_MemTotal_bytes - \n    node_memory_MemFree_bytes - \n    node_memory_Buffers_bytes - \n    node_memory_Cached_bytes\n)\n/\nnode_memory_MemTotal_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(pod) label_move(kube_pod_info{pod=~\"worker.*\"}, \"node\", \"nodename\")",
                       "format": "time_series",
                       "hide": false,
                       "instant": false,
@@ -3006,6 +3036,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 10,
                         "gradientMode": "opacity",
@@ -3069,9 +3100,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 0,
-                    "y": 24
+                    "y": 109
                   },
                   "id": 38,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -3084,6 +3116,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -3135,6 +3168,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -3180,9 +3214,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 8,
-                    "y": 24
+                    "y": 109
                   },
                   "id": 351,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["mean", "lastNotNull", "max", "min"],
@@ -3195,7 +3230,7 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -3232,6 +3267,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -3281,9 +3317,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 16,
-                    "y": 24
+                    "y": 109
                   },
                   "id": 352,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["mean", "lastNotNull", "max", "min"],
@@ -3296,7 +3333,7 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -3356,8 +3393,8 @@ resources:
                         "axisColorMode": "text",
                         "axisLabel": "",
                         "axisPlacement": "auto",
-                        "axisSoftMax": 500000000,
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -3435,10 +3472,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 0,
-                    "y": 18
+                    "y": 103
                   },
                   "id": 37,
-                  "interval": "10m",
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -3451,6 +3488,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -3501,6 +3539,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -3582,9 +3621,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 8,
-                    "y": 18
+                    "y": 103
                   },
                   "id": 41,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -3597,6 +3637,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -3648,6 +3689,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -3711,9 +3753,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 16,
-                    "y": 18
+                    "y": 103
                   },
                   "id": 348,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -3726,6 +3769,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -3777,6 +3821,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -3820,9 +3865,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 0,
-                    "y": 25
+                    "y": 110
                   },
                   "id": 35,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -3835,6 +3881,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -3872,6 +3919,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -3917,9 +3965,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 8,
-                    "y": 25
+                    "y": 110
                   },
                   "id": 355,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -3932,6 +3981,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -3969,6 +4019,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -4014,9 +4065,10 @@ resources:
                     "h": 7,
                     "w": 8,
                     "x": 16,
-                    "y": 25
+                    "y": 110
                   },
                   "id": 353,
+                  "interval": "2m",
                   "options": {
                     "legend": {
                       "calcs": ["lastNotNull"],
@@ -4029,6 +4081,7 @@ resources:
                       "sort": "none"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -4052,39 +4105,17 @@ resources:
               "type": "row"
             }
           ],
+          "preload": false,
           "refresh": "",
-          "schemaVersion": 39,
-          "tags": [],
+          "schemaVersion": 40,
+          "tags": ["workers-overview"],
           "templating": {
             "list": [
               {
                 "allValue": "worker-.*",
                 "current": {
-                  "selected": false,
-                  "text": [
-                    "worker-0",
-                    "worker-1",
-                    "worker-2",
-                    "worker-3",
-                    "worker-4",
-                    "worker-5",
-                    "worker-6",
-                    "worker-7",
-                    "worker-8",
-                    "worker-9"
-                  ],
-                  "value": [
-                    "worker-0",
-                    "worker-1",
-                    "worker-2",
-                    "worker-3",
-                    "worker-4",
-                    "worker-5",
-                    "worker-6",
-                    "worker-7",
-                    "worker-8",
-                    "worker-9"
-                  ]
+                  "text": ["worker-0", "worker-1", "worker-2", "worker-3", "worker-4"],
+                  "value": ["worker-0", "worker-1", "worker-2", "worker-3", "worker-4"]
                 },
                 "datasource": {
                   "type": "prometheus",
@@ -4092,7 +4123,6 @@ resources:
                 },
                 "definition": "label_values(kube_pod_info{pod=~\"^worker-.*\"},pod)",
                 "description": "Select as many workers as you need to check their aggregate and separate stats in panels.",
-                "hide": 0,
                 "includeAll": false,
                 "label": "Workers",
                 "multi": true,
@@ -4105,15 +4135,12 @@ resources:
                 },
                 "refresh": 2,
                 "regex": "",
-                "skipUrlSync": false,
                 "sort": 7,
                 "type": "query"
               },
               {
-                "allValue": "",
                 "current": {
-                  "selected": false,
-                  "text": ["All"],
+                  "text": "All",
                   "value": ["$__all"]
                 },
                 "datasource": {
@@ -4134,18 +4161,12 @@ resources:
                 },
                 "refresh": 2,
                 "regex": "",
-                "skipUrlSync": false,
                 "sort": 3,
-                "tagValuesQuery": "",
-                "tagsQuery": "",
-                "type": "query",
-                "useTags": false
+                "type": "query"
               },
               {
-                "allValue": "",
                 "current": {
-                  "selected": false,
-                  "text": ["All"],
+                  "text": "All",
                   "value": ["$__all"]
                 },
                 "datasource": {
@@ -4166,12 +4187,7 @@ resources:
                 },
                 "refresh": 1,
                 "regex": "",
-                "skipUrlSync": false,
-                "sort": 0,
-                "tagValuesQuery": "",
-                "tagsQuery": "",
-                "type": "query",
-                "useTags": false
+                "type": "query"
               }
             ]
           },
@@ -4190,11 +4206,10 @@ resources:
               "1h",
               "2h",
               "1d"
-            ],
-            "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+            ]
           },
           "timezone": "browser",
           "title": "Workers Overview",
-          "version": 38,
+          "version": 4,
           "weekStart": ""
         }
