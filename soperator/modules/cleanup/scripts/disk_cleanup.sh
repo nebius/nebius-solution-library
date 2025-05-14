@@ -42,7 +42,7 @@ while true; do
 done
 
 
-for id in \"${result_ids[@]}\"; do
+for id in "${result_ids[@]}"; do
   echo "Deleting leftover disk $id..."
   nebius compute disk delete --id "$id"
 done
