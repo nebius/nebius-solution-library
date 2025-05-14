@@ -17,6 +17,7 @@ resource "helm_release" "dashboard" {
     slurm_exporter         = "exporter"
     kube_state_metrics     = "kube-state-metrics"
     pod_resources          = "pod-resources"
+    jobs_overview          = "jobs-overview"
     workers_overview       = "workers-overview"
     workers_detailed_stats = "workers-detailed-stats"
   })
