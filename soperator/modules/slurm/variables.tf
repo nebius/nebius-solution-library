@@ -448,6 +448,91 @@ variable "public_o11y_enabled" {
   default     = true
 }
 
+variable "create_pvcs" {
+  description = "Whether to create PVCs. Uses emptyDir if false."
+  type        = bool
+  default     = true
+}
+
+variable "resources_vm_operator" {
+  description = "Resources for VictoriaMetrics Operator."
+  type = object({
+    memory = string
+    cpu    = string
+  })
+  default = {
+    memory = "512Mi"
+    cpu    = "250m"
+  }
+}
+
+variable "resources_vm_logs_server" {
+  type = object({
+    memory = string
+    cpu    = string
+    size   = string
+  })
+  default = {
+    memory = "2Gi"
+    cpu    = "1000m"
+    size   = "40Gi"
+  }
+}
+
+variable "resources_vm_single" {
+  type = object({
+    memory     = string
+    cpu        = string
+    size       = string
+    gomaxprocs = number
+  })
+  default = {
+    memory     = "24Gi"
+    cpu        = "6000m"
+    size       = "80Gi"
+    gomaxprocs = 6
+  }
+}
+
+variable "resources_vm_agent" {
+  type = object({
+    memory = string
+    cpu    = string
+  })
+  default = {
+    memory = "4Gi"
+    cpu    = "2000m"
+  }
+}
+
+variable "resources_events_collector" {
+  type = object({
+    memory = string
+    cpu    = string
+  })
+  default = {
+    memory = "128Mi"
+    cpu    = "100m"
+  }
+}
+
+
+variable "resources_logs_collector" {
+  type = object({
+    memory = string
+    cpu    = string
+  })
+  default = {
+    memory = "200Mi"
+    cpu    = "200m"
+  }
+}
+
+# variable "grafana_admin_password" {
+#   description = "Password of `admin` user of Grafana."
+#   type        = string
+# }
+
 # endregion Monitoring
 
 # region SConfigController
@@ -485,3 +570,99 @@ variable "sconfigcontroller" {
 }
 
 # endregion SConfigController
+
+# region fluxcd
+variable "github_org" {
+  description = "The GitHub organization."
+  type        = string
+  default     = "nebius"
+}
+
+variable "github_repository" {
+  description = "The GitHub repository."
+  type        = string
+  default     = "soperator"
+}
+
+variable "github_branch" {
+  description = "The GitHub branch."
+  type        = string
+  default     = "dev"
+}
+variable "flux_interval" {
+  description = "The interval for Flux to check for changes."
+  type        = string
+  default     = "1m"
+}
+
+variable "flux_kustomization_path" {
+  description = "The name of the Flux customization."
+  type        = string
+  default     = "fluxcd/environment/nebius-cloud"
+}
+
+variable "cert_manager_version" {
+  description = "The version of the cert-manager."
+  type        = string
+  default     = ""
+}
+
+variable "k8up_version" {
+  description = "The version of the k8up."
+  type        = string
+  default     = ""
+}
+
+variable "mariadb_operator_version" {
+  description = "The version of the mariadb operator."
+  type        = string
+  default     = ""
+}
+
+variable "opentelemetry_collector_version" {
+  description = "The version of the opentelemetry operator."
+  type        = string
+  default     = ""
+}
+
+variable "prometheus_crds_version" {
+  description = "The version of the prometheus crds."
+  type        = string
+  default     = ""
+}
+variable "security_profiles_operator_version" {
+  description = "The version of the security profiles operator."
+  type        = string
+  default     = ""
+}
+
+variable "vmstack_version" {
+  description = "The version of the vmstack."
+  type        = string
+  default     = ""
+}
+
+variable "vmstack_crds_version" {
+  description = "The version of the vmstack."
+  type        = string
+  default     = ""
+}
+
+variable "vmlogs_version" {
+  description = "The version of the vmlogs."
+  type        = string
+  default     = ""
+}
+
+variable "flux_namespace" {
+  description = "Kubernetes namespace to look for jail in."
+  type        = string
+}
+# endregion fluxcd
+
+variable "backups_enabled" {
+  description = "Whether to enable backups."
+  type        = bool
+  default     = false
+}
+

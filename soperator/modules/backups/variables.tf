@@ -18,7 +18,7 @@ variable "k8s_cluster_context" {
   type        = string
 }
 
-variable "soperator_namespace" {
+variable "flux_namespace" {
   description = "Kubernetes namespace to look for jail in."
   type        = string
 }
@@ -65,17 +65,9 @@ variable "monitoring" {
   type = object({
     enabled   = bool
     namespace = string
-    metrics_collector_endpoint = object({
-      http_host = string
-      port      = number
-    })
   })
   default = {
     enabled   = false
     namespace = ""
-    metrics_collector_endpoint = {
-      http_host = ""
-      port      = 0
-    }
   }
 }

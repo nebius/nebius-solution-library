@@ -8,6 +8,7 @@ locals {
   }
 
   slurm_cluster_name = "soperator"
+  flux_namespace     = "flux-system"
   k8s_cluster_name   = format("soperator-%s", var.company_name)
 
   backups_enabled = (var.backups_enabled == "force_enable" ||
@@ -111,10 +112,17 @@ module "nfs-server" {
   }
 }
 
+module "cleanup" {
+  source = "../../modules/cleanup"
+
+  iam_project_id = var.iam_project_id
+}
+
 module "k8s" {
   depends_on = [
     module.filestore,
     module.nfs-server,
+    module.cleanup,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_slurm_nodeset,
   ]
@@ -268,6 +276,8 @@ module "slurm" {
     module.k8s,
     module.k8s_storage_class,
     module.o11y,
+    module.fluxcd,
+
   ]
 
   source = "../../modules/slurm"
@@ -284,6 +294,14 @@ module "slurm" {
   slurm_partition_raw_config   = var.slurm_partition_raw_config
   slurm_worker_features        = var.slurm_worker_features
   slurm_health_check_config    = var.slurm_health_check_config
+  flux_namespace               = local.flux_namespace
+  backups_enabled              = local.backups_enabled
+
+  github_org              = var.github_org
+  github_repository       = var.github_repository
+  github_branch           = var.slurm_operator_stable ? "main" : "dev"
+  flux_interval           = var.flux_interval
+  flux_kustomization_path = var.slurm_operator_stable ? "fluxcd/environment/nebius-cloud/prod" : "fluxcd/environment/nebius-cloud/dev"
 
   iam_project_id = var.iam_project_id
 
@@ -440,6 +458,8 @@ module "backups_store" {
 
   depends_on = [
     module.k8s,
+    module.slurm,
+    module.fluxcd,
   ]
 }
 
@@ -450,23 +470,17 @@ module "backups" {
 
   k8s_cluster_context = module.k8s.cluster_context
 
-  iam_project_id      = var.iam_project_id
-  iam_tenant_id       = var.iam_tenant_id
-  instance_name       = local.k8s_cluster_name
-  soperator_namespace = local.slurm_cluster_name
-  bucket_name         = module.backups_store[count.index].name
-  bucket_endpoint     = module.backups_store[count.index].endpoint
+  iam_project_id  = var.iam_project_id
+  iam_tenant_id   = var.iam_tenant_id
+  instance_name   = local.k8s_cluster_name
+  flux_namespace  = local.flux_namespace
+  bucket_name     = module.backups_store[count.index].name
+  bucket_endpoint = module.backups_store[count.index].endpoint
 
   backups_password  = var.backups_password
   backups_schedule  = var.backups_schedule
   prune_schedule    = var.backups_prune_schedule
   backups_retention = var.backups_retention
-
-  monitoring = {
-    enabled                    = var.telemetry_enabled
-    namespace                  = module.slurm.monitoring.namespace.monitoring
-    metrics_collector_endpoint = module.slurm.monitoring.metrics_collector_endpoint
-  }
 
   providers = {
     nebius = nebius
@@ -478,6 +492,14 @@ module "backups" {
   ]
 }
 
+module "fluxcd" {
+  depends_on = [
+    module.k8s,
+  ]
+  source              = "../../modules/fluxcd"
+  k8s_cluster_context = module.k8s.cluster_context
+}
+
 module "active_checks" {
   source = "../../modules/active_checks"
 
@@ -486,7 +508,7 @@ module "active_checks" {
   slurm_cluster_namespace = local.slurm_cluster_name
   num_of_login_nodes      = var.slurm_nodeset_login.size
 
-  depends_on = [ 
+  depends_on = [
     module.slurm
   ]
 }
