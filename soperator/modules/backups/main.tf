@@ -18,7 +18,7 @@ resource "nebius_iam_v1_group_membership" "backups_service_account_group" {
 resource "terraform_data" "k8s_backups_bucket_access_secret" {
 
   triggers_replace = {
-    namespace           = var.soperator_namespace
+    namespace           = var.flux_namespace
     secret_name         = local.secret_name
     k8s_cluster_context = var.k8s_cluster_context
     service_account_id  = nebius_iam_v1_service_account.backups_service_account.id
@@ -62,7 +62,7 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
             "type: Opaque",
             "metadata:",
             "  name: ${local.secret_name}",
-            "  namespace: ${var.soperator_namespace}",
+            "  namespace: ${var.flux_namespace}",
             "  labels:",
             "    app.kubernetes.io/managed-by: soperator-terraform",
             "  annotations:",
@@ -90,8 +90,8 @@ resource "helm_release" "backups_schedule" {
   chart      = local.helm.chart.raw
   version    = local.helm.version.raw
 
-  create_namespace = true
-  namespace        = var.soperator_namespace
+  # create_namespace = true
+  namespace        = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/k8up_schedule.yaml.tftpl", {
     s3_endpoint       = var.bucket_endpoint

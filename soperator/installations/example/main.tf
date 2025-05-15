@@ -8,6 +8,7 @@ locals {
   }
 
   slurm_cluster_name = "soperator"
+  flux_namespace    = "flux-system"
   k8s_cluster_name   = format("soperator-%s", var.company_name)
 
   backups_enabled = (var.backups_enabled == "force_enable" ||
@@ -293,6 +294,7 @@ module "slurm" {
   slurm_partition_raw_config   = var.slurm_partition_raw_config
   slurm_worker_features        = var.slurm_worker_features
   slurm_health_check_config    = var.slurm_health_check_config
+  flux_namespace               = local.flux_namespace 
   backups_enabled              = local.backups_enabled
 
   github_org              = var.github_org
@@ -456,6 +458,8 @@ module "backups_store" {
 
   depends_on = [
     module.k8s,
+    module.slurm,
+    module.fluxcd,
   ]
 }
 
@@ -469,7 +473,7 @@ module "backups" {
   iam_project_id      = var.iam_project_id
   iam_tenant_id       = var.iam_tenant_id
   instance_name       = local.k8s_cluster_name
-  soperator_namespace = local.slurm_cluster_name
+  flux_namespace      = local.flux_namespace
   bucket_name         = module.backups_store[count.index].name
   bucket_endpoint     = module.backups_store[count.index].endpoint
 

@@ -83,7 +83,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
   repository = local.helm.repository.raw
   chart      = local.helm.chart.raw
   version    = local.helm.version.raw
-  namespace  = "flux-system"
+  namespace  = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/helm_values/terraform_fluxcd_values.yaml.tftpl", {
     backups_enabled    = var.backups_enabled

@@ -654,6 +654,10 @@ variable "vmlogs_version" {
   default     = ""
 }
 
+variable "flux_namespace" {
+  description = "Kubernetes namespace to look for jail in."
+  type        = string
+}
 # endregion fluxcd
 
 variable "backups_enabled" {
@@ -661,3 +665,4 @@ variable "backups_enabled" {
   type        = bool
   default     = false
 }
+
