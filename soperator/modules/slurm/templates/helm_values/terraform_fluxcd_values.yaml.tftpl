@@ -534,6 +534,18 @@ resources:
                       readOnly: true
                       volumeSourceName: slurm-epilog
                     %{~ endif ~}
+                    %{~ if slurm_cluster.node_local_image_storage.enabled ~}
+                    - name: enroot-on-image-storage
+                      mountPath: /etc/enroot/enroot.conf.d/image-storage.conf
+                      subPath: enroot.conf
+                      readOnly: true
+                      volumeSourceName: image-storage
+                    - name: docker-on-image-storage
+                      mountPath: /etc/docker/daemon.json
+                      subPath: daemon.json
+                      readOnly: true
+                      volumeSourceName: image-storage
+                    %{~ endif ~}
                   sharedMemorySize: ${slurm_cluster.nodes.worker.shared_memory}Gi
 
               login:
