@@ -355,22 +355,6 @@ module "slurm" {
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     } : null
-    node_local_jail_submounts = [for sm in var.node_local_jail_submounts : {
-      name               = sm.name
-      mount_path         = sm.mount_path
-      size_gibibytes     = sm.size_gibibytes
-      disk_type          = sm.disk_type
-      filesystem_type    = sm.filesystem_type
-      storage_class_name = one(module.k8s_storage_class).storage_classes[sm.disk_type][sm.filesystem_type]
-    }]
-    node_local_image_storage = {
-      enabled = var.node_local_image_disk.enabled
-      spec = {
-        size_gibibytes     = var.node_local_image_disk.spec.size_gibibytes
-        filesystem_type    = var.node_local_image_disk.spec.filesystem_type
-        storage_class_name = one(module.k8s_storage_class).storage_classes[module.resources.disk_types.network_ssd_non_replicated][var.node_local_image_disk.spec.filesystem_type]
-      }
-    }
   }
 
   login_allocation_id            = module.k8s.static_ip_allocation_id

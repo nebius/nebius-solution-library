@@ -456,6 +456,28 @@ resources:
                     volumeMounts: [{ name: '${sub_mount.name}', mountPath: /volume-mount }]
                     command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
                   %{~ endfor ~}
+                  %{~ for sub_mount in slurm_cluster.node_local_jail_submounts ~}
+                  - name: ensure-node-local-jail-submount-${sub_mount.name}-${sub_mount.filesystem_type}
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: '${sub_mount.name}', mountPath: /volume-mount }]
+                    command: ["grep", ' /volume-mount ${sub_mount.filesystem_type} ', "/proc/mounts"]
+                  %{~ endfor ~}
+                  %{~ if slurm_cluster.node_local_image_storage.enabled ~}
+                  - name: ensure-node-local-image-storage-${slurm_cluster.node_local_image_storage.spec.filesystem_type}
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: 'image-storage', mountPath: /volume-mount }]
+                    command: ["grep", ' /volume-mount ${slurm_cluster.node_local_image_storage.spec.filesystem_type} ', "/proc/mounts"]
+                  - name: prepare-node-local-image-storage
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: 'image-storage', mountPath: /volume-mount }]
+                    command:
+                      - "mkdir"
+                      - "-p"
+                      %{~ for dir in ["cache", "data", "runtime"] ~}
+                      - '/volume-mount/enroot/${dir}'
+                      %{~ endfor ~}
+                      - "/volume-mount/docker"
+                  %{~ endif ~}
                 volumes:
                   spool:
                     volumeClaimTemplateSpec: null
@@ -471,6 +493,28 @@ resources:
                       mountPath: ${sub_mount.mount_path}
                       volumeSourceName: jail-submount-${sub_mount.name}
                     %{~ endfor ~}
+                    %{~ for sub_mount in slurm_cluster.node_local_jail_submounts ~}
+                    - name: ${sub_mount.name}
+                      mountPath: ${sub_mount.mount_path}
+                      volumeClaimTemplateSpec:
+                        accessModes:
+                          - ReadWriteOnce
+                        storageClassName: ${sub_mount.storage_class_name}
+                        resources:
+                          requests:
+                            storage: ${sub_mount.size_gibibytes}Gi
+                    %{~ endfor ~}
+                    %{~ if slurm_cluster.node_local_image_storage.enabled ~}
+                    - name: image-storage
+                      mountPath: /mnt/image-storage
+                      volumeClaimTemplateSpec:
+                        accessModes:
+                          - ReadWriteOnce
+                        storageClassName: ${slurm_cluster.node_local_image_storage.spec.storage_class_name}
+                        resources:
+                          requests:
+                            storage: ${slurm_cluster.node_local_image_storage.spec.size_gibibytes}Gi
+                    %{~ endif ~}
                   customMounts:
                     - name: sys-host
                       mountPath: /mnt/jail.upper/sys-host

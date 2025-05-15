@@ -149,6 +149,9 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
       k8s_node_filters = local.node_filters
 
+      node_local_jail_submounts = var.node_local_jail_submounts
+      node_local_image_storage  = var.node_local_image_storage
+
       jail_submounts = [for submount in var.filestores.jail_submounts : {
         name       = submount.name
         mount_path = submount.mount_path
