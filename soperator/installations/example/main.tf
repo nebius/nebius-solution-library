@@ -8,7 +8,7 @@ locals {
   }
 
   slurm_cluster_name = "soperator"
-  flux_namespace    = "flux-system"
+  flux_namespace     = "flux-system"
   k8s_cluster_name   = format("soperator-%s", var.company_name)
 
   backups_enabled = (var.backups_enabled == "force_enable" ||
@@ -294,7 +294,7 @@ module "slurm" {
   slurm_partition_raw_config   = var.slurm_partition_raw_config
   slurm_worker_features        = var.slurm_worker_features
   slurm_health_check_config    = var.slurm_health_check_config
-  flux_namespace               = local.flux_namespace 
+  flux_namespace               = local.flux_namespace
   backups_enabled              = local.backups_enabled
 
   github_org              = var.github_org
@@ -355,6 +355,22 @@ module "slurm" {
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     } : null
+    node_local_jail_submounts = [for sm in var.node_local_jail_submounts : {
+      name               = sm.name
+      mount_path         = sm.mount_path
+      size_gibibytes     = sm.size_gibibytes
+      disk_type          = sm.disk_type
+      filesystem_type    = sm.filesystem_type
+      storage_class_name = one(module.k8s_storage_class).storage_classes[sm.disk_type][sm.filesystem_type]
+    }]
+    node_local_image_storage = {
+      enabled = var.node_local_image_disk.enabled
+      spec = {
+        size_gibibytes     = var.node_local_image_disk.spec.size_gibibytes
+        filesystem_type    = var.node_local_image_disk.spec.filesystem_type
+        storage_class_name = one(module.k8s_storage_class).storage_classes[module.resources.disk_types.network_ssd_non_replicated][var.node_local_image_disk.spec.filesystem_type]
+      }
+    }
   }
 
   login_allocation_id            = module.k8s.static_ip_allocation_id
@@ -470,12 +486,12 @@ module "backups" {
 
   k8s_cluster_context = module.k8s.cluster_context
 
-  iam_project_id      = var.iam_project_id
-  iam_tenant_id       = var.iam_tenant_id
-  instance_name       = local.k8s_cluster_name
-  flux_namespace      = local.flux_namespace
-  bucket_name         = module.backups_store[count.index].name
-  bucket_endpoint     = module.backups_store[count.index].endpoint
+  iam_project_id  = var.iam_project_id
+  iam_tenant_id   = var.iam_tenant_id
+  instance_name   = local.k8s_cluster_name
+  flux_namespace  = local.flux_namespace
+  bucket_name     = module.backups_store[count.index].name
+  bucket_endpoint = module.backups_store[count.index].endpoint
 
   backups_password  = var.backups_password
   backups_schedule  = var.backups_schedule
