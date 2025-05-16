@@ -347,6 +347,13 @@ resources:
                   defaultMode: 500
               %{~ endif ~}
 
+              %{~ if slurm_cluster.node_local_image_storage.enabled ~}
+              - name: image-storage
+                configMap:
+                  name: image-storage
+                  defaultMode: 500
+              %{~ endif ~}
+
             populateJail:
               k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.system.name}
 
