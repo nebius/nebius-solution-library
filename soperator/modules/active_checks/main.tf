@@ -109,10 +109,36 @@ resource "helm_release" "ssh_check" {
   wait = true
 }
 
+resource "helm_release" "upgrade_cuda" {
+  count = var.checks.upgrade_cuda_enabled ? 1 : 0
+
+  depends_on = [
+    terraform_data.wait_for_create_soperatorchecks_user
+  ]
+
+  name       = "upgrade-cuda"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.slurm_cluster_namespace
+
+  values = [templatefile("${path.module}/templates/upgrade_cuda.yaml.tftpl", {
+    slurm_cluster_namespace = var.slurm_cluster_namespace
+    slurm_cluster_name      = var.slurm_cluster_name
+    cuda_version            = var.checks.cuda_version
+  })]
+
+  wait = true
+}
+
 resource "terraform_data" "wait_for_checks" {
   depends_on = [
+    helm_release.create_nebius_user,
     helm_release.install_package_check,
-    helm_release.ssh_check
+    helm_release.ssh_check,
+    helm_release.upgrade_cuda,
   ]
 
   provisioner "local-exec" {
@@ -122,7 +148,7 @@ resource "terraform_data" "wait_for_checks" {
       [
         "kubectl", "wait",
         "--for=jsonpath='{.status.k8sJobsStatus.lastK8sJobStatus}'=Complete",
-        "--timeout", "5m",
+        "--timeout", "10m",
         "--context", var.k8s_cluster_context,
         "-n", var.slurm_cluster_namespace,
         "activechecks.slurm.nebius.ai --all"
