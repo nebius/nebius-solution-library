@@ -103,6 +103,11 @@ resources:
                         key: accessToken
                         name: o11y-writer-sa-token
                       url: https://write.monitoring.eu-north1.nebius.cloud./projects/project-e00h61cxzwnf6zksvdn77/prometheus/api/v1/write
+                      inlineUrlRelabelConfig:
+                      - regex: "feature_node_kubernetes_io_.*|kubernetes_io_.*|nvidia_com_gpu.*"
+                        action: labeldrop
+                      - regex: "UUID|DCGM_FI_PROCESS_NAME|pci_bus_id|prometheus|DCGM_FI_DEV_SERIAL|DCGM_FI_DEV_NAME|job"
+                        action: labeldrop
                     - url: http://vmsingle-metrics-victoria-metrics-k8s-stack.monitoring-system.svc.cluster.local.:8429/api/v1/write
                   remoteWriteSettings:
                     label:
