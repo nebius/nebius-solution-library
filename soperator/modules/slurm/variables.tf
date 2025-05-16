@@ -351,6 +351,18 @@ variable "telemetry_grafana_admin_password" {
   type        = string
 }
 
+variable "dcgm_job_mapping_enabled" {
+  description = "Whether to enable HPC job mapping by installing a separate dcgm-exporter"
+  type        = bool
+  default     = true
+}
+
+variable "dcgm_job_map_dir" {
+  description = "Directory where HPC job mapping files are located"
+  type        = string
+  default     = "/var/run/nebius/slurm"
+}
+
 # endregion Telemetry
 
 # region Accounting
