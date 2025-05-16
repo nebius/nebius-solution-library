@@ -150,10 +150,10 @@ resources:
             values:
               resources:
                 requests:
-                  memory: ${resources.dcgm_exporter.memory}
-                  cpu: ${resources.dcgm_exporter.cpu}
+                  memory: ${resources.dcgm_exporter.memory}Gi
+                  cpu: ${resources.dcgm_exporter.cpu}m
                 limits:
-                  memory: ${resources.dcgm_exporter.memory}
+                  memory: ${resources.dcgm_exporter.memory}Gi
               serviceMonitor:
                 enabled: true
                 honorLabels: false
