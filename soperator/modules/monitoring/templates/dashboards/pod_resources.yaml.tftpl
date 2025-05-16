@@ -15,7 +15,7 @@ resources:
                 "builtIn": 1,
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "enable": true,
                 "hide": true,
@@ -43,7 +43,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -92,7 +92,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=~\"$namespace\"}[$__rate_interval]))",
@@ -103,7 +103,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_pod_container_resource_requests{namespace=~\"$namespace\", unit=\"core\"})",
@@ -115,7 +115,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_pod_container_resource_limits{namespace=~\"$namespace\", unit=\"core\"})",
@@ -127,7 +127,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "kube_resourcequota{namespace=~\"$namespace\", resource=\"requests.cpu\",type=\"hard\"}",
@@ -139,7 +139,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "kube_resourcequota{namespace=~\"$namespace\", resource=\"limits.cpu\",type=\"hard\"}",
@@ -155,7 +155,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -205,7 +205,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(rate(container_memory_working_set_bytes{namespace=~\"$namespace\"}[$__rate_interval]))",
@@ -216,7 +216,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_pod_container_resource_requests{namespace=~\"$namespace\", unit=\"byte\"})",
@@ -228,7 +228,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_pod_container_resource_limits{namespace=~\"$namespace\", unit=\"byte\"})",
@@ -240,7 +240,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "kube_resourcequota{namespace=~\"$namespace\", resource=\"requests.memory\",type=\"hard\"}",
@@ -252,7 +252,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "kube_resourcequota{namespace=~\"$namespace\", resource=\"limits.memory\",type=\"hard\"}",
@@ -268,7 +268,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -347,7 +347,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "max (rate(container_cpu_usage_seconds_total{image!=\"\", image!~\".*pause:.*$\", namespace=\"$namespace\"}[5m])) by (pod)",
@@ -362,7 +362,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -442,7 +442,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "max (container_memory_working_set_bytes{namespace=\"$namespace\"}) by (pod)",
@@ -457,7 +457,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -536,7 +536,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "max (kube_pod_container_resource_requests{resource=\"cpu\", namespace=\"$namespace\", pod=\"$pod\"})",
@@ -548,7 +548,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "max (kube_pod_container_resource_limits{resource=\"cpu\", namespace=\"$namespace\", pod=\"$pod\"})",
@@ -561,7 +561,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "max (rate(container_cpu_usage_seconds_total{image!=\"\", image!~\"^k8s.gcr.io/pause:.*$\", namespace=\"$namespace\", pod=\"$pod\"}[5m]))",
@@ -578,7 +578,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -658,7 +658,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "max (kube_pod_container_resource_requests{resource=\"memory\", namespace=\"$namespace\", pod=\"$pod\"})",
@@ -670,7 +670,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "max (kube_pod_container_resource_limits{resource=\"memory\", namespace=\"$namespace\", pod=\"$pod\"})",
@@ -683,7 +683,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "max (container_memory_working_set_bytes{namespace=\"$namespace\", pod=\"$pod\"})",
@@ -700,7 +700,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -780,7 +780,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "exemplar": true,
@@ -797,7 +797,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -884,7 +884,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_pod_container_status_running{namespace=\"$namespace\"})",
@@ -895,7 +895,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_service_info{namespace=\"$namespace\"})",
@@ -906,7 +906,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_ingress_info{namespace=\"$namespace\"})",
@@ -917,7 +917,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_deployment_labels{namespace=\"$namespace\"})",
@@ -928,7 +928,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_statefulset_labels{namespace=\"$namespace\"})",
@@ -939,7 +939,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_daemonset_labels{namespace=\"$namespace\"})",
@@ -950,7 +950,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_persistentvolumeclaim_info{namespace=~\"$namespace\"})",
@@ -961,7 +961,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_hpa_labels{namespace=\"$namespace\"})",
@@ -972,7 +972,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_configmap_info{namespace=\"$namespace\"})",
@@ -983,7 +983,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_secret_info{namespace=~\"$namespace\"})",
@@ -994,7 +994,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_networkpolicy_labels{namespace=\"$namespace\"})",
@@ -1005,7 +1005,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_job_labels{namespace=\"$namespace\"})",
@@ -1017,7 +1017,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "sum(kube_cronjob_labels{namespace=\"$namespace\"})",
@@ -1033,7 +1033,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -1113,7 +1113,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "exemplar": true,
                   "expr": "kube_pod_container_status_restarts_total{namespace=\"$namespace\", pod=~\"$pod\"}",
@@ -1128,7 +1128,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -1208,7 +1208,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "exemplar": true,
@@ -1221,7 +1221,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "exemplar": true,
@@ -1245,7 +1245,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "definition": "label_values(kube_pod_container_info, namespace)",
                 "hide": 0,
@@ -1266,7 +1266,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "definition": "label_values(kube_pod_container_info{namespace=\"$namespace\"}, pod)",
                 "hide": 0,
@@ -1287,7 +1287,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "definition": "label_values(kube_pod_container_info{namespace=\"$namespace\", pod=\"$pod\", image!~\".*pause:.*$\"}, container)",
                 "hide": 0,
