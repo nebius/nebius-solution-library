@@ -406,7 +406,8 @@ nccl_use_infiniband = false
 # Whether to enable telemetry.
 # By default, true.
 # ---
-telemetry_enabled = true
+telemetry_enabled        = true
+dcgm_job_mapping_enabled = true
 
 # Password of `admin` user of Grafana.
 # Set it to your desired password.

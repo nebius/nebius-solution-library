@@ -144,6 +144,26 @@ resources:
                   cpu: ${resources.vm_logs.cpu}
                 limits:
                   memory: ${resources.vm_logs.memory}
+          dcgmExporter:
+            enabled: ${dcgm_job_mapping_enabled}
+            hpcJobMapDir: ${dcgm_job_map_dir}
+            values:
+              resources:
+                requests:
+                  memory: ${resources.dcgm_exporter.memory}Gi
+                  cpu: ${resources.dcgm_exporter.cpu}m
+                limits:
+                  memory: ${resources.dcgm_exporter.memory}Gi
+              serviceMonitor:
+                enabled: true
+                honorLabels: false
+                relabelings:
+                  sourceLabels: [__meta_kubernetes_pod_label_app]
+                  targetLabel: app_kubernetes_io_name
+                  action: replace
+                  regex: nvidia-dcgm-exporter
+                  replacement: dcgm-exporter
+
         securityProfilesOperator:
           enabled: ${apparmor_enabled}
           interval: 5m

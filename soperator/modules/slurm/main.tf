@@ -90,6 +90,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
     telemetry_enabled  = var.telemetry_enabled
     accounting_enabled = var.accounting_enabled
 
+    dcgm_job_mapping_enabled = var.dcgm_job_mapping_enabled
+
     apparmor_enabled        = var.use_default_apparmor_profile
     enable_soperator_checks = var.enable_soperator_checks
 
@@ -103,7 +105,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     vmstack_version                    = var.vmstack_version
     vmstack_crds_version               = var.vmstack_crds_version
     vmlogs_version                     = var.vmlogs_version
-
+    dcgm_job_map_dir                   = var.dcgm_job_map_dir
 
     cluster_name           = var.name
     public_o11y_enabled    = var.public_o11y_enabled
@@ -263,6 +265,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
       events_collector  = var.resources_events_collector
       node_configurator = local.resources.node_configurator
       slurm_checks      = local.resources.slurm_checks
+      dcgm_exporter     = local.resources.dcgm_exporter
     }
 
   })]
