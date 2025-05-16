@@ -97,6 +97,17 @@ resources:
                       cpu: ${resources.vm_agent.cpu}
                     limits:
                       memory: ${resources.vm_agent.memory}
+                  %{~ if public_o11y_enabled ~}
+                  remoteWrite:
+                    - bearerTokenSecret:
+                        key: accessToken
+                        name: o11y-writer-sa-token
+                      url: https://write.monitoring.eu-north1.nebius.cloud./projects/project-e00h61cxzwnf6zksvdn77/prometheus/api/v1/write
+                    - url: http://vmsingle-slurm.monitoring-system.svc.cluster.local.:8429/api/v1/write
+                    remoteWriteSettings:
+                      label:
+                        cluster: ${cluster_name}
+                   %{~ endif ~}
               vmsingle:
                 spec:
                   extraArgs:
