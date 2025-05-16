@@ -117,6 +117,10 @@ locals {
       cpu    = 0.05
       memory = 0.128
     }
+    dcgm_exporter = {
+      cpu    = 0.05
+      memory = 0.5
+    }
   }
 
   slurm_node_extra = "\\\"{ \\\\\\\"monitoring\\\\\\\": \\\\\\\"https://console.eu.nebius.com/${var.iam_project_id}/compute/instances/$INSTANCE_ID/monitoring\\\\\\\" }\\\""

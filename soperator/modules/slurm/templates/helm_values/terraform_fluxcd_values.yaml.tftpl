@@ -159,6 +159,20 @@ resources:
                   cpu: ${resources.vm_logs.cpu}
                 limits:
                   memory: ${resources.vm_logs.memory}
+          dcgmExporter:
+            enabled: ${dcgm_job_mapping_enabled}
+            %{~ if dcgm_exporter_version != "" ~}
+            version: ${dcgm_exporter_version}
+            %{~ endif ~}
+            values:
+              hpcJobMapDir: ${dcgm_job_map_dir}
+              resources:
+                requests:
+                  memory: ${resources.dcgm_exporter.memory}Gi
+                  cpu: ${resources.dcgm_exporter.cpu}m
+                limits:
+                  memory: ${resources.dcgm_exporter.memory}Gi
+
         securityProfilesOperator:
           enabled: ${apparmor_enabled}
           interval: 5m

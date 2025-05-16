@@ -406,7 +406,8 @@ nccl_use_infiniband = false
 # Whether to enable telemetry.
 # By default, true.
 # ---
-telemetry_enabled = true
+telemetry_enabled        = true
+dcgm_job_mapping_enabled = true
 
 public_o11y_enabled = true
 
