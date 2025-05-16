@@ -37,7 +37,7 @@ resources:
               "collapsed": false,
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "gridPos": {
                 "h": 1,
@@ -51,7 +51,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "refId": "A"
                 }
@@ -657,7 +657,7 @@ resources:
               "collapsed": false,
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "gridPos": {
                 "h": 1,
@@ -671,7 +671,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "refId": "A"
                 }
@@ -1051,7 +1051,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -1137,7 +1137,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "expr": "sum(kube_node_info{cluster=~\"$cluster\"})",
                   "interval": "",
@@ -1152,7 +1152,7 @@ resources:
               "collapsed": true,
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "gridPos": {
                 "h": 1,
@@ -1622,7 +1622,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "refId": "A"
                 }
@@ -1634,7 +1634,7 @@ resources:
               "collapsed": true,
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "gridPos": {
                 "h": 1,
@@ -1818,7 +1818,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "refId": "A"
                 }
@@ -1830,7 +1830,7 @@ resources:
               "collapsed": true,
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "gridPos": {
                 "h": 1,
@@ -2628,7 +2628,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "refId": "A"
                 }
@@ -2640,7 +2640,7 @@ resources:
               "collapsed": true,
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "gridPos": {
                 "h": 1,
@@ -3383,7 +3383,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "refId": "A"
                 }
@@ -3395,7 +3395,7 @@ resources:
               "collapsed": true,
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "gridPos": {
                 "h": 1,
@@ -3412,7 +3412,7 @@ resources:
                   "dashes": false,
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -3460,7 +3460,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "kube_hpa_status_current_replicas{cluster=~\"$cluster\",namespace=~\"$namespace\"}",
                       "instant": false,
@@ -3471,7 +3471,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "kube_hpa_spec_max_replicas{cluster=~\"$cluster\",namespace=~\"$namespace\"}",
                       "instant": false,
@@ -3482,7 +3482,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "kube_hpa_spec_min_replicas{cluster=~\"$cluster\",namespace=~\"$namespace\"}",
                       "instant": false,
@@ -3528,7 +3528,7 @@ resources:
                   "dashes": false,
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -3573,7 +3573,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "sum(kube_hpa_status_current_replicas{hpa=~\".*\"})",
                       "instant": false,
@@ -3619,7 +3619,7 @@ resources:
                   "dashes": false,
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -3664,7 +3664,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "kube_hpa_status_current_replicas{hpa=~\".*\"} == kube_hpa_spec_max_replicas{hpa=~\".*\"}",
                       "instant": false,
@@ -3710,7 +3710,7 @@ resources:
                   "dashes": false,
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -3755,7 +3755,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "kube_hpa_status_current_replicas{hpa=~\".*\"} == kube_hpa_spec_min_replicas{hpa=~\".*\"}",
                       "instant": false,
@@ -3799,7 +3799,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "refId": "A"
                 }
@@ -3811,7 +3811,7 @@ resources:
               "collapsed": true,
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "gridPos": {
                 "h": 1,
@@ -4362,7 +4362,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "refId": "A"
                 }
@@ -4374,7 +4374,7 @@ resources:
               "collapsed": true,
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "gridPos": {
                 "h": 1,
@@ -4695,7 +4695,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "refId": "A"
                 }

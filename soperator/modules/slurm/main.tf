@@ -105,7 +105,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
     vmlogs_version                     = var.vmlogs_version
 
 
-    cluster_name           = var.name
+    name                   = var.name
+    cluster_name           = var.cluster_name
     public_o11y_enabled    = var.public_o11y_enabled
     metrics_collector      = local.metrics_collector
     grafana_admin_password = var.telemetry_grafana_admin_password

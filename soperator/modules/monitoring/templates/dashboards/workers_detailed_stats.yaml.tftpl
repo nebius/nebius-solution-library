@@ -43,7 +43,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -101,7 +101,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "expr": "group by (node) (kube_pod_info{pod=\"$worker\",node!=\"\"})",
@@ -117,7 +117,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -176,7 +176,7 @@ resources:
               "targets": [
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "expr": "avg(DCGM_FI_DEV_SM_CLOCK{Hostname=~\"$node\"}*1000000)",
@@ -194,7 +194,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -253,7 +253,7 @@ resources:
               "targets": [
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "expr": "avg(DCGM_FI_DEV_MEM_CLOCK{Hostname=~\"$node\"}*1000000)",
@@ -272,7 +272,7 @@ resources:
               "collapsed": false,
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "gridPos": {
                 "h": 1,
@@ -286,7 +286,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "refId": "A"
                 }
@@ -297,7 +297,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -377,7 +377,7 @@ resources:
               "targets": [
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "expr": "DCGM_FI_DEV_FB_USED{Hostname=~\"$node\"}/(DCGM_FI_DEV_FB_USED{Hostname=~\"$node\"}+DCGM_FI_DEV_FB_FREE{Hostname=~\"$node\"})",
@@ -396,7 +396,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -477,7 +477,7 @@ resources:
               "targets": [
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "expr": "DCGM_FI_DEV_GPU_UTIL{Hostname=~\"$node\"}",
@@ -496,7 +496,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -576,7 +576,7 @@ resources:
               "targets": [
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "expr": "1e6*sum(DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL{Hostname=~\"$node\"})",
@@ -595,7 +595,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -676,7 +676,7 @@ resources:
               "targets": [
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "expr": "DCGM_FI_DEV_MEM_COPY_UTIL{Hostname=~\"$node\"}",
@@ -695,7 +695,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -774,7 +774,7 @@ resources:
               "targets": [
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "expr": "DCGM_FI_DEV_POWER_USAGE{Hostname=~\"$node\"}",
@@ -793,7 +793,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -872,7 +872,7 @@ resources:
               "targets": [
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "expr": "DCGM_FI_DEV_GPU_TEMP{Hostname=~\"$node\"}",
@@ -891,7 +891,7 @@ resources:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -983,7 +983,7 @@ resources:
               "targets": [
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
                   "expr": "sum(DCGM_FI_PROF_PCIE_TX_BYTES{Hostname=~\"$node\"})",
@@ -997,7 +997,7 @@ resources:
                 },
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "expr": "sum(DCGM_FI_PROF_PCIE_RX_BYTES{instance=~\"$ip\"})",
                   "format": "time_series",
@@ -1013,7 +1013,7 @@ resources:
             },
             {
               "datasource": {
-                "uid": "prometheus"
+                "uid": "VictoriaMetrics"
               },
               "fieldConfig": {
                 "defaults": {
@@ -1105,7 +1105,7 @@ resources:
               "targets": [
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "expr": "sum(rate(node_infiniband_port_data_transmitted_bytes_total{instance=~\"$ip\"}[$__interval]))",
                   "format": "time_series",
@@ -1117,7 +1117,7 @@ resources:
                 },
                 {
                   "datasource": {
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "expr": "sum(rate(node_infiniband_port_data_received_bytes_total{instance=~\"$ip\"}[$__interval]))",
                   "format": "time_series",
@@ -1149,7 +1149,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -1355,7 +1355,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"system\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
@@ -1370,7 +1370,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"user\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
@@ -1384,7 +1384,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"nice\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
@@ -1398,7 +1398,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "sum by(instance) (irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"iowait\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
@@ -1412,7 +1412,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"irq\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
@@ -1426,7 +1426,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"softirq\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
@@ -1440,7 +1440,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"steal\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
@@ -1454,7 +1454,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"idle\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
@@ -1473,7 +1473,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -1859,7 +1859,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_MemTotal_bytes{instance=~\"$ip\"} - node_memory_MemFree_bytes{instance=~\"$ip\"} - node_memory_Buffers_bytes{instance=~\"$ip\"} - node_memory_Cached_bytes{instance=~\"$ip\"} - node_memory_Slab_bytes{instance=~\"$ip\"} - node_memory_PageTables_bytes{instance=~\"$ip\"} - node_memory_SwapCached_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -1872,7 +1872,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_PageTables_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -1885,7 +1885,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_SwapCached_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -1897,7 +1897,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Slab_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -1910,7 +1910,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Cached_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -1923,7 +1923,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Buffers_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -1936,7 +1936,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_MemFree_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -1949,7 +1949,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "(node_memory_SwapTotal_bytes{instance=~\"$ip\"} - node_memory_SwapFree_bytes{instance=~\"$ip\"})",
                       "format": "time_series",
@@ -1962,7 +1962,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_HardwareCorrupted_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -1979,7 +1979,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -2134,7 +2134,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_network_receive_bytes_total{instance=~\"$ip\"}[$__rate_interval])*8",
                       "format": "time_series",
@@ -2146,7 +2146,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_network_transmit_bytes_total{instance=~\"$ip\"}[$__rate_interval])*8",
                       "format": "time_series",
@@ -2162,7 +2162,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -2246,7 +2246,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_filesystem_size_bytes{instance=~\"$ip\",device!~'rootfs'} - node_filesystem_avail_bytes{instance=~\"$ip\",device!~'rootfs'}",
                       "format": "time_series",
@@ -2262,7 +2262,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -2672,7 +2672,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_reads_completed_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])",
                       "intervalFactor": 4,
@@ -2683,7 +2683,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_writes_completed_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])",
                       "intervalFactor": 1,
@@ -2698,7 +2698,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -2895,7 +2895,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_read_bytes_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])",
                       "format": "time_series",
@@ -2908,7 +2908,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_written_bytes_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])",
                       "format": "time_series",
@@ -2925,7 +2925,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -3036,7 +3036,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_io_time_seconds_total{instance=~\"$ip\",device=~\"$diskdevices\"} [$__rate_interval])",
                       "format": "time_series",
@@ -3054,7 +3054,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -3165,7 +3165,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "sum by(instance) (irate(node_cpu_guest_seconds_total{instance=~\"$ip\", mode=\"user\"}[1m])) / on(instance) group_left sum by (instance)((irate(node_cpu_seconds_total{instance=~\"$ip\"}[1m])))",
@@ -3177,7 +3177,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "sum by(instance) (irate(node_cpu_guest_seconds_total{instance=~\"$ip\", mode=\"nice\"}[1m])) / on(instance) group_left sum by (instance)((irate(node_cpu_seconds_total{instance=~\"$ip\"}[1m])))",
@@ -3220,7 +3220,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -3560,7 +3560,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Inactive_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -3572,7 +3572,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Active_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -3588,7 +3588,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -3947,7 +3947,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Committed_AS_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -3959,7 +3959,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_CommitLimit_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -3975,7 +3975,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -4315,7 +4315,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Inactive_file_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -4328,7 +4328,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Inactive_anon_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -4341,7 +4341,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Active_file_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -4354,7 +4354,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Active_anon_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -4371,7 +4371,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -4740,7 +4740,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Writeback_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -4752,7 +4752,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_WritebackTmp_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -4764,7 +4764,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Dirty_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -4780,7 +4780,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -5143,7 +5143,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Mapped_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -5155,7 +5155,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Shmem_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -5167,7 +5167,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_ShmemHugePages_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -5180,7 +5180,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_ShmemPmdMapped_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -5197,7 +5197,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -5536,7 +5536,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_KernelStack_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -5548,7 +5548,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_Percpu_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -5565,7 +5565,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -5918,7 +5918,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_VmallocChunk_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -5931,7 +5931,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_VmallocTotal_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -5944,7 +5944,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_VmallocUsed_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -5961,7 +5961,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -6326,7 +6326,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_AnonHugePages_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -6338,7 +6338,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_AnonPages_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -6354,7 +6354,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -6722,7 +6722,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_memory_NFS_Unstable_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -6738,7 +6738,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -7106,7 +7106,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_vmstat_oom_kill{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -7123,7 +7123,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -7217,7 +7217,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_vmstat_pgpgin{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -7229,7 +7229,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_vmstat_pgpgout{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -7245,7 +7245,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -7603,7 +7603,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_vmstat_pgfault{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -7615,7 +7615,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_vmstat_pgmajfault{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -7627,7 +7627,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_vmstat_pgfault{instance=~\"$ip\"}[$__rate_interval])  - irate(node_vmstat_pgmajfault{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -7670,7 +7670,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "The number (after merges) of I/O requests completed per second for the device",
                   "fieldConfig": {
@@ -8065,7 +8065,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_reads_completed_total{instance=~\"$ip\"}[$__rate_interval])",
                       "intervalFactor": 4,
@@ -8076,7 +8076,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_writes_completed_total{instance=~\"$ip\"}[$__rate_interval])",
                       "intervalFactor": 1,
@@ -8091,7 +8091,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "The number of bytes read from or written to the device per second",
                   "fieldConfig": {
@@ -8486,7 +8486,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_read_bytes_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -8498,7 +8498,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_written_bytes_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -8514,7 +8514,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "The average time for requests issued to the device to be served. This includes the time spent by the requests in queue and the time spent servicing them.",
                   "fieldConfig": {
@@ -8909,7 +8909,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_read_time_seconds_total{instance=~\"$ip\"}[$__rate_interval]) / irate(node_disk_reads_completed_total{instance=~\"$ip\"}[$__rate_interval])",
                       "hide": false,
@@ -8922,7 +8922,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_write_time_seconds_total{instance=~\"$ip\"}[$__rate_interval]) / irate(node_disk_writes_completed_total{instance=~\"$ip\"}[$__rate_interval])",
                       "hide": false,
@@ -8939,7 +8939,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "The average queue length of the requests that were issued to the device",
                   "fieldConfig": {
@@ -9323,7 +9323,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_io_time_weighted_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
                       "interval": "",
@@ -9339,7 +9339,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "The number of read and write requests merged per second that were queued to the device",
                   "fieldConfig": {
@@ -9732,7 +9732,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_reads_merged_total{instance=~\"$ip\"}[$__rate_interval])",
                       "intervalFactor": 1,
@@ -9743,7 +9743,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_writes_merged_total{instance=~\"$ip\"}[$__rate_interval])",
                       "intervalFactor": 1,
@@ -9758,7 +9758,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "Percentage of elapsed time during which I/O requests were issued to the device (bandwidth utilization for the device). Device saturation occurs when this value is close to 100% for devices serving requests serially.  But for devices  serving requests in parallel, such as RAID arrays and modern SSDs, this number does not reflect their performance limits.",
                   "fieldConfig": {
@@ -10140,7 +10140,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_io_time_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
                       "interval": "",
@@ -10152,7 +10152,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_discard_time_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
                       "interval": "",
@@ -10168,7 +10168,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "The number of outstanding requests at the instant the sample was taken. Incremented as requests are given to appropriate struct request_queue and decremented as they finish.",
                   "fieldConfig": {
@@ -10550,7 +10550,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_disk_io_now{instance=~\"$ip\"}",
                       "interval": "",
@@ -10566,7 +10566,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -10947,7 +10947,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_discards_completed_total{instance=~\"$ip\"}[$__rate_interval])",
                       "interval": "",
@@ -10959,7 +10959,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_disk_discards_merged_total{instance=~\"$ip\"}[$__rate_interval])",
                       "interval": "",
@@ -11002,7 +11002,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -11085,7 +11085,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_filesystem_avail_bytes{instance=~\"$ip\",device!~'rootfs'}",
                       "format": "time_series",
@@ -11099,7 +11099,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_filesystem_free_bytes{instance=~\"$ip\",device!~'rootfs'}",
                       "format": "time_series",
@@ -11112,7 +11112,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_filesystem_size_bytes{instance=~\"$ip\",device!~'rootfs'}",
                       "format": "time_series",
@@ -11129,7 +11129,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -11212,7 +11212,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_filesystem_files_free{instance=~\"$ip\",device!~'rootfs'}",
                       "format": "time_series",
@@ -11229,7 +11229,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -11312,7 +11312,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_filefd_maximum{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -11324,7 +11324,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_filefd_allocated{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -11340,7 +11340,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -11423,7 +11423,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_filesystem_files{instance=~\"$ip\",device!~'rootfs'}",
                       "format": "time_series",
@@ -11440,7 +11440,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -11538,7 +11538,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_filesystem_readonly{instance=~\"$ip\",device!~'rootfs'}",
                       "format": "time_series",
@@ -11550,7 +11550,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_filesystem_device_error{instance=~\"$ip\",device!~'rootfs',fstype!~'tmpfs'}",
                       "format": "time_series",
@@ -11594,7 +11594,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -11749,7 +11749,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_network_receive_packets_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -11762,7 +11762,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_network_transmit_packets_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -11779,7 +11779,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -11874,7 +11874,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_network_receive_errs_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -11886,7 +11886,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_network_transmit_errs_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -11902,7 +11902,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -11997,7 +11997,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_network_receive_drop_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12009,7 +12009,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_network_transmit_drop_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12025,7 +12025,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -12127,7 +12127,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_nf_conntrack_entries{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -12139,7 +12139,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_nf_conntrack_entries_limit{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -12155,7 +12155,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -12238,7 +12238,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_network_speed_bytes{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -12254,7 +12254,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -12336,7 +12336,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_network_up{operstate=\"up\",instance=~\"$ip\"}",
                       "format": "time_series",
@@ -12348,7 +12348,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_network_carrier{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -12390,7 +12390,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "$worker\n\n$node\n\n$ip",
                   "fieldConfig": {
@@ -12497,7 +12497,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Udp_InDatagrams{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12510,7 +12510,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Udp_OutDatagrams{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12527,7 +12527,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -12608,7 +12608,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Udp_InErrors{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12621,7 +12621,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Udp_NoPorts{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12634,7 +12634,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_UdpLite_InErrors{instance=~\"$ip\"}[$__rate_interval])",
                       "interval": "",
@@ -12644,7 +12644,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Udp_RcvbufErrors{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12657,7 +12657,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Udp_SndbufErrors{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12674,7 +12674,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -12780,7 +12780,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Tcp_InSegs{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12794,7 +12794,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Tcp_OutSegs{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12811,7 +12811,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -12894,7 +12894,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_TcpExt_ListenOverflows{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12908,7 +12908,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_TcpExt_ListenDrops{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12922,7 +12922,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_TcpExt_TCPSynRetrans{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -12935,7 +12935,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Tcp_RetransSegs{instance=~\"$ip\"}[$__rate_interval])",
                       "interval": "",
@@ -12945,7 +12945,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Tcp_InErrs{instance=~\"$ip\"}[$__rate_interval])",
                       "interval": "",
@@ -12955,7 +12955,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Tcp_OutRsts{instance=~\"$ip\"}[$__rate_interval])",
                       "interval": "",
@@ -12965,7 +12965,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "irate(node_netstat_TcpExt_TCPRcvQDrop{instance=~\"$ip\"}[$__rate_interval])",
@@ -12978,7 +12978,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "irate(node_netstat_TcpExt_TCPOFOQueue{instance=~\"$ip\"}[$__rate_interval])",
@@ -12995,7 +12995,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -13097,7 +13097,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_netstat_Tcp_CurrEstab{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -13111,7 +13111,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_netstat_Tcp_MaxConn{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -13129,7 +13129,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -13211,7 +13211,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Tcp_ActiveOpens{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -13224,7 +13224,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_netstat_Tcp_PassiveOpens{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -13268,7 +13268,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -13350,7 +13350,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_context_switches_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -13362,7 +13362,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_intr_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -13379,7 +13379,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -13461,7 +13461,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_load1{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -13473,7 +13473,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_load5{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -13485,7 +13485,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_load15{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -13501,7 +13501,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -13583,7 +13583,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_entropy_available_bits{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -13599,7 +13599,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "https://docs.kernel.org/accounting/psi.html",
                   "fieldConfig": {
@@ -13743,7 +13743,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "rate(node_pressure_cpu_waiting_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
@@ -13757,7 +13757,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "rate(node_pressure_memory_waiting_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
@@ -13772,7 +13772,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "rate(node_pressure_memory_stalled_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
@@ -13787,7 +13787,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "rate(node_pressure_io_waiting_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
@@ -13802,7 +13802,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
                       "expr": "rate(node_pressure_io_stalled_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
@@ -13821,7 +13821,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -13923,7 +13923,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "process_max_fds{instance=~\"$ip\"}",
                       "interval": "",
@@ -13935,7 +13935,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "process_open_fds{instance=~\"$ip\"}",
                       "interval": "",
@@ -13951,7 +13951,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -14032,7 +14032,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(node_schedstat_timeslices_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -14049,7 +14049,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "fieldConfig": {
                     "defaults": {
@@ -14130,7 +14130,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "irate(process_cpu_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
                       "format": "time_series",
@@ -14174,7 +14174,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -14272,7 +14272,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_timex_estimated_error_seconds{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -14286,7 +14286,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_timex_offset_seconds{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -14300,7 +14300,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_timex_maxerror_seconds{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -14318,7 +14318,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -14400,7 +14400,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_timex_loop_time_constant{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -14417,7 +14417,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -14515,7 +14515,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_timex_sync_status{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -14528,7 +14528,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_timex_frequency_adjustment_ratio{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -14545,7 +14545,7 @@ resources:
                 {
                   "datasource": {
                     "type": "prometheus",
-                    "uid": "prometheus"
+                    "uid": "VictoriaMetrics"
                   },
                   "description": "",
                   "fieldConfig": {
@@ -14627,7 +14627,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_timex_tick_seconds{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -14640,7 +14640,7 @@ resources:
                     {
                       "datasource": {
                         "type": "prometheus",
-                        "uid": "prometheus"
+                        "uid": "VictoriaMetrics"
                       },
                       "expr": "node_timex_tai_offset_seconds{instance=~\"$ip\"}",
                       "format": "time_series",
@@ -14682,7 +14682,7 @@ resources:
                 },
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "definition": "label_values(kube_pod_info,pod)",
                 "hide": 0,
@@ -14711,7 +14711,7 @@ resources:
                 },
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "definition": "label_values(kube_pod_info{pod=~\"$worker\"},node)",
                 "hide": 2,
@@ -14763,7 +14763,7 @@ resources:
                 },
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "definition": "label_values(node_uname_info{nodename=~\"$node\"},instance)",
                 "hide": 2,

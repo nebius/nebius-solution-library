@@ -1,14 +1,15 @@
 resource "terraform_data" "o11y_static_key_secret" {
   triggers_replace = {
-    region                = var.region
-    service_account_name  = local.service_account_name
-    k8s_cluster_context   = var.k8s_cluster_context
-    o11y_iam_tenant_id    = var.o11y_iam_tenant_id
-    o11y_iam_project_id   = var.o11y_iam_project_id
-    o11y_iam_group_id     = var.o11y_iam_group_id
-    o11y_secret_name      = var.o11y_secret_name
-    o11y_secret_namespace = var.o11y_secret_namespace
-    o11y_profile          = var.o11y_profile
+    region                           = var.region
+    service_account_name             = local.service_account_name
+    k8s_cluster_context              = var.k8s_cluster_context
+    o11y_iam_tenant_id               = var.o11y_iam_tenant_id
+    o11y_iam_project_id              = var.o11y_iam_project_id
+    o11y_iam_group_id                = var.o11y_iam_group_id
+    o11y_secret_name                 = var.o11y_secret_name
+    o11y_secret_logs_namespace       = var.o11y_secret_logs_namespace
+    o11y_secret_monitoring_namespace = var.o11y_secret_monitoring_namespace
+    o11y_profile                     = var.o11y_profile
   }
 
   provisioner "local-exec" {
@@ -46,12 +47,22 @@ cat <<EOF | kubectl --context "${self.triggers_replace.k8s_cluster_context}" app
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ${self.triggers_replace.o11y_secret_namespace}
+  name: ${self.triggers_replace.o11y_secret_logs_namespace}
+EOF
+cat <<EOF | kubectl --context "${self.triggers_replace.k8s_cluster_context}" apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${self.triggers_replace.o11y_secret_monitoring_namespace}
 EOF
 
 echo "Creating secret..."
 kubectl --context ${self.triggers_replace.k8s_cluster_context} create secret generic ${self.triggers_replace.o11y_secret_name} \
-  -n ${self.triggers_replace.o11y_secret_namespace} \
+  -n ${self.triggers_replace.o11y_secret_logs_namespace} \
+  --from-literal=accessToken="$TOKEN"
+echo "Creating secret..."
+kubectl --context ${self.triggers_replace.k8s_cluster_context} create secret generic ${self.triggers_replace.o11y_secret_name} \
+  -n ${self.triggers_replace.o11y_secret_monitoring_namespace} \
   --from-literal=accessToken="$TOKEN"
 EOT
   }

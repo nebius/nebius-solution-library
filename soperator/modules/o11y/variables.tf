@@ -39,10 +39,15 @@ variable "o11y_secret_name" {
   default     = "o11y-writer-sa-token"
 }
 
-variable "o11y_secret_namespace" {
+variable "o11y_secret_logs_namespace" {
   description = "Secret namespace inside k8s cluster for o11y static key."
   type        = string
   default     = "logs-system"
+}
+variable "o11y_secret_monitoring_namespace" {
+  description = "Secret namespace inside k8s cluster for o11y static key."
+  type        = string
+  default     = "monitoring-system"
 }
 
 variable "o11y_profile" {
