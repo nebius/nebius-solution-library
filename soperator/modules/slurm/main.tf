@@ -1,4 +1,4 @@
-resource "terraform_data" "wait_for_slurm_cluster" {
+resource "terraform_data" "wait_for_slurm_cluster_hr" {
   depends_on = [
     helm_release.flux2_sync,
   ]
@@ -75,6 +75,27 @@ resource "terraform_data" "wait_for_slurm_cluster" {
         sleep "$SLEEP_SECONDS"
       done
     EOF
+  }
+}
+
+resource "terraform_data" "wait_for_slurm_cluster_available" {
+  depends_on = [
+    terraform_data.wait_for_slurm_cluster_hr
+  ]
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command = join(
+      " ",
+      [
+        "kubectl", "wait",
+        "--for=jsonpath='{.status.phase}'=Available",
+        "--timeout", "1h",
+        "--context", var.k8s_cluster_context,
+        "-n", var.name,
+        "slurmcluster.slurm.nebius.ai/${var.name}"
+      ]
+    )
   }
 }
 
