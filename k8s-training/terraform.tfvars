@@ -35,12 +35,6 @@ enable_filestore     = true                             # Enable or disable File
 filestore_disk_size  = 10 * (1024 * 1024 * 1024 * 1024) # Set Filestore disk size in bytes. The multiplication makes it easier to set the size in TB. This would set the size as 10TB
 filestore_block_size = 4096                             # Set Filestore block size in bytes
 
-## GlusterFS - legacy
-enable_glusterfs            = false                      # Enable or disable GlusterFS integration with true or false
-glusterfs_storage_nodes     = 3                          # Set amount of storage nodes in GlusterFS cluster
-glusterfs_disk_count_per_vm = 2                          # Set amount of disks per storage node in GlusterFS cluster
-glusterfs_disk_size         = 100 * (1024 * 1024 * 1024) # Set disk size in bytes. The multiplication makes it easier to set the size in GB. This would set the size as 100GB
-
 # KubeRay
 enable_kuberay           = false # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
 kuberay_min_gpu_replicas = 1
