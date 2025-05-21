@@ -161,9 +161,7 @@ resources:
                   memory: ${resources.vm_logs.memory}
           dcgmExporter:
             enabled: ${dcgm_job_mapping_enabled}
-            %{~ if dcgm_exporter_version != "" ~}
-            version: ${dcgm_exporter_version}
-            %{~ endif ~}
+            version: ${operator_version}
             values:
               hpcJobMapDir: ${dcgm_job_map_dir}
               resources:
@@ -370,7 +368,7 @@ resources:
               - name: hpc-jobs-dir
                 hostPath:
                   path: ${dcgm_job_map_dir}
-                  type: Directory
+                  type: DirectoryOrCreate
               %{~ endif ~}
 
             populateJail:
