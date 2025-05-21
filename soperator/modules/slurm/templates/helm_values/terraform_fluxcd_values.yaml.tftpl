@@ -161,9 +161,7 @@ resources:
                   memory: ${resources.vm_logs.memory}
           dcgmExporter:
             enabled: ${dcgm_job_mapping_enabled}
-            %{~ if dcgm_exporter_version != "" ~}
             version: ${operator_version}
-            %{~ endif ~}
             values:
               hpcJobMapDir: ${dcgm_job_map_dir}
               resources:
