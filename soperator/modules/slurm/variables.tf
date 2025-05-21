@@ -358,12 +358,6 @@ variable "dcgm_job_map_dir" {
   default     = "/var/run/nebius/slurm"
 }
 
-variable "dcgm_exporter_version" {
-  description = "The version of the dcgm exporter helm chart."
-  type        = string
-  default     = ""
-}
-
 # endregion Telemetry
 
 # region Accounting

@@ -126,7 +126,6 @@ resource "helm_release" "soperator_fluxcd_cm" {
     vmstack_version                    = var.vmstack_version
     vmstack_crds_version               = var.vmstack_crds_version
     vmlogs_version                     = var.vmlogs_version
-    dcgm_exporter_version              = var.dcgm_exporter_version
     dcgm_job_map_dir                   = var.dcgm_job_map_dir
 
     name                = var.name
