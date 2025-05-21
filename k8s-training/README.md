@@ -140,21 +140,9 @@ See the details below for more information on [Grafana](#grafana), [Prometheus](
 enable_filestore     = true # Enable or disable Filestore integration with true or false
 filestore_disk_size  = 100 * (1024 * 1024 * 1024) #Set the Filestore disk size in bytes. The multiplication makes it easier to set the size in GB, giving you a total of 100 GB
 filestore_block_size = 4096 # Set the Filestore block size in bytes
-
-## GlusterFS - legacy
-enable_glusterfs = false # Enable or disable GlusterFS integration with true or false
-glusterfs_storage_nodes = 3 # Set the number of storage nodes in the GlusterFS cluster
-glusterfs_disk_count_per_vm = 2 # Set the number of disks per storage node in the GlusterFS cluster
-glusterfs_disk_size = 100 * (1024 * 1024 * 1024) #Set the disk size in bytes. The multiplication makes it easier to set the size in GB, giving you a total of 100 GB.
 ```
 
-There are two ways to add external storage to K8s clusters:
-
-- Filestore (recommended, enabled by default)
-- GlusterFS (legacy)
-
-Both options allow you to create a Read-Write-Many HostPath PVCs in a K8s cluster. Use the following paths: `/mnt/filestore` for Filestore, `/mnt/glusterfs` for
-GlusterFS.
+You can use Filestore to add external storage to K8s clusters, this allows you to create a Read-Write-Many HostPath PVCs in a K8s cluster. Use the following paths: `/mnt/filestore` for Filestore.
 
 For more information on how to access storage in K8s, refer [here](#accessing-storage).
 
@@ -307,7 +295,7 @@ spec:
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: "<HOST-PATH>" # "/mnt/data/<sub-directory>" or "/mnt/glusterfs/<sub-directory>"
+    path: "<HOST-PATH>" # "/mnt/data/<sub-directory>"
 
 ---
 

@@ -57,44 +57,6 @@ variable "filestore_block_size" {
   default     = 4096
 }
 
-# GlusterFS
-variable "enable_glusterfs" {
-  description = "Use GlusterFS."
-  type        = bool
-  default     = false
-}
-
-variable "glusterfs_storage_nodes" {
-  type        = number
-  default     = 3
-  description = "Number of storage nodes."
-}
-
-variable "glusterfs_disk_count_per_vm" {
-  type        = number
-  default     = 2
-  description = "Number disks for GlusterFS per VM"
-}
-
-variable "glusterfs_disk_type" {
-  type        = string
-  default     = "NETWORK_SSD"
-  description = "Type of GlusterFS disk."
-}
-
-variable "glusterfs_disk_size" {
-  type        = number
-  default     = 107374182400 # 100 GB
-  description = "Disk size bytes."
-}
-
-variable "glusterfs_disk_block_size" {
-  type        = number
-  default     = 4096
-  description = "Disk block size."
-}
-
-
 # K8s access
 variable "ssh_user_name" {
   description = "SSH username."

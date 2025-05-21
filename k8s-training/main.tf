@@ -65,9 +65,6 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
     underlay_required = false
     cloud_init_user_data = templatefile("../modules/cloud-init/k8s-cloud-init.tftpl", {
       enable_filestore = var.enable_filestore ? "true" : "false",
-      enable_glusterfs = var.enable_glusterfs ? "true" : "false",
-      glusterfs_host   = var.enable_glusterfs ? module.glusterfs[0].glusterfs-host : "",
-      glusterfs_volume = var.enable_glusterfs ? module.glusterfs[0].volume : "",
       ssh_user_name    = var.ssh_user_name,
       ssh_public_key   = local.ssh_public_key
     })
@@ -120,9 +117,6 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     underlay_required = false
     cloud_init_user_data = templatefile("../modules/cloud-init/k8s-cloud-init.tftpl", {
       enable_filestore = var.enable_filestore ? "true" : "false",
-      enable_glusterfs = var.enable_glusterfs ? "true" : "false",
-      glusterfs_host   = var.enable_glusterfs ? module.glusterfs[0].glusterfs-host : "",
-      glusterfs_volume = var.enable_glusterfs ? module.glusterfs[0].volume : "",
       ssh_user_name    = var.ssh_user_name,
       ssh_public_key   = local.ssh_public_key
     })
