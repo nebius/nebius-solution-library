@@ -524,6 +524,17 @@ resources:
                         /volume-mount/docker \
                       && chmod 777 -R /volume-mount/enroot /volume-mount/docker
                   %{~ endif ~}
+                  %{~ if dcgm_job_mapping_enabled ~}
+                  - name: create-hpc-jobs-dir
+                    command: ["sh", "-c", ' mkdir -p ${dcgm_job_map_dir} ']
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox:latest
+                    securityContext:
+                      privileged: true
+                    volumeMounts:
+                    - mountPath: /var
+                      mountPropagation: HostToContainer
+                      name: host-var
+                  %{~ endif ~}
                 volumes:
                   spool:
                     volumeClaimTemplateSpec: null
