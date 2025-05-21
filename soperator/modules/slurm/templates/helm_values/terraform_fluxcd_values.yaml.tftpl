@@ -593,6 +593,7 @@ resources:
                     %{~ if dcgm_job_mapping_enabled ~}
                     - name: hpc-jobs-dir
                       mountPath: ${dcgm_job_map_dir}
+                      volumeSourceName: hpc-jobs-dir
                     %{~ endif ~}
                   sharedMemorySize: ${slurm_cluster.nodes.worker.shared_memory}Gi
 
