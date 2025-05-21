@@ -495,12 +495,15 @@ resources:
                     image: cr.eu-north1.nebius.cloud/soperator/busybox
                     volumeMounts: [{ name: 'image-storage', mountPath: /volume-mount }]
                     command:
-                      - "mkdir"
-                      - "-p"
+                    - "sh"
+                    - "-c"
+                    - |
+                      mkdir -p \
                       %{~ for dir in ["cache", "data", "runtime"] ~}
-                      - '/volume-mount/enroot/${dir}'
+                        /volume-mount/enroot/${dir} \
                       %{~ endfor ~}
-                      - "/volume-mount/docker"
+                        /volume-mount/docker \
+                      && chmod 777 -R /volume-mount/enroot /volume-mount/docker
                   %{~ endif ~}
                 volumes:
                   spool:
