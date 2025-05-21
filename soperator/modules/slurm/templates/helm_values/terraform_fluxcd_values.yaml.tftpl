@@ -85,8 +85,6 @@ resources:
             version: ${vmstack_version}
             %{~ endif ~}
             values:
-              grafana:
-                password: ${grafana_admin_password}
               vmagent:
                 spec:
                   extraArgs:

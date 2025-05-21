@@ -424,8 +424,7 @@ module "slurm" {
   nccl_benchmark_min_threshold = var.nccl_benchmark_min_threshold
   nccl_use_infiniband          = var.nccl_use_infiniband
 
-  telemetry_enabled                = var.telemetry_enabled
-  telemetry_grafana_admin_password = var.telemetry_grafana_admin_password
+  telemetry_enabled = var.telemetry_enabled
 
   providers = {
     helm = helm

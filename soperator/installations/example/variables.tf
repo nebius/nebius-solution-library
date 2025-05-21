@@ -806,13 +806,6 @@ variable "telemetry_enabled" {
   default     = true
 }
 
-variable "telemetry_grafana_admin_password" {
-  description = "Password of `admin` user of Grafana."
-  type        = string
-  nullable    = false
-  sensitive   = true
-}
-
 variable "public_o11y_enabled" {
   description = "Whether to enable public observability endpoints."
   type        = bool
