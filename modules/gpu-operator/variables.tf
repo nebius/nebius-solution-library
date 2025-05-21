@@ -8,6 +8,12 @@ variable "parent_id" {
   type        = string
 }
 
+variable "enable_dcgm_exporter" {
+  description = "Whether to enable DCGM exporter."
+  type        = bool
+  default     = false
+}
+
 variable "enable_dcgm_service_monitor" {
   description = "Whether to enable DCGM service monitor."
   type        = bool

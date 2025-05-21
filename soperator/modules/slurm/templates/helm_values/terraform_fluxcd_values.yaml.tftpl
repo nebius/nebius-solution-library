@@ -159,6 +159,20 @@ resources:
                   cpu: ${resources.vm_logs.cpu}
                 limits:
                   memory: ${resources.vm_logs.memory}
+          dcgmExporter:
+            enabled: ${dcgm_job_mapping_enabled}
+            %{~ if dcgm_exporter_version != "" ~}
+            version: ${dcgm_exporter_version}
+            %{~ endif ~}
+            values:
+              hpcJobMapDir: ${dcgm_job_map_dir}
+              resources:
+                requests:
+                  memory: ${resources.dcgm_exporter.memory}Gi
+                  cpu: ${resources.dcgm_exporter.cpu}m
+                limits:
+                  memory: ${resources.dcgm_exporter.memory}Gi
+
         securityProfilesOperator:
           enabled: ${apparmor_enabled}
           interval: 5m
@@ -350,6 +364,13 @@ resources:
                 configMap:
                   name: image-storage
                   defaultMode: 500
+              %{~ endif ~}
+
+              %{~ if dcgm_job_mapping_enabled ~}
+              - name: hpc-jobs-dir
+                hostPath:
+                  path: ${dcgm_job_map_dir}
+                  type: Directory
               %{~ endif ~}
 
             populateJail:
@@ -570,6 +591,10 @@ resources:
                       subPath: daemon.json
                       readOnly: true
                       volumeSourceName: image-storage
+                    %{~ endif ~}
+                    %{~ if dcgm_job_mapping_enabled ~}
+                    - name: hpc-jobs-dir
+                      mountPath: ${dcgm_job_map_dir}
                     %{~ endif ~}
                   sharedMemorySize: ${slurm_cluster.nodes.worker.shared_memory}Gi
 

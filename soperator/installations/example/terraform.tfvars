@@ -408,6 +408,11 @@ nccl_use_infiniband = false
 # ---
 telemetry_enabled = true
 
+# Whether to enable dcgm job mapping (adds hpc_job label on DCGM_ metrics).
+# By default, true.
+# ---
+dcgm_job_mapping_enabled = true
+
 public_o11y_enabled = true
 
 # endregion Telemetry

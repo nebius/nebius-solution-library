@@ -812,6 +812,12 @@ variable "public_o11y_enabled" {
   default     = true
 }
 
+variable "dcgm_job_mapping_enabled" {
+  description = "Whether to enable HPC job mapping by installing a separate dcgm-exporter"
+  type        = bool
+  default     = true
+}
+
 # endregion Telemetry
 
 # region Accounting
