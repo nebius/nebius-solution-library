@@ -366,6 +366,13 @@ resources:
                   defaultMode: 500
               %{~ endif ~}
 
+              %{~ if dcgm_job_mapping_enabled ~}
+              - name: hpc-jobs-dir
+                hostPath:
+                  path: ${dcgm_job_map_dir}
+                  type: Directory
+              %{~ endif ~}
+
             populateJail:
               k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.system.name}
 
@@ -584,6 +591,10 @@ resources:
                       subPath: daemon.json
                       readOnly: true
                       volumeSourceName: image-storage
+                    %{~ endif ~}
+                    %{~ if dcgm_job_mapping_enabled ~}
+                    - name: hpc-jobs-dir
+                      mountPath: ${dcgm_job_map_dir}
                     %{~ endif ~}
                   sharedMemorySize: ${slurm_cluster.nodes.worker.shared_memory}Gi
 
