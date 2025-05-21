@@ -349,6 +349,8 @@ variable "telemetry_enabled" {
 variable "telemetry_grafana_admin_password" {
   description = "Password of `admin` user of Grafana."
   type        = string
+
+  sensitive = true
 }
 
 # endregion Telemetry
