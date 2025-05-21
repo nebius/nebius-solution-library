@@ -162,7 +162,7 @@ resources:
           dcgmExporter:
             enabled: ${dcgm_job_mapping_enabled}
             %{~ if dcgm_exporter_version != "" ~}
-            version: ${dcgm_exporter_version}
+            version: ${operator_version}
             %{~ endif ~}
             values:
               hpcJobMapDir: ${dcgm_job_map_dir}
@@ -367,6 +367,10 @@ resources:
               %{~ endif ~}
 
               %{~ if dcgm_job_mapping_enabled ~}
+              - name: host-var
+                hostPath:
+                  path: /var
+                  type: ""
               - name: hpc-jobs-dir
                 hostPath:
                   path: ${dcgm_job_map_dir}
