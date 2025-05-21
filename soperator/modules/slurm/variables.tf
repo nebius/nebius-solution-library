@@ -523,11 +523,6 @@ variable "resources_logs_collector" {
   }
 }
 
-# variable "grafana_admin_password" {
-#   description = "Password of `admin` user of Grafana."
-#   type        = string
-# }
-
 # endregion Monitoring
 
 # region SConfigController

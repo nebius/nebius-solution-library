@@ -85,8 +85,15 @@ resources:
             version: ${vmstack_version}
             %{~ endif ~}
             values:
-              grafana:
-                password: ${grafana_admin_password}
+              grafana-ini:
+                auth:
+                  disable_login_form: true
+                auth.basic:
+                    enabled: false
+                auth.anonymous:
+                    enabled: true
+                    org_name: Main Org.
+                    org_role: Editor
               vmagent:
                 spec:
                   extraArgs:
