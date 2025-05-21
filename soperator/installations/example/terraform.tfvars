@@ -408,11 +408,6 @@ nccl_use_infiniband = false
 # ---
 telemetry_enabled = true
 
-# Password of `admin` user of Grafana.
-# Set it to your desired password.
-# ---
-telemetry_grafana_admin_password = "password"
-
 public_o11y_enabled = true
 
 # endregion Telemetry
