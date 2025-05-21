@@ -346,11 +346,6 @@ variable "telemetry_enabled" {
   default     = true
 }
 
-variable "telemetry_grafana_admin_password" {
-  description = "Password of `admin` user of Grafana."
-  type        = string
-}
-
 variable "dcgm_job_mapping_enabled" {
   description = "Whether to enable HPC job mapping by installing a separate dcgm-exporter"
   type        = bool
