@@ -18,7 +18,7 @@ resources:
               echo "Upgrading cuda"
               ssh -i /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa \
                   -o StrictHostKeyChecking=no \
-                  soperatorchecks@login-0.soperator-login-svc.soperator.svc << 'EOF'
+                  soperatorchecks@login-0.soperator-login-svc.soperator.svc "flock /var/lock/apt.lock bash -s" << 'EOF'
 
               # Patterns of packages to process
               TARGET_PATTERNS=(
@@ -33,17 +33,17 @@ resources:
                 for pkg in $pkgs; do
                   if apt-mark showhold | grep -q "^$pkg$"; then
                     echo "Unholding $pkg"
-                    sudo apt-mark unhold -o DPkg::Lock::Timeout=-1 "$pkg"
+                    sudo apt-mark unhold "$pkg"
                   fi
                 done
               done
 
               echo "Removing existing CUDA installation..."
-              sudo apt remove -o DPkg::Lock::Timeout=-1 -y cuda || true
+              sudo apt remove -y cuda || true
 
               echo "Installing CUDA version ${cuda_version}..."
-              sudo apt -o DPkg::Lock::Timeout=-1 update
-              sudo apt install -o DPkg::Lock::Timeout=-1 -y "cuda=${cuda_version}"
+              sudo apt update
+              sudo apt install -y "cuda=${cuda_version}"
 
               sudo apt clean
               sudo apt autoremove -y
@@ -54,7 +54,7 @@ resources:
                 for pkg in $pkgs; do
                   if dpkg -s "$pkg" &>/dev/null; then
                     echo "Holding $pkg"
-                    sudo apt-mark hold -o DPkg::Lock::Timeout=-1 "$pkg"
+                    sudo apt-mark hold "$pkg"
                   fi
                 done
               done
