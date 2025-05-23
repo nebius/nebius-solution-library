@@ -151,16 +151,20 @@ cd soperator/test
 
 Connect to the Slurm cluster and run the tests:
 
+
 ```bash
 ssh root@$SLURM_IP
 cd /quickcheck
 # Basic Slurm test
-sbatch hello.sh
-tail -f outputs/hello.out    
-# GPU interconnect test
-sbatch nccl.sh
-tail -f outputs/nccl.out
+sbatch hello.sh && \
+tail -f results/hello.out
 # Container test
-sbatch enroot.sh
-tail -f outputs/enroot.out
+sbatch containers.sh && \
+tail -f results/containers.out
+# GPU interconnect test on a single node
+sbatch nccl_single_node.sh && \
+tail -f results/nccl_single_node.out
+# GPU interconnect test on multiple nodes
+sbatch --nodes=4 nccl_multi_node.sh && \
+tail -f results/nccl_multi_node.out
 ```
