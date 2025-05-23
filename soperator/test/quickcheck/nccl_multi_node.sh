@@ -7,7 +7,7 @@
 #SBATCH --gpus-per-node=8
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=1280G
-#SBATCH --nodes=2
+#SBATCH --nodes=1-10000
 
 # Run a multi-node MPI NCCL test
 srun --mpi=pmix \
