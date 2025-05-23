@@ -713,7 +713,10 @@ resources:
                   cpu: ${slurm_cluster.sconfigcontroller.container.resources.cpu }m
                   memory: ${slurm_cluster.sconfigcontroller.container.resources.memory }Mi
                   ephemeralStorage: ${slurm_cluster.sconfigcontroller.container.resources.ephemeral_storage }Mi
-              
+
+            images:
+              slurmd: "cr.eu-north1.nebius.cloud/soperator/worker_slurmd:1.19.0-jammy-slurm24.05.5-aca9617a"
+
           slurmClusterStorage:
             enabled: true
             interval: 5m
