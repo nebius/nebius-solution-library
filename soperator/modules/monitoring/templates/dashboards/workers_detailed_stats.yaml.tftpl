@@ -380,7 +380,7 @@ resources:
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "DCGM_FI_DEV_FB_USED{Hostname=~\"$node\"}/(DCGM_FI_DEV_FB_USED{Hostname=~\"$node\"}+DCGM_FI_DEV_FB_FREE{Hostname=~\"$node\"})",
+                  "expr": "sum without (hpc_job) (DCGM_FI_DEV_FB_USED{Hostname=~\"$node\"}/(DCGM_FI_DEV_FB_USED{Hostname=~\"$node\"}+DCGM_FI_DEV_FB_FREE{Hostname=~\"$node\"}))",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -480,7 +480,7 @@ resources:
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "DCGM_FI_DEV_GPU_UTIL{Hostname=~\"$node\"}",
+                  "expr": "sum without(hpc_job) (DCGM_FI_DEV_GPU_UTIL{Hostname=~\"$node\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -679,7 +679,7 @@ resources:
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "DCGM_FI_DEV_MEM_COPY_UTIL{Hostname=~\"$node\"}",
+                  "expr": "sum without(hpc_job) (DCGM_FI_DEV_MEM_COPY_UTIL{Hostname=~\"$node\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -777,7 +777,7 @@ resources:
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "DCGM_FI_DEV_POWER_USAGE{Hostname=~\"$node\"}",
+                  "expr": "sum without(hpc_job) (DCGM_FI_DEV_POWER_USAGE{Hostname=~\"$node\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -875,7 +875,7 @@ resources:
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "DCGM_FI_DEV_GPU_TEMP{Hostname=~\"$node\"}",
+                  "expr": "sum without(hpc_job) (DCGM_FI_DEV_GPU_TEMP{Hostname=~\"$node\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
