@@ -34,11 +34,9 @@ resources:
           },
           "editable": true,
           "fiscalYearStartMonth": 0,
-          "gnetId": 1860,
           "graphTooltip": 1,
-          "id": 12,
+          "id": 107,
           "links": [],
-          "liveNow": false,
           "panels": [
             {
               "datasource": {
@@ -96,7 +94,7 @@ resources:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -172,7 +170,7 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -249,7 +247,7 @@ resources:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.1.0",
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
@@ -270,10 +268,6 @@ resources:
             },
             {
               "collapsed": false,
-              "datasource": {
-                "type": "prometheus",
-                "uid": "VictoriaMetrics"
-              },
               "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -282,15 +276,6 @@ resources:
               },
               "id": 19,
               "panels": [],
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "VictoriaMetrics"
-                  },
-                  "refId": "A"
-                }
-              ],
               "title": "GPU",
               "type": "row"
             },
@@ -311,6 +296,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "opacity",
@@ -374,13 +360,14 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "sum without (hpc_job) (DCGM_FI_DEV_FB_USED{Hostname=~\"$node\"}/(DCGM_FI_DEV_FB_USED{Hostname=~\"$node\"}+DCGM_FI_DEV_FB_FREE{Hostname=~\"$node\"}))",
+                  "expr": "sum by (gpu) (\n  DCGM_FI_DEV_FB_USED{Hostname=~\"$node\", exported_pod=~\"$worker\"}/(DCGM_FI_DEV_FB_USED{Hostname=~\"$node\", exported_pod=~\"$worker\"}+DCGM_FI_DEV_FB_FREE{Hostname=~\"$node\", exported_pod=~\"$worker\"})\n)",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -410,6 +397,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "opacity",
@@ -474,13 +462,14 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "sum without(hpc_job) (DCGM_FI_DEV_GPU_UTIL{Hostname=~\"$node\"})",
+                  "expr": "sum by(gpu) (DCGM_FI_DEV_GPU_UTIL{Hostname=~\"$node\", exported_pod=~\"$worker\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -510,6 +499,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "opacity",
@@ -573,13 +563,14 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "1e6*sum(DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL{Hostname=~\"$node\"})",
+                  "expr": "1e6*sum(DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL{Hostname=~\"$node\", exported_pod=~\"$worker\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -609,6 +600,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "opacity",
@@ -673,13 +665,14 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "sum without(hpc_job) (DCGM_FI_DEV_MEM_COPY_UTIL{Hostname=~\"$node\"})",
+                  "expr": "sum by(gpu) (DCGM_FI_DEV_MEM_COPY_UTIL{Hostname=~\"$node\", exported_pod=~\"$worker\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -709,6 +702,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "opacity",
@@ -771,13 +765,14 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "sum without(hpc_job) (DCGM_FI_DEV_POWER_USAGE{Hostname=~\"$node\"})",
+                  "expr": "sum by(gpu) (DCGM_FI_DEV_POWER_USAGE{Hostname=~\"$node\", exported_pod=~\"$worker\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -807,6 +802,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "opacity",
@@ -869,13 +865,14 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "sum without(hpc_job) (DCGM_FI_DEV_GPU_TEMP{Hostname=~\"$node\"})",
+                  "expr": "sum by(gpu) (DCGM_FI_DEV_GPU_TEMP{Hostname=~\"$node\", exported_pod=~\"$worker\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -905,6 +902,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "opacity",
@@ -980,13 +978,14 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
                   "editorMode": "code",
-                  "expr": "sum(DCGM_FI_PROF_PCIE_TX_BYTES{Hostname=~\"$node\"})",
+                  "expr": "sum(DCGM_FI_PROF_PCIE_TX_BYTES{Hostname=~\"$node\", exported_pod=~\"$worker\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
@@ -999,12 +998,14 @@ resources:
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
-                  "expr": "sum(DCGM_FI_PROF_PCIE_RX_BYTES{instance=~\"$ip\"})",
+                  "editorMode": "code",
+                  "expr": "sum(DCGM_FI_PROF_PCIE_RX_BYTES{Hostname=~\"$node\", exported_pod=~\"$worker\"})",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
                   "intervalFactor": 2,
                   "legendFormat": "Rx",
+                  "range": true,
                   "refId": "B"
                 }
               ],
@@ -1027,6 +1028,7 @@ resources:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
                     "gradientMode": "opacity",
@@ -1102,24 +1104,28 @@ resources:
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.4.0",
               "targets": [
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
-                  "expr": "sum(rate(node_infiniband_port_data_transmitted_bytes_total{instance=~\"$ip\"}[$__interval]))",
+                  "editorMode": "code",
+                  "expr": "sum(\n  rate(node_infiniband_port_data_transmitted_bytes_total{instance=~\"$ip\"}[$__interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(exported_pod) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)\n)\n",
                   "format": "time_series",
                   "hide": false,
                   "interval": "",
                   "intervalFactor": 2,
                   "legendFormat": "Transmit",
+                  "range": true,
                   "refId": "B"
                 },
                 {
                   "datasource": {
                     "uid": "VictoriaMetrics"
                   },
-                  "expr": "sum(rate(node_infiniband_port_data_received_bytes_total{instance=~\"$ip\"}[$__interval]))",
+                  "editorMode": "code",
+                  "expr": "sum(\n  rate(node_infiniband_port_data_received_bytes_total{instance=~\"$ip\"}[$__interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(exported_pod) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)\n)",
                   "format": "time_series",
                   "hide": false,
                   "instant": false,
@@ -1134,10 +1140,6 @@ resources:
             },
             {
               "collapsed": true,
-              "datasource": {
-                "type": "prometheus",
-                "uid": "000000001"
-              },
               "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -1164,6 +1166,7 @@ resources:
                         "axisLabel": "percentage",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -1334,7 +1337,7 @@ resources:
                     "h": 12,
                     "w": 12,
                     "x": 0,
-                    "y": 6
+                    "y": 27
                   },
                   "id": 3,
                   "options": {
@@ -1350,7 +1353,7 @@ resources:
                       "sort": "desc"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -1358,7 +1361,7 @@ resources:
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"system\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
+                      "expr": "sum(\n  irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"system\"}[$__rate_interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(exported_pod) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)\n) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -1373,7 +1376,7 @@ resources:
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"user\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
+                      "expr": "sum(\n  irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"user\"}[$__rate_interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(exported_pod) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)\n) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "User - Normal processes executing in user mode",
@@ -1387,7 +1390,7 @@ resources:
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"nice\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
+                      "expr": "sum(\n  irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"nice\"}[$__rate_interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(exported_pod) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)\n) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Nice - Niced processes executing in user mode",
@@ -1401,7 +1404,7 @@ resources:
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "sum by(instance) (irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"iowait\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
+                      "expr": "sum(\n  irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"iowait\"}[$__rate_interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(exported_pod) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)\n) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Iowait - Waiting for I/O to complete",
@@ -1415,7 +1418,7 @@ resources:
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"irq\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
+                      "expr": "sum(\n  irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"irq\"}[$__rate_interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(exported_pod) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)\n) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Irq - Servicing interrupts",
@@ -1429,7 +1432,7 @@ resources:
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"softirq\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
+                      "expr": "sum(\n  irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"softirq\"}[$__rate_interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(exported_pod) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)\n) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Softirq - Servicing softirqs",
@@ -1443,7 +1446,7 @@ resources:
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"steal\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
+                      "expr": "sum(\n  irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"steal\"}[$__rate_interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(exported_pod) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)\n) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Steal - Time spent in other operating systems when running in a virtualized environment",
@@ -1457,7 +1460,7 @@ resources:
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "sum(irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"idle\"}[$__rate_interval])) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
+                      "expr": "sum(\n  irate(node_cpu_seconds_total{instance=~\"$ip\", mode=\"idle\"}[$__rate_interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(exported_pod) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)\n) / scalar(count(count(node_cpu_seconds_total{instance=~\"$ip\"}) by (cpu)))",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -1488,6 +1491,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -1838,7 +1842,7 @@ resources:
                     "h": 12,
                     "w": 12,
                     "x": 12,
-                    "y": 6
+                    "y": 27
                   },
                   "id": 24,
                   "options": {
@@ -1854,18 +1858,20 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_MemTotal_bytes{instance=~\"$ip\"} - node_memory_MemFree_bytes{instance=~\"$ip\"} - node_memory_Buffers_bytes{instance=~\"$ip\"} - node_memory_Cached_bytes{instance=~\"$ip\"} - node_memory_Slab_bytes{instance=~\"$ip\"} - node_memory_PageTables_bytes{instance=~\"$ip\"} - node_memory_SwapCached_bytes{instance=~\"$ip\"}",
+                      "editorMode": "code",
+                      "expr": "(node_memory_MemTotal_bytes{instance=~\"$ip\"} - node_memory_MemFree_bytes{instance=~\"$ip\"} - node_memory_Buffers_bytes{instance=~\"$ip\"} - node_memory_Cached_bytes{instance=~\"$ip\"} - node_memory_Slab_bytes{instance=~\"$ip\"} - node_memory_PageTables_bytes{instance=~\"$ip\"} - node_memory_SwapCached_bytes{instance=~\"$ip\"})\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
                       "legendFormat": "Apps - Memory used by user-space applications",
+                      "range": true,
                       "refId": "A",
                       "step": 240
                     },
@@ -1874,7 +1880,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_PageTables_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_PageTables_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -1887,7 +1893,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_SwapCached_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_SwapCached_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "SwapCache - Memory that keeps track of pages that have been fetched from swap but not yet been modified",
@@ -1899,7 +1905,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Slab_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Slab_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -1912,7 +1918,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Cached_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Cached_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -1925,7 +1931,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Buffers_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Buffers_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -1938,7 +1944,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_MemFree_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_MemFree_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -1951,7 +1957,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "(node_memory_SwapTotal_bytes{instance=~\"$ip\"} - node_memory_SwapFree_bytes{instance=~\"$ip\"})",
+                      "expr": "(node_memory_SwapTotal_bytes{instance=~\"$ip\"} - node_memory_SwapFree_bytes{instance=~\"$ip\"})\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -1964,7 +1970,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_HardwareCorrupted_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_HardwareCorrupted_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -1993,6 +1999,7 @@ resources:
                         "axisLabel": "bits out (-) / in (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2114,7 +2121,7 @@ resources:
                     "h": 12,
                     "w": 12,
                     "x": 0,
-                    "y": 18
+                    "y": 39
                   },
                   "id": 84,
                   "options": {
@@ -2129,14 +2136,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_network_receive_bytes_total{instance=~\"$ip\"}[$__rate_interval])*8",
+                      "expr": "irate(node_network_receive_bytes_total{instance=~\"$ip\"}[$__rate_interval])*8\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Receive",
@@ -2148,7 +2155,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_network_transmit_bytes_total{instance=~\"$ip\"}[$__rate_interval])*8",
+                      "expr": "irate(node_network_transmit_bytes_total{instance=~\"$ip\"}[$__rate_interval])*8\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Transmit",
@@ -2177,6 +2184,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2226,7 +2234,7 @@ resources:
                     "h": 12,
                     "w": 12,
                     "x": 12,
-                    "y": 18
+                    "y": 39
                   },
                   "id": 156,
                   "options": {
@@ -2241,17 +2249,19 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_filesystem_size_bytes{instance=~\"$ip\",device!~'rootfs'} - node_filesystem_avail_bytes{instance=~\"$ip\",device!~'rootfs'}",
+                      "editorMode": "code",
+                      "expr": "(node_filesystem_size_bytes{instance=~\"$ip\",device!~'rootfs'} - node_filesystem_avail_bytes{instance=~\"$ip\",device!~'rootfs'})\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{mountpoint}}",
+                      "range": true,
                       "refId": "A",
                       "step": 240
                     }
@@ -2277,6 +2287,7 @@ resources:
                         "axisLabel": "IO read (-) / write (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2308,7 +2319,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -2652,7 +2664,7 @@ resources:
                     "h": 12,
                     "w": 12,
                     "x": 0,
-                    "y": 30
+                    "y": 51
                   },
                   "id": 229,
                   "options": {
@@ -2667,14 +2679,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_reads_completed_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_reads_completed_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "intervalFactor": 4,
                       "legendFormat": "{{device}} - Reads completed",
                       "refId": "A",
@@ -2685,7 +2697,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_writes_completed_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_writes_completed_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Writes completed",
                       "refId": "B",
@@ -2713,6 +2725,7 @@ resources:
                         "axisLabel": "bytes read (-) / write (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2744,7 +2757,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -2875,7 +2889,7 @@ resources:
                     "h": 12,
                     "w": 12,
                     "x": 12,
-                    "y": 30
+                    "y": 51
                   },
                   "id": 42,
                   "options": {
@@ -2890,14 +2904,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_read_bytes_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_read_bytes_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -2910,7 +2924,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_written_bytes_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_written_bytes_total{instance=~\"$ip\",device=~\"$diskdevices\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -2940,6 +2954,7 @@ resources:
                         "axisLabel": "%util",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -2972,7 +2987,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -3016,7 +3032,7 @@ resources:
                     "h": 12,
                     "w": 12,
                     "x": 0,
-                    "y": 42
+                    "y": 63
                   },
                   "id": 127,
                   "options": {
@@ -3031,14 +3047,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_io_time_seconds_total{instance=~\"$ip\",device=~\"$diskdevices\"} [$__rate_interval])",
+                      "expr": "irate(node_disk_io_time_seconds_total{instance=~\"$ip\",device=~\"$diskdevices\"} [$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "interval": "",
@@ -3068,6 +3084,7 @@ resources:
                         "axisLabel": "percentage",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "bars",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -3099,7 +3116,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -3146,7 +3164,7 @@ resources:
                     "h": 12,
                     "w": 12,
                     "x": 12,
-                    "y": 42
+                    "y": 63
                   },
                   "id": 319,
                   "options": {
@@ -3161,6 +3179,7 @@ resources:
                       "sort": "desc"
                     }
                   },
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -3191,24 +3210,11 @@ resources:
                   "type": "timeseries"
                 }
               ],
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "000000001"
-                  },
-                  "refId": "A"
-                }
-              ],
               "title": "CPU / Memory / Net / Disk",
               "type": "row"
             },
             {
               "collapsed": true,
-              "datasource": {
-                "type": "prometheus",
-                "uid": "000000001"
-              },
               "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -3234,6 +3240,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -3539,7 +3546,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 7
+                    "y": 28
                   },
                   "id": 136,
                   "options": {
@@ -3555,14 +3562,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Inactive_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Inactive_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Inactive - Memory which has been less recently used.  It is more eligible to be reclaimed for other purposes",
@@ -3574,7 +3581,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Active_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Active_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Active - Memory that has been used more recently and usually not reclaimed unless absolutely necessary",
@@ -3602,6 +3609,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -3926,7 +3934,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 7
+                    "y": 28
                   },
                   "id": 135,
                   "options": {
@@ -3942,14 +3950,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Committed_AS_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Committed_AS_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Committed_AS - Amount of memory presently allocated on the system",
@@ -3961,7 +3969,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_CommitLimit_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_CommitLimit_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "CommitLimit - Amount of  memory currently available to be allocated on the system",
@@ -3989,6 +3997,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -4294,7 +4303,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 17
+                    "y": 38
                   },
                   "id": 191,
                   "options": {
@@ -4310,14 +4319,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Inactive_file_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Inactive_file_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -4330,7 +4339,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Inactive_anon_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Inactive_anon_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -4343,7 +4352,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Active_file_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Active_file_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -4356,7 +4365,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Active_anon_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Active_anon_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -4385,6 +4394,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -4720,7 +4730,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 17
+                    "y": 38
                   },
                   "id": 130,
                   "options": {
@@ -4735,14 +4745,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Writeback_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Writeback_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Writeback - Memory which is actively being written back to disk",
@@ -4754,7 +4764,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_WritebackTmp_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_WritebackTmp_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "WritebackTmp - Memory used by FUSE for temporary writeback buffers",
@@ -4766,7 +4776,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Dirty_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Dirty_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Dirty - Memory which is waiting to get written back to the disk",
@@ -4794,6 +4804,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -4826,7 +4837,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -5122,7 +5134,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 27
+                    "y": 48
                   },
                   "id": 138,
                   "options": {
@@ -5138,14 +5150,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Mapped_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Mapped_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Mapped - Used memory in mapped pages files which have been mapped, such as libraries",
@@ -5157,7 +5169,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Shmem_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Shmem_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Shmem - Used shared memory (shared between several processes, thus including RAM disks)",
@@ -5169,7 +5181,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_ShmemHugePages_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_ShmemHugePages_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -5182,7 +5194,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_ShmemPmdMapped_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_ShmemPmdMapped_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -5211,6 +5223,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -5243,7 +5256,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -5515,7 +5529,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 27
+                    "y": 48
                   },
                   "id": 160,
                   "options": {
@@ -5531,14 +5545,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_KernelStack_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_KernelStack_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "KernelStack - Kernel memory stack. This is not reclaimable",
@@ -5550,7 +5564,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_Percpu_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_Percpu_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -5579,6 +5593,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -5611,7 +5626,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -5898,7 +5914,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 37
+                    "y": 58
                   },
                   "id": 70,
                   "options": {
@@ -5913,14 +5929,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_VmallocChunk_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_VmallocChunk_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -5933,7 +5949,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_VmallocTotal_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_VmallocTotal_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -5946,7 +5962,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_VmallocUsed_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_VmallocUsed_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -5975,6 +5991,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -6007,7 +6024,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -6306,7 +6324,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 37
+                    "y": 58
                   },
                   "id": 129,
                   "options": {
@@ -6321,14 +6339,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_AnonHugePages_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_AnonHugePages_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "AnonHugePages - Memory in anonymous huge pages",
@@ -6340,7 +6358,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_AnonPages_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_AnonPages_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "AnonPages - Memory in user pages not backed by files",
@@ -6368,6 +6386,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -6400,7 +6419,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -6702,7 +6722,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 47
+                    "y": 68
                   },
                   "id": 132,
                   "options": {
@@ -6717,14 +6737,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_memory_NFS_Unstable_bytes{instance=~\"$ip\"}",
+                      "expr": "node_memory_NFS_Unstable_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "NFS Unstable - Memory in NFS pages sent to the server, but not yet committed to the storage",
@@ -6752,6 +6772,7 @@ resources:
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -6784,7 +6805,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -7086,7 +7108,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 47
+                    "y": 68
                   },
                   "id": 307,
                   "options": {
@@ -7101,14 +7123,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_vmstat_oom_kill{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_vmstat_oom_kill{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -7137,6 +7159,7 @@ resources:
                         "axisLabel": "pages out (-) / in (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -7168,7 +7191,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -7197,7 +7221,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 57
+                    "y": 78
                   },
                   "id": 176,
                   "options": {
@@ -7212,14 +7236,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_vmstat_pgpgin{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_vmstat_pgpgin{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Pagesin - Page in operations",
@@ -7231,7 +7255,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_vmstat_pgpgout{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_vmstat_pgpgout{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Pagesout - Page out operations",
@@ -7259,6 +7283,7 @@ resources:
                         "axisLabel": "faults",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -7291,7 +7316,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -7582,7 +7608,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 57
+                    "y": 78
                   },
                   "id": 175,
                   "options": {
@@ -7598,14 +7624,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_vmstat_pgfault{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_vmstat_pgfault{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Pgfault - Page major and minor fault operations",
@@ -7617,7 +7643,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_vmstat_pgmajfault{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_vmstat_pgmajfault{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Pgmajfault - Major page fault operations",
@@ -7629,7 +7655,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_vmstat_pgfault{instance=~\"$ip\"}[$__rate_interval])  - irate(node_vmstat_pgmajfault{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_vmstat_pgfault{instance=~\"$ip\"}[$__rate_interval])  - irate(node_vmstat_pgmajfault{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Pgminfault - Minor page fault operations",
@@ -7641,24 +7667,11 @@ resources:
                   "type": "timeseries"
                 }
               ],
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "000000001"
-                  },
-                  "refId": "A"
-                }
-              ],
               "title": "Memory",
               "type": "row"
             },
             {
               "collapsed": true,
-              "datasource": {
-                "type": "prometheus",
-                "uid": "000000001"
-              },
               "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -7685,6 +7698,7 @@ resources:
                         "axisLabel": "IO read (-) / write (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -7716,7 +7730,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -8045,7 +8060,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 13
+                    "y": 29
                   },
                   "id": 9,
                   "options": {
@@ -8060,14 +8075,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_reads_completed_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_reads_completed_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "intervalFactor": 4,
                       "legendFormat": "{{device}} - Reads completed",
                       "refId": "A",
@@ -8078,7 +8093,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_writes_completed_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_writes_completed_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Writes completed",
                       "refId": "B",
@@ -8106,6 +8121,7 @@ resources:
                         "axisLabel": "bytes read (-) / write (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -8137,7 +8153,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -8466,7 +8483,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 13
+                    "y": 29
                   },
                   "id": 33,
                   "options": {
@@ -8481,14 +8498,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_read_bytes_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_read_bytes_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 4,
                       "legendFormat": "{{device}} - Read bytes",
@@ -8500,7 +8517,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_written_bytes_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_written_bytes_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Written bytes",
@@ -8529,6 +8546,7 @@ resources:
                         "axisLabel": "time. read (-) / write (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -8560,7 +8578,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -8889,7 +8908,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 23
+                    "y": 39
                   },
                   "id": 37,
                   "options": {
@@ -8904,14 +8923,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_read_time_seconds_total{instance=~\"$ip\"}[$__rate_interval]) / irate(node_disk_reads_completed_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_read_time_seconds_total{instance=~\"$ip\"}[$__rate_interval]) / irate(node_disk_reads_completed_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "hide": false,
                       "interval": "",
                       "intervalFactor": 4,
@@ -8924,7 +8943,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_write_time_seconds_total{instance=~\"$ip\"}[$__rate_interval]) / irate(node_disk_writes_completed_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_write_time_seconds_total{instance=~\"$ip\"}[$__rate_interval]) / irate(node_disk_writes_completed_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "hide": false,
                       "interval": "",
                       "intervalFactor": 1,
@@ -8954,6 +8973,7 @@ resources:
                         "axisLabel": "aqu-sz",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -8986,7 +9006,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -9303,7 +9324,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 23
+                    "y": 39
                   },
                   "id": 35,
                   "options": {
@@ -9318,14 +9339,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_io_time_weighted_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_io_time_weighted_seconds_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "interval": "",
                       "intervalFactor": 4,
                       "legendFormat": "{{device}}",
@@ -9348,11 +9369,13 @@ resources:
                         "mode": "palette-classic"
                       },
                       "custom": {
+                        "axisBorderShow": false,
                         "axisCenteredZero": false,
                         "axisColorMode": "text",
                         "axisLabel": "I/Os",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -9361,6 +9384,7 @@ resources:
                           "tooltip": false,
                           "viz": false
                         },
+                        "insertNulls": false,
                         "lineInterpolation": "smooth",
                         "lineWidth": 1,
                         "pointSize": 5,
@@ -9383,7 +9407,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -9712,7 +9737,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 33
+                    "y": 49
                   },
                   "id": 133,
                   "options": {
@@ -9727,14 +9752,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_reads_merged_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_reads_merged_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Read merged",
                       "refId": "A",
@@ -9745,7 +9770,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_writes_merged_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_writes_merged_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Write merged",
                       "refId": "B",
@@ -9767,11 +9792,13 @@ resources:
                         "mode": "palette-classic"
                       },
                       "custom": {
+                        "axisBorderShow": false,
                         "axisCenteredZero": false,
                         "axisColorMode": "text",
                         "axisLabel": "%util",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -9780,6 +9807,7 @@ resources:
                           "tooltip": false,
                           "viz": false
                         },
+                        "insertNulls": false,
                         "lineInterpolation": "smooth",
                         "lineWidth": 1,
                         "pointSize": 5,
@@ -9803,7 +9831,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -10120,7 +10149,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 33
+                    "y": 49
                   },
                   "id": 36,
                   "options": {
@@ -10135,14 +10164,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_io_time_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_io_time_seconds_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "interval": "",
                       "intervalFactor": 4,
                       "legendFormat": "{{device}} - IO",
@@ -10154,7 +10183,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_discard_time_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_discard_time_seconds_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "interval": "",
                       "intervalFactor": 4,
                       "legendFormat": "{{device}} - discard",
@@ -10177,11 +10206,13 @@ resources:
                         "mode": "palette-classic"
                       },
                       "custom": {
+                        "axisBorderShow": false,
                         "axisCenteredZero": false,
                         "axisColorMode": "text",
                         "axisLabel": "Outstanding req.",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -10190,6 +10221,7 @@ resources:
                           "tooltip": false,
                           "viz": false
                         },
+                        "insertNulls": false,
                         "lineInterpolation": "smooth",
                         "lineWidth": 1,
                         "pointSize": 5,
@@ -10213,7 +10245,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -10530,7 +10563,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 43
+                    "y": 59
                   },
                   "id": 34,
                   "options": {
@@ -10545,14 +10578,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_disk_io_now{instance=~\"$ip\"}",
+                      "expr": "node_disk_io_now{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "interval": "",
                       "intervalFactor": 4,
                       "legendFormat": "{{device}} - IO now",
@@ -10575,11 +10608,13 @@ resources:
                         "mode": "palette-classic"
                       },
                       "custom": {
+                        "axisBorderShow": false,
                         "axisCenteredZero": false,
                         "axisColorMode": "text",
                         "axisLabel": "IOs",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -10588,6 +10623,7 @@ resources:
                           "tooltip": false,
                           "viz": false
                         },
+                        "insertNulls": false,
                         "lineInterpolation": "smooth",
                         "lineWidth": 1,
                         "pointSize": 5,
@@ -10610,7 +10646,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -10927,7 +10964,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 43
+                    "y": 59
                   },
                   "id": 301,
                   "options": {
@@ -10942,14 +10979,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_discards_completed_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_discards_completed_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "interval": "",
                       "intervalFactor": 4,
                       "legendFormat": "{{device}} - Discards completed",
@@ -10961,7 +10998,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_disk_discards_merged_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_disk_discards_merged_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "interval": "",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Discards merged",
@@ -10973,24 +11010,11 @@ resources:
                   "type": "timeseries"
                 }
               ],
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "000000001"
-                  },
-                  "refId": "A"
-                }
-              ],
               "title": "Storage Disk",
               "type": "row"
             },
             {
               "collapsed": true,
-              "datasource": {
-                "type": "prometheus",
-                "uid": "000000001"
-              },
               "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -11017,6 +11041,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -11049,7 +11074,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -11065,7 +11091,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 14
+                    "y": 30
                   },
                   "id": 43,
                   "options": {
@@ -11080,14 +11106,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_filesystem_avail_bytes{instance=~\"$ip\",device!~'rootfs'}",
+                      "expr": "node_filesystem_avail_bytes{instance=~\"$ip\",device!~'rootfs'}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -11101,7 +11127,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_filesystem_free_bytes{instance=~\"$ip\",device!~'rootfs'}",
+                      "expr": "node_filesystem_free_bytes{instance=~\"$ip\",device!~'rootfs'}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": true,
                       "intervalFactor": 1,
@@ -11114,7 +11140,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_filesystem_size_bytes{instance=~\"$ip\",device!~'rootfs'}",
+                      "expr": "node_filesystem_size_bytes{instance=~\"$ip\",device!~'rootfs'}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": true,
                       "intervalFactor": 1,
@@ -11144,6 +11170,7 @@ resources:
                         "axisLabel": "file nodes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -11176,7 +11203,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -11192,7 +11220,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 14
+                    "y": 30
                   },
                   "id": 41,
                   "options": {
@@ -11207,14 +11235,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_filesystem_files_free{instance=~\"$ip\",device!~'rootfs'}",
+                      "expr": "node_filesystem_files_free{instance=~\"$ip\",device!~'rootfs'}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -11244,6 +11272,7 @@ resources:
                         "axisLabel": "files",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -11276,7 +11305,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -11292,7 +11322,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 24
+                    "y": 40
                   },
                   "id": 28,
                   "options": {
@@ -11307,14 +11337,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_filefd_maximum{instance=~\"$ip\"}",
+                      "expr": "node_filefd_maximum{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 4,
                       "legendFormat": "Max open files",
@@ -11326,7 +11356,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_filefd_allocated{instance=~\"$ip\"}",
+                      "expr": "node_filefd_allocated{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Open files",
@@ -11355,6 +11385,7 @@ resources:
                         "axisLabel": "file Nodes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -11387,7 +11418,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -11403,7 +11435,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 24
+                    "y": 40
                   },
                   "id": 219,
                   "options": {
@@ -11418,14 +11450,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_filesystem_files{instance=~\"$ip\",device!~'rootfs'}",
+                      "expr": "node_filesystem_files{instance=~\"$ip\",device!~'rootfs'}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -11449,11 +11481,13 @@ resources:
                         "mode": "palette-classic"
                       },
                       "custom": {
+                        "axisBorderShow": false,
                         "axisCenteredZero": false,
                         "axisColorMode": "text",
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -11462,6 +11496,7 @@ resources:
                           "tooltip": false,
                           "viz": false
                         },
+                        "insertNulls": false,
                         "lineInterpolation": "smooth",
                         "lineWidth": 1,
                         "pointSize": 5,
@@ -11486,7 +11521,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -11518,7 +11554,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 34
+                    "y": 50
                   },
                   "id": 44,
                   "options": {
@@ -11533,14 +11569,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_filesystem_readonly{instance=~\"$ip\",device!~'rootfs'}",
+                      "expr": "node_filesystem_readonly{instance=~\"$ip\",device!~'rootfs'}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{mountpoint}} - ReadOnly",
@@ -11552,7 +11588,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_filesystem_device_error{instance=~\"$ip\",device!~'rootfs',fstype!~'tmpfs'}",
+                      "expr": "node_filesystem_device_error{instance=~\"$ip\",device!~'rootfs',fstype!~'tmpfs'}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -11565,24 +11601,11 @@ resources:
                   "type": "timeseries"
                 }
               ],
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "000000001"
-                  },
-                  "refId": "A"
-                }
-              ],
               "title": "Storage Filesystem",
               "type": "row"
             },
             {
               "collapsed": true,
-              "datasource": {
-                "type": "prometheus",
-                "uid": "000000001"
-              },
               "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -11608,6 +11631,7 @@ resources:
                         "axisLabel": "packets out (-) / in (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -11639,7 +11663,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -11728,7 +11753,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 11
+                    "y": 1258
                   },
                   "id": 60,
                   "options": {
@@ -11744,14 +11769,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_network_receive_packets_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_network_receive_packets_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -11764,7 +11789,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_network_transmit_packets_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_network_transmit_packets_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -11793,6 +11818,7 @@ resources:
                         "axisLabel": "packets out (-) / in (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -11824,7 +11850,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -11853,7 +11880,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 11
+                    "y": 1258
                   },
                   "id": 142,
                   "options": {
@@ -11869,14 +11896,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_network_receive_errs_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_network_receive_errs_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Receive errors",
@@ -11888,7 +11915,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_network_transmit_errs_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_network_transmit_errs_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Transmit errors",
@@ -11916,6 +11943,7 @@ resources:
                         "axisLabel": "packets out (-) / in (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -11947,7 +11975,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -11976,7 +12005,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 21
+                    "y": 1358
                   },
                   "id": 143,
                   "options": {
@@ -11992,14 +12021,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_network_receive_drop_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_network_receive_drop_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Receive drop",
@@ -12011,7 +12040,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_network_transmit_drop_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_network_transmit_drop_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{device}} - Transmit drop",
@@ -12039,6 +12068,7 @@ resources:
                         "axisLabel": "entries",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -12071,7 +12101,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -12107,7 +12138,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 21
+                    "y": 1358
                   },
                   "id": 61,
                   "options": {
@@ -12122,14 +12153,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_nf_conntrack_entries{instance=~\"$ip\"}",
+                      "expr": "node_nf_conntrack_entries{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "NF conntrack entries",
@@ -12141,7 +12172,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_nf_conntrack_entries_limit{instance=~\"$ip\"}",
+                      "expr": "node_nf_conntrack_entries_limit{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "NF conntrack limit",
@@ -12169,6 +12200,7 @@ resources:
                         "axisLabel": "bytes",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -12202,7 +12234,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -12218,7 +12251,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 31
+                    "y": 1368
                   },
                   "id": 280,
                   "options": {
@@ -12233,14 +12266,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_network_speed_bytes{instance=~\"$ip\"}",
+                      "expr": "node_network_speed_bytes{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{ device }} - Speed",
@@ -12268,6 +12301,7 @@ resources:
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -12299,7 +12333,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -12315,7 +12350,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 31
+                    "y": 1368
                   },
                   "id": 309,
                   "options": {
@@ -12331,14 +12366,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_network_up{operstate=\"up\",instance=~\"$ip\"}",
+                      "expr": "node_network_up{operstate=\"up\",instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "{{interface}} - Operational state UP",
@@ -12350,7 +12385,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_network_carrier{instance=~\"$ip\"}",
+                      "expr": "node_network_carrier{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "instant": false,
                       "legendFormat": "{{device}} - Physical link state",
@@ -12361,24 +12396,11 @@ resources:
                   "type": "timeseries"
                 }
               ],
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "000000001"
-                  },
-                  "refId": "A"
-                }
-              ],
               "title": "Network Traffic",
               "type": "row"
             },
             {
               "collapsed": true,
-              "datasource": {
-                "type": "prometheus",
-                "uid": "000000001"
-              },
               "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -12405,6 +12427,7 @@ resources:
                         "axisLabel": "datagrams out (-) / in (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -12436,7 +12459,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -12477,7 +12501,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 12
+                    "y": 1259
                   },
                   "id": 55,
                   "options": {
@@ -12492,14 +12516,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Udp_InDatagrams{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Udp_InDatagrams{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -12512,7 +12536,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Udp_OutDatagrams{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Udp_OutDatagrams{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -12541,6 +12565,7 @@ resources:
                         "axisLabel": "datagrams",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -12572,7 +12597,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -12588,7 +12614,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 12
+                    "y": 1259
                   },
                   "id": 109,
                   "options": {
@@ -12603,14 +12629,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Udp_InErrors{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Udp_InErrors{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -12623,7 +12649,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Udp_NoPorts{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Udp_NoPorts{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -12636,7 +12662,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_UdpLite_InErrors{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_UdpLite_InErrors{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "interval": "",
                       "legendFormat": "InErrors Lite - UDPLite Datagrams that could not be delivered to an application",
                       "refId": "C"
@@ -12646,7 +12672,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Udp_RcvbufErrors{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Udp_RcvbufErrors{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -12659,7 +12685,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Udp_SndbufErrors{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Udp_SndbufErrors{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -12688,6 +12714,7 @@ resources:
                         "axisLabel": "datagrams out (-) / in (+)",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -12719,7 +12746,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -12760,7 +12788,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 22
+                    "y": 1329
                   },
                   "id": 299,
                   "options": {
@@ -12775,14 +12803,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Tcp_InSegs{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Tcp_InSegs{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "instant": false,
                       "interval": "",
@@ -12796,7 +12824,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Tcp_OutSegs{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Tcp_OutSegs{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -12826,6 +12854,7 @@ resources:
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -12858,7 +12887,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -12874,7 +12904,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 22
+                    "y": 1329
                   },
                   "id": 104,
                   "options": {
@@ -12889,14 +12919,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_TcpExt_ListenOverflows{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_TcpExt_ListenOverflows{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "interval": "",
@@ -12910,7 +12940,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_TcpExt_ListenDrops{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_TcpExt_ListenDrops{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "interval": "",
@@ -12924,7 +12954,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_TcpExt_TCPSynRetrans{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_TcpExt_TCPSynRetrans{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -12937,7 +12967,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Tcp_RetransSegs{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Tcp_RetransSegs{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "interval": "",
                       "legendFormat": "RetransSegs - Segments retransmitted - that is, the number of TCP segments transmitted containing one or more previously transmitted octets",
                       "refId": "D"
@@ -12947,7 +12977,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Tcp_InErrs{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Tcp_InErrs{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "interval": "",
                       "legendFormat": "InErrs - Segments received in error (e.g., bad TCP checksums)",
                       "refId": "E"
@@ -12957,7 +12987,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Tcp_OutRsts{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Tcp_OutRsts{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "interval": "",
                       "legendFormat": "OutRsts - Segments sent with RST flag",
                       "refId": "F"
@@ -12968,7 +12998,7 @@ resources:
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "irate(node_netstat_TcpExt_TCPRcvQDrop{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_TcpExt_TCPRcvQDrop{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "hide": false,
                       "interval": "",
                       "legendFormat": "TCPRcvQDrop - Packets meant to be queued in rcv queue but dropped because socket rcvbuf limit hit",
@@ -12981,7 +13011,7 @@ resources:
                         "uid": "VictoriaMetrics"
                       },
                       "editorMode": "code",
-                      "expr": "irate(node_netstat_TcpExt_TCPOFOQueue{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_TcpExt_TCPOFOQueue{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "hide": false,
                       "interval": "",
                       "legendFormat": "TCPOFOQueue - TCP layer receives an out of order packet and has enough memory to queue it",
@@ -13009,6 +13039,7 @@ resources:
                         "axisLabel": "connections",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -13041,7 +13072,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -13077,7 +13109,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 32
+                    "y": 1339
                   },
                   "id": 85,
                   "options": {
@@ -13092,14 +13124,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_netstat_Tcp_CurrEstab{instance=~\"$ip\"}",
+                      "expr": "node_netstat_Tcp_CurrEstab{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "interval": "",
@@ -13113,7 +13145,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_netstat_Tcp_MaxConn{instance=~\"$ip\"}",
+                      "expr": "node_netstat_Tcp_MaxConn{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "interval": "",
@@ -13143,6 +13175,7 @@ resources:
                         "axisLabel": "connections",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -13175,7 +13208,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -13191,7 +13225,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 32
+                    "y": 1339
                   },
                   "id": 82,
                   "options": {
@@ -13206,14 +13240,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Tcp_ActiveOpens{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Tcp_ActiveOpens{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -13226,7 +13260,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_netstat_Tcp_PassiveOpens{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_netstat_Tcp_PassiveOpens{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -13239,24 +13273,11 @@ resources:
                   "type": "timeseries"
                 }
               ],
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "000000001"
-                  },
-                  "refId": "A"
-                }
-              ],
               "title": "Network Netstat",
               "type": "row"
             },
             {
               "collapsed": true,
-              "datasource": {
-                "type": "prometheus",
-                "uid": "000000001"
-              },
               "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -13282,6 +13303,7 @@ resources:
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -13314,7 +13336,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -13330,7 +13353,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 13
+                    "y": 1260
                   },
                   "id": 8,
                   "options": {
@@ -13345,14 +13368,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_context_switches_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_context_switches_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Context switches",
@@ -13364,7 +13387,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_intr_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_intr_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "intervalFactor": 1,
@@ -13393,6 +13416,7 @@ resources:
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -13425,7 +13449,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -13441,7 +13466,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 13
+                    "y": 1260
                   },
                   "id": 7,
                   "options": {
@@ -13456,14 +13481,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_load1{instance=~\"$ip\"}",
+                      "expr": "node_load1{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 4,
                       "legendFormat": "Load 1m",
@@ -13475,7 +13500,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_load5{instance=~\"$ip\"}",
+                      "expr": "node_load5{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 4,
                       "legendFormat": "Load 5m",
@@ -13487,7 +13512,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_load15{instance=~\"$ip\"}",
+                      "expr": "node_load15{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 4,
                       "legendFormat": "Load 15m",
@@ -13515,6 +13540,7 @@ resources:
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -13547,7 +13573,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -13563,7 +13590,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 23
+                    "y": 1290
                   },
                   "id": 151,
                   "options": {
@@ -13578,14 +13605,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_entropy_available_bits{instance=~\"$ip\"}",
+                      "expr": "node_entropy_available_bits{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "intervalFactor": 1,
                       "legendFormat": "Entropy available to random number generators",
@@ -13614,6 +13641,7 @@ resources:
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -13646,7 +13674,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -13723,7 +13752,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 23
+                    "y": 1290
                   },
                   "id": 322,
                   "options": {
@@ -13738,7 +13767,7 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -13835,6 +13864,7 @@ resources:
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -13867,7 +13897,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -13903,7 +13934,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 33
+                    "y": 1300
                   },
                   "id": 64,
                   "options": {
@@ -13918,7 +13949,7 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
@@ -13965,6 +13996,7 @@ resources:
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -13996,7 +14028,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -14012,7 +14045,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 33
+                    "y": 1300
                   },
                   "id": 306,
                   "options": {
@@ -14027,14 +14060,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(node_schedstat_timeslices_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(node_schedstat_timeslices_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -14063,6 +14096,7 @@ resources:
                         "axisLabel": "seconds",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -14094,7 +14128,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -14110,7 +14145,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 43
+                    "y": 1310
                   },
                   "id": 308,
                   "options": {
@@ -14125,14 +14160,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "irate(process_cpu_seconds_total{instance=~\"$ip\"}[$__rate_interval])",
+                      "expr": "irate(process_cpu_seconds_total{instance=~\"$ip\"}[$__rate_interval])\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -14145,24 +14180,11 @@ resources:
                   "type": "timeseries"
                 }
               ],
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "000000001"
-                  },
-                  "refId": "A"
-                }
-              ],
               "title": "System Misc",
               "type": "row"
             },
             {
               "collapsed": true,
-              "datasource": {
-                "type": "prometheus",
-                "uid": "000000001"
-              },
               "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -14189,6 +14211,7 @@ resources:
                         "axisLabel": "seconds",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -14220,7 +14243,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -14252,7 +14276,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 14
+                    "y": 233
                   },
                   "id": 260,
                   "options": {
@@ -14267,14 +14291,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_timex_estimated_error_seconds{instance=~\"$ip\"}",
+                      "expr": "node_timex_estimated_error_seconds{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "interval": "",
@@ -14288,7 +14312,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_timex_offset_seconds{instance=~\"$ip\"}",
+                      "expr": "node_timex_offset_seconds{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "interval": "",
@@ -14302,7 +14326,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_timex_maxerror_seconds{instance=~\"$ip\"}",
+                      "expr": "node_timex_maxerror_seconds{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "hide": false,
                       "interval": "",
@@ -14333,6 +14357,7 @@ resources:
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -14364,7 +14389,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -14380,7 +14406,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 14
+                    "y": 233
                   },
                   "id": 291,
                   "options": {
@@ -14395,14 +14421,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_timex_loop_time_constant{instance=~\"$ip\"}",
+                      "expr": "node_timex_loop_time_constant{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -14432,6 +14458,7 @@ resources:
                         "axisLabel": "counter",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -14463,7 +14490,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -14495,7 +14523,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 0,
-                    "y": 24
+                    "y": 243
                   },
                   "id": 168,
                   "options": {
@@ -14510,14 +14538,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_timex_sync_status{instance=~\"$ip\"}",
+                      "expr": "node_timex_sync_status{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -14530,7 +14558,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_timex_frequency_adjustment_ratio{instance=~\"$ip\"}",
+                      "expr": "node_timex_frequency_adjustment_ratio{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -14560,6 +14588,7 @@ resources:
                         "axisLabel": "seconds",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 20,
                         "gradientMode": "opacity",
@@ -14591,7 +14620,8 @@ resources:
                         "mode": "absolute",
                         "steps": [
                           {
-                            "color": "green"
+                            "color": "green",
+                            "value": null
                           },
                           {
                             "color": "red",
@@ -14607,7 +14637,7 @@ resources:
                     "h": 10,
                     "w": 12,
                     "x": 12,
-                    "y": 24
+                    "y": 243
                   },
                   "id": 294,
                   "options": {
@@ -14622,14 +14652,14 @@ resources:
                       "sort": "none"
                     }
                   },
-                  "pluginVersion": "9.2.0",
+                  "pluginVersion": "11.4.0",
                   "targets": [
                     {
                       "datasource": {
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_timex_tick_seconds{instance=~\"$ip\"}",
+                      "expr": "node_timex_tick_seconds{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -14642,7 +14672,7 @@ resources:
                         "type": "prometheus",
                         "uid": "VictoriaMetrics"
                       },
-                      "expr": "node_timex_tai_offset_seconds{instance=~\"$ip\"}",
+                      "expr": "node_timex_tai_offset_seconds{instance=~\"$ip\"}\n* on(instance) group_left(nodename) node_uname_info\n* on(nodename) group_left(exported_pod) clamp(count by (nodename, exported_pod) (label_move(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\"}, \"Hostname\", \"nodename\")), 1, 1)",
                       "format": "time_series",
                       "interval": "",
                       "intervalFactor": 1,
@@ -14655,28 +14685,20 @@ resources:
                   "type": "timeseries"
                 }
               ],
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "000000001"
-                  },
-                  "refId": "A"
-                }
-              ],
               "title": "System Timesync",
               "type": "row"
             }
           ],
+          "preload": false,
           "refresh": "",
-          "revision": 1,
-          "schemaVersion": 39,
-          "tags": ["worker-stats"],
+          "schemaVersion": 40,
+          "tags": [
+            "worker-stats"
+          ],
           "templating": {
             "list": [
               {
                 "current": {
-                  "selected": true,
                   "text": "worker-0",
                   "value": "worker-0"
                 },
@@ -14685,11 +14707,9 @@ resources:
                   "uid": "VictoriaMetrics"
                 },
                 "definition": "label_values(kube_pod_info,pod)",
-                "hide": 0,
+                "description": "Select one worker to check it's detailed stats in panels.",
                 "includeAll": false,
                 "label": "Worker",
-                "description": "Select one worker to check it's detailed stats in panels.",
-                "multi": false,
                 "name": "worker",
                 "options": [],
                 "query": {
@@ -14699,15 +14719,14 @@ resources:
                 },
                 "refresh": 1,
                 "regex": "^worker.*",
-                "skipUrlSync": false,
-                "sort": 0,
                 "type": "query"
               },
               {
                 "current": {
-                  "selected": true,
-                  "text": ["All"],
-                  "value": ["$__all"]
+                  "text": "All",
+                  "value": [
+                    "$__all"
+                  ]
                 },
                 "datasource": {
                   "type": "prometheus",
@@ -14727,22 +14746,16 @@ resources:
                 },
                 "refresh": 2,
                 "regex": "",
-                "skipUrlSync": false,
                 "sort": 3,
-                "tagValuesQuery": "",
-                "tagsQuery": "",
-                "type": "query",
-                "useTags": false
+                "type": "query"
               },
               {
                 "current": {
-                  "selected": false,
                   "text": "[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+",
                   "value": "[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+"
                 },
                 "hide": 2,
                 "includeAll": false,
-                "multi": false,
                 "name": "diskdevices",
                 "options": [
                   {
@@ -14752,14 +14765,14 @@ resources:
                   }
                 ],
                 "query": "[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+",
-                "skipUrlSync": false,
                 "type": "custom"
               },
               {
                 "current": {
-                  "selected": true,
-                  "text": ["All"],
-                  "value": ["$__all"]
+                  "text": "All",
+                  "value": [
+                    "$__all"
+                  ]
                 },
                 "datasource": {
                   "type": "prometheus",
@@ -14778,8 +14791,6 @@ resources:
                 },
                 "refresh": 1,
                 "regex": "",
-                "skipUrlSync": false,
-                "sort": 0,
                 "type": "query"
               }
             ]
@@ -14788,23 +14799,9 @@ resources:
             "from": "now-2d",
             "to": "now"
           },
-          "timepicker": {
-            "refresh_intervals": [
-              "5s",
-              "10s",
-              "30s",
-              "1m",
-              "5m",
-              "15m",
-              "30m",
-              "1h",
-              "2h",
-              "1d"
-            ],
-            "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
-          },
+          "timepicker": {},
           "timezone": "browser",
           "title": "Workers Detailed Stats",
-          "version": 22,
+          "version": 2,
           "weekStart": ""
         }
