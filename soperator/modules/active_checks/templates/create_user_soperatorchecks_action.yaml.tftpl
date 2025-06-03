@@ -16,7 +16,7 @@ resources:
               set -ex
 
               echo "Creating soperatorchecks user..."
-              chroot /mnt/jail /bin/bash -c 'id "soperatorchecks" || echo "" | screateuser soperatorchecks --home /opt/soperatorchecks --gecos ""'
+              chroot /mnt/jail /bin/bash -c 'id "soperatorchecks" || echo "" | createuser soperatorchecks --home /opt/soperatorchecks --gecos ""'
 
               if [ ! -f /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa ]; then
                 echo "Generating ssh key..."

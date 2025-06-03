@@ -28,7 +28,7 @@ resource "terraform_data" "wait_for_create_soperatorchecks_user" {
       " ",
       [
         "kubectl", "wait",
-        "--for=jsonpath='{.status.k8sJobsStatus.lastK8sJobStatus}'=Complete",
+        "--for=jsonpath='{.status.k8sJobsStatus.lastJobStatus}'=Complete",
         "--timeout", "2m",
         "--context", var.k8s_cluster_context,
         "-n", var.slurm_cluster_namespace,
@@ -147,7 +147,7 @@ resource "terraform_data" "wait_for_checks" {
       " ",
       [
         "kubectl", "wait",
-        "--for=jsonpath='{.status.k8sJobsStatus.lastK8sJobStatus}'=Complete",
+        "--for=jsonpath='{.status.k8sJobsStatus.lastJobStatus}'=Complete",
         "--timeout", "10m",
         "--context", var.k8s_cluster_context,
         "-n", var.slurm_cluster_namespace,
