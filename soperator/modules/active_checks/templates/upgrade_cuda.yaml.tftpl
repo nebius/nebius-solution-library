@@ -62,7 +62,7 @@ resources:
               echo "CUDA ${cuda_version} installation complete and relevant packages pinned (held)."
 
               EOF
-          image: cr.eu-north1.nebius.cloud/soperator-unstable/k8s_check_job:1.19.0-jammy-slurm24.05.5-4bbb4258
+          image: cr.eu-north1.nebius.cloud/soperator/k8s_check_job:1.20.0-jammy-slurm24.05.7
           volumes:
           - name: jail
             persistentVolumeClaim:
