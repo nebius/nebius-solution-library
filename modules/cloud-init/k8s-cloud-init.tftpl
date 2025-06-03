@@ -1,14 +1,9 @@
-%{ if enable_filestore != "false" || enable_glusterfs != "false" }
-mounts:
-%{ endif }
-%{ if enable_filestore != "false" }
-- [ data, /mnt/data, virtiofs, "defaults", 0, 2 ]
-%{ endif }
-%{ if enable_glusterfs != "false" }
-- [ '${glusterfs_host}:${glusterfs_volume}', /mnt/glusterfs, glusterfs, "defaults,nofail", 0, 2 ]
+package_update: true
+package_upgrade: true
 
-packages:
-  - glusterfs-client
+%{ if enable_filestore != "false" }
+mounts:
+- [ data, /mnt/data, virtiofs, "defaults", 0, 2 ]
 
 runcmd:
  - [ modprobe, fuse ]

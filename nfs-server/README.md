@@ -42,12 +42,6 @@ sudo mount <ip_address>:/nfs /nfs
 
 in order to automatically mount after VM reboot add line to /etc/fstab
 ```bash
-sudo echo <nfs_ip>:/nfs /mnt/nfs nfs defaults 0 0" >> /etc/fstab
+sudo echo "<nfs_ip>:/nfs /mnt/nfs nfs defaults 0 0" >> /etc/fstab
 sudo mount -a
-```
-
-To optimize network performance, consider changing the  MTU to 8910. For Ubuntu 22.04 LTS:
-```bash
-netplan set ethernets.eth0.mtu=8910
-netplan apply
 ```

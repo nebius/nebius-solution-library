@@ -43,24 +43,5 @@ runcmd:
   # Configure NFS export
   - echo "${nfs_path} ${nfs_ip_range}(rw,async,no_subtree_check,no_root_squash)" >> /etc/exports
 
-  # Netplan config for MTU
-  - echo "Writing netplan configuration..."
-  - |
-    cat <<EOF > /etc/netplan/50-cloud-init.yaml
-    network:
-      version: 2
-      ethernets:
-        enp:
-          match:
-            name: "enp*"
-          dhcp4: true
-          mtu: ${mtu_size}
-    EOF
-  - chmod 600 /etc/netplan/50-cloud-init.yaml
-  - echo "Netplan configuration written. Applying it..."
-  - netplan generate
-  - netplan apply
-  - echo "Netplan applied successfully."
-
   # Restart NFS service
   - systemctl restart nfs-kernel-server

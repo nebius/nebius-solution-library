@@ -125,5 +125,4 @@ aws configure set region eu-north1
 aws configure set endpoint_url https://storage.eu-north1.nebius.cloud:443
 
 
-echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}"
-echo "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"
+echo "If you want to see AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, check out $HOME/.aws/credential."

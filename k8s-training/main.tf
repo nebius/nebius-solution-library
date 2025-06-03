@@ -65,9 +65,6 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
     underlay_required = false
     cloud_init_user_data = templatefile("../modules/cloud-init/k8s-cloud-init.tftpl", {
       enable_filestore = var.enable_filestore ? "true" : "false",
-      enable_glusterfs = var.enable_glusterfs ? "true" : "false",
-      glusterfs_host   = var.enable_glusterfs ? module.glusterfs[0].glusterfs-host : "",
-      glusterfs_volume = var.enable_glusterfs ? module.glusterfs[0].volume : "",
       ssh_user_name    = var.ssh_user_name,
       ssh_public_key   = local.ssh_public_key
     })
@@ -75,7 +72,8 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
 }
 
 resource "nebius_mk8s_v1_node_group" "gpu" {
-  fixed_node_count = var.gpu_nodes_count
+  count            = var.gpu_node_groups
+  fixed_node_count = var.gpu_nodes_count_per_group
   parent_id        = nebius_mk8s_v1_cluster.k8s-cluster.id
   name             = join("-", ["k8s-ng-gpu", local.release-suffix])
   labels = {
@@ -113,13 +111,12 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
         existing_filesystem = nebius_compute_v1_filesystem.shared-filesystem[0]
       }
     ] : null
-    gpu_cluster       = nebius_compute_v1_gpu_cluster.fabric_2
+    gpu_cluster  = nebius_compute_v1_gpu_cluster.fabric_2
+    gpu_settings = var.gpu_nodes_driverfull_image ? { drivers_preset = "cuda12" } : null
+
     underlay_required = false
     cloud_init_user_data = templatefile("../modules/cloud-init/k8s-cloud-init.tftpl", {
       enable_filestore = var.enable_filestore ? "true" : "false",
-      enable_glusterfs = var.enable_glusterfs ? "true" : "false",
-      glusterfs_host   = var.enable_glusterfs ? module.glusterfs[0].glusterfs-host : "",
-      glusterfs_volume = var.enable_glusterfs ? module.glusterfs[0].volume : "",
       ssh_user_name    = var.ssh_user_name,
       ssh_public_key   = local.ssh_public_key
     })

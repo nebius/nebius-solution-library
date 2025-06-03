@@ -30,6 +30,7 @@ resource "nebius_iam_v1_auth_public_key" "bastion-sa-public-key" {
 }
 
 locals {
+  # these variables don't seem to be in use
   sa_public_key      = tls_private_key.bastion_sa_key.public_key_pem
   sa_private_key     = tls_private_key.bastion_sa_key.private_key_pem
   sa_public_key_id   = nebius_iam_v1_auth_public_key.bastion-sa-public-key.id

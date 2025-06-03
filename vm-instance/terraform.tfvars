@@ -10,20 +10,20 @@ platform = "gpu-h100-sxm"
 
 users = [
   {
-    user_name = "tux",
+    user_name    = "tux",
     ssh_key_path = "~/.ssh/id_rsa.pub"
   },
   {
-    user_name = "tux2",
+    user_name      = "tux2",
     ssh_public_key = "<SSH KEY STRING>"
   }
 ]
 
-public_ip = true
+public_ip                          = true
 create_public_ip_for_all_instances = false
-instance_count = 1
+instance_count                     = 1
 
 shared_filesystem_id = ""
-mount_bucket = "fabric-6"
+mount_bucket         = "fabric-6"
 
 fabric = ""
