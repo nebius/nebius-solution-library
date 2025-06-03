@@ -38,7 +38,7 @@ resources:
                 "collapsed": false,
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "gridPos": {
                   "h": 1,
@@ -52,7 +52,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "refId": "A"
                   }
@@ -63,7 +63,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -164,7 +164,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_nodes_alloc + slurm_nodes_comp",
                     "format": "time_series",
@@ -175,7 +175,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_nodes_mix",
                     "intervalFactor": 2,
@@ -185,7 +185,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_nodes_idle",
                     "format": "time_series",
@@ -196,7 +196,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_nodes_alloc + slurm_nodes_down + slurm_nodes_drain + slurm_nodes_idle + slurm_nodes_mix + slurm_nodes_comp + slurm_nodes_maint + slurm_nodes_resv",
                     "format": "time_series",
@@ -212,7 +212,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -329,7 +329,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_nodes_down",
                     "format": "time_series",
@@ -341,7 +341,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_nodes_drain",
                     "format": "time_series",
@@ -352,7 +352,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_nodes_err != 0",
                     "format": "time_series",
@@ -364,7 +364,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_nodes_fail != 0",
                     "format": "time_series",
@@ -381,7 +381,7 @@ resources:
                 "collapsed": false,
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "gridPos": {
                   "h": 1,
@@ -395,7 +395,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "refId": "A"
                   }
@@ -406,7 +406,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -492,7 +492,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_queue_completing != 0",
                     "format": "time_series",
@@ -504,7 +504,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_queue_running",
                     "format": "time_series",
@@ -515,7 +515,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_queue_pending",
                     "format": "time_series",
@@ -526,7 +526,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_queue_completed != 0",
                     "format": "time_series",
@@ -542,7 +542,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -644,7 +644,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_queue_timeout",
                     "format": "time_series",
@@ -655,7 +655,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_queue_failed",
                     "format": "time_series",
@@ -667,7 +667,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_queue_node_fail",
                     "format": "time_series",
@@ -678,7 +678,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_queue_suspended",
                     "format": "time_series",
@@ -689,7 +689,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_queue_cancelled",
                     "format": "time_series",
@@ -700,7 +700,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_queue_preempted",
                     "format": "time_series",
@@ -716,7 +716,7 @@ resources:
                 "collapsed": false,
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "gridPos": {
                   "h": 1,
@@ -730,7 +730,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "refId": "A"
                   }
@@ -741,7 +741,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -873,7 +873,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_cpus_total",
                     "format": "time_series",
@@ -884,7 +884,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_cpus_alloc",
                     "format": "time_series",
@@ -895,7 +895,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_cpus_idle",
                     "format": "time_series",
@@ -912,7 +912,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -1051,7 +1051,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_partition_cpus_allocated != 0",
                     "interval": "",
@@ -1065,7 +1065,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -1148,7 +1148,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_partition_cpus_idle",
                     "interval": "",
@@ -1163,7 +1163,7 @@ resources:
                 "collapsed": false,
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "gridPos": {
                   "h": 1,
@@ -1177,7 +1177,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "refId": "A"
                   }
@@ -1188,7 +1188,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "description": "The number of current active slurmctld threads.",
                 "fieldConfig": {
@@ -1251,7 +1251,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_threads",
                     "format": "time_series",
@@ -1266,7 +1266,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "description": "The agent mechanism helps to control communication between the Slrum daemons and the controller for a best effort.",
                 "fieldConfig": {
@@ -1329,7 +1329,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_queue_size",
                     "format": "time_series",
@@ -1344,7 +1344,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -1393,7 +1393,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_dbd_queue_size",
                     "legendFormat": "DBD Agent Queue length",
@@ -1407,7 +1407,7 @@ resources:
                 "collapsed": false,
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "gridPos": {
                   "h": 1,
@@ -1421,7 +1421,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "refId": "A"
                   }
@@ -1432,7 +1432,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -1515,7 +1515,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_last_cycle",
                     "format": "time_series",
@@ -1526,7 +1526,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_mean_cycle",
                     "format": "time_series",
@@ -1541,7 +1541,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -1626,7 +1626,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_backfill_last_cycle",
                     "format": "time_series",
@@ -1637,7 +1637,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_backfill_mean_cycle",
                     "format": "time_series",
@@ -1652,7 +1652,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "fieldConfig": {
                   "defaults": {
@@ -1732,7 +1732,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_backfill_depth_mean",
                     "format": "time_series",
@@ -1747,7 +1747,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "description": "Number of heterogeneous job components started thanks to backfilling since last Slurm start",
                 "fieldConfig": {
@@ -1802,7 +1802,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_backfilled_heterogeneous_total",
                     "legendFormat": "Heterogeneous job components",
@@ -1816,7 +1816,7 @@ resources:
                 "collapsed": false,
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "gridPos": {
                   "h": 1,
@@ -1830,7 +1830,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "refId": "A"
                   }
@@ -1841,7 +1841,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "description": "Number of jobs started thanks to backfilling since last Slurm start.",
                 "fieldConfig": {
@@ -1937,7 +1937,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "delta(slurm_scheduler_backfilled_jobs_since_start_total[10m])",
                     "legendFormat": "DELTA: Total number Backfilled Jobs (since last Slurm start)",
@@ -1946,7 +1946,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_backfilled_jobs_since_start_total",
                     "legendFormat": "Total number Backfilled Jobs (since last Slurm start)",
@@ -1959,7 +1959,7 @@ resources:
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "prometheus"
+                  "uid": "VictoriaMetrics"
                 },
                 "description": "Number of jobs started thanks to backfilling since last time stats where reset",
                 "fieldConfig": {
@@ -2056,7 +2056,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "slurm_scheduler_backfilled_jobs_since_cycle_total",
                     "legendFormat": " Total Backfilled Jobs (since last stats cycle start)",
@@ -2065,7 +2065,7 @@ resources:
                   {
                     "datasource": {
                       "type": "prometheus",
-                      "uid": "prometheus"
+                      "uid": "VictoriaMetrics"
                     },
                     "expr": "delta(slurm_scheduler_backfilled_jobs_since_cycle_total[10m])",
                     "legendFormat": "DELTA:  Total Backfilled Jobs (since last stats cycle start)",

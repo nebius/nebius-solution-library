@@ -7,6 +7,11 @@ terraform {
       version = ">=0.4"
     }
 
+    flux = {
+      source  = "fluxcd/flux"
+      version = ">= 1.5"
+    }
+
     units = {
       source  = "dstaroff/units"
       version = ">=1.1.1"
@@ -32,6 +37,20 @@ provider "kubernetes" {
   host                   = module.k8s.control_plane.public_endpoint
   cluster_ca_certificate = module.k8s.control_plane.cluster_ca_certificate
   token                  = var.iam_token
+}
+
+provider "flux" {
+  kubernetes = {
+    host                   = module.k8s.control_plane.public_endpoint
+    cluster_ca_certificate = module.k8s.control_plane.cluster_ca_certificate
+    token                  = var.iam_token
+  }
+  git = {
+    url = "ssh://git@github.com/${var.github_org}/${var.github_repository}.git"
+    ssh = {
+      username = "git"
+    }
+  }
 }
 
 provider "helm" {

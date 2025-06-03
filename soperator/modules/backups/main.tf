@@ -1,52 +1,3 @@
-resource "helm_release" "k8up_crds" {
-  name       = "k8up-crds"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-
-  create_namespace = true
-  namespace        = var.k8up_operator_namespace
-
-  values = [templatefile("${path.module}/templates/k8up_crds.yaml.tftpl", {})]
-
-  wait = true
-}
-
-resource "helm_release" "k8up" {
-  depends_on = [
-    helm_release.k8up_crds,
-  ]
-
-  name       = "k8up"
-  repository = local.helm.repository.k8up
-  chart      = local.helm.chart.k8up
-  version    = local.helm.version.k8up
-
-  create_namespace = true
-  namespace        = var.k8up_operator_namespace
-
-  values = [templatefile("${path.module}/templates/k8up_operator_values.yaml.tftpl", {
-    monitoring = {
-      enabled   = var.monitoring.enabled
-      namespace = var.monitoring.namespace
-    }
-  })]
-
-  set {
-    name  = "k8up.envVars[0].name"
-    value = "BACKUP_SKIP_WITHOUT_ANNOTATION"
-  }
-
-  set {
-    name  = "k8up.envVars[0].value"
-    value = "true"
-    type  = "string"
-  }
-
-  wait          = true
-  wait_for_jobs = true
-}
-
 resource "nebius_iam_v1_service_account" "backups_service_account" {
   parent_id = var.iam_project_id
   name      = "${var.instance_name}-backup-sa"
@@ -67,7 +18,7 @@ resource "nebius_iam_v1_group_membership" "backups_service_account_group" {
 resource "terraform_data" "k8s_backups_bucket_access_secret" {
 
   triggers_replace = {
-    namespace           = var.soperator_namespace
+    namespace           = var.flux_namespace
     secret_name         = local.secret_name
     k8s_cluster_context = var.k8s_cluster_context
     service_account_id  = nebius_iam_v1_service_account.backups_service_account.id
@@ -111,7 +62,7 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
             "type: Opaque",
             "metadata:",
             "  name: ${local.secret_name}",
-            "  namespace: ${var.soperator_namespace}",
+            "  namespace: ${var.flux_namespace}",
             "  labels:",
             "    app.kubernetes.io/managed-by: soperator-terraform",
             "  annotations:",
@@ -131,7 +82,6 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
 
 resource "helm_release" "backups_schedule" {
   depends_on = [
-    helm_release.k8up_crds,
     terraform_data.k8s_backups_bucket_access_secret
   ]
 
@@ -140,8 +90,8 @@ resource "helm_release" "backups_schedule" {
   chart      = local.helm.chart.raw
   version    = local.helm.version.raw
 
-  create_namespace = true
-  namespace        = var.soperator_namespace
+  # create_namespace = true
+  namespace        = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/k8up_schedule.yaml.tftpl", {
     s3_endpoint       = var.bucket_endpoint

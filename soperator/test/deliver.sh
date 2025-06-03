@@ -52,9 +52,9 @@ source common/printer.sh
 h1 "Creating directory for tests on ${ADDRESS}..."
 ssh \
   -i "${KEY}" \
-  -P "${PORT}" \
+  -p "${PORT}" \
   "${USER}@${ADDRESS}" \
-  mkdir -p "${TEST_DIR}"
+  "sudo mkdir -p '${TEST_DIR}'; sudo chown ${USER}:${USER} '${TEST_DIR}'"
 hdone
 
 h1 "Transferring common files as user '${USER}' with key '${KEY}' to ${ADDRESS}:${PORT}..."

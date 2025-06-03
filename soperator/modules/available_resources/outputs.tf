@@ -25,3 +25,13 @@ output "k8s_ephemeral_storage_coefficient" {
 output "k8s_ephemeral_storage_reserve" {
   value = local.reserve.ephemeral_storage.count
 }
+
+output "disk_types" {
+  description = "Supported disk types."
+  value       = local.disk_types
+}
+
+output "filesystem_types" {
+  description = "Supported filesystem types."
+  value       = local.filesystem_types
+}

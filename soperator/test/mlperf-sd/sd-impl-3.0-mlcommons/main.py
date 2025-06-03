@@ -663,6 +663,10 @@ if __name__ == "__main__":
         signal.signal(signal.SIGUSR1, melk)
         signal.signal(signal.SIGUSR2, divein)
 
+        mllogger.start(key='PATCHING_PYTORCH')
+        torch.set_float32_matmul_precision('medium')
+        mllogger.end(key='PATCHED_PYTORCH')
+
         mllogger.end(mllog_constants.INIT_STOP)
 
         # Run the training and validation

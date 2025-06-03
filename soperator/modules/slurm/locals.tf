@@ -97,11 +97,11 @@ locals {
     }
     node_configurator = {
       limits = {
-        memory = 1
+        memory = 0.25
       }
       requests = {
-        memory = 1
-        cpu    = 1
+        memory = 0.25
+        cpu    = 0.5
       }
     }
     slurm_checks = {
@@ -109,9 +109,17 @@ locals {
         memory = 1
       }
       requests = {
-        memory = 1
-        cpu    = 1
+        memory = 0.5
+        cpu    = 0.5
       }
+    }
+    kruise_daemon = {
+      cpu    = 0.05
+      memory = 0.128
+    }
+    dcgm_exporter = {
+      cpu    = 0.05
+      memory = 0.5
     }
   }
 

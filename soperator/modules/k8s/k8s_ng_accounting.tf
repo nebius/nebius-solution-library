@@ -12,6 +12,7 @@ resource "nebius_mk8s_v1_node_group" "accounting" {
   labels = merge(
     module.labels.label_nodeset_accounting,
     module.labels.label_workload_cpu,
+    module.labels.label_jail,
   )
 
   fixed_node_count = 1
@@ -21,6 +22,7 @@ resource "nebius_mk8s_v1_node_group" "accounting" {
       labels = merge(
         module.labels.label_nodeset_accounting,
         module.labels.label_workload_cpu,
+        module.labels.label_jail,
       )
     }
     taints = [{

@@ -1,0 +1,36 @@
+resources:
+  - apiVersion: slurm.nebius.ai/v1alpha1
+    kind: ActiveCheck
+    metadata:
+      name: create-user-soperatorchecks-action
+      namespace: ${slurm_cluster_namespace}
+    spec:
+      checkType: k8sJob
+      suspend: true
+      k8sJobSpec:
+        jobContainer:
+          command:
+            - bash
+            - -c
+            - |
+              set -ex
+
+              echo "Creating soperatorchecks user..."
+              chroot /mnt/jail /bin/bash -c 'id "soperatorchecks" || echo "" | createuser soperatorchecks --home /opt/soperatorchecks --gecos ""'
+
+              if [ ! -f /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa ]; then
+                echo "Generating ssh key..."
+                ssh-keygen -t ecdsa -f /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa -N '' -C soperatorchecks
+                cat /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa.pub >> /mnt/jail/opt/soperatorchecks/.ssh/authorized_keys
+              fi
+          image: cr.eu-north1.nebius.cloud/soperator/k8s_check_job:1.20.0-jammy-slurm24.05.7
+          volumes:
+          - name: jail
+            persistentVolumeClaim:
+              claimName: jail-pvc
+          volumeMounts:
+          - name: jail
+            mountPath: /mnt/jail
+      name: create-user-soperatorchecks-action
+      runAfterCreation: true
+      slurmClusterRefName: ${slurm_cluster_name}

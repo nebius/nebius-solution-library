@@ -81,6 +81,37 @@ filestore_jail_submounts = [{
   }
 }]
 
+# Additional (Optional) node-local Network-SSD disks to be mounted inside jail on worker nodes.
+# It will create compute disks with provided spec for each node via CSI.
+# NOTE: in case of `NETWORK_SSD_NON_REPLICATED` disk type, `size` must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
+# ---
+# node_local_jail_submounts = []
+# ---
+node_local_jail_submounts = [{
+  name            = "local-data"
+  mount_path      = "/mnt/local-data"
+  size_gibibytes  = 1024
+  disk_type       = "NETWORK_SSD"
+  filesystem_type = "ext4"
+}]
+
+# Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node.
+# It will create compute disks with provided spec for each node via CSI.
+# NOTE: In case you're not going to use Docker/Enroot in your workloads, it's worth disabling this feature.
+# NOTE: `size` must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
+# ---
+# node_local_image_disk = {
+#   enabled = false
+# }
+# ---
+node_local_image_disk = {
+  enabled = true
+  spec = {
+    size_gibibytes  = 930
+    filesystem_type = "ext4"
+  }
+}
+
 # Shared filesystem to be used for accounting DB.
 # By default, null.
 # Required if accounting_enabled is true.
@@ -108,7 +139,7 @@ nfs = {
   size_gibibytes = 3720
   mount_path     = "/home"
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "32vcpu-128gb"
   }
   public_ip = false
@@ -127,7 +158,7 @@ nfs = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.19.0"
+slurm_operator_version = "1.20.0"
 
 # Is the version of soperator stable or not.
 # ---
@@ -143,9 +174,53 @@ slurm_partition_config_type = "default"
 # By default, empty list.
 # ---
 # slurm_partition_raw_config = [
-#   "PartitionName=low_priority Nodes=worker-[0-7] Default=YES MaxTime=INFINITE State=UP PriorityTier=1",
-#   "PartitionName=high_priority Nodes=worker-[8-15] Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
+#   "PartitionName=low_priority Nodes=low_priority Default=YES MaxTime=INFINITE State=UP PriorityTier=1",
+#   "PartitionName=high_priority Nodes=low_priority Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
 # ]
+# If Nodes present, they must not contain node names: use only nodeset values, "ALL" or "".
+# If nodesets are used in the partition config, slurm_worker_features with non-empty nodeset_name
+# must be declared (see below).
+# Specifying specific nodes is not supported since Dynamic Nodes are used.
+# For more details, see https://slurm.schedmd.com/dynamic_nodes.html#partitions.
+
+# List of features to be enabled on worker nodes. Each feature object has:
+# - name: (Required) The name of the feature.
+# - hostlist_expr: (Required) A Slurm hostlist expression, e.g. "workers-[0-2,10],workers-[3-5]".
+#   Soperator will run these workers with the feature name.
+# - nodeset_name: (Optional) The Slurm nodeset name to be provisioned using this feature.
+#   This nodeset may be used in conjunction with partitions.
+#   It is required if `Nodes=<nodeset_name>` is used for a partition.
+#
+# slurm_worker_features = [
+#   {
+#     name = "low_priority"
+#     hostlist_expr = "worker-[0-0]"
+#     nodeset_name = "low_priority"
+#   },
+#   {
+#     name = "low_priority"
+#     hostlist_expr = "worker-1"
+#     nodeset_name = "high_priority"
+#   }
+# ]
+
+# Health check config:
+# - health_check_interval: (Required) Interval for health check run in seconds.
+# - health_check_program: (Required) Program for health check run.
+# - health_check_node_state: (Required) What node states should execute the program.
+#
+# slurm_health_check_config = {
+#   health_check_interval: 30,
+#   health_check_program: "/usr/bin/gpu_healthcheck.sh",
+#   health_check_node_state: [
+#     {
+#       state: "ANY"
+#     },
+#     {
+#       state: "CYCLE"
+#     }
+#   ]
+# }
 
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
@@ -162,7 +237,7 @@ slurm_nodeset_system = {
   min_size = 3
   max_size = 9
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "8vcpu-32gb"
   }
   boot_disk = {
@@ -177,7 +252,7 @@ slurm_nodeset_system = {
 slurm_nodeset_controller = {
   size = 2
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "4vcpu-16gb"
   }
   boot_disk = {
@@ -203,7 +278,7 @@ slurm_nodeset_workers = [{
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 2048
+    size_gibibytes       = 512
     block_size_kibibytes = 4
   }
   gpu_cluster = {
@@ -216,7 +291,7 @@ slurm_nodeset_workers = [{
 slurm_nodeset_login = {
   size = 2
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "32vcpu-128gb"
   }
   boot_disk = {
@@ -232,7 +307,7 @@ slurm_nodeset_login = {
 # ---
 slurm_nodeset_accounting = {
   resource = {
-    platform = "cpu-e2"
+    platform = "cpu-d3"
     preset   = "8vcpu-32gb"
   }
   boot_disk = {
@@ -266,19 +341,6 @@ slurm_login_ssh_root_public_keys = [
 slurm_exporter_enabled = true
 
 # endregion Exporter
-
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                       REST API                                                       #
-#----------------------------------------------------------------------------------------------------------------------#
-# region REST API
-
-# Whether to enable Slurm REST API.
-# If disabled, node auto-replacement in case of maintenance events DOESN'T WORK.
-# By default, true.
-# ---
-slurm_rest_enabled = true
-
-# endregion REST API
 
 # endregion Nodes
 
@@ -346,10 +408,12 @@ nccl_use_infiniband = false
 # ---
 telemetry_enabled = true
 
-# Password of `admin` user of Grafana.
-# Set it to your desired password.
+# Whether to enable dcgm job mapping (adds hpc_job label on DCGM_ metrics).
+# By default, true.
 # ---
-telemetry_grafana_admin_password = "password"
+dcgm_job_mapping_enabled = true
+
+public_o11y_enabled = true
 
 # endregion Telemetry
 

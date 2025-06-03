@@ -1,0 +1,75 @@
+resources:
+  - apiVersion: slurm.nebius.ai/v1alpha1
+    kind: ActiveCheck
+    metadata:
+      name: upgrade-cuda
+      namespace: ${slurm_cluster_namespace}
+    spec:
+      checkType: k8sJob
+      suspend: true
+      k8sJobSpec:
+        jobContainer:
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              echo "Upgrading cuda"
+              ssh -i /mnt/jail/opt/soperatorchecks/.ssh/soperatorchecks_id_ecdsa \
+                  -o StrictHostKeyChecking=no \
+                  soperatorchecks@login-0.soperator-login-svc.soperator.svc << 'EOF'
+
+              # Patterns of packages to process
+              TARGET_PATTERNS=(
+                "libcublas"
+                "libcudnn"
+                "libnccl"
+              )
+
+              echo "Unholding previously pinned CUDA-related libraries..."
+              for pattern in "$${TARGET_PATTERNS[@]}"; do
+                pkgs=$(dpkg -l | awk '{print $2}' | grep "^$${pattern}" || true)
+                for pkg in $pkgs; do
+                  if apt-mark showhold | grep -q "^$pkg$"; then
+                    echo "Unholding $pkg"
+                    sudo apt-mark unhold -o DPkg::Lock::Timeout=-1 "$pkg"
+                  fi
+                done
+              done
+
+              echo "Removing existing CUDA installation..."
+              sudo apt remove -o DPkg::Lock::Timeout=-1 -y cuda || true
+
+              echo "Installing CUDA version ${cuda_version}..."
+              sudo apt -o DPkg::Lock::Timeout=-1 update
+              sudo apt install -o DPkg::Lock::Timeout=-1 -y "cuda=${cuda_version}"
+
+              sudo apt clean
+              sudo apt autoremove -y
+
+              echo "Holding newly installed CUDA-related libraries..."
+              for pattern in "$${TARGET_PATTERNS[@]}"; do
+                pkgs=$(dpkg -l | awk '{print $2}' | grep "^$${pattern}" || true)
+                for pkg in $pkgs; do
+                  if dpkg -s "$pkg" &>/dev/null; then
+                    echo "Holding $pkg"
+                    sudo apt-mark hold -o DPkg::Lock::Timeout=-1 "$pkg"
+                  fi
+                done
+              done
+
+              echo "CUDA ${cuda_version} installation complete and relevant packages pinned (held)."
+
+              EOF
+          image: cr.eu-north1.nebius.cloud/soperator/k8s_check_job:1.20.0-jammy-slurm24.05.7
+          volumes:
+          - name: jail
+            persistentVolumeClaim:
+              claimName: jail-pvc
+          volumeMounts:
+          - name: jail
+            mountPath: /mnt/jail
+      name: upgrade-cuda-check
+      runAfterCreation: true
+      slurmClusterRefName: ${slurm_cluster_name}
