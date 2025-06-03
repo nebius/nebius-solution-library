@@ -36,6 +36,7 @@ filestore_disk_size  = 10 * (1024 * 1024 * 1024 * 1024) # Set Filestore disk siz
 filestore_block_size = 4096                             # Set Filestore block size in bytes
 
 # KubeRay
-enable_kuberay           = false # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
+enable_kuberay_cluster   = false # Enable to deploy KubeRay Operator with RayCluster CR
+enable_kuberay_service   = false # Enable to deploy KubeRay Operator with RayService CR
 kuberay_min_gpu_replicas = 1
 kuberay_max_gpu_replicas = 2
