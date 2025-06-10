@@ -1,4 +1,5 @@
 resource "terraform_data" "o11y_static_key_secret" {
+  count = var.public_o11y_enabled ? 1 : 0
   triggers_replace = {
     region                           = var.region
     service_account_name             = local.service_account_name

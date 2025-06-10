@@ -55,3 +55,9 @@ variable "o11y_profile" {
   type        = string
   nullable    = false
 }
+
+variable "public_o11y_enabled" {
+  description = "Whether to enable public observability endpoints."
+  type        = bool
+  default     = true
+}
