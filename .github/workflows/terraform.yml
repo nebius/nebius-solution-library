@@ -2,9 +2,11 @@ name: 'Terraform'
 
 on:
   pull_request:
-    paths-ignore:
-      - 'soperator/**'
-      - '.github/workflows/soperator.yml'
+    paths:
+      - 'k8s-training/**'
+      - 'wireguard/**'
+      - 'dsvm/**'
+      - 'bastion/**'
 #  schedule:
 #    - cron: '30 * * * *'
 
@@ -97,7 +99,7 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
-        terraform_version: "v1.10.0-alpha20241009"
+        terraform_version: "v1.11.4"
 
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
