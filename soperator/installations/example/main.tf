@@ -207,7 +207,7 @@ module "k8s_storage_class" {
     disk_type       = sm.disk_type
     filesystem_type = sm.filesystem_type
     }], !var.node_local_image_disk.enabled ? [] : [{
-    disk_type       = module.resources.disk_types.network_ssd_non_replicated
+    disk_type       = var.node_local_image_disk.spec.disk_type
     filesystem_type = var.node_local_image_disk.spec.filesystem_type
   }])
 
@@ -278,7 +278,7 @@ module "slurm" {
     module.k8s_storage_class,
     module.o11y,
     module.fluxcd,
-
+    module.backups,
   ]
 
   source = "../../modules/slurm"
@@ -403,7 +403,7 @@ module "slurm" {
     spec = {
       size_gibibytes     = var.node_local_image_disk.spec.size_gibibytes
       filesystem_type    = var.node_local_image_disk.spec.filesystem_type
-      storage_class_name = one(module.k8s_storage_class).storage_classes[module.resources.disk_types.network_ssd_non_replicated][var.node_local_image_disk.spec.filesystem_type]
+      storage_class_name = one(module.k8s_storage_class).storage_classes[var.node_local_image_disk.spec.disk_type][var.node_local_image_disk.spec.filesystem_type]
     }
   }
 
@@ -458,7 +458,6 @@ module "backups_store" {
 
   depends_on = [
     module.k8s,
-    module.slurm,
     module.fluxcd,
   ]
 }
@@ -470,12 +469,13 @@ module "backups" {
 
   k8s_cluster_context = module.k8s.cluster_context
 
-  iam_project_id  = var.iam_project_id
-  iam_tenant_id   = var.iam_tenant_id
-  instance_name   = local.k8s_cluster_name
-  flux_namespace  = local.flux_namespace
-  bucket_name     = module.backups_store[count.index].name
-  bucket_endpoint = module.backups_store[count.index].endpoint
+  iam_project_id      = var.iam_project_id
+  iam_tenant_id       = var.iam_tenant_id
+  instance_name       = local.k8s_cluster_name
+  flux_namespace      = local.flux_namespace
+  soperator_namespace = local.slurm_cluster_name
+  bucket_name         = module.backups_store[count.index].name
+  bucket_endpoint     = module.backups_store[count.index].endpoint
 
   backups_password  = var.backups_password
   backups_schedule  = var.backups_schedule
@@ -488,7 +488,7 @@ module "backups" {
   }
 
   depends_on = [
-    module.slurm,
+    module.k8s,
   ]
 }
 
