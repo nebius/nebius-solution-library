@@ -18,8 +18,13 @@ variable "k8s_cluster_context" {
   type        = string
 }
 
-variable "flux_namespace" {
+variable "soperator_namespace" {
   description = "Kubernetes namespace to look for jail in."
+  type        = string
+}
+
+variable "flux_namespace" {
+  description = "Kubernetes namespace for flux installations."
   type        = string
 }
 

@@ -5,28 +5,31 @@ resources:
       name: backup-schedule
     data:
       values.yaml: |
-        spec:
-          backend:
-            s3:
-              endpoint: "${s3_endpoint}"
-              bucket: "${s3_bucket}"
-              accessKeyIDSecretRef:
-                name: "${backups_secret}"
-                key: aws-access-key-id
-              secretAccessKeySecretRef:
-                name: "${backups_secret}"
-                key: aws-access-secret-key
-            repoPasswordSecretRef:
-              name: "${backups_secret}"
-              key: backup-password
+        backup:
+          schedule:
+            values:
+              spec:
+                backend:
+                  s3:
+                    endpoint: "${s3_endpoint}"
+                    bucket: "${s3_bucket}"
+                    accessKeyIDSecretRef:
+                      name: "${backups_secret}"
+                      key: aws-access-key-id
+                    secretAccessKeySecretRef:
+                      name: "${backups_secret}"
+                      key: aws-access-secret-key
+                  repoPasswordSecretRef:
+                    name: "${backups_secret}"
+                    key: backup-password
 
-          backup:
-            schedule: "${backups_schedule}"
-            failedJobsHistoryLimit: 2
-            successfulJobsHistoryLimit: 2
-            concurrentRunsAllowed: false
-            tags: ["soperator-jail-schedule"]
+                backup:
+                  schedule: "${backups_schedule}"
+                  failedJobsHistoryLimit: 2
+                  successfulJobsHistoryLimit: 2
+                  concurrentRunsAllowed: false
+                  tags: ["soperator-jail-schedule"]
 
-          prune:
-            schedule: "${prune_schedule}"
-            retention: ${jsonencode(merge(backups_retention, {"tags": ["soperator-jail-schedule"]}))}
+                prune:
+                  schedule: "${prune_schedule}"
+                  retention: ${jsonencode(merge(backups_retention, {"tags": ["soperator-jail-schedule"]}))}
