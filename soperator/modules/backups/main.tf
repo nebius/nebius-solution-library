@@ -18,7 +18,7 @@ resource "nebius_iam_v1_group_membership" "backups_service_account_group" {
 resource "terraform_data" "k8s_backups_bucket_access_secret" {
 
   triggers_replace = {
-    namespace           = var.flux_namespace
+    namespace           = var.soperator_namespace
     secret_name         = local.secret_name
     k8s_cluster_context = var.k8s_cluster_context
     service_account_id  = nebius_iam_v1_service_account.backups_service_account.id
@@ -50,6 +50,7 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
     command = join(
       "",
       [
+        "kubectl create namespace ${var.soperator_namespace} --context ${var.k8s_cluster_context} || true",
         "AKID=$(nebius iam access-key create ",
         "--parent-id ${var.iam_project_id} ",
         "--account-service-account-id ${self.triggers_replace.service_account_id} | yq .resource_id); ",
@@ -62,7 +63,7 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
             "type: Opaque",
             "metadata:",
             "  name: ${local.secret_name}",
-            "  namespace: ${var.flux_namespace}",
+            "  namespace: ${var.soperator_namespace}",
             "  labels:",
             "    app.kubernetes.io/managed-by: soperator-terraform",
             "  annotations:",

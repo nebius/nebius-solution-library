@@ -260,12 +260,13 @@ variable "node_local_jail_submounts" {
 }
 
 variable "node_local_image_disk" {
-  description = "Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node."
+  description = "Whether to create extra NRD/IO M3 disks for storing Docker/Enroot images and container filesystems on each worker node."
   type = object({
     enabled = bool
     spec = optional(object({
       size_gibibytes  = number
       filesystem_type = string
+      disk_type       = string
     }))
   })
   default = {
@@ -291,6 +292,19 @@ variable "node_local_image_disk" {
       ))
     )
     error_message = "Filesystem type must be one of `ext4` or `xfs`."
+  }
+  validation {
+    condition = (var.node_local_image_disk.spec == null
+      ? true
+      : (contains(
+          [
+            module.resources.disk_types.network_ssd_non_replicated,
+            module.resources.disk_types.network_ssd_io_m3,
+          ],
+          var.node_local_image_disk.spec.disk_type
+        ))
+    )
+    error_message = "Local image disk type must be one of `NETWORK_SSD_NON_REPLICATED` or `NETWORK_SSD_IO_M3`. See https://docs.nebius.com/compute/storage/types#disks-types"
   }
 }
 
