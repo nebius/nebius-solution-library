@@ -35,8 +35,14 @@ resources:
                   "uid": "VictoriaMetrics"
                 },
                 "enable": false,
-                "expr": "group by (node, pod) (\n  changes(\n      sum without (uid, pod_ip)(\n          kube_pod_info{pod=~\"worker-.*\", node!=\"\"}\n      )\n  ) > 0\n  and on (pod) \n  sum by (pod)(\n      kube_pod_info{pod=~\"worker-.*\", node!=\"\"}\n  ) @ start()\n)",
-                "hide": true,
+                "expr": "group by (node, pod) (\n  changes(\n      sum without (uid, pod_ip)(\n          kube_pod_info{pod=~\"worker-.*\", node!=\"\"}\n      )\n  ) > 0\n  and on (pod) \n  sum by (pod)(\n      kube_pod_info{pod=~\"worker-.*\", node!=\"\"}\n  )\n)",
+                "filter": {
+                  "exclude": true,
+                  "ids": [
+                    328
+                  ]
+                },
+                "hide": false,
                 "iconColor": "red",
                 "name": "Worker Reschedule",
                 "tagKeys": "event",
