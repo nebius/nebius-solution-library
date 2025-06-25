@@ -789,7 +789,7 @@ variable "default_epilog_enabled" {
 variable "nccl_benchmark_enable" {
   description = "Whether to enable NCCL benchmark CronJob to benchmark GPU performance. It won't take effect in case of 1-GPU hosts."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "nccl_benchmark_schedule" {
