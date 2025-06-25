@@ -377,9 +377,9 @@ default_epilog_enabled = true
 
 # Whether to enable NCCL benchmark CronJob to benchmark GPU performance.
 # It won't take effect in case of 1-GPU hosts.
-# By default, true.
+# By default, false.
 # ---
-nccl_benchmark_enable = true
+nccl_benchmark_enable = false
 
 # NCCL benchmark's CronJob schedule.
 # By default, `0 */3 * * *` - every 3 hour.
