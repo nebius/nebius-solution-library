@@ -70,11 +70,6 @@ Check that NEBIUS_IAM_TOKEN is valid:
 nebius iam whoami
 ```
 
-By default, `public_o11y_enabled` is true, so you need to either disable it or specify `nebius` CLI profile 
-for o11y. This option defines whether you want to collect all infra logs in nebius o11y or not.
-By default, `soperator-telemetry` is used as a profile for public o11y setup. You can redefine it by setting 
-`NEBIUS_OLLY_PROFILE` variable.
-
 ### 4. (Optional) Create Storage Infrastructure
 
 Create a "jail" filesystem in the Nebius Console. Jail is a shared filesystem for all Slurm nodes.
@@ -98,6 +93,15 @@ Edit `terraform.tfvars` with your requirements:
 ```hcl
 # Name of the company. It is used for context name of the cluster in .kubeconfig file.
 company_name = "<YOUR-COMPANY-NAME>"
+
+# ...
+
+# By default, `public_o11y_enabled` is true, so you need to either disable it or specify `nebius` CLI profile 
+# for o11y. This option defines whether you want to collect all infra logs in nebius o11y or not.
+# By default, `soperator-telemetry` is used as a profile for public o11y setup. You can redefine it by setting 
+# `NEBIUS_OLLY_PROFILE` variable.
+
+public_o11y_enabled = true
 
 # ...
 

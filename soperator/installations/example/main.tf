@@ -400,11 +400,11 @@ module "slurm" {
   }]
   node_local_image_storage = {
     enabled = var.node_local_image_disk.enabled
-    spec = {
+    spec = var.node_local_image_disk.enabled ? {
       size_gibibytes     = var.node_local_image_disk.spec.size_gibibytes
       filesystem_type    = var.node_local_image_disk.spec.filesystem_type
       storage_class_name = one(module.k8s_storage_class).storage_classes[var.node_local_image_disk.spec.disk_type][var.node_local_image_disk.spec.filesystem_type]
-    }
+    }: null
   }
 
   nfs = {
