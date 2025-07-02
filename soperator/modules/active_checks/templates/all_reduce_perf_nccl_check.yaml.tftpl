@@ -17,7 +17,7 @@ resources:
       slurmJobSpec:
         eachWorkerJobArray: true
         jobContainer:
-          image: cr.eu-north1.nebius.cloud/soperator/slurm_check_job:1.21.0-jammy-slurm24.11.5
+          image: cr.eu-north1.nebius.cloud/soperator/slurm_check_job:1.21.2-jammy-slurm24.11.5
           env:
             - name: K8S_POD_NAME
               valueFrom:
@@ -35,7 +35,7 @@ resources:
               persistentVolumeClaim:
                 claimName: jail-pvc
         mungeContainer:
-          image: cr.eu-north1.nebius.cloud/soperator/munge:1.21.0-jammy-slurm24.11.5
+          image: cr.eu-north1.nebius.cloud/soperator/munge:1.21.2-jammy-slurm24.11.5
         sbatchScript: |
           #!/bin/bash
 
