@@ -7,7 +7,7 @@ resource "nebius_compute_v1_gpu_cluster" "gpu-cluster" {
 
 
 module "instance-module" {
-  source                  = "../modules/instance"
+  source                  = "../../modules/instance"
   parent_id               = var.parent_id
   subnet_id               = var.subnet_id
   count                   = var.instance_count
@@ -28,4 +28,5 @@ module "instance-module" {
   s3_mount_path           = var.s3_mount_path
   aws_access_key_id       = var.aws_access_key_id
   aws_secret_access_key   = var.aws_secret_access_key
+  install_helical         = var.install_helical
 }

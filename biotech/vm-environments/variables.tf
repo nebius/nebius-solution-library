@@ -8,18 +8,11 @@ variable "subnet_id" {
   description = "ID of the subnet."
 }
 
-variable "boot_disk_size_gb" {
-  type        = number
-  default     = 500
-  description = "size of the boot disk"
-}
-
 variable "instance_count" {
   type        = number
   description = "Number of instances"
   default     = 1
 }
-
 
 variable "instance_name" {
   type        = string
@@ -96,6 +89,13 @@ variable "extra_storage_size_gb" {
   description = "size of the newly created extra storage"
 }
 
+variable "boot_disk_size_gb" {
+  type        = number
+  default     = 500
+  description = "size of the boot disk"
+}
+
+
 variable "public_ip" {
   type        = bool
   default     = true
@@ -136,4 +136,16 @@ variable "fabric" {
   type        = string
   description = "if provided, will create gpu cluster in this fabric for all vms"
   default     = ""
+}
+
+variable "install_bionemo" {
+  type      = bool
+  description = "Deploys a Bionemo Jupyter notebook"
+  default = false
+}
+
+variable "install_helical" {
+  type      = bool
+  description = "Deploys a Helical Jupyter notebook"
+  default = false
 }

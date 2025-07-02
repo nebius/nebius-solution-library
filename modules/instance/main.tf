@@ -26,7 +26,7 @@ resource "nebius_compute_v1_instance" "instance" {
       name              = "eth0"
       subnet_id         = var.subnet_id
       ip_address        = {}
-      public_ip_address = var.public_ip ? (var.create_public_ip_for_all_instances || count.index == 0 ? {} : null) : null
+      public_ip_address = var.public_ip ? {} : null
     }
   ]
 
@@ -60,7 +60,7 @@ resource "nebius_compute_v1_instance" "instance" {
   ] : []
 
 
-  cloud_init_user_data = templatefile("../modules/cloud-init/simple-setup-init.tftpl", {
+  cloud_init_user_data = templatefile("${path.module}/../cloud-init/simple-setup-init.tftpl", {
     users                   = local.users,
     extra_path              = local.extra_path,
     extra_disk_id           = local.extra_disk_id,
@@ -70,6 +70,8 @@ resource "nebius_compute_v1_instance" "instance" {
     aws_secret_access_key   = var.aws_secret_access_key,
     mount_bucket            = var.mount_bucket,
     s3_mount_path           = var.s3_mount_path
+    install_bionemo         = var.install_bionemo
+    install_helical         = var.install_helical
   })
 }
 

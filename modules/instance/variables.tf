@@ -138,3 +138,14 @@ variable "gpu_cluster" {
   description = "gpu cluster id"
   default     = ""
 }
+variable "install_bionemo" {
+  type      = bool
+  description = "Deploys a Bionemo Jupyter notebook"
+  default = false
+}
+
+variable "install_helical" {
+  type      = bool
+  description = "Deploys a Helical Jupyter notebook"
+  default = false
+}
