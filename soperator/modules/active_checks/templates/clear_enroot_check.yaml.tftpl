@@ -1,0 +1,47 @@
+resources:
+  - apiVersion: slurm.nebius.ai/v1alpha1
+    kind: ActiveCheck
+    metadata:
+      name: clear-enroot
+      namespace: ${slurm_cluster_namespace}
+    spec:
+      name: clear-enroot
+      checkType: slurmJob
+      suspend: false
+      reactions:
+        drainSlurmNode: false
+        setCondition: false
+      runAfterCreation: false
+      schedule: 0 0 * * *
+      slurmClusterRefName: ${slurm_cluster_name}
+      slurmJobSpec:
+        eachWorkerJobArray: true
+        jobContainer:
+          image: cr.eu-north1.nebius.cloud/soperator/slurm_check_job:1.21.2-jammy-slurm24.11.5
+          env:
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - mountPath: /mnt/jail
+              name: jail
+          volumes:
+            - name: jail
+              persistentVolumeClaim:
+                claimName: jail-pvc
+        mungeContainer:
+          image: cr.eu-north1.nebius.cloud/soperator/munge:1.21.2-jammy-slurm24.11.5
+        sbatchScript: |
+          #!/bin/bash
+          #SBATCH --deadline="now+12hours"
+          #SBATCH --time=1:00:00
+          #SBATCH --exclusive
+
+          echo "Cleaning up Enroot containers on node: $(hostname)"
+          srun bash -c "enroot list | grep '^pyxis_' | xargs -r -n1 enroot remove --force"
+          echo "Cleanup done."

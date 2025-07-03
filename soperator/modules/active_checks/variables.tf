@@ -30,6 +30,7 @@ variable "checks" {
     create_nebius_user = bool
     nebius_username = string
     all_reduce_perf_nccl_check_enabled = bool
+    clear_enroot_check_enabled = bool
 
     ssh_check_enabled = bool
     install_package_check_enabled = bool
@@ -42,6 +43,7 @@ variable "checks" {
     create_soperatorchecks_user = true
     soperatorchecks_username = "soperatorchecks"
     all_reduce_perf_nccl_check_enabled = true
+    clear_enroot_check_enabled = true
 
     ssh_check_enabled = true
     install_package_check_enabled = false

@@ -179,3 +179,26 @@ resource "helm_release" "all_reduce_perf_nccl_check" {
 
   wait = true
 }
+
+resource "helm_release" "clear_enroot_check" {
+  count = var.checks.clear_enroot_check_enabled ? 1 : 0
+
+  depends_on = [
+    terraform_data.wait_for_checks
+  ]
+
+  name       = "clear-enroot-check"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.slurm_cluster_namespace
+
+  values = [templatefile("${path.module}/templates/clear_enroot_check.yaml.tftpl", {
+    slurm_cluster_namespace = var.slurm_cluster_namespace
+    slurm_cluster_name      = var.slurm_cluster_name
+  })]
+
+  wait = true
+}
