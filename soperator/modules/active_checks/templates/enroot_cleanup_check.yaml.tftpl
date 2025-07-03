@@ -2,10 +2,10 @@ resources:
   - apiVersion: slurm.nebius.ai/v1alpha1
     kind: ActiveCheck
     metadata:
-      name: clear-enroot
+      name: enroot-cleanup
       namespace: ${slurm_cluster_namespace}
     spec:
-      name: clear-enroot
+      name: enroot-cleanup
       checkType: slurmJob
       suspend: false
       reactions:
