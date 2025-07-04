@@ -10,7 +10,7 @@ variable "vpc_subnet_id" {
 
 #---
 
-# K8s cluster 
+# K8s cluster
 variable "k8s_version" {
   description = "Kubernetes version to be used in the cluster. Leave null to use backend default (recommended), or choose 1.31 or above."
   type        = string
@@ -78,6 +78,8 @@ variable "node_group_workers" {
   type = list(object({
     size                    = number
     max_unavailable_percent = number
+    max_surge_percent       = optional(number)
+    drain_timeout           = optional(string)
     resource = object({
       platform = string
       preset   = string

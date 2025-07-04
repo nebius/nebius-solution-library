@@ -146,6 +146,8 @@ module "k8s" {
       {
         size                    = nodeset.nodes_per_nodegroup
         max_unavailable_percent = nodeset.max_unavailable_percent
+        max_surge_percent       = nodeset.max_surge_percent
+        drain_timeout           = nodeset.drain_timeout
         resource                = nodeset.resource
         boot_disk               = nodeset.boot_disk
         gpu_cluster             = nodeset.gpu_cluster
