@@ -58,6 +58,10 @@ resource "nebius_mk8s_v1_node_group" "worker" {
     max_unavailable = {
       percent = var.node_group_workers[count.index].max_unavailable_percent
     }
+    max_surge = {
+      percent = var.node_group_workers[count.index].max_surge_percent
+    }
+    drain_timeout = var.node_group_workers[count.index].drain_timeout
   }
 
   template = {
