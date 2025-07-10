@@ -5,7 +5,6 @@
 # NEBIUS_PROJECT_ID='project-...'
 # NEBIUS_REGION='eu-north1'
 
-
 if [ -z "${NEBIUS_TENANT_ID}" ]; then
   echo "Error: NEBIUS_TENANT_ID is not set"
   return 1
