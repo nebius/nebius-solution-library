@@ -12,6 +12,7 @@ extra_storage_size_gb = 100
 extra_storage_class = "NETWORK_SSD"
 extra_path = "/mnt/test_storage"
 
+# Add users of the cluster here
 users = [
   {
     user_name    = "tux",
@@ -29,4 +30,5 @@ create_public_ip_for_all_instances = false
 shared_filesystem_id = ""
 mount_bucket         = ""
 
-fabric = ""
+# Choose allocated fabric
+fabric = "fabric-6"
