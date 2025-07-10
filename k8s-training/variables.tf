@@ -19,7 +19,11 @@ variable "region" {
   type        = string
 }
 
-# K8s cluster 
+data "nebius_iam_v1_project" "this" {
+  id = var.parent_id
+}
+
+# K8s cluster
 variable "k8s_version" {
   description = "Kubernetes version to be used in the cluster. Leave null to use backend default (recommended), or choose 1.31 or above."
   type        = string
@@ -39,22 +43,23 @@ variable "enable_filestore" {
   default     = false
 }
 
-variable "filestore_disk_type" {
-  description = "Filestore disk size in bytes."
-  type        = string
-  default     = "NETWORK_SSD"
-}
+variable "filestore_jail" {
+  description = "Shared filesystem to be used on controller, worker, and login nodes."
+  type = object({
+    existing = optional(object({
+      id = string
+    }))
+    spec = optional(object({
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    }))
+  })
+  nullable = false
 
-variable "filestore_disk_size" {
-  description = "Filestore disk size in bytes."
-  type        = number
-  default     = 1073741824
-}
-
-variable "filestore_block_size" {
-  description = "Filestore block size in bytes."
-  type        = number
-  default     = 4096
+  validation {
+    condition     = (var.filestore_jail.existing != null && var.filestore_jail.spec == null) || (var.filestore_jail.existing == null && var.filestore_jail.spec != null)
+    error_message = "One of `existing` or `spec` must be provided."
+  }
 }
 
 # K8s access

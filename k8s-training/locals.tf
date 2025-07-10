@@ -46,6 +46,8 @@ locals {
     "gpu-h100-sxm" = ["all-disabled", "all-enabled", "all-balanced", "all-1g.10gb", "all-1g.10gb.me", "all-1g.20gb", "all-2g.20gb", "all-3g.40gb", "all-4g.40gb", "all-7g.80gb"]
     "gpu-h200-sxm" = ["all-disabled", "all-enabled", "all-balanced", "all-1g.18gb", "all-1g.18gb.me", "all-1g.35gb", "all-2g.35gb", "all-3g.71gb", "all-4g.71gb", "all-7g.141gb"]
   }
+  k8s_cluster_name   = join("-", ["k8s-training", local.release-suffix])
+  filestore_jail_id = var.filestore_jail.existing != null && var.filestore_jail.existing.id != null ? var.filestore_jail.existing.id : module.filestore[0].jail_id
 }
 
 resource "random_string" "random" {

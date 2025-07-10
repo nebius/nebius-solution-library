@@ -4,6 +4,13 @@
 # NEBIUS_TENANT_ID='tenant-...'
 # NEBIUS_PROJECT_ID='project-...'
 # NEBIUS_REGION='eu-north1'
+NEBIUS_TENANT_ID='tenant-e00f3wdfzwfjgbcyfv' # ='tenant-...'
+#NEBIUS_PROJECT_ID='project-e00n5vkbpr00b68tnqy4ne' # ='akonovalov'
+NEBIUS_PROJECT_ID='project-u00q1vtepr00ffy4gbz48y' # ='akonovalov-kcdc'
+
+#NEBIUS_REGION='eu-north1'
+NEBIUS_REGION='us-central1'
+
 
 if [ -z "${NEBIUS_TENANT_ID}" ]; then
   echo "Error: NEBIUS_TENANT_ID is not set"
@@ -89,7 +96,8 @@ fi
 DATE_FORMAT='+%Y-%m-%dT%H:%M:%SZ'
 if [[ "$(uname)" == "Darwin" ]]; then
   # macOS
-  EXPIRATION_DATE=$(date -v +1d "${DATE_FORMAT}")
+  #AK EXPIRATION_DATE=$(date -v +1d "${DATE_FORMAT}")
+  EXPIRATION_DATE=$(gdate -u -d "+1 day" "${DATE_FORMAT}")
 else
   # Linux (assumes GNU date)
   EXPIRATION_DATE=$(date -d '+1 day' "${DATE_FORMAT}")

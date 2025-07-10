@@ -1,6 +1,33 @@
+
+module "filestore" {
+  count  = var.filestore_jail.existing == null ? 1 : 0
+  source = "../modules/filestore"
+
+  depends_on = []
+
+  iam_project_id   = data.nebius_iam_v1_project.this.id
+  k8s_cluster_name = local.k8s_cluster_name
+
+  jail = {
+    spec = var.filestore_jail.spec != null ? {
+      disk_type            = "NETWORK_SSD"
+      size_gibibytes       = var.filestore_jail.spec.size_gibibytes
+      block_size_kibibytes = var.filestore_jail.spec.block_size_kibibytes
+    } : null
+    existing = var.filestore_jail.existing != null ? {
+      id = var.filestore_jail.existing.id
+    } : null
+  }
+
+  providers = {
+    nebius = nebius
+    dunits = dunits
+  }
+}
+
 resource "nebius_mk8s_v1_cluster" "k8s-cluster" {
   parent_id = var.parent_id
-  name      = join("-", ["k8s-training", local.release-suffix])
+  name      = local.k8s_cluster_name
   control_plane = {
     endpoints = {
       public_endpoint = {}
@@ -59,7 +86,9 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       {
         attach_mode         = "READ_WRITE"
         mount_tag           = "data"
-        existing_filesystem = nebius_compute_v1_filesystem.shared-filesystem[0]
+        existing_filesystem = {
+            id = local.filestore_jail_id
+        }
       }
     ] : null
     underlay_required = false
@@ -108,7 +137,9 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
       {
         attach_mode         = "READ_WRITE"
         mount_tag           = "data"
-        existing_filesystem = nebius_compute_v1_filesystem.shared-filesystem[0]
+        existing_filesystem = {
+            id = local.filestore_jail_id
+        }
       }
     ] : null
     gpu_cluster  = nebius_compute_v1_gpu_cluster.fabric_2
