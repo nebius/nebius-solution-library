@@ -14,9 +14,9 @@ This Terraform configuration script provisions cloud instances with specific har
 
 - Install [Nebius CLI](https://docs.nebius.com/cli/install/).
 - Add environment variables for Terraform authentication in Nebuis Cloud.
+- Setup AWS CLI
 
-
-Run `source ./env.sh` if you run bash, or `source ./env.zsh` if you prefer zsh.
+Run `source ./envrc.sh` if you run bash, or `source ./envrc.zsh` if you prefer zsh.
 
 These scripts will set all necessary environment variables, as well as create a bucket where to store the terraform state file. 
 It will also attempt to install all necessary dependencies and let you select the tenant and project where you want to deploy your solution. 
