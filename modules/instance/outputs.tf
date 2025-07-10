@@ -3,6 +3,12 @@ output "internal_ip" {
   value       = trimsuffix(nebius_compute_v1_instance.instance.status.network_interfaces[0].ip_address.address, "/32")
 }
 output "public_ip" {
-  description = "The public IP address"
-  value       = trimsuffix(nebius_compute_v1_instance.instance.status.network_interfaces[0].public_ip_address.address, "/32")
+  description = "The public IP address (null if not assigned)"
+  value       = try(
+    trimsuffix(
+      nebius_compute_v1_instance.instance.status.network_interfaces[0].public_ip_address.address,
+      "/32"
+    ),
+    null
+  )
 }

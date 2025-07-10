@@ -138,3 +138,9 @@ variable "gpu_cluster" {
   description = "gpu cluster id"
   default     = ""
 }
+
+variable "instance_index" {
+  type        = number
+  description = "Index of this module instance for public IP logic"
+  default     = 0
+}
