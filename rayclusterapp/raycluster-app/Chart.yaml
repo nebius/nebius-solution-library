@@ -1,0 +1,9 @@
+apiVersion: v2
+name: raycluster-app
+description: Deploy a RayCluster and a Job driver in one Helm install
+type: application
+version: 0.1.0
+dependencies:
+- name: ray-cluster
+  version: 1.4.1
+  repository: https://ray-project.github.io/kuberay-helm/

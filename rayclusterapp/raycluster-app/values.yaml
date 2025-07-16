@@ -1,0 +1,58 @@
+ray-cluster:
+  image:
+    repository: rezabah/rayclusterapp
+    tag: "0.1.0"
+    pullPolicy: Always
+  nameOverride: "rayapp1"
+  head:
+    # you can find out the Ray version by running this command:
+    # docker run --rm rezabah/rayclusterapp:0.1.0 python -c "import ray; print(ray.__version__)"
+    rayVersion: 3.0.0.dev0
+    image:
+      repository: rezabah/rayclusterapp
+      tag: "0.1.0"
+      pullPolicy: Always
+    resources:
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+        nvidia.com/gpu: 0
+    rayStartParams:
+      dashboard-host: "0.0.0.0"
+      metrics-export-port: "9090"
+
+  worker:
+    groupName: workergroup
+    replicas: 2
+    minReplicas: 1
+    maxReplicas: 3
+    resources:
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+        nvidia.com/gpu: 0
+    image:
+      repository: rezabah/rayclusterapp
+      tag: "0.1.0"
+      pullPolicy: Always
+    rayStartParams: {}
+
+driverJob:
+  enabled: true
+  image: rezabah/rayclusterapp:0.1.0
+  pullPolicy: Always
+  # Resource limits for the driver job container.
+  resources:
+    limits:
+      cpu: "1"
+      memory: "1Gi" 
+  # The script that will be submitted to the Ray cluster.
+  # This script should be present in the container image at /app/<script>.
+  # You can change the script name as needed.    
+  script: /app/train.py
+  # You can set environment variables for your script here. These Env variables will be passed to your script.
+  # These Env variables are examples, you can add more as needed or comented them out if not needed.
+  env:
+    - name: USE_GPU
+      value: "false"  
+     
