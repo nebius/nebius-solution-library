@@ -1,51 +1,59 @@
 ray-cluster:
   image:
-    repository: rezabah/rayclusterapp
-    tag: "0.1.0"
-    pullPolicy: Always
+    repository: rezabah/rayclusterapp-py39-cu128
+    tag: "0.1.1"
+    pullPolicy: IfNotPresent # By default is IfNotPresent. Always will make it pull the image every time, which is not recommended for production. 
   nameOverride: "rayapp1"
   head:
     # you can find out the Ray version by running this command:
-    # docker run --rm rezabah/rayclusterapp:0.1.0 python -c "import ray; print(ray.__version__)"
+    # docker run --rm rayproject/ray:nightly-py39-cu128 python -c "import ray; print(ray.__version__)"
     rayVersion: 3.0.0.dev0
     image:
-      repository: rezabah/rayclusterapp
-      tag: "0.1.0"
-      pullPolicy: Always
+      repository: rezabah/rayclusterapp-py39-cu128
+      tag: "0.1.1"
+      pullPolicy: IfNotPresent
     resources:
+      requests:
+        cpu: "4"          
+        memory: "8Gi"    
       limits:
-        cpu: "2"
-        memory: "2Gi"
-        nvidia.com/gpu: 0
+        cpu: "4"          
+        memory: "8Gi"  
     rayStartParams:
       dashboard-host: "0.0.0.0"
       metrics-export-port: "9090"
 
   worker:
     groupName: workergroup
-    replicas: 2
+    replicas: 3
     minReplicas: 1
     maxReplicas: 3
     resources:
+      requests:
+        cpu: "4"
+        memory: "16Gi"
+        nvidia.com/gpu: 1 
       limits:
-        cpu: "2"
-        memory: "2Gi"
-        nvidia.com/gpu: 0
+        cpu: "4"
+        memory: "16Gi"
+        nvidia.com/gpu: 1
     image:
-      repository: rezabah/rayclusterapp
-      tag: "0.1.0"
-      pullPolicy: Always
+      repository: rezabah/rayclusterapp-py39-cu128
+      tag: "0.1.1"
+      pullPolicy: IfNotPresent
     rayStartParams: {}
 
 driverJob:
   enabled: true
-  image: rezabah/rayclusterapp:0.1.0
-  pullPolicy: Always
-  # Resource limits for the driver job container.
+  image: rezabah/rayclusterapp-py39-cu128:0.1.1
+  pullPolicy: IfNotPresent
   resources:
-    limits:
+    requests:
       cpu: "1"
-      memory: "1Gi" 
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
   # The script that will be submitted to the Ray cluster.
   # This script should be present in the container image at /app/<script>.
   # You can change the script name as needed.    
@@ -54,5 +62,5 @@ driverJob:
   # These Env variables are examples, you can add more as needed or comented them out if not needed.
   env:
     - name: USE_GPU
-      value: "false"  
+      value: "true"  
      

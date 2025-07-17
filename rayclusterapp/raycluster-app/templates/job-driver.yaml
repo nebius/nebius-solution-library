@@ -12,6 +12,9 @@ spec:
           image: {{ .Values.driverJob.image }}
           imagePullPolicy: {{ .Values.driverJob.pullPolicy }}
           resources:
+            requests:
+              cpu: {{ .Values.driverJob.resources.requests.cpu | quote }}
+              memory: {{ .Values.driverJob.resources.requests.memory | quote }}          
             limits:
               cpu: {{ .Values.driverJob.resources.limits.cpu | quote }}
               memory: {{ .Values.driverJob.resources.limits.memory | quote }}
