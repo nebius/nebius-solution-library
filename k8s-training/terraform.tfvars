@@ -39,3 +39,4 @@ filestore_block_size = 4096                             # Set Filestore block si
 enable_kuberay           = false # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
 kuberay_min_gpu_replicas = 1
 kuberay_max_gpu_replicas = 2
+
