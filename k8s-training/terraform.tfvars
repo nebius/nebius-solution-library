@@ -11,9 +11,11 @@ gpu_nodes_count_per_group  = 2                     # Number of GPU nodes per gro
 gpu_node_groups            = 1                     # In case you need more then 100 nodes in cluster you have to put multiple node groups
 cpu_nodes_platform         = "cpu-d3"              # CPU nodes platform
 cpu_nodes_preset           = "4vcpu-16gb"          # CPU nodes preset
-gpu_nodes_platform         = "gpu-h200-sxm"        # GPU nodes platform
+gpu_nodes_platform         = "gpu-h100-sxm"        # GPU nodes platform
 gpu_nodes_preset           = "8gpu-128vcpu-1600gb" # GPU nodes preset
-infiniband_fabric          = ""                    # Infiniband fabric name.
+infiniband_fabric          = "fabric-2"            # Infiniband fabric name
+cpu_nodes_preemptible      = true                  # Use preemptible VMs for CPU nodes
+gpu_nodes_preemptible      = true                  # Use preemptible VMs for GPU nodes
 gpu_nodes_driverfull_image = true
 enable_k8s_node_group_sa   = true
 enable_egress_gateway      = false
@@ -40,3 +42,6 @@ filestore_block_size = 4096                             # Set Filestore block si
 enable_kuberay           = false # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
 kuberay_min_gpu_replicas = 1
 kuberay_max_gpu_replicas = 2
+
+# NPD nebius-gpu-health-checker helm install
+gpu_health_cheker = true

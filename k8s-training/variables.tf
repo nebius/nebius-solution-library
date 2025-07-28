@@ -250,3 +250,21 @@ variable "mig_strategy" {
   type        = string
   default     = null
 }
+
+variable "cpu_nodes_preemptible" {
+  description = "Use preemptible VMs for CPU nodes"
+  type        = bool
+  default     = false
+}
+
+variable "gpu_nodes_preemptible" {
+  description = "Use preemptible VMs for GPU nodes"
+  type        = bool
+  default     = false
+}
+
+variable "gpu_health_cheker" {
+  description = "Use preemptible VMs for GPU nodes"
+  type        = bool
+  default     = true
+}

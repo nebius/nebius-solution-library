@@ -60,3 +60,21 @@ module "nccl-test" {
   source          = "../modules/nccl-test"
   number_of_hosts = nebius_mk8s_v1_node_group.gpu[0].fixed_node_count
 }
+
+# Nebius GPU Health Checker
+resource "helm_release" "nebius_gpu_health_checker" {
+  count = var.gpu_health_cheker ? 1 : 0
+
+  depends_on = [
+    nebius_mk8s_v1_node_group.gpu,
+  ]
+
+  name      = "nebius-gpu-health-checker"
+  chart     = "./npd-helm/nebius-npd-0.2.0.tgz"
+  namespace = "default"
+
+  set {
+    name  = "hardware.profile"
+    value = local.platform_preset_to_hardware_profile[local.hardware_profile_key]
+  }
+}
