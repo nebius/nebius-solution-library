@@ -2,9 +2,7 @@ import ray
 import os
 import time
 
-# Make sure to use the RAY_HEAD_SERVICE env variable which is already set by the driver job pod.
-address = os.environ["RAY_HEAD_SERVICE"]
-ray.init(address=f"ray://{address}")
+ray.init()
 
 USE_GPU = os.getenv("USE_GPU", "false").lower() == "true"
 

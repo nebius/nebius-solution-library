@@ -1,5 +1,10 @@
 FROM rayproject/ray:nightly-py39-cu128
 
+# Install required packages
+RUN sudo apt update && \
+    sudo apt install -y kmod infiniband-diags ibverbs-utils libibverbs-dev perftest net-tools && \
+    sudo rm -rf /var/lib/apt/lists/*
+
 # Add your training script
 COPY train.py /app/train.py
 
