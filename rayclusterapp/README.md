@@ -1,8 +1,9 @@
-# Ray Cluster Job Helm Chart
+# Ray Job Helm Chart
 it's a helm chart to submit a Ray job to a Ray cluster
 
 ## Instructions to install Kuberay operator and a Ray cluster
 ### Make sure to set the raycluster-values.yaml file based on your settings
+### Rayjob also has the capability to create a Ray cluster with the job submission at the same time
 ```bash
 helm repo add kuberay https://ray-project.github.io/kuberay-helm/
 helm repo update
@@ -16,16 +17,12 @@ helm install raycluster1 kuberay/ray-cluster -f raycluster-values.yaml --namespa
 docker build -t rezabah/rayclusterapp-py39-cu128:0.1.1 .
 docker push rezabah/rayclusterapp-py39-cu128:0.1.1
 ```
-### Build command that should be used On MAC Laptop with Arm cpu:
+### Build command for MAC Laptop with Arm cpu:
 ```bash
-docker buildx build \
-  --platform linux/amd64 \
-  -t rezabah/rayclusterapp-py39-cu128:0.1.1 \
-  --push \
-  .
+docker buildx build --platform linux/amd64 -t rezabah/rayclusterapp-py39-cu128:0.1.1 --push .
 ```
 
-## Example of submitting a Ray job to the Ray Cluster
+## Example of submitting a Ray job to the Ray Cluster using the helm chart
 ### Make sure to set the values.yaml file in the helm chart based on your settings
 ```bash
 cd ray-job
