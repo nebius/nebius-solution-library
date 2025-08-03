@@ -118,8 +118,8 @@ get_project_id_from_sky_config() {
     exit 1
   fi
   
-  # Extract the first project_id from the nebius section
-  PROJECT_ID=$(yq e '.nebius.[] | select(.project_id != null) | .project_id' "$SKY_CONFIG_PATH" | head -n 1)
+  # Extract the first project_id from the nebius.region_configs section
+  PROJECT_ID=$(yq e '.nebius.region_configs.[] | select(.project_id != null) | .project_id' "$SKY_CONFIG_PATH" | head -n 1)
   
   if [ -z "$PROJECT_ID" ]; then
     echo "Error: No project_id found in $SKY_CONFIG_PATH"
@@ -185,7 +185,7 @@ if [[ "$SETUP_STORAGE" =~ ^[Yy]$ ]]; then
   echo "   Getting available regions from Sky config..."
   SKY_CONFIG_PATH="$HOME/.sky/config.yaml"
   # Only extract valid region names (skip empty/dash entries)
-  REGIONS=($(yq e '.nebius | keys | .[] | select(. != "-" and . != null and . != "")' "$SKY_CONFIG_PATH"))
+  REGIONS=($(yq e '.nebius.region_configs | keys | .[] | select(. != "-" and . != null and . != "")' "$SKY_CONFIG_PATH"))
   
   # Configure AWS CLI profile for each region with unique access keys
   echo "   Configuring AWS CLI profiles for each region in Sky config..."
