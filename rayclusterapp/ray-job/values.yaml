@@ -4,6 +4,7 @@
 rayClusterName: raycluster1 # if rayClusterCreate is true, this will be ignored.
 rayClusterCreate: true # if true, it will create a RayCluster with the specified head and worker specs and a random cluster name.
 shutdownAfterJobFinishes: false # if true, the Ray cluster will be deleted after the job finishes.
+
 # This script should be present in the container image at /app/<script>.
 # You can change the script name as needed.    
 entrypoint: "python /app/train.py"
@@ -69,5 +70,9 @@ worker:
       memory: "16Gi"
       nvidia.com/gpu: 1
   rayStartParams: {}
-
-
+# Kueue configuration for the RayJob
+# Be aware when you enable it, then after the job finishes, the created Ray cluster must be deleted.
+kueue:
+  enabled: true
+  localQueueName: user-queue  # Referenced by the RayJob
+  clusterQueueName: default  # Referenced by the LocalQueue

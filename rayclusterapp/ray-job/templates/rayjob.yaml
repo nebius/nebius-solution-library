@@ -4,15 +4,18 @@ metadata:
   name: {{ include "rayjob.fullname" . }}
   labels:
     app: {{ include "rayjob.name" . }}
+    {{- if .Values.kueue.enabled }}
+    kueue.x-k8s.io/queue-name: {{ .Values.kueue.localQueueName | quote }}
+    {{- end }}  
 spec:
   entrypoint: {{ .Values.entrypoint | quote }}
   runtimeEnvYAML: |
     {{- toYaml .Values.runtimeenv | nindent 4 }}
-
-  {{- if .Values.shutdownAfterJobFinishes }}
+  {{- if .Values.kueue.enabled }}
   shutdownAfterJobFinishes: true
+  {{- else }}
+  shutdownAfterJobFinishes: {{ .Values.shutdownAfterJobFinishes | default false }}
   {{- end }}
-
 {{- if .Values.rayClusterCreate }}
   rayClusterSpec:
     rayVersion: {{ .Values.head.rayVersion | default "2.21.0" }}

@@ -10,7 +10,7 @@ helm repo update
 helm install kuberay-operator kuberay/kuberay-operator --namespace kuberay-operator --create-namespace
 helm install raycluster1 kuberay/ray-cluster -f raycluster-values.yaml --namespace raycluster1 --create-namespace
 ```
-
+----
 ## Build a Docker image for the Head, Worker and Driver job pods
 ### It's prefered to build one image for all 3 roles; here is an example:
 ```bash
@@ -21,7 +21,7 @@ docker push rezabah/rayclusterapp-py39-cu128:0.1.1
 ```bash
 docker buildx build --platform linux/amd64 -t rezabah/rayclusterapp-py39-cu128:0.1.1 --push .
 ```
-
+----
 ## Example of submitting a Ray job to the Ray Cluster using the helm chart
 ### Make sure to set the values.yaml file in the helm chart based on your settings
 ```bash
@@ -32,3 +32,16 @@ helm install rayjob1 . -f values.yaml --namespace raycluster1
 ```bash
 helm uninstall rayjob1 -n raycluster1
 ```
+----
+# Install Kueue for Gang Scheduling
+## Install Kueue using Helm chart on your cluster
+```bash
+helm install kueue oci://registry.k8s.io/kueue/charts/kueue \
+  --version=0.13.0 \
+  --namespace  kueue-system \
+  --create-namespace \
+  --wait --timeout 300s
+```
+### Note: The Kueue resources will be installed using Ray job helm chart and will bootstrap your cluster as well
+
+
