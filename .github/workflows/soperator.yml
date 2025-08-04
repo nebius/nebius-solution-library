@@ -46,6 +46,7 @@ jobs:
         with:
           tag_name: soperator-${{ env.TAG_VERSION }}
           name: Soperator Terraform recipe ${{ env.TAG_VERSION }}
+          target_commitish: ${{ github.sha }}
           draft: false
           prerelease: false
           files: |
