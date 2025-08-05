@@ -5,11 +5,13 @@ metadata:
   name: {{ .name }}
 spec:
   cohort: {{ .cohort }}
-  namespaceSelector: {{ toYaml .namespaceSelector | nindent 2 }}
+  namespaceSelector: 
+{{ toYaml .namespaceSelector | indent 4 }}
   resourceGroups:
     {{- range .resourceGroups }}
     - coveredResources:
-        {{- range .coveredResources }}- {{ . }}
+        {{- range .coveredResources }}
+        - {{ . }}
         {{- end }}
       flavors:
         {{- range .flavors }}
@@ -23,3 +25,4 @@ spec:
     {{- end }}
 ---
 {{- end }}
+

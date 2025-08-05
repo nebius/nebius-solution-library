@@ -1,8 +1,8 @@
 resourceFlavors:
-  - name: cpu
+  - name: cpu-flavor
     nodeLabels:
       node.kubernetes.io/instance-type: cpu-d3
-  - name: gpu
+  - name: gpu-flavor
     nodeLabels:
       nebius.com/gpu: "true"
   - name: default-flavor
@@ -54,4 +54,6 @@ clusterQueues:
               - name: cpu
                 nominalQuota: "16000"
               - name: memory
-                nominalQuota: "64Gi"                
+                nominalQuota: "64Gi"  
+              - name: nvidia.com/gpu
+                nominalQuota: "0"                              

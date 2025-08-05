@@ -1,8 +1,7 @@
 # Ray Job values for Ray job submission; example: 
 # https://github.com/ray-project/kuberay/blob/master/ray-operator/config/samples/ray-job.sample.yaml
 # rayClusterName must match the label of your target RayCluster that is already exist; From the Head pod ray.io/cluster label key.
-rayClusterName: raycluster1 # if rayClusterCreate is true, this will be ignored.
-rayClusterCreate: true # if true, it will create a RayCluster with the specified head and worker specs and a random cluster name.
+rayClusterName: "raycluster1-kuberay" # if kueue is enabled, this will be ignored since a RayCluster will be created by the RayJob.
 shutdownAfterJobFinishes: false # if true, the Ray cluster will be deleted after the job finishes.
 
 # This script should be present in the container image at /app/<script>.
@@ -21,7 +20,7 @@ head:
   # you can find out the Ray version by running this command for your image, as an example:
   # docker run --rm rayproject/ray:nightly-py39-cu128 python -c "import ray; print(ray.__version__)"
   rayVersion: 3.0.0.dev0
-  enableInTreeAutoscaling: true
+  enableInTreeAutoscaling: false
   securityContext:
     privileged: true
   affinity:
@@ -73,6 +72,6 @@ worker:
 # Kueue configuration for the RayJob
 # Be aware when you enable it, then after the job finishes, the created Ray cluster must be deleted.
 kueue:
-  enabled: true
+  enabled: false # true means a new Ray Cluster will be created and it will be managed by Kueue. if it's false, then the RayJob will use an existing RayCluster.
   localQueueName: user-queue  # Referenced by the RayJob
   clusterQueueName: default  # Referenced by the LocalQueue

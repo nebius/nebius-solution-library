@@ -1,13 +1,13 @@
 image:
-  repository: rezabah/rayclusterapp-py39-cu128
-  tag: "0.1.2"
-  pullPolicy: IfNotPresent 
+    repository: rezabah/rayclusterapp-py39-cu128
+    tag: "0.1.2"
+    pullPolicy: IfNotPresent 
 
 head:
   # you can find out the Ray version by running this command for your image, as an example:
   # docker run --rm rayproject/ray:nightly-py39-cu128 python -c "import ray; print(ray.__version__)"
   rayVersion: 3.0.0.dev0
-  enableInTreeAutoscaling: true
+  enableInTreeAutoscaling: true # Enable Ray autoscaling
   securityContext:
     privileged: true
   affinity:

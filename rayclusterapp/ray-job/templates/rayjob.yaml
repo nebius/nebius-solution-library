@@ -16,7 +16,7 @@ spec:
   {{- else }}
   shutdownAfterJobFinishes: {{ .Values.shutdownAfterJobFinishes | default false }}
   {{- end }}
-{{- if .Values.rayClusterCreate }}
+{{- if .Values.kueue.enabled }}
   rayClusterSpec:
     rayVersion: {{ .Values.head.rayVersion | default "2.21.0" }}
     headGroupSpec:
