@@ -1,6 +1,6 @@
 # Ray Job Helm Chart with Kueue Support
 Two Helm charts are provided:
-- kueue-bootstrap : It creates all required K8s cluster wide kueue resources to support gang scheduling for a Rayjob: 
+- kueue-bootstrap : It creates all required K8s cluster wide kueue resources to support gang scheduling for a Rayjob:
     https://docs.ray.io/en/latest/cluster/kubernetes/examples/rayjob-kueue-gang-scheduling.html
 
 - ray-job : This helm chart is used to submit a Rayjob to a Ray cluster:
