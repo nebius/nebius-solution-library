@@ -41,8 +41,8 @@ resource "terraform_data" "wait_for_create_soperatorchecks_user" {
 resource "helm_release" "create_nebius_user" {
   count = var.checks.create_nebius_user ? 1 : 0
 
-  depends_on = [ 
-    terraform_data.wait_for_create_soperatorchecks_user 
+  depends_on = [
+    terraform_data.wait_for_create_soperatorchecks_user
   ]
 
   name       = "create-nebius-user-check"
@@ -65,8 +65,8 @@ resource "helm_release" "create_nebius_user" {
 resource "helm_release" "install_package_check" {
   count = var.checks.install_package_check_enabled ? 1 : 0
 
-  depends_on = [ 
-    terraform_data.wait_for_create_soperatorchecks_user 
+  depends_on = [
+    terraform_data.wait_for_create_soperatorchecks_user
   ]
 
   name       = "install-package-check"
@@ -88,8 +88,8 @@ resource "helm_release" "install_package_check" {
 resource "helm_release" "ssh_check" {
   count = var.checks.ssh_check_enabled ? 1 : 0
 
-  depends_on = [ 
-    terraform_data.wait_for_create_soperatorchecks_user 
+  depends_on = [
+    terraform_data.wait_for_create_soperatorchecks_user
   ]
 
   name       = "ssh-check"

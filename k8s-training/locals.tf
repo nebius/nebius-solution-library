@@ -52,19 +52,19 @@ locals {
     # H100 configurations
     "gpu-h100-sxm-1gpu-16vcpu-200gb"   = "1xH100"
     "gpu-h100-sxm-8gpu-128vcpu-1600gb" = "8xH100"
-    
+
     # H200 configurations
     "gpu-h200-sxm-1gpu-16vcpu-200gb"   = "1xH200"
     "gpu-h200-sxm-8gpu-128vcpu-1600gb" = "8xH200"
-    
+
     # B200 configurations
     "gpu-b200-sxm-1gpu-20vcpu-224gb"   = "1xB200"
     "gpu-b200-sxm-8gpu-160vcpu-1792gb" = "8xB200"
-    
+
     # L40 configurations
     # TODO add support for L400
   }
-  
+
   # Create the key for hardware profile lookup
   hardware_profile_key = "${local.gpu_nodes_platform}-${local.gpu_nodes_preset}"
 }

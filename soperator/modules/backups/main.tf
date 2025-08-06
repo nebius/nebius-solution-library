@@ -86,7 +86,7 @@ resource "helm_release" "backups_schedule" {
   version    = local.helm.version.raw
 
   # create_namespace = true
-  namespace        = var.flux_namespace
+  namespace = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/k8up_schedule.yaml.tftpl", {
     s3_endpoint       = var.bucket_endpoint
