@@ -9,8 +9,8 @@ resources:
       checkType: slurmJob
       suspend: false
       reactions:
-        drainSlurmNode: false
-        setCondition: false
+        addReservation:
+          prefix: soperatorchecks.suspicious
       runAfterCreation: false
       schedule: 0 8 * * * # Once a day at 8:00 UTC
       slurmClusterRefName: ${slurm_cluster_name}

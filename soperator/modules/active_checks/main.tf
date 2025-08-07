@@ -226,3 +226,90 @@ resource "helm_release" "enroot_cleanup_check" {
 
   wait = true
 }
+
+resource "helm_release" "extensive_check" {
+  count = var.checks.extensive_check ? 1 : 0
+
+  depends_on = [
+    terraform_data.wait_for_checks
+  ]
+
+  name       = "extensive-check"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.slurm_cluster_namespace
+
+  values = [templatefile("${path.module}/templates/extensive_check.yaml.tftpl", {
+    slurm_cluster_namespace = var.slurm_cluster_namespace
+    slurm_cluster_name      = var.slurm_cluster_name
+  })]
+
+  wait = true
+}
+
+resource "helm_release" "run_extensive_check_on_reservations" {
+  count = var.checks.run_extensive_check_on_reservations ? 1 : 0
+
+  depends_on = [
+    terraform_data.wait_for_checks
+  ]
+
+  name       = "run-extensive-check-on-reservations"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+
+  create_namespace = true
+  namespace        = var.slurm_cluster_namespace
+
+  values = [templatefile("${path.module}/templates/run_extensive_check_on_reservations.yaml.tftpl", {
+    slurm_cluster_namespace = var.slurm_cluster_namespace
+    slurm_cluster_name      = var.slurm_cluster_name
+  })]
+
+  wait = true
+}
+
+resource "kubernetes_service_account" "run_extensive_check_on_reservations" {
+  metadata {
+    name      = "run-extensive-check-on-reservations"
+    namespace = var.slurm_cluster_namespace
+  }
+}
+
+resource "kubernetes_role_binding" "run_extensive_check_on_reservations" {
+  metadata {
+    name      = "run-extensive-check-on-reservations"
+    namespace = var.slurm_cluster_namespace
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = "run-extensive-check-on-reservations"
+    namespace = var.slurm_cluster_namespace
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = "run-extensive-check-on-reservations"
+  }
+}
+resource "kubernetes_role" "run_extensive_check_on_reservations" {
+  metadata {
+    name = "run-extensive-check-on-reservations"
+    namespace = var.slurm_cluster_namespace
+  }
+
+  rule {
+    api_groups     = ["batch"]
+    resources      = ["cronjobs"]
+    verbs          = ["get", "list"]
+  }
+  rule {
+    api_groups = ["batch"]
+    resources  = ["jobs"]
+    verbs      = ["create", "get", "delete"]
+  }
+}

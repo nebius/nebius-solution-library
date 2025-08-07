@@ -1,0 +1,75 @@
+resources:
+  - apiVersion: slurm.nebius.ai/v1alpha1
+    kind: ActiveCheck
+    metadata:
+      name: extensive-check
+      namespace: ${slurm_cluster_namespace}
+    spec:
+      name: extensive-check
+      checkType: slurmJob
+      # extensive-check is suspended and its schedule is not used.
+      # It is being scheduled using `cronjob/run-extensive-check-on-reservations`
+      suspend: true
+      runAfterCreation: false
+      schedule: "0 0 1 1 *"
+      # *JobsHistoryLimit this sould equal the number of worker nodes in the cluster
+      successfulJobsHistoryLimit: 3000
+      failedJobsHistoryLimit: 3000
+      successReactions:
+        removeReservation:
+          prefix: soperatorchecks.suspicious
+      # No failure reactions for now until we implement a meaningful extensive check
+      # failureReactions:
+      #   setHardwareIssuesSuspected: true
+      slurmClusterRefName: ${slurm_cluster_name}
+      slurmJobSpec:
+        eachWorkerJobArray: false
+        jobContainer:
+          # TODO replace with stable image
+          image: cr.eu-north1.nebius.cloud/soperator-unstable/slurm_check_job:1.21.10-noble-slurm25.05.2-6b89ed16
+          env:
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - mountPath: /mnt/jail
+              name: jail
+          volumes:
+            - name: jail
+              persistentVolumeClaim:
+                claimName: jail-pvc
+        mungeContainer:
+          image: cr.eu-north1.nebius.cloud/soperator-unstable/munge:1.21.10-noble-slurm25.05.2-6b89ed16
+        sbatchScript: |
+          #!/bin/bash
+          #SBATCH --deadline="now+6hours"
+          #SBATCH --time=10:00
+          #SBATCH --mem=32G
+          #SBATCH --gpus-per-node=1
+          #SBATCH --cpus-per-task=2
+
+          echo "Running extensive health check..."
+
+          sleep 30
+
+          # Always fail in order not to remove the reservation until we implement a real extensive check
+          HEALTH_CHECK_PASSED=$((0))
+
+          # For testing: use this line to randomly fail or succeed
+          # HEALTH_CHECK_PASSED=$(($RANDOM % 2))
+
+          echo "HEALTH_CHECK_PASSED=$HEALTH_CHECK_PASSED"
+
+          if [[ $HEALTH_CHECK_PASSED -eq 1 ]]; then
+            echo "Health-checker passed or returned non-ERROR status."
+            exit 0
+          else
+            echo "Health-checker reported status=ERROR and exited with non-zero status."
+            exit 1
+          fi
+
