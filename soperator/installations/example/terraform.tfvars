@@ -291,7 +291,7 @@ slurm_nodeset_workers = [{
 }]
 
 # Driverfull mode is used to run Slurm jobs with GPU drivers installed on the worker nodes.
-use_preinstalled_gpu_drivers = false
+use_preinstalled_gpu_drivers = true
 
 # Configuration of Slurm Login node set.
 # ---
