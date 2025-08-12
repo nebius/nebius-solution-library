@@ -1,6 +1,4 @@
 resource "nebius_mk8s_v1_node_group" "accounting" {
-  count = var.node_group_accounting.enabled ? 1 : 0
-
   depends_on = [
     nebius_mk8s_v1_cluster.this,
     terraform_data.check_resource_preset_sufficiency,
@@ -32,14 +30,14 @@ resource "nebius_mk8s_v1_node_group" "accounting" {
     }]
 
     resources = {
-      platform = var.node_group_accounting.spec.resource.platform
-      preset   = var.node_group_accounting.spec.resource.preset
+      platform = var.node_group_accounting.resource.platform
+      preset   = var.node_group_accounting.resource.preset
     }
 
     boot_disk = {
-      type             = var.node_group_accounting.spec.boot_disk.type
-      size_bytes       = provider::units::from_gib(var.node_group_accounting.spec.boot_disk.size_gibibytes)
-      block_size_bytes = provider::units::from_kib(var.node_group_accounting.spec.boot_disk.block_size_kibibytes)
+      type             = var.node_group_accounting.boot_disk.type
+      size_bytes       = provider::units::from_gib(var.node_group_accounting.boot_disk.size_gibibytes)
+      block_size_bytes = provider::units::from_kib(var.node_group_accounting.boot_disk.block_size_kibibytes)
     }
 
     filesystems = concat(

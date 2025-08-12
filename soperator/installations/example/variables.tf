@@ -636,7 +636,7 @@ variable "slurm_nodeset_workers" {
   validation {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
-      (worker.boot_disk >= 512)
+      (worker.boot_disk.size_gibibytes >= 512)
     ])
     error_message = "Boot disks for worker nodes must be at least 512 GiB."
   }

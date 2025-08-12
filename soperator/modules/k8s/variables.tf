@@ -116,17 +116,15 @@ variable "node_group_login" {
 variable "node_group_accounting" {
   description = "System node group specification."
   type = object({
-    spec = optional(object({
-      resource = object({
-        platform = string
-        preset   = string
-      })
-      boot_disk = object({
-        type                 = string
-        size_gibibytes       = number
-        block_size_kibibytes = number
-      })
-    }))
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
   })
 }
 

@@ -15,6 +15,11 @@ locals {
         key       = module.labels.name_nodeset_login
         resource  = var.node_group_login.resource
         boot_disk = var.node_group_login.boot_disk
+      },
+      {
+      key       = module.labels.name_nodeset_accounting
+      resource  = var.node_group_accounting.resource
+      boot_disk = var.node_group_accounting.boot_disk
       }
     ],
     [
@@ -24,14 +29,7 @@ locals {
         resource  = worker.resource
         boot_disk = worker.boot_disk
       }
-    ],
-    var.node_group_accounting.enabled
-    ? [{
-      key       = module.labels.name_nodeset_accounting
-      resource  = var.node_group_accounting.spec.resource
-      boot_disk = var.node_group_accounting.spec.boot_disk
-    }]
-    : []
+    ]
   )
 }
 
