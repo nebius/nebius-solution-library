@@ -12,8 +12,7 @@ resources:
         addReservation:
           prefix: soperatorchecks.suspicious
       runAfterCreation: true
-      schedule: 0 2,12,20 * * * # 3 times a day at 4:00, 12:00, and 20:00 UTC
-      suspend: true
+      schedule: 0 4,12,20 * * * # 3 times a day at 4:00, 12:00, and 20:00 UTC
       slurmClusterRefName: ${slurm_cluster_name}
       slurmJobSpec:
         eachWorkerJobArray: true
@@ -41,12 +40,13 @@ resources:
           #!/bin/bash
 
           #SBATCH --deadline="now+6hours"
-          #SBATCH --mem=2G
-          #SBATCH --gpus-per-node=1
-          #SBATCH --cpus-per-task=2
+          #SBATCH --time=10:00
+          #SBATCH --mem=32G
+          #SBATCH --gpus-per-node=8
+          #SBATCH --cpus-per-task=16
 
           echo "Checking for running GPU processes..."
-          
+
           if [[ -n "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader | grep -v '^ *$')" ]]; then
             echo "Another GPU process is currently running. Exiting."
             exit 0
