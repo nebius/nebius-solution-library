@@ -245,6 +245,7 @@ resource "helm_release" "extensive_check" {
   values = [templatefile("${path.module}/templates/extensive_check.yaml.tftpl", {
     slurm_cluster_namespace = var.slurm_cluster_namespace
     slurm_cluster_name      = var.slurm_cluster_name
+    script_path = "${path.module}/templates/extensive_check.sh"
   })]
 
   wait = true
