@@ -45,15 +45,15 @@ all_reduce_with_ib() {
 }
 
 mem_bw() {
-  health-checker run -e soperator -p $platform -n mem_bw --report-format json-pretty
+  srun --container-image="cr.eu-north1.nebius.cloud#soperator/active_checks:12.9.0-ubuntu24.04-nccl_tests2.16.4-d04189d" --container-mounts=$(which health-checker):/usr/local/bin/health-checker --cpu-bind=verbose,cores bash -c "health-checker run -e soperator -p $platform -n mem_bw --report-format json-pretty"
 }
 
 mem_lat() {
-  health-checker run -e soperator -p $platform -n mem_lat --report-format json-pretty
+  srun --container-image="cr.eu-north1.nebius.cloud#soperator/active_checks:12.9.0-ubuntu24.04-nccl_tests2.16.4-d04189d" --container-mounts=$(which health-checker):/usr/local/bin/health-checker --cpu-bind=verbose,cores bash -c "health-checker run -e soperator -p $platform -n mem_lat --report-format json-pretty"
 }
 
 gpu_fryer() {
-  HC_GPU_FRYER_DURATION=120 health-checker run -e soperator -p $platform -n gpu_fryer --report-format json-pretty
+  srun --container-image="cr.eu-north1.nebius.cloud#soperator/active_checks:12.9.0-ubuntu24.04-nccl_tests2.16.4-d04189d" --container-mounts=$(which health-checker):/usr/local/bin/health-checker --cpu-bind=verbose bash -c "HC_GPU_FRYER_DURATION=120 health-checker run -e soperator -p $platform -n gpu_fryer --report-format json-pretty"
 }
 
 funcs_to_test=(all_reduce_without_ib all_reduce_with_ib mem_bw mem_lat gpu_fryer)
@@ -69,7 +69,7 @@ do
   HC_STATUS=$(echo "$HC_OUTPUT" | awk '/^\s*{/,/^\s*}/' | jq -r '.status')
 
   echo "Health checker status: $HC_STATUS"
-  if [[ "$HC_STATUS" == "ERROR" && $HC_EXIT_CODE -eq 1 ]]; then
+  if [[ "$HC_STATUS" == "ERROR" || $HC_EXIT_CODE -eq 1 ]]; then
     echo "Health-checker reported status=ERROR and exited with non-zero status."
     exit 1 # Fail fast 
   else
