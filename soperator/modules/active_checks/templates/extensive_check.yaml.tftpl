@@ -26,7 +26,7 @@ resources:
         eachWorkerJobArray: false
         jobContainer:
           # TODO replace with stable image
-          image: cr.eu-north1.nebius.cloud/soperator-unstable/slurm_check_job:1.21.10-noble-slurm25.05.2-6b89ed16
+          image: cr.eu-north1.nebius.cloud/soperator-unstable/slurm_check_job:1.21.10-noble-slurm25.05.2-fe0062f2
           env:
             - name: K8S_POD_NAME
               valueFrom:
@@ -44,6 +44,6 @@ resources:
               persistentVolumeClaim:
                 claimName: jail-pvc
         mungeContainer:
-          image: cr.eu-north1.nebius.cloud/soperator-unstable/munge:1.21.10-noble-slurm25.05.2-6b89ed16
+          image: cr.eu-north1.nebius.cloud/soperator-unstable/munge:1.21.10-noble-slurm25.05.2-fe0062f2
         sbatchScript: |
           ${indent(10, file(script_path))}
