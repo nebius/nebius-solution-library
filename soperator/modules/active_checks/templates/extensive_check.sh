@@ -69,7 +69,7 @@ do
   HC_STATUS=$(echo "$HC_OUTPUT" | awk '/^\s*{/,/^\s*}/' | jq -r '.status')
 
   echo "Health checker status: $HC_STATUS"
-  if [[ "$HC_STATUS" == "ERROR" || $HC_EXIT_CODE -eq 1 ]]; then
+  if [[ "$HC_STATUS" == "ERROR" || "$HC_STATUS" == "FAIL" || $HC_EXIT_CODE -eq 1 ]]; then
     echo "Health-checker reported status=ERROR and exited with non-zero status."
     exit 1 # Fail fast 
   else
