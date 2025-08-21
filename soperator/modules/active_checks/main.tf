@@ -269,6 +269,7 @@ resource "helm_release" "run_extensive_check_on_reservations" {
   values = [templatefile("${path.module}/templates/run_extensive_check_on_reservations.yaml.tftpl", {
     slurm_cluster_namespace = var.slurm_cluster_namespace
     slurm_cluster_name      = var.slurm_cluster_name
+    script_path = "${path.module}/templates/run_extensive_check_on_reservations.sh"
   })]
 
   wait = true
