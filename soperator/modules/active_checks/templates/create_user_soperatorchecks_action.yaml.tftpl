@@ -23,7 +23,7 @@ resources:
                 ssh-keygen -t ecdsa -f /mnt/jail/opt/soperator-home/soperatorchecks/.ssh/soperatorchecks_id_ecdsa -N '' -C soperatorchecks
                 cat /mnt/jail/opt/soperator-home/soperatorchecks/.ssh/soperatorchecks_id_ecdsa.pub >> /mnt/jail/opt/soperator-home/soperatorchecks/.ssh/authorized_keys
               fi
-          image: cr.eu-north1.nebius.cloud/soperator-unstable/k8s_check_job:1.21.10-noble-slurm25.05.2-fe0062f2
+          image: cr.eu-north1.nebius.cloud/soperator-unstable/k8s_check_job:1.21.10-noble-slurm25.05.2-11fdaa47
           volumes:
           - name: jail
             persistentVolumeClaim:
