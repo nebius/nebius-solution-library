@@ -15,7 +15,7 @@ resources:
       schedule: 0 4,12,20 * * * # 3 times a day at 4:00, 12:00, and 20:00 UTC
       slurmClusterRefName: ${slurm_cluster_name}
       slurmJobSpec:
-        eachWorkerJobArray: true
+        eachWorkerJobs: true
         jobContainer:
           image: cr.eu-north1.nebius.cloud/soperator/slurm_check_job:1.21.10-jammy-slurm24.11.5
           env:
