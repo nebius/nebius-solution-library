@@ -38,6 +38,9 @@ variable "checks" {
     cuda_version                  = string
 
     soperator_outputs_logs_cleaner_enabled = bool
+
+    run_extensive_check_on_reservations = string
+    extensive_check = string
   })
   default = {
     create_nebius_user                 = true
@@ -53,5 +56,8 @@ variable "checks" {
     cuda_version                  = "12.4.1-1"
 
     soperator_outputs_logs_cleaner_enabled = true
+
+    run_extensive_check_on_reservations = true
+    extensive_check = true
   }
 }

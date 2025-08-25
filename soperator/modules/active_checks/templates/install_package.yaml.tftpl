@@ -25,7 +25,7 @@ resources:
               retry -d 2 -t 10 -- ssh -i /mnt/jail/opt/soperator-home/soperatorchecks/.ssh/soperatorchecks_id_ecdsa \
                   -o StrictHostKeyChecking=no \
                   soperatorchecks@login-0.soperator-login-headless-svc.soperator.svc.cluster.local 'sudo apt -o DPkg::Lock::Timeout=-1 update && sudo apt install -o DPkg::Lock::Timeout=-1 -y libcudnn8'
-          image: cr.eu-north1.nebius.cloud/soperator-unstable/k8s_check_job:1.21.10-noble-slurm25.05.2-6b89ed16
+          image: cr.eu-north1.nebius.cloud/soperator-unstable/k8s_check_job:1.21.10-noble-slurm25.05.2-11fdaa47
           volumes:
           - name: jail
             persistentVolumeClaim:

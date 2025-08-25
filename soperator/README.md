@@ -21,6 +21,7 @@ Before starting, ensure you have these tools installed:
 - [Nebius CLI](https://nebius.com/docs/cli/quickstart)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [jq](https://jqlang.github.io/jq/download/)
+- [yq](https://github.com/mikefarah/yq/#install)
 - coreutils: 
   - macOS: `brew install coreutils`
   - Ubuntu: `sudo apt-get install coreutils`
