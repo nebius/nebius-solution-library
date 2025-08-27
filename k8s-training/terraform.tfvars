@@ -33,8 +33,22 @@ enable_loki       = false # Enable or disable Loki deployment with true or false
 # Storage
 ## Filestore - recommended
 enable_filestore     = true                             # Enable or disable Filestore integration with true or false
-filestore_disk_size  = 10 * (1024 * 1024 * 1024 * 1024) # Set Filestore disk size in bytes. The multiplication makes it easier to set the size in TB. This would set the size as 10TB
-filestore_block_size = 4096                             # Set Filestore block size in bytes
+
+# Shared filesystem to be used on nodes.
+#filestore_jail = {
+#  spec = {
+#    size_gibibytes       = 512
+#    block_size_kibibytes = 4
+#  }
+#}
+# Or use existing filestore.
+# ---
+filestore_jail = {
+  existing = {
+    id = "<sfs-id>"
+  }
+}
+
 
 # KubeRay
 enable_kuberay           = false # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
