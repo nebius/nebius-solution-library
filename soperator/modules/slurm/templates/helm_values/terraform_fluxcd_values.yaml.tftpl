@@ -190,7 +190,7 @@ resources:
           version: ${operator_version}
           namespace: soperator
           releaseName: soperator
-          overrideValues: 
+          overrideValues:
             clusterName: ${name}
             clusterType: ${slurm_cluster.nodes.worker.resources.gpus > 0 ? "gpu" : "cpu" }
             useDefaultAppArmorProfile: ${apparmor_enabled}
@@ -326,6 +326,22 @@ resources:
                   path: ${slurm_cluster.nfs.path}
                   readOnly: false
                   server: ${slurm_cluster.nfs.host}
+              %{~ endif ~}
+
+              %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
+              // or reference PVC here?
+              - name: nfs
+                nfs:
+                  path: /
+                  readOnly: false
+                  server: nfs-server.nfs-system.svc.cluster.local
+              - name: home-dir
+                createPVC: true
+                storageClassName: nfs
+                size: ""
+                persistentVolumeClaim:
+                  claimName: "controller-spool-pvc"
+                  readOnly: false
               %{~ endif ~}
 
               %{~ if telemetry_enabled ~}
@@ -530,6 +546,7 @@ resources:
                       name: nfs
                       volumeSourceName: nfs
                     %{~ endif ~}
+                    // and then use the PVC here
                     %{~ for sub_mount in slurm_cluster.jail_submounts ~}
                     - name: ${sub_mount.name}
                       mountPath: ${sub_mount.mount_path}
@@ -682,7 +699,7 @@ resources:
                   cpu: ${slurm_cluster.sconfigcontroller.container.resources.cpu }m
                   memory: ${slurm_cluster.sconfigcontroller.container.resources.memory }Mi
                   ephemeralStorage: ${slurm_cluster.sconfigcontroller.container.resources.ephemeral_storage }Mi
-              
+
           slurmClusterStorage:
             enabled: true
             interval: 5m

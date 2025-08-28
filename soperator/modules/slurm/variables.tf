@@ -286,6 +286,28 @@ variable "nfs" {
   }
 }
 
+variable "nfs_in_k8s" {
+  type = object({
+    enabled        = bool
+    size_gibibytes = optional(number)
+    storage_class  = optional(string)
+  })
+  default = {
+    enabled       = false
+    storage_class = "compute-csi-network-ssd-ext4"
+  }
+
+  validation {
+    condition     = var.nfs_in_k8s.enabled ? var.nfs_in_k8s.size_gibibytes != null : true
+    error_message = "NFS size_gibibytes must be set."
+  }
+
+  validation {
+    condition     = var.nfs_in_k8s.enabled ? var.nfs.enabled == false : true
+    error_message = "Only one of nfs or nfs_in_k8s should be set."
+  }
+}
+
 # endregion nfs-server
 
 # region Config
