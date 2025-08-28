@@ -31,10 +31,10 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
     command = join(
       "",
       [
-        "for AKID in $(nebius iam access-key list-by-account ",
-        "--account-service-account-id ${self.triggers_replace.service_account_id} | yq e -o=j -I=0 '.items[]'); ",
+        "for AKID in $(nebius iam v2 access-key list-by-account ",
+        "--account-service-account-id ${self.triggers_replace.service_account_id} | yq '.items[].metadata.id' ); ",
         "do ",
-        "nebius iam access-key delete --id-id $(echo $AKID | yq .metadata.id); ",
+        "nebius iam v2 access-key delete --id $(echo $AKID); ",
         "done; ",
         "kubectl get --context ${self.triggers_replace.k8s_cluster_context} ",
         "-n ${self.triggers_replace.namespace} secret ${self.triggers_replace.secret_name} -oyaml ",
@@ -52,8 +52,8 @@ set -e
 
 kubectl create namespace ${var.soperator_namespace} --context ${var.k8s_cluster_context} || true
 
-AKID=$(nebius iam access-key create --parent-id ${var.iam_project_id} \
-  --account-service-account-id ${self.triggers_replace.service_account_id} | yq .resource_id)
+AKID=$(nebius iam v2 access-key create --parent-id ${var.iam_project_id} \
+  --account-service-account-id ${self.triggers_replace.service_account_id} | yq .metadata.id)
 
 kubectl apply --server-side --context ${var.k8s_cluster_context} -f -  <<EOF
 apiVersion: v1
@@ -67,8 +67,8 @@ metadata:
   annotations:
     slurm.nebius.ai/service-account: ${self.triggers_replace.service_account_id}
 data:
-  aws-access-key-id: $(nebius iam access-key get-by-id --id $AKID | yq .status.aws_access_key_id | tr -d '\n' | base64)
-  aws-access-secret-key: $(nebius iam access-key get-secret-once --id $AKID | yq .secret | tr -d '\n' | base64)
+  aws-access-key-id: $(nebius iam v2 access-key get --id $AKID | yq .status.aws_access_key_id | tr -d '\n' | base64)
+  aws-access-secret-key: $(nebius iam v2 access-key get --id $AKID | yq .status.secret | tr -d '\n' | base64)
   backup-password: $(echo -n ${var.backups_password} | base64)
 EOF
 EOT
