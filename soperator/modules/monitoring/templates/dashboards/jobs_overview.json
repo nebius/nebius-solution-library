@@ -2738,7 +2738,7 @@
           "text": ["1000", "1001"],
           "value": ["1000", "1001"]
         },
-        "definition": "query_result(count by (hpc_job) (group by (exported_pod, hpc_job) (rate(DCGM_FI_DEV_GPU_TEMP{hpc_job!=\"\"}[$__range]))) >= $min_workers_per_job)",
+        "definition": "query_result(count by (job_id) (slurm_job_info{user_name!=\"soperatorchecks\"}))",
         "description": "",
         "includeAll": false,
         "label": "Jobs",
@@ -2747,11 +2747,11 @@
         "options": [],
         "query": {
           "qryType": 3,
-          "query": "query_result(count by (hpc_job) (group by (exported_pod, hpc_job) (rate(DCGM_FI_DEV_GPU_TEMP{hpc_job!=\"\"}[$__range]))) >= $min_workers_per_job)",
+          "query": "query_result(count by (job_id) (slurm_job_info{user_name!=\"soperatorchecks\"}))",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
-        "regex": "/.*hpc_job=\\\"(\\d+)\\\".*/",
+        "regex": "/.*job_id=\\\"(\\d+)\\\".*/",
         "sort": 4,
         "type": "query"
       },
