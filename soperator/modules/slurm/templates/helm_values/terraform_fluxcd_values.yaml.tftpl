@@ -832,3 +832,12 @@ resources:
             slack:
               webhookUrl: "${notifier.slack_webhook_url}"
           %{~ endif ~}
+
+        nfsServer:
+          enabled: ${slurm_cluster.nfs_in_k8s.enabled}
+          %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
+          nfs:
+            storage:
+              storageClassName: ${slurm_cluster.nfs_in_k8s.storage_class}
+              size: ${slurm_cluster.nfs_in_k8s.size_gibibytes}
+          %{~ endif ~}
