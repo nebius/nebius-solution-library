@@ -990,15 +990,15 @@
           "type": "prometheus",
           "uid": "VictoriaMetrics"
         },
-        "definition": "label_values(slurm_job_info, user_name)",
+        "definition": "label_values(slurm_job_info{user_name!=\"soperatorchecks\"},user_name)",
         "includeAll": true,
         "label": "Job User Name",
         "multi": true,
         "name": "user_name",
         "options": [],
         "query": {
-          "qryType": "",
-          "query": "label_values(slurm_job_info, user_name)",
+          "qryType": 1,
+          "query": "label_values(slurm_job_info{user_name!=\"soperatorchecks\"},user_name)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
