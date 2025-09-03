@@ -329,19 +329,12 @@ resources:
               %{~ endif ~}
 
               %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
-              // or reference PVC here?
-              - name: nfs
-                nfs:
-                  path: /
-                  readOnly: false
-                  server: nfs-server.nfs-system.svc.cluster.local
               - name: home-dir
                 createPVC: true
                 storageClassName: nfs
-                size: ""
+                size: 42 # capacity is not enforced by csi-driver-nfs provisioned
                 persistentVolumeClaim:
-                  claimName: "controller-spool-pvc"
-                  readOnly: false
+                  claimName: "home-dir"
               %{~ endif ~}
 
               %{~ if telemetry_enabled ~}
@@ -546,7 +539,11 @@ resources:
                       name: nfs
                       volumeSourceName: nfs
                     %{~ endif ~}
-                    // and then use the PVC here
+                    %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
+                    - mountPath: /home
+                      name: home-dir
+                      volumeSourceName: home-dir
+                    %{~ endif ~}
                     %{~ for sub_mount in slurm_cluster.jail_submounts ~}
                     - name: ${sub_mount.name}
                       mountPath: ${sub_mount.mount_path}

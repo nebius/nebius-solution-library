@@ -5,7 +5,7 @@ resource "terraform_data" "wait_for_slurm_cluster_hr" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command     = templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
+    command = templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
       k8s_cluster_context = var.k8s_cluster_context
       helmrelease_name    = "flux-system-soperator-fluxcd-slurm-cluster"
     })
@@ -19,7 +19,7 @@ resource "terraform_data" "wait_for_soperator_activechecks_hr" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command     = templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
+    command = templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
       k8s_cluster_context = var.k8s_cluster_context
       helmrelease_name    = "flux-system-soperator-fluxcd-soperator-activechecks"
     })
@@ -136,7 +136,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
       controller_state_on_filestore = var.controller_state_on_filestore
 
-      nfs = var.nfs
+      nfs        = var.nfs
+      nfs_in_k8s = var.nfs_in_k8s
 
       nodes = {
         accounting = {
