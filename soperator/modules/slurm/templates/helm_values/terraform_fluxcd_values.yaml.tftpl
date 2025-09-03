@@ -137,12 +137,11 @@ resources:
                       memory: ${resources.vm_single.memory}
               prometheusNodeExporter:
                 enabled: true
-                spec:
-                  %{~ if slurm_cluster.use_preinstalled_gpu_drivers ~}
-                  extraArgs:
-                    - '--collector.ethtool.device-exclude=ibp.*'
-                    - '--no-collector.infiniband'
-                  %{~ endif ~}
+                %{~ if slurm_cluster.use_preinstalled_gpu_drivers ~}
+                extraArgs:
+                  - '--collector.ethtool.device-exclude=ibp.*'
+                  - '--no-collector.infiniband'
+                %{~ endif ~}
           vmLogs:
             enabled: ${telemetry_enabled}
             interval: 5m
