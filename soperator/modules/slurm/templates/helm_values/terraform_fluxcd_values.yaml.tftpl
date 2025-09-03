@@ -332,7 +332,7 @@ resources:
               - name: home-dir
                 createPVC: true
                 storageClassName: nfs
-                size: 42 # capacity is not enforced by csi-driver-nfs provisioned
+                size: 42 # capacity is not enforced by neither NFS server nor csi-driver-nfs
                 persistentVolumeClaim:
                   claimName: "home-dir"
               %{~ endif ~}
