@@ -39,7 +39,7 @@ resource "helm_release" "dashboard" {
         }
       }
       data = {
-        "${each.value}.json" = file("${path.module}/templates/dashboards/${each.key}.json")
+        "${each.value}.json" = sensitive(file("${path.module}/templates/dashboards/${each.key}.json"))
       }
     }]
   })]

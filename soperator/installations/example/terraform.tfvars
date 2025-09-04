@@ -141,15 +141,20 @@ filestore_accounting = {
 
 # region nfs-server
 
-nfs = {
+# nfs = {
+#   enabled        = false
+#   size_gibibytes = 3720
+#   mount_path     = "/home"
+#   resource = {
+#     platform = "cpu-d3"
+#     preset   = "32vcpu-128gb"
+#   }
+#   public_ip = false
+# }
+
+nfs_in_k8s = {
   enabled        = true
-  size_gibibytes = 3720
-  mount_path     = "/home"
-  resource = {
-    platform = "cpu-d3"
-    preset   = "32vcpu-128gb"
-  }
-  public_ip = false
+  size_gibibytes = 372
 }
 
 # endregion nfs-server

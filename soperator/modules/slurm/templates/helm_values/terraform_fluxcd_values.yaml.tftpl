@@ -833,8 +833,17 @@ resources:
         nfsServer:
           enabled: ${slurm_cluster.nfs_in_k8s.enabled}
           %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
-          nfs:
+          overrideValues:
+            nameOverride: nfs-server
+            nfs:
+              sharedDirectory: "/exported"
             storage:
-              storageClassName: ${slurm_cluster.nfs_in_k8s.storage_class}
+              storageClassName: "${slurm_cluster.nfs_in_k8s.storage_class}"
               size: ${slurm_cluster.nfs_in_k8s.size_gibibytes}
+            %{~ if telemetry_enabled ~}
+            monitoring:
+              enabled: true
+            serviceMonitor:
+              enabled: true
+            %{~ endif ~}
           %{~ endif ~}

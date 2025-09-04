@@ -290,11 +290,10 @@ variable "nfs_in_k8s" {
   type = object({
     enabled        = bool
     size_gibibytes = optional(number)
-    storage_class  = optional(string)
+    storage_class  = optional(string, "compute-csi-network-ssd-io-m3-ext4")
   })
   default = {
     enabled       = false
-    storage_class = "compute-csi-network-ssd-ext4"
   }
 
   validation {
@@ -305,6 +304,23 @@ variable "nfs_in_k8s" {
   validation {
     condition     = var.nfs_in_k8s.enabled ? var.nfs.enabled == false : true
     error_message = "Only one of nfs or nfs_in_k8s should be set."
+  }
+
+  validation {
+    condition = (
+      (
+        var.nfs_in_k8s.enabled &&
+        var.nfs_in_k8s.storage_class == "compute-csi-network-ssd-io-m3-ext4" &&
+        var.nfs_in_k8s.size_gibibytes != null
+      )
+      ?
+      (
+        var.nfs_in_k8s.size_gibibytes % 93 == 0 &&
+        var.nfs_in_k8s.size_gibibytes <= 262074
+      )
+      : true
+    )
+    error_message = "NFS size must be a multiple of 93 GiB and maximum value is 262074 GiB"
   }
 }
 
