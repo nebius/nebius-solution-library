@@ -840,6 +840,8 @@ resources:
             storage:
               storageClassName: "${slurm_cluster.nfs_in_k8s.storage_class}"
               size: ${slurm_cluster.nfs_in_k8s.size_gibibytes}
+            storageClass:
+              name: nfs
             %{~ if telemetry_enabled ~}
             monitoring:
               enabled: true
