@@ -404,7 +404,7 @@ variable "nfs_in_k8s" {
     storage_class  = optional(string)
   })
   default = {
-    enabled       = false
+    enabled = false
   }
 }
 

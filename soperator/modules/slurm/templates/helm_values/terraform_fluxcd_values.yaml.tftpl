@@ -7,6 +7,8 @@ resources:
       values.yaml: |
         helmRepository:
           interval: 15m
+            nfsServer:
+              url: ${soperator_helm_repo}
         certManager:
           enabled: true
           interval: 5m
@@ -843,6 +845,9 @@ resources:
           %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
           version: ${operator_version}
           overrideValues:
+            image:
+              repository: ${soperator_image_repo}/nfs-server
+              tag: ${operator_version}
             nameOverride: nfs-server
             nfs:
               sharedDirectory: "/exported"
@@ -851,6 +856,12 @@ resources:
               size: ${slurm_cluster.nfs_in_k8s.size_gibibytes}Gi
             storageClass:
               name: nfs
+            resources:
+              requests:
+                memory: ${resources.nfs_server.requests.memory}Gi
+                cpu: ${resources.nfs_server.requests.cpu * 1000}m
+              limits:
+                memory: ${resources.nfs_server.limits.memory}Gi
             %{~ if telemetry_enabled ~}
             monitoring:
               enabled: true
