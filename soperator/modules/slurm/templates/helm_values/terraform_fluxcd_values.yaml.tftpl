@@ -183,6 +183,9 @@ resources:
           %{~ if security_profiles_operator_version != "" ~}
           version: ${security_profiles_operator_version}
           %{~ endif ~}
+          values:
+            daemon:
+              resources: null
         slurmCluster:
           enabled: true
           interval: 5m
@@ -644,6 +647,11 @@ resources:
                       name: nfs
                       volumeSourceName: nfs
                     %{~ endif ~}
+                    %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
+                    - mountPath: /home
+                      name: home-dir
+                      volumeSourceName: home-dir
+                    %{~ endif ~}
                     %{~ if telemetry_enabled ~}
                     - mountPath: /etc/update-motd.d/95-nebius-o11y
                       subPath: 95-nebius-o11y
@@ -833,19 +841,20 @@ resources:
         nfsServer:
           enabled: ${slurm_cluster.nfs_in_k8s.enabled}
           %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
+          version: ${operator_version}
           overrideValues:
             nameOverride: nfs-server
             nfs:
               sharedDirectory: "/exported"
             storage:
               storageClassName: "${slurm_cluster.nfs_in_k8s.storage_class}"
-              size: ${slurm_cluster.nfs_in_k8s.size_gibibytes}
+              size: ${slurm_cluster.nfs_in_k8s.size_gibibytes}Gi
             storageClass:
               name: nfs
             %{~ if telemetry_enabled ~}
             monitoring:
               enabled: true
-            serviceMonitor:
-              enabled: true
+              serviceMonitor:
+                enabled: true
             %{~ endif ~}
           %{~ endif ~}
