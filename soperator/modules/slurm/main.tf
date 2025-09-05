@@ -61,6 +61,9 @@ resource "helm_release" "soperator_fluxcd_cm" {
     iam_tenant_id      = var.iam_tenant_id
     iam_project_id     = var.iam_project_id
 
+    soperator_helm_repo = local.helm.repository.slurm
+    soperator_image_repo = local.image.repository
+
     dcgm_job_mapping_enabled = var.dcgm_job_mapping_enabled
 
     apparmor_enabled        = var.use_default_apparmor_profile
@@ -161,9 +164,9 @@ resource "helm_release" "soperator_fluxcd_cm" {
         controller = {
           size = var.node_count.controller
           resources = {
-            cpu               = var.resources.controller.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu
-            memory            = var.resources.controller.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory
-            ephemeral_storage = var.resources.controller.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
+            cpu               = floor(var.resources.controller.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
+            memory            = floor(var.resources.controller.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory)
+            ephemeral_storage = floor(var.resources.controller.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
           }
         }
 
@@ -235,6 +238,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
       slurm_operator      = local.resources.slurm_operator
       slurm_checks        = local.resources.slurm_checks
       dcgm_exporter       = local.resources.dcgm_exporter
+      nfs_server          = local.resources.nfs_server
     }
 
     vm_agent_queue_count = local.vm_agent_queue_count
