@@ -8,6 +8,7 @@ resource "terraform_data" "wait_for_slurm_cluster_hr" {
     command     = templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
       k8s_cluster_context = var.k8s_cluster_context
       helmrelease_name    = "flux-system-soperator-fluxcd-slurm-cluster"
+      timeout_minutes     = 60
     })
   }
 }
@@ -22,6 +23,7 @@ resource "terraform_data" "wait_for_soperator_activechecks_hr" {
     command     = templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
       k8s_cluster_context = var.k8s_cluster_context
       helmrelease_name    = "flux-system-soperator-fluxcd-soperator-activechecks"
+      timeout_minutes     = 120
     })
   }
 }

@@ -3,7 +3,7 @@ set -e
 CONTEXT="${k8s_cluster_context}"
 NAMESPACE="flux-system"
 HELMRELEASE_NAME="${helmrelease_name}"
-TIMEOUT_MINUTES=60
+TIMEOUT_MINUTES="${timeout_minutes}"
 MAX_RETRIES=$((TIMEOUT_MINUTES * 12))  # Check every 5 seconds
 SLEEP_SECONDS=5
 
