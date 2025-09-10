@@ -154,7 +154,7 @@ filestore_accounting = {
 
 nfs_in_k8s = {
   enabled        = true
-  size_gibibytes = 372
+  size_gibibytes = 3720
 }
 
 # endregion nfs-server
