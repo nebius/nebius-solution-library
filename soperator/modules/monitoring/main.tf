@@ -18,6 +18,7 @@ resource "helm_release" "dashboard" {
     jobs_overview          = "jobs-overview"
     workers_overview       = "workers-overview"
     workers_detailed_stats = "workers-detailed-stats"
+    nfs_server             = "nfs-server"
   })
 
   name       = "${var.slurm_cluster_name}-grafana-dashboard-${each.value}"
