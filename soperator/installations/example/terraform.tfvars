@@ -235,6 +235,9 @@ slurm_partition_config_type = "default"
 #----------------------------------------------------------------------------------------------------------------------#
 # region Nodes
 
+# NVLink Instance Group ID, in which instances will be created.
+nvl_instance_group_id = ""
+
 # Configuration of System node set for system resources created by Soperator.
 # Keep in mind that the k8s nodegroup will have auto-scaling enabled and the actual number of nodes depends on the size
 # of the cluster.

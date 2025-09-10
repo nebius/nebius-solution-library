@@ -103,7 +103,7 @@ resource "nebius_mk8s_v1_node_group" "worker" {
     preemptible = var.node_group_workers[count.index].preemptible
 
     gpu_settings = var.use_preinstalled_gpu_drivers ? {
-      drivers_preset = "cuda12"
+      drivers_preset = "cuda12.9"
     } : null
 
     boot_disk = {
@@ -133,6 +133,8 @@ resource "nebius_mk8s_v1_node_group" "worker" {
         }
       ]
     )
+
+    nvl_instance_group_id = var.nvl_instance_group_id
 
     network_interfaces = [{
       public_ip_address = local.node_ssh_access.enabled ? {} : null

@@ -40,6 +40,12 @@ variable "company_name" {
 
 #---
 
+variable "nvl_instance_group_id" {
+  description = "NVLink Instance Group ID, in which instances will be created"
+  type = string
+}
+
+
 variable "node_group_system" {
   description = "System node group specification."
   type = object({

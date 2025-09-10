@@ -506,6 +506,11 @@ variable "slurm_health_check_config" {
 
 # region Nodes
 
+variable "nvl_instance_group_id" {
+  description = "NVLink Instance Group ID, in which instances will be created"
+  type = string
+}
+
 variable "slurm_nodeset_system" {
   description = "Configuration of System node set for system resources created by Soperator."
   type = object({

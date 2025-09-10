@@ -139,6 +139,7 @@ module "k8s" {
 
   etcd_cluster_size = var.etcd_cluster_size
 
+  nvl_instance_group_id = var.nvl_instance_group_id
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller
   node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers :
