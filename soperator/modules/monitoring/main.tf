@@ -40,6 +40,7 @@ resource "helm_release" "dashboard" {
         }
       }
       data = {
+        # sensitive() to exclude the big JSON from change output in plan/apply
         "${each.value}.json" = sensitive(file("${path.module}/templates/dashboards/${each.key}.json"))
       }
     }]
