@@ -169,7 +169,7 @@ resources:
             version: ${operator_version}
             values:
               hpcJobMapDir: ${dcgm_job_map_dir}
-              driverless: ${use_preinstalled_gpu_drivers}
+              driverless: ${slurm_cluster.use_preinstalled_gpu_drivers}
               resources:
                 requests:
                   memory: ${resources.dcgm_exporter.memory}Gi
