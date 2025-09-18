@@ -534,7 +534,7 @@ resources:
                       volumeSourceName: sys-host
                     %{~ if slurm_cluster.node_local_image_storage.enabled ~}
                     - name: enroot-on-image-storage
-                      mountPath: /etc/enroot/enroot.conf.d/image-storage.conf
+                      mountPath: /etc/enroot/enroot.conf.d/custom-dirs.conf
                       subPath: enroot.conf
                       readOnly: true
                       volumeSourceName: image-storage
