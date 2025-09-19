@@ -21,7 +21,6 @@ resources:
           %{~ if k8up_version != "" ~}
           version: ${k8up_version}
           %{~ endif ~}
-          values: null
         mariadbOperator:
           enabled: ${accounting_enabled}
           interval: 5m
