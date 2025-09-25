@@ -160,7 +160,7 @@ nfs = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.21.13"
+slurm_operator_version = "1.21.14"
 
 # Is the version of soperator stable or not.
 # ---
