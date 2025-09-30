@@ -23,20 +23,29 @@ module "gpu-operator" {
 module "device-plugin" {
   count = var.gpu_nodes_driverfull_image ? 1 : 0
 
-  source     = "../modules/device-plugin"
-  parent_id  = var.parent_id
-  cluster_id = nebius_mk8s_v1_cluster.k8s-cluster.id
+  source                = "../modules/device-plugin"
+  parent_id             = var.parent_id
+  cluster_id            = nebius_mk8s_v1_cluster.k8s-cluster.id
+  dcgm_exporter_enabled = false
 }
 
 module "o11y" {
-  source          = "../modules/o11y"
-  parent_id       = var.parent_id
-  tenant_id       = var.tenant_id
-  cluster_id      = nebius_mk8s_v1_cluster.k8s-cluster.id
-  cpu_nodes_count = var.cpu_nodes_count
-  gpu_nodes_count = var.gpu_nodes_count_per_group * var.gpu_node_groups
+  source               = "../modules/o11y"
+  parent_id            = var.parent_id
+  tenant_id            = var.tenant_id
+  cluster_id           = nebius_mk8s_v1_cluster.k8s-cluster.id
+  cpu_nodes_count      = var.cpu_nodes_count
+  gpu_nodes_count      = var.gpu_nodes_count_per_group * var.gpu_node_groups
+  k8s_node_group_sa_id = var.enable_k8s_node_group_sa ? nebius_iam_v1_service_account.k8s_node_group_sa[0].id : null
 
   o11y = {
+    nebius_o11y_agent = {
+      enabled                  = var.enable_nebius_o11y_agent
+      collectK8sClusterMetrics = var.collectK8sClusterMetrics
+    }
+    grafana = {
+      enabled = var.enable_grafana
+    }
     loki = {
       enabled            = var.enable_loki
       replication_factor = var.loki_custom_replication_factor

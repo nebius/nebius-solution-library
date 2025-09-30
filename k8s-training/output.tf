@@ -10,5 +10,5 @@ output "kube_cluster" {
 
 output "grafana_password" {
   sensitive = true
-  value     = module.o11y.grafana_password
+  value     = module.o11y.nebius_grafana_password
 }

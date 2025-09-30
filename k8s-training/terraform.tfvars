@@ -28,9 +28,13 @@ gpu_nodes_preemptible      = false
 # mig_strategy =        # If set, possible values include 'single', 'mixed', 'none'
 # mig_parted_config =   # If set, value will be checked against allowed for the selected 'gpu_nodes_platform'
 
-# Observability
-enable_prometheus = true # Enable or disable Prometheus and Grafana deployment with true or false
-enable_loki       = true # Enable or disable Loki deployment with true or false
+# Observability by Nebius
+enable_nebius_o11y_agent = true # Enable or disable Nebius Observability Agent deployment with true or false
+enable_grafana           = true # Enable or disable Grafana® solution by Nebius with true or false
+
+# Local Observability installation
+enable_prometheus = false # Enable or disable Prometheus and Grafana deployment with true or false
+enable_loki       = false # Enable or disable Loki deployment with true or false
 
 # Storage
 enable_filestore     = true                             # Enable or disable Filestore integration with true or false

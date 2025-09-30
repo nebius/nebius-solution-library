@@ -29,9 +29,18 @@ variable "gpu_nodes_count" {
 
 variable "o11y" {
   type = object({
+    nebius_o11y_agent = optional(object({
+      enabled                  = optional(bool, true)
+      collectK8sClusterMetrics = optional(bool, false)
+    })),
     grafana = optional(object({
-      enabled = optional(bool, true)
-      pv_size = optional(string, "25Gi")
+      enabled       = optional(bool, true)
+      pv_size       = optional(string, "25Gi")
+      adminPassword = optional(string, "")
+      nebius = optional(object({
+        projectId   = optional(string, "")
+        accessToken = optional(string, "")
+      }), {})
     })),
     loki = optional(object({
       enabled            = optional(bool, true)
@@ -52,4 +61,10 @@ variable "test_mode" {
   description = "Switch between real usage and testing"
   type        = bool
   default     = false
+}
+
+variable "k8s_node_group_sa_id" {
+  description = "ID of the existing k8s node group service account to use for Grafana"
+  type        = string
+  default     = null
 }
