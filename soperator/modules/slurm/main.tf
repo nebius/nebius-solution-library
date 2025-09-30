@@ -65,7 +65,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     iam_tenant_id      = var.iam_tenant_id
     iam_project_id     = var.iam_project_id
 
-    soperator_helm_repo = local.helm.repository.slurm
+    soperator_helm_repo  = local.helm.repository.slurm
     soperator_image_repo = local.image.repository
 
     dcgm_job_mapping_enabled = var.dcgm_job_mapping_enabled

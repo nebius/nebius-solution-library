@@ -293,7 +293,7 @@ variable "nfs_in_k8s" {
     storage_class  = optional(string, "compute-csi-network-ssd-io-m3-ext4")
   })
   default = {
-    enabled       = false
+    enabled = false
   }
 
   validation {
