@@ -28,9 +28,7 @@
         "expr": "group by (node, pod) (\n  changes(\n      sum without (uid, pod_ip)(\n          kube_pod_info{pod=~\"worker-.*\", node!=\"\"}\n      )\n  ) > 0\n  and on (pod) \n  sum by (pod)(\n      kube_pod_info{pod=~\"worker-.*\", node!=\"\"}\n  )\n)",
         "filter": {
           "exclude": true,
-          "ids": [
-            328
-          ]
+          "ids": [328]
         },
         "hide": false,
         "iconColor": "red",
@@ -4317,6 +4315,7 @@
   },
   "timezone": "browser",
   "title": "Workers Overview",
-  "version": 4,
+  "uid": "soperator_workers_overview",
+  "version": 1,
   "weekStart": ""
 }

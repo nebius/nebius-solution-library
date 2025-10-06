@@ -2152,9 +2152,7 @@
       "interval": "2m",
       "options": {
         "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": false
@@ -2255,9 +2253,7 @@
       "interval": "2m",
       "options": {
         "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": false
@@ -2360,9 +2356,7 @@
       "interval": "2m",
       "options": {
         "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": false
@@ -2460,9 +2454,7 @@
       "interval": "2m",
       "options": {
         "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": false
@@ -2563,9 +2555,7 @@
       "interval": "2m",
       "options": {
         "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": false
@@ -2853,6 +2843,7 @@
   },
   "timezone": "browser",
   "title": "Jobs Overview",
-  "version": 28,
+  "uid": "soperator_jobs_overview",
+  "version": 1,
   "weekStart": ""
 }
