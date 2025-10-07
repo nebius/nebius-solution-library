@@ -38,7 +38,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "id": 99,
+  "id": 20,
   "links": [
     {
       "asDropdown": false,
@@ -208,7 +208,7 @@
         "x": 12,
         "y": 1
       },
-      "id": 45,
+      "id": 44,
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -232,7 +232,7 @@
             "uid": "VictoriaMetrics"
           },
           "editorMode": "code",
-          "expr": "avg(DCGM_FI_DEV_MEM_CLOCK{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}*1000000)",
+          "expr": "avg(DCGM_FI_DEV_SM_CLOCK{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}*1000000)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -241,7 +241,7 @@
           "refId": "A"
         }
       ],
-      "title": "GPU Mem Clock",
+      "title": "GPU SM Clocks",
       "type": "stat"
     },
     {
@@ -249,11 +249,10 @@
         "type": "prometheus",
         "uid": "VictoriaMetrics"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "purple",
+            "fixedColor": "light-green",
             "mode": "thresholds"
           },
           "mappings": [
@@ -267,91 +266,6 @@
               "type": "special"
             }
           ],
-          "max": 100,
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#299c46",
-                "value": null
-              },
-              {
-                "color": "orange",
-                "value": 50
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "percent"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 4,
-        "x": 16,
-        "y": 1
-      },
-      "id": 58,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": ["mean"],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.4.0",
-      "targets": [
-        {
-          "datasource": {
-            "uid": "VictoriaMetrics"
-          },
-          "editorMode": "code",
-          "expr": "avg(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "GPU Total Utilization",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "VictoriaMetrics"
-      },
-      "description": "GPU Shutdown Temp: 90 C<br>\nGPU Slowdown Temp: 87 C<br>\nGPU Max Operating Temp: 83 C<br>",
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "N/A"
-                }
-              },
-              "type": "special"
-            }
-          ],
-          "max": 90,
           "min": 0,
           "thresholds": {
             "mode": "absolute",
@@ -362,25 +276,25 @@
               },
               {
                 "color": "rgba(237, 129, 40, 0.89)",
-                "value": 83
+                "value": 1800
               },
               {
                 "color": "#d44a3a",
-                "value": 87
+                "value": 2200
               }
             ]
           },
-          "unit": "celsius"
+          "unit": "watt"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 3,
         "w": 4,
-        "x": 20,
+        "x": 16,
         "y": 1
       },
-      "id": 31,
+      "id": 30,
       "maxDataPoints": 100,
       "options": {
         "colorMode": "value",
@@ -404,7 +318,7 @@
             "uid": "VictoriaMetrics"
           },
           "editorMode": "code",
-          "expr": "avg(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
+          "expr": "sum(DCGM_FI_DEV_POWER_USAGE{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -413,7 +327,91 @@
           "refId": "A"
         }
       ],
-      "title": "GPU Avg. Temp",
+      "title": "GPU Power Total",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#299c46",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 70
+              },
+              {
+                "color": "#d44a3a",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "id": 40,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "expr": "avg(DCGM_FI_DEV_MEM_COPY_UTIL{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "GPU Avg. Mem. Cpy Utilization",
       "type": "stat"
     },
     {
@@ -541,7 +539,7 @@
         "x": 12,
         "y": 4
       },
-      "id": 44,
+      "id": 45,
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -565,7 +563,7 @@
             "uid": "VictoriaMetrics"
           },
           "editorMode": "code",
-          "expr": "avg(DCGM_FI_DEV_SM_CLOCK{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}*1000000)",
+          "expr": "avg(DCGM_FI_DEV_MEM_CLOCK{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}*1000000)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -574,93 +572,7 @@
           "refId": "A"
         }
       ],
-      "title": "GPU SM Clocks",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "VictoriaMetrics"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "light-green",
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "N/A"
-                }
-              },
-              "type": "special"
-            }
-          ],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#299c46",
-                "value": null
-              },
-              {
-                "color": "rgba(237, 129, 40, 0.89)",
-                "value": 1800
-              },
-              {
-                "color": "#d44a3a",
-                "value": 2200
-              }
-            ]
-          },
-          "unit": "watt"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 4,
-        "x": 16,
-        "y": 4
-      },
-      "id": 30,
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.4.0",
-      "targets": [
-        {
-          "datasource": {
-            "uid": "VictoriaMetrics"
-          },
-          "editorMode": "code",
-          "expr": "sum(DCGM_FI_DEV_POWER_USAGE{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "GPU Power Total",
+      "title": "GPU Mem Clock",
       "type": "stat"
     },
     {
@@ -671,6 +583,10 @@
       "description": "",
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "fixedColor": "purple",
+            "mode": "thresholds"
+          },
           "mappings": [
             {
               "options": {
@@ -692,12 +608,12 @@
                 "value": null
               },
               {
-                "color": "rgba(237, 129, 40, 0.89)",
-                "value": 70
+                "color": "orange",
+                "value": 50
               },
               {
-                "color": "#d44a3a",
-                "value": 90
+                "color": "red",
+                "value": 80
               }
             ]
           },
@@ -708,10 +624,94 @@
       "gridPos": {
         "h": 3,
         "w": 4,
+        "x": 16,
+        "y": 4
+      },
+      "id": 58,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["mean"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "expr": "avg(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "GPU Total Utilization",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "GPU Shutdown Temp: 90 C<br>\nGPU Slowdown Temp: 87 C<br>\nGPU Max Operating Temp: 83 C<br>",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "max": 90,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#299c46",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 83
+              },
+              {
+                "color": "#d44a3a",
+                "value": 87
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
         "x": 20,
         "y": 4
       },
-      "id": 40,
+      "id": 31,
       "maxDataPoints": 100,
       "options": {
         "colorMode": "value",
@@ -735,7 +735,7 @@
             "uid": "VictoriaMetrics"
           },
           "editorMode": "code",
-          "expr": "avg(DCGM_FI_DEV_MEM_COPY_UTIL{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
+          "expr": "avg(DCGM_FI_DEV_GPU_TEMP{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -744,7 +744,7 @@
           "refId": "A"
         }
       ],
-      "title": "GPU Avg. Mem. Cpy Utilization",
+      "title": "GPU Avg. Temp",
       "type": "stat"
     },
     {
@@ -761,122 +761,425 @@
       "type": "row"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "",
       "fieldConfig": {
-        "defaults": {},
-        "overrides": []
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Job ID"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 72
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Job Name"
+            },
+            "properties": []
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Workers"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 72
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "User ID"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 67
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "User Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 87
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 7,
-        "w": 6,
+        "h": 15,
+        "w": 12,
         "x": 0,
         "y": 8
       },
-      "id": 368,
+      "id": 407,
       "options": {
-        "code": {
-          "language": "plaintext",
-          "showLineNumbers": false,
-          "showMiniMap": false
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
         },
-        "content": "* Timeline shows range of time that metrics were collected for a job\n* Colors reflect number of workers assigned to that job, the spectrum is visualized as legend of the graph\n",
-        "mode": "markdown"
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": []
       },
       "pluginVersion": "11.4.0",
-      "title": "Usage Guide",
-      "type": "text"
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "with (\n  filters = {job_id=~\"$slurm_job\"}\n)\nslurm_job_info{filters}\n* on (job_id) group_left()\ncount by (job_id) (slurm_node_job{filters}) ",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A",
+          "useCustomValues": true,
+          "useDashValues": false
+        }
+      ],
+      "title": "Job Details",
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "job_id"
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Nested frames": true,
+              "Time": true,
+              "Time (first)": true,
+              "Time (last)": true,
+              "array_job_id": true,
+              "cluster": true,
+              "container": true,
+              "container_id": true,
+              "end_time": true,
+              "endpoint": true,
+              "finished_time (first)": true,
+              "instance": true,
+              "job": true,
+              "job_state": true,
+              "job_state_reason": true,
+              "namespace": true,
+              "pod": true,
+              "prometheus": true,
+              "slurm_job_info (last)": true,
+              "slurm_partition": true,
+              "standard_error": true,
+              "standard_output": true,
+              "start_time": true,
+              "start_time (first)": true,
+              "submit_time": true,
+              "submit_time (first)": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time": 4,
+              "Value": 3,
+              "array_job_id": 5,
+              "cluster": 6,
+              "container": 7,
+              "container_id": 8,
+              "end_time": 9,
+              "endpoint": 10,
+              "instance": 11,
+              "job": 12,
+              "job_id": 0,
+              "job_name": 13,
+              "job_state": 14,
+              "job_state_reason": 15,
+              "namespace": 16,
+              "pod": 17,
+              "prometheus": 18,
+              "slurm_partition": 19,
+              "standard_error": 20,
+              "standard_output": 21,
+              "start_time": 22,
+              "submit_time": 23,
+              "user_id": 1,
+              "user_name": 2
+            },
+            "renameByName": {
+              "Value": "Workers",
+              "container": "",
+              "finished_time_ms": "Finished Time",
+              "job": "",
+              "job_id": "Job ID",
+              "job_name": "Job Name",
+              "job_name (first)": "Job Name",
+              "job_state (first)": "State",
+              "job_state_reason (first)": "State Reason",
+              "slurm_partition (first)": "Partition",
+              "start_time_ms": "Start Time",
+              "submit_time": "",
+              "submit_time_ms": "Submit Time",
+              "user_id": "User ID",
+              "user_name": "User Name",
+              "user_name (first)": "User"
+            }
+          }
+        }
+      ],
+      "type": "table"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "VictoriaMetrics"
       },
-      "description": "Worker count per Job as value",
+      "description": "Paginated",
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "palette-classic-by-name"
+          },
           "custom": {
+            "fillOpacity": 75,
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "scaleDistribution": {
-              "type": "linear"
+            "insertNulls": false,
+            "lineWidth": 1,
+            "spanNulls": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "1": {
+                  "color": "light-blue",
+                  "index": 0,
+                  "text": "PENDING"
+                },
+                "2": {
+                  "color": "blue",
+                  "index": 1,
+                  "text": "CONFIGURING"
+                },
+                "3": {
+                  "color": "green",
+                  "index": 2,
+                  "text": "RUNNING"
+                },
+                "4": {
+                  "color": "yellow",
+                  "index": 3,
+                  "text": "COMPLETING"
+                },
+                "5": {
+                  "color": "rgba(51, 162, 73, 0.4)",
+                  "index": 4,
+                  "text": "COMPLETED"
+                },
+                "6": {
+                  "color": "rgba(255, 152, 48, 0.4)",
+                  "index": 5,
+                  "text": "CANCELLED"
+                },
+                "7": {
+                  "color": "rgba(242, 73, 92, 0.4)",
+                  "index": 6,
+                  "text": "FAILED"
+                },
+                "8": {
+                  "color": "rgba(176, 41, 54, 0.4)",
+                  "index": 7,
+                  "text": "TIMEOUT"
+                },
+                "9": {
+                  "color": "rgba(163, 74, 163, 0.4)",
+                  "index": 8,
+                  "text": "PREEMPTED"
+                },
+                "10": {
+                  "color": "rgba(194, 59, 79, 0.4)",
+                  "index": 9,
+                  "text": "NODE_FAIL"
+                },
+                "11": {
+                  "color": "rgba(201, 97, 20, 0.4)",
+                  "index": 10,
+                  "text": "BOOT_FAIL"
+                },
+                "12": {
+                  "color": "rgba(219, 128, 51, 0.4)",
+                  "index": 11,
+                  "text": "DEADLINE"
+                },
+                "13": {
+                  "color": "rgba(237, 129, 136, 0.4)",
+                  "index": 12,
+                  "text": "OUT_OF_MEMORY"
+                },
+                "14": {
+                  "color": "semi-dark-blue",
+                  "index": 13,
+                  "text": "REQUEUED"
+                },
+                "15": {
+                  "color": "dark-blue",
+                  "index": 14,
+                  "text": "RESIZING"
+                },
+                "16": {
+                  "color": "semi-dark-purple",
+                  "index": 15,
+                  "text": "SUSPENDED"
+                },
+                "17": {
+                  "color": "dark-yellow",
+                  "index": 16,
+                  "text": "STOPPED"
+                },
+                "18": {
+                  "color": "semi-dark-green",
+                  "index": 17,
+                  "text": "POWER_UP_NODE"
+                },
+                "19": {
+                  "color": "light-purple",
+                  "index": 18,
+                  "text": "SIGNALING"
+                },
+                "20": {
+                  "color": "light-orange",
+                  "index": 19,
+                  "text": "STAGE_OUT"
+                },
+                "21": {
+                  "color": "dark-green",
+                  "index": 20,
+                  "text": "UPDATE_DB"
+                }
+              },
+              "type": "value"
             }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
           }
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 18,
-        "x": 6,
+        "h": 15,
+        "w": 12,
+        "x": 12,
         "y": 8
       },
-      "id": 367,
-      "interval": "1m",
+      "id": 406,
       "options": {
-        "calculate": false,
-        "calculation": {
-          "xBuckets": {
-            "mode": "size"
-          },
-          "yBuckets": {
-            "mode": "size",
-            "scale": {
-              "type": "linear"
-            }
-          }
-        },
-        "cellGap": 0.5,
-        "color": {
-          "exponent": 0.5,
-          "fill": "dark-orange",
-          "min": 1,
-          "mode": "scheme",
-          "reverse": true,
-          "scale": "exponential",
-          "scheme": "YlOrRd",
-          "steps": 64
-        },
-        "exemplars": {
-          "color": "rgba(255,0,255,0.7)"
-        },
-        "filterValues": {
-          "le": 0
-        },
+        "alignValue": "left",
         "legend": {
-          "show": true
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "rowsFrame": {
-          "layout": "unknown",
-          "value": "Worker count"
-        },
+        "mergeValues": true,
+        "perPage": 50,
+        "rowHeight": 0.9,
+        "showValue": "never",
         "tooltip": {
-          "mode": "multi",
-          "showColorScale": false,
-          "yHistogram": false
-        },
-        "yAxis": {
-          "axisPlacement": "left",
-          "decimals": 0,
-          "reverse": true,
-          "unit": "none"
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "11.4.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "VictoriaMetrics"
+          },
           "editorMode": "code",
-          "exemplar": false,
-          "expr": "sort_by_label(\n  count by (hpc_job) (group by (exported_pod, hpc_job) (DCGM_FI_DEV_GPU_TEMP{hpc_job=~\"$slurm_job\"})),\n  \"hpc_job\"\n)",
-          "instant": false,
-          "legendFormat": "__auto",
+          "expr": "with (\n    filters = { job_id=~\"$slurm_job\"},\n)\nsum by (job_id,)(\n  count by (job_id, job_name) (slurm_job_info{job_state=\"PENDING\", filters}) * 1 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"CONFIGURING\",filters}) * 2 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"RUNNING\", filters}) * 3 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"COMPLETING\", filters}) * 4 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"COMPLETED\", filters}) * 5 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"CANCELLED\", filters}) * 6 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"FAILED\", filters}) * 7 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"TIMEOUT\", filters}) * 8 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"PREEMPTED\", filters}) * 9 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"NODE_FAIL\", filters}) * 10 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"BOOT_FAIL\", filters}) * 11 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"DEADLINE\", filters}) * 12 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"OUT_OF_MEMORY\", filters}) * 13 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"REQUEUED\", filters}) * 14 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"RESIZING\", filters}) * 15 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"SUSPENDED\", filters}) * 16 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"STOPPED\", filters}) * 17 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"POWER_UP_NODE\", filters}) * 18 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"SIGNALING\", filters}) * 19 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"STAGE_OUT\", filters}) * 20 or\n  count by (job_id, job_name) (slurm_job_info{job_state=\"UPDATE_DB\", filters}) * 21\n)",
+          "format": "time_series",
+          "hide": false,
+          "legendFormat": "{{job_id}}",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "useCustomValues": false,
+          "useDashValues": false
         }
       ],
-      "title": "Job Timeline (for selected Jobs)",
-      "type": "heatmap"
+      "title": "Job State Timeline",
+      "type": "state-timeline"
     },
     {
       "collapsed": false,
@@ -884,7 +1187,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 23
       },
       "id": 356,
       "panels": [],
@@ -1004,7 +1307,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 16
+        "y": 24
       },
       "id": 357,
       "interval": "2m",
@@ -1016,6 +1319,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -1130,7 +1434,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 16
+        "y": 24
       },
       "id": 405,
       "options": {
@@ -1141,6 +1445,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -1177,191 +1482,6 @@
         }
       ],
       "title": "GPU Theoretical FLOPS",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "VictoriaMetrics"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "fixedColor": "blue",
-            "mode": "fixed"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 0,
-            "pointSize": 3,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "links": [],
-          "mappings": [],
-          "max": 1,
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "percentunit"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "max"
-            },
-            "properties": [
-              {
-                "id": "custom.fillBelowTo",
-                "value": "min"
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "avg"
-            },
-            "properties": [
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "dash": [10, 10],
-                  "fill": "dash"
-                }
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 1
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "min"
-            },
-            "properties": [
-              {
-                "id": "custom.fillOpacity",
-                "value": 0
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 0
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 16
-      },
-      "id": 360,
-      "interval": "2m",
-      "options": {
-        "legend": {
-          "calcs": ["lastNotNull"],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.4.0",
-      "targets": [
-        {
-          "datasource": {
-            "uid": "VictoriaMetrics"
-          },
-          "editorMode": "code",
-          "expr": "max(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}/(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}+DCGM_FI_DEV_FB_FREE{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}))",
-          "format": "time_series",
-          "hide": false,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "max",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "uid": "VictoriaMetrics"
-          },
-          "editorMode": "code",
-          "expr": "avg(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}/(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}+DCGM_FI_DEV_FB_FREE{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}))",
-          "format": "time_series",
-          "hide": false,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "avg",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "uid": "VictoriaMetrics"
-          },
-          "editorMode": "code",
-          "expr": "min(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}/(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}+DCGM_FI_DEV_FB_FREE{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}))",
-          "format": "time_series",
-          "hide": false,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "min",
-          "range": true,
-          "refId": "C"
-        }
-      ],
-      "title": "GPU Mem Utilization",
       "type": "timeseries"
     },
     {
@@ -1494,7 +1614,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 16
+        "y": 24
       },
       "id": 358,
       "interval": "2m",
@@ -1506,6 +1626,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -1670,7 +1791,7 @@
         "h": 7,
         "w": 8,
         "x": 0,
-        "y": 23
+        "y": 31
       },
       "id": 359,
       "interval": "2m",
@@ -1682,6 +1803,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -1728,6 +1850,344 @@
         }
       ],
       "title": "CPU Utilization",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "VictoriaMetrics"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 0,
+            "pointSize": 3,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "links": [],
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max"
+            },
+            "properties": [
+              {
+                "id": "custom.fillBelowTo",
+                "value": "min"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [10, 10],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "min"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 31
+      },
+      "id": 360,
+      "interval": "2m",
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "expr": "max(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}/(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}+DCGM_FI_DEV_FB_FREE{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}))",
+          "format": "time_series",
+          "hide": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "max",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "expr": "avg(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}/(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}+DCGM_FI_DEV_FB_FREE{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}))",
+          "format": "time_series",
+          "hide": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "avg",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "expr": "min(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}/(DCGM_FI_DEV_FB_USED{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}+DCGM_FI_DEV_FB_FREE{exported_pod=~\"$worker\",hpc_job=~\"$slurm_job\"}))",
+          "format": "time_series",
+          "hide": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "min",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "GPU Mem Utilization",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "VictoriaMetrics"
+      },
+      "description": "Sum of Tx and Rx for all selected Workers ",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 3,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "Bps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/Rx.*/"
+            },
+            "properties": [
+              {
+                "id": "custom.transform",
+                "value": "negative-Y"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "shades"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/Tx.*/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "light-red",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 31
+      },
+      "id": 362,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "expr": "sum(\n  rate(node_infiniband_port_data_transmitted_bytes_total{instance=~\"$ip\"}[$__interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(hpc_job) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{hpc_job=~\"$slurm_job\"}, \"Hostname\", \"nodename\")), 1, 1)\n)",
+          "format": "time_series",
+          "hide": false,
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "Tx",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "uid": "VictoriaMetrics"
+          },
+          "editorMode": "code",
+          "expr": "sum(\n  rate(node_infiniband_port_data_received_bytes_total{instance=~\"$ip\"}[$__interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(hpc_job) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{hpc_job=~\"$slurm_job\"}, \"Hostname\", \"nodename\")), 1, 1)\n)",
+          "format": "time_series",
+          "hide": false,
+          "instant": false,
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "Rx {{pod}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Infiniband Throughput",
       "type": "timeseries"
     },
     {
@@ -1850,7 +2310,7 @@
         "h": 7,
         "w": 8,
         "x": 8,
-        "y": 23
+        "y": 38
       },
       "id": 361,
       "interval": "2m",
@@ -1862,6 +2322,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -1915,163 +2376,12 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "VictoriaMetrics"
-      },
-      "description": "Sum of Tx and Rx for all selected Workers ",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 1,
-            "pointSize": 3,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "Bps"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/Rx.*/"
-            },
-            "properties": [
-              {
-                "id": "custom.transform",
-                "value": "negative-Y"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "blue",
-                  "mode": "shades"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/Tx.*/"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "light-red",
-                  "mode": "shades"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 23
-      },
-      "id": 362,
-      "interval": "1m",
-      "options": {
-        "legend": {
-          "calcs": ["lastNotNull"],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.4.0",
-      "targets": [
-        {
-          "datasource": {
-            "uid": "VictoriaMetrics"
-          },
-          "editorMode": "code",
-          "expr": "sum(\n  rate(node_infiniband_port_data_transmitted_bytes_total{instance=~\"$ip\"}[$__interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(hpc_job) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{hpc_job=~\"$slurm_job\"}, \"Hostname\", \"nodename\")), 1, 1)\n)",
-          "format": "time_series",
-          "hide": false,
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "Tx",
-          "range": true,
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "uid": "VictoriaMetrics"
-          },
-          "editorMode": "code",
-          "expr": "sum(\n  rate(node_infiniband_port_data_received_bytes_total{instance=~\"$ip\"}[$__interval])\n  * on(instance) group_left(nodename) node_uname_info\n  * on(nodename) group_left(hpc_job) clamp(count by (nodename, hpc_job) (label_move(DCGM_FI_DEV_GPU_TEMP{hpc_job=~\"$slurm_job\"}, \"Hostname\", \"nodename\")), 1, 1)\n)",
-          "format": "time_series",
-          "hide": false,
-          "instant": false,
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "Rx {{pod}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Infiniband Throughput",
-      "type": "timeseries"
-    },
-    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 30
+        "y": 45
       },
       "id": 369,
       "panels": [],
@@ -2146,7 +2456,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 31
+        "y": 46
       },
       "id": 370,
       "interval": "2m",
@@ -2158,6 +2468,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -2247,7 +2558,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 31
+        "y": 46
       },
       "id": 371,
       "interval": "2m",
@@ -2259,6 +2570,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -2350,7 +2662,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 31
+        "y": 46
       },
       "id": 372,
       "interval": "2m",
@@ -2362,6 +2674,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -2448,7 +2761,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 39
+        "y": 54
       },
       "id": 373,
       "interval": "2m",
@@ -2460,6 +2773,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -2549,7 +2863,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 39
+        "y": 54
       },
       "id": 374,
       "interval": "2m",
@@ -2561,6 +2875,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -2663,7 +2978,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 39
+        "y": 54
       },
       "id": 375,
       "interval": "2m",
@@ -2675,6 +2990,7 @@
           "showLegend": false
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
         }
@@ -2725,8 +3041,8 @@
       },
       {
         "current": {
-          "text": ["1000", "1001"],
-          "value": ["1000", "1001"]
+          "text": ["102"],
+          "value": ["102"]
         },
         "definition": "query_result(count by (job_id) (slurm_job_info{user_name!=\"soperatorchecks\"}))",
         "description": "",
@@ -2748,7 +3064,7 @@
       {
         "current": {
           "text": "All",
-          "value": ["$__all"]
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
