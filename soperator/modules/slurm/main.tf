@@ -5,76 +5,26 @@ resource "terraform_data" "wait_for_slurm_cluster_hr" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command     = <<-EOF
-      set -e
+    command = templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
+      k8s_cluster_context = var.k8s_cluster_context
+      helmrelease_name    = "flux-system-soperator-fluxcd-slurm-cluster"
+      timeout_minutes     = 60
+    })
+  }
+}
 
-      CONTEXT="${var.k8s_cluster_context}"
-      NAMESPACE="flux-system"
-      HELMRELEASE_NAME="flux-system-soperator-fluxcd-slurm-cluster"
-      TIMEOUT_MINUTES=60
-      MAX_RETRIES=$((TIMEOUT_MINUTES * 12))  # Check every 5 seconds
-      SLEEP_SECONDS=5
+resource "terraform_data" "wait_for_soperator_activechecks_hr" {
+  depends_on = [
+    helm_release.flux2_sync,
+  ]
 
-      echo "Waiting for HelmRelease CRD to be available..."
-      for i in $(seq 1 $MAX_RETRIES); do
-        if kubectl get crd helmreleases.helm.toolkit.fluxcd.io --context "$CONTEXT" 2>/dev/null; then
-          echo "HelmRelease CRD is available."
-          break
-        fi
-
-        if [ $i -eq $MAX_RETRIES ]; then
-          echo "Timeout reached waiting for HelmRelease CRD."
-          exit 1
-        fi
-
-        echo "($i/$MAX_RETRIES) Waiting for HelmRelease CRD..."
-        sleep "$SLEEP_SECONDS"
-      done
-
-      echo "Waiting for HelmRelease $HELMRELEASE_NAME to be created..."
-      for i in $(seq 1 $MAX_RETRIES); do
-        if kubectl get helmreleases.helm.toolkit.fluxcd.io "$HELMRELEASE_NAME" -n "$NAMESPACE" --context "$CONTEXT" 2>/dev/null; then
-          echo "HelmRelease $HELMRELEASE_NAME exists."
-          break
-        fi
-
-        if [ $i -eq $MAX_RETRIES ]; then
-          echo "Timeout reached waiting for HelmRelease $HELMRELEASE_NAME to be created."
-          exit 1
-        fi
-
-        echo "($i/$MAX_RETRIES) Waiting for HelmRelease $HELMRELEASE_NAME to be created..."
-        sleep "$SLEEP_SECONDS"
-      done
-
-      echo "Waiting for HelmRelease $HELMRELEASE_NAME to be successfully installed..."
-      for i in $(seq 1 $MAX_RETRIES); do
-        # Check if the HelmRelease is in the "Released" state
-        RELEASE_STATUS=$(kubectl get helmreleases.helm.toolkit.fluxcd.io "$HELMRELEASE_NAME" -n "$NAMESPACE" --context "$CONTEXT" -o jsonpath='{.status.conditions[?(@.type=="Released")]}' 2>/dev/null)
-        
-        if [ -n "$RELEASE_STATUS" ]; then
-          RELEASE_STATUS_REASON=$(echo "$RELEASE_STATUS" | jq -r '.reason')
-          RELEASE_STATUS_STATUS=$(echo "$RELEASE_STATUS" | jq -r '.status')
-          
-          if [ "$RELEASE_STATUS_REASON" == "InstallSucceeded" ] && [ "$RELEASE_STATUS_STATUS" == "True" ]; then
-            echo "HelmRelease $HELMRELEASE_NAME has been successfully installed."
-            echo "Details:"
-            echo "$RELEASE_STATUS" | jq .
-            exit 0
-          fi
-        fi
-
-        if [ $i -eq $MAX_RETRIES ]; then
-          echo "Timeout reached waiting for HelmRelease $HELMRELEASE_NAME to be successfully installed."
-          echo "Current status:"
-          kubectl get helmreleases.helm.toolkit.fluxcd.io "$HELMRELEASE_NAME" -n "$NAMESPACE" --context "$CONTEXT" -o yaml
-          exit 1
-        fi
-
-        echo "($i/$MAX_RETRIES) Waiting for HelmRelease $HELMRELEASE_NAME to be successfully installed..."
-        sleep "$SLEEP_SECONDS"
-      done
-    EOF
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command = templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
+      k8s_cluster_context = var.k8s_cluster_context
+      helmrelease_name    = "flux-system-soperator-fluxcd-soperator-activechecks"
+      timeout_minutes     = 120
+    })
   }
 }
 
@@ -107,13 +57,20 @@ resource "helm_release" "soperator_fluxcd_cm" {
   namespace  = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/helm_values/terraform_fluxcd_values.yaml.tftpl", {
+    soperator_active_checks_override_block = indent(12, local.soperator_activechecks_override_yaml)
+
     backups_enabled    = var.backups_enabled
     telemetry_enabled  = var.telemetry_enabled
     accounting_enabled = var.accounting_enabled
+    iam_tenant_id      = var.iam_tenant_id
     iam_project_id     = var.iam_project_id
+
+    soperator_helm_repo = local.helm.repository.slurm
+    soperator_image_repo = local.image.repository
 
     dcgm_job_mapping_enabled = var.dcgm_job_mapping_enabled
 
+    tailscale_enabled       = var.tailscale_enabled
     apparmor_enabled        = var.use_default_apparmor_profile
     enable_soperator_checks = var.enable_soperator_checks
 
@@ -128,6 +85,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     vmstack_crds_version               = var.vmstack_crds_version
     vmlogs_version                     = var.vmlogs_version
     dcgm_job_map_dir                   = var.dcgm_job_map_dir
+    notifier                           = var.soperator_notifier
 
     name                = var.name
     cluster_name        = var.cluster_name
@@ -169,6 +127,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
         slurm_raw_config  = var.slurm_partition_raw_config
       }
 
+      use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
+
       slurm_worker_features     = var.slurm_worker_features
       slurm_health_check_config = var.slurm_health_check_config
 
@@ -182,15 +142,10 @@ resource "helm_release" "soperator_fluxcd_cm" {
         mount_path = submount.mount_path
       }]
 
-      nfs = var.nfs
+      controller_state_on_filestore = var.controller_state_on_filestore
 
-      nccl_topology_type = var.nccl_topology_type
-      nccl_benchmark = {
-        enable         = var.nccl_benchmark_enable
-        schedule       = var.nccl_benchmark_schedule
-        min_threshold  = var.nccl_benchmark_min_threshold
-        use_infiniband = var.nccl_use_infiniband
-      }
+      nfs        = var.nfs
+      nfs_in_k8s = var.nfs_in_k8s
 
       nodes = {
         accounting = {
@@ -214,9 +169,9 @@ resource "helm_release" "soperator_fluxcd_cm" {
         controller = {
           size = var.node_count.controller
           resources = {
-            cpu               = var.resources.controller.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu
-            memory            = var.resources.controller.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory
-            ephemeral_storage = var.resources.controller.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage
+            cpu               = floor(var.resources.controller.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
+            memory            = floor(var.resources.controller.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory)
+            ephemeral_storage = floor(var.resources.controller.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
           }
         }
 
@@ -238,6 +193,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
           allocation_id            = var.login_allocation_id
           sshd_config_map_ref_name = var.login_sshd_config_map_ref_name
           root_public_keys         = var.login_ssh_root_public_keys
+          public_ip                = var.login_public_ip
           resources = {
             cpu               = floor(var.resources.login.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
             memory            = floor(var.resources.login.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory)
@@ -278,16 +234,20 @@ resource "helm_release" "soperator_fluxcd_cm" {
     }
 
     resources = {
-      vm_single         = var.resources_vm_single
-      vm_agent          = var.resources_vm_agent
-      vm_logs           = var.resources_vm_logs_server
-      logs_collector    = var.resources_logs_collector
-      events_collector  = var.resources_events_collector
-      node_configurator = local.resources.node_configurator
-      slurm_operator    = local.resources.slurm_operator
-      slurm_checks      = local.resources.slurm_checks
-      dcgm_exporter     = local.resources.dcgm_exporter
+      vm_single           = var.resources_vm_single
+      vm_agent            = var.resources_vm_agent
+      vm_logs             = var.resources_vm_logs_server
+      logs_collector      = var.resources_logs_collector
+      jail_logs_collector = var.resources_jail_logs_collector
+      events_collector    = var.resources_events_collector
+      node_configurator   = local.resources.node_configurator
+      slurm_operator      = local.resources.slurm_operator
+      slurm_checks        = local.resources.slurm_checks
+      dcgm_exporter       = local.resources.dcgm_exporter
+      nfs_server          = local.resources.nfs_server
     }
+
+    vm_agent_queue_count = local.vm_agent_queue_count
 
   })]
 }
@@ -310,8 +270,8 @@ resource "helm_release" "flux2_sync" {
   }
 
   set {
-    name  = "gitRepository.spec.ref.branch"
-    value = var.github_branch
+    name  = "gitRepository.spec.ref.${var.github_ref_type}"
+    value = var.github_ref_value
   }
 
   set {
@@ -346,6 +306,20 @@ resource "helm_release" "soperator_fluxcd_ad_hoc_cm" {
   namespace  = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/helm_values/soperator_fluxcd.yaml.tftpl", {})]
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+resource "helm_release" "cm_terraform_soperator_activechecks" {
+  name       = "terraform-soperator-activechecks"
+  repository = local.helm.repository.raw
+  chart      = local.helm.chart.raw
+  version    = local.helm.version.raw
+  namespace  = var.flux_namespace
+
+  values = [templatefile("${path.module}/templates/helm_values/cm_terraform_soperator_activechecks.yaml.tftpl", {})]
 
   lifecycle {
     ignore_changes = all

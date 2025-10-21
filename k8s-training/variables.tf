@@ -32,6 +32,12 @@ variable "etcd_cluster_size" {
   default     = 3
 }
 
+variable "enable_egress_gateway" {
+  description = "Enable Cilium Egress Gateway."
+  type        = bool
+  default     = false
+}
+
 # K8s filestore
 variable "enable_filestore" {
   description = "Use Filestore."
@@ -48,7 +54,7 @@ variable "filestore_disk_type" {
 variable "filestore_disk_size" {
   description = "Filestore disk size in bytes."
   type        = number
-  default     = 1073741824
+  default     = 1 * 1024 * 1024 * 1024 # 1 GiB
 }
 
 variable "filestore_block_size" {
@@ -151,6 +157,12 @@ variable "gpu_disk_size" {
   default     = "1023"
 }
 
+variable "enable_gpu_cluster" {
+  description = "Infiniband's fabric name."
+  type        = bool
+  default     = true
+}
+
 variable "infiniband_fabric" {
   description = "Infiniband's fabric name."
   type        = string
@@ -243,4 +255,22 @@ variable "mig_strategy" {
   description = "MIG strategy for GPU operator"
   type        = string
   default     = null
+}
+
+variable "cpu_nodes_preemptible" {
+  description = "Whether the cpu nodes should be preemptible"
+  type        = bool
+  default     = false
+}
+
+variable "gpu_nodes_preemptible" {
+  description = "Use preemptible VMs for GPU nodes"
+  type        = bool
+  default     = false
+}
+
+variable "gpu_health_cheker" {
+  description = "Use preemptible VMs for GPU nodes"
+  type        = bool
+  default     = true
 }

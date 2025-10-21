@@ -240,8 +240,8 @@ To access Grafana:
     Add your SA to the `editors` group
    with `nebius iam group-membership create --parent-id <group-id> --member-id <sa-id>` \
 3. Create access key and get its credentials: \
-    `nebius iam access-key create --account-service-account-id <SA-ID> --description 'AWS CLI' --format json` \
-    `nebius iam access-key get-by-aws-id --aws-access-key-id <AWS-KEY-ID-FROM-PREVIOUS-COMMAND> --view secret --format json` \
+    `nebius iam v2 access-key create --account-service-account-id <SA-ID> --description 'AWS CLI' --format json` \
+    `nebius iam v2 access-key get-by-aws-id --aws-access-key-id <AWS-KEY-ID-FROM-PREVIOUS-COMMAND> --format json` \
 
 4. Update `loki_access_key_id` and `loki_secret_key` in `terraform.tfvars` with the result of the previous command.
 

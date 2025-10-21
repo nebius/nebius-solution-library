@@ -89,6 +89,7 @@ You can offload storage creation to the Terraform script instead, but it will be
 > [!NOTE] 
 > - For storage > 2 TiB: Contact Nebius Support (in the web console) to enable multitablet functionality
 > - Note down the filesystem ID for your terraform configuration
+> - **Attaching an existing filesystem as a Jail will cause the cluster to overwrite data. Use submounts to avoid this behavior!**
 > ![Create Filesystem 2](imgs/create_fs_3.png)
 
 ### 5. Configure Your Cluster

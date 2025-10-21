@@ -94,24 +94,24 @@ else
   # Linux (assumes GNU date)
   EXPIRATION_DATE=$(date -d '+1 day' "${DATE_FORMAT}")
 fi
-NEBIUS_SA_ACCESS_KEY_ID=$(nebius iam access-key create \
+NEBIUS_SA_ACCESS_KEY_ID=$(nebius iam v2 access-key create \
   --parent-id "${NEBIUS_PROJECT_ID}" \
   --name "wireguard-tfstate-$(date +%s)" \
   --account-service-account-id "${NEBIUS_SA_ID}" \
   --description 'Temporary Object Storage Access for Terraform' \
   --expires-at "${EXPIRATION_DATE}" \
   --format json \
-  | jq -r '.resource_id')
+  | jq -r '.metadata.id')
 echo "Created new access key: ${NEBIUS_SA_ACCESS_KEY_ID}"
 
 # AWS-compatible access key
-export AWS_ACCESS_KEY_ID=$(nebius iam access-key get-by-id \
+export AWS_ACCESS_KEY_ID=$(nebius iam v2 access-key get \
   --id "${NEBIUS_SA_ACCESS_KEY_ID}" \
   --format json | jq -r '.status.aws_access_key_id')
-export AWS_SECRET_ACCESS_KEY=$(nebius iam access-key get-secret-once \
+export AWS_SECRET_ACCESS_KEY=$(nebius iam v2 access-key get \
   --id "${NEBIUS_SA_ACCESS_KEY_ID}" \
   --format json \
-  | jq -r '.secret')
+  | jq -r '.status.secret')
 
 # Use Objext Storage as Terraform backend
 cat > terraform_backend_override.tf << EOF

@@ -1,4 +1,9 @@
 # Kubernetes Master parameters
+variable "tenant_id" {
+  description = "Tenant ID."
+  type        = string
+}
+
 variable "parent_id" {
   description = "The ID of the folder that the Kubernetes cluster belongs to."
   type        = string
@@ -32,8 +37,6 @@ variable "o11y" {
       enabled            = optional(bool, true)
       region             = string
       replication_factor = optional(number)
-      aws_access_key_id  = string
-      secret_key         = string
     })),
     prometheus = optional(object({
       enabled       = optional(bool, true)
@@ -43,11 +46,6 @@ variable "o11y" {
   })
   description = "Configuration of observability stack."
   default     = {}
-
-  validation {
-    condition     = var.o11y.loki.enabled ? (var.o11y.loki.aws_access_key_id != "" && var.o11y.loki.secret_key != "") : true
-    error_message = "aws_access_key_id and secret_key must be set if Loki enabled ${jsonencode(var.o11y.loki)}"
-  }
 }
 
 variable "test_mode" {

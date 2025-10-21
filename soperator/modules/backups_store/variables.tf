@@ -8,3 +8,8 @@ variable "instance_name" {
   type        = string
 }
 
+variable "cleanup_bucket_on_destroy" {
+  description = "Whether to delete on destroy all backup data from bucket or not"
+  type        = bool
+}
+

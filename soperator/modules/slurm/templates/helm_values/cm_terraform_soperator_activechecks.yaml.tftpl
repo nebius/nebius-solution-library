@@ -1,0 +1,9 @@
+resources:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: terraform-soperator-activechecks
+    data:
+      values.yaml: |
+        ensureDirSnccldLogs:
+          enabled: true

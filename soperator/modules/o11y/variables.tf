@@ -1,9 +1,3 @@
-variable "region" {
-  description = "Region of the project."
-  type        = string
-  nullable    = false
-}
-
 variable "company_name" {
   description = "Name of the company."
   type        = string
@@ -21,14 +15,8 @@ variable "o11y_iam_tenant_id" {
   nullable    = false
 }
 
-variable "o11y_iam_project_id" {
-  description = "Project id for o11y."
-  type        = string
-  nullable    = false
-}
-
-variable "o11y_iam_group_id" {
-  description = "Group id for o11y."
+variable "iam_project_id" {
+  description = "ID of the IAM project of slurm cluster (not o11y)."
   type        = string
   nullable    = false
 }
@@ -54,4 +42,10 @@ variable "o11y_profile" {
   description = "Profile for nebius CLI for o11y."
   type        = string
   nullable    = false
+}
+
+variable "opentelemetry_collector_cm" {
+  description = "Configmap name for opentelemetry collector values"
+  type        = string
+  default     = "terraform-opentelemetry-collector"
 }

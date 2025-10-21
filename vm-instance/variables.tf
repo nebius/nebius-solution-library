@@ -96,16 +96,16 @@ variable "extra_storage_size_gb" {
   description = "size of the newly created extra storage"
 }
 
+variable "boot_disk_size_gb" {
+  type        = number
+  default     = 500
+  description = "size of boot disk"
+}
+
 variable "public_ip" {
   type        = bool
   default     = true
   description = "attach a public ip to the vm if true"
-}
-
-variable "create_public_ip_for_all_instances" {
-  type        = bool
-  default     = false
-  description = "attach a public ip to all vms if true"
 }
 
 variable "mount_bucket" {
@@ -136,4 +136,9 @@ variable "fabric" {
   type        = string
   description = "if provided, will create gpu cluster in this fabric for all vms"
   default     = ""
+}
+variable "preemptible" {
+  description = "Whether the VM should be preemptible"
+  type        = bool
+  default     = false
 }

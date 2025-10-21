@@ -1,9 +1,9 @@
 locals {
   resources = {
-    grafana                             = var.o11y.prometheus.enabled ? { kind = "Deployment" } : null
-    prometheus-server                   = var.o11y.prometheus.enabled ? { kind = "Deployment" } : null
-    prometheus-prometheus-node-exporter = var.o11y.prometheus.enabled ? { kind = "DaemonSet" } : null
-    promtail                            = var.o11y.loki.enabled ? { kind = "DaemonSet" } : null
+    # grafana                             = var.o11y.prometheus.enabled ? { kind = "Deployment" } : null
+    # prometheus-server                   = var.o11y.prometheus.enabled ? { kind = "Deployment" } : null
+    # prometheus-prometheus-node-exporter = var.o11y.prometheus.enabled ? { kind = "DaemonSet" } : null
+    promtail = var.o11y.loki.enabled ? { kind = "DaemonSet" } : null
   }
 }
 

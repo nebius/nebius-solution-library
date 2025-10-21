@@ -25,7 +25,12 @@ company_name = ""
 #----------------------------------------------------------------------------------------------------------------------#
 # region Storage
 
+# Whether to store the controller state on filestore or network SSD.
+controller_state_on_filestore = false
+
 # Shared filesystem to be used on controller nodes.
+# Deprecated: Starting with version 1.22, this variable isn't used, as controller state is stored on network SSD disks.
+# Remains for the backward compatibility.
 # ---
 filestore_controller_spool = {
   spec = {
@@ -59,7 +64,7 @@ filestore_jail = {
   }
 }
 
-# Additional (Optional) shared filesystems to be mounted inside jail.
+# Additional shared filesystems to be mounted inside jail.
 # If a big filesystem is needed it's better to deploy this additional storage because jails bigger than 12 TiB
 # ARE NOT BACKED UP by default.
 # ---
@@ -136,15 +141,20 @@ filestore_accounting = {
 
 # region nfs-server
 
-nfs = {
+# nfs = {
+#   enabled        = false
+#   size_gibibytes = 3720
+#   mount_path     = "/home"
+#   resource = {
+#     platform = "cpu-d3"
+#     preset   = "32vcpu-128gb"
+#   }
+#   public_ip = false
+# }
+
+nfs_in_k8s = {
   enabled        = true
   size_gibibytes = 3720
-  mount_path     = "/home"
-  resource = {
-    platform = "cpu-d3"
-    preset   = "32vcpu-128gb"
-  }
-  public_ip = false
 }
 
 # endregion nfs-server
@@ -160,7 +170,7 @@ nfs = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.21.1"
+slurm_operator_version = "1.22.1"
 
 # Is the version of soperator stable or not.
 # ---
@@ -170,7 +180,6 @@ slurm_operator_stable = true
 # By default, "default".
 # ---
 slurm_partition_config_type = "default"
-
 # Partition config in case of `custom` slurm_partition_config_type.
 # Each string must be started with `PartitionName`.
 # By default, empty list.
@@ -274,6 +283,8 @@ slurm_nodeset_workers = [{
   size                    = 16
   nodes_per_nodegroup     = 4
   max_unavailable_percent = 50
+  # max_surge_percent       = 50
+  # drain_timeout           = "10s"
   resource = {
     platform = "gpu-h100-sxm"
     preset   = "8gpu-128vcpu-1600gb"
@@ -286,7 +297,12 @@ slurm_nodeset_workers = [{
   gpu_cluster = {
     infiniband_fabric = ""
   }
+  # Change to preemptible = {} in case you want to use preemptible nodes
+  preemptible = null
 }]
+
+# Driverfull mode is used to run Slurm jobs with GPU drivers installed on the worker nodes.
+use_preinstalled_gpu_drivers = true
 
 # Configuration of Slurm Login node set.
 # ---
@@ -324,6 +340,16 @@ slurm_nodeset_accounting = {
 #----------------------------------------------------------------------------------------------------------------------#
 # region Login
 
+# Public or private ip for login node load balancer
+# By default, true (public).
+# ---
+slurm_login_public_ip = true
+
+# Whether to enable Tailscale init container on login pod.
+# By default, false
+# ---
+tailscale_enabled = false
+
 # Authorized keys accepted for connecting to Slurm login nodes via SSH as 'root' user.
 # ---
 slurm_login_ssh_root_public_keys = [
@@ -340,9 +366,24 @@ slurm_login_ssh_root_public_keys = [
 # Whether to enable Slurm metrics exporter.
 # By default, true.
 # ---
-slurm_exporter_enabled = false
+slurm_exporter_enabled = true
 
 # endregion Exporter
+
+#----------------------------------------------------------------------------------------------------------------------#
+#                                                      ActiveChecks                                                    #
+#----------------------------------------------------------------------------------------------------------------------#
+# region ActiveChecks
+
+# Scope of active checks. Defines what active checks should be checked during cluster bootstrap.
+# By default, prod.
+# All values: prod, dev, testing.
+# Defaults of the chart: https://github.com/nebius/soperator/blob/1a8e7e322a3dc84974b4f25890e26f8e19c20eb6/helm/soperator-activechecks/values.yaml#L28
+# Defaults override: https://github.com/nebius/nebius-solutions-library/blob/9e971de4d85aeb2799e71a163ed47c8480878314/soperator/modules/slurm/locals_active_checks.tf
+# ---
+active_checks_scope = "prod"
+
+# endregion ActiveChecks
 
 # endregion Nodes
 
@@ -359,37 +400,6 @@ slurm_exporter_enabled = false
 slurm_shared_memory_size_gibibytes = 1024
 
 # endregion Config
-
-#----------------------------------------------------------------------------------------------------------------------#
-#                                                                                                                      #
-#                                                    NCCL benchmark                                                    #
-#                                                                                                                      #
-#----------------------------------------------------------------------------------------------------------------------#
-# region NCCL benchmark
-
-# Whether to enable NCCL benchmark CronJob to benchmark GPU performance.
-# It won't take effect in case of 1-GPU hosts.
-# By default, false.
-# ---
-nccl_benchmark_enable = false
-
-# NCCL benchmark's CronJob schedule.
-# By default, `0 */3 * * *` - every 3 hour.
-# ---
-nccl_benchmark_schedule = "0 */3 * * *"
-
-# Minimal threshold of NCCL benchmark for GPU performance to be considered as acceptable.
-# By default, 420.
-# ---
-nccl_benchmark_min_threshold = 420
-
-# Use infiniband defines using NCCL_P2P_DISABLE=1 NCCL_SHM_DISABLE=1 NCCL_ALGO=Ring env variables for test.
-# By default, false
-# ---
-nccl_use_infiniband = false
-
-# endregion NCCL benchmark
-
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                                       Telemetry                                                      #
@@ -406,6 +416,16 @@ telemetry_enabled = true
 # By default, true.
 # ---
 dcgm_job_mapping_enabled = true
+
+# Configuration of the Soperator Notifier (https://github.com/nebius/soperator/tree/main/helm/soperator-notifier).
+# ---
+# soperator_notifier = {
+#   enabled           = true
+#   slack_webhook_url = "https://hooks.slack.com/services/X/Y/Z"
+# }
+soperator_notifier = {
+  enabled = false
+}
 
 public_o11y_enabled = true
 
@@ -465,6 +485,9 @@ backups_retention = {
   keepDaily = 7
 }
 
+# Whether to delete on destroy all backup data from bucket or not.
+cleanup_bucket_on_destroy = false
+
 # endregion Backups
 
 #----------------------------------------------------------------------------------------------------------------------#
@@ -477,7 +500,7 @@ backups_retention = {
 # Version of the k8s to be used.
 # Set to null or don't set to use Nebius default (recommended), or specify explicitly
 # ---
-# k8s_version = 1.30
+k8s_version = 1.31
 
 # SSH user credentials for accessing k8s nodes.
 # That option add public ip address to every node.

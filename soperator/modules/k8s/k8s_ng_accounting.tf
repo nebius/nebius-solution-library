@@ -80,6 +80,8 @@ resource "nebius_mk8s_v1_node_group" "accounting" {
       subnet_id         = var.vpc_subnet_id
     }]
 
+    os = "ubuntu24.04"
+
     cloud_init_user_data = local.node_ssh_access.enabled ? local.node_ssh_access.cloud_init_data : null
   }
 

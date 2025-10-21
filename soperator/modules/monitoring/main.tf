@@ -18,6 +18,7 @@ resource "helm_release" "dashboard" {
     jobs_overview          = "jobs-overview"
     workers_overview       = "workers-overview"
     workers_detailed_stats = "workers-detailed-stats"
+    nfs_server             = "nfs-server"
   })
 
   name       = "${var.slurm_cluster_name}-grafana-dashboard-${each.value}"
@@ -39,7 +40,8 @@ resource "helm_release" "dashboard" {
         }
       }
       data = {
-        "${each.value}.json" = file("${path.module}/templates/dashboards/${each.key}.json")
+        # sensitive() to exclude the big JSON from change output in plan/apply
+        "${each.value}.json" = sensitive(file("${path.module}/templates/dashboards/${each.key}.json"))
       }
     }]
   })]

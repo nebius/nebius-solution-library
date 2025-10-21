@@ -14,6 +14,11 @@ variable "operator_stable" {
   default     = true
 }
 
+variable "iam_tenant_id" {
+  description = "ID of the IAM tenant."
+  type        = string
+}
+
 variable "iam_project_id" {
   description = "ID of the IAM project."
   type        = string
@@ -126,7 +131,7 @@ variable "resources" {
   # TODO: remove when node sets are supported
   validation {
     condition     = length(var.resources.worker) == 1
-    error_message = "Only one worker node is supported."
+    error_message = "Only one worker nodeset is supported."
   }
 }
 
@@ -158,6 +163,18 @@ variable "login_allocation_id" {
   type        = string
   nullable    = true
   default     = null
+}
+
+variable "login_public_ip" {
+  description = "Public or private ip for login node load balancer"
+  type    = bool
+  default = true
+}
+
+variable "tailscale_enabled" {
+  description = "Whether to enable tailscale init container on login pod"
+  type        = bool
+  default     = false
 }
 
 variable "login_sshd_config_map_ref_name" {
@@ -224,6 +241,11 @@ variable "filestores" {
 # endregion Filestore
 
 # region Disks
+variable "controller_state_on_filestore" {
+  description = "Whether to use filestore for controller node storage (when true) or PVC (when false)."
+  type        = bool
+  default     = false
+}
 
 variable "node_local_jail_submounts" {
   description = "Node-local disks to be mounted inside jail."
@@ -276,6 +298,44 @@ variable "nfs" {
   }
 }
 
+variable "nfs_in_k8s" {
+  type = object({
+    enabled        = bool
+    size_gibibytes = optional(number)
+    storage_class  = optional(string, "compute-csi-network-ssd-io-m3-ext4")
+  })
+  default = {
+    enabled       = false
+  }
+
+  validation {
+    condition     = var.nfs_in_k8s.enabled ? var.nfs_in_k8s.size_gibibytes != null : true
+    error_message = "NFS size_gibibytes must be set."
+  }
+
+  validation {
+    condition     = var.nfs_in_k8s.enabled ? var.nfs.enabled == false : true
+    error_message = "Only one of nfs or nfs_in_k8s should be set."
+  }
+
+  validation {
+    condition = (
+      (
+        var.nfs_in_k8s.enabled &&
+        var.nfs_in_k8s.storage_class == "compute-csi-network-ssd-io-m3-ext4" &&
+        var.nfs_in_k8s.size_gibibytes != null
+      )
+      ?
+      (
+        var.nfs_in_k8s.size_gibibytes % 93 == 0 &&
+        var.nfs_in_k8s.size_gibibytes <= 262074
+      )
+      : true
+    )
+    error_message = "NFS size must be a multiple of 93 GiB and maximum value is 262074 GiB"
+  }
+}
+
 # endregion nfs-server
 
 # region Config
@@ -287,44 +347,6 @@ variable "shared_memory_size_gibibytes" {
 }
 
 # endregion Config
-
-# region NCCLSettings
-
-variable "nccl_topology_type" {
-  description = "NCCL topology type."
-  type        = string
-  default     = "auto"
-}
-
-# endregion NCCLSettings
-
-# region NCCLBenchmark
-
-variable "nccl_benchmark_enable" {
-  description = "Whether to enable NCCL benchmark CronJob to benchmark GPU performance. It won't take effect in case of 1-GPU hosts."
-  type        = bool
-  default     = false
-}
-
-variable "nccl_benchmark_schedule" {
-  description = "NCCL benchmark's CronJob schedule."
-  type        = string
-  default     = "0 */3 * * *"
-}
-
-variable "nccl_benchmark_min_threshold" {
-  description = "Minimal threshold of NCCL benchmark for GPU performance to be considered as acceptable."
-  type        = number
-  default     = 45
-}
-
-variable "nccl_use_infiniband" {
-  description = "Use infiniband defines using NCCL_P2P_DISABLE=1 NCCL_SHM_DISABLE=1 NCCL_ALGO=Ring env variables for test."
-  type        = bool
-  default     = true
-}
-
-# endregion NCCLBenchmark
 
 # region Telemetry
 
@@ -349,12 +371,6 @@ variable "dcgm_job_map_dir" {
 # endregion Telemetry
 
 # region Accounting
-
-variable "mariadb_operator_namespace" {
-  description = "Namespace for MariaDB operator."
-  type        = string
-  default     = "mariadb-operator-system"
-}
 
 variable "accounting_enabled" {
   description = "Whether to enable accounting."
@@ -443,6 +459,18 @@ variable "public_o11y_enabled" {
   default     = true
 }
 
+variable "soperator_notifier" {
+  description = "Configuration of the Soperator Notifier (https://github.com/nebius/soperator/tree/main/helm/soperator-notifier)."
+  type = object({
+    enabled           = bool
+    slack_webhook_url = optional(string)
+  })
+  default = {
+    enabled = false
+  }
+  nullable = false
+}
+
 variable "create_pvcs" {
   description = "Whether to create PVCs. Uses emptyDir if false."
   type        = bool
@@ -495,8 +523,8 @@ variable "resources_vm_agent" {
     cpu    = string
   })
   default = {
-    memory = "4Gi"
-    cpu    = "2000m"
+    memory = "10Gi"
+    cpu    = "5000m"
   }
 }
 
@@ -520,6 +548,17 @@ variable "resources_logs_collector" {
   default = {
     memory = "200Mi"
     cpu    = "200m"
+  }
+}
+
+variable "resources_jail_logs_collector" {
+  type = object({
+    memory = string
+    cpu    = string
+  })
+  default = {
+    memory = "1Gi"
+    cpu    = "1000m"
   }
 }
 
@@ -574,11 +613,17 @@ variable "github_repository" {
   default     = "soperator"
 }
 
-variable "github_branch" {
-  description = "The GitHub branch."
+variable "github_ref_type" {
+  description = "The GitHub ref type (branch, tag, etc.)."
   type        = string
-  default     = "dev"
+  default     = "branch"
 }
+variable "github_ref_value" {
+  description = "The GitHub ref value (main, v1.22.0, etc.)."
+  type        = string
+  default     = "main"
+}
+
 variable "flux_interval" {
   description = "The interval for Flux to check for changes."
   type        = string
@@ -662,3 +707,21 @@ variable "region" {
   type        = string
   default     = "eu-north1"
 }
+
+variable "use_preinstalled_gpu_drivers" {
+  description = "Whether to use preinstalled GPU drivers."
+  type        = bool
+  default     = false
+}
+
+# region ActiveChecks
+variable "active_checks_scope" {
+  type        = string
+  description = "Scope of active checks. Defines what active checks should be checked during cluster bootstrap."
+  default     = "prod"
+  validation {
+    condition     = contains(["dev", "testing", "prod"], var.active_checks_scope)
+    error_message = "active_checks_scope should be one of: dev, testing, prod."
+  }
+}
+# endregion ActiveChecks

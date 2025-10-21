@@ -165,7 +165,7 @@ fi
 
 
 #region
-NEBIUS_REGION=$(nebius iam project get --id "$project_id" | awk '/region:/ {print $2}')
+NEBIUS_REGION=$(nebius iam project get --id "$project_id" --format json | jq -r '.spec.region')
 
 #end region
 
@@ -205,10 +205,12 @@ echo "NEBIUS_REGION: ${NEBIUS_REGION}"
 
 # region Service account
 
-NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account list \
+NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account get-by-name \
   --parent-id "${NEBIUS_PROJECT_ID}" \
+  --name "${PRODUCT}-terraform-sa" \
   --format json \
-  | jq -r ".items[] | select(.metadata.name == \"${PRODUCT}-terraform-sa\").metadata.id")
+  | jq -r '.metadata.id')
+
 
 if [ -z "$NEBIUS_SA_TERRAFORM_ID" ]; then
   NEBIUS_SA_TERRAFORM_ID=$(nebius iam service-account create \
@@ -263,30 +265,30 @@ else
 fi
 
 echo 'Creating new access key for Object Storage'
-NEBIUS_SA_ACCESS_KEY_ID=$(nebius iam access-key create \
+NEBIUS_SA_ACCESS_KEY_ID=$(nebius iam v2 access-key create \
   --parent-id "${NEBIUS_PROJECT_ID}" \
   --name "${PRODUCT}-tf-ak-$(date +%s)" \
   --account-service-account-id "${NEBIUS_SA_TERRAFORM_ID}" \
   --description 'Temporary S3 Access' \
   --expires-at "${EXPIRATION_DATE}" \
   --format json \
-  | jq -r '.resource_id')
+  | jq -r '.metadata.id')
 echo "Created new access key: ${NEBIUS_SA_ACCESS_KEY_ID}"
 
 # endregion Access key
 
 # region AWS access key
 
-AWS_ACCESS_KEY_ID=$(nebius iam access-key get-by-id \
+AWS_ACCESS_KEY_ID=$(nebius iam v2 access-key get \
   --id "${NEBIUS_SA_ACCESS_KEY_ID}" \
   --format json | jq -r '.status.aws_access_key_id')
 export AWS_ACCESS_KEY_ID
 
 echo "Generating new AWS_SECRET_ACCESS_KEY"
-AWS_SECRET_ACCESS_KEY="$(nebius iam access-key get-secret-once \
+AWS_SECRET_ACCESS_KEY="$(nebius iam v2 access-key get \
   --id "${NEBIUS_SA_ACCESS_KEY_ID}" \
   --format json \
-  | jq -r '.secret')"
+  | jq -r '.status.secret')"
 export AWS_SECRET_ACCESS_KEY
 
 # endregion AWS access key
@@ -311,6 +313,7 @@ else
   echo "Using existing bucket: ${NEBIUS_BUCKET_NAME}"
 fi
 
+export AWS_CONFIG_FILE="./.aws/config"
 aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
 aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
 aws configure set region $NEBIUS_REGION

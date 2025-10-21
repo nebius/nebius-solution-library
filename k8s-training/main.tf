@@ -11,6 +11,22 @@ resource "nebius_mk8s_v1_cluster" "k8s-cluster" {
   }
 }
 
+module "cilium-egress-gateway" {
+  count  = var.enable_egress_gateway ? 1 : 0
+  source = "../modules/cilium-egress-gateway"
+
+  mk8s_cluster_id = resource.nebius_mk8s_v1_cluster.k8s-cluster.id
+  mk8s_version    = var.k8s_version
+  project_id      = var.parent_id
+  ssh_user_name   = var.ssh_user_name
+  ssh_public_key  = local.ssh_public_key
+  subnet_id       = var.subnet_id
+
+  depends_on = [
+    resource.nebius_mk8s_v1_node_group.cpu-only
+  ]
+}
+
 data "nebius_iam_v1_group" "editors" {
   count     = var.enable_k8s_node_group_sa ? 1 : 0
   name      = "editors"
@@ -28,7 +44,9 @@ resource "nebius_iam_v1_group_membership" "k8s_node_group_sa-admin" {
   parent_id = data.nebius_iam_v1_group.editors[0].id
   member_id = nebius_iam_v1_service_account.k8s_node_group_sa[count.index].id
 }
-
+################
+# CPU NODE GROUP
+################
 resource "nebius_mk8s_v1_node_group" "cpu-only" {
   fixed_node_count = var.cpu_nodes_count
   parent_id        = nebius_mk8s_v1_cluster.k8s-cluster.id
@@ -55,6 +73,10 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       platform = local.cpu_nodes_platform
       preset   = local.cpu_nodes_preset
     }
+    preemptible = var.cpu_nodes_preemptible ? {
+      on_preemption = "STOP"
+      priority      = 1
+    } : null
     filesystems = var.enable_filestore ? [
       {
         attach_mode         = "READ_WRITE"
@@ -63,14 +85,20 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       }
     ] : null
     underlay_required = false
-    cloud_init_user_data = templatefile("../modules/cloud-init/k8s-cloud-init.tftpl", {
+    preemptible = var.cpu_nodes_preemptible ? {
+      on_preemption = "STOP"
+      priority      = 3
+    } : null
+    cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
       enable_filestore = var.enable_filestore ? "true" : "false",
       ssh_user_name    = var.ssh_user_name,
       ssh_public_key   = local.ssh_public_key
     })
   }
 }
-
+#################
+# GPU nODE GROUPS
+#################
 resource "nebius_mk8s_v1_node_group" "gpu" {
   count            = var.gpu_node_groups
   fixed_node_count = var.gpu_nodes_count_per_group
@@ -104,6 +132,10 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
       platform = local.gpu_nodes_platform
       preset   = local.gpu_nodes_preset
     }
+    preemptible = var.gpu_nodes_preemptible ? {
+      on_preemption = "STOP"
+      priority      = 1
+    } : null
     filesystems = var.enable_filestore ? [
       {
         attach_mode         = "READ_WRITE"
@@ -111,11 +143,15 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
         existing_filesystem = nebius_compute_v1_filesystem.shared-filesystem[0]
       }
     ] : null
-    gpu_cluster  = nebius_compute_v1_gpu_cluster.fabric_2
+    gpu_cluster  = var.enable_gpu_cluster ? nebius_compute_v1_gpu_cluster.fabric_2[0] : null
     gpu_settings = var.gpu_nodes_driverfull_image ? { drivers_preset = "cuda12" } : null
+    preemptible = var.gpu_nodes_preemptible ? {
+      on_preemption = "STOP"
+      priority      = 3
+    } : null
 
     underlay_required = false
-    cloud_init_user_data = templatefile("../modules/cloud-init/k8s-cloud-init.tftpl", {
+    cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
       enable_filestore = var.enable_filestore ? "true" : "false",
       ssh_user_name    = var.ssh_user_name,
       ssh_public_key   = local.ssh_public_key

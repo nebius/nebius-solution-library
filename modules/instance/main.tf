@@ -4,7 +4,7 @@ resource "nebius_compute_v1_disk" "boot-disk" {
   block_size_bytes    = 4096
   size_bytes          = 1024 * 1024 * 1024 * var.boot_disk_size_gb
   type                = "NETWORK_SSD"
-  source_image_family = { image_family = "ubuntu22.04-cuda12" }
+  source_image_family = { image_family = "ubuntu24.04-cuda12" }
 }
 
 resource "nebius_compute_v1_disk" "extra-storage-disk" {
@@ -39,6 +39,16 @@ resource "nebius_compute_v1_instance" "instance" {
     attach_mode   = "READ_WRITE"
     existing_disk = nebius_compute_v1_disk.boot-disk
   }
+
+  preemptible = var.preemptible ? {
+    on_preemption = "STOP"
+    priority      = 3
+  } : null
+
+  recovery_policy = var.preemptible ? "FAIL" : "RECOVER"
+
+
+
   gpu_cluster = var.gpu_cluster != "" ? { id = var.gpu_cluster } : {}
   secondary_disks = var.add_extra_storage ? [
     {

@@ -3,6 +3,14 @@ terraform {
     nebius = {
       source = "terraform-provider.storage.eu-north1.nebius.cloud/nebius/nebius"
     }
+    kubernetes = {
+      source = "hashicorp/kubernetes"
+    }
+
+    helm = {
+      source  = "hashicorp/helm"
+      version = "<3.0.0"
+    }
   }
 }
 

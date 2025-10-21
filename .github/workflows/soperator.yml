@@ -1,12 +1,7 @@
 name: "Build soperator terraform release"
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "soperator/**"
-      - ".github/workflows/soperator.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -46,6 +41,7 @@ jobs:
         with:
           tag_name: soperator-${{ env.TAG_VERSION }}
           name: Soperator Terraform recipe ${{ env.TAG_VERSION }}
+          target_commitish: ${{ github.sha }}
           draft: false
           prerelease: false
           files: |

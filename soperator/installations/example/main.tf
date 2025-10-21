@@ -129,12 +129,14 @@ module "k8s" {
 
   source = "../../modules/k8s"
 
-  iam_project_id = data.nebius_iam_v1_project.this.id
-  vpc_subnet_id  = data.nebius_vpc_v1_subnet.this.id
+  iam_project_id  = data.nebius_iam_v1_project.this.id
+  vpc_subnet_id   = data.nebius_vpc_v1_subnet.this.id
+  login_public_ip = var.slurm_login_public_ip
 
-  k8s_version  = var.k8s_version
-  name         = local.k8s_cluster_name
-  company_name = var.company_name
+  k8s_version                  = var.k8s_version
+  name                         = local.k8s_cluster_name
+  company_name                 = var.company_name
+  use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
 
   etcd_cluster_size = var.etcd_cluster_size
 
@@ -146,11 +148,14 @@ module "k8s" {
       {
         size                    = nodeset.nodes_per_nodegroup
         max_unavailable_percent = nodeset.max_unavailable_percent
+        max_surge_percent       = nodeset.max_surge_percent
+        drain_timeout           = nodeset.drain_timeout
         resource                = nodeset.resource
         boot_disk               = nodeset.boot_disk
         gpu_cluster             = nodeset.gpu_cluster
         nodeset_index           = i
         subset_index            = subset
+        preemptible             = nodeset.preemptible
       }
     ]
   ])
@@ -188,36 +193,39 @@ module "k8s" {
 }
 
 module "k8s_storage_class" {
-  count = (
-    (
-      length(var.node_local_jail_submounts) > 0 ||
-      var.node_local_image_disk.enabled
-    )
-    ? 1
-    : 0
-  )
-
   depends_on = [
     module.k8s,
   ]
 
   source = "../../modules/k8s/storage_class"
 
-  storage_class_requirements = concat([for sm in var.node_local_jail_submounts : {
-    disk_type       = sm.disk_type
-    filesystem_type = sm.filesystem_type
-    }], !var.node_local_image_disk.enabled ? [] : [{
-    disk_type       = var.node_local_image_disk.spec.disk_type
-    filesystem_type = var.node_local_image_disk.spec.filesystem_type
-  }])
+  storage_class_requirements = concat(
+    [{
+      disk_type       = module.resources.disk_types.network_ssd
+      filesystem_type = module.resources.filesystem_types.ext4
+    }],
+    [for sm in var.node_local_jail_submounts : {
+      disk_type       = sm.disk_type
+      filesystem_type = sm.filesystem_type
+    }],
+    !var.node_local_image_disk.enabled ? [] : [{
+      disk_type       = var.node_local_image_disk.spec.disk_type
+      filesystem_type = var.node_local_image_disk.spec.filesystem_type
+    }]
+  )
 
   providers = {
     kubernetes = kubernetes
   }
 }
 
+moved {
+  from = module.k8s_storage_class[0]
+  to   = module.k8s_storage_class
+}
+
 module "nvidia_operator_network" {
-  count = module.k8s.gpu_involved ? 1 : 0
+  count = module.k8s.gpu_involved && !var.use_preinstalled_gpu_drivers ? 1 : 0
 
   depends_on = [
     module.k8s
@@ -234,7 +242,7 @@ module "nvidia_operator_network" {
 }
 
 module "nvidia_operator_gpu" {
-  count = module.k8s.gpu_involved ? 1 : 0
+  count = module.k8s.gpu_involved && !var.use_preinstalled_gpu_drivers ? 1 : 0
 
   depends_on = [
     module.nvidia_operator_network
@@ -259,16 +267,15 @@ module "o11y" {
 
   depends_on = [
     module.k8s,
+    module.fluxcd,
   ]
 
   source = "../../modules/o11y"
 
-  o11y_iam_group_id   = var.o11y_iam_group_id
-  o11y_iam_project_id = var.o11y_iam_project_id
+  iam_project_id      = var.iam_project_id
   o11y_iam_tenant_id  = var.o11y_iam_tenant_id
   o11y_profile        = var.o11y_profile
   k8s_cluster_context = module.k8s.cluster_context
-  region              = var.region
   company_name        = var.company_name
 }
 
@@ -283,30 +290,21 @@ module "slurm" {
 
   source = "../../modules/slurm"
 
-  name                         = local.slurm_cluster_name
-  cluster_name                 = var.company_name
-  operator_version             = var.slurm_operator_version
-  operator_stable              = var.slurm_operator_stable
-  k8s_cluster_context          = module.k8s.cluster_context
-  maintenance                  = var.maintenance
-  use_default_apparmor_profile = var.use_default_apparmor_profile
-  public_o11y_enabled          = var.public_o11y_enabled
-  slurm_partition_config_type  = var.slurm_partition_config_type
-  slurm_partition_raw_config   = var.slurm_partition_raw_config
-  slurm_worker_features        = var.slurm_worker_features
-  slurm_health_check_config    = var.slurm_health_check_config
-  flux_namespace               = local.flux_namespace
-  backups_enabled              = local.backups_enabled
-  region                       = var.region
+  active_checks_scope = var.active_checks_scope
 
+  region              = var.region
+  iam_tenant_id       = var.iam_tenant_id
+  iam_project_id      = var.iam_project_id
+  cluster_name        = var.company_name
+  name                = local.slurm_cluster_name
+  k8s_cluster_context = module.k8s.cluster_context
 
-  github_org              = var.github_org
-  github_repository       = var.github_repository
-  github_branch           = var.slurm_operator_stable ? "main" : "dev"
-  flux_interval           = var.flux_interval
-  flux_kustomization_path = var.slurm_operator_stable ? "fluxcd/environment/nebius-cloud/prod" : "fluxcd/environment/nebius-cloud/dev"
+  operator_version = var.slurm_operator_version
+  operator_stable  = var.slurm_operator_stable
 
-  iam_project_id = var.iam_project_id
+  maintenance                   = var.maintenance
+  use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
+  controller_state_on_filestore = var.controller_state_on_filestore
 
   node_count = {
     controller = var.slurm_nodeset_controller.size
@@ -360,18 +358,6 @@ module "slurm" {
     } : null
   }
 
-  login_allocation_id            = module.k8s.static_ip_allocation_id
-  login_sshd_config_map_ref_name = var.slurm_login_sshd_config_map_ref_name
-  login_ssh_root_public_keys     = var.slurm_login_ssh_root_public_keys
-
-  worker_sshd_config_map_ref_name = var.slurm_worker_sshd_config_map_ref_name
-
-  exporter_enabled        = var.slurm_exporter_enabled
-  rest_enabled            = var.slurm_rest_enabled
-  accounting_enabled      = var.accounting_enabled
-  slurmdbd_config         = var.slurmdbd_config
-  slurm_accounting_config = var.slurm_accounting_config
-
   filestores = {
     controller_spool = {
       size_gibibytes = module.filestore.controller_spool.size_gibibytes
@@ -398,15 +384,15 @@ module "slurm" {
     size_gibibytes     = sm.size_gibibytes
     disk_type          = sm.disk_type
     filesystem_type    = sm.filesystem_type
-    storage_class_name = one(module.k8s_storage_class).storage_classes[sm.disk_type][sm.filesystem_type]
+    storage_class_name = module.k8s_storage_class.storage_classes[sm.disk_type][sm.filesystem_type]
   }]
   node_local_image_storage = {
     enabled = var.node_local_image_disk.enabled
-    spec = {
+    spec = var.node_local_image_disk.enabled ? {
       size_gibibytes     = var.node_local_image_disk.spec.size_gibibytes
       filesystem_type    = var.node_local_image_disk.spec.filesystem_type
-      storage_class_name = one(module.k8s_storage_class).storage_classes[var.node_local_image_disk.spec.disk_type][var.node_local_image_disk.spec.filesystem_type]
-    }
+      storage_class_name = module.k8s_storage_class.storage_classes[var.node_local_image_disk.spec.disk_type][var.node_local_image_disk.spec.filesystem_type]
+    } : null
   }
 
   nfs = {
@@ -416,15 +402,40 @@ module "slurm" {
     mount_path = var.nfs.enabled ? var.nfs.mount_path : null
   }
 
-  shared_memory_size_gibibytes = var.slurm_shared_memory_size_gibibytes
+  nfs_in_k8s = var.nfs_in_k8s
 
-  nccl_topology_type           = "auto"
-  nccl_benchmark_enable        = var.nccl_benchmark_enable
-  nccl_benchmark_schedule      = var.nccl_benchmark_schedule
-  nccl_benchmark_min_threshold = var.nccl_benchmark_min_threshold
-  nccl_use_infiniband          = var.nccl_use_infiniband
+  exporter_enabled    = var.slurm_exporter_enabled
+  rest_enabled        = var.slurm_rest_enabled
+  accounting_enabled  = var.accounting_enabled
+  backups_enabled     = local.backups_enabled
+  telemetry_enabled   = var.telemetry_enabled
+  public_o11y_enabled = var.public_o11y_enabled
+  soperator_notifier  = var.soperator_notifier
 
-  telemetry_enabled = var.telemetry_enabled
+  slurmdbd_config         = var.slurmdbd_config
+  slurm_accounting_config = var.slurm_accounting_config
+
+  use_default_apparmor_profile    = var.use_default_apparmor_profile
+  worker_sshd_config_map_ref_name = var.slurm_worker_sshd_config_map_ref_name
+  shared_memory_size_gibibytes    = var.slurm_shared_memory_size_gibibytes
+  slurm_partition_config_type     = var.slurm_partition_config_type
+  slurm_partition_raw_config      = var.slurm_partition_raw_config
+  slurm_worker_features           = var.slurm_worker_features
+  slurm_health_check_config       = var.slurm_health_check_config
+
+  login_allocation_id            = module.k8s.static_ip_allocation_id
+  login_public_ip                = var.slurm_login_public_ip
+  tailscale_enabled              = var.tailscale_enabled
+  login_sshd_config_map_ref_name = var.slurm_login_sshd_config_map_ref_name
+  login_ssh_root_public_keys     = var.slurm_login_ssh_root_public_keys
+
+  github_org              = var.github_org
+  github_repository       = var.github_repository
+  github_ref_type         = var.slurm_operator_stable ? "tag" : "branch"
+  github_ref_value        = var.slurm_operator_stable ? var.slurm_operator_version : "main"
+  flux_namespace          = local.flux_namespace
+  flux_interval           = var.flux_interval
+  flux_kustomization_path = var.slurm_operator_stable ? "fluxcd/environment/nebius-cloud/prod" : "fluxcd/environment/nebius-cloud/dev"
 
   providers = {
     helm = helm
@@ -454,6 +465,8 @@ module "backups_store" {
 
   iam_project_id = var.iam_project_id
   instance_name  = local.k8s_cluster_name
+
+  cleanup_bucket_on_destroy = var.cleanup_bucket_on_destroy
 
   depends_on = [
     module.k8s,
@@ -497,17 +510,4 @@ module "fluxcd" {
   ]
   source              = "../../modules/fluxcd"
   k8s_cluster_context = module.k8s.cluster_context
-}
-
-module "active_checks" {
-  source = "../../modules/active_checks"
-
-  k8s_cluster_context     = module.k8s.cluster_context
-  slurm_cluster_name      = local.slurm_cluster_name
-  slurm_cluster_namespace = local.slurm_cluster_name
-  num_of_login_nodes      = var.slurm_nodeset_login.size
-
-  depends_on = [
-    module.slurm
-  ]
 }

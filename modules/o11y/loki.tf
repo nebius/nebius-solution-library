@@ -1,18 +1,33 @@
-# FIXME uncomment when SA and SA_access_bindings are added to public api
-#resource "nebius_iam_v1_service_account" "sa-tf" {
-#  count       = var.o11y.loki ? 1 : 0
-#  parent_id   = var.parent_id
-#  description = "just testing terraform"
-#  name        = "test-sa-tf"
-#}
-#resource "nebius_iam_v1_access_binding" "sa-editor-tf" {
-#  depends_on  = [nebius_iam_v1_service_account.sa-tf[0]]
-#  parent_id   = var.parent_id
-#  subject_id  = nebius_iam_v1_service_account.sa-tf[0].id
-#  resource_id = "test-sa-editor-tf"
-#  role        = "editor"
-#}
-// Use keys to create bucket
+# SA for Loki module
+data "nebius_iam_v1_group" "loki_editors" {
+  count     = var.o11y.loki.enabled ? 1 : 0
+  name      = "editors"
+  parent_id = var.tenant_id
+}
+
+resource "nebius_iam_v1_service_account" "loki_s3_sa" {
+  count     = var.o11y.loki.enabled ? 1 : 0
+  parent_id = var.parent_id
+  name      = "loki_s3_sa-${var.cluster_id}"
+}
+
+resource "nebius_iam_v1_group_membership" "loki_sa_storage_editor" {
+  count     = var.o11y.loki.enabled ? 1 : 0
+  parent_id = data.nebius_iam_v1_group.loki_editors[0].id
+  member_id = nebius_iam_v1_service_account.loki_s3_sa[count.index].id
+}
+
+resource "nebius_iam_v2_access_key" "loki_s3_key" {
+  count       = var.o11y.loki.enabled ? 1 : 0
+  parent_id   = var.parent_id
+  name        = "loki-s3-access-key"
+  description = "Access key for Loki module"
+  account = {
+    service_account = {
+      id = nebius_iam_v1_service_account.loki_s3_sa[count.index].id
+    }
+  }
+}
 
 locals {
   # Get the number of nodes in the cluster
@@ -74,9 +89,7 @@ resource "nebius_applications_v1alpha1_k8s_release" "loki" {
     "loki.storage.bucketPrefix" : "loki-${var.cluster_id}-${random_string.loki_unique_id[0].result}",
     "loki.storage.s3.region" : var.o11y.loki.region,
     "loki.commonConfig.replication_factor" : local.replication_factor,
-    # FIXME S3 keys are not implemented in the public TF yet
-    "loki.storage.s3.accessKeyId" : var.o11y.loki.aws_access_key_id,
-    "loki.storage.s3.secretAccessKey" : var.o11y.loki.secret_key
+    "loki.storage.s3.accessKeyId" : nebius_iam_v2_access_key.loki_s3_key[0].status.aws_access_key_id,
+    "loki.storage.s3.secretAccessKey" : nebius_iam_v2_access_key.loki_s3_key[0].status.secret
   }
-
 }

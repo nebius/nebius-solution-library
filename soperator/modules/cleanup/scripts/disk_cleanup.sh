@@ -4,7 +4,7 @@ parent_id=$PARENT_ID
 page_size=100
 page_token=""
 result_ids=()
-allowed_cleanup_namespaces=("logs-system" "monitoring-system" "soperator")
+allowed_cleanup_namespaces=("logs-system" "monitoring-system" "soperator" "nfs-system")
 
 is_allowed_namespace() {
   local ns="$1"

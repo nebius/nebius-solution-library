@@ -118,8 +118,8 @@ get_project_id_from_sky_config() {
     exit 1
   fi
   
-  # Extract the first project_id from the nebius section
-  PROJECT_ID=$(yq e '.nebius.[] | select(.project_id != null) | .project_id' "$SKY_CONFIG_PATH" | head -n 1)
+  # Extract the first project_id from the nebius.region_configs section
+  PROJECT_ID=$(yq e '.nebius.region_configs.[] | select(.project_id != null) | .project_id' "$SKY_CONFIG_PATH" | head -n 1)
   
   if [ -z "$PROJECT_ID" ]; then
     echo "Error: No project_id found in $SKY_CONFIG_PATH"
@@ -185,7 +185,7 @@ if [[ "$SETUP_STORAGE" =~ ^[Yy]$ ]]; then
   echo "   Getting available regions from Sky config..."
   SKY_CONFIG_PATH="$HOME/.sky/config.yaml"
   # Only extract valid region names (skip empty/dash entries)
-  REGIONS=($(yq e '.nebius | keys | .[] | select(. != "-" and . != null and . != "")' "$SKY_CONFIG_PATH"))
+  REGIONS=($(yq e '.nebius.region_configs | keys | .[] | select(. != "-" and . != null and . != "")' "$SKY_CONFIG_PATH"))
   
   # Configure AWS CLI profile for each region with unique access keys
   echo "   Configuring AWS CLI profiles for each region in Sky config..."
@@ -199,19 +199,19 @@ if [[ "$SETUP_STORAGE" =~ ^[Yy]$ ]]; then
     
     # Create a unique access key for this region
     echo "   Creating access key for region $REGION..."
-    ACCESS_KEY_ID=$(nebius iam access-key create \
+    ACCESS_KEY_ID=$(nebius iam v2 access-key create \
       --parent-id "$PROJECT_ID" \
       --account-service-account-id "$SA_ID" \
       --description "AWS CLI - $REGION region" \
-      --format json | jq -r '.resource_id')
+      --format json | jq -r '.metadata.id')
     
-    ACCESS_KEY_AWS_ID=$(nebius iam access-key get-by-id \
+    ACCESS_KEY_AWS_ID=$(nebius iam v2 access-key get \
       --id "$ACCESS_KEY_ID" \
       --format json | jq -r '.status.aws_access_key_id')
     
-    SECRET_ACCESS_KEY=$(nebius iam access-key get-secret-once \
+    SECRET_ACCESS_KEY=$(nebius iam v2 access-key get \
       --id "$ACCESS_KEY_ID" --format json \
-      | jq -r '.secret')
+      | jq -r '.status.secret')
     
     # Configure AWS CLI for this region
     aws configure set aws_access_key_id "$ACCESS_KEY_AWS_ID" --profile "$PROFILE_NAME"
@@ -230,19 +230,19 @@ if [[ "$SETUP_STORAGE" =~ ^[Yy]$ ]]; then
     
     # Create a new access key for the default profile
     echo "   Creating access key for default nebius profile..."
-    DEFAULT_ACCESS_KEY_ID=$(nebius iam access-key create \
+    DEFAULT_ACCESS_KEY_ID=$(nebius iam v2 access-key create \
       --parent-id "$PROJECT_ID" \
       --account-service-account-id "$SA_ID" \
       --description "AWS CLI - Default nebius profile" \
-      --format json | jq -r '.resource_id')
+      --format json | jq -r '.metadata.id')
     
-    DEFAULT_ACCESS_KEY_AWS_ID=$(nebius iam access-key get-by-id \
+    DEFAULT_ACCESS_KEY_AWS_ID=$(nebius iam v2 access-key get \
       --id "$DEFAULT_ACCESS_KEY_ID" \
       --format json | jq -r '.status.aws_access_key_id')
     
-    DEFAULT_SECRET_ACCESS_KEY=$(nebius iam access-key get-secret-once \
+    DEFAULT_SECRET_ACCESS_KEY=$(nebius iam v2 access-key get \
       --id "$DEFAULT_ACCESS_KEY_ID" --format json \
-      | jq -r '.secret')
+      | jq -r '.status.secret')
     
     # Configure the generic profile
     aws configure set aws_access_key_id "$DEFAULT_ACCESS_KEY_AWS_ID" --profile nebius

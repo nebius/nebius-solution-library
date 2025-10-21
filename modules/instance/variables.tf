@@ -149,3 +149,8 @@ variable "install_helical" {
   description = "Deploys a Helical Jupyter notebook"
   default = false
 }
+variable "preemptible" {
+  description = "Whether the VM should be preemptible"
+  type        = bool
+  default     = false
+}

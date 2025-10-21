@@ -55,9 +55,17 @@ resource "nebius_mk8s_v1_node_group" "worker" {
 
   fixed_node_count = var.node_group_workers[count.index].size
   strategy = {
-    max_unavailable = {
-      percent = var.node_group_workers[count.index].max_unavailable_percent
-    }
+    max_unavailable = (
+      var.node_group_workers[count.index].max_unavailable_percent != null ?
+      { percent = var.node_group_workers[count.index].max_unavailable_percent } :
+      null
+    )
+    max_surge = (
+      var.node_group_workers[count.index].max_surge_percent != null ?
+      { percent = var.node_group_workers[count.index].max_surge_percent } :
+      null
+    )
+    drain_timeout = var.node_group_workers[count.index].drain_timeout
   }
 
   template = {
@@ -92,6 +100,12 @@ resource "nebius_mk8s_v1_node_group" "worker" {
       : null
     )
 
+    preemptible = var.node_group_workers[count.index].preemptible
+
+    gpu_settings = var.use_preinstalled_gpu_drivers ? {
+      drivers_preset = "cuda12.8"
+    } : null
+
     boot_disk = {
       type             = var.node_group_workers[count.index].boot_disk.type
       size_bytes       = provider::units::from_gib(var.node_group_workers[count.index].boot_disk.size_gibibytes)
@@ -124,6 +138,8 @@ resource "nebius_mk8s_v1_node_group" "worker" {
       public_ip_address = local.node_ssh_access.enabled ? {} : null
       subnet_id         = var.vpc_subnet_id
     }]
+
+    os = "ubuntu24.04"
 
     cloud_init_user_data = local.node_ssh_access.enabled ? local.node_ssh_access.cloud_init_data : null
   }
