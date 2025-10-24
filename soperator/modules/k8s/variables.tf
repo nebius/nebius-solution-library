@@ -104,9 +104,14 @@ variable "node_group_workers" {
   }))
 }
 
+variable "nvl_instance_group_id" {
+  description = "NVLink Instance Group ID, in which instances will be created"
+  type        = optional(string)
+}
+
 variable "node_group_login" {
   description = "Controller node group specification."
-  type = object({
+  type = optional(object({
     size = number
     resource = object({
       platform = string
@@ -117,7 +122,7 @@ variable "node_group_login" {
       size_gibibytes       = number
       block_size_kibibytes = number
     })
-  })
+  }))
 }
 
 variable "node_group_accounting" {

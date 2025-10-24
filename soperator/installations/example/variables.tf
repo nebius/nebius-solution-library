@@ -529,6 +529,30 @@ variable "slurm_health_check_config" {
 
 # region Nodes
 
+variable "nvl_instance_group_id" {
+  description = "NVLink Instance Group ID, in which instances will be created"
+  type        = optional(string)
+}
+
+variable "slurm_topology_config" {
+  description = "Configuration for the Slurm topology"
+  type = object({
+    plugin     = string
+    block_size = optional(number)
+  })
+  default = {
+    plugin = "topology/tree"
+  }
+  validation {
+    condition = (
+      var.topology.plugin == "topology/block"
+      ? var.topology.block_size != null
+      : false
+    )
+    error_message = "Variable topology.block_size is required for topology/block plugin."
+  }
+}
+
 variable "slurm_nodeset_system" {
   description = "Configuration of System node set for system resources created by Soperator."
   type = object({

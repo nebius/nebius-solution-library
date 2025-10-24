@@ -238,6 +238,19 @@ locals {
       }
     }
   }
+    g-4gpu-112vcpu-800gb = {
+      cpu_cores              = 112 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 800 * local.reserve.ram.coefficient - local.reserve.ram.count
+      gpus                   = 4
+      gpu_cluster_compatible = true
+      sufficient = {
+        (module.labels.name_nodeset_system)     = true
+        (module.labels.name_nodeset_controller) = true
+        (module.labels.name_nodeset_worker)     = true
+        (module.labels.name_nodeset_login)      = true
+        (module.labels.name_nodeset_accounting) = true
+      }
+    }
 
   presets_by_platforms = tomap({
     "cpu-e2" = tomap({
@@ -285,6 +298,10 @@ locals {
     "gpu-b200-sxm-a" = tomap({
       "1gpu-20vcpu-224gb"   = local.presets_gpu.g-1gpu-20vcpu-224gb
       "8gpu-160vcpu-1792gb" = local.presets_gpu.g-8gpu-160vcpu-1792gb
+    })
+
+    "gpu-gb300" = tomap({
+      "4gpu-112vcpu-800gb"   = local.presets_gpu.g-4gpu-112vcpu-800gb
     })
   })
 }

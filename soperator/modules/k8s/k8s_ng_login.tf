@@ -1,4 +1,6 @@
 resource "nebius_mk8s_v1_node_group" "login" {
+  count = var.nvl_instance_group_id != null ? 1 : 0
+
   depends_on = [
     nebius_mk8s_v1_cluster.this,
     terraform_data.check_resource_preset_sufficiency,
@@ -79,6 +81,11 @@ resource "nebius_mk8s_v1_node_group" "login" {
       labels,
     ]
   }
+}
+
+moved {
+  from = nebius_mk8s_v1_node_group.login
+  to   = nebius_mk8s_v1_node_group.login[0]
 }
 
 resource "nebius_vpc_v1_allocation" "this" {

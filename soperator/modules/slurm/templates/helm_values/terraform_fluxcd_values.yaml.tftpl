@@ -290,15 +290,29 @@ resources:
                     requiredDuringSchedulingIgnoredDuringExecution:
                       nodeSelectorTerms:
                         - matchExpressions:
+                          %{~ if slurm_cluster.nodes.login.share_worker_nodes ~}
+                            - key: ${slurm_cluster.k8s_node_filters.label.nodeset}
+                              operator: In
+                              values:
+                              %{~ for worker in slurm_cluster.k8s_node_filters.worker.matches ~}
+                                - "${worker}"
+                              %{~ endfor ~}
+                          %{~ else ~}
                             - key: ${slurm_cluster.k8s_node_filters.label.nodeset}
                               operator: In
                               values:
                                 - ${slurm_cluster.k8s_node_filters.login.match}
+                          %{~ endif ~}
                 tolerations:
                   - key: ${slurm_cluster.k8s_node_filters.label.nodeset}
                     operator: Equal
                     value: ${slurm_cluster.k8s_node_filters.label.login}
                     effect: NoSchedule
+                %{~ if slurm_cluster.nodes.login.share_worker_nodes ~}
+                  - key: ${slurm_cluster.k8s_node_filters.label.gpu}
+                    operator: Exists
+                    effect: NoSchedule
+                %{~ endif ~}
 
               - name: ${slurm_cluster.k8s_node_filters.worker.name}
                 affinity:
@@ -401,6 +415,10 @@ resources:
             slurmConfig:
               # Allocate half of the available memory by default
               defMemPerNode: ${floor(slurm_cluster.nodes.worker.resources.memory * 1024 / 2)}
+              topologyPlugin: ${slurm_cluster.topology.plugin}
+            %{~ if slurm_cluster.topology.block_size != null ~}
+              topologyBlockSize: ${slurm_cluster.topology.block_size}
+            %{~ endif ~}
 
             periodicChecks:
               ncclBenchmark:

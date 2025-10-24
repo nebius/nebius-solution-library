@@ -140,6 +140,7 @@ module "k8s" {
 
   etcd_cluster_size = var.etcd_cluster_size
 
+  nvl_instance_group_id = var.nvl_instance_group_id
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller
   node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers :
@@ -306,6 +307,9 @@ module "slurm" {
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
   controller_state_on_filestore = var.controller_state_on_filestore
 
+  # TODO: maybe better calculation based on workers platform?
+  share_worker_nodes = var.nvl_instance_group_id != null
+
   node_count = {
     controller = var.slurm_nodeset_controller.size
     worker     = [for workers in var.slurm_nodeset_workers : workers.size]
@@ -422,6 +426,7 @@ module "slurm" {
   slurm_partition_raw_config      = var.slurm_partition_raw_config
   slurm_worker_features           = var.slurm_worker_features
   slurm_health_check_config       = var.slurm_health_check_config
+  slurm_topology_config           = var.slurm_topology_config 
 
   login_allocation_id            = module.k8s.static_ip_allocation_id
   login_public_ip                = var.slurm_login_public_ip

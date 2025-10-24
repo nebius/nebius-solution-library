@@ -139,6 +139,17 @@ locals {
         cpu    = 1
       }
     }
+    
+    worker = {
+      cpu               = floor(one(var.resources.worker).cpu_cores - local.resources.munge.cpu) - local.resources.kruise_daemon.cpu
+      memory            = floor(one(var.resources.worker).memory_gibibytes - local.resources.munge.memory) - local.resources.kruise_daemon.memory
+      ephemeral_storage = floor(one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
+    }
+    login = {
+      cpu               = floor(var.resources.login.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
+      memory            = floor(var.resources.login.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory)
+      ephemeral_storage = floor(var.resources.login.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
+    }
   }
 
   slurm_node_extra = "\\\"{ \\\\\\\"monitoring\\\\\\\": \\\\\\\"https://console.eu.nebius.com/${var.iam_project_id}/compute/instances/$INSTANCE_ID/monitoring\\\\\\\" }\\\""

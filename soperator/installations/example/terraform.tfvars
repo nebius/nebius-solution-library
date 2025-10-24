@@ -240,6 +240,10 @@ slurm_partition_config_type = "default"
 #----------------------------------------------------------------------------------------------------------------------#
 # region Nodes
 
+# NVLink Instance Group ID, in which instances will be created.
+# Used for Nvidia GBX00 gpus.
+nvl_instance_group_id = null
+
 # Configuration of System node set for system resources created by Soperator.
 # Keep in mind that the k8s nodegroup will have auto-scaling enabled and the actual number of nodes depends on the size
 # of the cluster.
@@ -398,6 +402,14 @@ active_checks_scope = "prod"
 # By default, 64.
 # ---
 slurm_shared_memory_size_gibibytes = 1024
+
+# Topology configuration for the Slurm cluster.
+# plugin - one of "topology/tree", "topology/block"
+# block_size - used in case of "topology/block" plugin to define size of blocks.
+slurm_topology_config = {
+  plugin = "topology/tree"
+  block_size = null
+}
 
 # endregion Config
 #----------------------------------------------------------------------------------------------------------------------#

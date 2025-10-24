@@ -6,6 +6,7 @@ locals {
     gpu-h200-sxm   = "gpu-h200-sxm"
     gpu-b200-sxm   = "gpu-b200-sxm"
     gpu-b200-sxm-a = "gpu-b200-sxm-a"
+    gpu-gb300      = "gpu-gb300"
   }
 
   platform_regions = tomap({
@@ -32,6 +33,9 @@ locals {
     ]
     (local.platforms.gpu-b200-sxm-a) = [
       local.regions.me-west1,
+    ]
+    (local.platforms.gpu-gb300) = [
+      local.regions.eu-north1,
     ]
   })
 }
