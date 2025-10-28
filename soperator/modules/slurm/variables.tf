@@ -128,10 +128,10 @@ variable "resources" {
     error_message = "At least one worker node must be provided."
   }
 
-  # TODO: remove when node sets are supported
+  # When nodesets are not enabled, only one worker nodeset is supported
   validation {
-    condition     = length(var.resources.worker) == 1
-    error_message = "Only one worker nodeset is supported."
+    condition     = var.slurm_nodesets_enabled || length(var.resources.worker) == 1
+    error_message = "Only one worker nodeset is supported when slurm_nodesets_enabled is false."
   }
 }
 
@@ -725,3 +725,38 @@ variable "active_checks_scope" {
   }
 }
 # endregion ActiveChecks
+
+# region Nodesets
+variable "slurm_nodesets_enabled" {
+  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
+  type        = bool
+  default     = false
+}
+
+variable "node_group_workers" {
+  description = "List of node groups for worker nodes with nodeset information."
+  type = list(object({
+    name        = string
+    size        = number
+    min_size    = number
+    max_size    = number
+    autoscaling = bool
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+    gpu_cluster = object({
+      infiniband_fabric = string
+    })
+    nodeset_index = number
+    subset_index  = number
+    preemptible   = optional(object({}))
+  }))
+  default = []
+}
+# endregion Nodesets

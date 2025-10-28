@@ -1,7 +1,7 @@
 locals {
   gpu_clusters = { for cluster in distinct([for worker in var.node_group_workers :
     {
-      nodeset = worker.nodeset_index
+      nodeset = worker.name
       fabric  = worker.gpu_cluster.infiniband_fabric
     }
     if worker.gpu_cluster != null
@@ -38,45 +38,30 @@ resource "nebius_mk8s_v1_node_group" "worker" {
   parent_id = nebius_mk8s_v1_cluster.this.id
 
   name = join("-", [
-    module.labels.name_nodeset_worker,
-    var.node_group_workers[count.index].nodeset_index,
+    var.node_group_workers[count.index].name,
     var.node_group_workers[count.index].subset_index,
   ])
   labels = merge(
     tomap({
-      (module.labels.key_slurm_nodeset_name) = join("-", [
-        module.labels.name_nodeset_worker,
-        var.node_group_workers[count.index].nodeset_index,
-      ])
+      (module.labels.key_slurm_nodeset_name) = var.node_group_workers[count.index].name
     }),
     local.node_group_workload_label.worker[count.index],
     module.labels.label_jail,
   )
 
-  fixed_node_count = var.node_group_workers[count.index].size
-  strategy = {
-    max_unavailable = (
-      var.node_group_workers[count.index].max_unavailable_percent != null ?
-      { percent = var.node_group_workers[count.index].max_unavailable_percent } :
-      null
-    )
-    max_surge = (
-      var.node_group_workers[count.index].max_surge_percent != null ?
-      { percent = var.node_group_workers[count.index].max_surge_percent } :
-      null
-    )
-    drain_timeout = var.node_group_workers[count.index].drain_timeout
-  }
+  autoscaling = var.node_group_workers[count.index].autoscaling ? {
+    min_node_count = var.node_group_workers[count.index].min_size
+    max_node_count = var.node_group_workers[count.index].max_size
+  } : null
+
+  fixed_node_count = var.node_group_workers[count.index].autoscaling ? null : var.node_group_workers[count.index].size
 
   template = {
     metadata = {
       labels = merge(
         module.labels.label_jail,
         tomap({
-          (module.labels.key_slurm_nodeset_name) = join("-", [
-            module.labels.name_nodeset_worker,
-            var.node_group_workers[count.index].nodeset_index,
-          ])
+          (module.labels.key_slurm_nodeset_name) = var.node_group_workers[count.index].name
         }),
         local.node_group_workload_label.worker[count.index],
         (local.node_group_gpu_present.worker[count.index] ? module.labels.label_nebius_gpu : {}),
@@ -94,7 +79,7 @@ resource "nebius_mk8s_v1_node_group" "worker" {
     }
     gpu_cluster = (local.node_group_gpu_cluster_compatible.worker[count.index]
       ? (var.node_group_workers[count.index].gpu_cluster != null
-        ? nebius_compute_v1_gpu_cluster.this[var.node_group_workers[count.index].nodeset_index]
+        ? nebius_compute_v1_gpu_cluster.this[var.node_group_workers[count.index].name]
         : null
       )
       : null

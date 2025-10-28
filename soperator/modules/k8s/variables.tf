@@ -82,10 +82,11 @@ variable "node_group_controller" {
 variable "node_group_workers" {
   description = "Worker node groups specification."
   type = list(object({
-    size                    = number
-    max_unavailable_percent = number
-    max_surge_percent       = optional(number)
-    drain_timeout           = optional(string)
+    name        = string
+    size        = number
+    min_size    = number
+    max_size    = number
+    autoscaling = bool
     resource = object({
       platform = string
       preset   = string
