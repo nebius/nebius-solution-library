@@ -145,9 +145,9 @@ locals {
   # Computed resources (using base_resources)
   resources = merge(local.base_resources, {
     worker = {
-      cpu               = floor(one(var.resources.worker).cpu_cores - local.base_resources.munge.cpu) - local.base_resources.kruise_daemon.cpu
-      memory            = floor(one(var.resources.worker).memory_gibibytes - local.base_resources.munge.memory) - local.base_resources.kruise_daemon.memory
-      ephemeral_storage = floor(one(var.resources.worker).ephemeral_storage_gibibytes - local.base_resources.munge.ephemeral_storage)
+      cpu               = floor(var.resources.worker[0].cpu_cores - local.base_resources.munge.cpu) - local.base_resources.kruise_daemon.cpu
+      memory            = floor(var.resources.worker[0].memory_gibibytes - local.base_resources.munge.memory) - local.base_resources.kruise_daemon.memory
+      ephemeral_storage = floor(var.resources.worker[0].ephemeral_storage_gibibytes - local.base_resources.munge.ephemeral_storage)
     }
     login = {
       cpu               = floor(var.resources.login.cpu_cores - local.base_resources.munge.cpu - local.base_resources.kruise_daemon.cpu)

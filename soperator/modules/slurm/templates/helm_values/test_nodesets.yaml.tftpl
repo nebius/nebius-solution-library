@@ -1,0 +1,27 @@
+nodesets:
+  %{~ if slurm_nodesets_enabled ~}
+  enabled: true
+  interval: 5m
+  timeout: 5m
+  version: "1.22.1"
+  namespace: soperator
+  releaseName: soperator-nodesets
+  overrideValues:
+    nodesets:
+      %{~ for node_group in node_group_workers ~}
+      - name: ${node_group.name}%{~ if node_group.subset_index > 0 ~}-${node_group.subset_index}%{~ endif ~}
+        replicas: ${node_group.size}
+        nodeSelector:
+          slurm.nebius.ai/nodeset-name: ${node_group.name}
+        slurmd:
+          resources:
+            cpu: ${floor(worker_resources[node_group.nodeset_index].cpu_cores * 1000)}m
+            memory: ${floor(worker_resources[node_group.nodeset_index].memory_gibibytes)}Gi
+            ephemeralStorage: ${worker_resources[node_group.nodeset_index].ephemeral_storage_gibibytes}Gi
+            %{~ if worker_resources[node_group.nodeset_index].gpus > 0 ~}
+            nvidia.com/gpu: ${worker_resources[node_group.nodeset_index].gpus}
+            %{~ endif ~}
+        nodeConfig:
+          static: "CPUs=${worker_resources[node_group.nodeset_index].cpu_cores} RealMemory=${floor(worker_resources[node_group.nodeset_index].memory_gibibytes * 1024)} %{~ if worker_resources[node_group.nodeset_index].gpus > 0 ~}Gres=gpu:${worker_resources[node_group.nodeset_index].gpus}%{~ endif ~}"
+      %{~ endfor ~}
+  %{~ endif ~}

@@ -176,6 +176,10 @@ slurm_operator_version = "1.22.1"
 # ---
 slurm_operator_stable = true
 
+# Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration.
+# ---
+slurm_nodesets_enabled = true
+
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".
 # ---
@@ -278,32 +282,48 @@ slurm_nodeset_controller = {
 }
 
 # Configuration of Slurm Worker node sets.
-# There can be only one Worker node set for a while.
-# nodes_per_nodegroup allows you to split node set into equally-sized node groups to keep your cluster accessible and working
-# during maintenance. Example: nodes_per_nodegroup=3 for size=12 nodes will create 4 groups with 3 nodes in every group.
-# infiniband_fabric is required field
+# Multiple worker nodesets are supported with different hardware configurations.
+# Each nodeset will be automatically split into node groups of max 100 nodes with autoscaling enabled.
+# infiniband_fabric is required field for GPU clusters
 # ---
-slurm_nodeset_workers = [{
-  size                    = 16
-  nodes_per_nodegroup     = 4
-  max_unavailable_percent = 50
-  # max_surge_percent       = 50
-  # drain_timeout           = "10s"
-  resource = {
-    platform = "gpu-h100-sxm"
-    preset   = "8gpu-128vcpu-1600gb"
+slurm_nodeset_workers = [
+  {
+    name = "worker-h100"
+    size = 128
+    resource = {
+      platform = "gpu-h100-sxm"
+      preset   = "8gpu-128vcpu-1600gb"
+    }
+    boot_disk = {
+      type                 = "NETWORK_SSD"
+      size_gibibytes       = 512
+      block_size_kibibytes = 4
+    }
+    gpu_cluster = {
+      infiniband_fabric = ""
+    }
+    # Change to preemptible = {} in case you want to use preemptible nodes
+    preemptible = null
+  },
+  {
+    name = "worker-b200"
+    size = 64
+    resource = {
+      platform = "gpu-b200-sxm"
+      preset   = "8gpu-128vcpu-1600gb"
+    }
+    boot_disk = {
+      type                 = "NETWORK_SSD"
+      size_gibibytes       = 512
+      block_size_kibibytes = 4
+    }
+    gpu_cluster = {
+      infiniband_fabric = ""
+    }
+    # Change to preemptible = {} in case you want to use preemptible nodes
+    preemptible = null
   }
-  boot_disk = {
-    type                 = "NETWORK_SSD"
-    size_gibibytes       = 512
-    block_size_kibibytes = 4
-  }
-  gpu_cluster = {
-    infiniband_fabric = ""
-  }
-  # Change to preemptible = {} in case you want to use preemptible nodes
-  preemptible = null
-}]
+]
 
 # Driverfull mode is used to run Slurm jobs with GPU drivers installed on the worker nodes.
 use_preinstalled_gpu_drivers = true

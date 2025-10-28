@@ -181,12 +181,12 @@ resource "helm_release" "soperator_fluxcd_cm" {
         }
 
         worker = {
-          size = one(var.node_count.worker)
+          size = var.node_count.worker[0]
           resources = {
             cpu               = var.share_worker_nodes ? local.resources.worker.cpu - local.resources.login.cpu : local.resources.worker.cpu
             memory            = var.share_worker_nodes ? local.resources.worker.memory - local.resources.login.memory : local.resources.worker.memory
             ephemeral_storage = var.share_worker_nodes ? local.resources.worker.ephemeral_storage - local.resources.login.ephemeral_storage : local.resources.worker.ephemeral_storage
-            gpus              = one(var.resources.worker).gpus
+            gpus              = var.resources.worker[0].gpus
           }
           shared_memory            = var.shared_memory_size_gibibytes
           slurm_node_extra         = local.slurm_node_extra
@@ -254,6 +254,10 @@ resource "helm_release" "soperator_fluxcd_cm" {
     }
 
     vm_agent_queue_count = local.vm_agent_queue_count
+
+    slurm_nodesets_enabled = var.slurm_nodesets_enabled
+    node_group_workers     = var.node_group_workers
+    worker_resources       = var.resources.worker
 
   })]
 }
