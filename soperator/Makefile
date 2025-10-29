@@ -48,3 +48,20 @@ terraform-validate-modules:
 			cd - > /dev/null; \
 		fi; \
 	done
+
+.PHONY: terraform-validate-installations
+terraform-validate-installations:
+	@echo 'Validating Terraform installations...'
+	@for install_dir in installations/*/; do \
+		if [ -d "$$install_dir" ]; then \
+			echo "Validating installation: $$install_dir"; \
+			cd "$$install_dir"; \
+			terraform init -backend=false; \
+			terraform validate; \
+			cd - > /dev/null; \
+		fi; \
+	done
+
+.PHONY: terraform-check
+terraform-check: terraform-fmt-check terraform-validate-modules
+	@echo 'All Terraform checks passed successfully!'

@@ -270,29 +270,40 @@ resource "helm_release" "flux2_sync" {
   name      = "flux-system"
   namespace = "flux-system"
 
-  values = [yamlencode({
-    gitRepository = {
-      spec = {
-        url = "https://github.com/${var.github_org}/${var.github_repository}"
-        ref = {
-          "${var.github_ref_type}" = var.github_ref_value
-        }
-        interval = var.flux_interval
-      }
-    }
-    kustomization = {
-      spec = {
-        interval = var.flux_interval
-        postBuild = {
-          substitute = {
-            soperator_version = var.operator_version
-          }
-        }
-        path  = var.flux_kustomization_path
-        prune = true
-      }
-    }
-  })]
+  set {
+    name  = "gitRepository.spec.url"
+    value = "https://github.com/${var.github_org}/${var.github_repository}"
+  }
+
+  set {
+    name  = "gitRepository.spec.ref.${var.github_ref_type}"
+    value = var.github_ref_value
+  }
+
+  set {
+    name  = "gitRepository.spec.interval"
+    value = var.flux_interval
+  }
+
+  set {
+    name  = "kustomization.spec.interval"
+    value = var.flux_interval
+  }
+
+  set {
+    name  = "kustomization.spec.postBuild.substitute.soperator_version"
+    value = var.operator_version
+  }
+
+  set {
+    name  = "kustomization.spec.path"
+    value = var.flux_kustomization_path
+  }
+
+  set {
+    name  = "kustomization.spec.prune"
+    value = "true"
+  }
 }
 
 resource "helm_release" "soperator_fluxcd_ad_hoc_cm" {
