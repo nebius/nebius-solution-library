@@ -354,7 +354,7 @@ variable "shared_memory_size_gibibytes" {
 
 variable "slurm_topology_config" {
   description = "Topology plugin and it's parameters."
-  type        = object({
+  type = object({
     plugin     = string
     block_size = optional(number)
   })

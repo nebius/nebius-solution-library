@@ -143,8 +143,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
       }]
 
       topology = {
-        plugin      = var.slurm_topology_config.plugin
-        block_size  = var.slurm_topology_config.block_size
+        plugin     = var.slurm_topology_config.plugin
+        block_size = var.slurm_topology_config.block_size
       }
 
       controller_state_on_filestore = var.controller_state_on_filestore

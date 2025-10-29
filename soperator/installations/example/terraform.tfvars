@@ -407,7 +407,7 @@ slurm_shared_memory_size_gibibytes = 1024
 # plugin - one of "topology/tree", "topology/block"
 # block_size - used in case of "topology/block" plugin to define size of blocks.
 slurm_topology_config = {
-  plugin = "topology/tree"
+  plugin     = "topology/tree"
   block_size = null
 }
 

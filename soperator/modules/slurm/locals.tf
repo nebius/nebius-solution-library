@@ -139,7 +139,7 @@ locals {
         cpu    = 1
       }
     }
-    
+
     worker = {
       cpu               = floor(one(var.resources.worker).cpu_cores - local.resources.munge.cpu) - local.resources.kruise_daemon.cpu
       memory            = floor(one(var.resources.worker).memory_gibibytes - local.resources.munge.memory) - local.resources.kruise_daemon.memory

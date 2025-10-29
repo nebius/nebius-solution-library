@@ -426,7 +426,7 @@ module "slurm" {
   slurm_partition_raw_config      = var.slurm_partition_raw_config
   slurm_worker_features           = var.slurm_worker_features
   slurm_health_check_config       = var.slurm_health_check_config
-  slurm_topology_config           = var.slurm_topology_config 
+  slurm_topology_config           = var.slurm_topology_config
 
   login_allocation_id            = module.k8s.static_ip_allocation_id
   login_public_ip                = var.slurm_login_public_ip
