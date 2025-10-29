@@ -25,3 +25,13 @@ sync-version: ## Sync Soperator version from file
 release: ## Create a zipped tarball with release TF recipe
 	@echo "Packing terraform tarball with version - ${IMAGE_TAG}"
 	VERSION=${VERSION} ./release_terraform.sh -f
+
+.PHONY: terraform-fmt-check
+terraform-fmt-check:
+	@echo 'Checking Terraform formatting...'
+	@terraform fmt -check -recursive .
+
+.PHONY: terraform-fmt
+terraform-fmt:
+	@echo 'Formatting Terraform files...'
+	@terraform fmt -recursive .

@@ -10,8 +10,8 @@ variable "vpc_subnet_id" {
 
 variable "login_public_ip" {
   description = "Public or private ip for login node load balancer"
-  type    = bool
-  default = true
+  type        = bool
+  default     = true
 }
 
 #---

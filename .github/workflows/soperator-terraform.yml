@@ -1,0 +1,63 @@
+name: "Soperator Terraform"
+
+on:
+  pull_request:
+    paths:
+      - "soperator/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "soperator/**"
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-check:
+    name: "Soperator Terraform Checks"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: soperator
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Install the latest version of Terraform CLI
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "v1.11.4"
+
+      # Check that all Terraform configuration files adhere to a canonical format
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive .
+
+      # Initialize Terraform working directory (without backend for validation)
+      - name: Terraform Init
+        run: terraform init -backend=false
+        working-directory: soperator/installations/example
+
+      # Validate terraform code in example installation
+      - name: Terraform Validate - Example Installation
+        run: terraform validate
+        working-directory: soperator/installations/example
+
+      # Validate terraform modules
+      - name: Terraform Validate - Modules
+        run: |
+          for module_dir in modules/*/; do
+            if [ -d "$module_dir" ]; then
+              echo "Validating module: $module_dir"
+              cd "$module_dir"
+              terraform init -backend=false
+              terraform validate
+              cd - > /dev/null
+            fi
+          done
+        working-directory: soperator
