@@ -531,7 +531,8 @@ variable "slurm_health_check_config" {
 
 variable "nvl_instance_group_id" {
   description = "NVLink Instance Group ID, in which instances will be created"
-  type        = optional(string)
+  type        = string
+  default     = null
 }
 
 variable "slurm_topology_config" {
@@ -545,11 +546,11 @@ variable "slurm_topology_config" {
   }
   validation {
     condition = (
-      var.topology.plugin == "topology/block"
-      ? var.topology.block_size != null
-      : false
+      var.slurm_topology_config.plugin == "topology/block"
+      ? var.slurm_topology_config.block_size != null
+      : true
     )
-    error_message = "Variable topology.block_size is required for topology/block plugin."
+    error_message = "Variable slurm_topology_config.block_size is required for topology/block plugin."
   }
 }
 

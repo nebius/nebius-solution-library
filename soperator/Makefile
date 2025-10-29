@@ -35,3 +35,16 @@ terraform-fmt-check:
 terraform-fmt:
 	@echo 'Formatting Terraform files...'
 	@terraform fmt -recursive .
+
+.PHONY: terraform-validate-modules
+terraform-validate-modules:
+	@echo 'Validating Terraform modules...'
+	@for module_dir in modules/*/; do \
+		if [ -d "$$module_dir" ]; then \
+			echo "Validating module: $$module_dir"; \
+			cd "$$module_dir"; \
+			terraform init -backend=false; \
+			terraform validate; \
+			cd - > /dev/null; \
+		fi; \
+	done
