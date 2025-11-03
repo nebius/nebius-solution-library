@@ -12,7 +12,7 @@ module "instance-module" {
   subnet_id               = var.subnet_id
   count                   = var.instance_count
   gpu_cluster             = var.fabric != "" ? nebius_compute_v1_gpu_cluster.gpu-cluster[0].id : ""
-  instance_name           = "instance-${count.index}"
+  instance_name           = "boston-${count.index + 1}"
   users                   = var.users
   preset                  = var.preset
   platform                = var.platform
@@ -29,4 +29,5 @@ module "instance-module" {
   aws_access_key_id       = var.aws_access_key_id
   aws_secret_access_key   = var.aws_secret_access_key
   install_helical         = var.install_helical
+  install_bionemo         = var.install_bionemo
 }

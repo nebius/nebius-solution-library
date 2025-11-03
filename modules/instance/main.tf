@@ -40,11 +40,11 @@ resource "nebius_compute_v1_instance" "instance" {
     existing_disk = nebius_compute_v1_disk.boot-disk
   }
 
-  preemptible = var.preemptible ? {
-    on_preemption = "STOP"
-    priority      = 3
-  } : null
-
+  # preemptible = var.preemptible ? {
+  #   on_preemption = "STOP"
+  #   priority      = 3
+  # } : null
+  #
   recovery_policy = var.preemptible ? "FAIL" : "RECOVER"
 
 
@@ -70,7 +70,7 @@ resource "nebius_compute_v1_instance" "instance" {
   ] : []
 
 
-  cloud_init_user_data = templatefile("${path.module}/../cloud-init/simple-setup-init.tftpl", {
+  cloud_init_user_data = templatefile("${path.module}/../cloud-init/simple-setup-init-bionemo.tftpl", {
     users                   = local.users,
     extra_path              = local.extra_path,
     extra_disk_id           = local.extra_disk_id,
