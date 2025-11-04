@@ -178,7 +178,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
         worker = {
           size = var.node_count.worker[0]
           resources = {
-            cpu               = var.share_worker_nodes ? local.resources.worker.cpu - local.resources.login.cpu : local.resources.worker.cpu
+            cpu               = var.slurm_nodesets_enabled ? 0 : floor(var.resources.worker[0].cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
             memory            = var.share_worker_nodes ? local.resources.worker.memory - local.resources.login.memory : local.resources.worker.memory
             ephemeral_storage = var.share_worker_nodes ? local.resources.worker.ephemeral_storage - local.resources.login.ephemeral_storage : local.resources.worker.ephemeral_storage
             gpus              = var.resources.worker[0].gpus
