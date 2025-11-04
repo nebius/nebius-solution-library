@@ -88,6 +88,12 @@ variable "node_count" {
   })
 }
 
+variable "share_worker_nodes" {
+  description = "Whether to allow other workload (currently, only login nodes) to run on worker nodes"
+  type        = bool
+  default     = false
+}
+
 # endregion Nodes
 
 # region Resources
@@ -344,6 +350,17 @@ variable "shared_memory_size_gibibytes" {
   description = "Shared memory size for Slurm controller and worker nodes in GiB."
   type        = number
   default     = 64
+}
+
+variable "slurm_topology_config" {
+  description = "Topology plugin and it's parameters."
+  type = object({
+    plugin     = string
+    block_size = optional(number)
+  })
+  default = {
+    plugin = "topology/tree"
+  }
 }
 
 # endregion Config

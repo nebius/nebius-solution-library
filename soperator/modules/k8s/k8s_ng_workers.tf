@@ -99,6 +99,7 @@ resource "nebius_mk8s_v1_node_group" "worker" {
       )
       : null
     )
+    nvl_instance_group_id = var.nvl_instance_group_id
 
     preemptible = var.node_group_workers[count.index].preemptible
 

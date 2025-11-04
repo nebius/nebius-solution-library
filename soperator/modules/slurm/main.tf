@@ -142,6 +142,11 @@ resource "helm_release" "soperator_fluxcd_cm" {
         mount_path = submount.mount_path
       }]
 
+      topology = {
+        plugin     = var.slurm_topology_config.plugin
+        block_size = var.slurm_topology_config.block_size
+      }
+
       controller_state_on_filestore = var.controller_state_on_filestore
 
       nfs        = var.nfs
@@ -178,9 +183,9 @@ resource "helm_release" "soperator_fluxcd_cm" {
         worker = {
           size = one(var.node_count.worker)
           resources = {
-            cpu               = floor(one(var.resources.worker).cpu_cores - local.resources.munge.cpu) - local.resources.kruise_daemon.cpu
-            memory            = floor(one(var.resources.worker).memory_gibibytes - local.resources.munge.memory) - local.resources.kruise_daemon.memory
-            ephemeral_storage = floor(one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
+            cpu               = var.share_worker_nodes ? local.resources.worker.cpu - local.resources.login.cpu : local.resources.worker.cpu
+            memory            = var.share_worker_nodes ? local.resources.worker.memory - local.resources.login.memory : local.resources.worker.memory
+            ephemeral_storage = var.share_worker_nodes ? local.resources.worker.ephemeral_storage - local.resources.login.ephemeral_storage : local.resources.worker.ephemeral_storage
             gpus              = one(var.resources.worker).gpus
           }
           shared_memory            = var.shared_memory_size_gibibytes
@@ -194,10 +199,11 @@ resource "helm_release" "soperator_fluxcd_cm" {
           sshd_config_map_ref_name = var.login_sshd_config_map_ref_name
           root_public_keys         = var.login_ssh_root_public_keys
           public_ip                = var.login_public_ip
+          share_worker_nodes       = var.share_worker_nodes
           resources = {
-            cpu               = floor(var.resources.login.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
-            memory            = floor(var.resources.login.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory)
-            ephemeral_storage = floor(var.resources.login.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
+            cpu               = local.resources.login.cpu
+            memory            = local.resources.login.memory
+            ephemeral_storage = local.resources.login.ephemeral_storage
           }
         }
 
@@ -268,26 +274,32 @@ resource "helm_release" "flux2_sync" {
     name  = "gitRepository.spec.url"
     value = "https://github.com/${var.github_org}/${var.github_repository}"
   }
+
   set {
     name  = "gitRepository.spec.ref.${var.github_ref_type}"
     value = var.github_ref_value
   }
+
   set {
     name  = "gitRepository.spec.interval"
     value = var.flux_interval
   }
+
   set {
     name  = "kustomization.spec.interval"
     value = var.flux_interval
   }
+
   set {
     name  = "kustomization.spec.postBuild.substitute.soperator_version"
     value = var.operator_version
   }
+
   set {
     name  = "kustomization.spec.path"
     value = var.flux_kustomization_path
   }
+
   set {
     name  = "kustomization.spec.prune"
     value = "true"

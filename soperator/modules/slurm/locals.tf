@@ -74,7 +74,8 @@ locals {
     }
   }
 
-  resources = {
+  # Base resource requirements (no self-references)
+  base_resources = {
     munge = {
       cpu               = 0.1
       memory            = 0.5
@@ -140,6 +141,20 @@ locals {
       }
     }
   }
+
+  # Computed resources (using base_resources)
+  resources = merge(local.base_resources, {
+    worker = {
+      cpu               = floor(one(var.resources.worker).cpu_cores - local.base_resources.munge.cpu) - local.base_resources.kruise_daemon.cpu
+      memory            = floor(one(var.resources.worker).memory_gibibytes - local.base_resources.munge.memory) - local.base_resources.kruise_daemon.memory
+      ephemeral_storage = floor(one(var.resources.worker).ephemeral_storage_gibibytes - local.base_resources.munge.ephemeral_storage)
+    }
+    login = {
+      cpu               = floor(var.resources.login.cpu_cores - local.base_resources.munge.cpu - local.base_resources.kruise_daemon.cpu)
+      memory            = floor(var.resources.login.memory_gibibytes - local.base_resources.munge.memory - local.base_resources.kruise_daemon.memory)
+      ephemeral_storage = floor(var.resources.login.ephemeral_storage_gibibytes - local.base_resources.munge.ephemeral_storage)
+    }
+  })
 
   slurm_node_extra = "\\\"{ \\\\\\\"monitoring\\\\\\\": \\\\\\\"https://console.eu.nebius.com/${var.iam_project_id}/compute/instances/$INSTANCE_ID/monitoring\\\\\\\" }\\\""
 
