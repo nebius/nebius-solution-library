@@ -49,15 +49,5 @@ jobs:
         working-directory: soperator/installations/example
 
       # Validate terraform modules
-      - name: Terraform Validate - Modules
-        run: |
-          for module_dir in modules/*/; do
-            if [ -d "$module_dir" ]; then
-              echo "Validating module: $module_dir"
-              cd "$module_dir"
-              terraform init -backend=false
-              terraform validate
-              cd - > /dev/null
-            fi
-          done
-        working-directory: soperator
+      - name: Terraform Check - Modules and Installations
+        run: make terraform-check

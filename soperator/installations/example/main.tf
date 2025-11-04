@@ -13,6 +13,39 @@ locals {
 
   backups_enabled = (var.backups_enabled == "force_enable" ||
   (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
+
+  # Legacy node_group_workers for old-style deployments (without nodesets)
+  node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers : [
+    for subset in range(ceil(nodeset.size / 100.0)) : {
+      size                    = min(100, nodeset.size - subset * 100)
+      max_unavailable_percent = 50
+      max_surge_percent       = null
+      drain_timeout           = null
+      resource                = nodeset.resource
+      boot_disk               = nodeset.boot_disk
+      gpu_cluster             = nodeset.gpu_cluster
+      nodeset_index           = i
+      subset_index            = subset
+      preemptible             = nodeset.preemptible
+    }
+  ]])
+
+  # V2 node_group_workers for new-style deployments (with nodesets)
+  node_group_workers_v2 = flatten([for i, nodeset in var.slurm_nodeset_workers : [
+    for subset in range(ceil(nodeset.size / 100.0)) : {
+      name          = nodeset.name
+      size          = min(100, nodeset.size - subset * 100)
+      min_size      = 0
+      max_size      = min(100, nodeset.size - subset * 100)
+      autoscaling   = true
+      resource      = nodeset.resource
+      boot_disk     = nodeset.boot_disk
+      gpu_cluster   = nodeset.gpu_cluster
+      nodeset_index = i
+      subset_index  = subset
+      preemptible   = nodeset.preemptible
+    }
+  ]])
 }
 
 resource "terraform_data" "check_variables" {
@@ -140,26 +173,12 @@ module "k8s" {
 
   etcd_cluster_size = var.etcd_cluster_size
 
-  node_group_system     = var.slurm_nodeset_system
-  node_group_controller = var.slurm_nodeset_controller
-  node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers :
-    [
-      for subset in range(ceil(nodeset.size / nodeset.nodes_per_nodegroup)) :
-      {
-        size                    = nodeset.nodes_per_nodegroup
-        max_unavailable_percent = nodeset.max_unavailable_percent
-        max_surge_percent       = nodeset.max_surge_percent
-        drain_timeout           = nodeset.drain_timeout
-        resource                = nodeset.resource
-        boot_disk               = nodeset.boot_disk
-        gpu_cluster             = nodeset.gpu_cluster
-        nodeset_index           = i
-        subset_index            = subset
-        preemptible             = nodeset.preemptible
-      }
-    ]
-  ])
-  node_group_login = var.slurm_nodeset_login
+  node_group_system      = var.slurm_nodeset_system
+  node_group_controller  = var.slurm_nodeset_controller
+  node_group_workers     = local.node_group_workers
+  node_group_workers_v2  = local.node_group_workers_v2
+  node_group_login       = var.slurm_nodeset_login
+  slurm_nodesets_enabled = var.slurm_nodesets_enabled
   node_group_accounting = {
     enabled = var.accounting_enabled
     spec    = var.slurm_nodeset_accounting
@@ -422,6 +441,9 @@ module "slurm" {
   slurm_partition_raw_config      = var.slurm_partition_raw_config
   slurm_worker_features           = var.slurm_worker_features
   slurm_health_check_config       = var.slurm_health_check_config
+
+  slurm_nodesets_enabled = var.slurm_nodesets_enabled
+  node_group_workers_v2  = local.node_group_workers_v2
 
   login_allocation_id            = module.k8s.static_ip_allocation_id
   login_public_ip                = var.slurm_login_public_ip

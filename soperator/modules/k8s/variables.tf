@@ -80,7 +80,7 @@ variable "node_group_controller" {
 }
 
 variable "node_group_workers" {
-  description = "Worker node groups specification."
+  description = "Worker node groups specification (legacy)."
   type = list(object({
     size                    = number
     max_unavailable_percent = number
@@ -102,6 +102,33 @@ variable "node_group_workers" {
     nodeset_index = number
     subset_index  = number
   }))
+}
+
+variable "node_group_workers_v2" {
+  description = "Worker node groups specification for nodesets (v2)."
+  type = list(object({
+    name        = string
+    size        = number
+    min_size    = number
+    max_size    = number
+    autoscaling = bool
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+    gpu_cluster = optional(object({
+      infiniband_fabric = string
+    }))
+    preemptible   = optional(object({}))
+    nodeset_index = number
+    subset_index  = number
+  }))
+  default = []
 }
 
 variable "node_group_login" {
@@ -182,6 +209,12 @@ variable "node_ssh_access_users" {
 
 variable "use_preinstalled_gpu_drivers" {
   description = "Enable preinstalled mode for worker nodes."
+  type        = bool
+  default     = false
+}
+
+variable "slurm_nodesets_enabled" {
+  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
   type        = bool
   default     = false
 }

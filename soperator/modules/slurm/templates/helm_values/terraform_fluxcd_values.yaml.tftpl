@@ -816,6 +816,47 @@ resources:
                       effect: NoSchedule
                   %{~ endif ~}
 
+        nodesets:
+          enabled: ${slurm_nodesets_enabled}
+          %{~ if slurm_nodesets_enabled ~}
+          interval: 5m
+          timeout: 5m
+          version: ${operator_version}
+          namespace: soperator
+          releaseName: soperator-nodesets
+          overrideValues:
+            nodesets:
+              %{~ for node_group in node_group_workers ~}
+              - name: ${node_group.name}%{~ if node_group.subset_index > 0 ~}-${node_group.subset_index}%{~ endif ~}
+
+                replicas: ${node_group.size}
+                nodeSelector:
+                  slurm.nebius.ai/nodeset-name: ${node_group.name}
+                slurmd:
+                  volumes:
+                    spool:
+                      emptyDir: {}
+                    jail:
+                      persistentVolumeClaim:
+                        claimName: jail-pvc
+                        readOnly: false
+                  resources:
+                    cpu: ${floor(worker_resources[node_group.nodeset_index].cpu_cores * 1000)}m
+                    memory: ${floor(worker_resources[node_group.nodeset_index].memory_gibibytes)}Gi
+                    ephemeralStorage: ${worker_resources[node_group.nodeset_index].ephemeral_storage_gibibytes}Gi
+                    %{~ if worker_resources[node_group.nodeset_index].gpus > 0 ~}
+                    nvidia.com/gpu: ${worker_resources[node_group.nodeset_index].gpus}
+                    %{~ endif ~}
+                nodeConfig:
+                  static: "CPUs=${worker_resources[node_group.nodeset_index].cpu_cores} RealMemory=${floor(worker_resources[node_group.nodeset_index].memory_gibibytes * 1024)} %{~ if worker_resources[node_group.nodeset_index].gpus > 0 ~}Gres=gpu:${worker_resources[node_group.nodeset_index].gpus}%{~ endif ~}"
+                munge:
+                  resources:
+                    cpu: ${slurm_cluster.nodes.munge.resources.cpu * 1000}m
+                    memory: ${slurm_cluster.nodes.munge.resources.memory}Gi
+                    ephemeralStorage: ${slurm_cluster.nodes.munge.resources.ephemeral_storage}Gi
+              %{~ endfor ~}
+          %{~ endif ~}
+
         soperatorActiveChecks:
           enabled: true
           interval: 5m

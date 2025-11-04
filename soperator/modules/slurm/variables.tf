@@ -725,3 +725,40 @@ variable "active_checks_scope" {
   }
 }
 # endregion ActiveChecks
+
+# region Nodesets
+
+variable "slurm_nodesets_enabled" {
+  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
+  type        = bool
+  default     = false
+}
+
+variable "node_group_workers_v2" {
+  description = "Worker node groups specification for nodesets (v2)."
+  type = list(object({
+    name        = string
+    size        = number
+    min_size    = number
+    max_size    = number
+    autoscaling = bool
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+    gpu_cluster = optional(object({
+      infiniband_fabric = string
+    }))
+    preemptible   = optional(object({}))
+    nodeset_index = number
+    subset_index  = number
+  }))
+  default = []
+}
+
+# endregion Nodesets

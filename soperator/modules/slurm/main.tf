@@ -249,6 +249,10 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
     vm_agent_queue_count = local.vm_agent_queue_count
 
+    slurm_nodesets_enabled = var.slurm_nodesets_enabled
+    node_group_workers     = var.node_group_workers_v2
+    worker_resources       = var.resources.worker
+
   })]
 }
 

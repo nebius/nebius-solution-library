@@ -1,5 +1,5 @@
 locals {
-  gpu_clusters = { for cluster in distinct([for worker in var.node_group_workers :
+  gpu_clusters = var.slurm_nodesets_enabled ? {} : { for cluster in distinct([for worker in var.node_group_workers :
     {
       nodeset = worker.nodeset_index
       fabric  = worker.gpu_cluster.infiniband_fabric
@@ -27,7 +27,7 @@ resource "nebius_compute_v1_gpu_cluster" "this" {
 }
 
 resource "nebius_mk8s_v1_node_group" "worker" {
-  count = length(var.node_group_workers)
+  count = var.slurm_nodesets_enabled ? 0 : length(var.node_group_workers)
 
   depends_on = [
     nebius_mk8s_v1_cluster.this,

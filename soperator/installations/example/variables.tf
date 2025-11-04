@@ -493,6 +493,12 @@ variable "slurm_operator_stable" {
   default     = true
 }
 
+variable "slurm_nodesets_enabled" {
+  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
+  type        = bool
+  default     = false
+}
+
 # region PartitionConfiguration
 
 variable "slurm_partition_config_type" {
@@ -626,11 +632,8 @@ variable "slurm_nodeset_controller" {
 variable "slurm_nodeset_workers" {
   description = "Configuration of Slurm Worker node sets."
   type = list(object({
-    size                    = number
-    nodes_per_nodegroup     = number
-    max_unavailable_percent = optional(number)
-    max_surge_percent       = optional(number)
-    drain_timeout           = optional(string)
+    name = string
+    size = number
     resource = object({
       platform = string
       preset   = string
@@ -647,9 +650,8 @@ variable "slurm_nodeset_workers" {
   }))
   nullable = false
   default = [{
-    size                    = 1
-    nodes_per_nodegroup     = 1
-    max_unavailable_percent = 50
+    name = "worker"
+    size = 1
     resource = {
       platform = "cpu-d3"
       preset   = "16vcpu-64gb"
@@ -661,18 +663,22 @@ variable "slurm_nodeset_workers" {
     }
   }]
 
-  # TODO: change to `>0` when node sets supported in soperator
-  validation {
-    condition     = length(var.slurm_nodeset_workers) == 1
-    error_message = "Only one worker node set must be provided for a while."
-  }
-
   validation {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
-      (worker.size % worker.nodes_per_nodegroup == 0)
+      (worker.size > 0)
     ])
-    error_message = "Worker count must be divisible by nodes_per_nodegroup."
+    error_message = "Worker nodeset size must be greater than 0."
+  }
+
+  validation {
+    condition     = length(var.slurm_nodeset_workers) > 0
+    error_message = "At least one worker nodeset must be provided."
+  }
+
+  validation {
+    condition     = length(distinct([for worker in var.slurm_nodeset_workers : worker.name])) == length(var.slurm_nodeset_workers)
+    error_message = "All worker nodeset names must be unique."
   }
 
   validation {
