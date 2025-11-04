@@ -44,3 +44,6 @@ kuberay_max_gpu_replicas = 2
 
 # NPD nebius-gpu-health-checker helm install
 gpu_health_cheker = true
+
+# set to true in order to run gpu instances with cuda 13
+cuda_13 = false
