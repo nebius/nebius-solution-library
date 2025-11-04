@@ -1,79 +1,166 @@
-head:
-  containerEnv:
-    - name: NVIDIA_VISIBLE_DEVICES
-      value: "void"
-  nodeSelector:
-    beta.kubernetes.io/instance-type: ${cpu_platform}
-  tolerations:
-    - key: "beta.kubernetes.io/instance-type"
-      operator: "Equal"
-      value: ${cpu_platform}
-      effect: "NoSchedule"
-  resources:
-    limits:
-      cpu: "2"
-      memory: 4Gi
-
-worker:
-  replicas: ${min_gpu_replicas}
-  minReplicas: ${min_gpu_replicas}
-  maxReplicas: ${max_gpu_replicas}
-  resources:
-    limits:
-      cpu: 120
-      memory: 1500Gi
-      nvidia.com/gpu: "8"
-    requests:
-      cpu: '{{ .Values.worker.resources.limits.cpu }}'
-      memory: '{{ .Values.worker.resources.limits.memory }}'
-      nvidia.com/gpu: '{{ get .Values.worker.resources.limits "nvidia.com/gpu" }}'
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: beta.kubernetes.io/instance-type
-            operator: In
-            values: [ ${gpu_platform} ]
-  securityContext:
-    privileged: true
-  tolerations:
-    - effect: NoSchedule
-      key: nvidia.com/gpu
-      operator: Exists
-
-additionalWorkerGroups:
-  cpu:
-    affinity:
-      nodeAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          preference:
-            matchExpressions:
-            - key: beta.kubernetes.io/instance-type
-              operator: In
-              values: [ ${cpu_platform} ]
-    tolerations:
-      - key: "beta.kubernetes.io/instance-type"
-        operator: "Equal"
-        value: ${cpu_platform}
-        effect: "NoSchedule"
-
-kuberay-operator:
-  nodeSelector:
-    beta.kubernetes.io/instance-type: ${cpu_platform}
-
-redis:
-  master:
-    persistence:
-      size: 8Gi
-      storageClass: csi-mounted-fs-path-sc
-    resources:
-      limits:
-        cpu: "2" # limits Minimum cpu=4 per gpu node
-        memory: 4Gi # limits Minimum memory=8Gi per gpu node
-      requests:
-        cpu: "1" # Requests Minimum cpu=1 per gpu node
-        memory: 512Mi # Requests Minimum memory=512Mi per gpu node
-    nodeSelector:
-      beta.kubernetes.io/instance-type: ${cpu_platform}
+kuberay:
+  enabled: true
+configuration:
+  configure:
+    ray_version: "2.46.0"
+    ray_autoscaling:
+      enable: true
+      advanced:
+        version: "v2"
+        upscalingMode: "Default" # "Conservative" | "Default" | "Aggressive"
+        idleTimeoutSeconds: 60
+    head_group:
+      image: ${cpu_worker_image}
+      serviceType: "ClusterIP" # "ClusterIP" | "LoadBalancer"
+      advanced:
+        rayStartParams:
+          num_cpus: "0"
+          dashboard_host: "0.0.0.0"
+        resources:
+          requests:
+            cpu: 1
+            memory: 4
+          limits:
+            cpu: 1
+            memory: 4
+    workers_group:
+      groups:
+        - name: "gpu-worker"
+          replicas: ${min_gpu_replicas}
+          minReplicas: ${min_gpu_replicas}
+          maxReplicas: ${max_gpu_replicas}
+          image: ${gpu_worker_image}
+          advanced:
+            resources:
+              nodeSelector: {}
+              resquests:
+                cpu: ${gpu_resources.cpus}
+                memory: ${gpu_resources.memory}
+                gpu: ${gpu_resources.gpus}
+              limits:
+                cpu: ${gpu_resources.cpus}
+                memory: ${gpu_resources.memory}
+                gpu: ${gpu_resources.gpus}
+            rayStartParams:
+              num_cpus: ${gpu_resources.cpus}
+              num_gpus: ${gpu_resources.gpus}
+  putspec:
+    yamlInput: |-
+      apiVersion: ray.io/v1
+      kind: RayCluster
+      metadata:
+        name: ray-cluster
+      spec:
+        rayVersion: 2.46.0
+        enableInTreeAutoscaling: true
+        autoscalerOptions:
+          version: v2
+          upscalingMode: Default
+          idleTimeoutSeconds: 60
+        headGroupSpec:
+          serviceType: ClusterIP
+          rayStartParams:
+            num-cpus: "0"
+            dashboard-host: "0.0.0.0"
+          template:
+            spec:
+              restartPolicy: Never
+              containers:
+                - name: ray-head
+                  image: ${cpu_worker_image}
+                  resources:
+                    requests:
+                      cpu: 1
+                      memory: 4Gi
+                    limits:
+                      cpu: 1
+                      memory: 4Gi
+                  ports:
+                    - containerPort: 6379
+                      name: gcs
+                    - containerPort: 8265
+                      name: dashboard
+                    - containerPort: 10001
+                      name: client
+                    - containerPort: 44217
+                      name: as-metrics # autoscaler
+                    - containerPort: 44227
+                      name: dash-metrics # dashboard
+                  env:
+                    - name: RAY_GRAFANA_IFRAME_HOST
+                      value: http://127.0.0.1:3000
+                    - name: RAY_GRAFANA_HOST
+                      value: http://{{ .Release.Name }}-grafana:80
+                    - name: RAY_PROMETHEUS_HOST
+                      value: http://{{- printf "%s-%s" .Release.Name "kube-prometheus-stack" | trunc 26 | trimSuffix "-" -}}-prometheus:9090
+        workerGroupSpecs:
+          - groupName: cpu-worker
+            replicas: ${min_cpu_replicas}
+            minReplicas: ${min_cpu_replicas}
+            maxReplicas: ${max_cpu_replicas}
+            rayStartParams:
+              num-cpus: "${cpu_resources.cpus}"
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: ray-worker
+                    image: ${cpu_worker_image}
+                    resources:
+                      requests:
+                        cpu: ${cpu_resources.cpus}
+                        memory: ${cpu_resources.memory}Gi
+                      limits:
+                        cpu: ${cpu_resources.cpus}
+                        memory: ${cpu_resources.memory}Gi
+          - groupName: gpu-worker
+            replicas: ${min_gpu_replicas}
+            minReplicas: ${min_gpu_replicas}
+            maxReplicas: ${max_gpu_replicas}
+            rayStartParams:
+              num-cpus: "${gpu_resources.cpus}"
+              num-gpus: "${gpu_resources.gpus}"
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: ray-worker
+                    image: ${gpu_worker_image}
+                    securityContext:
+                      privileged: true
+                      runAsUser: 0
+                      runAsGroup: 0
+                    resources:
+                      requests:
+                        cpu: ${gpu_resources.cpus}
+                        memory: ${gpu_resources.memory}Gi
+                        nvidia.com/gpu: ${gpu_resources.gpus}
+                      limits:
+                        cpu: ${gpu_resources.cpus}
+                        memory: ${gpu_resources.memory}Gi
+                        nvidia.com/gpu: ${gpu_resources.gpus}
+kube-prometheus-stack:
+  enabled: true
+  grafana:
+    service:
+      annotations:
+        nebius.com/MarketplaceServiceAccess: title=Grafana,ssl=false,type=web,port=http-web
+    grafana.ini:
+      security:
+        allow_embedding: true
+      auth.anonymous:
+        enabled: true
+        org_role: Viewer
+    adminPassword: "prom-operator"
+  prometheus-node-exporter:
+    service:
+      targetPort: 9101
+      port: 9101
+  prometheus:
+    prometheusSpec:
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            resources:
+              requests:
+                storage: 50Gi

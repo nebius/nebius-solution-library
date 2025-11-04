@@ -1,0 +1,73 @@
+kuberay:
+  enabled: true
+configuration:
+  configure:
+    ray_version: "2.46.0"
+    ray_autoscaling:
+      enable: true
+      advanced:
+        version: "v2"
+        upscalingMode: "Default" # "Conservative" | "Default" | "Aggressive"
+        idleTimeoutSeconds: 60
+    head_group:
+      image: ${cpu_worker_image}
+      serviceType: "ClusterIP" # "ClusterIP" | "LoadBalancer"
+      advanced:
+        rayStartParams:
+          num_cpus: "0"
+          dashboard_host: "0.0.0.0"
+        resources:
+          requests:
+            cpu: 1
+            memory: 4
+          limits:
+            cpu: 1
+            memory: 4
+    workers_group:
+      groups:
+        - name: "gpu-worker"
+          replicas: ${min_gpu_replicas}
+          minReplicas: ${min_gpu_replicas}
+          maxReplicas: ${max_gpu_replicas}
+          image: ${gpu_worker_image}
+          advanced:
+            resources:
+              nodeSelector: {}
+              resquests:
+                cpu: ${gpu_resources.cpus}
+                memory: ${gpu_resources.memory}
+                gpu: ${gpu_resources.gpus}
+              limits:
+                cpu: ${gpu_resources.cpus}
+                memory: ${gpu_resources.memory}
+                gpu: ${gpu_resources.gpus}
+            rayStartParams:
+              num_cpus: "${gpu_resources.cpus}"
+              num_gpus: "${gpu_resources.gpus}"
+  putspec:
+    yamlInput: ""
+kube-prometheus-stack:
+  enabled: true
+  grafana:
+    service:
+      annotations:
+        nebius.com/MarketplaceServiceAccess: title=Grafana,ssl=false,type=web,port=http-web
+    grafana.ini:
+      security:
+        allow_embedding: true
+      auth.anonymous:
+        enabled: true
+        org_role: Viewer
+    adminPassword: "prom-operator"
+  prometheus-node-exporter:
+    service:
+      targetPort: 9101
+      port: 9101
+  prometheus:
+    prometheusSpec:
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            resources:
+              requests:
+                storage: 50Gi

@@ -48,7 +48,7 @@ for i in $(seq 1 $MAX_RETRIES); do
     RELEASE_STATUS_REASON=$(echo "$RELEASE_STATUS" | jq -r '.reason')
     RELEASE_STATUS_STATUS=$(echo "$RELEASE_STATUS" | jq -r '.status')
     
-    if [ "$RELEASE_STATUS_REASON" == "InstallSucceeded" ] && [ "$RELEASE_STATUS_STATUS" == "True" ]; then
+    if [[ "$RELEASE_STATUS_REASON" == "InstallSucceeded" || "$RELEASE_STATUS_REASON" == "UpgradeSucceeded" ]] && [ "$RELEASE_STATUS_STATUS" == "True" ]; then
       echo "HelmRelease $HELMRELEASE_NAME has been successfully installed."
       echo "Details:"
       echo "$RELEASE_STATUS" | jq .

@@ -239,16 +239,57 @@ variable "enable_kuberay" {
   default     = false
 }
 
+variable "kuberay_cpu_worker_image" {
+  description = "Docker image to use for CPU worker pods"
+  default     = null
+}
+
+variable "kuberay_min_cpu_replicas" {
+  description = "Minimum amount of kuberay CPU worker pods"
+  type        = number
+  default     = 0
+}
+
+variable "kuberay_max_cpu_replicas" {
+  description = "Minimum amount of kuberay CPU worker pods"
+  type        = number
+  default     = 0
+}
+
+variable "kuberay_cpu_resources" {
+  description = "Resources given to each CPU worker pod"
+  type = object({
+    cpus   = number
+    memory = number
+  })
+  default = null
+}
+
+#gpu worker pod setup
+variable "kuberay_gpu_worker_image" {
+  description = "Docker image to use for GPU worker pods"
+  default     = null
+}
 variable "kuberay_min_gpu_replicas" {
-  description = "Minimum amount of kuberay gpu worker pods"
+  description = "Minimum amount of kuberay GPU worker pods"
   type        = number
   default     = 0
 }
 
 variable "kuberay_max_gpu_replicas" {
-  description = "Minimum amount of kuberay gpu worker pods"
+  description = "Minimum amount of kuberay GPU worker pods"
   type        = number
-  default     = 1
+  default     = 0
+}
+
+variable "kuberay_gpu_resources" {
+  description = "Resources given to each GPU worker pod"
+  type = object({
+    cpus   = number
+    gpus   = number
+    memory = number
+  })
+  default = null
 }
 
 variable "mig_strategy" {

@@ -37,10 +37,31 @@ enable_filestore     = true                             # Enable or disable File
 filestore_disk_size  = 10 * (1024 * 1024 * 1024 * 1024) # Set Filestore disk size in bytes. The multiplication makes it easier to set the size in TB. This would set the size as 10TB
 filestore_block_size = 4096                             # Set Filestore block size in bytes
 
+
 # KubeRay
-enable_kuberay           = false # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
-kuberay_min_gpu_replicas = 1
-kuberay_max_gpu_replicas = 2
+# for GPU isolation to work with kuberay, gpu_nodes_driverfull_image must be set 
+# to false.  This is because we enable acess to infiniband via securityContext.privileged
+enable_kuberay = false # Turn KubeRay to false, otherwise gpu capacity will be consumed by KubeRay cluster
+
+#kuberay CPU worker setup
+# if you have no CPU only nodes, set these to zero
+# kuberay_cpu_worker_image = ""  # set default CPU worker can leave it commented out in most cases
+kuberay_min_cpu_replicas = 1
+kuberay_max_cpu_replicas = 2
+# kuberay_cpu_resources = {
+#   cpus = 2
+#   memory = 4  # memory allocation in gigabytes
+# }
+
+#kuberay GPU worker pod setup
+# kuberay_gpu_worker_image = "" # set default gpu worker image see ../modules/kuberay/README.md for more info
+kuberay_min_gpu_replicas = 2
+kuberay_max_gpu_replicas = 8
+# kuberay_gpu_resources = {
+#   cpus = 16
+#   gpus = 1
+#   memory = 150  # memory allocation in gigabytes
+# }
 
 # NPD nebius-gpu-health-checker helm install
 gpu_health_cheker = true

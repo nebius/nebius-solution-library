@@ -90,7 +90,7 @@ resource "nebius_vpc_v1_allocation" "this" {
 
   name = var.login_public_ip ? "${var.name}-public-static-ip" : "${var.name}-private-static-ip"
 
-  ipv4_public  = var.login_public_ip ? {
+  ipv4_public = var.login_public_ip ? {
     cidr      = "/32"
     subnet_id = var.vpc_subnet_id
   } : null

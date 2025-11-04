@@ -167,8 +167,8 @@ variable "login_allocation_id" {
 
 variable "login_public_ip" {
   description = "Public or private ip for login node load balancer"
-  type    = bool
-  default = true
+  type        = bool
+  default     = true
 }
 
 variable "tailscale_enabled" {
@@ -305,7 +305,7 @@ variable "nfs_in_k8s" {
     storage_class  = optional(string, "compute-csi-network-ssd-io-m3-ext4")
   })
   default = {
-    enabled       = false
+    enabled = false
   }
 
   validation {

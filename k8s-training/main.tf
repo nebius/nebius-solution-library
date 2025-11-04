@@ -103,7 +103,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
   count            = var.gpu_node_groups
   fixed_node_count = var.gpu_nodes_count_per_group
   parent_id        = nebius_mk8s_v1_cluster.k8s-cluster.id
-  name             = join("-", ["k8s-ng-gpu", local.release-suffix])
+  name             = join("-", ["k8s-ng-gpu", local.release-suffix, count.index])
   labels = {
     "library-solution" : "k8s-training",
   }
@@ -144,7 +144,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
       }
     ] : null
     gpu_cluster  = var.enable_gpu_cluster ? nebius_compute_v1_gpu_cluster.fabric_2[0] : null
-    gpu_settings = var.gpu_nodes_driverfull_image ? { drivers_preset = "cuda12" } : null
+    gpu_settings = var.gpu_nodes_driverfull_image ? { drivers_preset = local.device_preset } : null
     preemptible = var.gpu_nodes_preemptible ? {
       on_preemption = "STOP"
       priority      = 3
