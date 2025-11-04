@@ -156,6 +156,7 @@ module "k8s" {
   name                         = local.k8s_cluster_name
   company_name                 = var.company_name
   use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
+  slurm_nodesets_enabled       = var.slurm_nodesets_enabled
 
   etcd_cluster_size = var.etcd_cluster_size
 

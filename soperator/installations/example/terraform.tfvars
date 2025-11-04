@@ -178,7 +178,7 @@ slurm_operator_stable = true
 
 # Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration.
 # ---
-slurm_nodesets_enabled = true
+slurm_nodesets_enabled = false
 
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".
@@ -284,7 +284,7 @@ slurm_nodeset_controller = {
 # ---
 slurm_nodeset_workers = [
   {
-    name = "worker-h100"
+    name = "worker"
     size = 128
     resource = {
       platform = "gpu-h100-sxm"
@@ -301,24 +301,24 @@ slurm_nodeset_workers = [
     # Change to preemptible = {} in case you want to use preemptible nodes
     preemptible = null
   },
-  {
-    name = "worker-b200"
-    size = 64
-    resource = {
-      platform = "gpu-b200-sxm"
-      preset   = "8gpu-128vcpu-1600gb"
-    }
-    boot_disk = {
-      type                 = "NETWORK_SSD"
-      size_gibibytes       = 512
-      block_size_kibibytes = 4
-    }
-    gpu_cluster = {
-      infiniband_fabric = ""
-    }
-    # Change to preemptible = {} in case you want to use preemptible nodes
-    preemptible = null
-  }
+  # {
+  #   name = "worker-b200"
+  #   size = 64
+  #   resource = {
+  #     platform = "gpu-b200-sxm"
+  #     preset   = "8gpu-128vcpu-1600gb"
+  #   }
+  #   boot_disk = {
+  #     type                 = "NETWORK_SSD"
+  #     size_gibibytes       = 512
+  #     block_size_kibibytes = 4
+  #   }
+  #   gpu_cluster = {
+  #     infiniband_fabric = ""
+  #   }
+  #   # Change to preemptible = {} in case you want to use preemptible nodes
+  #   preemptible = null
+  # }
 ]
 
 # Driverfull mode is used to run Slurm jobs with GPU drivers installed on the worker nodes.

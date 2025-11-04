@@ -186,3 +186,9 @@ variable "use_preinstalled_gpu_drivers" {
   type        = bool
   default     = false
 }
+
+variable "slurm_nodesets_enabled" {
+  description = "Enable Slurm nodesets support."
+  type        = bool
+  default     = false
+}

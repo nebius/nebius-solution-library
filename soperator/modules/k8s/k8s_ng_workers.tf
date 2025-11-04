@@ -42,9 +42,9 @@ resource "nebius_mk8s_v1_node_group" "worker" {
     var.node_group_workers[count.index].subset_index,
   ])
   labels = merge(
-    tomap({
+    var.slurm_nodesets_enabled ? tomap({
       (module.labels.key_slurm_nodeset_name) = var.node_group_workers[count.index].name
-    }),
+    }) : {},
     local.node_group_workload_label.worker[count.index],
     module.labels.label_jail,
   )
@@ -60,9 +60,9 @@ resource "nebius_mk8s_v1_node_group" "worker" {
     metadata = {
       labels = merge(
         module.labels.label_jail,
-        tomap({
+        var.slurm_nodesets_enabled ? tomap({
           (module.labels.key_slurm_nodeset_name) = var.node_group_workers[count.index].name
-        }),
+        }) : {},
         local.node_group_workload_label.worker[count.index],
         (local.node_group_gpu_present.worker[count.index] ? module.labels.label_nebius_gpu : {}),
       )
