@@ -74,7 +74,7 @@ locals {
     }
   }
 
-  resources = {
+  base_resources = {
     munge = {
       cpu               = 0.1
       memory            = 0.5
