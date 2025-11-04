@@ -274,3 +274,15 @@ variable "gpu_health_cheker" {
   type        = bool
   default     = true
 }
+
+variable "cuda_13" {
+  description = "Use Cuda 13.0 via customized GPU Operator."
+  type        = bool
+  default = false
+
+  validation {
+    condition     = !(var.cuda_13 && var.gpu_nodes_driverfull_image)
+    error_message = "You cannot enable both 'cuda_13' and 'gpu_nodes_driverfull_image' at the same time."
+  }
+
+}

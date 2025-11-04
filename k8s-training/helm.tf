@@ -9,7 +9,7 @@ module "network-operator" {
 }
 
 module "gpu-operator" {
-  count = var.gpu_nodes_driverfull_image ? 0 : 1
+  count = (!var.gpu_nodes_driverfull_image && !var.cuda_13) ? 1 : 0
 
   depends_on = [
     module.network-operator
@@ -19,6 +19,15 @@ module "gpu-operator" {
   cluster_id   = nebius_mk8s_v1_cluster.k8s-cluster.id
   mig_strategy = var.mig_strategy
 }
+
+module "gpu-operator-cuda13" {
+  count = var.cuda_13 ? 1 : 0
+  depends_on = [
+    module.network-operator
+  ]
+  source       = "../modules/gpu-operator-cuda13"
+}
+
 
 module "device-plugin" {
   count = var.gpu_nodes_driverfull_image ? 1 : 0
