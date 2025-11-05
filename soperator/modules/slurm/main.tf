@@ -75,6 +75,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     enable_soperator_checks = var.enable_soperator_checks
 
     operator_version                   = var.operator_version
+    operator_feature_gates             = var.operator_feature_gates
     cert_manager_version               = var.cert_manager_version
     k8up_version                       = var.k8up_version
     mariadb_operator_version           = var.mariadb_operator_version
@@ -176,12 +177,12 @@ resource "helm_release" "soperator_fluxcd_cm" {
         }
 
         worker = {
-          size = one(var.node_count.worker)
+          size = var.slurm_nodesets_enabled ? 0 : var.node_count.worker[0]
           resources = {
-            cpu               = floor(one(var.resources.worker).cpu_cores - local.resources.munge.cpu) - local.resources.kruise_daemon.cpu
-            memory            = floor(one(var.resources.worker).memory_gibibytes - local.resources.munge.memory) - local.resources.kruise_daemon.memory
-            ephemeral_storage = floor(one(var.resources.worker).ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
-            gpus              = one(var.resources.worker).gpus
+            cpu               = floor(var.resources.worker[0].cpu_cores - local.resources.munge.cpu) - local.resources.kruise_daemon.cpu
+            memory            = floor(var.resources.worker[0].memory_gibibytes - local.resources.munge.memory) - local.resources.kruise_daemon.memory
+            ephemeral_storage = floor(var.resources.worker[0].ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
+            gpus              = var.resources.worker[0].gpus
           }
           shared_memory            = var.shared_memory_size_gibibytes
           slurm_node_extra         = local.slurm_node_extra
@@ -249,9 +250,10 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
     vm_agent_queue_count = local.vm_agent_queue_count
 
-    slurm_nodesets_enabled = var.slurm_nodesets_enabled
-    node_group_workers     = var.node_group_workers_v2
-    worker_resources       = var.resources.worker
+    slurm_nodesets_enabled    = var.slurm_nodesets_enabled
+    slurm_nodesets_partitions = var.slurm_nodesets_partitions
+    node_group_workers        = var.node_group_workers_v2
+    worker_resources          = var.resources.worker
 
   })]
 }

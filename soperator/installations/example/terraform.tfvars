@@ -176,9 +176,35 @@ slurm_operator_version = "1.22.2"
 # ---
 slurm_operator_stable = true
 
+# Feature gates for soperator. Example: "NodeSetWorkers=true"
+# By default, "" (empty).
+# ---
+# slurm_operator_feature_gates = "NodeSetWorkers=true"
+
 # Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration.
 # ---
 slurm_nodesets_enabled = false
+
+# Partition configuration for nodesets. Used only when slurm_nodesets_enabled is true.
+# If empty, a default partition "main" with all nodes will be created.
+# ---
+# slurm_nodesets_partitions = [
+#   {
+#     name    = "main"
+#     is_all  = true
+#     config  = "Default=YES PriorityTier=10 MaxTime=INFINITE State=UP OverSubscribe=YES"
+#   },
+#   {
+#     name    = "hidden"
+#     is_all  = true
+#     config  = "Default=NO PriorityTier=10 PreemptMode=OFF Hidden=YES MaxTime=INFINITE State=UP OverSubscribe=YES"
+#   },
+#   {
+#     name    = "background"
+#     is_all  = true
+#     config  = "Nodes=ALL Default=NO PriorityTier=1 PreemptMode=OFF Hidden=YES MaxTime=INFINITE State=UP OverSubscribe=YES"
+#   },
+# ]
 
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".

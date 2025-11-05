@@ -493,10 +493,27 @@ variable "slurm_operator_stable" {
   default     = true
 }
 
+variable "slurm_operator_feature_gates" {
+  description = "Feature gates for soperator. Example: 'NodeSetWorkers=true'"
+  type        = string
+  default     = ""
+}
+
 variable "slurm_nodesets_enabled" {
   description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
   type        = bool
   default     = false
+}
+
+variable "slurm_nodesets_partitions" {
+  description = "Partition configuration for nodesets. Used only when slurm_nodesets_enabled is true."
+  type = list(object({
+    name         = string
+    is_all       = optional(bool, false)
+    nodeset_refs = optional(list(string), [])
+    config       = string
+  }))
+  default = []
 }
 
 # region PartitionConfiguration

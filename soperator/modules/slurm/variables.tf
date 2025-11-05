@@ -14,6 +14,12 @@ variable "operator_stable" {
   default     = true
 }
 
+variable "operator_feature_gates" {
+  description = "Feature gates for soperator. Example: 'NodeSetWorkers=true'"
+  type        = string
+  default     = ""
+}
+
 variable "iam_tenant_id" {
   description = "ID of the IAM tenant."
   type        = string
@@ -128,10 +134,10 @@ variable "resources" {
     error_message = "At least one worker node must be provided."
   }
 
-  # TODO: remove when node sets are supported
+  # Only enforce single worker nodeset when nodesets feature is disabled
   validation {
-    condition     = length(var.resources.worker) == 1
-    error_message = "Only one worker nodeset is supported."
+    condition     = var.slurm_nodesets_enabled || length(var.resources.worker) == 1
+    error_message = "Only one worker nodeset is supported when slurm_nodesets_enabled is false."
   }
 }
 
@@ -757,6 +763,17 @@ variable "node_group_workers_v2" {
     preemptible   = optional(object({}))
     nodeset_index = number
     subset_index  = number
+  }))
+  default = []
+}
+
+variable "slurm_nodesets_partitions" {
+  description = "Partition configuration for nodesets. Used only when slurm_nodesets_enabled is true."
+  type = list(object({
+    name         = string
+    is_all       = optional(bool, false)
+    nodeset_refs = optional(list(string), [])
+    config       = string
   }))
   default = []
 }

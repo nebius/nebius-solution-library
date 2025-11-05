@@ -215,7 +215,28 @@ resources:
             maintenance: ${slurm_cluster.maintenance}
 
             partitionConfiguration:
-              configType: ${slurm_cluster.partition_configuration.slurm_config_type}
+              configType: ${slurm_nodesets_enabled ? "structured" : slurm_cluster.partition_configuration.slurm_config_type}
+              %{~ if slurm_nodesets_enabled ~}
+              partitions:
+                %{~ if length(slurm_nodesets_partitions) > 0 ~}
+                %{~ for partition in slurm_nodesets_partitions ~}
+                - name: ${partition.name}
+                  %{~ if partition.is_all ~}
+                  nodes: ALL
+                  %{~ else ~}
+                  nodeSetRefs:
+                    %{~ for nodeset_ref in partition.nodeset_refs ~}
+                    - "${nodeset_ref}"
+                    %{~ endfor ~}
+                  %{~ endif ~}
+                  config: "${partition.config}"
+                %{~ endfor ~}
+                %{~ else ~}
+                - name: main
+                  default: true
+                  nodes: ALL
+                %{~ endif ~}
+              %{~ endif ~}
               %{~ if slurm_cluster.partition_configuration.slurm_config_type == "custom" ~}
               rawConfig:
                 %{~ for partition in slurm_cluster.partition_configuration.slurm_raw_config ~}
@@ -873,6 +894,7 @@ resources:
           interval: 5m
           timeout: 5m
           version: ${operator_version}
+          featureGates: "${operator_feature_gates}"
           values:
             manager:
               resources:

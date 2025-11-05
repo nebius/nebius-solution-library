@@ -318,8 +318,9 @@ module "slurm" {
   name                = local.slurm_cluster_name
   k8s_cluster_context = module.k8s.cluster_context
 
-  operator_version = var.slurm_operator_version
-  operator_stable  = var.slurm_operator_stable
+  operator_version       = var.slurm_operator_version
+  operator_stable        = var.slurm_operator_stable
+  operator_feature_gates = var.slurm_operator_feature_gates
 
   maintenance                   = var.maintenance
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
@@ -442,8 +443,9 @@ module "slurm" {
   slurm_worker_features           = var.slurm_worker_features
   slurm_health_check_config       = var.slurm_health_check_config
 
-  slurm_nodesets_enabled = var.slurm_nodesets_enabled
-  node_group_workers_v2  = local.node_group_workers_v2
+  slurm_nodesets_enabled    = var.slurm_nodesets_enabled
+  slurm_nodesets_partitions = var.slurm_nodesets_partitions
+  node_group_workers_v2     = local.node_group_workers_v2
 
   login_allocation_id            = module.k8s.static_ip_allocation_id
   login_public_ip                = var.slurm_login_public_ip
