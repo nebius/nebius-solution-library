@@ -663,3 +663,9 @@ variable "use_preinstalled_gpu_drivers" {
   type        = bool
   default     = false
 }
+
+variable "use_cuda13rc" {
+  description = "Whether to use unstable image with CUDA 13."
+  type        = bool
+  default     = false
+}
