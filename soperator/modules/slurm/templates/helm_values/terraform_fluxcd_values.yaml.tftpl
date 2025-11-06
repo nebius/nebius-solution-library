@@ -706,6 +706,11 @@ resources:
                   memory: ${slurm_cluster.sconfigcontroller.container.resources.memory }Mi
                   ephemeralStorage: ${slurm_cluster.sconfigcontroller.container.resources.ephemeral_storage }Mi
 
+            %{~ if slurm_cluster.use_cuda13rc ~}
+            images:
+              populateJail: "cr.eu-north1.nebius.cloud/soperator-unstable/populate_jail:${operator_version}-cuda13rc"
+            %{~ endif ~}
+
           slurmClusterStorage:
             enabled: true
             interval: 5m
@@ -785,6 +790,10 @@ resources:
             clusterName: ${name}
             sshCheck:
               numOfLoginNodes: ${slurm_cluster.nodes.login.size}
+            %{~ if slurm_cluster.use_cuda13rc ~}
+            images:
+              slurmJob: "cr.eu-north1.nebius.cloud/soperator-unstable/slurm_check_job:${operator_version}-cuda13rc"
+            %{~ endif ~}
 
         soperator:
           enabled: true
