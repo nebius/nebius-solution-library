@@ -430,6 +430,7 @@ resource "terraform_data" "check_nfs" {
 variable "nfs_in_k8s" {
   type = object({
     enabled        = bool
+    version        = optional(string)
     size_gibibytes = optional(number)
     storage_class  = optional(string)
   })

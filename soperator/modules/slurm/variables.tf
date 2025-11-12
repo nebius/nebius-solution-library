@@ -307,11 +307,17 @@ variable "nfs" {
 variable "nfs_in_k8s" {
   type = object({
     enabled        = bool
+    version        = optional(string)
     size_gibibytes = optional(number)
     storage_class  = optional(string, "compute-csi-network-ssd-io-m3-ext4")
   })
   default = {
     enabled = false
+  }
+
+  validation {
+    condition     = var.nfs_in_k8s.enabled ? var.nfs_in_k8s.version != null : true
+    error_message = "NFS version must be set."
   }
 
   validation {

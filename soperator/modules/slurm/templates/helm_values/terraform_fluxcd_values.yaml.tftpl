@@ -958,11 +958,11 @@ resources:
         nfsServer:
           enabled: ${slurm_cluster.nfs_in_k8s.enabled}
           %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
-          version: ${operator_version}
+          version: ${slurm_cluster.nfs_in_k8s.version}
           overrideValues:
             image:
               repository: ${soperator_image_repo}/nfs-server
-              tag: ${operator_version}
+              tag: ${slurm_cluster.nfs_in_k8s.version}
             nameOverride: nfs-server
             nfs:
               sharedDirectory: "/exported"
