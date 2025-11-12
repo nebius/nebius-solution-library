@@ -2,15 +2,12 @@
 
 We offer few kinds of checks:
 - [Tests](#tests):
-  - [Quick tests](./quickcheck);
-- [Benchmarks](#benchmarks):
-  - [MLCommons Stable Diffusion benchmark](./mlperf-sd).
-  - [MLCommons GPT3 benchmark](./mlperf-gpt3).
+  - [Quick tests](./quickcheck)
 
 ## Uploading
 
-Each of them require you to upload data and scripts to the Slurm cluster.
-For this purpose, use [`deliver.sh`](./deliver.sh) script.
+Tests and benchmarks require you to upload data and scripts to the Slurm cluster.
+You can use [`deliver.sh`](./deliver.sh) script for tests listed above.
 
 ```console
 $ ./deliver.sh -h
@@ -18,8 +15,6 @@ Usage: ./deliver.sh <REQUIRED_FLAGS> [FLAGS] [-h]
 Required flags:
   -t  [str ]  Test type. One of:
                 quickcheck
-                mlperf-sd
-                mlperf-gpt3
   -u  [str ]  SSH username
   -k  [path]  Path to private SSH key
   -a  [str ]  Address of login node (IP or domain name)
@@ -34,8 +29,6 @@ Flags:
 It accepts following parameters:
 - `-t` - type of the test you want to run. It must be one of:
   - `quickcheck` - for quick tests
-  - `mlperf-sd` - for MLCommons Stable Diffusion benchmark
-  - `mlperf-gpt3` - for MLCommons GPT3 benchmark
 - `-u` - SSH **username** for login nodes
 - `-k` - path to the private part of the keypair used for **username** auth
 - `-a` - address of the Slurm login node. It could be either IP address, or domain name you gave it in `/etc/hosts`
@@ -55,35 +48,9 @@ For quick check tests, see its [README](./quickcheck/README.md).
 Benchmarks need datasets and checkpoints to be downloaded to the cluster.
 As well as some configuration needed to be done before running training.
 
-There are `init.sh` scripts for both [Stable Diffusion](./mlperf-sd/init.sh) and [GPT3](./mlperf-gpt3/init.sh) MLCommons benchmarks.
+Please follow instructions [here](https://github.com/NVIDIA/dgxc-benchmarking?tab=readme-ov-file#quick-start-guide) for NVIDIA DGXC benchamrks.
 
-1. `cd` to the directory of benchmark
-
-    For Stable Diffusion:
-    ```shell
-    cd mlperf-sd
-    ```
-    For GPT3:
-    ```shell
-    cd mlperf-gpt3
-    ```
-2. Run `init.sh`
-
-    ```console
-    $ ./init.sh -h
-    Usage: ./init.sh <REQUIRED_FLAGS> [-h]
-    Required flags:
-      -d  [path]  Path to data directory
-      This is where datasets and checkpoints will be stored
-
-    Flags:
-      -n  Whether to not run data downloading jobs
-    
-      -h  Print help and exit
-    ```
-
-These scripts only require path to the data directory to be provided.
-It's better to have it on dedicated shared storage that can handle multiple connections from Slurm workers
+In case benchmark scripts require path to the data directory it's better to have it on dedicated shared storage that can handle multiple connections from Slurm workers
 (aka Jail sub-mounts).
 
 <details>
@@ -131,13 +98,3 @@ filestore_jail_submounts = [{
 
 It will attach the storage to your cluster at `/data` directory.
 </details>
-
-The init script will:
-- Create needed directories
-- Configure **rclone** and **enroot**
-- Configure running scripts
-- Run Slurm jobs to download datasets and checkpoints. This step could be skipped with `-n` flag.
-
-Once downloading is done, you can proceed with following steps of each particular benchmark:
-- [Stable Diffusion](./mlperf-sd)
-- [GPT3](./mlperf-gpt3)
