@@ -136,11 +136,8 @@ locals {
       memory = 0.5
     }
     nfs_server = {
-      limits = {
-        memory = 2
-      }
       requests = {
-        memory = 0.5
+        memory = 1
         cpu    = 1
       }
     }
