@@ -371,6 +371,21 @@ slurm_nodeset_accounting = {
   }
 }
 
+# Configuration of NFS node set.
+# ---
+slurm_nodeset_nfs = {
+  size = 1
+  resource = {
+    platform = "cpu-d3"
+    preset   = "32vcpu-128gb"
+  }
+  boot_disk = {
+    type                 = "NETWORK_SSD"
+    size_gibibytes       = 128
+    block_size_kibibytes = 4
+  }
+}
+
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                         Login                                                        #
 #----------------------------------------------------------------------------------------------------------------------#

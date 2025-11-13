@@ -31,6 +31,13 @@ locals {
       resource  = var.node_group_accounting.spec.resource
       boot_disk = var.node_group_accounting.spec.boot_disk
     }]
+    : [],
+    var.node_group_nfs.enabled
+    ? [{
+      key       = module.labels.name_nodeset_nfs
+      resource  = var.node_group_nfs.spec.resource
+      boot_disk = var.node_group_nfs.spec.boot_disk
+    }]
     : []
   )
 }

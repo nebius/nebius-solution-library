@@ -15,6 +15,7 @@ locals {
         worker     = "worker"
         login      = "login"
         accounting = "accounting"
+        nfs        = "nfs"
       }
 
       workload = "workload"
@@ -45,6 +46,7 @@ locals {
       worker     = tomap({ (local.label_key.slurm_nodeset) = (local.const.name.nodesets.worker) })
       login      = tomap({ (local.label_key.slurm_nodeset) = (local.const.name.nodesets.login) })
       accounting = tomap({ (local.label_key.slurm_nodeset) = (local.const.name.nodesets.accounting) })
+      nfs        = tomap({ (local.label_key.slurm_nodeset) = (local.const.name.nodesets.nfs) })
     }
 
     workload = {

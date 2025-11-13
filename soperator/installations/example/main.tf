@@ -5,6 +5,7 @@ locals {
     workers    = [for worker in var.slurm_nodeset_workers : module.resources.by_platform[worker.resource.platform][worker.resource.preset]]
     login      = module.resources.by_platform[var.slurm_nodeset_login.resource.platform][var.slurm_nodeset_login.resource.preset]
     accounting = var.slurm_nodeset_accounting != null ? module.resources.by_platform[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset] : null
+    nfs        = var.slurm_nodeset_nfs != null ? module.resources.by_platform[var.slurm_nodeset_nfs.resource.platform][var.slurm_nodeset_nfs.resource.preset] : null
   }
 
   slurm_cluster_name = "soperator"
@@ -182,6 +183,10 @@ module "k8s" {
   node_group_accounting = {
     enabled = var.accounting_enabled
     spec    = var.slurm_nodeset_accounting
+  }
+  node_group_nfs = {
+    enabled = var.slurm_nodeset_nfs != null
+    spec    = var.slurm_nodeset_nfs
   }
 
   filestores = {

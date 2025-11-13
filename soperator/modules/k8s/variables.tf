@@ -63,6 +63,25 @@ variable "node_group_system" {
   })
 }
 
+variable "node_group_nfs" {
+  description = "NFS node group specification."
+  type = object({
+    enabled = bool
+    spec = object({
+      size = number
+      resource = object({
+        platform = string
+        preset   = string
+      })
+      boot_disk = object({
+        type                 = string
+        size_gibibytes       = number
+        block_size_kibibytes = number
+      })
+    })
+  })
+}
+
 variable "node_group_controller" {
   description = "Controller node group specification."
   type = object({

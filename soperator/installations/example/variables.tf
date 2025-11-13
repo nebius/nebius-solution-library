@@ -787,6 +787,31 @@ resource "terraform_data" "check_slurm_nodeset_accounting" {
   }
 }
 
+variable "slurm_nodeset_nfs" {
+  description = "Configuration of NFS node set."
+  type = object({
+    size = number
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+  })
+  nullable = true
+  default  = null
+  validation {
+    condition     = var.slurm_nodeset_nfs == null || var.slurm_nodeset_nfs.boot_disk.size_gibibytes >= 128
+    error_message = "Boot disks for NFS nodes must be at least 128 GiB."
+  }
+  validation {
+    condition     = var.slurm_nodeset_nfs == null || var.slurm_nodeset_nfs.size >= 1
+    error_message = "Size of the NFS node group must be at least 1."
+  }
+}
 
 resource "terraform_data" "check_slurm_nodeset" {
   for_each = merge({
@@ -795,7 +820,11 @@ resource "terraform_data" "check_slurm_nodeset" {
     "login"      = var.slurm_nodeset_login
     }, { for i, worker in var.slurm_nodeset_workers :
     "worker_${i}" => worker
-  })
+    },
+    var.slurm_nodeset_nfs != null ? {
+      "nfs" = var.slurm_nodeset_nfs
+    } : {}
+  )
 
   depends_on = [
     terraform_data.check_region,
