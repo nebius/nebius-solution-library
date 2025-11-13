@@ -127,6 +127,10 @@ variable "resources" {
       memory_gibibytes            = number
       ephemeral_storage_gibibytes = number
     }))
+    nfs = optional(object({
+      cpu_cores        = number
+      memory_gibibytes = number
+    }))
   })
 
   validation {

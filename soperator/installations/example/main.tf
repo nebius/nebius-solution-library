@@ -382,6 +382,10 @@ module "slurm" {
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     } : null
+    nfs = var.slurm_nodeset_nfs != null ? {
+      cpu_cores        = local.resources.nfs.cpu_cores
+      memory_gibibytes = floor(local.resources.nfs.memory_gibibytes)
+    } : null
   }
 
   filestores = {

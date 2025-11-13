@@ -136,9 +136,12 @@ locals {
       memory = 0.5
     }
     nfs_server = {
+      limits = {
+        memory = var.resources.nfs != null ? var.resources.nfs.memory_gibibytes : 1
+      }
       requests = {
-        memory = 1
-        cpu    = 1
+        memory = var.resources.nfs != null ? var.resources.nfs.memory_gibibytes : 1
+        cpu    = var.resources.nfs != null ? var.resources.nfs.cpu_cores : 1
       }
     }
   }

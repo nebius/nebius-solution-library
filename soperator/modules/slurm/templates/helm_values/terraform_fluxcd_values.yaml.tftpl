@@ -977,6 +977,7 @@ resources:
                 memory: ${resources.nfs_server.requests.memory}Gi
                 cpu: ${resources.nfs_server.requests.cpu * 1000}m
               limits:
+                memory: ${resources.nfs_server.limits.memory}Gi
             %{~ if slurm_cluster.nfs_node_group_enabled ~}
             nodeSelector:
               ${slurm_cluster.k8s_node_filters.label.nodeset}: ${slurm_cluster.k8s_node_filters.nfs.match}
