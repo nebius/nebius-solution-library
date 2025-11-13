@@ -146,8 +146,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
       controller_state_on_filestore = var.controller_state_on_filestore
 
-      nfs        = var.nfs
-      nfs_in_k8s = var.nfs_in_k8s
+      nfs                    = var.nfs
+      nfs_in_k8s             = var.nfs_in_k8s
       nfs_node_group_enabled = var.nfs_node_group_enabled
 
       nodes = {

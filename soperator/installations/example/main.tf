@@ -428,7 +428,7 @@ module "slurm" {
     mount_path = var.nfs.enabled ? var.nfs.mount_path : null
   }
 
-  nfs_in_k8s = var.nfs_in_k8s
+  nfs_in_k8s             = var.nfs_in_k8s
   nfs_node_group_enabled = var.slurm_nodeset_nfs != null
 
   exporter_enabled    = var.slurm_exporter_enabled
