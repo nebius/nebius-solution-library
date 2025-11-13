@@ -980,11 +980,11 @@ resources:
                 memory: ${resources.nfs_server.limits.memory}Gi
             %{~ if slurm_cluster.nfs_node_group_enabled ~}
             nodeSelector:
-              slurm.nebius.ai/nodeset: nfs
+              ${slurm_cluster.k8s_node_filters.label.nodeset}: ${slurm_cluster.k8s_node_filters.nfs.match}
             tolerations:
-              - key: slurm.nebius.ai/nodeset
+              - key: ${slurm_cluster.k8s_node_filters.label.nodeset}
                 operator: Equal
-                value: nfs
+                value: ${slurm_cluster.k8s_node_filters.label.nfs}
                 effect: NoSchedule
             %{~ endif ~}
             %{~ if telemetry_enabled ~}

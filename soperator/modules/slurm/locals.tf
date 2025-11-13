@@ -49,6 +49,7 @@ locals {
       worker     = module.labels.name_nodeset_worker
       login      = module.labels.name_nodeset_login
       accounting = module.labels.name_nodeset_accounting
+      nfs        = module.labels.name_nodeset_nfs
     }
 
     system = {
@@ -71,6 +72,10 @@ locals {
     accounting = {
       name  = module.labels.name_nodeset_accounting
       match = module.labels.name_nodeset_accounting
+    }
+    nfs = {
+      name  = module.labels.name_nodeset_nfs
+      match = module.labels.name_nodeset_nfs
     }
   }
 
