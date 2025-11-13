@@ -304,6 +304,12 @@ variable "nfs" {
   }
 }
 
+variable "nfs_node_group_enabled" {
+  description = "Whether the NFS node group is enabled."
+  type        = bool
+  default     = false
+}
+
 variable "nfs_in_k8s" {
   type = object({
     enabled        = bool

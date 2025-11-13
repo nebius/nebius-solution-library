@@ -978,6 +978,15 @@ resources:
                 cpu: ${resources.nfs_server.requests.cpu * 1000}m
               limits:
                 memory: ${resources.nfs_server.limits.memory}Gi
+            %{~ if slurm_cluster.nfs_node_group_enabled ~}
+            nodeSelector:
+              slurm.nebius.ai/nodeset: nfs
+            tolerations:
+              - key: slurm.nebius.ai/nodeset
+                operator: Equal
+                value: nfs
+                effect: NoSchedule
+            %{~ endif ~}
             %{~ if telemetry_enabled ~}
             monitoring:
               enabled: true

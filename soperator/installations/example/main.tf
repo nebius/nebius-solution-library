@@ -429,6 +429,7 @@ module "slurm" {
   }
 
   nfs_in_k8s = var.nfs_in_k8s
+  nfs_node_group_enabled = var.slurm_nodeset_nfs != null
 
   exporter_enabled    = var.slurm_exporter_enabled
   rest_enabled        = var.slurm_rest_enabled
