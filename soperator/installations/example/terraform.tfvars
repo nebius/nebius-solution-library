@@ -161,7 +161,7 @@ filestore_accounting = {
 
 nfs_in_k8s = {
   enabled        = true
-  version        = "1.1.0"
+  version        = "1.1.0-6efb732b" # change after first release with separate NFS versioning
   size_gibibytes = 3720
 }
 
