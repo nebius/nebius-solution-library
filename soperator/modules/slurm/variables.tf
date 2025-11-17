@@ -446,6 +446,20 @@ variable "maintenance" {
   }
 }
 
+variable "maintenance_ignore_node_groups" {
+  description = "List of node groups that Soperator should ignore for maintenance events. Supported values: controller, nfs, system, login, accounting."
+  type        = list(string)
+  default     = ["controller", "nfs"]
+
+  validation {
+    condition = alltrue([
+      for group in var.maintenance_ignore_node_groups :
+      contains(["system", "controller", "login", "accounting", "nfs"], group)
+    ])
+    error_message = "maintenance_ignore_node_groups must only contain: system, controller, login, accounting, nfs."
+  }
+}
+
 # endregion Maintenance
 
 # region NodeConfigurator

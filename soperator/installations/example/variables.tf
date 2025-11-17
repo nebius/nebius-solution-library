@@ -1074,6 +1074,12 @@ variable "maintenance" {
   }
 }
 
+variable "maintenance_ignore_node_groups" {
+  description = "List of node groups that Soperator should ignore for maintenance events. Supported values: controller, nfs, system, login, accounting."
+  type        = list(string)
+  default     = ["controller", "nfs"]
+}
+
 # endregion Maintenance
 
 # endregion Slurm

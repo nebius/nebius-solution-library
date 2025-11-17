@@ -327,7 +327,9 @@ module "slurm" {
   operator_stable        = var.slurm_operator_stable
   operator_feature_gates = var.slurm_operator_feature_gates
 
-  maintenance                   = var.maintenance
+  maintenance                    = var.maintenance
+  maintenance_ignore_node_groups = var.maintenance_ignore_node_groups
+
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
   use_cuda13rc                  = var.slurm_nodeset_workers[0].resource.platform == "gpu-b300-sxm" ? true : false
   controller_state_on_filestore = var.controller_state_on_filestore

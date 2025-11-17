@@ -450,6 +450,12 @@ active_checks_scope = "prod"
 # ---
 slurm_shared_memory_size_gibibytes = 1024
 
+# Node groups that Soperator should ignore during maintenance events.
+# These ignored maintenance events will be handled by mk8s control plane instead.
+# Supported values: controller, nfs, system, login, accounting.
+# ---
+maintenance_ignore_node_groups = ["controller", "nfs"]
+
 # endregion Config
 #----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #

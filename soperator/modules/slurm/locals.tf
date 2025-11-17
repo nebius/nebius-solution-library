@@ -79,6 +79,16 @@ locals {
     }
   }
 
+  maintenance_ignore_node_labels = flatten([
+    for group in var.maintenance_ignore_node_groups : [
+      for match_value in try(
+        [local.node_filters[group].match],
+        try(local.node_filters[group].matches, [])
+      ) :
+      format("%s=%s", local.node_filters.label.nodeset, match_value)
+    ]
+  ])
+
   resources = {
     munge = {
       cpu               = 0.1

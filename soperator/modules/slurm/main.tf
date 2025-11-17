@@ -134,7 +134,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
       slurm_worker_features     = var.slurm_worker_features
       slurm_health_check_config = var.slurm_health_check_config
 
-      k8s_node_filters = local.node_filters
+      k8s_node_filters               = local.node_filters
+      maintenance_ignore_node_labels = local.maintenance_ignore_node_labels
 
       node_local_jail_submounts = var.node_local_jail_submounts
       node_local_image_storage  = var.node_local_image_storage
