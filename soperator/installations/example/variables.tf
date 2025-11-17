@@ -611,7 +611,7 @@ variable "slurm_nodeset_system" {
 }
 
 variable "slurm_nodeset_controller" {
-  description = "Configuration of Slurm Controller node set."
+  description = "Configuration of Slurm Controller node set. Only a single controller node is supported."
   type = object({
     size = number
     resource = object({
@@ -626,7 +626,7 @@ variable "slurm_nodeset_controller" {
   })
   nullable = false
   default = {
-    size = 2
+    size = 1
     resource = {
       platform = "cpu-d3"
       preset   = "16vcpu-64gb"
@@ -642,8 +642,8 @@ variable "slurm_nodeset_controller" {
     error_message = "Boot disks for controller nodes must be at least 128 GiB."
   }
   validation {
-    condition     = var.slurm_nodeset_controller.size >= 2
-    error_message = "Size of the controller node group must be at least 2."
+    condition     = var.slurm_nodeset_controller.size == 1
+    error_message = "Size of the controller node group must be exactly 1."
   }
 }
 
@@ -808,8 +808,8 @@ variable "slurm_nodeset_nfs" {
     error_message = "Boot disks for NFS nodes must be at least 128 GiB."
   }
   validation {
-    condition     = var.slurm_nodeset_nfs == null || var.slurm_nodeset_nfs.size >= 1
-    error_message = "Size of the NFS node group must be at least 1."
+    condition     = var.slurm_nodeset_nfs == null || var.slurm_nodeset_nfs.size == 1
+    error_message = "Size of the NFS node group must be exactly 1."
   }
 }
 

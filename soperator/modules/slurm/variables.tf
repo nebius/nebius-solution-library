@@ -92,6 +92,11 @@ variable "node_count" {
     worker     = list(number)
     login      = number
   })
+
+  validation {
+    condition     = var.node_count.controller == 1
+    error_message = "Only a single Slurm controller node is supported."
+  }
 }
 
 # endregion Nodes

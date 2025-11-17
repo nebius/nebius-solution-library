@@ -929,6 +929,8 @@ resources:
             values:
               checks:
                 manager:
+                  env:
+                    maintenanceIgnoreNodeLabels: "${slurm_cluster.k8s_node_filters.label.nodeset}=${slurm_cluster.k8s_node_filters.controller.match},${slurm_cluster.k8s_node_filters.label.nodeset}=${slurm_cluster.k8s_node_filters.nfs.match}"
                   resources:
                     requests:
                       memory: ${resources.slurm_operator.requests.memory}Gi

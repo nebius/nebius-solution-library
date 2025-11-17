@@ -299,7 +299,7 @@ slurm_nodeset_system = {
 # Configuration of Slurm Controller node set.
 # ---
 slurm_nodeset_controller = {
-  size = 2
+  size = 1
   resource = {
     platform = "cpu-d3"
     preset   = "4vcpu-16gb"
