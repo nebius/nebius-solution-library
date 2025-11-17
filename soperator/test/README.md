@@ -54,7 +54,7 @@ In case benchmark scripts require path to the data directory it's better to have
 (aka Jail sub-mounts).
 
 <details>
-<summary>Creating storage for MLCommons benchmarks</summary>
+<summary>Creating storage for benchmarks</summary>
 
 You can create storage within this Terraform recipe, as in provided [terraform.tfvars](../installations/example/terraform.tfvars):
 
@@ -62,7 +62,7 @@ You can create storage within this Terraform recipe, as in provided [terraform.t
 # Shared filesystems to be mounted inside jail.
 # ---
 filestore_jail_submounts = [{
-  name       = "mlcommons-data"
+  name       = "benchmark-data"
   mount_path = "/data"
   spec = {
     size_gibibytes       = 4096
@@ -77,7 +77,7 @@ In order to do this, create it on your own with the Nebius CLI
 ```shell
 nebius compute filesystem create \
   --parent-id "${NEBIUS_PROJECT_ID}" \
-  --name 'shared-mlcommons-data' \
+  --name 'shared-benchmark-data' \
   --type 'network_ssd' \
   --size-bytes 4398046511104
 ```
@@ -88,7 +88,7 @@ And provide its ID to the recipe as follows:
 # Shared filesystems to be mounted inside jail.
 # ---
 filestore_jail_submounts = [{
-  name       = "mlcommons-data"
+  name       = "benchmark-data"
   mount_path = "/data"
   existing = {
     id = "<ID of created filestore>"
