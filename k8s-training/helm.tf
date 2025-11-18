@@ -21,7 +21,7 @@ module "gpu-operator" {
 }
 
 module "device-plugin" {
-  count = var.gpu_nodes_driverfull_image ? 1 : 0
+  count = var.gpu_nodes_driverfull_image ? 0 : 1
 
   source     = "../modules/device-plugin"
   parent_id  = var.parent_id
