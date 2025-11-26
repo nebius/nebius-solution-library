@@ -466,13 +466,7 @@ module "slurm" {
   login_sshd_config_map_ref_name = var.slurm_login_sshd_config_map_ref_name
   login_ssh_root_public_keys     = var.slurm_login_ssh_root_public_keys
 
-  github_org              = var.github_org
-  github_repository       = var.github_repository
-  github_ref_type         = var.slurm_operator_stable ? "tag" : "branch"
-  github_ref_value        = var.slurm_operator_stable ? var.slurm_operator_version : "main"
-  flux_namespace          = local.flux_namespace
-  flux_interval           = var.flux_interval
-  flux_kustomization_path = var.slurm_operator_stable ? "fluxcd/environment/nebius-cloud/prod" : "fluxcd/environment/nebius-cloud/dev"
+  flux_namespace = local.flux_namespace
 
   providers = {
     helm = helm
