@@ -1,6 +1,6 @@
 resource "terraform_data" "wait_for_slurm_cluster_hr" {
   depends_on = [
-    helm_release.flux2_sync,
+    helm_release.soperator_fluxcd_cm,
   ]
 
   provisioner "local-exec" {
@@ -15,7 +15,7 @@ resource "terraform_data" "wait_for_slurm_cluster_hr" {
 
 resource "terraform_data" "wait_for_soperator_activechecks_hr" {
   depends_on = [
-    helm_release.flux2_sync,
+    helm_release.soperator_fluxcd_cm,
   ]
 
   provisioner "local-exec" {
@@ -259,48 +259,6 @@ resource "helm_release" "soperator_fluxcd_cm" {
     worker_resources          = var.resources.worker
 
   })]
-}
-
-resource "helm_release" "flux2_sync" {
-  depends_on = [
-    helm_release.soperator_fluxcd_cm,
-  ]
-  repository = "https://fluxcd-community.github.io/helm-charts"
-  chart      = "flux2-sync"
-  version    = "1.8.2"
-
-  # Note: Do not change the name or namespace of this resource. The below mimics the behaviour of "flux bootstrap".
-  name      = "flux-system"
-  namespace = "flux-system"
-
-  set {
-    name  = "gitRepository.spec.url"
-    value = "https://github.com/${var.github_org}/${var.github_repository}"
-  }
-  set {
-    name  = "gitRepository.spec.ref.${var.github_ref_type}"
-    value = var.github_ref_value
-  }
-  set {
-    name  = "gitRepository.spec.interval"
-    value = var.flux_interval
-  }
-  set {
-    name  = "kustomization.spec.interval"
-    value = var.flux_interval
-  }
-  set {
-    name  = "kustomization.spec.postBuild.substitute.soperator_version"
-    value = var.operator_version
-  }
-  set {
-    name  = "kustomization.spec.path"
-    value = var.flux_kustomization_path
-  }
-  set {
-    name  = "kustomization.spec.prune"
-    value = "true"
-  }
 }
 
 resource "helm_release" "soperator_fluxcd_ad_hoc_cm" {

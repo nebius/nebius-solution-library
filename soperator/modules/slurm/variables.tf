@@ -642,41 +642,6 @@ variable "sconfigcontroller" {
 # endregion SConfigController
 
 # region fluxcd
-variable "github_org" {
-  description = "The GitHub organization."
-  type        = string
-  default     = "nebius"
-}
-
-variable "github_repository" {
-  description = "The GitHub repository."
-  type        = string
-  default     = "soperator"
-}
-
-variable "github_ref_type" {
-  description = "The GitHub ref type (branch, tag, etc.)."
-  type        = string
-  default     = "branch"
-}
-variable "github_ref_value" {
-  description = "The GitHub ref value (main, v1.22.0, etc.)."
-  type        = string
-  default     = "main"
-}
-
-variable "flux_interval" {
-  description = "The interval for Flux to check for changes."
-  type        = string
-  default     = "1m"
-}
-
-variable "flux_kustomization_path" {
-  description = "The name of the Flux customization."
-  type        = string
-  default     = "fluxcd/environment/nebius-cloud"
-}
-
 variable "cert_manager_version" {
   description = "The version of the cert-manager."
   type        = string

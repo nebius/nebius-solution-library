@@ -32,7 +32,7 @@ locals {
 module "monitoring" {
   count = var.telemetry_enabled ? 1 : 0
   depends_on = [
-    helm_release.flux2_sync,
+    helm_release.soperator_fluxcd_cm,
     terraform_data.wait_for_monitoring_namespace,
   ]
 

@@ -1084,27 +1084,6 @@ variable "maintenance_ignore_node_groups" {
 
 # endregion Slurm
 
-# region fluxcd
-variable "github_org" {
-  description = "The GitHub organization."
-  type        = string
-  default     = "nebius"
-}
-
-variable "github_repository" {
-  description = "The GitHub repository."
-  type        = string
-  default     = "soperator"
-}
-
-variable "flux_interval" {
-  description = "The interval for Flux to check for changes."
-  type        = string
-  default     = "1m"
-}
-
-# endregion fluxcd
-
 # region ActiveChecks
 variable "active_checks_scope" {
   type        = string
