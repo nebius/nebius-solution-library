@@ -149,3 +149,9 @@ variable "install_helical" {
   description = "Deploys a Helical Jupyter notebook"
   default = false
 }
+
+variable custom_buckets {
+  type        = bool
+  default     = true
+  description = "Whether to create a custom bucket for each team"
+}

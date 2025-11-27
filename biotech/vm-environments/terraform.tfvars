@@ -19,10 +19,12 @@ users = [
   }
 ]
 
+boot_disk_size_gb                 = 1024
 public_ip                          = true
-instance_count                     = 40
-shared_filesystem_id               = "computefilesystem-e00vtmar3a3540sz9b"
+instance_count                     = 30
+shared_filesystem_id               = ""
 mount_bucket                      = "boston2025"
 fabric                            = ""
 install_helical                   = false
 install_bionemo                   = true
+custom_buckets                    = true
