@@ -1,6 +1,6 @@
 resource "terraform_data" "wait_for_slurm_cluster_hr" {
   depends_on = [
-    helm_release.soperator_fluxcd_cm,
+    helm_release.soperator_fluxcd_bootstrap,
   ]
 
   provisioner "local-exec" {
@@ -15,7 +15,7 @@ resource "terraform_data" "wait_for_slurm_cluster_hr" {
 
 resource "terraform_data" "wait_for_soperator_activechecks_hr" {
   depends_on = [
-    helm_release.soperator_fluxcd_cm,
+    helm_release.soperator_fluxcd_bootstrap,
   ]
 
   provisioner "local-exec" {
@@ -263,6 +263,23 @@ resource "helm_release" "soperator_fluxcd_cm" {
       local_file.flux_release_rendered_nodesets.content,
     ]
   })]
+}
+
+resource "helm_release" "soperator_fluxcd_bootstrap" {
+  depends_on = [
+    helm_release.soperator_fluxcd_cm,
+  ]
+
+  name       = "soperator-fluxcd-bootstrap"
+  repository = var.operator_stable ? "oci://cr.eu-north1.nebius.cloud/soperator" : "oci://cr.eu-north1.nebius.cloud/soperator-unstable"
+  chart      = "helm-soperator-fluxcd-bootstrap"
+  version    = var.operator_version
+  namespace  = var.flux_namespace
+
+  set {
+    name  = "helmRepository.url"
+    value = var.operator_stable ? "oci://cr.eu-north1.nebius.cloud/soperator" : "oci://cr.eu-north1.nebius.cloud/soperator-unstable"
+  }
 }
 
 resource "helm_release" "soperator_fluxcd_ad_hoc_cm" {
