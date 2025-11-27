@@ -161,4 +161,14 @@ locals {
   # Calculate vmagent remote write queue count based on cluster size
   # This sets metrics ingestion capacity for larger clusters properly
   vm_agent_queue_count = 2 + floor(sum(var.node_count.worker) / 60)
+
+  namespace = {
+    logs       = "logs-system"
+    monitoring = "monitoring-system"
+  }
+
+  metrics_collector = {
+    host = "vmsingle-metrics-victoria-metrics-k8s-stack.${local.namespace.monitoring}.svc.cluster.local"
+    port = 8429
+  }
 }
