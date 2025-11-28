@@ -5,6 +5,8 @@ resources:
       name: terraform-fluxcd-values
       labels:
         reconcile.fluxcd.io/watch: Enabled
+      annotations:
+        "helm.sh/resource-policy": keep
     data:
       values.yaml: |
         helmRepository:
