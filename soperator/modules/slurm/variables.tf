@@ -86,6 +86,11 @@ variable "node_count" {
     worker     = list(number)
     login      = number
   })
+
+  validation {
+    condition     = var.node_count.controller == 1
+    error_message = "Only a single Slurm controller node is supported."
+  }
 }
 
 # endregion Nodes
@@ -121,6 +126,10 @@ variable "resources" {
       memory_gibibytes            = number
       ephemeral_storage_gibibytes = number
     }))
+    nfs = optional(object({
+      cpu_cores        = number
+      memory_gibibytes = number
+    }))
   })
 
   validation {
@@ -128,10 +137,10 @@ variable "resources" {
     error_message = "At least one worker node must be provided."
   }
 
-  # TODO: remove when node sets are supported
+  # Only enforce single worker nodeset when nodesets feature is disabled
   validation {
-    condition     = length(var.resources.worker) == 1
-    error_message = "Only one worker nodeset is supported."
+    condition     = var.slurm_nodesets_enabled || length(var.resources.worker) == 1
+    error_message = "Only one worker nodeset is supported when slurm_nodesets_enabled is false."
   }
 }
 
@@ -298,14 +307,26 @@ variable "nfs" {
   }
 }
 
+variable "nfs_node_group_enabled" {
+  description = "Whether the NFS node group is enabled."
+  type        = bool
+  default     = false
+}
+
 variable "nfs_in_k8s" {
   type = object({
     enabled        = bool
+    version        = optional(string)
     size_gibibytes = optional(number)
     storage_class  = optional(string, "compute-csi-network-ssd-io-m3-ext4")
   })
   default = {
     enabled = false
+  }
+
+  validation {
+    condition     = var.nfs_in_k8s.enabled ? var.nfs_in_k8s.version != null : true
+    error_message = "NFS version must be set."
   }
 
   validation {
@@ -416,6 +437,20 @@ variable "maintenance" {
   validation {
     condition     = contains(["downscaleAndDeletePopulateJail", "downscaleAndOverwritePopulateJail", "downscale", "none", "skipPopulateJail"], var.maintenance)
     error_message = "The maintenance variable must be one of: downscaleAndDeletePopulateJail, downscaleAndOverwritePopulateJail, downscale, none, skipPopulateJail."
+  }
+}
+
+variable "maintenance_ignore_node_groups" {
+  description = "List of node groups that Soperator should ignore for maintenance events. Supported values: controller, nfs, system, login, accounting."
+  type        = list(string)
+  default     = ["controller", "nfs"]
+
+  validation {
+    condition = alltrue([
+      for group in var.maintenance_ignore_node_groups :
+      contains(["system", "controller", "login", "accounting", "nfs"], group)
+    ])
+    error_message = "maintenance_ignore_node_groups must only contain: system, controller, login, accounting, nfs."
   }
 }
 
@@ -601,41 +636,6 @@ variable "sconfigcontroller" {
 # endregion SConfigController
 
 # region fluxcd
-variable "github_org" {
-  description = "The GitHub organization."
-  type        = string
-  default     = "nebius"
-}
-
-variable "github_repository" {
-  description = "The GitHub repository."
-  type        = string
-  default     = "soperator"
-}
-
-variable "github_ref_type" {
-  description = "The GitHub ref type (branch, tag, etc.)."
-  type        = string
-  default     = "branch"
-}
-variable "github_ref_value" {
-  description = "The GitHub ref value (main, v1.22.0, etc.)."
-  type        = string
-  default     = "main"
-}
-
-variable "flux_interval" {
-  description = "The interval for Flux to check for changes."
-  type        = string
-  default     = "1m"
-}
-
-variable "flux_kustomization_path" {
-  description = "The name of the Flux customization."
-  type        = string
-  default     = "fluxcd/environment/nebius-cloud"
-}
-
 variable "cert_manager_version" {
   description = "The version of the cert-manager."
   type        = string
@@ -693,6 +693,7 @@ variable "flux_namespace" {
   description = "Kubernetes namespace to look for jail in."
   type        = string
 }
+
 # endregion fluxcd
 
 variable "backups_enabled" {
@@ -725,3 +726,42 @@ variable "active_checks_scope" {
   }
 }
 # endregion ActiveChecks
+
+# region Nodesets
+
+variable "slurm_nodesets_enabled" {
+  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
+  type        = bool
+  default     = false
+}
+
+variable "worker_nodesets" {
+  type = list(object({
+    name             = string
+    replicas         = number
+    max_unavailable  = string
+    features         = list(string)
+    cpu_topology     = map(number)
+    create_partition = bool
+  }))
+  default = []
+}
+
+variable "slurm_nodesets_partitions" {
+  description = "Partition configuration for nodesets. Used only when slurm_nodesets_enabled is true."
+  type = list(object({
+    name         = string
+    is_all       = optional(bool, false)
+    nodeset_refs = optional(list(string), [])
+    config       = string
+  }))
+  default = []
+}
+
+# endregion Nodesets
+
+variable "use_cuda13rc" {
+  description = "Whether to use unstable image with CUDA 13."
+  type        = bool
+  default     = false
+}

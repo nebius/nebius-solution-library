@@ -5,6 +5,7 @@ This Terraform module installs the Anyscale operator on Nebius AI Cloud.
 ## Requirements
 - [Terraform CLI](https://developer.hashicorp.com/terraform/install)
 - [Anyscale CLI](https://docs.anyscale.com/reference/quickstart-cli)
+- [Anyscale Account](https://www.anyscale.com/)
 
 ## Preparation
 
@@ -46,7 +47,7 @@ Wait for the operation to complete.
 
 
 ### Registering a cluster in Anyscale and configuring it
-1. Run the shell script to register an Anyscale cloud:
+1. Run the shell script to register an Anyscale cloud. The `cloud_name` will be the name of Anyscale cloud deployment shown in Anyscale console:
 ```bash
 ./register.sh <cloud_name>
 ```

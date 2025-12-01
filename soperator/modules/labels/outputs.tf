@@ -23,6 +23,11 @@ output "name_nodeset_accounting" {
   value       = local.const.name.nodesets.accounting
 }
 
+output "name_nodeset_nfs" {
+  description = "NFS nodeset name."
+  value       = local.const.name.nodesets.nfs
+}
+
 output "name_workload_cpu" {
   description = "CPU workload name."
   value       = local.const.name.workloads.cpu
@@ -63,6 +68,11 @@ output "label_nodeset_accounting" {
   value       = local.label.nodeset.accounting
 }
 
+output "label_nodeset_nfs" {
+  description = "NFS nodeset label."
+  value       = local.label.nodeset.nfs
+}
+
 output "label_workload_cpu" {
   description = "CPU workload label."
   value       = local.label.workload.cpu
@@ -86,6 +96,11 @@ output "key_nvidia_gpu" {
 output "key_slurm_nodeset_name" {
   description = "Slurm nodeset label key."
   value       = local.label_key.slurm_nodeset
+}
+
+output "key_slurm_nodeset_name_name" {
+  description = "Slurm nodeset-name label key."
+  value       = local.label_key.slurm_nodeset_name
 }
 
 output "key_slurm_workload_name" {

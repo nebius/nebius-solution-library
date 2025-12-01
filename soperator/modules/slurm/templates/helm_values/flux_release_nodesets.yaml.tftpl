@@ -1,0 +1,237 @@
+nodesets:
+  enabled: ${enabled}
+
+  interval: 5m
+  timeout: 5m
+  version: ${version}
+  namespace: ${namespace}
+  releaseName: ${release_name}
+
+  overrideValues: %{ if !enabled || length(nodesets) == 0 ~}{}
+  %{~ else }
+    nodesets:
+      %{~ for i, nodeset in nodesets ~}
+      - name: ${nodeset.name}
+        annotations:
+          slurm.nebius.ai/parental-cluster-ref: soperator
+
+        replicas: ${nodeset.replicas}
+        maxUnavailable: ${nodeset.max_unavailable}
+
+        gpu:
+          enabled: ${resources[i].gpus > 0}
+          nvidia:
+            gdrCopyEnabled: true
+
+        nodeConfig:
+          %{~ if length(nodeset.features) > 0 ~}
+          features:
+            %{~ for feature in nodeset.features ~}
+            - ${feature}
+            %{~ endfor ~}
+          %{~ endif ~}
+          static: "CPUs=${nodeset.cpu_topology.cpus} Boards=${nodeset.cpu_topology.boards} SocketsPerBoard=${nodeset.cpu_topology.sockets_per_board} CoresPerSocket=${nodeset.cpu_topology.cores_per_socket} ThreadsPerCore=${nodeset.cpu_topology.threads_per_core} %{~ if resources[i].gpus > 0 } Gres=gpu:${resources[i].gpus}%{~ endif ~}"
+
+        slurmd:
+          resources:
+            cpu: ${floor(resources[i].cpu_cores * 1000)}m
+            memory: ${floor(resources[i].memory_gibibytes)}Gi
+            ephemeralStorage: ${resources[i].ephemeral_storage_gibibytes}Gi
+            %{~ if resources[i].gpus > 0 ~}
+            gpu: ${resources[i].gpus}
+            %{~ endif ~}
+
+          volumes:
+            spool:
+              emptyDir: {}
+
+            jail:
+              persistentVolumeClaim:
+                claimName: jail-pvc
+                readOnly: false
+
+            jailSubMounts:
+              %{~ if jail_submounts.nfs.vds.enabled ~}
+              - name: nfs
+                mountPath: ${jail_submounts.nfs.vds.mount_path}
+                volumeSource:
+                  nfs:
+                    path: ${jail_submounts.nfs.vds.path}
+                    readOnly: false
+                    server: ${jail_submounts.nfs.vds.host}
+              %{~ endif ~}
+
+              %{~ if jail_submounts.nfs.k8s.enabled ~}
+              - name: home-dir
+                mountPath: /home
+                volumeSource:
+                  persistentVolumeClaim:
+                    claimName: home-dir
+              %{~ endif ~}
+
+              %{~ for sub_mount in jail_submounts.shared ~}
+              - name: ${sub_mount.name}
+                mountPath: ${sub_mount.mount_path}
+                volumeSource:
+                  persistentVolumeClaim:
+                    claimName: jail-submount-${sub_mount.name}-pvc
+                    readOnly: false
+              %{~ endfor ~}
+
+              %{~ for sub_mount in jail_submounts.local ~}
+              - name: ${sub_mount.name}
+                mountPath: ${sub_mount.mount_path}
+                volumeClaimTemplateSpec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: ${sub_mount.storage_class_name}
+                  resources:
+                    requests:
+                      storage: ${sub_mount.size_gibibytes}Gi
+              %{~ endfor ~}
+
+              %{~ if jail_submounts.image_storage.enabled ~}
+              - name: image-storage
+                mountPath: /mnt/image-storage
+                volumeClaimTemplateSpec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: ${jail_submounts.image_storage.spec.storage_class_name}
+                  resources:
+                    requests:
+                      storage: ${jail_submounts.image_storage.spec.size_gibibytes}Gi
+              %{~ endif ~}
+
+            customVolumeMounts:
+              - name: slurm-scripts
+                mountPath: /opt/slurm_scripts/
+                volumeSource:
+                  configMap:
+                    name: slurm-scripts
+                    defaultMode: 500
+
+              - name: slurm-scripts-jail
+                mountPath: /mnt/jail.upper/opt/slurm_scripts/
+                volumeSource:
+                  configMap:
+                    name: slurm-scripts
+                    defaultMode: 500
+
+              - name: sys-host
+                mountPath: /mnt/jail.upper/sys-host
+                readOnly: true
+                volumeSource:
+                  hostPath:
+                    path: /sys
+                    type: Directory
+
+              %{~ if jail_submounts.image_storage.enabled ~}
+              - name: enroot-on-image-storage
+                mountPath: /etc/enroot/enroot.conf.d/custom-dirs.conf
+                subPath: enroot.conf
+                readOnly: true
+                volumeSource:
+                  configMap:
+                    name: image-storage
+                    defaultMode: 500
+
+              - name: docker-on-image-storage
+                mountPath: /etc/docker/daemon.json
+                subPath: daemon.json
+                readOnly: true
+                volumeSource:
+                  configMap:
+                    name: image-storage
+                    defaultMode: 500
+              %{~ endif ~}
+
+              %{~ if gpu.dcgm_job_mapping.enabled ~}
+              - name: hpc-jobs-dir
+                mountPath: ${gpu.dcgm_job_mapping.dir}
+                volumeSource:
+                  hostPath:
+                    path: ${gpu.dcgm_job_mapping.dir}
+                    type: DirectoryOrCreate
+              %{~ endif ~}
+
+              %{~ if gpu.use_preinstalled_drivers~}
+              - name: nvidia-driver-root
+                mountPath: /run/nvidia/driver
+                readOnly: false
+                volumeSource:
+                  hostPath:
+                    path: /
+                    type: ""
+              %{~ endif ~}
+
+            sharedMemorySize: ${resources[i].shared_memory}Gi
+
+          security:
+            appArmorProfile: unconfined
+
+        munge:
+          resources:
+            cpu: ${munge.resources.cpu * 1000}m
+            memory: ${munge.resources.memory}Gi
+            ephemeralStorage: ${munge.resources.ephemeral_storage}Gi
+
+          security:
+            appArmorProfile: unconfined
+
+        configMapRefSupervisord: custom-supervisord-config
+        configMapRefSshd: ${sshd.config_map_ref}
+
+        enableHostUserNamespace: true
+
+        priorityClass: soperator-worker-high-priority
+        nodeSelector:
+          slurm.nebius.ai/nodeset-name: ${nodeset.name}
+        %{~ if resources[i].gpus > 0 ~}
+        tolerations:
+          - key: nvidia.com/gpu
+            operator: Exists
+            effect: NoSchedule
+        %{~ endif ~}
+
+        customInitContainers:
+          - name: ensure-jail-virtiofs
+            image: cr.eu-north1.nebius.cloud/soperator/busybox
+            volumeMounts: [{ name: jail, mountPath: /volume-mount }]
+            command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+
+          %{~ for sub_mount in jail_submounts.shared ~}
+          - name: ensure-jail-submount-${sub_mount.name}-virtiofs
+            image: cr.eu-north1.nebius.cloud/soperator/busybox
+            volumeMounts: [{ name: '${sub_mount.name}', mountPath: /volume-mount }]
+            command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+          %{~ endfor ~}
+
+          %{~ for sub_mount in jail_submounts.local ~}
+          - name: ensure-node-local-jail-submount-${sub_mount.name}-${sub_mount.filesystem_type}
+            image: cr.eu-north1.nebius.cloud/soperator/busybox
+            volumeMounts: [{ name: '${sub_mount.name}', mountPath: /volume-mount }]
+            command: ["grep", ' /volume-mount ${sub_mount.filesystem_type} ', "/proc/mounts"]
+          %{~ endfor ~}
+
+          %{~ if jail_submounts.image_storage.enabled ~}
+          - name: ensure-node-local-image-storage-${jail_submounts.image_storage.spec.filesystem_type}
+            image: cr.eu-north1.nebius.cloud/soperator/busybox
+            volumeMounts: [{ name: 'image-storage', mountPath: /volume-mount }]
+            command: ["grep", ' /volume-mount ${jail_submounts.image_storage.spec.filesystem_type} ', "/proc/mounts"]
+
+          - name: prepare-node-local-image-storage
+            image: cr.eu-north1.nebius.cloud/soperator/busybox
+            volumeMounts: [{ name: 'image-storage', mountPath: /volume-mount }]
+            command:
+            - "sh"
+            - "-c"
+            - |
+              mkdir -p \
+              %{~ for dir in ["cache", "data", "runtime"] ~}
+                /volume-mount/enroot/${dir} \
+              %{~ endfor ~}
+                /volume-mount/docker \
+              && chmod 777 -R /volume-mount/enroot /volume-mount/docker
+          %{~ endif ~}
+      %{~ endfor ~}
+  %{~ endif ~}

@@ -104,6 +104,15 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 
 
 ```
 
+### Infiniband Fabric
+
+```hcl
+# Infiniband fabrics: https://docs.nebius.com/compute/clusters/gpu#fabrics
+infiniband_fabric = "" # Infiniband fabric name
+```
+Please select the correct Infiniband fabric based on the GPU platform and region.
+
+
 ### Nvidia Multi Instance GPU (MIG) configuration
 
 ```hcl
@@ -162,12 +171,23 @@ For more information on how to access storage in K8s, refer [here](#accessing-st
 nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
 ```
 
+   Alternatively, use the k8s cluster id shown on the Nebius console: 
+```bash
+nebius mk8s v1 cluster get-credentials --id mk8scluster-<cluster_id> --external
+```
+
 
 ### Add credentials to the kubectl configuration file
 1. Run the following command from the terraform deployment folder:
    ```bash
    nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
    ```
+
+   Alternatively, use the k8s cluster id shown on the Nebius console: 
+   ```bash
+   nebius mk8s v1 cluster get-credentials --id mk8scluster-<cluster_id> --external
+   ```
+
 2. Verify the kubectl configuration after adding the credentials:
 
    ```bash

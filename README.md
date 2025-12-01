@@ -30,6 +30,20 @@ Our SLURM solutions offer a streamlined approach for users who prefer traditiona
 
 Enhance security with a Wireguard VPN instance by minimizing the use of public IPs and limiting access to your cloud environment.
 
+[Bastion](./bastion/README.md)
+
+Deploys a Bastion instance that serves as a secure jump host for your infrastructure. It improves the security by minimizing the use of Public IPs and limiting access to the rest of the environment. 
+
+### Integration
+
+[Anyscale](./anyscale/README.md)
+
+Installs the Anyscale operator on Nebius AI Cloud and offers integration with Anyscale. 
+
+[Skypilot](./skypilot/README.md)
+
+Offers seamless integration with SkyPilot, simplifying the process of launching and managing distributed AI workloads on powerful GPU instances.
+
 ## Prerequisites
 
 These solutions are built for Nebius AI Cloud, for more information please check our [website](https://nebius.ai/).

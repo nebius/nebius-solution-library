@@ -49,6 +49,7 @@ locals {
       worker     = module.labels.name_nodeset_worker
       login      = module.labels.name_nodeset_login
       accounting = module.labels.name_nodeset_accounting
+      nfs        = module.labels.name_nodeset_nfs
     }
 
     system = {
@@ -72,7 +73,21 @@ locals {
       name  = module.labels.name_nodeset_accounting
       match = module.labels.name_nodeset_accounting
     }
+    nfs = {
+      name  = module.labels.name_nodeset_nfs
+      match = module.labels.name_nodeset_nfs
+    }
   }
+
+  maintenance_ignore_node_labels = flatten([
+    for group in var.maintenance_ignore_node_groups : [
+      for match_value in try(
+        [local.node_filters[group].match],
+        try(local.node_filters[group].matches, [])
+      ) :
+      format("%s=%s", local.node_filters.label.nodeset, match_value)
+    ]
+  ])
 
   resources = {
     munge = {
@@ -132,11 +147,11 @@ locals {
     }
     nfs_server = {
       limits = {
-        memory = 2
+        memory = var.resources.nfs != null ? var.resources.nfs.memory_gibibytes : 1
       }
       requests = {
-        memory = 0.5
-        cpu    = 1
+        memory = var.resources.nfs != null ? var.resources.nfs.memory_gibibytes : 1
+        cpu    = var.resources.nfs != null ? var.resources.nfs.cpu_cores : 1
       }
     }
   }
@@ -146,4 +161,14 @@ locals {
   # Calculate vmagent remote write queue count based on cluster size
   # This sets metrics ingestion capacity for larger clusters properly
   vm_agent_queue_count = 2 + floor(sum(var.node_count.worker) / 60)
+
+  namespace = {
+    logs       = "logs-system"
+    monitoring = "monitoring-system"
+  }
+
+  metrics_collector = {
+    host = "vmsingle-metrics-victoria-metrics-k8s-stack.${local.namespace.monitoring}.svc.cluster.local"
+    port = 8429
+  }
 }

@@ -56,7 +56,7 @@ ssh target
 
 3. [Configure](https://docs.nebius.ai/cli/configure/) Nebius CLI (we recommend using [service account](https://docs.nebius.ai/iam/service-accounts/manage/)):
    ```bash
-   nebius init
+   nebius profile create
    ```
 
 4. Install JQuery (for Debian-based distributions):
@@ -125,7 +125,7 @@ public_ip_allocation_id = <public_ip_allocation_id>
 
 2. Retrieve the WireGuard UI password:
    ```bash
-   sudo cat /var/lib/wireGuard-ui/initial_password
+   sudo cat /var/lib/wireguard-ui/initial_password
    ```
 
 3. Open the WireGuard UI in your browser:

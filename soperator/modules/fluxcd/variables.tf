@@ -6,5 +6,5 @@ variable "k8s_cluster_context" {
 variable "flux_version" {
   description = "The version of Flux to install."
   type        = string
-  default     = "v2.5.1"
+  default     = "v2.7.4"
 }

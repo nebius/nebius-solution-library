@@ -50,24 +50,6 @@ data "nebius_iam_v1_tenant" "this" {
   id = var.iam_tenant_id
 }
 
-variable "ensure_support_sa" {
-  description = "Ensure that support service account is created for this cluster."
-  type        = bool
-}
-
-variable "support_sa_project_id" {
-  description = "Project ID where support SA should be created."
-  type        = string
-  default     = ""
-}
-
-data "nebius_iam_v1_service_account" "support_sa" {
-  count = var.ensure_support_sa ? 1 : 0
-
-  name      = "support-${var.iam_tenant_id}"
-  parent_id = var.support_sa_project_id
-}
-
 variable "o11y_iam_tenant_id" {
   description = "ID of the IAM tenant for O11y."
   type        = string
@@ -90,6 +72,25 @@ variable "o11y_profile" {
       !var.public_o11y_enabled
     )
     error_message = "O11y profile must be not empty if public o11y enabled is true."
+  }
+}
+
+variable "production" {
+  type    = bool
+  default = true
+}
+
+variable "iam_merge_request_url" {
+  type    = string
+  default = ""
+
+  validation {
+    condition     = (var.production && length(var.iam_merge_request_url) > 0) || !var.production
+    error_message = <<EOF
+This variable must be set for PRODUCTION Soperator Pro clusters. Follow the installation guide and put IAM merge request URL here.
+
+If you provision a NON-PRODUCTION cluster, set "production" variable to false.
+    EOF
   }
 }
 
@@ -430,6 +431,7 @@ resource "terraform_data" "check_nfs" {
 variable "nfs_in_k8s" {
   type = object({
     enabled        = bool
+    version        = optional(string)
     size_gibibytes = optional(number)
     storage_class  = optional(string)
   })
@@ -491,6 +493,23 @@ variable "slurm_operator_stable" {
   description = "Is the version of soperator stable."
   type        = bool
   default     = true
+}
+
+variable "slurm_nodesets_enabled" {
+  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
+  type        = bool
+  default     = false
+}
+
+variable "slurm_nodesets_partitions" {
+  description = "Partition configuration for nodesets. Used only when slurm_nodesets_enabled is true."
+  type = list(object({
+    name         = string
+    is_all       = optional(bool, false)
+    nodeset_refs = optional(list(string), [])
+    config       = string
+  }))
+  default = []
 }
 
 # region PartitionConfiguration
@@ -587,7 +606,7 @@ variable "slurm_nodeset_system" {
 }
 
 variable "slurm_nodeset_controller" {
-  description = "Configuration of Slurm Controller node set."
+  description = "Configuration of Slurm Controller node set. Only a single controller node is supported."
   type = object({
     size = number
     resource = object({
@@ -602,7 +621,7 @@ variable "slurm_nodeset_controller" {
   })
   nullable = false
   default = {
-    size = 2
+    size = 1
     resource = {
       platform = "cpu-d3"
       preset   = "16vcpu-64gb"
@@ -618,19 +637,16 @@ variable "slurm_nodeset_controller" {
     error_message = "Boot disks for controller nodes must be at least 128 GiB."
   }
   validation {
-    condition     = var.slurm_nodeset_controller.size >= 2
-    error_message = "Size of the controller node group must be at least 2."
+    condition     = var.slurm_nodeset_controller.size == 1
+    error_message = "Size of the controller node group must be exactly 1."
   }
 }
 
 variable "slurm_nodeset_workers" {
   description = "Configuration of Slurm Worker node sets."
   type = list(object({
-    size                    = number
-    nodes_per_nodegroup     = number
-    max_unavailable_percent = optional(number)
-    max_surge_percent       = optional(number)
-    drain_timeout           = optional(string)
+    name = string
+    size = number
     resource = object({
       platform = string
       preset   = string
@@ -643,13 +659,14 @@ variable "slurm_nodeset_workers" {
     gpu_cluster = optional(object({
       infiniband_fabric = string
     }))
-    preemptible = optional(object({}))
+    preemptible      = optional(object({}))
+    features         = optional(list(string))
+    create_partition = optional(bool)
   }))
   nullable = false
   default = [{
-    size                    = 1
-    nodes_per_nodegroup     = 1
-    max_unavailable_percent = 50
+    name = "worker"
+    size = 1
     resource = {
       platform = "cpu-d3"
       preset   = "16vcpu-64gb"
@@ -661,18 +678,22 @@ variable "slurm_nodeset_workers" {
     }
   }]
 
-  # TODO: change to `>0` when node sets supported in soperator
-  validation {
-    condition     = length(var.slurm_nodeset_workers) == 1
-    error_message = "Only one worker node set must be provided for a while."
-  }
-
   validation {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
-      (worker.size % worker.nodes_per_nodegroup == 0)
+      (worker.size > 0)
     ])
-    error_message = "Worker count must be divisible by nodes_per_nodegroup."
+    error_message = "Worker nodeset size must be greater than 0."
+  }
+
+  validation {
+    condition     = length(var.slurm_nodeset_workers) > 0
+    error_message = "At least one worker nodeset must be provided."
+  }
+
+  validation {
+    condition     = length(distinct([for worker in var.slurm_nodeset_workers : worker.name])) == length(var.slurm_nodeset_workers)
+    error_message = "All worker nodeset names must be unique."
   }
 
   validation {
@@ -763,6 +784,31 @@ resource "terraform_data" "check_slurm_nodeset_accounting" {
   }
 }
 
+variable "slurm_nodeset_nfs" {
+  description = "Configuration of NFS node set."
+  type = object({
+    size = number
+    resource = object({
+      platform = string
+      preset   = string
+    })
+    boot_disk = object({
+      type                 = string
+      size_gibibytes       = number
+      block_size_kibibytes = number
+    })
+  })
+  nullable = true
+  default  = null
+  validation {
+    condition     = var.slurm_nodeset_nfs == null || var.slurm_nodeset_nfs.boot_disk.size_gibibytes >= 128
+    error_message = "Boot disks for NFS nodes must be at least 128 GiB."
+  }
+  validation {
+    condition     = var.slurm_nodeset_nfs == null || var.slurm_nodeset_nfs.size == 1
+    error_message = "Size of the NFS node group must be exactly 1."
+  }
+}
 
 resource "terraform_data" "check_slurm_nodeset" {
   for_each = merge({
@@ -771,7 +817,11 @@ resource "terraform_data" "check_slurm_nodeset" {
     "login"      = var.slurm_nodeset_login
     }, { for i, worker in var.slurm_nodeset_workers :
     "worker_${i}" => worker
-  })
+    },
+    var.slurm_nodeset_nfs != null ? {
+      "nfs" = var.slurm_nodeset_nfs
+    } : {}
+  )
 
   depends_on = [
     terraform_data.check_region,
@@ -1021,30 +1071,15 @@ variable "maintenance" {
   }
 }
 
+variable "maintenance_ignore_node_groups" {
+  description = "List of node groups that Soperator should ignore for maintenance events. Supported values: controller, nfs, system, login, accounting."
+  type        = list(string)
+  default     = ["controller", "nfs"]
+}
+
 # endregion Maintenance
 
 # endregion Slurm
-
-# region fluxcd
-variable "github_org" {
-  description = "The GitHub organization."
-  type        = string
-  default     = "nebius"
-}
-
-variable "github_repository" {
-  description = "The GitHub repository."
-  type        = string
-  default     = "soperator"
-}
-
-variable "flux_interval" {
-  description = "The interval for Flux to check for changes."
-  type        = string
-  default     = "1m"
-}
-
-# endregion fluxcd
 
 # region ActiveChecks
 variable "active_checks_scope" {

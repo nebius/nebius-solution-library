@@ -8,6 +8,11 @@ output "platforms" {
   value       = [for k, v in local.platforms : v]
 }
 
+output "presets" {
+  description = "Supported presets."
+  value       = [for k, v in local.presets : v]
+}
+
 output "platform_regions" {
   description = "Map of supported regions grouped by platform."
   value       = local.platform_regions
@@ -34,4 +39,14 @@ output "disk_types" {
 output "filesystem_types" {
   description = "Supported filesystem types."
   value       = local.filesystem_types
+}
+
+output "driver_preset_by_platform" {
+  description = "Supported driver preset by platform."
+  value       = local.platform_driver_presets
+}
+
+output "cpu_topology_by_platform" {
+  description = "CPU topologies preset by platform."
+  value       = local.cpu_topologies_by_platforms
 }

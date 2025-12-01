@@ -3,11 +3,17 @@ resources:
     kind: ConfigMap
     metadata:
       name: terraform-fluxcd-values
+      labels:
+        reconcile.fluxcd.io/watch: Enabled
+      annotations:
+        "helm.sh/resource-policy": keep
     data:
       values.yaml: |
         helmRepository:
           interval: 15m
           nfsServer:
+            url: ${soperator_helm_repo}
+          soperator:
             url: ${soperator_helm_repo}
         certManager:
           enabled: true
@@ -215,13 +221,44 @@ resources:
             maintenance: ${slurm_cluster.maintenance}
 
             partitionConfiguration:
+            %{~ if slurm_nodesets_enabled ~}
+              configType: ${slurm_nodesets_enabled ? "structured" : slurm_cluster.partition_configuration.slurm_config_type}
+              partitions:
+                - name: main
+                  isAll: true
+                  config: "Default=YES PriorityTier=10 MaxTime=INFINITE State=UP OverSubscribe=YES"
+                - name: hidden
+                  isAll: true
+                  config: "Default=NO PriorityTier=10 PreemptMode=OFF Hidden=YES MaxTime=INFINITE State=UP OverSubscribe=YES"
+                %{~ for nodeset in nodesets ~}
+                %{~ if nodeset.create_partition ~}
+                - name: ${nodeset.name}
+                  nodeSetRefs:
+                    - "${nodeset.name}"
+                  config: "Default=NO PriorityTier=2 MaxTime=INFINITE State=UP OverSubscribe=YES"
+                %{~ endif ~}
+                %{~ endfor ~}
+                %{~ for partition in slurm_nodesets_partitions ~}
+                - name: ${partition.name}
+                  %{~ if partition.is_all ~}
+                  isAll: true
+                  %{~ else ~}
+                  nodeSetRefs:
+                  %{~ for nodeset_ref in partition.nodeset_refs ~}
+                    - "${nodeset_ref}"
+                  %{~ endfor ~}
+                  %{~ endif ~}
+                  config: "${partition.config}"
+                %{~ endfor ~}
+            %{~ else ~}
               configType: ${slurm_cluster.partition_configuration.slurm_config_type}
               %{~ if slurm_cluster.partition_configuration.slurm_config_type == "custom" ~}
               rawConfig:
-                %{~ for partition in slurm_cluster.partition_configuration.slurm_raw_config ~}
+              %{~ for partition in slurm_cluster.partition_configuration.slurm_raw_config ~}
                 - "${partition}"
-                %{~ endfor ~}
+              %{~ endfor ~}
               %{~ endif ~}
+            %{~ endif ~}
 
             workerFeatures:
               %{~ for feature in slurm_cluster.slurm_worker_features ~}
@@ -748,6 +785,11 @@ resources:
                   memory: ${slurm_cluster.sconfigcontroller.container.resources.memory }Mi
                   ephemeralStorage: ${slurm_cluster.sconfigcontroller.container.resources.ephemeral_storage }Mi
 
+            %{~ if slurm_cluster.use_cuda13rc ~}
+            images:
+              populateJail: "cr.eu-north1.nebius.cloud/soperator-unstable/populate_jail:1.23.0-cuda13"
+            %{~ endif ~}
+
           slurmClusterStorage:
             enabled: true
             interval: 5m
@@ -826,12 +868,33 @@ resources:
           overrideValues:
             clusterName: ${name}
             ${soperator_active_checks_override_block}
+            %{~ if slurm_cluster.use_cuda13rc ~}
+            activeCheckImage: "cr.eu-north1.nebius.cloud#soperator/active_checks:13.0.2-ubuntu24.04-nccl_tests2.17.6-3935b93"
+            %{~ endif ~}
+            jobContainer:
+              env:
+              - name: "K8S_POD_NAME"
+                valueFrom:
+                  fieldRef:
+                    fieldPath: "metadata.name"
+              - name: "K8S_POD_NAMESPACE"
+                valueFrom:
+                  fieldRef:
+                    fieldPath: "metadata.namespace"
+              - name: "SNCCLD_ENABLED"
+                value: "false"
+              - name: "SLURM_EXTRA_COMMENT_JSON"
+                value: '{"log_workspace": "${replace(iam_project_id, "project-", "o11yworkspace-")}"}'
+
 
         soperator:
           enabled: true
           interval: 5m
           timeout: 5m
           version: ${operator_version}
+          %{~ if length(operator_feature_gates) > 0 ~}
+          featureGates: "${operator_feature_gates}"
+          %{~ endif ~}
           values:
             manager:
               resources:
@@ -858,6 +921,9 @@ resources:
             values:
               checks:
                 manager:
+                  enableNodeReplacement: true
+                  env:
+                    maintenanceIgnoreNodeLabels: "${join(",", slurm_cluster.maintenance_ignore_node_labels)}"
                   resources:
                     requests:
                       memory: ${resources.slurm_operator.requests.memory}Gi
@@ -887,11 +953,11 @@ resources:
         nfsServer:
           enabled: ${slurm_cluster.nfs_in_k8s.enabled}
           %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
-          version: ${operator_version}
+          version: ${slurm_cluster.nfs_in_k8s.version}
           overrideValues:
             image:
               repository: ${soperator_image_repo}/nfs-server
-              tag: ${operator_version}
+              tag: ${slurm_cluster.nfs_in_k8s.version}
             nameOverride: nfs-server
             nfs:
               sharedDirectory: "/exported"
@@ -907,6 +973,15 @@ resources:
                 cpu: ${resources.nfs_server.requests.cpu * 1000}m
               limits:
                 memory: ${resources.nfs_server.limits.memory}Gi
+            %{~ if slurm_cluster.nfs_node_group_enabled ~}
+            nodeSelector:
+              ${slurm_cluster.k8s_node_filters.label.nodeset}: ${slurm_cluster.k8s_node_filters.nfs.match}
+            tolerations:
+              - key: ${slurm_cluster.k8s_node_filters.label.nodeset}
+                operator: Equal
+                value: ${slurm_cluster.k8s_node_filters.label.nfs}
+                effect: NoSchedule
+            %{~ endif ~}
             %{~ if telemetry_enabled ~}
             monitoring:
               enabled: true
@@ -916,3 +991,8 @@ resources:
           %{~ endif ~}
         tailscale:
           enabled: ${tailscale_enabled}
+
+        %{~ for release in releases ~}
+        ${ indent(8, release) }
+
+        %{~ endfor ~}

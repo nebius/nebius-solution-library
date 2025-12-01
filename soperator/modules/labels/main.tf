@@ -15,6 +15,7 @@ locals {
         worker     = "worker"
         login      = "login"
         accounting = "accounting"
+        nfs        = "nfs"
       }
 
       workload = "workload"
@@ -29,9 +30,10 @@ locals {
     nebius_gpu = "${local.const.domain.nebius}/${local.const.name.workloads.gpu}"
     nvidia_gpu = "${local.const.domain.nvidia}/${local.const.name.workloads.gpu}"
 
-    slurm_nodeset  = "${local.const.domain.slurm}/${local.const.name.nodeset}"
-    slurm_workload = "${local.const.domain.slurm}/${local.const.name.workload}"
-    jail           = "${local.const.domain.slurm}/${local.const.name.jail}"
+    slurm_nodeset      = "${local.const.domain.slurm}/${local.const.name.nodeset}"
+    slurm_nodeset_name = "${local.const.domain.slurm}/${local.const.name.nodeset}-name"
+    slurm_workload     = "${local.const.domain.slurm}/${local.const.name.workload}"
+    jail               = "${local.const.domain.slurm}/${local.const.name.jail}"
   }
 
   label = {
@@ -45,6 +47,7 @@ locals {
       worker     = tomap({ (local.label_key.slurm_nodeset) = (local.const.name.nodesets.worker) })
       login      = tomap({ (local.label_key.slurm_nodeset) = (local.const.name.nodesets.login) })
       accounting = tomap({ (local.label_key.slurm_nodeset) = (local.const.name.nodesets.accounting) })
+      nfs        = tomap({ (local.label_key.slurm_nodeset) = (local.const.name.nodesets.nfs) })
     }
 
     workload = {

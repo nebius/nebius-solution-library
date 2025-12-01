@@ -9,7 +9,7 @@ locals {
       count       = 1
     }
     ram = {
-      coefficient = 0.95
+      coefficient = 0.9
       count       = 2
     }
     ephemeral_storage = {

@@ -25,6 +25,26 @@ locals {
     ]
   }
 
+  # V2 workers (for nodesets)
+  node_group_gpu_present_v2 = {
+    worker = [
+      for worker in var.node_group_workers_v2 :
+      (module.resources.by_platform[worker.resource.platform][worker.resource.preset].gpus > 0 ? true : false)
+    ]
+  }
+
+  node_group_gpu_cluster_compatible_v2 = {
+    worker = [for worker in var.node_group_workers_v2 :
+      module.resources.by_platform[worker.resource.platform][worker.resource.preset].gpu_cluster_compatible
+    ]
+  }
+
+  node_group_workload_label_v2 = {
+    worker = [for worker in local.node_group_gpu_present_v2.worker :
+      (worker ? module.labels.label_workload_gpu : module.labels.label_workload_cpu)
+    ]
+  }
+
   context_name = join(
     "-",
     [

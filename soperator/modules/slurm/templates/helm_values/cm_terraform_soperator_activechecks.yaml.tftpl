@@ -3,6 +3,8 @@ resources:
     kind: ConfigMap
     metadata:
       name: terraform-soperator-activechecks
+      labels:
+        reconcile.fluxcd.io/watch: Enabled
     data:
       values.yaml: |
         ensureDirSnccldLogs:

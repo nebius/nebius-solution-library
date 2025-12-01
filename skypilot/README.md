@@ -13,6 +13,20 @@ Before getting started, ensure you have:
 - **Nebius Account and CLI**:
   - Create your Nebius account
   - Install and configure the [Nebius CLI](https://docs.nebius.com/cli)
+  - Create a standalone Skypilot instance on Nebius. 
+  - Prepare a configuration file location in `~/.sky/config.yaml`. [Skypilot Config Documentation](https://docs.skypilot.co/en/v0.10.3/reference/config.html) 
+    ```
+    nebius:
+      region_configs:
+        <your_region>:
+          project_id: project-<your_project_id>
+          filesystems:
+          - filesystem_id: computefilesystem-<your_filesystem_id>
+            mount_path: <your_mount_path>
+            attach_mode: READ_WRITE
+    api_server:
+      endpoint: https://USER:PASSWORD@<skypilot_instance_public_ip_endpoint>
+    ```
   - Download and run the setup script:
     ```bash
     wget https://raw.githubusercontent.com/nebius/nebius-solution-library/refs/heads/main/skypilot/nebius-setup.sh

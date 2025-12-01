@@ -32,7 +32,7 @@ resource "terraform_data" "k8s_backups_bucket_access_secret" {
       "",
       [
         "for AKID in $(nebius iam v2 access-key list-by-account ",
-        "--account-service-account-id ${self.triggers_replace.service_account_id} | yq '.items[].metadata.id' ); ",
+        "--account-service-account-id ${self.triggers_replace.service_account_id} --format json | jq -r '.items[].metadata.id' ); ",
         "do ",
         "nebius iam v2 access-key delete --id $(echo $AKID); ",
         "done; ",
@@ -53,7 +53,8 @@ set -e
 kubectl create namespace ${var.soperator_namespace} --context ${var.k8s_cluster_context} || true
 
 AKID=$(nebius iam v2 access-key create --parent-id ${var.iam_project_id} \
-  --account-service-account-id ${self.triggers_replace.service_account_id} | yq .metadata.id)
+  --account-service-account-id ${self.triggers_replace.service_account_id} \
+  --format json | jq -r '.metadata.id')
 
 kubectl apply --server-side --context ${var.k8s_cluster_context} -f -  <<EOF
 apiVersion: v1
@@ -67,8 +68,8 @@ metadata:
   annotations:
     slurm.nebius.ai/service-account: ${self.triggers_replace.service_account_id}
 data:
-  aws-access-key-id: $(nebius iam v2 access-key get --id $AKID | yq .status.aws_access_key_id | tr -d '\n' | base64)
-  aws-access-secret-key: $(nebius iam v2 access-key get --id $AKID | yq .status.secret | tr -d '\n' | base64)
+  aws-access-key-id: $(nebius iam v2 access-key get --id $AKID --format json | jq -r '.status.aws_access_key_id' | tr -d '\n' | base64)
+  aws-access-secret-key: $(nebius iam v2 access-key get --id $AKID --format json | jq -r '.status.secret' | tr -d '\n' | base64)
   backup-password: $(echo -n ${var.backups_password} | base64)
 EOF
 EOT

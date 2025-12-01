@@ -5,7 +5,12 @@ locals {
     workers    = [for worker in var.slurm_nodeset_workers : module.resources.by_platform[worker.resource.platform][worker.resource.preset]]
     login      = module.resources.by_platform[var.slurm_nodeset_login.resource.platform][var.slurm_nodeset_login.resource.preset]
     accounting = var.slurm_nodeset_accounting != null ? module.resources.by_platform[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset] : null
+    nfs        = var.slurm_nodeset_nfs != null ? module.resources.by_platform[var.slurm_nodeset_nfs.resource.platform][var.slurm_nodeset_nfs.resource.preset] : null
   }
+
+  # keep in sync with helm chart
+  # https://github.com/nebius/soperator/blob/main/helm/storageclasses/templates/storageclasses.yaml#L4
+  storage_class_prefix = "compute-csi"
 
   slurm_cluster_name = "soperator"
   flux_namespace     = "flux-system"
@@ -13,6 +18,39 @@ locals {
 
   backups_enabled = (var.backups_enabled == "force_enable" ||
   (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
+
+  # Legacy node_group_workers for old-style deployments (without nodesets)
+  node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers : [
+    for subset in range(ceil(nodeset.size / 100.0)) : {
+      size                    = min(100, nodeset.size - subset * 100)
+      max_unavailable_percent = 50
+      max_surge_percent       = null
+      drain_timeout           = null
+      resource                = nodeset.resource
+      boot_disk               = nodeset.boot_disk
+      gpu_cluster             = nodeset.gpu_cluster
+      nodeset_index           = i
+      subset_index            = subset
+      preemptible             = nodeset.preemptible
+    }
+  ]])
+
+  # V2 node_group_workers for new-style deployments (with nodesets)
+  node_group_workers_v2 = flatten([for i, nodeset in var.slurm_nodeset_workers : [
+    for subset in range(ceil(nodeset.size / 100.0)) : {
+      name          = nodeset.name
+      size          = min(100, nodeset.size - subset * 100)
+      min_size      = 0
+      max_size      = max(1, min(100, nodeset.size - subset * 100))
+      autoscaling   = true
+      resource      = nodeset.resource
+      boot_disk     = nodeset.boot_disk
+      gpu_cluster   = nodeset.gpu_cluster
+      nodeset_index = i
+      subset_index  = subset
+      preemptible   = nodeset.preemptible
+    }
+  ]])
 }
 
 resource "terraform_data" "check_variables" {
@@ -140,29 +178,19 @@ module "k8s" {
 
   etcd_cluster_size = var.etcd_cluster_size
 
-  node_group_system     = var.slurm_nodeset_system
-  node_group_controller = var.slurm_nodeset_controller
-  node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers :
-    [
-      for subset in range(ceil(nodeset.size / nodeset.nodes_per_nodegroup)) :
-      {
-        size                    = nodeset.nodes_per_nodegroup
-        max_unavailable_percent = nodeset.max_unavailable_percent
-        max_surge_percent       = nodeset.max_surge_percent
-        drain_timeout           = nodeset.drain_timeout
-        resource                = nodeset.resource
-        boot_disk               = nodeset.boot_disk
-        gpu_cluster             = nodeset.gpu_cluster
-        nodeset_index           = i
-        subset_index            = subset
-        preemptible             = nodeset.preemptible
-      }
-    ]
-  ])
-  node_group_login = var.slurm_nodeset_login
+  node_group_system      = var.slurm_nodeset_system
+  node_group_controller  = var.slurm_nodeset_controller
+  node_group_workers     = local.node_group_workers
+  node_group_workers_v2  = local.node_group_workers_v2
+  node_group_login       = var.slurm_nodeset_login
+  slurm_nodesets_enabled = var.slurm_nodesets_enabled
   node_group_accounting = {
     enabled = var.accounting_enabled
     spec    = var.slurm_nodeset_accounting
+  }
+  node_group_nfs = {
+    enabled = var.slurm_nodeset_nfs != null
+    spec    = var.slurm_nodeset_nfs
   }
 
   filestores = {
@@ -189,33 +217,6 @@ module "k8s" {
   providers = {
     nebius = nebius
     units  = units
-  }
-}
-
-module "k8s_storage_class" {
-  depends_on = [
-    module.k8s,
-  ]
-
-  source = "../../modules/k8s/storage_class"
-
-  storage_class_requirements = concat(
-    [{
-      disk_type       = module.resources.disk_types.network_ssd
-      filesystem_type = module.resources.filesystem_types.ext4
-    }],
-    [for sm in var.node_local_jail_submounts : {
-      disk_type       = sm.disk_type
-      filesystem_type = sm.filesystem_type
-    }],
-    !var.node_local_image_disk.enabled ? [] : [{
-      disk_type       = var.node_local_image_disk.spec.disk_type
-      filesystem_type = var.node_local_image_disk.spec.filesystem_type
-    }]
-  )
-
-  providers = {
-    kubernetes = kubernetes
   }
 }
 
@@ -282,7 +283,6 @@ module "o11y" {
 module "slurm" {
   depends_on = [
     module.k8s,
-    module.k8s_storage_class,
     module.o11y,
     module.fluxcd,
     module.backups,
@@ -302,8 +302,11 @@ module "slurm" {
   operator_version = var.slurm_operator_version
   operator_stable  = var.slurm_operator_stable
 
-  maintenance                   = var.maintenance
+  maintenance                    = var.maintenance
+  maintenance_ignore_node_groups = var.maintenance_ignore_node_groups
+
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
+  use_cuda13rc                  = var.slurm_nodeset_workers[0].resource.platform == "gpu-b300-sxm" ? true : false
   controller_state_on_filestore = var.controller_state_on_filestore
 
   node_count = {
@@ -356,6 +359,10 @@ module "slurm" {
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     } : null
+    nfs = var.slurm_nodeset_nfs != null ? {
+      cpu_cores        = local.resources.nfs.cpu_cores
+      memory_gibibytes = floor(local.resources.nfs.memory_gibibytes)
+    } : null
   }
 
   filestores = {
@@ -384,14 +391,14 @@ module "slurm" {
     size_gibibytes     = sm.size_gibibytes
     disk_type          = sm.disk_type
     filesystem_type    = sm.filesystem_type
-    storage_class_name = module.k8s_storage_class.storage_classes[sm.disk_type][sm.filesystem_type]
+    storage_class_name = replace("${local.storage_class_prefix}-${lower(sm.disk_type)}-${lower(sm.filesystem_type)}", "_", "-")
   }]
   node_local_image_storage = {
     enabled = var.node_local_image_disk.enabled
     spec = var.node_local_image_disk.enabled ? {
       size_gibibytes     = var.node_local_image_disk.spec.size_gibibytes
       filesystem_type    = var.node_local_image_disk.spec.filesystem_type
-      storage_class_name = module.k8s_storage_class.storage_classes[var.node_local_image_disk.spec.disk_type][var.node_local_image_disk.spec.filesystem_type]
+      storage_class_name = replace("${local.storage_class_prefix}-${lower(var.node_local_image_disk.spec.disk_type)}-${lower(var.node_local_image_disk.spec.filesystem_type)}", "_", "-")
     } : null
   }
 
@@ -402,7 +409,8 @@ module "slurm" {
     mount_path = var.nfs.enabled ? var.nfs.mount_path : null
   }
 
-  nfs_in_k8s = var.nfs_in_k8s
+  nfs_in_k8s             = var.nfs_in_k8s
+  nfs_node_group_enabled = var.slurm_nodeset_nfs != null
 
   exporter_enabled    = var.slurm_exporter_enabled
   rest_enabled        = var.slurm_rest_enabled
@@ -423,19 +431,30 @@ module "slurm" {
   slurm_worker_features           = var.slurm_worker_features
   slurm_health_check_config       = var.slurm_health_check_config
 
+  slurm_nodesets_enabled    = var.slurm_nodesets_enabled
+  slurm_nodesets_partitions = var.slurm_nodesets_partitions
+  worker_nodesets = [for nodeset in var.slurm_nodeset_workers : {
+    name            = nodeset.name
+    replicas        = nodeset.size
+    max_unavailable = "20%"
+    features = concat(
+      [
+        provider::string-functions::snake_case(nodeset.resource.platform),
+        provider::string-functions::snake_case(nodeset.boot_disk.type),
+      ],
+      nodeset.features != null ? nodeset.features : []
+    )
+    cpu_topology     = module.resources.cpu_topology_by_platform[nodeset.resource.platform][nodeset.resource.preset]
+    create_partition = nodeset.create_partition != null ? nodeset.create_partition : false
+  }]
+
   login_allocation_id            = module.k8s.static_ip_allocation_id
   login_public_ip                = var.slurm_login_public_ip
   tailscale_enabled              = var.tailscale_enabled
   login_sshd_config_map_ref_name = var.slurm_login_sshd_config_map_ref_name
   login_ssh_root_public_keys     = var.slurm_login_ssh_root_public_keys
 
-  github_org              = var.github_org
-  github_repository       = var.github_repository
-  github_ref_type         = var.slurm_operator_stable ? "tag" : "branch"
-  github_ref_value        = var.slurm_operator_stable ? var.slurm_operator_version : "main"
-  flux_namespace          = local.flux_namespace
-  flux_interval           = var.flux_interval
-  flux_kustomization_path = var.slurm_operator_stable ? "fluxcd/environment/nebius-cloud/prod" : "fluxcd/environment/nebius-cloud/dev"
+  flux_namespace = local.flux_namespace
 
   providers = {
     helm = helm
