@@ -8,7 +8,9 @@ locals {
     nfs        = var.slurm_nodeset_nfs != null ? module.resources.by_platform[var.slurm_nodeset_nfs.resource.platform][var.slurm_nodeset_nfs.resource.preset] : null
   }
 
-  storage_class_prefix = "compute-csi" # in sync with [url] helm chart
+  # keep in sync with helm chart
+  # https://github.com/nebius/soperator/blob/main/helm/storageclasses/templates/storageclasses.yaml#L4
+  storage_class_prefix = "compute-csi"
 
   slurm_cluster_name = "soperator"
   flux_namespace     = "flux-system"
