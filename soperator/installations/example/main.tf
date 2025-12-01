@@ -8,6 +8,10 @@ locals {
     nfs        = var.slurm_nodeset_nfs != null ? module.resources.by_platform[var.slurm_nodeset_nfs.resource.platform][var.slurm_nodeset_nfs.resource.preset] : null
   }
 
+  # keep in sync with helm chart
+  # https://github.com/nebius/soperator/blob/main/helm/storageclasses/templates/storageclasses.yaml#L4
+  storage_class_prefix = "compute-csi"
+
   slurm_cluster_name = "soperator"
   flux_namespace     = "flux-system"
   k8s_cluster_name   = format("soperator-%s", var.company_name)
@@ -216,37 +220,6 @@ module "k8s" {
   }
 }
 
-module "k8s_storage_class" {
-  depends_on = [
-    module.k8s,
-  ]
-
-  source = "../../modules/k8s/storage_class"
-
-  storage_class_requirements = concat(
-    [{
-      disk_type       = module.resources.disk_types.network_ssd
-      filesystem_type = module.resources.filesystem_types.ext4
-    }],
-    [for sm in var.node_local_jail_submounts : {
-      disk_type       = sm.disk_type
-      filesystem_type = sm.filesystem_type
-    }],
-    !var.node_local_image_disk.enabled ? [] : [{
-      disk_type       = var.node_local_image_disk.spec.disk_type
-      filesystem_type = var.node_local_image_disk.spec.filesystem_type
-    }],
-    !var.nfs_in_k8s.enabled ? [] : [{
-      disk_type       = var.nfs_in_k8s.disk_type
-      filesystem_type = var.nfs_in_k8s.filesystem_type
-    }]
-  )
-
-  providers = {
-    kubernetes = kubernetes
-  }
-}
-
 moved {
   from = module.k8s_storage_class[0]
   to   = module.k8s_storage_class
@@ -310,7 +283,6 @@ module "o11y" {
 module "slurm" {
   depends_on = [
     module.k8s,
-    module.k8s_storage_class,
     module.o11y,
     module.fluxcd,
     module.backups,
@@ -420,14 +392,14 @@ module "slurm" {
     size_gibibytes     = sm.size_gibibytes
     disk_type          = sm.disk_type
     filesystem_type    = sm.filesystem_type
-    storage_class_name = module.k8s_storage_class.storage_classes[sm.disk_type][sm.filesystem_type]
+    storage_class_name = replace("${local.storage_class_prefix}-${lower(sm.disk_type)}-${lower(sm.filesystem_type)}", "_", "-")
   }]
   node_local_image_storage = {
     enabled = var.node_local_image_disk.enabled
     spec = var.node_local_image_disk.enabled ? {
       size_gibibytes     = var.node_local_image_disk.spec.size_gibibytes
       filesystem_type    = var.node_local_image_disk.spec.filesystem_type
-      storage_class_name = module.k8s_storage_class.storage_classes[var.node_local_image_disk.spec.disk_type][var.node_local_image_disk.spec.filesystem_type]
+      storage_class_name = replace("${local.storage_class_prefix}-${lower(var.node_local_image_disk.spec.disk_type)}-${lower(var.node_local_image_disk.spec.filesystem_type)}", "_", "-")
     } : null
   }
 
