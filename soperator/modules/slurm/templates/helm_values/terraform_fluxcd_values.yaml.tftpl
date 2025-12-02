@@ -32,16 +32,20 @@ resources:
           %{~ if backups_enabled ~}
           config:
             secret:
-                name: ${backups_config.secret_name}
+              name: ${backups_config.secret_name}
             bucket:
-                endpoint: ${backups_config.storage.endpoint}
-                name: ${backups_config.storage.bucket}
+              endpoint: ${backups_config.storage.endpoint}
+              name: ${backups_config.storage.bucket}
             backup:
-                schedule: ${backups_config.schedule}
+              schedule: "${backups_config.schedule}"
             prune:
-                schedule: ${backups_config.prune_schedule}
+              schedule: "${backups_config.prune_schedule}"
+            %{~ if backups_config.retention != null ~}
             retention:
-                ${yamlencode(backups_config.retention)}
+            %{~ for key, value in backups_config.retention ~}
+              ${key}: ${value}
+            %{~ endfor ~}
+            %{~ endif ~}
           %{~ endif ~}
 
         mariadbOperator:
