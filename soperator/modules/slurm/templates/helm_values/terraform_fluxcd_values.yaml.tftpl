@@ -31,6 +31,7 @@ resources:
           %{~ endif ~}
           %{~ if backups_enabled ~}
           config:
+            version: ${operator_version}
             secret:
               name: ${backups_config.secret_name}
             bucket:
