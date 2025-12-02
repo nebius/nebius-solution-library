@@ -31,21 +31,23 @@ resources:
           %{~ endif ~}
           %{~ if backups_enabled ~}
           config:
+            enabled: true
             version: ${operator_version}
-            secret:
-              name: ${backups_config.secret_name}
-            bucket:
-              endpoint: ${backups_config.storage.endpoint}
-              name: ${backups_config.storage.bucket}
-            backup:
-              schedule: "${backups_config.schedule}"
-            prune:
-              schedule: "${backups_config.prune_schedule}"
-            %{~ if backups_config.retention != null ~}
-            retention:
-            %{~ for key, value in backups_config.retention ~}
-              ${key}: ${value}
-            %{~ endfor ~}
+            values:
+              secret:
+                name: ${backups_config.secret_name}
+              bucket:
+                endpoint: ${backups_config.storage.endpoint}
+                name: ${backups_config.storage.bucket}
+              backup:
+                schedule: "${backups_config.schedule}"
+              prune:
+                schedule: "${backups_config.prune_schedule}"
+              %{~ if backups_config.retention != null ~}
+              retention:
+              %{~ for key, value in backups_config.retention ~}
+                ${key}: ${value}
+              %{~ endfor ~}
             %{~ endif ~}
           %{~ endif ~}
 
