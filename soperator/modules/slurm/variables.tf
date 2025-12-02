@@ -702,6 +702,21 @@ variable "backups_enabled" {
   default     = false
 }
 
+variable "backups_config" {
+  description = "Configuration for backups."
+  type = object({
+    secret_name    = string
+    password       = string
+    schedule       = string
+    prune_schedule = string
+    retention      = map(any)
+    storage = object({
+      bucket    = string
+      endpoint  = string
+      bucket_id = string
+    })
+  })
+}
 
 variable "region" {
   description = "Region where the Slurm cluster is deployed."

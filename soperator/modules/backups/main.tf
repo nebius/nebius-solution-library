@@ -76,28 +76,6 @@ EOT
   }
 }
 
-resource "helm_release" "backups_schedule" {
-  depends_on = [
-    terraform_data.k8s_backups_bucket_access_secret
-  ]
-
-  name       = local.schedule_name
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-
-  # create_namespace = true
-  namespace = var.flux_namespace
-
-  values = [templatefile("${path.module}/templates/k8up_schedule.yaml.tftpl", {
-    s3_endpoint       = var.bucket_endpoint
-    s3_bucket         = var.bucket_name
-    backups_secret    = local.secret_name
-    backups_schedule  = var.backups_schedule
-    prune_schedule    = var.prune_schedule
-    backups_retention = var.backups_retention
-    monitoring        = var.monitoring
-  })]
-
-  wait = true
+output "secret_name" {
+  value = local.secret_name
 }

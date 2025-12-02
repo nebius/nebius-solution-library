@@ -415,10 +415,23 @@ module "slurm" {
   exporter_enabled    = var.slurm_exporter_enabled
   rest_enabled        = var.slurm_rest_enabled
   accounting_enabled  = var.accounting_enabled
-  backups_enabled     = local.backups_enabled
   telemetry_enabled   = var.telemetry_enabled
   public_o11y_enabled = var.public_o11y_enabled
   soperator_notifier  = var.soperator_notifier
+
+  backups_enabled = local.backups_enabled
+  backups_config = {
+    secret_name    = local.backups_enabled ? module.backups[0].secret_name : null
+    password       = var.backups_password
+    schedule       = var.backups_schedule
+    prune_schedule = var.backups_prune_schedule
+    retention      = var.backups_retention
+    storage = {
+      bucket : local.backups_enabled ? module.backups_store[0].name : null,
+      endpoint : local.backups_enabled ? module.backups_store[0].endpoint : null,
+      bucket_id : local.backups_enabled ? module.backups_store[0].bucket_id : null
+    }
+  }
 
   slurmdbd_config         = var.slurmdbd_config
   slurm_accounting_config = var.slurm_accounting_config
@@ -503,19 +516,11 @@ module "backups" {
   iam_project_id      = var.iam_project_id
   iam_tenant_id       = var.iam_tenant_id
   instance_name       = local.k8s_cluster_name
-  flux_namespace      = local.flux_namespace
   soperator_namespace = local.slurm_cluster_name
-  bucket_name         = module.backups_store[count.index].name
-  bucket_endpoint     = module.backups_store[count.index].endpoint
-
-  backups_password  = var.backups_password
-  backups_schedule  = var.backups_schedule
-  prune_schedule    = var.backups_prune_schedule
-  backups_retention = var.backups_retention
+  backups_password    = var.backups_password
 
   providers = {
     nebius = nebius
-    helm   = helm
   }
 
   depends_on = [

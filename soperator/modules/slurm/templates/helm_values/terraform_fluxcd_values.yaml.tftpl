@@ -29,6 +29,21 @@ resources:
           %{~ if k8up_version != "" ~}
           version: ${k8up_version}
           %{~ endif ~}
+          %{~ if backups_enabled ~}
+          config:
+            secret:
+                name: ${backups_config.secret_name}
+            bucket:
+                endpoint: ${backups_config.storage.endpoint}
+                name: ${backups_config.storage.bucket}
+            backup:
+                schedule: ${backups_config.schedule}
+            prune:
+                schedule: ${backups_config.prune_schedule}
+            retention:
+                ${yamlencode(backups_config.retention)}
+          %{~ endif ~}
+
         mariadbOperator:
           enabled: ${accounting_enabled}
           interval: 5m

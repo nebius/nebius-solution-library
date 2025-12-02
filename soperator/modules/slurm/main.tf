@@ -59,11 +59,13 @@ resource "helm_release" "soperator_fluxcd_cm" {
   values = [templatefile("${path.module}/templates/helm_values/terraform_fluxcd_values.yaml.tftpl", {
     soperator_active_checks_override_block = indent(12, local.soperator_activechecks_override_yaml)
 
-    backups_enabled    = var.backups_enabled
     telemetry_enabled  = var.telemetry_enabled
     accounting_enabled = var.accounting_enabled
     iam_tenant_id      = var.iam_tenant_id
     iam_project_id     = var.iam_project_id
+
+    backups_enabled = var.backups_enabled
+    backups_config  = var.backups_enabled ? var.backups_config : null
 
     soperator_helm_repo  = local.helm.repository.slurm
     soperator_image_repo = local.image.repository
