@@ -220,11 +220,6 @@ module "k8s" {
   }
 }
 
-moved {
-  from = module.k8s_storage_class[0]
-  to   = module.k8s_storage_class
-}
-
 module "nvidia_operator_network" {
   count = module.k8s.gpu_involved && !var.use_preinstalled_gpu_drivers ? 1 : 0
 
