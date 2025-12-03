@@ -651,7 +651,7 @@ variable "k8up_version" {
 variable "mariadb_operator_version" {
   description = "The version of the mariadb operator."
   type        = string
-  default     = ""
+  default     = "25.10.2"
 }
 
 variable "opentelemetry_collector_version" {

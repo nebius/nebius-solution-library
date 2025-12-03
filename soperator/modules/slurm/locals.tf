@@ -28,7 +28,7 @@ locals {
 
     version = {
       slurm   = var.operator_version
-      mariadb = "0.38.1"
+      mariadb = "25.10.2"
       raw     = "2.0.0"
       spo     = "0.8.4-soperator"
     }
