@@ -35,9 +35,5 @@ locals {
     }
   }
 
-  soperator_activechecks_override = {
-    checks = local.active_checks_scopes[var.active_checks_scope]
-  }
-
-  soperator_activechecks_override_yaml = yamlencode(local.soperator_activechecks_override)
+  soperator_activechecks_override_yaml = yamlencode(local.active_checks_scopes[var.active_checks_scope])
 }

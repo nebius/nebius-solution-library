@@ -57,7 +57,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
   namespace  = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/helm_values/terraform_fluxcd_values.yaml.tftpl", {
-    soperator_active_checks_override_block = indent(12, local.soperator_activechecks_override_yaml)
+    soperator_active_checks_override_block = indent(14, local.soperator_activechecks_override_yaml)
 
     telemetry_enabled  = var.telemetry_enabled
     accounting_enabled = var.accounting_enabled
@@ -296,20 +296,6 @@ resource "helm_release" "soperator_fluxcd_ad_hoc_cm" {
   namespace  = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/helm_values/soperator_fluxcd.yaml.tftpl", {})]
-
-  lifecycle {
-    ignore_changes = all
-  }
-}
-
-resource "helm_release" "cm_terraform_soperator_activechecks" {
-  name       = "terraform-soperator-activechecks"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-  namespace  = var.flux_namespace
-
-  values = [templatefile("${path.module}/templates/helm_values/cm_terraform_soperator_activechecks.yaml.tftpl", {})]
 
   lifecycle {
     ignore_changes = all
