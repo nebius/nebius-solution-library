@@ -30,6 +30,11 @@ variable "k8s_cluster_context" {
   nullable    = false
 }
 
+variable "k8s_cluster_id" {
+  description = "ID of the mk8s cluster."
+  type        = string
+}
+
 # region PartitionConfiguration
 
 variable "slurm_partition_config_type" {

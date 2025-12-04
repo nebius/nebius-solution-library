@@ -63,6 +63,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     accounting_enabled = var.accounting_enabled
     iam_tenant_id      = var.iam_tenant_id
     iam_project_id     = var.iam_project_id
+    k8s_cluster_id     = var.k8s_cluster_id
 
     backups_enabled = var.backups_enabled
     backups_config  = var.backups_enabled ? var.backups_config : null

@@ -293,6 +293,7 @@ module "slurm" {
   cluster_name        = var.company_name
   name                = local.slurm_cluster_name
   k8s_cluster_context = module.k8s.cluster_context
+  k8s_cluster_id      = module.k8s.cluster_id
 
   operator_version = var.slurm_operator_version
   operator_stable  = var.slurm_operator_stable
