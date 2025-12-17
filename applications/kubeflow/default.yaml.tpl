@@ -3,7 +3,7 @@ ssh_user_name: ubuntu
 ssh_public_key: 
 k8s_cluster:
   cpu_nodes_count: 3
-  gpu_nodes_count_per_group: 1
+  gpu_nodes_count_per_group: 2
   gpu_node_groups: 1
   cpu_nodes_platform: "cpu-d3"
   cpu_nodes_preset: "4vcpu-16gb"
