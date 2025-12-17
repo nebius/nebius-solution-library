@@ -99,16 +99,16 @@ resource "nebius_applications_v1alpha1_k8s_release" "kubeflow" {
 
   application_name = "kubeflow"
   namespace        = "kubeflow"
-  product_slug     = "nebius/keyvan-kubeflow"
+  product_slug     = "nebius/kubeflow"
 
   set = {
-    "storage_bucket_name": nebius_storage_v1_bucket.kubeflow.name,
-    "storage_endpoint_url" : "https://storage.${var.region}.nebius.cloud:443",
+    "storage_bucket_name" : nebius_storage_v1_bucket.kubeflow.name,
+    "storage_endpoint_url" : "storage.${var.region}.nebius.cloud",
     "accessKey" : nebius_iam_v2_access_key.kubeflow_bucket_key.status.aws_access_key_id,
     "secretKey" : nebius_iam_v2_access_key.kubeflow_bucket_key.status.secret,
-    "kubeflow_admin_password": random_password.kubeflow_admin.result,
-    "kubeflow_user_password": random_password.kubeflow_user.result,
-    "kubeflow_hostname": local.config.kubeflow.kubeflow_hostname
+    "kubeflow_admin_password" : random_password.kubeflow_admin.result,
+    "kubeflow_user_password" : random_password.kubeflow_user.result,
+    "kubeflow_hostname" : local.config.kubeflow.kubeflow_hostname
   }
 
   depends_on = [
