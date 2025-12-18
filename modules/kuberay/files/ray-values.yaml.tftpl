@@ -68,6 +68,13 @@ configuration:
               containers:
                 - name: ray-head
                   image: ${cpu_worker_image}
+                  affinity:
+                    nodeAffinity:
+                      requiredDuringSchedulingIgnoredDuringExecution:
+                        nodeSelectorTerms:
+                        - matchExpressions:
+                          - key: nvidia.com/gpu.count
+                            operator: DoesNotExist
                   resources:
                     requests:
                       cpu: 1
@@ -106,6 +113,13 @@ configuration:
                 containers:
                   - name: ray-worker
                     image: ${cpu_worker_image}
+                    affinity:
+                      nodeAffinity:
+                        requiredDuringSchedulingIgnoredDuringExecution:
+                          nodeSelectorTerms:
+                          - matchExpressions:
+                            - key: nvidia.com/gpu.count
+                              operator: DoesNotExist
                     resources:
                       requests:
                         cpu: ${cpu_resources.cpus}
@@ -126,6 +140,10 @@ configuration:
                 containers:
                   - name: ray-worker
                     image: ${gpu_worker_image}
+                    tolerations:
+                      - key: nvidia.com/gpu
+                        operator: Exists
+                        effect: NoSchedule
                     securityContext:
                       privileged: true
                       runAsUser: 0
