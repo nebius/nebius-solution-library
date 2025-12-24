@@ -138,6 +138,7 @@ variable "gpu_cluster" {
   description = "gpu cluster id"
   default     = ""
 }
+
 variable "preemptible" {
   description = "Whether the VM should be preemptible"
   type        = bool
