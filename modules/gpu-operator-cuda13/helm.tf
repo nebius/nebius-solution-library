@@ -1,5 +1,5 @@
 resource "helm_release" "gpu-operator" {
-  name = "gpu-operator"
+  name             = "gpu-operator"
   repository       = var.helm_repository
   chart            = "gpu-operator"
   namespace        = "gpu-operator"

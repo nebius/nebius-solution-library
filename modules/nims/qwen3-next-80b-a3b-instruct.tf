@@ -17,7 +17,7 @@ resource "kubernetes_deployment" "qwen3-next-80b-a3b-instruct" {
     template {
       metadata {
         labels = {
-          app = "qwen3-next-80b-a3b-instruct"
+          app      = "qwen3-next-80b-a3b-instruct"
           lb_group = "protein-apps"
 
         }
@@ -50,8 +50,8 @@ resource "kubernetes_deployment" "qwen3-next-80b-a3b-instruct" {
 
           command = ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
           security_context {
-            run_as_user   = 0
-            run_as_group  = 0
+            run_as_user  = 0
+            run_as_group = 0
           }
 
           env {
@@ -71,15 +71,15 @@ resource "kubernetes_deployment" "qwen3-next-80b-a3b-instruct" {
 
           resources {
             limits = {
-              cpu               = "32"
-              memory            = "256Gi"
-              "nvidia.com/gpu"  = "2"
+              cpu              = "32"
+              memory           = "256Gi"
+              "nvidia.com/gpu" = "2"
             }
 
             requests = {
-              cpu               = "32"
-              memory            = "256Gi"
-              "nvidia.com/gpu"  = "2"
+              cpu              = "32"
+              memory           = "256Gi"
+              "nvidia.com/gpu" = "2"
             }
           }
 
@@ -90,7 +90,7 @@ resource "kubernetes_deployment" "qwen3-next-80b-a3b-instruct" {
           volume_mount {
             name       = "mnt-data"
             mount_path = "/opt/nim/.cache/"
-         #   mount_path = "/mnt/data/"
+            #   mount_path = "/mnt/data/"
           }
         }
 

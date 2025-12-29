@@ -13,7 +13,7 @@ resource "kubernetes_secret" "nvcrio-cred" {
 
   type = "kubernetes.io/dockerconfigjson"
 
-    data = {
+  data = {
     ".dockerconfigjson" = jsonencode({
       auths = {
         "nvcr.io" = {
@@ -82,7 +82,7 @@ resource "kubernetes_service" "openfold3_lb" {
       target_port = 8000
       protocol    = "TCP"
     }
-   port {
+    port {
       name        = "openfold2"
       port        = 8004
       target_port = 8000
