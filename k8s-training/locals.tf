@@ -55,9 +55,9 @@ locals {
   device_preset = lookup(local.platform_to_cuda, local.gpu_nodes_platform, "cuda12")
 
   valid_mig_parted_configs = {
-    "gpu-h100-sxm" = ["all-disabled", "all-enabled", "all-balanced", "all-1g.10gb", "all-1g.10gb.me", "all-1g.20gb", "all-2g.20gb", "all-3g.40gb", "all-4g.40gb", "all-7g.80gb"]
-    "gpu-h200-sxm" = ["all-disabled", "all-enabled", "all-balanced", "all-1g.18gb", "all-1g.18gb.me", "all-1g.35gb", "all-2g.35gb", "all-3g.71gb", "all-4g.71gb", "all-7g.141gb"]
-    "gpu-b200-sxm" = ["all-disabled", "all-enabled", "all-balanced", "all-1g.23gb", "all-1g.23gb.me", "all-1g.45gb", "all-2g.45gb", "all-3g.90gb", "all-4g.90gb", "all-7g.180gb"]
+    "gpu-h100-sxm"   = ["all-disabled", "all-enabled", "all-balanced", "all-1g.10gb", "all-1g.10gb.me", "all-1g.20gb", "all-2g.20gb", "all-3g.40gb", "all-4g.40gb", "all-7g.80gb"]
+    "gpu-h200-sxm"   = ["all-disabled", "all-enabled", "all-balanced", "all-1g.18gb", "all-1g.18gb.me", "all-1g.35gb", "all-2g.35gb", "all-3g.71gb", "all-4g.71gb", "all-7g.141gb"]
+    "gpu-b200-sxm"   = ["all-disabled", "all-enabled", "all-balanced", "all-1g.23gb", "all-1g.23gb.me", "all-1g.45gb", "all-2g.45gb", "all-3g.90gb", "all-4g.90gb", "all-7g.180gb"]
     "gpu-b200-sxm-a" = ["all-disabled", "all-enabled", "all-balanced", "all-1g.23gb", "all-1g.23gb.me", "all-1g.45gb", "all-2g.45gb", "all-3g.90gb", "all-4g.90gb", "all-7g.180gb"]
   }
 
@@ -72,8 +72,8 @@ locals {
     "gpu-h200-sxm-8gpu-128vcpu-1600gb" = "8xH200"
 
     # B200 configurations
-    "gpu-b200-sxm-1gpu-20vcpu-224gb"   = "1xB200"
-    "gpu-b200-sxm-8gpu-160vcpu-1792gb" = "8xB200"
+    "gpu-b200-sxm-1gpu-20vcpu-224gb"     = "1xB200"
+    "gpu-b200-sxm-8gpu-160vcpu-1792gb"   = "8xB200"
     "gpu-b200-sxm-a-8gpu-160vcpu-1792gb" = "8xB200"
 
     # L40 configurations
