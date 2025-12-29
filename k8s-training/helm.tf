@@ -25,7 +25,7 @@ module "gpu-operator-cuda13" {
   depends_on = [
     module.network-operator
   ]
-  source       = "../modules/gpu-operator-cuda13"
+  source = "../modules/gpu-operator-cuda13"
 }
 
 

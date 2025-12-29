@@ -345,7 +345,7 @@ variable "gpu_health_cheker" {
 variable "cuda_13" {
   description = "Use Cuda 13.0 via customized GPU Operator."
   type        = bool
-  default = false
+  default     = false
 
   validation {
     condition     = !(var.cuda_13 && var.gpu_nodes_driverfull_image)
