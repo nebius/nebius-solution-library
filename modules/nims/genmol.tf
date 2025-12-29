@@ -17,7 +17,7 @@ resource "kubernetes_deployment" "genmol" {
     template {
       metadata {
         labels = {
-          app = "genmol"
+          app      = "genmol"
           lb_group = "protein-apps"
 
         }
@@ -36,8 +36,8 @@ resource "kubernetes_deployment" "genmol" {
 
           command = ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
           security_context {
-            run_as_user   = 0
-            run_as_group  = 0
+            run_as_user  = 0
+            run_as_group = 0
           }
 
           env {
@@ -57,15 +57,15 @@ resource "kubernetes_deployment" "genmol" {
 
           resources {
             limits = {
-              cpu               = "16"
-              memory            = "128Gi"
-              "nvidia.com/gpu"  = "1"
+              cpu              = "16"
+              memory           = "128Gi"
+              "nvidia.com/gpu" = "1"
             }
 
             requests = {
-              cpu               = "16"
-              memory            = "128Gi"
-              "nvidia.com/gpu"  = "1"
+              cpu              = "16"
+              memory           = "128Gi"
+              "nvidia.com/gpu" = "1"
             }
           }
 

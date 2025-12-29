@@ -18,7 +18,7 @@ resource "kubernetes_deployment" "openfold2" {
     template {
       metadata {
         labels = {
-          app = "openfold2"
+          app      = "openfold2"
           lb_group = "protein-apps"
 
         }
@@ -37,8 +37,8 @@ resource "kubernetes_deployment" "openfold2" {
 
           command = ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
           security_context {
-            run_as_user   = 0
-            run_as_group  = 0
+            run_as_user  = 0
+            run_as_group = 0
           }
           env {
             name = "NGC_API_KEY"
@@ -58,15 +58,15 @@ resource "kubernetes_deployment" "openfold2" {
 
           resources {
             limits = {
-              cpu               = "16"
-              memory            = "128Gi"
-              "nvidia.com/gpu"  = "1"
+              cpu              = "16"
+              memory           = "128Gi"
+              "nvidia.com/gpu" = "1"
             }
 
             requests = {
-              cpu               = "16"
-              memory            = "128Gi"
-              "nvidia.com/gpu"  = "1"
+              cpu              = "16"
+              memory           = "128Gi"
+              "nvidia.com/gpu" = "1"
             }
           }
 

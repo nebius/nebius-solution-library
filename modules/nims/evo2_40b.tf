@@ -17,7 +17,7 @@ resource "kubernetes_deployment" "evo2_40b" {
     template {
       metadata {
         labels = {
-          app = "evo2-40b"
+          app      = "evo2-40b"
           lb_group = "protein-apps"
 
         }
@@ -50,8 +50,8 @@ resource "kubernetes_deployment" "evo2_40b" {
 
           command = ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
           security_context {
-            run_as_user   = 0
-            run_as_group  = 0
+            run_as_user  = 0
+            run_as_group = 0
           }
 
           env {
@@ -71,15 +71,15 @@ resource "kubernetes_deployment" "evo2_40b" {
 
           resources {
             limits = {
-              cpu               = "16"
-              memory            = "128Gi"
-              "nvidia.com/gpu"  = "1"
+              cpu              = "16"
+              memory           = "128Gi"
+              "nvidia.com/gpu" = "1"
             }
 
             requests = {
-              cpu               = "16"
-              memory            = "128Gi"
-              "nvidia.com/gpu"  = "1"
+              cpu              = "16"
+              memory           = "128Gi"
+              "nvidia.com/gpu" = "1"
             }
           }
 
@@ -90,7 +90,7 @@ resource "kubernetes_deployment" "evo2_40b" {
           volume_mount {
             name       = "mnt-data"
             mount_path = "/opt/nim/.cache/"
-         #   mount_path = "/mnt/data/"
+            #   mount_path = "/mnt/data/"
           }
         }
 

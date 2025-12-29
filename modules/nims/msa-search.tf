@@ -17,7 +17,7 @@ resource "kubernetes_deployment" "msa_search" {
     template {
       metadata {
         labels = {
-          app = "msa-search"
+          app      = "msa-search"
           lb_group = "protein-apps"
 
         }
@@ -35,11 +35,11 @@ resource "kubernetes_deployment" "msa_search" {
           image = "nvcr.io/nim/colabfold/msa-search:${var.msa_search_version}"
 
           command = ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
-       #   command = ["/bin/bash", "-c", "sleep 36000"]
+          #   command = ["/bin/bash", "-c", "sleep 36000"]
 
           security_context {
-            run_as_user   = 0
-            run_as_group  = 0
+            run_as_user  = 0
+            run_as_group = 0
           }
 
           env {
@@ -59,15 +59,15 @@ resource "kubernetes_deployment" "msa_search" {
 
           resources {
             limits = {
-              cpu               = "32"
-              memory            = "256Gi"
-              "nvidia.com/gpu"  = "2"
+              cpu              = "32"
+              memory           = "256Gi"
+              "nvidia.com/gpu" = "2"
             }
 
             requests = {
-              cpu               = "32"
-              memory            = "256Gi"
-              "nvidia.com/gpu"  = "2"
+              cpu              = "32"
+              memory           = "256Gi"
+              "nvidia.com/gpu" = "2"
             }
           }
 
