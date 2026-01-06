@@ -889,7 +889,7 @@ resources:
             checks:
               ensureDirSnccldLogs:
                 enabled: true
-            ${soperator_active_checks_override_block}
+              ${soperator_active_checks_override_block}
             %{~ if slurm_cluster.use_cuda13rc ~}
             activeCheckImage: "cr.eu-north1.nebius.cloud#soperator/active_checks:13.0.2-ubuntu24.04-nccl_tests2.17.6-3935b93"
             %{~ endif ~}
