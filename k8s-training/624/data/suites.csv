@@ -1,0 +1,8 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","376405","k8s_node_groups_training_kuberay_apply","","","passed","","","tests/k8s-training-kuberay.tftest.hcl","tests/k8s-training-kuberay.tftest.hcl",""
+"","73086","full_training_apply","","","broken","","","tests/main.tftest.hcl","tests/main.tftest.hcl",""
+"","","test_mode_k8s_training_apply","","","skipped","","","tests/main.tftest.hcl","tests/main.tftest.hcl",""
+"","73170","full_training_kuberay_apply","","","broken","","","tests/k8s-training-kuberay.tftest.hcl","tests/k8s-training-kuberay.tftest.hcl",""
+"","640698","k8s_training_apply","","","passed","","","tests/main.tftest.hcl","tests/main.tftest.hcl",""
+"","231540","k8s_training_kuberay_apply","","","passed","","","tests/k8s-training-kuberay.tftest.hcl","tests/k8s-training-kuberay.tftest.hcl",""
+"","416603","k8s_node_groups_training_apply","","","passed","","","tests/main.tftest.hcl","tests/main.tftest.hcl",""
