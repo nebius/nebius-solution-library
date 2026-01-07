@@ -1,5 +1,34 @@
+data "nebius_iam_v1_group" "editors" {
+  name      = "editors"
+  parent_id = var.tenant_id
+}
+
+resource "nebius_iam_v1_service_account" "anyscale_bucket_sa" {
+  parent_id = var.parent_id
+  name      = join("-", [module.k8s-training.kube_cluster.name, "anyscale-sa"])
+  depends_on = [
+    module.k8s-training
+  ]
+}
+
+resource "nebius_iam_v1_group_membership" "anyscale_bucket_sa-editor" {
+  parent_id = data.nebius_iam_v1_group.editors.id
+  member_id = nebius_iam_v1_service_account.anyscale_bucket_sa.id
+}
+
+resource "nebius_iam_v2_access_key" "anyscale_bucket_key" {
+  parent_id   = var.parent_id
+  name        = "anyscale-s3-bucket-key"
+  description = "Access key for Anyscale bucket"
+  account = {
+    service_account = {
+      id = nebius_iam_v1_service_account.anyscale_bucket_sa.id
+    }
+  }
+}
+
 module "k8s-training" {
-  source = "../../k8s-training"
+  source = "../../../k8s-training"
 
   tenant_id = var.tenant_id
   parent_id = var.parent_id
@@ -26,22 +55,25 @@ module "k8s-training" {
   enable_loki                = local.config.k8s_cluster.enable_loki
   loki_access_key_id         = local.config.k8s_cluster.loki_access_key_id
   loki_secret_key            = local.config.k8s_cluster.loki_secret_key
+  gpu_health_cheker          = local.config.k8s_cluster.gpu_health_cheker
 }
 
-resource "nebius_applications_v1alpha1_k8s_release" "this" {
+resource "nebius_applications_v1alpha1_k8s_release" "anyscale" {
   cluster_id = module.k8s-training.kube_cluster.id
   parent_id  = var.parent_id
 
   application_name = "anyscale-operator"
   namespace        = "anyscale-operator"
-  product_slug     = "nebius/anyscale-operator"
+  product_slug     = "nebius/keyvan-anyscale-operator"
 
-  set = {
-    "cloudDeploymentId" : local.config.anyscale.cloud_deployment_id,
-    "anyscaleCliToken" : local.config.anyscale.anyscale_cli_token,
-    "aws.objectStorage.endpoint_url" : "https://storage.${var.region}.nebius.cloud:443",
-    "aws.credentialSecret.accessKeyId" : nebius_iam_v2_access_key.anyscale_bucket_key.status.aws_access_key_id,
-    "aws.credentialSecret.secretAccessKey" : nebius_iam_v2_access_key.anyscale_bucket_key.status.secret
+  sensitive = {
+    set = {
+      "global.cloudDeploymentId" : local.config.anyscale.cloud_deployment_id,
+      "credentialMount.aws.createSecret.endpointUrl" : "https://storage.${var.region}.nebius.cloud:443"
+      "credentialMount.aws.createSecret.accessKeyId" : nebius_iam_v2_access_key.anyscale_bucket_key.status.aws_access_key_id,
+      "credentialMount.aws.createSecret.secretAccessKey" : nebius_iam_v2_access_key.anyscale_bucket_key.status.secret
+    }
+
   }
 
   depends_on = [

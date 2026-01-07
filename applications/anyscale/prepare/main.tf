@@ -3,7 +3,7 @@ data "nebius_vpc_v1_subnet" "subnet" {
 }
 
 module "nfs-server" {
-  source = "../../nfs-server"
+  source = "../../../nfs-server"
 
   providers = {
     nebius = nebius
@@ -12,6 +12,9 @@ module "nfs-server" {
   parent_id = var.parent_id
   subnet_id = var.subnet_id
   region    = var.region
+
+  instance_name        = join("-", ["anyscale-nfs", local.release-suffix])
+  nfs_disk_name_suffix = local.release-suffix
 
   ssh_user_name   = local.config.ssh_user_name
   ssh_public_keys = [local.config.ssh_public_key]

@@ -53,7 +53,6 @@ Wait for the operation to complete.
 ```
 
 2. The command returns a cloud deployment ID that starts with `cldrsrc_`.  Enter the ID into `cloud_deployment_id` key of `default.yaml`.
-3. Get an [Anyscale CLI token](https://console.anyscale.com/api-keys). Enter the token into `anyscale_cli_token` key of `default.yaml`.
 
 ### Deploying Kubernetes cluster and Anyscale operator
 1. Initialize the Terraform code in the `deploy` directory: 

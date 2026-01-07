@@ -14,5 +14,3 @@ nfs_ip_range = "192.168.0.0/16"
 # nfs_size = 93 * 1024 * 1024 * 1024
 # cpu_nodes_preset = "16vcpu-64gb"
 # public_ip = true
-
-

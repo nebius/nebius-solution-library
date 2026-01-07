@@ -16,7 +16,7 @@ k8s_cluster:
   cpu_nodes_preset: "4vcpu-16gb"
   gpu_nodes_platform: "gpu-h100-sxm"
   gpu_nodes_preset: "1gpu-16vcpu-200gb"
-  enable_gpu_cluster: true
+  enable_gpu_cluster: false
   infiniband_fabric: "fabric-2"
   gpu_nodes_driverfull_image: true
   enable_k8s_node_group_sa: true
@@ -24,6 +24,6 @@ k8s_cluster:
   enable_loki: false
   loki_access_key_id: ""
   loki_secret_key: ""
+  gpu_health_cheker: false
 anyscale:
   cloud_deployment_id: ""
-  anyscale_cli_token: ""

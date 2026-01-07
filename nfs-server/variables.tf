@@ -49,6 +49,11 @@ variable "disk_type" {
   description = "Type of NFS data disk."
 }
 
+variable "instance_name" {
+  type        = string
+  description = "Instance name for the nfs server."
+  default     = "nfs-share"
+}
 
 variable "nfs_ip_range" {
   type        = string
@@ -67,4 +72,10 @@ variable "public_ip" {
   type        = bool
   default     = false
   description = "attach a public ip to the vm if true"
+}
+
+variable "nfs_disk_name_suffix" {
+  type        = string
+  description = "Name suffix to be able to create several NFS disks in the same parent"
+  default     = ""
 }
