@@ -212,7 +212,8 @@ module "k8s" {
     } : null
   }
 
-  node_ssh_access_users = var.k8s_cluster_node_ssh_access_users
+  node_ssh_access_users   = var.k8s_cluster_node_ssh_access_users
+  nvidia_admin_conf_lines = var.nvidia_admin_conf_lines
 
   providers = {
     nebius = nebius

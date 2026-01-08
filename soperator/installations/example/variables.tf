@@ -482,6 +482,12 @@ variable "use_preinstalled_gpu_drivers" {
   default     = false
 }
 
+variable "nvidia_admin_conf_lines" {
+  description = "Lines to write to /etc/modprobe.d/nvidia_admin.conf via cloud-init (GPU workers only)."
+  type        = list(string)
+  default     = []
+}
+
 variable "k8s_cluster_node_ssh_access_users" {
   description = "SSH user credentials for accessing k8s nodes."
   type = list(object({

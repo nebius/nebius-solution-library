@@ -566,4 +566,10 @@ k8s_version = 1.31
 #   ]
 # }]
 
+# Lines to write to /etc/modprobe.d/nvidia_admin.conf via cloud-init (GPU workers only).
+# ---
+nvidia_admin_conf_lines = [
+  "options nvidia NVreg_RestrictProfilingToAdminUsers=0", # Allow access to GPU counters in nsys profiler for non-root users
+]
+
 # endregion k8s

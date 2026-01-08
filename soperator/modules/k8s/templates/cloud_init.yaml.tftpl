@@ -1,5 +1,6 @@
+%{ if length(ssh_users) > 0 ~}
 users:
-%{ for user in ssh_users ~}
+%{~ for user in ssh_users ~}
   - name: "${user.name}"
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
@@ -7,4 +8,53 @@ users:
     %{~ for key in user.public_keys ~}
       - "${key}"
     %{~ endfor ~}
-%{ endfor ~}
+%{~ endfor ~}
+%{ endif ~}
+
+%{ if length(nvidia_admin_conf_lines) > 0 ~}
+write_files:
+  - path: /etc/modprobe.d/nvidia_admin.conf
+    owner: root:root
+    permissions: "0644"
+    content: |
+%{ for line in nvidia_admin_conf_lines }
+      ${line}
+%{ endfor }
+  - path: /usr/local/bin/nvidia-admin-conf-check.sh
+    owner: root:root
+    permissions: "0755"
+    content: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        reboot_guard="/var/lib/nvidia-admin-conf.rebooted"
+
+        log_prefix="[nvidia-admin-conf]"
+        log() {
+            echo "$${log_prefix} $(date -u +%Y-%m-%dT%H:%M:%SZ) $*"
+        }
+
+        log "start"
+
+        desired_value="$(grep NVreg_RestrictProfilingToAdminUsers /etc/modprobe.d/nvidia_admin.conf  | cut -d'=' -f2)"
+        log "desired=$${desired_value:-unknown}"
+        current_value="$(grep -i RmProfilingAdminOnly /proc/driver/nvidia/params | cut -d':' -f2 | xargs)"
+        log "current=$${current_value:-unknown}"
+
+        if [ -n "$${desired_value}" ] && [ "$${current_value}" != "$${desired_value}" ]; then
+            if [ -f "$${reboot_guard}" ]; then
+                log "action=skip reboot (guard exists)"
+            else
+                log "action=reboot (mismatch)"
+                date -u +%Y-%m-%dT%H:%M:%SZ > "$${reboot_guard}"
+                shutdown -r +1 "cloud-init: apply nvidia_admin.conf"
+            fi
+        else
+            log "status=ok"
+        fi
+
+        log "end"
+
+runcmd:
+  - /usr/local/bin/nvidia-admin-conf-check.sh
+%{ endif ~}

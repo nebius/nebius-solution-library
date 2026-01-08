@@ -162,7 +162,11 @@ resource "nebius_mk8s_v1_node_group" "worker" {
 
     os = "ubuntu24.04"
 
-    cloud_init_user_data = local.node_ssh_access.enabled ? local.node_ssh_access.cloud_init_data : null
+    cloud_init_user_data = local.node_group_gpu_present.worker[count.index] ? (
+      local.node_cloud_init.enabled ? local.node_cloud_init.cloud_init_data : null
+      ) : (
+      local.node_ssh_access.enabled ? local.node_cloud_init.cloud_init_data_no_nvidia : null
+    )
   }
 
   lifecycle {

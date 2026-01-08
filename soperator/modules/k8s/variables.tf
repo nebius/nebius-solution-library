@@ -226,6 +226,12 @@ variable "node_ssh_access_users" {
   default = []
 }
 
+variable "nvidia_admin_conf_lines" {
+  description = "Lines to write to /etc/modprobe.d/nvidia_admin.conf via cloud-init (GPU workers only)."
+  type        = list(string)
+  default     = []
+}
+
 variable "use_preinstalled_gpu_drivers" {
   description = "Enable preinstalled mode for worker nodes."
   type        = bool
