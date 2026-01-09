@@ -1,17 +1,18 @@
-%{ if length(ssh_users) > 0 ~}
+#cloud-config
+%{ if length(ssh_users) > 0 }
 users:
-%{~ for user in ssh_users ~}
+%{ for user in ssh_users }
   - name: "${user.name}"
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
     ssh_authorized_keys:
-    %{~ for key in user.public_keys ~}
+%{ for key in user.public_keys }
       - "${key}"
-    %{~ endfor ~}
-%{~ endfor ~}
-%{ endif ~}
+%{ endfor }
+%{ endfor }
+%{ endif }
 
-%{ if length(nvidia_admin_conf_lines) > 0 ~}
+%{ if length(nvidia_admin_conf_lines) > 0 }
 write_files:
   - path: /etc/modprobe.d/nvidia_admin.conf
     owner: root:root
@@ -57,4 +58,4 @@ write_files:
 
 runcmd:
   - /usr/local/bin/nvidia-admin-conf-check.sh
-%{ endif ~}
+%{ endif }
