@@ -11,6 +11,9 @@ locals {
       sshCheck = {
         numOfLoginNodes = var.node_count.login
       }
+      ibGpuPerf = {
+        drainReasonPrefix = "[node_problem]"
+      }
     }
 
     # Run what is relevant in E2E
@@ -21,8 +24,10 @@ locals {
       sshCheck = {
         numOfLoginNodes = var.node_count.login
       }
+      ibGpuPerf = {
+        drainReasonPrefix = "[node_problem]"
+      }
     }
-
     # Check the provisioned cluster, but don't run health-checks that take long
     prod_quick = {
       allReducePerfNCCLInDocker = {
@@ -37,6 +42,9 @@ locals {
       sshCheck = {
         numOfLoginNodes = var.node_count.login
       }
+      ibGpuPerf = {
+        commentPrefix = "[node_problem]"
+      }
     }
 
     # Run all available health-checks
@@ -46,6 +54,9 @@ locals {
       }
       sshCheck = {
         numOfLoginNodes = var.node_count.login
+      }
+      ibGpuPerf = {
+        commentPrefix = "[node_problem]"
       }
     }
   }
