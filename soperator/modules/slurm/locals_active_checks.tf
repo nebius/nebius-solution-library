@@ -13,6 +13,7 @@ locals {
       }
       ibGpuPerf = {
         drainReasonPrefix = "[node_problem]"
+        commentPrefix     = null
       }
     }
 
@@ -26,6 +27,7 @@ locals {
       }
       ibGpuPerf = {
         drainReasonPrefix = "[node_problem]"
+        commentPrefix     = null
       }
     }
     # Check the provisioned cluster, but don't run health-checks that take long
@@ -43,7 +45,8 @@ locals {
         numOfLoginNodes = var.node_count.login
       }
       ibGpuPerf = {
-        commentPrefix = "[node_problem]"
+        commentPrefix     = "[node_problem]"
+        drainReasonPrefix = null
       }
     }
 
@@ -56,7 +59,8 @@ locals {
         numOfLoginNodes = var.node_count.login
       }
       ibGpuPerf = {
-        commentPrefix = "[node_problem]"
+        commentPrefix     = "[node_problem]"
+        drainReasonPrefix = null
       }
     }
   }
