@@ -138,7 +138,7 @@ module "nfs-server" {
   nfs_disk_name_suffix = local.k8s_cluster_name
   nfs_ip_range         = data.nebius_vpc_v1_subnet.this.status.ipv4_private_cidrs[0]
   nfs_size             = provider::units::from_gib(var.nfs.size_gibibytes)
-  nfs_path             = "/home"
+  nfs_path             = "/nfs"
 
   ssh_user_name   = "soperator"
   ssh_public_keys = var.slurm_login_ssh_root_public_keys
