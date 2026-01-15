@@ -10,7 +10,13 @@ output "kube_cluster" {
 
 output "grafana_password" {
   sensitive = true
-  value     = module.o11y.grafana_password
+  value     = module.o11y.nebius_grafana_password
+}
+
+output "grafana_service_account" {
+  description = "Grafana service account information."
+  sensitive   = true
+  value       = module.o11y.grafana_service_account
 }
 output "kube_cluster_ca_certificate" {
   sensitive = true

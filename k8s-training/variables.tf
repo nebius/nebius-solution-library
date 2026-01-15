@@ -207,6 +207,25 @@ variable "mig_parted_config" {
 }
 
 # Observability
+
+variable "enable_nebius_o11y_agent" {
+  description = "Enable Nebius Observability Agent for Kubernetes [marketplace/nebius/nebius-observability-agent]"
+  type        = bool
+  default     = true
+}
+
+variable "collectK8sClusterMetrics" {
+  description = "Enable collection of Kubernetes cluster metrics in Nebius Observability Agent"
+  type        = bool
+  default     = false
+}
+
+variable "enable_grafana" {
+  description = "Enable Grafana [marketplace/nebius/grafana-solution-by-nebius]"
+  type        = bool
+  default     = true
+}
+
 variable "enable_loki" {
   description = "Enable Loki for logs aggregation."
   type        = bool
