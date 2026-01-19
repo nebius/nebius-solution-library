@@ -1,1 +1,1 @@
-{"uid":"b1a8273437954620fa374b796ffaacdd","children":[{"name":"test_mode_bastion_apply","uid":"19203e3077ff6c6d","parentUid":"b1a8273437954620fa374b796ffaacdd","status":"broken","time":{"duration":154766},"flaky":false,"newFailed":false,"newPassed":false,"newBroken":false,"retriesCount":0,"retriesStatusChange":false,"parameters":[],"tags":[]}],"name":"behaviors"}
+{"uid":"b1a8273437954620fa374b796ffaacdd","children":[],"name":"behaviors"}
