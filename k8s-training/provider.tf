@@ -32,6 +32,15 @@ provider "helm" {
     cluster_ca_certificate = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.auth.cluster_ca_certificate
     token                  = var.iam_token
   }
+
+  # Registry for Karpenter Helm chart (Nebius Container Registry)
+  registries = [
+    {
+      url      = "oci://cr.eu-north1.nebius.cloud/e00w67thrrz5nhprjm"
+      username = "iam"
+      password = var.iam_token
+    }
+  ]
 }
 
 provider "kubernetes" {

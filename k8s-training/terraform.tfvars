@@ -1,5 +1,5 @@
 # Mk8s cluster name. By default it is "k8s-training"
-cluster_name = "k8s-training"
+cluster_name = "k8s-karpenter-test"
 
 # SSH config
 ssh_user_name = "ubuntu" # Username you want to use to connect to the nodes
@@ -99,3 +99,8 @@ kuberay_max_gpu_replicas = 8
 # Enable to deploy KubeRay Operator with RayService CR 
 enable_kuberay_service = false
 
+# Karpenter - Automatic Node Provisioning
+# When enabled, Karpenter will dynamically provision nodes based on workload demands.
+# Note: For InfiniBand GPU workloads, use static node groups (set gpu_nodes_count_per_group > 0)
+enable_karpenter           = true # Enable Karpenter for automatic node scaling
+karpenter_create_nodepools = true # Create default CPU and GPU NodePools
