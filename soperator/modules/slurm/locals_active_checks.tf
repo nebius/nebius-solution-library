@@ -18,7 +18,7 @@ locals {
           }
         }
       }
-      ibGpuPerf = {
+      ib-gpu-perf = {
         drainReasonPrefix = "[node_problem]"
         commentPrefix     = null
       }
@@ -39,7 +39,7 @@ locals {
           }
         }
       }
-      ibGpuPerf = {
+      ib-gpu-perf = {
         drainReasonPrefix = "[node_problem]"
         commentPrefix     = null
       }
@@ -65,7 +65,7 @@ locals {
           }
         }
       }
-      ibGpuPerf = {
+      ib-gpu-perf = {
         commentPrefix     = "[node_problem]"
         drainReasonPrefix = null
       }
@@ -86,7 +86,7 @@ locals {
           }
         }
       }
-      ibGpuPerf = {
+      ib-gpu-perf = {
         commentPrefix     = "[node_problem]"
         drainReasonPrefix = null
       }

@@ -885,8 +885,8 @@ resources:
             checks:
               ensure-dir-snccld-logs:
                 enabled: true
+              ${soperator_active_checks_override_block}
             cudaMajorVersion: ${slurm_cluster.cuda_major_version}
-            ${soperator_active_checks_override_block}
 
         soperator:
           enabled: true
