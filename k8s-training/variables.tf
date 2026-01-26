@@ -341,3 +341,34 @@ variable "gpu_health_cheker" {
   type        = bool
   default     = true
 }
+
+# Karpenter
+variable "enable_karpenter" {
+  description = "Enable Karpenter for automatic node provisioning. When enabled, Karpenter will dynamically scale nodes based on workload demands."
+  type        = bool
+  default     = false
+}
+
+variable "karpenter_version" {
+  description = "Karpenter Helm chart and controller version"
+  type        = string
+  default     = "0.1.4"
+}
+
+variable "karpenter_create_nodepools" {
+  description = "Whether to create default CPU and GPU NodePools for Karpenter"
+  type        = bool
+  default     = true
+}
+
+variable "karpenter_cpu_image_family" {
+  description = "Image family for Karpenter CPU nodes. If not set, defaults to mk8s-worker-node-v-{k8s_version}"
+  type        = string
+  default     = null
+}
+
+variable "karpenter_gpu_image_family" {
+  description = "Image family for Karpenter GPU nodes with CUDA. If not set, defaults to mk8s-worker-node-v-{k8s_version}-cuda12"
+  type        = string
+  default     = null
+}
