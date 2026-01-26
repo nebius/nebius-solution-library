@@ -2,12 +2,6 @@ locals {
   active_checks_scopes = {
     # Scope for dev clusters
     dev = {
-      dcgmiDiagR2 = {
-        runAfterCreation = false
-      }
-      dcgmiDiagR3 = {
-        runAfterCreation = false
-      }
       sshCheck = {
         numOfLoginNodes = var.node_count.login
       }
@@ -19,9 +13,6 @@ locals {
 
     # Run what is relevant in E2E
     testing = {
-      dcgmiDiagR3 = {
-        runAfterCreation = false
-      }
       sshCheck = {
         numOfLoginNodes = var.node_count.login
       }
@@ -33,12 +24,6 @@ locals {
     # Check the provisioned cluster, but don't run health-checks that take long
     prod_quick = {
       allReducePerfNCCLInDocker = {
-        runAfterCreation = false
-      }
-      dcgmiDiagR2 = {
-        runAfterCreation = false
-      }
-      dcgmiDiagR3 = {
         runAfterCreation = false
       }
       sshCheck = {
