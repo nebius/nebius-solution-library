@@ -334,6 +334,7 @@ variable "nfs_in_k8s" {
     version        = optional(string)
     size_gibibytes = optional(number)
     storage_class  = optional(string, "compute-csi-network-ssd-io-m3-ext4")
+    threads        = optional(number)
   })
   default = {
     enabled = false

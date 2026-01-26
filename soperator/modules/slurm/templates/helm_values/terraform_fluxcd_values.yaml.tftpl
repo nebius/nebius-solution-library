@@ -964,6 +964,7 @@ resources:
             nfs:
               sharedDirectory: "/exported"
               shareOptions: "rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash"
+              threads: "${slurm_cluster.nfs_in_k8s.threads}"
             storage:
               storageClassName: "${slurm_cluster.nfs_in_k8s.storage_class}"
               size: ${slurm_cluster.nfs_in_k8s.size_gibibytes}Gi
