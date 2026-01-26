@@ -165,6 +165,7 @@ nfs_in_k8s = {
   size_gibibytes  = 3720
   disk_type       = "NETWORK_SSD_IO_M3"
   filesystem_type = "ext4"
+  threads         = 32 # to match preset in slurm_nodeset_nfs
 }
 
 # endregion nfs-server
