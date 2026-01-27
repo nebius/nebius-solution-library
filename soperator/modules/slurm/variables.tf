@@ -335,6 +335,7 @@ variable "nfs_in_k8s" {
     version        = optional(string)
     size_gibibytes = optional(number)
     storage_class  = optional(string, "compute-csi-network-ssd-io-m3-ext4")
+    threads        = optional(number)
   })
   default = {
     enabled = false
@@ -549,7 +550,7 @@ variable "resources_vm_logs_server" {
   default = {
     memory = "2Gi"
     cpu    = "1000m"
-    size   = "40Gi"
+    size   = "256Gi"
   }
 }
 

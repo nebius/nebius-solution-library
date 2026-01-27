@@ -165,6 +165,7 @@ nfs_in_k8s = {
   size_gibibytes  = 3720
   disk_type       = "NETWORK_SSD_IO_M3"
   filesystem_type = "ext4"
+  threads         = 32 # to match preset in slurm_nodeset_nfs
 }
 
 # endregion nfs-server
@@ -180,7 +181,7 @@ nfs_in_k8s = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.23.2"
+slurm_operator_version = "1.23.3"
 
 # Is the version of soperator stable or not.
 # ---
