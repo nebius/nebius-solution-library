@@ -13,7 +13,7 @@ terraform {
 
     helm = {
       source  = "hashicorp/helm"
-      version = "<3.0.0"
+      version = "~> 3.0"
     }
     kubectl = {
       source  = "gavinbunney/kubectl"
@@ -27,7 +27,7 @@ provider "nebius" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.endpoints.public_endpoint
     cluster_ca_certificate = nebius_mk8s_v1_cluster.k8s-cluster.status.control_plane.auth.cluster_ca_certificate
     token                  = var.iam_token

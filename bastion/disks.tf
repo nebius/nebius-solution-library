@@ -6,3 +6,4 @@ resource "nebius_compute_v1_disk" "bastion-boot-disk" {
   type                = "NETWORK_SSD"
   source_image_family = { image_family = "ubuntu24.04-driverless" }
 }
+

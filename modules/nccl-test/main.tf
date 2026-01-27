@@ -100,10 +100,12 @@ resource "helm_release" "nccl-test" {
   atomic           = true
   wait_for_jobs    = true
 
-  set {
-    name  = "numberOfHosts"
-    value = var.number_of_hosts
-  }
+  set = [
+    {
+      name  = "numberOfHosts"
+      value = var.number_of_hosts
+    }
+  ]
 }
 
 resource "kubernetes_job" "wait-for-nccl-test" {

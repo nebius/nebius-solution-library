@@ -165,6 +165,7 @@ nfs_in_k8s = {
   size_gibibytes  = 3720
   disk_type       = "NETWORK_SSD_IO_M3"
   filesystem_type = "ext4"
+  threads         = 32 # to match preset in slurm_nodeset_nfs
 }
 
 # endregion nfs-server
@@ -180,7 +181,7 @@ nfs_in_k8s = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "1.23.1"
+slurm_operator_version = "2.0.0"
 
 # Is the version of soperator stable or not.
 # ---
@@ -188,7 +189,7 @@ slurm_operator_stable = true
 
 # Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration.
 # ---
-slurm_nodesets_enabled = false
+slurm_nodesets_enabled = true
 
 # Partition configuration for nodesets. Used only when slurm_nodesets_enabled is true.
 # If empty, a default partition "main" with all nodes will be created.

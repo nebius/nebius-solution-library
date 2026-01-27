@@ -334,6 +334,7 @@ variable "nfs_in_k8s" {
     version        = optional(string)
     size_gibibytes = optional(number)
     storage_class  = optional(string, "compute-csi-network-ssd-io-m3-ext4")
+    threads        = optional(number)
   })
   default = {
     enabled = false
@@ -791,8 +792,8 @@ variable "slurm_nodesets_partitions" {
 
 # endregion Nodesets
 
-variable "use_cuda13rc" {
-  description = "Whether to use unstable image with CUDA 13."
-  type        = bool
-  default     = false
+variable "cuda_major_version" {
+  description = "CUDA major version used for populate-jail image selection."
+  type        = number
+  default     = 12
 }

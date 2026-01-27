@@ -18,14 +18,16 @@ resource "nebius_applications_v1alpha1_k8s_release" "prometheus" {
   namespace        = var.namespace
   product_slug     = "nebius/grafana-and-prometheus"
 
-  set = {
-    "prometheus.alertmanager.enabled" : false,
-    "prometheus.prometheus-pushgateway.enabled" : false,
-    "prometheus.prometheus-node-exporter.enabled" : var.o11y.prometheus.node_exporter,
-    "grafana.adminPassword" : random_password.grafana[0].result,
-    "prometheus.server.scrape_interval" : "1m",
-    "prometheus.server.retention" : "15d",
-    "prometheus.server.persistentVolume.size" : var.o11y.prometheus.pv_size
+  sensitive = {
+    set = {
+      "prometheus.alertmanager.enabled" : false,
+      "prometheus.prometheus-pushgateway.enabled" : false,
+      "prometheus.prometheus-node-exporter.enabled" : var.o11y.prometheus.node_exporter,
+      "grafana.adminPassword" : random_password.grafana[0].result,
+      "prometheus.server.scrape_interval" : "1m",
+      "prometheus.server.retention" : "15d",
+      "prometheus.server.persistentVolume.size" : var.o11y.prometheus.pv_size
+    }
   }
 }
 

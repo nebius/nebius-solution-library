@@ -46,7 +46,7 @@ resource "terraform_data" "wait_for_slurm_login_service" {
   }
 }
 
-data "kubernetes_service" "slurm_login" {
+data "kubernetes_service_v1" "slurm_login" {
   depends_on = [
     terraform_data.wait_for_slurm_login_service
   ]
@@ -59,14 +59,14 @@ data "kubernetes_service" "slurm_login" {
 
 resource "terraform_data" "lb_service_ip" {
   depends_on = [
-    data.kubernetes_service.slurm_login
+    data.kubernetes_service_v1.slurm_login
   ]
 
   triggers_replace = [
-    one(data.kubernetes_service.slurm_login.metadata).resource_version
+    one(data.kubernetes_service_v1.slurm_login.metadata).resource_version
   ]
 
-  input = one(one(one(data.kubernetes_service.slurm_login.status).load_balancer).ingress).ip
+  input = one(one(one(data.kubernetes_service_v1.slurm_login.status).load_balancer).ingress).ip
 }
 
 

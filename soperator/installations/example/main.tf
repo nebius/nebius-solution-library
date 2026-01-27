@@ -303,7 +303,7 @@ module "slurm" {
   maintenance_ignore_node_groups = var.maintenance_ignore_node_groups
 
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
-  use_cuda13rc                  = var.slurm_nodeset_workers[0].resource.platform == "gpu-b300-sxm" ? true : false
+  cuda_major_version            = var.slurm_nodeset_workers[0].resource.platform == "gpu-b300-sxm" ? 13 : 12
   controller_state_on_filestore = var.controller_state_on_filestore
 
   node_count = {
@@ -411,6 +411,7 @@ module "slurm" {
     version        = var.nfs_in_k8s.version
     size_gibibytes = var.nfs_in_k8s.size_gibibytes
     storage_class  = replace("compute-csi-${lower(var.nfs_in_k8s.disk_type)}-${lower(var.nfs_in_k8s.filesystem_type)}", "_", "-")
+    threads        = var.nfs_in_k8s.threads
   }
   nfs_node_group_enabled = var.slurm_nodeset_nfs != null
 

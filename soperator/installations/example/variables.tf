@@ -435,6 +435,7 @@ variable "nfs_in_k8s" {
     size_gibibytes  = optional(number)
     disk_type       = optional(string)
     filesystem_type = optional(string)
+    threads         = optional(number)
   })
   default = {
     enabled = false
