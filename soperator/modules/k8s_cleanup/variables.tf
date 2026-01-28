@@ -14,3 +14,9 @@ variable "login_service_name" {
   type        = string
   default     = "soperator-login-svc"
 }
+
+variable "webhook_prefix" {
+  description = "Prefix for mutating/validating webhook configurations to delete on destroy."
+  type        = string
+  default     = "kruise"
+}

@@ -21,7 +21,7 @@ resource "terraform_data" "login_service_cleanup" {
 resource "terraform_data" "kruise_webhook_cleanup" {
   triggers_replace = {
     k8s_cluster_context = var.k8s_cluster_context
-    webhook_name        = "kruise-mutating-webhook-configuration"
+    webhook_prefix      = var.webhook_prefix
   }
 
   provisioner "local-exec" {
@@ -30,7 +30,7 @@ resource "terraform_data" "kruise_webhook_cleanup" {
 
     environment = {
       "K8S_CLUSTER_CONTEXT" : self.triggers_replace.k8s_cluster_context,
-      "K8S_WEBHOOK_NAME" : self.triggers_replace.webhook_name,
+      "K8S_WEBHOOK_PREFIX" : self.triggers_replace.webhook_prefix,
     }
     command = "/bin/bash ${path.module}/scripts/k8s_kruise_webhook_cleanup.sh"
   }
