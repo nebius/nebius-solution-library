@@ -50,3 +50,9 @@ module "opa_gatekeeper" {
   source = "../modules/opa_gatekeeper"
   count  = var.enable_opa_gatekeeper ? 1 : 0
 }
+
+module "binpacking_scheduler" {
+  source         = "../modules/binpacking"
+  count          = var.enable_binpacking ? 1 : 0
+  enable_mutator = var.force_binpacking_default
+}

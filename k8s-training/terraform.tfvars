@@ -129,3 +129,10 @@ enable_kuberay_service = false
 
 # enable OPA gatekeeper (default: false)
 # enable_opa_gatekeeper = true 
+
+# enable binpacking scheduler (default: false)
+# enable_binpacking = true
+# If binpacking is enabled force it for the default namespace, instead
+# of requiring each pod to opt-in using spec.schedulerName
+# default: false
+# force_binpacking_default = true

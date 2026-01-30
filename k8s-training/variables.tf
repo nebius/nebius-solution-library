@@ -504,3 +504,15 @@ variable "k8s_rbac_bindings" {
     error_message = "When k8s_rbac_bindings.enabled is true, set at least one cluster_role_bindings or namespace_role_bindings entry."
   }
 }
+
+variable "enable_binpacking" {
+  description = "Enable using a Bin Packing Scheduler instead of round robin style scheduler"
+  type        = bool
+  default     = false
+}
+
+variable "force_binpacking_default" {
+  description = "If binpacking is enabled force it for the default namespace, instead of requiring each pod to opt-in"
+  type        = bool
+  default     = false
+}
