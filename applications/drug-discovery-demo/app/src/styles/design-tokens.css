@@ -1,0 +1,179 @@
+/* Nebius Brand Design Tokens */
+
+/* Fonts */
+@font-face {
+  font-family: 'Gramatika';
+  src: url('/fonts/GramatikaBold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Primary Colors */
+  --color-deep-blue: #052B42;
+  --color-lime: #DAFF33;
+  --color-lime-dark: #D6F34C;
+
+  /* Secondary Colors */
+  --color-light-blue: #F0F8FF;
+  --color-lavender: #C1C1FF;
+  --color-violet: #5D52F6;
+
+  /* Gradient Colors */
+  --color-gradient-light-blue: #DFEEFD;
+  --color-gradient-lavender: #E0E2FD;
+
+  /* Neutral Colors */
+  --color-white: #FFFFFF;
+  --color-gray-50: #F9FAFB;
+  --color-gray-100: #F5F7FA;
+  --color-gray-200: #E8ECF1;
+  --color-gray-300: #D1D7E0;
+  --color-gray-400: #9AA5B5;
+  --color-gray-500: #6B7A8C;
+  --color-gray-600: #4B5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1F2937;
+  --color-gray-900: #111827;
+
+  /* Status Colors */
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+
+  /* Typography */
+  --font-family-display: 'Gramatika', system-ui, sans-serif;
+  --font-family-body: 'Inter', system-ui, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* Font Sizes (based on H1 ratios from brand guidelines) */
+  --font-size-h1: 3rem;      /* 48px */
+  --font-size-h2: 1.5rem;    /* 24px - H1×0.5 */
+  --font-size-h3: 1.125rem;  /* 18px - H1×0.375 */
+  --font-size-body: 1rem;    /* 16px */
+  --font-size-small: 0.875rem; /* 14px */
+  --font-size-xs: 0.75rem;   /* 12px */
+
+  /* Font Weights */
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;   /* 4px */
+  --spacing-sm: 0.5rem;    /* 8px */
+  --spacing-md: 1rem;      /* 16px */
+  --spacing-lg: 1.5rem;    /* 24px */
+  --spacing-xl: 2rem;      /* 32px */
+  --spacing-2xl: 3rem;     /* 48px */
+  --spacing-3xl: 4rem;     /* 64px */
+
+  /* Border Radius */
+  --radius-sm: 0.25rem;    /* 4px */
+  --radius-md: 0.5rem;     /* 8px */
+  --radius-lg: 1rem;       /* 16px */
+  --radius-xl: 1.5rem;     /* 24px */
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(5, 43, 66, 0.05);
+  --shadow-md: 0 4px 6px rgba(5, 43, 66, 0.07);
+  --shadow-lg: 0 10px 15px rgba(5, 43, 66, 0.1);
+  --shadow-xl: 0 20px 25px rgba(5, 43, 66, 0.15);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* Layout */
+  --sidebar-width: 320px;
+  --header-height: 72px;
+  --content-max-width: 1400px;
+}
+
+/* Global Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+  color: var(--color-deep-blue);
+  background-color: var(--color-light-blue);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: var(--line-height-tight);
+}
+
+h1 {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+}
+
+h2 {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+}
+
+h3 {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-semibold);
+}
+
+a {
+  color: var(--color-violet);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-deep-blue);
+}
+
+button {
+  font-family: var(--font-family-body);
+  cursor: pointer;
+}
+
+input, textarea, select {
+  font-family: var(--font-family-body);
+}
