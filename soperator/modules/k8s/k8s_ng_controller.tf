@@ -6,6 +6,8 @@ resource "nebius_mk8s_v1_node_group" "controller" {
 
   parent_id = nebius_mk8s_v1_cluster.this.id
 
+  version = var.k8s_version
+
   name = module.labels.name_nodeset_controller
   labels = merge(
     module.labels.label_nodeset_controller,
