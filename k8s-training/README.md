@@ -222,7 +222,6 @@ spec:
       storage: "<SIZE>"
 ```
 
-
 ## CSI limitations:
 - FS should be mounted to all NodeGroups, because PV attachmend to pod runniing on Node without FS will fail
 - One PV may fill up to all common FS size
