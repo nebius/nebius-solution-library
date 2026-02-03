@@ -549,7 +549,7 @@ variable "resources_vm_logs_server" {
   default = {
     memory = "2Gi"
     cpu    = "1000m"
-    size   = "40Gi"
+    size   = "256Gi"
   }
 }
 

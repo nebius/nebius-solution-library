@@ -156,6 +156,16 @@ module "cleanup" {
   iam_project_id = var.iam_project_id
 }
 
+module "k8s_cleanup" {
+  source = "../../modules/k8s_cleanup"
+
+  k8s_cluster_context = module.k8s.cluster_context
+
+  depends_on = [
+    module.k8s,
+  ]
+}
+
 module "k8s" {
   depends_on = [
     module.filestore,

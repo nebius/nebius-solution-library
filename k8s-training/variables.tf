@@ -183,10 +183,22 @@ variable "infiniband_fabric" {
   default     = null
 }
 
-variable "gpu_nodes_assign_public_ip" {
+variable "gpu_nodes_public_ips" {
   description = "Assign public IP address to GPU nodes to make them directly accessible from the external internet."
   type        = bool
   default     = false
+}
+
+variable "cpu_nodes_public_ips" {
+  description = "Assign public IP address to CPU nodes to make them directly accessible from the external internet."
+  type        = bool
+  default     = false
+}
+
+variable "mk8s_cluster_public_endpoint" {
+  description = "Assign public endpoint to MK8S cluster to make it directly accessible from the external internet."
+  type        = bool
+  default     = true
 }
 
 variable "enable_k8s_node_group_sa" {
@@ -359,4 +371,15 @@ variable "gpu_health_cheker" {
   description = "Use preemptible VMs for GPU nodes"
   type        = bool
   default     = true
+}
+variable "custom_driver" {
+  description = "Use customized driver for the GPU Operator, e.g. to run Cuda 13 on H200"
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = !(var.custom_driver && var.gpu_nodes_driverfull_image)
+    error_message = "You cannot enable both 'custom_driver' and 'gpu_nodes_driverfull_image' at the same time."
+  }
+
 }

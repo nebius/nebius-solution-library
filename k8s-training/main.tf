@@ -3,7 +3,7 @@ resource "nebius_mk8s_v1_cluster" "k8s-cluster" {
   name      = var.cluster_name
   control_plane = {
     endpoints = {
-      public_endpoint = {}
+      public_endpoint = var.mk8s_cluster_public_endpoint ? {} : null
     }
     etcd_cluster_size = var.etcd_cluster_size
     subnet_id         = var.subnet_id
@@ -65,7 +65,7 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
 
     network_interfaces = [
       {
-        public_ip_address = {}
+        public_ip_address = var.cpu_nodes_public_ips ? {} : null
         subnet_id         = var.subnet_id
       }
     ]
@@ -129,7 +129,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     network_interfaces = [
       {
         subnet_id         = var.subnet_id
-        public_ip_address = var.gpu_nodes_assign_public_ip ? {} : null
+        public_ip_address = var.gpu_nodes_public_ips ? {} : null
       }
     ]
     resources = {

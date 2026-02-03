@@ -50,6 +50,8 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
   parent_id = nebius_mk8s_v1_cluster.this.id
 
+  version = var.k8s_version
+
   name = join("-", [
     var.node_group_workers_v2[count.index].name,
     var.node_group_workers_v2[count.index].subset_index,

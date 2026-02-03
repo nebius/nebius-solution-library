@@ -538,6 +538,17 @@ variable "slurm_nodesets_partitions" {
     config       = string
   }))
   default = []
+
+  validation {
+    condition = length(setsubtract(
+      toset(flatten([
+        for p in var.slurm_nodesets_partitions : coalesce(p.nodeset_refs, [])
+      ])),
+      toset([for w in var.slurm_nodeset_workers : w.name])
+    )) == 0
+
+    error_message = "All slurm_nodesets_partitions[].nodeset_refs must reference existing slurm_nodeset_workers[].name values."
+  }
 }
 
 # region PartitionConfiguration
