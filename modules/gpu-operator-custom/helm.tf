@@ -8,19 +8,18 @@ resource "helm_release" "gpu-operator" {
   atomic           = true
   timeout          = 600
 
-  set {
-    name  = "nfd.enabled"
-    value = var.nfd_enabled
-  }
-
-  set {
-    name  = "dcgm.enabled"
-    value = true
-  }
-
-  set {
-    name  = "driver.version"
-    value = var.driver_version
-  }
-
+  set = [
+    {
+      name  = "nfd.enabled"
+      value = tostring(var.nfd_enabled)
+    },
+    {
+      name  = "dcgm.enabled"
+      value = "true"
+    },
+    {
+      name  = "driver.version"
+      value = tostring(var.driver_version)
+    }
+  ]
 }
