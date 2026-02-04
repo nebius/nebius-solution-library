@@ -212,6 +212,7 @@ nodesets:
             image: cr.eu-north1.nebius.cloud/soperator/busybox
             volumeMounts: [{ name: jail, mountPath: /volume-mount }]
             command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+            runsBefore: ["munge", "wait-for-controller"]
 
           %{~ for sub_mount in jail_submounts.shared ~}
           - name: ensure-jail-submount-${sub_mount.name}-virtiofs

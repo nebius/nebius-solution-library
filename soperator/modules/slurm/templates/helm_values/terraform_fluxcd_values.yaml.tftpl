@@ -515,6 +515,7 @@ resources:
                     image: cr.eu-north1.nebius.cloud/soperator/busybox
                     volumeMounts: [{ name: jail, mountPath: /volume-mount }]
                     command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+                    runsBefore: ["wait-for-database"]
                 %{~ endif ~}
 
               controller:
@@ -535,6 +536,7 @@ resources:
                     image: cr.eu-north1.nebius.cloud/soperator/busybox
                     volumeMounts: [{ name: jail, mountPath: /volume-mount }]
                     command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+                    runsBefore: ["munge", "wait-for-accounting"]
                 volumes:
                   spool:
                     %{~ if slurm_cluster.controller_state_on_filestore ~}
@@ -573,6 +575,7 @@ resources:
                     image: cr.eu-north1.nebius.cloud/soperator/busybox
                     volumeMounts: [{ name: jail, mountPath: /volume-mount }]
                     command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+                    runsBefore: ["munge", "wait-for-controller"]
                   %{~ for sub_mount in slurm_cluster.jail_submounts ~}
                   - name: ensure-jail-submount-${sub_mount.name}-virtiofs
                     image: cr.eu-north1.nebius.cloud/soperator/busybox
@@ -709,6 +712,7 @@ resources:
                     image: cr.eu-north1.nebius.cloud/soperator/busybox
                     volumeMounts: [{ name: jail, mountPath: /volume-mount }]
                     command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+                    runsBefore: ["munge"]
                   %{~ if tailscale_enabled ~}
                   - name: tailscale
                     image: cr.eu-north1.nebius.cloud/soperator/tailscale:latest # v1.88.4
