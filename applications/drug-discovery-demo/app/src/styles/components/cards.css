@@ -1,0 +1,128 @@
+/**
+ * Card Styles
+ *
+ * Card components used throughout the app including:
+ * - Basic cards
+ * - Card headers and badges
+ * - Processing/loading cards
+ * - Result cards
+ */
+
+/* Base Card */
+.card {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+}
+
+.card-title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-deep-blue);
+}
+
+.card-subtitle {
+  font-size: var(--font-size-small);
+  color: var(--color-gray-500);
+  margin-left: var(--spacing-sm);
+}
+
+/* Card Badge */
+.card-badge {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  background: var(--color-gray-100);
+  color: var(--color-gray-600);
+}
+
+.card-badge.error {
+  background: var(--color-error-light);
+  color: var(--color-error);
+}
+
+.card-badge.success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.card-badge.warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+/* Processing Card */
+.processing-card {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.processing-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.processing-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.processing-title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-deep-blue);
+}
+
+.processing-description {
+  font-size: var(--font-size-body);
+  color: var(--color-gray-500);
+  max-width: 400px;
+}
+
+/* Error Card */
+.error-card {
+  border-left: 4px solid var(--color-error);
+}
+
+.error-message {
+  color: var(--color-error);
+  font-size: var(--font-size-small);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Prediction Action Card */
+.prediction-action-card {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-white) 100%);
+  border: 2px dashed var(--color-gray-200);
+}
+
+.prediction-action-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.prediction-hint {
+  font-size: var(--font-size-small);
+  color: var(--color-gray-400);
+}
+
+.prediction-info {
+  font-size: var(--font-size-small);
+  color: var(--color-gray-500);
+}

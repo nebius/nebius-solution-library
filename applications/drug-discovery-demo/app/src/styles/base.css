@@ -1,0 +1,105 @@
+/**
+ * Base Styles
+ *
+ * Foundation styles for the application including:
+ * - Layout (app shell, main areas)
+ * - Typography (headings, body text)
+ * - Reset/normalize styles
+ *
+ * These styles should be imported first, before component styles.
+ */
+
+/* Layout */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-main {
+  display: flex;
+  margin-top: var(--header-height);
+  flex: 1;
+}
+
+/* Content Area */
+.content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.content-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-xl);
+}
+
+.content-title {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-h1);
+  color: var(--color-deep-blue);
+  margin-bottom: var(--spacing-sm);
+}
+
+.content-subtitle {
+  font-size: var(--font-size-body);
+  color: var(--color-gray-500);
+  max-width: 600px;
+}
+
+/* Background Pattern */
+.bg-pattern {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background-color: var(--color-gray-50);
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(194, 255, 102, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(0, 51, 102, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(124, 58, 237, 0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Step Content Base */
+.step-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.step-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-gray-200);
+  margin-top: auto;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-gray-100);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-300);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-400);
+}

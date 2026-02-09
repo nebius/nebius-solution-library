@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import http from 'http'
+import { kubectlPlugin } from './vite-plugin-kubectl'
 
 // Custom plugin to proxy NIM requests
 function nimProxyPlugin(): Plugin {
@@ -165,5 +166,5 @@ function nimProxyPlugin(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), nimProxyPlugin()],
+  plugins: [react(), nimProxyPlugin(), kubectlPlugin()],
 })

@@ -1,6 +1,79 @@
-// NIM API service for health checks and API calls
+/**
+ * NIM API Service
+ *
+ * Core utilities for interacting with NVIDIA NIM endpoints.
+ * This module provides:
+ * - URL building (with dev/prod proxy handling)
+ * - Health checking
+ * - Streaming chat for LLM
+ *
+ * ## Endpoint Registry
+ *
+ * All endpoints are defined in `data/endpoints.ts`. This module provides
+ * a centralized way to build URLs for any endpoint.
+ *
+ * ## Proxy Handling
+ *
+ * In development, requests go through Vite's proxy to avoid CORS:
+ * `/api/nim-proxy/{host}/{port}{path}`
+ *
+ * In production, requests go directly to NIM endpoints:
+ * `http://{host}:{port}{path}`
+ */
 
 import type { NimEndpoint } from '../data/endpoints';
+import { isDemoMode, demoCheckHealth, demoStreamChat } from './demoService';
+
+/**
+ * Centralized endpoint configuration
+ *
+ * Maps endpoint IDs to their port and path. This is the single source of truth
+ * for endpoint URLs, used by both service functions and the agent's execute_raw_request.
+ */
+export const ENDPOINT_CONFIG: Record<string, { port: number; path: string }> = {
+  // LLM
+  qwen3: { port: 8008, path: '/v1/chat/completions' },
+
+  // Structure Prediction
+  openfold3: { port: 8000, path: '/biology/openfold/openfold3/predict' },
+  boltz2: { port: 8001, path: '/biology/mit/boltz2/predict' },
+  openfold2: { port: 8004, path: '/biology/openfold/openfold2/predict-structure-from-msa-and-template' },
+
+  // Molecule Generation
+  genmol: { port: 8005, path: '/biology/nvidia/genmol/generate' },
+  molmim: { port: 8006, path: '/biology/nvidia/molmim/generate' },
+
+  // Docking
+  diffdock: { port: 8007, path: '/molecular-docking/diffdock/generate' },
+
+  // Utilities
+  'msa-search': { port: 8003, path: '/biology/colabfold/msa-search/predict' },
+  evo2: { port: 8002, path: '/biology/arc/evo2/generate' },
+
+  // Protein Design
+  proteinmpnn: { port: 8009, path: '/biology/ipd/proteinmpnn/predict' },
+  rfdiffusion: { port: 8010, path: '/biology/ipd/rfdiffusion/generate' },
+} as const;
+
+export type EndpointId = keyof typeof ENDPOINT_CONFIG;
+
+/**
+ * Get endpoint configuration by ID
+ */
+export function getEndpointConfig(endpointId: string): { port: number; path: string } | undefined {
+  return ENDPOINT_CONFIG[endpointId.toLowerCase()];
+}
+
+/**
+ * Build URL for a known endpoint by ID
+ */
+export function buildEndpointUrl(gatewayUrl: string, endpointId: EndpointId): string {
+  const config = ENDPOINT_CONFIG[endpointId];
+  if (!config) {
+    throw new Error(`Unknown endpoint: ${endpointId}`);
+  }
+  return buildNimUrl(gatewayUrl, config.port, config.path);
+}
 
 export interface HealthCheckResult {
   id: string;
@@ -83,6 +156,15 @@ export async function checkAllEndpointsHealth(
   endpoints: NimEndpoint[],
   timeoutMs: number = 5000
 ): Promise<HealthCheckResult[]> {
+  // Check for demo mode
+  if (isDemoMode()) {
+    const mockResults = await demoCheckHealth(endpoints);
+    return mockResults.map((r) => ({
+      id: r.id,
+      status: r.status === 'ready' ? 'ready' : 'not-ready',
+    }));
+  }
+
   const healthChecks = endpoints.map((endpoint) =>
     checkEndpointHealth(gatewayUrl, endpoint, timeoutMs)
   );
@@ -111,6 +193,12 @@ export async function* streamChat(
     maxTokens?: number;
   } = {}
 ): AsyncGenerator<string, void, unknown> {
+  // Check for demo mode
+  if (isDemoMode()) {
+    yield* demoStreamChat(messages);
+    return;
+  }
+
   const { model = 'Qwen/Qwen3-Next-80B-A3B-Instruct', temperature = 0, maxTokens = 2048 } = options;
 
   const chatUrl = buildNimUrl(gatewayUrl, 8008, '/v1/chat/completions');

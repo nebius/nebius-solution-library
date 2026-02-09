@@ -1,6 +1,7 @@
 // Docking API service (DiffDock)
 
 import { buildNimUrl } from './nimApi';
+import { isDemoMode, demoDockLigand, demoDockMultipleLigands } from './demoService';
 
 export interface DockingPose {
   ligand_positions: string; // SDF format
@@ -198,6 +199,11 @@ export async function dockLigand(
   ligandSmiles: string,
   numPoses: number = 5
 ): Promise<DockingResult> {
+  // Check for demo mode
+  if (isDemoMode()) {
+    return demoDockLigand(proteinStructure, proteinFormat, ligandSmiles, numPoses);
+  }
+
   const startTime = Date.now();
   // Correct endpoint path for DiffDock NIM
   const url = buildNimUrl(gatewayUrl, 8007, '/molecular-docking/diffdock/generate');
@@ -254,10 +260,10 @@ export async function dockLigand(
       // position_confidence can be null for failed poses
       if (posConfidence === null || posConfidence === undefined) continue;
 
-      // DiffDock returns confidence on log scale (negative values, closer to 0 is better)
-      // Convert to 0-1 scale using exp() for display purposes
-      // Clamp to [0, 1] since positive raw scores (very good poses) would give exp() > 1
-      const normalizedConfidence = Math.min(1, Math.exp(posConfidence));
+      // DiffDock returns confidence on negative log scale (more negative = worse fit)
+      // Convert to 0-1 scale: negate first so higher scores become higher confidence
+      // Then apply exp() and clamp to [0, 1]
+      const normalizedConfidence = Math.min(1, Math.max(0, Math.exp(-posConfidence)));
 
       poses.push({
         ligand_positions: data.ligand_positions[i],
@@ -293,6 +299,16 @@ export async function dockMultipleLigands(
   onProgress?: (completed: number, total: number, result?: DockingResult) => void,
   concurrency: number = 3
 ): Promise<DockingResult[]> {
+  // Check for demo mode
+  if (isDemoMode()) {
+    const results = await demoDockMultipleLigands(proteinStructure, proteinFormat, ligandSmiles);
+    // Simulate progress callbacks
+    results.forEach((result, i) => {
+      onProgress?.(i + 1, ligandSmiles.length, result);
+    });
+    return results;
+  }
+
   const results: DockingResult[] = [];
   const total = ligandSmiles.length;
 

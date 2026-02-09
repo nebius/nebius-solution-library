@@ -120,6 +120,24 @@ Include:
               <code className="smiles-code">{selectedDrug.referenceSMILES}</code>
             </div>
           </div>
+
+          {/* Scientific Caveats Warning */}
+          {selectedDrug.caveats && selectedDrug.caveats.length > 0 && (
+            <div className="drug-caveats">
+              <div className="caveats-header">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 2l6 10H2L8 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                  <path d="M8 6v3M8 11v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <span>Scientific Limitations (Demo Context)</span>
+              </div>
+              <ul className="caveats-list">
+                {selectedDrug.caveats.map((caveat, index) => (
+                  <li key={index}>{caveat}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

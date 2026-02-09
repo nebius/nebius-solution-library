@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import Markdown from 'react-markdown';
 import { streamChat } from '../../services/nimApi';
+import { isDemoMode } from '../../services/demoService';
 import type { DrugTarget } from '../../data/drugs';
 
 interface AIPlanningStepProps {
@@ -14,29 +15,67 @@ interface AIPlanningStepProps {
   onBack: () => void;
 }
 
-const SYSTEM_PROMPT = `You are an expert computational drug discovery scientist. Your task is to create a detailed research plan for discovering a therapeutic compound based on the given requirements.
+const SYSTEM_PROMPT = `You are an expert computational drug discovery and protein design scientist. Your task is to create a detailed research plan based on the given requirements.
 
-IMPORTANT: You MUST identify the primary protein target and provide its UniProt accession ID. This is critical for the next step in the pipeline.
+## Available AI Models
 
-Structure your response as follows:
+### Structure Prediction
+- **OpenFold3**: Next-gen structure prediction, good balance of speed and accuracy. Recommended for most proteins.
+- **Boltz2**: Fast structure prediction, great for rapid prototyping.
+- **OpenFold2**: High accuracy with MSA + templates, best for well-characterized proteins.
+
+### Small Molecule Generation
+- **GenMol**: De novo molecule generation, creates novel drug-like compounds from scratch.
+- **MolMIM**: SMILES-guided generation, explores chemical space around a seed molecule. Good for lead optimization.
+
+### Molecular Docking
+- **DiffDock**: Predicts how small molecules bind to proteins, returns poses and confidence scores.
+
+### Protein Design
+- **RFDiffusion**: De novo protein structure generation. Can design novel folds, binders, scaffolds.
+- **ProteinMPNN**: Designs amino acid sequences that fold into a given structure.
+
+### Utilities
+- **MSA Search**: Finds homologous sequences for improved structure prediction.
+- **Evo2-40B**: DNA/RNA foundation model for genomic analysis.
+
+## Your Task
+Analyze the research objective and design an appropriate workflow using the available models.
+
+IMPORTANT: You MUST identify the primary target and provide its UniProt accession ID (if it's a known protein).
+
+## Response Structure
 
 1. **Objective Summary** - Brief restatement of the goal
 
-2. **Target Protein**
-   - Name: [Full protein name]
-   - UniProt ID: [ACCESSION_ID] (e.g., P35354, Q9Y5Y4)
-   - Function: Brief description of the protein's role
+2. **Task Classification** - What type of task is this?
+   - Small molecule drug discovery
+   - De novo protein design
+   - Protein binder design
+   - Lead optimization
+   - Other (specify)
 
-3. **Computational Pipeline** - Step-by-step approach using AI models:
-   - Structure prediction (OpenFold3/Boltz2)
-   - Molecule generation (GenMol)
-   - Molecular docking (DiffDock)
+3. **Target Information**
+   - Name: [Target name]
+   - UniProt ID: [ACCESSION_ID] (e.g., P35354) - REQUIRED for known proteins
+   - Type: [Protein / Pathway / Other]
+   - Key features: [Binding sites, domains, etc.]
 
-4. **Expected Outcomes** - What we should achieve at each step
+4. **Recommended Workflow** - Choose the appropriate models for each step:
+   | Step | Model | Purpose |
+   |------|-------|---------|
+   | 1    | [Model name] | [What this step achieves] |
+   | 2    | [Model name] | [What this step achieves] |
+   | ...  | ... | ... |
 
-5. **Success Criteria** - How we'll know if we've found promising candidates
+5. **Key Considerations**
+   - Potential challenges
+   - Alternative approaches if primary fails
+   - Scientific caveats
 
-Keep the plan concise but comprehensive. The UniProt ID is REQUIRED - look it up from your knowledge if not provided in the prompt.`;
+6. **Success Criteria** - How we'll evaluate results
+
+Keep the plan concise but comprehensive. Adapt the workflow to the specific problem - don't use all models if not needed.`;
 
 /**
  * Extract UniProt ID from the generated plan
@@ -108,7 +147,8 @@ export function AIPlanningStep({
   const userPrompt = isCustom ? customPrompt : selectedDrug?.llmPrompt || '';
 
   const handleGeneratePlan = useCallback(async () => {
-    if (!userPrompt || !gatewayUrl) return;
+    const demoMode = isDemoMode();
+    if (!userPrompt || (!gatewayUrl && !demoMode)) return;
 
     setIsGenerating(true);
     setGeneratedPlan('');
@@ -225,17 +265,32 @@ export function AIPlanningStep({
               Qwen3-80B will analyze the research objective, identify the target protein,
               and create a comprehensive computational drug discovery plan.
             </p>
-            <button
-              className="btn btn-secondary btn-lg"
-              onClick={handleGeneratePlan}
-              disabled={!gatewayUrl || !userPrompt}
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M10 2v16M2 10h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              Generate Research Plan
-            </button>
-            {!gatewayUrl && (
+            <div className="generate-buttons">
+              <button
+                className="btn btn-secondary btn-lg"
+                onClick={handleGeneratePlan}
+                disabled={(!gatewayUrl && !isDemoMode()) || !userPrompt}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 2v16M2 10h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Generate Research Plan
+              </button>
+              <button
+                className="btn btn-outline"
+                onClick={() => {
+                  // Use the drug's known UniProt ID when skipping
+                  const uniprotId = selectedDrug?.targetProtein.uniprotId || '';
+                  onContinue('', uniprotId);
+                }}
+              >
+                Skip this step
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M6 12l4-4-4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+            {!gatewayUrl && !isDemoMode() && (
               <p className="generate-hint">Enter the NIM Gateway URL in the sidebar to continue.</p>
             )}
             {!userPrompt && isCustom && (

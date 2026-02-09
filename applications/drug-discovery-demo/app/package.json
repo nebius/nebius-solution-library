@@ -14,7 +14,8 @@
     "openchemlib": "^9.19.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-markdown": "^10.1.0"
+    "react-markdown": "^10.1.0",
+    "smiles-drawer": "^2.1.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

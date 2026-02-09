@@ -1,12 +1,26 @@
+// Workflow types determine which steps are shown
+export type WorkflowType =
+  | 'small-molecule'      // Traditional drug discovery: sequence → structure → molecules → docking
+  | 'protein-binder'      // Design protein that binds target: target structure → RFDiffusion → ProteinMPNN
+  | 'de-novo-protein'     // Create new protein from scratch: RFDiffusion → ProteinMPNN → validate
+  | 'enzyme-engineering'; // Analyze/modify enzyme: sequence → structure → analysis
+
 export type WorkflowStepId =
+  // Common steps
   | 'use-case'
   | 'ai-planning'
+  | 'summary'
+  // Small molecule workflow
   | 'sequence'
   | 'structure'
   | 'molecules'
   | 'docking'
   | 'rediscovery'
-  | 'summary';
+  // Protein design workflow
+  | 'target-structure'    // Get target protein structure (for binder design)
+  | 'protein-design'      // RFDiffusion - design protein backbone
+  | 'sequence-design'     // ProteinMPNN - design amino acid sequence
+  | 'validation';         // Validate designed protein with structure prediction
 
 export type StepStatus = 'pending' | 'active' | 'completed' | 'error';
 

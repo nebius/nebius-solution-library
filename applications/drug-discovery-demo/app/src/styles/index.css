@@ -1,0 +1,38 @@
+/**
+ * Styles Index
+ *
+ * Central import file for all application styles.
+ * Import this file in main.tsx or App.tsx instead of individual CSS files.
+ *
+ * Organization:
+ * 1. Design tokens (CSS variables)
+ * 2. Base styles (layout, typography)
+ * 3. Component styles (reusable components)
+ * 4. Feature styles (feature-specific styles)
+ * 5. Main components.css (legacy - will be split further)
+ *
+ * Migration Note:
+ * The components.css file is being progressively split into modules.
+ * New styles should be added to the appropriate module file.
+ * Eventually, components.css will be fully deprecated.
+ */
+
+/* 1. Design Tokens - CSS variables, colors, spacing, etc. */
+@import './design-tokens.css';
+
+/* 2. Base Styles - Foundation styles */
+@import './base.css';
+
+/* 3. Component Styles - Reusable UI components */
+@import './components/sidebar.css';
+@import './components/buttons.css';
+@import './components/cards.css';
+@import './components/forms.css';
+
+/* 4. Feature Styles - Feature-specific styles */
+@import './features/agent-chat.css';
+@import './features/finetuning.css';
+
+/* 5. Legacy Components - To be progressively split */
+/* This import contains all styles not yet migrated to modules */
+@import './components.css';

@@ -149,31 +149,37 @@ export function a3mToCsv(a3m: string, querySequence: string): string {
  * per NVIDIA docs. Use buildOpenFold3Request() with single sequence instead.
  *
  * @deprecated Use single-sequence MSA for OpenFold3. MSA only helps OpenFold2.
+ * @param numCopies - Number of chain copies for homo-oligomers (default: 1)
  */
 export function buildOpenFold3RequestWithMsa(
   sequence: string,
-  msaA3m: string
+  msaA3m: string,
+  numCopies = 1
 ): Record<string, unknown> {
+  // Generate chain IDs: A, B, C, ... based on number of copies
+  const chainIds = Array.from({ length: numCopies }, (_, i) => String.fromCharCode(65 + i));
+
+  // For homodimers, add multiple molecules with different IDs
+  const molecules = chainIds.map((id) => ({
+    type: 'protein',
+    id: id,
+    sequence: sequence,
+    msa: {
+      main: {
+        a3m: {
+          alignment: msaA3m,
+          format: 'a3m',
+        },
+      },
+    },
+  }));
+
   // Use a3m format with 'main' db (performs slightly better than csv with main_db)
   return {
     inputs: [
       {
         input_id: 'prediction_1',
-        molecules: [
-          {
-            type: 'protein',
-            id: 'A',
-            sequence: sequence,
-            msa: {
-              main: {
-                a3m: {
-                  alignment: msaA3m,
-                  format: 'a3m',
-                },
-              },
-            },
-          },
-        ],
+        molecules: molecules,
         diffusion_samples: 1,
         output_format: 'cif',
       },

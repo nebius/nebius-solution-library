@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import type { StructurePredictionResult } from '../../services/structurePrediction';
 import type { GeneratedMolecule } from '../../services/moleculeGeneration';
 import {
@@ -8,7 +8,11 @@ import {
   getConfidenceLevel,
 } from '../../services/docking';
 import { StructureViewer } from '../StructureViewer';
+import { MoleculeViewer2D } from '../MoleculeViewer2D';
+import { DrugLikenessBadge } from '../DrugLikenessPanel';
 import type { DrugTarget } from '../../data/drugs';
+import { formatDuration, formatEta } from '../../hooks/useProgressTracker';
+import { StepAssistant } from '../StepAssistant';
 
 interface DockingStepProps {
   structureResult: StructurePredictionResult | null;
@@ -40,8 +44,9 @@ export function DockingStep({
     return indices;
   });
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState({ completed: 0, total: 0 });
+  const [progress, setProgress] = useState({ completed: 0, total: 0, startTime: 0, completionTimes: [] as number[] });
   const [results, setResults] = useState<DockingResult[]>([]);
+  const lastCompletionTimeRef = useRef<number>(0);
   const [selectedResults, setSelectedResults] = useState<Set<string>>(new Set());
   const [numPoses, setNumPoses] = useState(30); // 30 is optimal per 2024 research
   const [parallelism, setParallelism] = useState(3); // Number of parallel API calls
@@ -84,8 +89,10 @@ export function DockingStep({
   const handleRunDocking = useCallback(async () => {
     if (!structureResult || moleculesToDock.length === 0 || !gatewayUrl) return;
 
+    const startTime = Date.now();
     setIsProcessing(true);
-    setProgress({ completed: 0, total: moleculesToDock.length });
+    setProgress({ completed: 0, total: moleculesToDock.length, startTime, completionTimes: [] });
+    lastCompletionTimeRef.current = startTime;
     setResults([]);
     setSelectedResults(new Set());
 
@@ -99,7 +106,16 @@ export function DockingStep({
         smilesList,
         numPoses,
         (completed, total, result) => {
-          setProgress({ completed, total });
+          const now = Date.now();
+          const timeSinceLast = now - lastCompletionTimeRef.current;
+          lastCompletionTimeRef.current = now;
+
+          setProgress((prev) => ({
+            completed,
+            total,
+            startTime: prev.startTime,
+            completionTimes: [...prev.completionTimes, timeSinceLast],
+          }));
           if (result && result.poses.length > 0) {
             setResults((prev) => [...prev, result]);
           }
@@ -294,8 +310,14 @@ export function DockingStep({
                       </span>
                     )}
                   </div>
+                  {/* 2D Molecule Structure */}
+                  <div className="molecule-card-structure">
+                    <MoleculeViewer2D smiles={mol.smiles} width={140} height={100} />
+                  </div>
+                  {/* Drug-Likeness Badge */}
+                  <DrugLikenessBadge smiles={mol.smiles} />
                   <p className="molecule-smiles-preview">
-                    {mol.smiles.length > 60 ? `${mol.smiles.substring(0, 60)}...` : mol.smiles}
+                    {mol.smiles.length > 40 ? `${mol.smiles.substring(0, 40)}...` : mol.smiles}
                   </p>
                 </div>
               );
@@ -401,6 +423,26 @@ export function DockingStep({
               <span className="progress-text">
                 {progress.completed} / {progress.total} molecules docked
               </span>
+              {/* ETA display */}
+              <div className="progress-eta">
+                {(() => {
+                  const elapsed = Date.now() - progress.startTime;
+                  const avgTimePerItem = progress.completionTimes.length > 0
+                    ? progress.completionTimes.reduce((a, b) => a + b, 0) / progress.completionTimes.length
+                    : progress.completed > 0 ? elapsed / progress.completed : null;
+                  const remaining = progress.total - progress.completed;
+                  const eta = avgTimePerItem !== null ? avgTimePerItem * remaining : null;
+
+                  return (
+                    <>
+                      <span className="progress-elapsed">Elapsed: {formatDuration(elapsed)}</span>
+                      {progress.completed > 0 && (
+                        <span className="progress-eta-time">{formatEta(eta)}</span>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
             </div>
             {results.length > 0 && (
               <div className="docking-live-results">
@@ -477,6 +519,14 @@ export function DockingStep({
                     )}
                   </div>
 
+                  {/* 2D Molecule Structure */}
+                  <div className="docking-result-structure">
+                    <MoleculeViewer2D smiles={result.ligandSmiles} width={180} height={120} />
+                  </div>
+
+                  {/* Drug-Likeness Badge */}
+                  <DrugLikenessBadge smiles={result.ligandSmiles} />
+
                   <div className="docking-result-details">
                     <div className="docking-result-stat">
                       <span className="docking-stat-label">Poses</span>
@@ -486,15 +536,6 @@ export function DockingStep({
                       <span className="docking-stat-label">Time</span>
                       <span className="docking-stat-value">{(result.elapsedTime / 1000).toFixed(1)}s</span>
                     </div>
-                  </div>
-
-                  <div className="docking-result-smiles">
-                    <span className="smiles-label">SMILES</span>
-                    <code className="smiles-value">
-                      {result.ligandSmiles.length > 50
-                        ? `${result.ligandSmiles.substring(0, 50)}...`
-                        : result.ligandSmiles}
-                    </code>
                   </div>
 
                   {result.poses.length > 0 && (
@@ -614,6 +655,23 @@ export function DockingStep({
           </svg>
         </button>
       </div>
+
+      {/* Step Assistant */}
+      <StepAssistant
+        stepType="docking"
+        gatewayUrl={gatewayUrl}
+        context={{
+          proteinModel: structureResult?.modelUsed,
+          moleculesSelected: selectedMolecules.size,
+          numPoses,
+          parallelism,
+          completedDocks: results.length,
+          bestResults: bestResults.slice(0, 5).map(r => ({
+            smiles: r.ligandSmiles.substring(0, 30),
+            confidence: r.bestConfidence,
+          })),
+        }}
+      />
     </div>
   );
 }

@@ -12,6 +12,7 @@ const CATEGORY_LABELS: Record<NimEndpoint['category'], string> = {
   structure: 'Structure Prediction',
   molecule: 'Molecule Generation',
   docking: 'Molecular Docking',
+  design: 'Protein Design',
   utility: 'Utilities',
 };
 
@@ -20,6 +21,7 @@ const CATEGORY_ORDER: NimEndpoint['category'][] = [
   'structure',
   'molecule',
   'docking',
+  'design',
   'utility',
 ];
 

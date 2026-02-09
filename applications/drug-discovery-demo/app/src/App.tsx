@@ -1,4 +1,16 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+/**
+ * App.tsx - Main Application Component
+ *
+ * This is the root component that manages the entire drug discovery workflow.
+ * State is now managed via React Context (see contexts/ directory):
+ * - GatewayContext: Connection settings, demo mode, endpoints
+ * - WorkflowContext: Navigation, selected drug, workflow type
+ * - WorkflowDataContext: Results flowing between steps
+ *
+ * @see docs/ARCHITECTURE.md for detailed documentation
+ */
+
+import { useCallback } from 'react';
 import { Header } from './components/Header';
 import { WorkflowSidebar } from './components/WorkflowSidebar';
 import { UseCaseStep } from './components/steps/UseCaseStep';
@@ -9,181 +21,106 @@ import { MoleculesStep } from './components/steps/MoleculesStep';
 import { DockingStep } from './components/steps/DockingStep';
 import { RediscoveryStep } from './components/steps/RediscoveryStep';
 import { SummaryStep } from './components/steps/SummaryStep';
-import { DRUG_TARGETS, getDrugById } from './data/drugs';
-import { NIM_ENDPOINTS } from './data/endpoints';
-import { checkAllEndpointsHealth } from './services/nimApi';
-import type { StructurePredictionResult } from './services/structurePrediction';
-import type { GeneratedMolecule } from './services/moleculeGeneration';
-import type { DockingResult } from './services/docking';
-import type { WorkflowStep, WorkflowStepId } from './types/workflow';
-import type { NimEndpoint } from './data/endpoints';
+import { ProteinDesignStep } from './components/steps/ProteinDesignStep';
+import { SequenceDesignStep } from './components/steps/SequenceDesignStep';
+import { ValidationStep } from './components/steps/ValidationStep';
+import { AgentChat } from './components/AgentChat';
+import { FineTuningMode } from './components/finetuning';
+import { DRUG_TARGETS } from './data/drugs';
+
+// Context hooks
+import { useGateway } from './contexts/GatewayContext';
+import { useWorkflow } from './contexts/WorkflowContext';
+import { useWorkflowData } from './contexts/WorkflowDataContext';
 
 import './styles/design-tokens.css';
 import './styles/components.css';
 
-// Step definitions (static)
-const WORKFLOW_STEPS: { id: WorkflowStepId; title: string; subtitle: string }[] = [
-  { id: 'use-case', title: 'Drug Target', subtitle: 'Select drug to rediscover' },
-  { id: 'ai-planning', title: 'AI Planning', subtitle: 'Qwen3 research plan' },
-  { id: 'sequence', title: 'Sequence', subtitle: 'Fetch from UniProt' },
-  { id: 'structure', title: 'Structure', subtitle: 'Predict target protein' },
-  { id: 'molecules', title: 'Molecules', subtitle: 'Generate candidates' },
-  { id: 'docking', title: 'Docking', subtitle: 'DiffDock validation' },
-  { id: 'rediscovery', title: 'Rediscovery', subtitle: 'Score similarity' },
-  { id: 'summary', title: 'Summary', subtitle: 'Results & insights' },
-];
-
-// Protein info from UniProt
-interface ProteinInfo {
-  accession: string;
-  name: string;
-  organism: string;
-  sequence: string;
-  length: number;
-}
-
 function App() {
-  // State
-  const [gatewayUrl, setGatewayUrl] = useState('');
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [furthestStepIndex, setFurthestStepIndex] = useState(0);
-  const [selectedDrugId, setSelectedDrugId] = useState<string | null>(null);
-  const [customPrompt, setCustomPrompt] = useState('');
-  const [selectedStructureModel, setSelectedStructureModel] = useState<string | null>(null);
-  const [endpoints, setEndpoints] = useState<NimEndpoint[]>(NIM_ENDPOINTS);
-  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+  // ============================================================================
+  // CONTEXT HOOKS - Replace 19+ useState hooks with 3 context hooks
+  // ============================================================================
 
-  // Workflow data (flows between steps)
-  const [researchPlan, setResearchPlan] = useState('');
-  const [identifiedUniprotId, setIdentifiedUniprotId] = useState('');
-  const [proteinInfo, setProteinInfo] = useState<ProteinInfo | null>(null);
-  const [structureResult, setStructureResult] = useState<StructurePredictionResult | null>(null);
-  const [generatedMolecules, setGeneratedMolecules] = useState<GeneratedMolecule[]>([]);
-  const [dockingResults, setDockingResults] = useState<DockingResult[]>([]);
+  // Gateway context: connection settings
+  const {
+    gatewayUrl,
+    setGatewayUrl,
+    demoModeEnabled,
+    setDemoModeEnabled,
+    endpoints,
+    isCheckingHealth,
+    isConnected,
+    runHealthCheck,
+  } = useGateway();
 
-  // Ref for debounce timer
-  const healthCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Workflow context: navigation and drug selection
+  const {
+    workflowMode,
+    setWorkflowMode,
+    selectedDrugId,
+    selectedDrug,
+    selectDrug,
+    steps,
+    currentStepId,
+    goToNextStep,
+    goToPrevStep,
+    handleStepClick,
+    customPrompt,
+    setCustomPrompt,
+    resetWorkflow,
+  } = useWorkflow();
 
-  // Derived: current step ID
-  const currentStepId = WORKFLOW_STEPS[currentStepIndex].id;
+  // Workflow data context: results flowing between steps
+  const {
+    researchPlan,
+    setResearchPlan,
+    identifiedUniprotId,
+    setIdentifiedUniprotId,
+    proteinInfo,
+    setProteinInfo,
+    selectedStructureModel,
+    setSelectedStructureModel,
+    structureResult,
+    setStructureResult,
+    generatedMolecules,
+    setGeneratedMolecules,
+    dockingResults,
+    setDockingResults,
+    proteinDesignResult,
+    setProteinDesignResult,
+    sequenceDesignResult,
+    setSequenceDesignResult,
+    selectedDesignSequenceIndex,
+    setSelectedDesignSequenceIndex,
+    setValidationResult,
+    resetAllData,
+  } = useWorkflowData();
 
-  // Derived: steps with status (computed from indices)
-  const steps: WorkflowStep[] = useMemo(() => {
-    return WORKFLOW_STEPS.map((step, index) => {
-      let status: WorkflowStep['status'];
-      if (index === currentStepIndex) {
-        status = 'active';
-      } else if (index < currentStepIndex || index <= furthestStepIndex) {
-        status = 'completed';
-      } else {
-        status = 'pending';
-      }
-      return { ...step, status };
-    });
-  }, [currentStepIndex, furthestStepIndex]);
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
 
-  // Get selected drug details
-  const selectedDrug = selectedDrugId ? getDrugById(selectedDrugId) ?? null : null;
-
-  // Computed
-  const requiredEndpoints = endpoints.filter((e) => e.required);
-  const isConnected = requiredEndpoints.some((e) => e.status === 'ready');
-
-  // Health check function (reusable)
-  const runHealthCheck = useCallback(async () => {
-    if (!gatewayUrl.trim()) return;
-
-    setIsCheckingHealth(true);
-    setEndpoints((prev) =>
-      prev.map((e) => ({ ...e, status: 'checking' as const }))
-    );
-
-    // Check all endpoints in parallel using the API service
-    const results = await checkAllEndpointsHealth(gatewayUrl, NIM_ENDPOINTS);
-
-    setEndpoints((prev) =>
-      prev.map((endpoint) => {
-        const result = results.find((r) => r.id === endpoint.id);
-        return result ? { ...endpoint, status: result.status } : endpoint;
-      })
-    );
-    setIsCheckingHealth(false);
-  }, [gatewayUrl]);
-
-  // Run health check when gateway URL changes (debounced)
-  useEffect(() => {
-    if (healthCheckTimerRef.current) {
-      clearTimeout(healthCheckTimerRef.current);
-    }
-
-    if (!gatewayUrl.trim()) {
-      setEndpoints((prev) =>
-        prev.map((e) => ({ ...e, status: 'unknown' as const }))
-      );
-      return;
-    }
-
-    healthCheckTimerRef.current = setTimeout(runHealthCheck, 800);
-
-    return () => {
-      if (healthCheckTimerRef.current) {
-        clearTimeout(healthCheckTimerRef.current);
-      }
-    };
-  }, [gatewayUrl, runHealthCheck]);
-
-  // Navigation handlers
-  const goToStep = useCallback((stepId: WorkflowStepId) => {
-    const index = WORKFLOW_STEPS.findIndex((s) => s.id === stepId);
-    if (index !== -1) {
-      setCurrentStepIndex(index);
-    }
-  }, []);
-
-  const goToNextStep = useCallback(() => {
-    const nextIndex = currentStepIndex + 1;
-    if (nextIndex < WORKFLOW_STEPS.length) {
-      setCurrentStepIndex(nextIndex);
-      setFurthestStepIndex((prev) => Math.max(prev, nextIndex));
-    }
-  }, [currentStepIndex]);
-
-  const goToPrevStep = useCallback(() => {
-    if (currentStepIndex > 0) {
-      setCurrentStepIndex(currentStepIndex - 1);
-    }
-  }, [currentStepIndex]);
-
-  const handleStepClick = useCallback(
-    (stepId: WorkflowStepId) => {
-      const clickedIndex = WORKFLOW_STEPS.findIndex((s) => s.id === stepId);
-      // Allow clicking on any step up to the furthest reached
-      if (clickedIndex <= furthestStepIndex) {
-        goToStep(stepId);
-      }
-    },
-    [furthestStepIndex, goToStep]
-  );
-
-  // Handle drug selection - reset all workflow state when changing drugs
+  // Handle drug selection
   const handleSelectDrug = useCallback((drugId: string | null) => {
-    // Only reset if actually changing to a different drug
-    if (drugId !== selectedDrugId) {
-      // Reset all workflow data
-      setResearchPlan('');
-      setIdentifiedUniprotId('');
-      setProteinInfo(null);
-      setStructureResult(null);
-      setGeneratedMolecules([]);
-      setDockingResults([]);
-      setSelectedStructureModel(null);
-      // Reset progress (but stay on step 1)
-      setFurthestStepIndex(0);
-    }
-    setSelectedDrugId(drugId);
-  }, [selectedDrugId]);
+    selectDrug(drugId);
+  }, [selectDrug]);
 
-  // Render step content
+  // Handle switching back from agent mode
+  const handleAgentBack = useCallback(() => {
+    setWorkflowMode('steps');
+    resetWorkflow();
+  }, [setWorkflowMode, resetWorkflow]);
+
+  // Handle restart from summary
+  const handleRestart = useCallback(() => {
+    resetWorkflow();
+    resetAllData();
+  }, [resetWorkflow, resetAllData]);
+
+  // ============================================================================
+  // RENDER STEP CONTENT
+  // ============================================================================
+
   const renderStepContent = () => {
     switch (currentStepId) {
       case 'use-case':
@@ -233,6 +170,7 @@ function App() {
         );
 
       case 'structure':
+      case 'target-structure':
         return (
           <StructureStep
             proteinInfo={proteinInfo}
@@ -240,6 +178,47 @@ function App() {
             selectedModel={selectedStructureModel}
             onSelectModel={setSelectedStructureModel}
             onStructureResult={setStructureResult}
+            onContinue={goToNextStep}
+            onBack={goToPrevStep}
+            oligomericState={selectedDrug?.targetProtein.oligomericState}
+          />
+        );
+
+      case 'protein-design':
+        return (
+          <ProteinDesignStep
+            selectedDrug={selectedDrug}
+            gatewayUrl={gatewayUrl}
+            targetStructure={structureResult?.structure}
+            targetStructureFormat={structureResult?.format}
+            onDesignResult={setProteinDesignResult}
+            onContinue={goToNextStep}
+            onBack={goToPrevStep}
+          />
+        );
+
+      case 'sequence-design':
+        return (
+          <SequenceDesignStep
+            designedStructure={proteinDesignResult}
+            gatewayUrl={gatewayUrl}
+            onSequenceResult={(result) => {
+              setSequenceDesignResult(result);
+              setSelectedDesignSequenceIndex(0);
+            }}
+            onContinue={goToNextStep}
+            onBack={goToPrevStep}
+          />
+        );
+
+      case 'validation':
+        return (
+          <ValidationStep
+            designedStructure={proteinDesignResult}
+            sequenceResult={sequenceDesignResult}
+            selectedSequenceIndex={selectedDesignSequenceIndex}
+            gatewayUrl={gatewayUrl}
+            onValidationResult={setValidationResult}
             onContinue={goToNextStep}
             onBack={goToPrevStep}
           />
@@ -289,17 +268,7 @@ function App() {
             dockingResults={dockingResults}
             gatewayUrl={gatewayUrl}
             onBack={goToPrevStep}
-            onRestart={() => {
-              setCurrentStepIndex(0);
-              setFurthestStepIndex(0);
-              setSelectedDrugId(null);
-              setCustomPrompt('');
-              setIdentifiedUniprotId('');
-              setProteinInfo(null);
-              setStructureResult(null);
-              setGeneratedMolecules([]);
-              setDockingResults([]);
-            }}
+            onRestart={handleRestart}
           />
         );
 
@@ -308,23 +277,70 @@ function App() {
     }
   };
 
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
   return (
     <div className="app-layout">
       <div className="bg-pattern" />
       <Header isConnected={isConnected} />
 
       <main className="app-main">
-        <WorkflowSidebar
-          steps={steps}
-          onStepClick={handleStepClick}
-          gatewayUrl={gatewayUrl}
-          onGatewayUrlChange={setGatewayUrl}
-          endpoints={endpoints}
-          isCheckingHealth={isCheckingHealth}
-          onReconnect={runHealthCheck}
-        />
+        {workflowMode === 'finetuning' ? (
+          <FineTuningMode
+            gatewayUrl={gatewayUrl}
+            onGatewayUrlChange={setGatewayUrl}
+            onBack={() => setWorkflowMode('agent')}
+          />
+        ) : workflowMode === 'agent' ? (
+          <>
+            <WorkflowSidebar
+              steps={steps}
+              onStepClick={handleStepClick}
+              gatewayUrl={gatewayUrl}
+              onGatewayUrlChange={setGatewayUrl}
+              endpoints={endpoints}
+              isCheckingHealth={isCheckingHealth}
+              onReconnect={runHealthCheck}
+              workflowMode={workflowMode}
+              onWorkflowModeChange={setWorkflowMode}
+              hideWorkflowSteps={true}
+              drugTargets={DRUG_TARGETS}
+              selectedDrugId={selectedDrugId}
+              onSelectDrug={handleSelectDrug}
+              demoMode={demoModeEnabled}
+              onDemoModeChange={setDemoModeEnabled}
+            />
 
-        <div className="content">{renderStepContent()}</div>
+            <div className="content" style={{ padding: 0 }}>
+              <AgentChat
+                key={`agent-${selectedDrugId}-${workflowMode}`}
+                gatewayUrl={gatewayUrl}
+                selectedDrug={selectedDrug}
+                onBack={handleAgentBack}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <WorkflowSidebar
+              steps={steps}
+              onStepClick={handleStepClick}
+              gatewayUrl={gatewayUrl}
+              onGatewayUrlChange={setGatewayUrl}
+              endpoints={endpoints}
+              isCheckingHealth={isCheckingHealth}
+              onReconnect={runHealthCheck}
+              workflowMode={workflowMode}
+              onWorkflowModeChange={setWorkflowMode}
+              demoMode={demoModeEnabled}
+              onDemoModeChange={setDemoModeEnabled}
+            />
+
+            <div className="content">{renderStepContent()}</div>
+          </>
+        )}
       </main>
     </div>
   );

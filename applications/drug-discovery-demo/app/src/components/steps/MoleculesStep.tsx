@@ -8,23 +8,30 @@ import {
   sortByScore,
 } from '../../services/moleculeGeneration';
 import { streamChat } from '../../services/nimApi';
+import { MoleculeViewer2D } from '../MoleculeViewer2D';
+import { DrugLikenessBadge } from '../DrugLikenessPanel';
 import type { DrugTarget } from '../../data/drugs';
+import { formatDuration } from '../../hooks/useProgressTracker';
+import { StepAssistant } from '../StepAssistant';
 
 type GenerationStage = 'encoding' | 'exploring' | 'scoring';
 
 // Prompt for generating seed molecule (pretending target drug doesn't exist)
+// IMPORTANT: Must be structurally DISTANT from the target drug to avoid data leakage
 const SEED_GENERATION_PROMPT = `You are a medicinal chemist. Based on the therapeutic goal below, suggest a SINGLE starting compound (seed molecule) for drug discovery.
 
-IMPORTANT RULES:
-1. Suggest a molecule that would be a reasonable starting point for optimization
-2. This should be a known compound or scaffold that's DIFFERENT from the final target drug
-3. Provide ONLY the SMILES notation on a single line, preceded by "SMILES:"
-4. Keep the molecule relatively simple (drug-like, not too complex)
+CRITICAL RULES:
+1. The seed must be STRUCTURALLY DISTINCT from known drugs for this target
+2. DO NOT suggest close analogs, derivatives, or molecules from the same chemical class
+3. Choose a scaffold with the right pharmacophore features (e.g., acidic group for COX, hinge binder for kinases) but DIFFERENT core structure
+4. Good starting points: natural products, fragments, hits from unrelated screens, or scaffolds from different therapeutic areas that happen to have relevant features
+5. Avoid: direct analogs, prodrugs, or molecules that would have high Tanimoto similarity (>0.5) to known drugs for this target
+6. Keep the molecule drug-like (MW 200-500, reasonable LogP)
 
 Therapeutic Goal:
 {PROMPT}
 
-Respond with a brief explanation (2-3 sentences) of why this is a good starting point, then provide the SMILES.
+Think about what structural features are needed for activity, then find a DIVERSE scaffold that has those features. Explain your reasoning (2-3 sentences), then provide the SMILES.
 Format: SMILES: [your SMILES string here]`;
 
 /**
@@ -90,7 +97,7 @@ export function MoleculesStep({
   // Processing animation state
   const [elapsedTime, setElapsedTime] = useState(0);
   const [generationStage, setGenerationStage] = useState<GenerationStage>('encoding');
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Timer effect for processing animation
   useEffect(() => {
@@ -389,8 +396,9 @@ export function MoleculesStep({
         {seedMode === 'ai' && (
           <div className="seed-section">
             <p className="seed-description">
-              Let AI suggest a starting compound for drug discovery. The AI will propose a molecule
-              that's a reasonable starting point for optimization toward {selectedDrug.name}-like compounds.
+              Let AI suggest a <strong>structurally diverse</strong> starting compound for drug discovery.
+              The AI will propose a scaffold with relevant pharmacophore features but distinct from known
+              drugs, enabling genuine exploration of chemical space rather than trivial analog generation.
             </p>
 
             {!aiSeedSmiles && !isGeneratingSeed && (
@@ -474,11 +482,16 @@ export function MoleculesStep({
           </div>
         )}
 
-        {/* Current Seed Display */}
+        {/* Current Seed Display with 2D Structure */}
         {seedSmiles && (
           <div className="current-seed">
-            <span className="current-seed-label">Active Seed:</span>
-            <code className="current-seed-value">{seedSmiles}</code>
+            <div className="current-seed-structure">
+              <MoleculeViewer2D smiles={seedSmiles} width={200} height={150} />
+            </div>
+            <div className="current-seed-info">
+              <span className="current-seed-label">Active Seed:</span>
+              <code className="current-seed-value">{seedSmiles}</code>
+            </div>
           </div>
         )}
       </div>
@@ -592,7 +605,7 @@ export function MoleculesStep({
 
             {/* Live timer */}
             <div className="generation-timer">
-              <span className="timer-value">{(elapsedTime / 1000).toFixed(1)}s</span>
+              <span className="timer-value">Elapsed: {formatDuration(elapsedTime)}</span>
             </div>
 
             {/* Progress stages */}
@@ -722,7 +735,7 @@ export function MoleculesStep({
                       </span>
                     )}
                     <span className={`molecule-score ${getScoreColor(molecule.score)}`}>
-                      {molecule.score.toFixed(3)}
+                      QED: {molecule.score.toFixed(3)}
                     </span>
                     {isSelected && (
                       <span className="molecule-selected-icon">
@@ -732,9 +745,15 @@ export function MoleculesStep({
                       </span>
                     )}
                   </div>
+                  {/* 2D Molecule Structure */}
+                  <div className="molecule-card-structure">
+                    <MoleculeViewer2D smiles={molecule.smiles} width={160} height={120} />
+                  </div>
+                  {/* Drug-Likeness Badge */}
+                  <DrugLikenessBadge smiles={molecule.smiles} />
                   <code className="molecule-smiles-preview">
-                    {molecule.smiles.length > 50
-                      ? molecule.smiles.substring(0, 50) + '...'
+                    {molecule.smiles.length > 40
+                      ? molecule.smiles.substring(0, 40) + '...'
                       : molecule.smiles}
                   </code>
                 </div>
@@ -787,6 +806,24 @@ export function MoleculesStep({
           </svg>
         </button>
       </div>
+
+      {/* Step Assistant */}
+      <StepAssistant
+        stepType="molecules"
+        gatewayUrl={gatewayUrl}
+        context={{
+          seedSmiles,
+          seedMode,
+          numMolecules,
+          scaledRadius,
+          generatedCount: result?.molecules.length,
+          selectedCount: selectedMolecules.size,
+          topMolecules: result?.molecules.slice(0, 5).map(m => ({
+            smiles: m.smiles,
+            score: m.score,
+          })),
+        }}
+      />
     </div>
   );
 }

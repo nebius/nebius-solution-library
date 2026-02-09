@@ -9,6 +9,7 @@ import {
   getSimilarityLevel,
   getMolecularProperties,
 } from '../../services/similarity';
+import { StepAssistant } from '../StepAssistant';
 
 interface RediscoveryStepProps {
   selectedDrug: DrugTarget | null;
@@ -374,6 +375,23 @@ export function RediscoveryStep({
           </svg>
         </button>
       </div>
+
+      {/* Step Assistant - Note: no gatewayUrl prop needed for rediscovery analysis */}
+      <StepAssistant
+        stepType="rediscovery"
+        gatewayUrl=""
+        context={{
+          referenceDrug: selectedDrug?.name,
+          referenceSMILES: selectedDrug?.referenceSMILES,
+          bestMatch: rediscoveryResult?.bestMatch ? {
+            smiles: rediscoveryResult.bestMatch.smiles.substring(0, 30),
+            similarity: rediscoveryResult.bestMatch.similarity,
+          } : null,
+          exactMatch: rediscoveryResult?.exactMatch,
+          totalAnalyzed: rediscoveryResult?.similarities.length,
+          highSimilarityCount: rediscoveryResult?.similarities.filter(s => s.similarity > 0.7).length,
+        }}
+      />
     </div>
   );
 }

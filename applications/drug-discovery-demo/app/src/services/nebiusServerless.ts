@@ -1,0 +1,533 @@
+/**
+ * Nebius Serverless Service
+ *
+ * Service for interacting with Nebius Serverless AI for model fine-tuning.
+ * This service handles:
+ * - Training job creation and monitoring
+ * - Model deployment to serverless endpoints
+ * - Inference requests
+ *
+ * Nebius Serverless CLI commands used:
+ * - `nebius ai job create` - Create training job
+ * - `nebius ai job get` - Get job status
+ * - `nebius ai logs` - Get job logs
+ * - `nebius ai endpoint create` - Deploy model
+ * - `nebius ai endpoint get` - Get endpoint status
+ *
+ * In production, this would call a backend API that wraps these CLI commands.
+ * For the demo, we support both real API calls and simulated responses.
+ */
+
+import type {
+  TrainingConfig,
+  TrainingStatus,
+  TrainingLogEntry,
+  TrainingResult,
+  EndpointInfo,
+  ScreeningResult,
+  JobState,
+} from '../types/finetuning';
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+export interface NebiusConfig {
+  apiBaseUrl: string;
+  objectStorageBucket: string;
+  gpuPlatform: string;
+  gpuPreset: string;
+  region: string;
+}
+
+const DEFAULT_CONFIG: NebiusConfig = {
+  apiBaseUrl: '', // Will be set from gateway URL
+  objectStorageBucket: 'drug-discovery-models',
+  gpuPlatform: 'gpu-h200-sxm',
+  gpuPreset: '1gpu-16vcpu-200gb',
+  region: 'eu-north1',
+};
+
+// GPU pricing (approximate)
+const GPU_RATE_PER_HOUR = 6.0; // $6/hour for H200
+
+// ============================================================================
+// API Client
+// ============================================================================
+
+class NebiusServerlessClient {
+  private config: NebiusConfig;
+  private isDemoMode: boolean;
+
+  constructor(config: Partial<NebiusConfig> = {}, isDemoMode = false) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.isDemoMode = isDemoMode;
+  }
+
+  setApiBaseUrl(url: string) {
+    this.config.apiBaseUrl = url;
+  }
+
+  setDemoMode(enabled: boolean) {
+    this.isDemoMode = enabled;
+  }
+
+  // --------------------------------------------------------------------------
+  // Training Jobs
+  // --------------------------------------------------------------------------
+
+  /**
+   * Start a new training job on Nebius Serverless
+   */
+  async startTrainingJob(config: TrainingConfig): Promise<string> {
+    if (this.isDemoMode) {
+      // Generate a demo job ID
+      return `ft-demo-${Date.now().toString(36)}`;
+    }
+
+    const response = await fetch(`${this.config.apiBaseUrl}/api/finetuning/train/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...config,
+        gpuPlatform: this.config.gpuPlatform,
+        gpuPreset: this.config.gpuPreset,
+        objectStorageBucket: this.config.objectStorageBucket,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to start training job: ${error}`);
+    }
+
+    const data = await response.json();
+    return data.jobId;
+  }
+
+  /**
+   * Get training job status
+   */
+  async getTrainingStatus(jobId: string): Promise<TrainingStatus> {
+    if (this.isDemoMode) {
+      throw new Error('Use simulateTraining for demo mode');
+    }
+
+    const response = await fetch(
+      `${this.config.apiBaseUrl}/api/finetuning/train/status/${jobId}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to get training status: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get training job logs
+   */
+  async getTrainingLogs(jobId: string): Promise<TrainingLogEntry[]> {
+    if (this.isDemoMode) {
+      return [];
+    }
+
+    const response = await fetch(
+      `${this.config.apiBaseUrl}/api/finetuning/train/logs/${jobId}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to get training logs: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Cancel a training job
+   */
+  async cancelTrainingJob(jobId: string): Promise<void> {
+    if (this.isDemoMode) {
+      return;
+    }
+
+    const response = await fetch(
+      `${this.config.apiBaseUrl}/api/finetuning/train/cancel/${jobId}`,
+      { method: 'POST' }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to cancel training job: ${response.statusText}`);
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Model Deployment
+  // --------------------------------------------------------------------------
+
+  /**
+   * Deploy a trained model to a serverless endpoint
+   */
+  async deployModel(modelId: string, name: string): Promise<EndpointInfo> {
+    if (this.isDemoMode) {
+      // Return a demo endpoint
+      return {
+        endpointId: `ep-demo-${Date.now().toString(36)}`,
+        name,
+        url: `https://ep-demo.serverless.nebius.cloud`,
+        state: 'ready',
+        modelId,
+        createdAt: Date.now(),
+        platform: this.config.gpuPlatform,
+        preset: this.config.gpuPreset,
+        authToken: 'demo-token-xxx',
+      };
+    }
+
+    const response = await fetch(`${this.config.apiBaseUrl}/api/finetuning/deploy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        modelId,
+        name,
+        gpuPlatform: this.config.gpuPlatform,
+        gpuPreset: this.config.gpuPreset,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to deploy model: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get endpoint status
+   */
+  async getEndpointStatus(endpointId: string): Promise<EndpointInfo> {
+    if (this.isDemoMode) {
+      throw new Error('Endpoint status not available in demo mode');
+    }
+
+    const response = await fetch(
+      `${this.config.apiBaseUrl}/api/finetuning/endpoints/${endpointId}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to get endpoint status: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Delete an endpoint
+   */
+  async deleteEndpoint(endpointId: string): Promise<void> {
+    if (this.isDemoMode) {
+      return;
+    }
+
+    const response = await fetch(
+      `${this.config.apiBaseUrl}/api/finetuning/endpoints/${endpointId}`,
+      { method: 'DELETE' }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete endpoint: ${response.statusText}`);
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Inference
+  // --------------------------------------------------------------------------
+
+  /**
+   * Run predictions on a deployed model
+   */
+  async predict(
+    endpointId: string,
+    smiles: string[],
+    authToken?: string
+  ): Promise<ScreeningResult[]> {
+    if (this.isDemoMode) {
+      // Generate demo predictions
+      return smiles.map((s, i) => ({
+        smiles: s,
+        predictedActivity: Math.random() * 1000 + 1, // 1-1000 nM
+        confidence: (['high', 'medium', 'low'] as const)[Math.floor(Math.random() * 3)],
+        predictedUnit: 'nM',
+        rank: i + 1,
+      }));
+    }
+
+    const response = await fetch(
+      `${this.config.apiBaseUrl}/api/finetuning/predict/${endpointId}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken && { Authorization: `Bearer ${authToken}` }),
+        },
+        body: JSON.stringify({ smiles }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Prediction failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+}
+
+// ============================================================================
+// Training Simulation (Demo Mode)
+// ============================================================================
+
+export interface TrainingSimulationCallbacks {
+  onStatusUpdate: (status: TrainingStatus) => void;
+  onLogEntry: (entry: Omit<TrainingLogEntry, 'timestamp'>) => void;
+  onComplete: (result: TrainingResult) => void;
+  onError: (error: string) => void;
+}
+
+/**
+ * Simulate training progress for demo mode
+ */
+export async function simulateTraining(
+  config: TrainingConfig,
+  datasetSize: number,
+  callbacks: TrainingSimulationCallbacks,
+  signal?: AbortSignal
+): Promise<void> {
+  const { onStatusUpdate, onLogEntry, onComplete, onError } = callbacks;
+  const { hyperparameters } = config;
+  const totalEpochs = hyperparameters.epochs;
+  const stepsPerEpoch = Math.ceil(datasetSize / hyperparameters.batchSize);
+
+  const jobId = `ft-demo-${Date.now().toString(36)}`;
+  const startTime = Date.now();
+
+  // Helper to create status object
+  const createStatus = (
+    state: JobState,
+    epoch: number,
+    step: number,
+    metrics: Partial<TrainingStatus['metrics']> = {}
+  ): TrainingStatus => {
+    const elapsed = Date.now() - startTime;
+    const progress = (epoch - 1 + step / stepsPerEpoch) / totalEpochs;
+    const estimatedTotal = progress > 0 ? elapsed / progress : 600000;
+    const remaining = Math.max(0, estimatedTotal - elapsed);
+
+    return {
+      jobId,
+      state,
+      progress: {
+        epoch,
+        totalEpochs,
+        step,
+        totalSteps: stepsPerEpoch,
+        percentage: progress * 100,
+      },
+      metrics: {
+        epoch,
+        step,
+        loss: metrics.loss ?? 0,
+        valR2: metrics.valR2,
+        valMae: metrics.valMae,
+        valRmse: metrics.valRmse,
+        learningRate: hyperparameters.learningRate,
+      },
+      timing: {
+        startTime,
+        elapsedTime: elapsed,
+        estimatedTimeRemaining: remaining,
+      },
+      cost: {
+        gpuTimeSeconds: elapsed / 1000,
+        estimatedCost: (elapsed / 1000 / 3600) * GPU_RATE_PER_HOUR,
+        ratePerHour: GPU_RATE_PER_HOUR,
+      },
+      gpu: {
+        platform: 'gpu-h200-sxm',
+        preset: '1gpu-16vcpu-200gb',
+        utilization: 80 + Math.random() * 15,
+      },
+    };
+  };
+
+  const sleep = (ms: number) =>
+    new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(resolve, ms);
+      signal?.addEventListener('abort', () => {
+        clearTimeout(timeout);
+        reject(new Error('Training cancelled'));
+      });
+    });
+
+  try {
+    // Phase 1: Initialization
+    onStatusUpdate(createStatus('pending', 0, 0));
+    onLogEntry({ level: 'info', message: 'Requesting Nebius Serverless GPU...', emoji: '🚀' });
+    await sleep(1500);
+
+    if (signal?.aborted) throw new Error('Training cancelled');
+
+    onStatusUpdate(createStatus('initializing', 0, 0));
+    onLogEntry({
+      level: 'success',
+      message: 'GPU allocated: gpu-h200-sxm (cold start: 7.2s)',
+      emoji: '✓',
+    });
+    await sleep(1000);
+
+    onLogEntry({ level: 'info', message: 'Loading ChemBERTa base model...', emoji: '📦' });
+    await sleep(1500);
+
+    onLogEntry({
+      level: 'info',
+      message: `Dataset loaded: ${Math.floor(datasetSize * 0.8)} train / ${Math.floor(datasetSize * 0.1)} val samples`,
+      emoji: '📊',
+    });
+    await sleep(500);
+
+    // Phase 2: Training
+    let bestValR2 = 0;
+    let bestLoss = Infinity;
+
+    for (let epoch = 1; epoch <= totalEpochs; epoch++) {
+      if (signal?.aborted) throw new Error('Training cancelled');
+
+      // Simulate steps within epoch
+      for (let step = 1; step <= stepsPerEpoch; step += Math.ceil(stepsPerEpoch / 5)) {
+        if (signal?.aborted) throw new Error('Training cancelled');
+
+        const progress = (epoch - 1 + step / stepsPerEpoch) / totalEpochs;
+        const baseLoss = 0.9 * Math.exp(-3 * progress) + 0.15;
+        const loss = baseLoss + (Math.random() - 0.5) * 0.05;
+
+        onStatusUpdate(
+          createStatus('running', epoch, step, {
+            loss,
+            valR2: undefined,
+            valMae: undefined,
+          })
+        );
+
+        await sleep(80);
+      }
+
+      // End of epoch - calculate validation metrics
+      const epochProgress = epoch / totalEpochs;
+      const valR2 = 0.5 + 0.4 * (1 - Math.exp(-4 * epochProgress)) + (Math.random() - 0.5) * 0.02;
+      const valMae = 0.6 * Math.exp(-2 * epochProgress) + 0.25 + (Math.random() - 0.5) * 0.02;
+      const valRmse = valMae * 1.3;
+      const epochLoss = 0.9 * Math.exp(-3 * epochProgress) + 0.15;
+
+      bestValR2 = Math.max(bestValR2, valR2);
+      bestLoss = Math.min(bestLoss, epochLoss);
+
+      onStatusUpdate(
+        createStatus('running', epoch, stepsPerEpoch, {
+          loss: epochLoss,
+          valR2,
+          valMae,
+          valRmse,
+        })
+      );
+
+      onLogEntry({
+        level: 'success',
+        message: `Epoch ${epoch}/${totalEpochs} - Loss: ${epochLoss.toFixed(3)} - Val R²: ${valR2.toFixed(3)}`,
+        emoji: '✓',
+      });
+
+      // Check early stopping
+      if (hyperparameters.earlyStoppingEnabled && epoch > 3) {
+        // Simulate early stopping trigger occasionally
+        if (epoch > totalEpochs - 2 && Math.random() > 0.7) {
+          onLogEntry({
+            level: 'info',
+            message: 'Early stopping triggered - validation loss not improving',
+            emoji: '⏹️',
+          });
+          break;
+        }
+      }
+    }
+
+    // Phase 3: Completion
+    const finalElapsed = Date.now() - startTime;
+    const finalCost = (finalElapsed / 1000 / 3600) * GPU_RATE_PER_HOUR;
+
+    onLogEntry({ level: 'info', message: 'Saving model to Nebius Object Storage...', emoji: '💾' });
+    await sleep(1000);
+
+    onLogEntry({
+      level: 'success',
+      message: `Training complete! Total time: ${formatDuration(finalElapsed)} | Cost: $${finalCost.toFixed(2)}`,
+      emoji: '🎉',
+    });
+
+    const result: TrainingResult = {
+      jobId,
+      modelId: `model-${Date.now().toString(36)}`,
+      modelPath: `s3://drug-discovery-models/finetuned/${jobId}/model.pt`,
+      finalMetrics: {
+        trainLoss: bestLoss,
+        valLoss: bestLoss * 1.1,
+        testR2: bestValR2 - 0.01,
+        testMae: 0.3,
+        testRmse: 0.4,
+      },
+      trainingTime: finalElapsed,
+      totalCost: finalCost,
+    };
+
+    onStatusUpdate({ ...createStatus('completed', totalEpochs, stepsPerEpoch), state: 'completed' });
+    onComplete(result);
+  } catch (err) {
+    if (signal?.aborted) {
+      onStatusUpdate(createStatus('cancelled', 0, 0));
+      onLogEntry({ level: 'warning', message: 'Training cancelled by user', emoji: '⚠️' });
+    } else {
+      onStatusUpdate(createStatus('failed', 0, 0));
+      onError(err instanceof Error ? err.message : 'Training failed');
+    }
+  }
+}
+
+// Helper function
+function formatDuration(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+  return `${seconds}s`;
+}
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+// Singleton instance
+let clientInstance: NebiusServerlessClient | null = null;
+
+export function getNebiusClient(config?: Partial<NebiusConfig>, isDemoMode = false): NebiusServerlessClient {
+  if (!clientInstance) {
+    clientInstance = new NebiusServerlessClient(config, isDemoMode);
+  } else {
+    if (config?.apiBaseUrl) {
+      clientInstance.setApiBaseUrl(config.apiBaseUrl);
+    }
+    clientInstance.setDemoMode(isDemoMode);
+  }
+  return clientInstance;
+}
+
+export { NebiusServerlessClient };

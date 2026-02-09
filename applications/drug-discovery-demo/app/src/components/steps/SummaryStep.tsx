@@ -6,7 +6,7 @@ import type { StructurePredictionResult } from '../../services/structurePredicti
 import type { GeneratedMolecule } from '../../services/moleculeGeneration';
 import type { DockingResult } from '../../services/docking';
 import { formatSimilarity, getSimilarityLevel, analyzeRediscovery } from '../../services/similarity';
-import { lookupMultipleMolecules, formatMoleculeName, type MoleculeInfo } from '../../services/moleculeLookup';
+import { lookupMultipleMolecules, type MoleculeInfo } from '../../services/moleculeLookup';
 
 interface SummaryStepProps {
   selectedDrug: DrugTarget | null;

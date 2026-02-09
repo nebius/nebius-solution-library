@@ -1,11 +1,11 @@
 // NIM endpoint definitions
 
-export type GpuType = 'H200' | 'B200' | 'RTX 6000';
+export type GpuType = 'H200' | 'B200' | 'RTX 6000' | 'L40S';
 
 export interface NimEndpoint {
   id: string;
   name: string;
-  category: 'llm' | 'structure' | 'molecule' | 'docking' | 'utility';
+  category: 'llm' | 'structure' | 'molecule' | 'docking' | 'utility' | 'design';
   port: number;
   path: string;
   healthPath: string;
@@ -142,6 +142,34 @@ export const NIM_ENDPOINTS: NimEndpoint[] = [
     required: false,
     gpu: 'H200',
     gpuCount: 2,
+  },
+
+  // Protein Design
+  {
+    id: 'proteinmpnn',
+    name: 'ProteinMPNN',
+    category: 'design',
+    port: 8009,
+    path: '/biology/ipd/proteinmpnn/predict',
+    healthPath: '/v1/health/ready',
+    description: 'Design protein sequences for given structures',
+    status: 'unknown',
+    required: false,
+    gpu: 'L40S',
+    gpuCount: 1,
+  },
+  {
+    id: 'rfdiffusion',
+    name: 'RFDiffusion',
+    category: 'design',
+    port: 8010,
+    path: '/biology/ipd/rfdiffusion/generate',
+    healthPath: '/v1/health/ready',
+    description: 'De novo protein structure generation',
+    status: 'unknown',
+    required: false,
+    gpu: 'L40S',
+    gpuCount: 1,
   },
 ];
 

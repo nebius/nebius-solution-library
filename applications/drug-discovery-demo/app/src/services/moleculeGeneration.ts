@@ -1,6 +1,7 @@
 // Molecule generation API service
 
 import { buildNimUrl } from './nimApi';
+import { isDemoMode, demoGenerateMolecules } from './demoService';
 
 export interface GeneratedMolecule {
   smiles: string;
@@ -50,6 +51,11 @@ export async function generateWithMolMIM(
   gatewayUrl: string,
   request: MolMIMRequest
 ): Promise<MoleculeGenerationResult> {
+  // Check for demo mode
+  if (isDemoMode()) {
+    return demoGenerateMolecules(request.smi, request.num_molecules || 30);
+  }
+
   const startTime = Date.now();
   const url = buildNimUrl(gatewayUrl, 8006, '/generate');
 

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { fetchSequence, formatSequence, isValidAccession } from '../../services/uniprot';
 import { proteinToDna, calculateGcContent, generateSequenceVariations } from '../../services/evo2';
+import { StepAssistant } from '../StepAssistant';
 
 interface ProteinInfo {
   accession: string;
@@ -398,6 +399,19 @@ export function SequenceStep({
           </svg>
         </button>
       </div>
+
+      {/* Step Assistant */}
+      <StepAssistant
+        stepType="sequence"
+        gatewayUrl={gatewayUrl}
+        context={{
+          uniprotId,
+          protein: proteinInfo,
+          dnaAnalysisEnabled: showDnaAnalysis,
+          dnaLength: dnaSequence?.length,
+          gcContent,
+        }}
+      />
     </div>
   );
 }

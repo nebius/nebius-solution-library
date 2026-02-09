@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { formatDuration } from '../../hooks/useProgressTracker';
 import { STRUCTURE_MODELS } from '../../data/endpoints';
 import {
   type StructurePredictionResult,
@@ -14,7 +15,10 @@ import {
   type MsaSearchResult,
 } from '../../services/msaSearch';
 import { buildNimUrl } from '../../services/nimApi';
+import { isDemoMode, demoPredictStructure } from '../../services/demoService';
 import { StructureViewer } from '../StructureViewer';
+import { StepAssistant } from '../StepAssistant';
+import { getNumCopiesFromOligomericState } from '../../data/drugs';
 
 interface ProteinInfo {
   accession: string;
@@ -32,6 +36,7 @@ interface StructureStepProps {
   onStructureResult: (result: StructurePredictionResult) => void;
   onContinue: () => void;
   onBack: () => void;
+  oligomericState?: 'monomer' | 'homodimer' | 'homotrimer' | 'homotetramer';
 }
 
 type ModelId = 'openfold3' | 'boltz2' | 'openfold2';
@@ -43,10 +48,13 @@ export function StructureStep({
   onStructureResult,
   onContinue,
   onBack,
+  oligomericState,
 }: StructureStepProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [runningModels, setRunningModels] = useState<Set<ModelId>>(new Set());
   const [results, setResults] = useState<ParallelPredictionResult[]>([]);
+  const [predictionStartTime, setPredictionStartTime] = useState<number>(0);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [selectedResultModel, setSelectedResultModel] = useState<ModelId | null>(null);
   const [showQueryEditor, setShowQueryEditor] = useState(false);
   const [expandedQueries, setExpandedQueries] = useState<Set<ModelId>>(new Set());
@@ -62,19 +70,26 @@ export function StructureStep({
 
   // Build initial requests when protein info changes (or MSA result changes)
   const initialRequests = useMemo(() => {
-    if (!proteinInfo || !gatewayUrl) return [];
+    const demoMode = isDemoMode();
+    if (!proteinInfo || (!gatewayUrl && !demoMode)) return [];
+
+    // Use placeholder URL in demo mode
+    const baseUrl = gatewayUrl || 'http://demo-mode';
+
+    // Get number of copies based on oligomeric state (for homodimers, etc.)
+    const numCopies = getNumCopiesFromOligomericState(oligomericState);
 
     // If we have MSA result, use it for OpenFold2 and OpenFold3
     if (msaResult) {
       return [
         {
           modelId: 'openfold3' as const,
-          endpoint: buildNimUrl(gatewayUrl, 8000, '/biology/openfold/openfold3/predict'),
-          body: buildOpenFold3RequestWithMsa(proteinInfo.sequence, msaResult.alignment),
+          endpoint: buildNimUrl(baseUrl, 8000, '/biology/openfold/openfold3/predict'),
+          body: buildOpenFold3RequestWithMsa(proteinInfo.sequence, msaResult.alignment, numCopies),
         },
         {
           modelId: 'boltz2' as const,
-          endpoint: buildNimUrl(gatewayUrl, 8001, '/biology/mit/boltz2/predict'),
+          endpoint: buildNimUrl(baseUrl, 8001, '/biology/mit/boltz2/predict'),
           body: {
             polymers: [{ molecule_type: 'protein', sequence: proteinInfo.sequence, cyclic: false }],
             recycling_steps: 3,
@@ -86,14 +101,14 @@ export function StructureStep({
         },
         {
           modelId: 'openfold2' as const,
-          endpoint: buildNimUrl(gatewayUrl, 8004, '/biology/openfold/openfold2/predict-structure-from-msa-and-template'),
+          endpoint: buildNimUrl(baseUrl, 8004, '/biology/openfold/openfold2/predict-structure-from-msa-and-template'),
           body: buildOpenFold2RequestWithMsa(proteinInfo.sequence, msaResult.alignment),
         },
       ];
     }
 
-    return getAllModelRequests(gatewayUrl, proteinInfo.sequence);
-  }, [proteinInfo, gatewayUrl, msaResult]);
+    return getAllModelRequests(baseUrl, proteinInfo.sequence, numCopies);
+  }, [proteinInfo, gatewayUrl, msaResult, oligomericState]);
 
   // Initialize edited requests when initial requests change
   useEffect(() => {
@@ -146,8 +161,20 @@ export function StructureStep({
     }
   }, []);
 
+  // Update elapsed time while processing
+  useEffect(() => {
+    if (!isProcessing || predictionStartTime === 0) return;
+
+    const interval = setInterval(() => {
+      setElapsedTime(Date.now() - predictionStartTime);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isProcessing, predictionStartTime]);
+
   const handleRunAllPredictions = useCallback(async () => {
-    if (!proteinInfo || !gatewayUrl || enabledModels.size === 0) return;
+    const demoMode = isDemoMode();
+    if (!proteinInfo || (!gatewayUrl && !demoMode) || enabledModels.size === 0) return;
 
     // Check for JSON errors in enabled models only
     const hasErrors = Array.from(enabledModels).some((modelId) => queryErrors[modelId]);
@@ -155,6 +182,9 @@ export function StructureStep({
       return;
     }
 
+    const startTime = Date.now();
+    setPredictionStartTime(startTime);
+    setElapsedTime(0);
     setIsProcessing(true);
     setResults([]);
     setSelectedResultModel(null);
@@ -183,7 +213,10 @@ export function StructureStep({
     const promises = requests.map(async (req) => {
       const startTime = Date.now();
       try {
-        const result = await predictWithCustomBody(req.endpoint, req.body, req.modelId);
+        // Use demo mode predictions if enabled
+        const result = demoMode
+          ? await demoPredictStructure(proteinInfo.sequence, req.modelId)
+          : await predictWithCustomBody(req.endpoint, req.body, req.modelId);
         const elapsedTime = Date.now() - startTime;
 
         // Update this model's result
@@ -248,15 +281,27 @@ export function StructureStep({
 
   // MSA Search handler
   const handleMsaSearch = useCallback(async () => {
-    if (!proteinInfo || !gatewayUrl) return;
+    const demoMode = isDemoMode();
+    if (!proteinInfo || (!gatewayUrl && !demoMode)) return;
 
     setIsSearchingMsa(true);
     setMsaError(null);
     setMsaResult(null);
 
     try {
-      const result = await searchMsa(gatewayUrl, proteinInfo.sequence);
-      setMsaResult(result);
+      // In demo mode, return a mock MSA result
+      if (demoMode) {
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate delay
+        setMsaResult({
+          alignment: '>query\n' + proteinInfo.sequence + '\n>homolog1\n' + proteinInfo.sequence.replace(/[A-Z]/g, (c) => Math.random() > 0.9 ? 'X' : c),
+          numSequences: 150,
+          queryLength: proteinInfo.sequence.length,
+          format: 'a3m',
+        });
+      } else {
+        const result = await searchMsa(gatewayUrl, proteinInfo.sequence);
+        setMsaResult(result);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'MSA search failed';
       setMsaError(message);
@@ -424,7 +469,7 @@ export function StructureStep({
                 <button
                   className="btn btn-primary"
                   onClick={handleMsaSearch}
-                  disabled={!gatewayUrl}
+                  disabled={!gatewayUrl && !isDemoMode()}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
@@ -598,14 +643,14 @@ export function StructureStep({
             <button
               className="btn btn-primary btn-lg"
               onClick={handleRunAllPredictions}
-              disabled={!gatewayUrl || enabledModels.size === 0 || Array.from(enabledModels).some((m) => queryErrors[m])}
+              disabled={(!gatewayUrl && !isDemoMode()) || enabledModels.size === 0 || Array.from(enabledModels).some((m) => queryErrors[m])}
             >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M4 4l12 6-12 6V4z" fill="currentColor" />
               </svg>
               Run {enabledModels.size === 1 ? 'Selected Model' : `${enabledModels.size} Models in Parallel`}
             </button>
-            {!gatewayUrl && (
+            {!gatewayUrl && !isDemoMode() && (
               <p className="prediction-hint">Enter NIM Gateway URL to continue</p>
             )}
             <p className="prediction-info">
@@ -630,6 +675,10 @@ export function StructureStep({
             <p className="processing-description">
               Predicting 3D structure for {proteinInfo.length} residues...
             </p>
+            {/* Elapsed time display */}
+            <div className="progress-eta" style={{ marginTop: 'var(--spacing-md)' }}>
+              <span className="progress-elapsed">Elapsed: {formatDuration(elapsedTime)}</span>
+            </div>
             <div className="parallel-indicators">
               {STRUCTURE_MODELS.filter((model) => enabledModels.has(model.id as ModelId)).map((model) => {
                 const modelId = model.id as ModelId;
@@ -800,6 +849,23 @@ export function StructureStep({
           </svg>
         </button>
       </div>
+
+      {/* Step Assistant */}
+      <StepAssistant
+        stepType="structure"
+        gatewayUrl={gatewayUrl}
+        context={{
+          protein: proteinInfo,
+          selectedModel: selectedResultModel,
+          results: results.filter(r => r.status === 'success').map(r => ({
+            model: r.modelId,
+            confidence: r.result?.confidenceScore,
+            plddt: r.result?.plddt,
+            ptm: r.result?.ptm,
+          })),
+          msaUsed: !!msaResult,
+        }}
+      />
     </div>
   );
 }
