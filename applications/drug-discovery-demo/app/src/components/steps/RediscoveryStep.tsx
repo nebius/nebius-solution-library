@@ -16,6 +16,7 @@ interface RediscoveryStepProps {
   dockingResults: DockingResult[];
   onContinue: () => void;
   onBack: () => void;
+  gatewayUrl: string;
 }
 
 export function RediscoveryStep({
@@ -23,6 +24,7 @@ export function RediscoveryStep({
   dockingResults,
   onContinue,
   onBack,
+  gatewayUrl,
 }: RediscoveryStepProps) {
   const [rediscoveryResult, setRediscoveryResult] = useState<RediscoveryResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -376,10 +378,10 @@ export function RediscoveryStep({
         </button>
       </div>
 
-      {/* Step Assistant - Note: no gatewayUrl prop needed for rediscovery analysis */}
+      {/* Step Assistant */}
       <StepAssistant
         stepType="rediscovery"
-        gatewayUrl=""
+        gatewayUrl={gatewayUrl}
         context={{
           referenceDrug: selectedDrug?.name,
           referenceSMILES: selectedDrug?.referenceSMILES,

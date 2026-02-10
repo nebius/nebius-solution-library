@@ -14,7 +14,6 @@ import { useCallback } from 'react';
 import { Header } from './components/Header';
 import { WorkflowSidebar } from './components/WorkflowSidebar';
 import { UseCaseStep } from './components/steps/UseCaseStep';
-import { AIPlanningStep } from './components/steps/AIPlanningStep';
 import { SequenceStep } from './components/steps/SequenceStep';
 import { StructureStep } from './components/steps/StructureStep';
 import { MoleculesStep } from './components/steps/MoleculesStep';
@@ -24,17 +23,16 @@ import { SummaryStep } from './components/steps/SummaryStep';
 import { ProteinDesignStep } from './components/steps/ProteinDesignStep';
 import { SequenceDesignStep } from './components/steps/SequenceDesignStep';
 import { ValidationStep } from './components/steps/ValidationStep';
-import { AgentChat } from './components/AgentChat';
 import { FineTuningMode } from './components/finetuning';
-import { DRUG_TARGETS } from './data/drugs';
+import { NimPlayground } from './components/playground';
+import { DRUG_TARGETS, getDrugById } from './data/drugs';
 
 // Context hooks
 import { useGateway } from './contexts/GatewayContext';
 import { useWorkflow } from './contexts/WorkflowContext';
 import { useWorkflowData } from './contexts/WorkflowDataContext';
 
-import './styles/design-tokens.css';
-import './styles/components.css';
+import './styles/index.css';
 
 function App() {
   // ============================================================================
@@ -44,19 +42,12 @@ function App() {
   // Gateway context: connection settings
   const {
     gatewayUrl,
-    setGatewayUrl,
-    demoModeEnabled,
-    setDemoModeEnabled,
-    endpoints,
-    isCheckingHealth,
     isConnected,
-    runHealthCheck,
   } = useGateway();
 
   // Workflow context: navigation and drug selection
   const {
     workflowMode,
-    setWorkflowMode,
     selectedDrugId,
     selectedDrug,
     selectDrug,
@@ -72,8 +63,6 @@ function App() {
 
   // Workflow data context: results flowing between steps
   const {
-    researchPlan,
-    setResearchPlan,
     identifiedUniprotId,
     setIdentifiedUniprotId,
     proteinInfo,
@@ -100,16 +89,16 @@ function App() {
   // HANDLERS
   // ============================================================================
 
-  // Handle drug selection
+  // Handle drug selection — auto-populate UniProt ID from drug data
   const handleSelectDrug = useCallback((drugId: string | null) => {
     selectDrug(drugId);
-  }, [selectDrug]);
-
-  // Handle switching back from agent mode
-  const handleAgentBack = useCallback(() => {
-    setWorkflowMode('steps');
-    resetWorkflow();
-  }, [setWorkflowMode, resetWorkflow]);
+    if (drugId) {
+      const drug = getDrugById(drugId);
+      if (drug?.targetProtein.uniprotId) {
+        setIdentifiedUniprotId(drug.targetProtein.uniprotId);
+      }
+    }
+  }, [selectDrug, setIdentifiedUniprotId]);
 
   // Handle restart from summary
   const handleRestart = useCallback(() => {
@@ -132,27 +121,6 @@ function App() {
             onSelectDrug={handleSelectDrug}
             onCustomPromptChange={setCustomPrompt}
             onContinue={goToNextStep}
-          />
-        );
-
-      case 'ai-planning':
-        return (
-          <AIPlanningStep
-            selectedDrug={selectedDrug}
-            customPrompt={customPrompt}
-            gatewayUrl={gatewayUrl}
-            savedPlan={researchPlan}
-            savedUniprotId={identifiedUniprotId}
-            onPlanChange={(plan: string, uniprotId: string) => {
-              setResearchPlan(plan);
-              setIdentifiedUniprotId(uniprotId);
-            }}
-            onBack={goToPrevStep}
-            onContinue={(plan: string, uniprotId: string) => {
-              setResearchPlan(plan);
-              setIdentifiedUniprotId(uniprotId);
-              goToNextStep();
-            }}
           />
         );
 
@@ -255,6 +223,7 @@ function App() {
             dockingResults={dockingResults}
             onContinue={goToNextStep}
             onBack={goToPrevStep}
+            gatewayUrl={gatewayUrl}
           />
         );
 
@@ -288,54 +257,14 @@ function App() {
 
       <main className="app-main">
         {workflowMode === 'finetuning' ? (
-          <FineTuningMode
-            gatewayUrl={gatewayUrl}
-            onGatewayUrlChange={setGatewayUrl}
-            onBack={() => setWorkflowMode('agent')}
-          />
-        ) : workflowMode === 'agent' ? (
-          <>
-            <WorkflowSidebar
-              steps={steps}
-              onStepClick={handleStepClick}
-              gatewayUrl={gatewayUrl}
-              onGatewayUrlChange={setGatewayUrl}
-              endpoints={endpoints}
-              isCheckingHealth={isCheckingHealth}
-              onReconnect={runHealthCheck}
-              workflowMode={workflowMode}
-              onWorkflowModeChange={setWorkflowMode}
-              hideWorkflowSteps={true}
-              drugTargets={DRUG_TARGETS}
-              selectedDrugId={selectedDrugId}
-              onSelectDrug={handleSelectDrug}
-              demoMode={demoModeEnabled}
-              onDemoModeChange={setDemoModeEnabled}
-            />
-
-            <div className="content" style={{ padding: 0 }}>
-              <AgentChat
-                key={`agent-${selectedDrugId}-${workflowMode}`}
-                gatewayUrl={gatewayUrl}
-                selectedDrug={selectedDrug}
-                onBack={handleAgentBack}
-              />
-            </div>
-          </>
+          <FineTuningMode />
+        ) : workflowMode === 'playground' ? (
+          <NimPlayground />
         ) : (
           <>
             <WorkflowSidebar
               steps={steps}
               onStepClick={handleStepClick}
-              gatewayUrl={gatewayUrl}
-              onGatewayUrlChange={setGatewayUrl}
-              endpoints={endpoints}
-              isCheckingHealth={isCheckingHealth}
-              onReconnect={runHealthCheck}
-              workflowMode={workflowMode}
-              onWorkflowModeChange={setWorkflowMode}
-              demoMode={demoModeEnabled}
-              onDemoModeChange={setDemoModeEnabled}
             />
 
             <div className="content">{renderStepContent()}</div>

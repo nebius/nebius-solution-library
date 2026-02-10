@@ -1,7 +1,6 @@
 // Docking API service (DiffDock)
 
 import { buildNimUrl } from './nimApi';
-import { isDemoMode, demoDockLigand, demoDockMultipleLigands } from './demoService';
 
 export interface DockingPose {
   ligand_positions: string; // SDF format
@@ -199,11 +198,6 @@ export async function dockLigand(
   ligandSmiles: string,
   numPoses: number = 5
 ): Promise<DockingResult> {
-  // Check for demo mode
-  if (isDemoMode()) {
-    return demoDockLigand(proteinStructure, proteinFormat, ligandSmiles, numPoses);
-  }
-
   const startTime = Date.now();
   // Correct endpoint path for DiffDock NIM
   const url = buildNimUrl(gatewayUrl, 8007, '/molecular-docking/diffdock/generate');
@@ -299,16 +293,6 @@ export async function dockMultipleLigands(
   onProgress?: (completed: number, total: number, result?: DockingResult) => void,
   concurrency: number = 3
 ): Promise<DockingResult[]> {
-  // Check for demo mode
-  if (isDemoMode()) {
-    const results = await demoDockMultipleLigands(proteinStructure, proteinFormat, ligandSmiles);
-    // Simulate progress callbacks
-    results.forEach((result, i) => {
-      onProgress?.(i + 1, ligandSmiles.length, result);
-    });
-    return results;
-  }
-
   const results: DockingResult[] = [];
   const total = ligandSmiles.length;
 

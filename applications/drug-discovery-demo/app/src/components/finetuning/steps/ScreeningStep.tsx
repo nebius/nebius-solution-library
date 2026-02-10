@@ -1,8 +1,8 @@
 /**
  * ScreeningStep Component
  *
- * Sixth step: Deploy model and screen compounds.
- * Shows serverless deployment and batch prediction capabilities.
+ * Seventh step: Deploy model and screen compounds or sequences.
+ * Molecular: SMILES input; Protein: sequence input.
  */
 
 import { useState, useCallback } from 'react';
@@ -14,7 +14,7 @@ interface ScreeningStepProps {
   gatewayUrl: string;
 }
 
-// Sample SMILES for demo
+// Sample SMILES for molecular demo
 const SAMPLE_SMILES = [
   'CC(C)Cc1ccc(cc1)C(C)C(=O)O',
   'COc1ccc2c(c1)c(CC(=O)O)c(C)n2C(=O)c3ccc(Cl)cc3',
@@ -28,9 +28,19 @@ const SAMPLE_SMILES = [
   'CN1CCC(=C2c3ccccc3Sc4ccc(Cl)cc24)CC1',
 ];
 
+// Sample protein sequences for protein demo
+const SAMPLE_SEQUENCES = [
+  'MEKFLILNKQKQLAWDLNPHADYLARIQKLF',
+  'GKKVFLIANAQKALIDLNVSTQDDLARIQALFE',
+  'MKTVRQERLKSIVRILERSKEPVSGAQLA',
+  'MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFKD',
+  'MGSSHHHHHHSSGLVPRGSHMRGPNPTAAQLK',
+];
+
 export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
   const {
     trainingResult,
+    selectedModel,
     endpoint,
     setEndpoint,
     screeningResults,
@@ -39,9 +49,13 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
     goToPrevStep,
   } = useFineTuning();
 
+  const isProtein = selectedModel?.modality === 'protein';
+
   const [isDeploying, setIsDeploying] = useState(false);
   const [isScreening, setIsScreening] = useState(false);
-  const [inputSmiles, setInputSmiles] = useState(SAMPLE_SMILES.join('\n'));
+  const [inputText, setInputText] = useState(
+    isProtein ? SAMPLE_SEQUENCES.join('\n') : SAMPLE_SMILES.join('\n')
+  );
   const [screeningTime, setScreeningTime] = useState<number | null>(null);
 
   // Deploy model
@@ -51,10 +65,10 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
     setIsDeploying(true);
 
     try {
-      const client = getNebiusClient({ apiBaseUrl: gatewayUrl }, !gatewayUrl);
+      const client = getNebiusClient({ apiBaseUrl: gatewayUrl });
       const endpointInfo = await client.deployModel(
         trainingResult.modelId,
-        `qsar-predictor-${Date.now().toString(36)}`
+        `${isProtein ? 'protein' : 'qsar'}-predictor-${Date.now().toString(36)}`
       );
       setEndpoint(endpointInfo);
     } catch (error) {
@@ -62,32 +76,31 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
     } finally {
       setIsDeploying(false);
     }
-  }, [trainingResult, gatewayUrl, setEndpoint]);
+  }, [trainingResult, gatewayUrl, setEndpoint, isProtein]);
 
   // Run screening
   const handleScreen = useCallback(async () => {
     if (!endpoint) return;
 
-    const smilesList = inputSmiles
+    const inputList = inputText
       .split('\n')
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
 
-    if (smilesList.length === 0) return;
+    if (inputList.length === 0) return;
 
     setIsScreening(true);
     setScreeningResults(null);
     const startTime = Date.now();
 
     try {
-      const client = getNebiusClient({ apiBaseUrl: gatewayUrl }, !gatewayUrl);
+      const client = getNebiusClient({ apiBaseUrl: gatewayUrl });
       const predictions = await client.predict(
         endpoint.endpointId,
-        smilesList,
+        inputList,
         endpoint.authToken
       );
 
-      // Sort by predicted activity (lower is better)
       const sortedResults: ScreeningResult[] = predictions
         .sort((a, b) => a.predictedActivity - b.predictedActivity)
         .map((p, i) => ({ ...p, rank: i + 1 }));
@@ -99,14 +112,18 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
     } finally {
       setIsScreening(false);
     }
-  }, [endpoint, inputSmiles, gatewayUrl, setScreeningResults]);
+  }, [endpoint, inputText, gatewayUrl, setScreeningResults]);
 
   // Download results as CSV
   const handleDownload = useCallback(() => {
     if (!screeningResults) return;
 
+    const header = isProtein
+      ? 'rank,sequence,predicted_score,confidence'
+      : 'rank,smiles,predicted_activity_nM,confidence';
+
     const csv = [
-      'rank,smiles,predicted_activity_nM,confidence',
+      header,
       ...screeningResults.map(
         (r) => `${r.rank},${r.smiles},${r.predictedActivity.toFixed(2)},${r.confidence}`
       ),
@@ -116,12 +133,12 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'screening_results.csv';
+    a.download = `screening_results_${isProtein ? 'protein' : 'molecular'}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [screeningResults]);
+  }, [screeningResults, isProtein]);
 
   if (!trainingResult) {
     return (
@@ -145,7 +162,7 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
         <div>
           <h1 className="content-title">Deploy & Screen</h1>
           <p className="content-subtitle">
-            Deploy your model to Nebius Serverless and screen compound libraries.
+            Deploy your model to Nebius Jobs and screen {isProtein ? 'protein sequences' : 'compound libraries'}.
           </p>
         </div>
       </div>
@@ -163,7 +180,7 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
                 strokeLinejoin="round"
               />
             </svg>
-            <h3 className="card-title">Nebius Serverless Endpoint</h3>
+            <h3 className="card-title">Nebius Jobs Endpoint</h3>
           </div>
           {endpoint && (
             <span className={`endpoint-status ${endpoint.state}`}>
@@ -211,7 +228,7 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  Deploy to Serverless
+                  Deploy to Nebius Jobs
                 </>
               )}
             </button>
@@ -224,8 +241,8 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
                 <code className="endpoint-value">{endpoint.url}</code>
               </div>
               <div className="endpoint-detail">
-                <span className="endpoint-label">Model ID</span>
-                <span className="endpoint-value">{endpoint.modelId}</span>
+                <span className="endpoint-label">Model</span>
+                <span className="endpoint-value">{selectedModel?.name || endpoint.modelId}</span>
               </div>
               <div className="endpoint-detail">
                 <span className="endpoint-label">Platform</span>
@@ -240,28 +257,36 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
       {endpoint && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Virtual Screening</h3>
+            <h3 className="card-title">
+              {isProtein ? 'Sequence Screening' : 'Virtual Screening'}
+            </h3>
           </div>
 
           <div className="screening-input">
             <label className="form-label">
-              Enter SMILES (one per line) or paste a compound library:
+              {isProtein
+                ? 'Enter protein sequences (one per line):'
+                : 'Enter SMILES (one per line) or paste a compound library:'}
             </label>
             <textarea
               className="form-textarea"
-              value={inputSmiles}
-              onChange={(e) => setInputSmiles(e.target.value)}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
               rows={8}
-              placeholder="CC(C)Cc1ccc(cc1)C(C)C(=O)O&#10;COc1ccc2c(c1)c(CC(=O)O)c(C)n2C(=O)c3ccc(Cl)cc3&#10;..."
+              placeholder={
+                isProtein
+                  ? 'MEKFLILNKQKQLAWDLNPHADYLARIQKLF\nGKKVFLIANAQKALIDLNVSTQDDLARIQALFE\n...'
+                  : 'CC(C)Cc1ccc(cc1)C(C)C(=O)O\nCOc1ccc2c(c1)c(CC(=O)O)c(C)n2C(=O)c3ccc(Cl)cc3\n...'
+              }
             />
             <div className="screening-input-footer">
               <span className="compound-count">
-                {inputSmiles.split('\n').filter((s) => s.trim()).length} compounds
+                {inputText.split('\n').filter((s) => s.trim()).length} {isProtein ? 'sequences' : 'compounds'}
               </span>
               <button
                 className="btn btn-primary"
                 onClick={handleScreen}
-                disabled={isScreening || !inputSmiles.trim()}
+                disabled={isScreening || !inputText.trim()}
               >
                 {isScreening ? (
                   <>
@@ -273,7 +298,7 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M4 4l8 4-8 4V4z" fill="currentColor" />
                     </svg>
-                    Screen Library
+                    Screen {isProtein ? 'Sequences' : 'Library'}
                   </>
                 )}
               </button>
@@ -289,11 +314,11 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
             <h3 className="card-title">Screening Results</h3>
             <div className="card-header-actions">
               <span className="card-badge">
-                {screeningResults.length} compounds
+                {screeningResults.length} {isProtein ? 'sequences' : 'compounds'}
               </span>
               {screeningTime && (
                 <span className="card-badge">
-                  {(screeningTime / 1000).toFixed(2)}s ({Math.round(screeningResults.length / (screeningTime / 1000))} cmpds/s)
+                  {(screeningTime / 1000).toFixed(2)}s ({Math.round(screeningResults.length / (screeningTime / 1000))} /s)
                 </span>
               )}
             </div>
@@ -302,8 +327,8 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
           <div className="screening-results">
             <div className="results-table-header">
               <span className="results-col rank">Rank</span>
-              <span className="results-col smiles">SMILES</span>
-              <span className="results-col activity">Predicted IC50</span>
+              <span className="results-col smiles">{isProtein ? 'Sequence' : 'SMILES'}</span>
+              <span className="results-col activity">{isProtein ? 'Predicted Score' : 'Predicted IC50'}</span>
               <span className="results-col confidence">Confidence</span>
             </div>
             <div className="results-table-body">
@@ -318,7 +343,7 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
                     </code>
                   </span>
                   <span className="results-col activity">
-                    {result.predictedActivity.toFixed(1)} {result.predictedUnit}
+                    {result.predictedActivity.toFixed(isProtein ? 3 : 1)} {result.predictedUnit}
                   </span>
                   <span className={`results-col confidence ${result.confidence}`}>
                     {result.confidence.charAt(0).toUpperCase() + result.confidence.slice(1)}

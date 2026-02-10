@@ -17,6 +17,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useMemo,
   type ReactNode,
 } from 'react';
 import type { StructurePredictionResult } from '../services/structurePrediction';
@@ -41,9 +42,7 @@ export interface ProteinInfo {
 export type { ProteinDesignResult, SequenceDesignResult, ValidationResult };
 
 export interface WorkflowDataContextValue {
-  // AI Planning outputs
-  researchPlan: string;
-  setResearchPlan: (plan: string) => void;
+  // UniProt ID (auto-populated from selected drug)
   identifiedUniprotId: string;
   setIdentifiedUniprotId: (id: string) => void;
 
@@ -91,8 +90,7 @@ export interface WorkflowDataProviderProps {
 }
 
 export function WorkflowDataProvider({ children }: WorkflowDataProviderProps) {
-  // AI Planning
-  const [researchPlan, setResearchPlan] = useState('');
+  // UniProt ID (auto-populated from selected drug)
   const [identifiedUniprotId, setIdentifiedUniprotId] = useState('');
 
   // Protein info
@@ -116,7 +114,6 @@ export function WorkflowDataProvider({ children }: WorkflowDataProviderProps) {
 
   // Reset all data (called when drug target changes)
   const resetAllData = useCallback(() => {
-    setResearchPlan('');
     setIdentifiedUniprotId('');
     setProteinInfo(null);
     setSelectedStructureModel(null);
@@ -129,9 +126,7 @@ export function WorkflowDataProvider({ children }: WorkflowDataProviderProps) {
     setValidationResult(null);
   }, []);
 
-  const value: WorkflowDataContextValue = {
-    researchPlan,
-    setResearchPlan,
+  const value: WorkflowDataContextValue = useMemo(() => ({
     identifiedUniprotId,
     setIdentifiedUniprotId,
     proteinInfo,
@@ -153,7 +148,7 @@ export function WorkflowDataProvider({ children }: WorkflowDataProviderProps) {
     validationResult,
     setValidationResult,
     resetAllData,
-  };
+  }), [identifiedUniprotId, proteinInfo, selectedStructureModel, structureResult, generatedMolecules, dockingResults, proteinDesignResult, sequenceDesignResult, selectedDesignSequenceIndex, validationResult, resetAllData]);
 
   return (
     <WorkflowDataContext.Provider value={value}>

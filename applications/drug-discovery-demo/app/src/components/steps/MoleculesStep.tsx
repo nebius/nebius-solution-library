@@ -735,7 +735,7 @@ export function MoleculesStep({
                       </span>
                     )}
                     <span className={`molecule-score ${getScoreColor(molecule.score)}`}>
-                      QED: {molecule.score.toFixed(3)}
+                      Score: {molecule.score.toFixed(3)}
                     </span>
                     {isSelected && (
                       <span className="molecule-selected-icon">

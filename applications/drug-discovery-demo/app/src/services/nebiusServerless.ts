@@ -1,21 +1,8 @@
 /**
  * Nebius Serverless Service
  *
- * Service for interacting with Nebius Serverless AI for model fine-tuning.
- * This service handles:
- * - Training job creation and monitoring
- * - Model deployment to serverless endpoints
- * - Inference requests
- *
- * Nebius Serverless CLI commands used:
- * - `nebius ai job create` - Create training job
- * - `nebius ai job get` - Get job status
- * - `nebius ai logs` - Get job logs
- * - `nebius ai endpoint create` - Deploy model
- * - `nebius ai endpoint get` - Get endpoint status
- *
- * In production, this would call a backend API that wraps these CLI commands.
- * For the demo, we support both real API calls and simulated responses.
+ * Service for interacting with Nebius Jobs for model fine-tuning.
+ * Supports both molecular (regression) and protein (classification) models.
  */
 
 import type {
@@ -26,6 +13,7 @@ import type {
   EndpointInfo,
   ScreeningResult,
   JobState,
+  ModelInfo,
 } from '../types/finetuning';
 
 // ============================================================================
@@ -57,34 +45,20 @@ const GPU_RATE_PER_HOUR = 6.0; // $6/hour for H200
 
 class NebiusServerlessClient {
   private config: NebiusConfig;
-  private isDemoMode: boolean;
 
-  constructor(config: Partial<NebiusConfig> = {}, isDemoMode = false) {
+  constructor(config: Partial<NebiusConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.isDemoMode = isDemoMode;
   }
 
   setApiBaseUrl(url: string) {
     this.config.apiBaseUrl = url;
   }
 
-  setDemoMode(enabled: boolean) {
-    this.isDemoMode = enabled;
-  }
-
   // --------------------------------------------------------------------------
   // Training Jobs
   // --------------------------------------------------------------------------
 
-  /**
-   * Start a new training job on Nebius Serverless
-   */
   async startTrainingJob(config: TrainingConfig): Promise<string> {
-    if (this.isDemoMode) {
-      // Generate a demo job ID
-      return `ft-demo-${Date.now().toString(36)}`;
-    }
-
     const response = await fetch(`${this.config.apiBaseUrl}/api/finetuning/train/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -105,14 +79,7 @@ class NebiusServerlessClient {
     return data.jobId;
   }
 
-  /**
-   * Get training job status
-   */
   async getTrainingStatus(jobId: string): Promise<TrainingStatus> {
-    if (this.isDemoMode) {
-      throw new Error('Use simulateTraining for demo mode');
-    }
-
     const response = await fetch(
       `${this.config.apiBaseUrl}/api/finetuning/train/status/${jobId}`
     );
@@ -124,14 +91,7 @@ class NebiusServerlessClient {
     return response.json();
   }
 
-  /**
-   * Get training job logs
-   */
   async getTrainingLogs(jobId: string): Promise<TrainingLogEntry[]> {
-    if (this.isDemoMode) {
-      return [];
-    }
-
     const response = await fetch(
       `${this.config.apiBaseUrl}/api/finetuning/train/logs/${jobId}`
     );
@@ -143,14 +103,7 @@ class NebiusServerlessClient {
     return response.json();
   }
 
-  /**
-   * Cancel a training job
-   */
   async cancelTrainingJob(jobId: string): Promise<void> {
-    if (this.isDemoMode) {
-      return;
-    }
-
     const response = await fetch(
       `${this.config.apiBaseUrl}/api/finetuning/train/cancel/${jobId}`,
       { method: 'POST' }
@@ -165,25 +118,7 @@ class NebiusServerlessClient {
   // Model Deployment
   // --------------------------------------------------------------------------
 
-  /**
-   * Deploy a trained model to a serverless endpoint
-   */
   async deployModel(modelId: string, name: string): Promise<EndpointInfo> {
-    if (this.isDemoMode) {
-      // Return a demo endpoint
-      return {
-        endpointId: `ep-demo-${Date.now().toString(36)}`,
-        name,
-        url: `https://ep-demo.serverless.nebius.cloud`,
-        state: 'ready',
-        modelId,
-        createdAt: Date.now(),
-        platform: this.config.gpuPlatform,
-        preset: this.config.gpuPreset,
-        authToken: 'demo-token-xxx',
-      };
-    }
-
     const response = await fetch(`${this.config.apiBaseUrl}/api/finetuning/deploy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -202,14 +137,7 @@ class NebiusServerlessClient {
     return response.json();
   }
 
-  /**
-   * Get endpoint status
-   */
   async getEndpointStatus(endpointId: string): Promise<EndpointInfo> {
-    if (this.isDemoMode) {
-      throw new Error('Endpoint status not available in demo mode');
-    }
-
     const response = await fetch(
       `${this.config.apiBaseUrl}/api/finetuning/endpoints/${endpointId}`
     );
@@ -221,14 +149,7 @@ class NebiusServerlessClient {
     return response.json();
   }
 
-  /**
-   * Delete an endpoint
-   */
   async deleteEndpoint(endpointId: string): Promise<void> {
-    if (this.isDemoMode) {
-      return;
-    }
-
     const response = await fetch(
       `${this.config.apiBaseUrl}/api/finetuning/endpoints/${endpointId}`,
       { method: 'DELETE' }
@@ -243,25 +164,11 @@ class NebiusServerlessClient {
   // Inference
   // --------------------------------------------------------------------------
 
-  /**
-   * Run predictions on a deployed model
-   */
   async predict(
     endpointId: string,
     smiles: string[],
     authToken?: string
   ): Promise<ScreeningResult[]> {
-    if (this.isDemoMode) {
-      // Generate demo predictions
-      return smiles.map((s, i) => ({
-        smiles: s,
-        predictedActivity: Math.random() * 1000 + 1, // 1-1000 nM
-        confidence: (['high', 'medium', 'low'] as const)[Math.floor(Math.random() * 3)],
-        predictedUnit: 'nM',
-        rank: i + 1,
-      }));
-    }
-
     const response = await fetch(
       `${this.config.apiBaseUrl}/api/finetuning/predict/${endpointId}`,
       {
@@ -294,18 +201,24 @@ export interface TrainingSimulationCallbacks {
 }
 
 /**
- * Simulate training progress for demo mode
+ * Simulate training progress for demo mode.
+ * Supports both molecular (regression) and protein (classification) models.
  */
 export async function simulateTraining(
   config: TrainingConfig,
   datasetSize: number,
   callbacks: TrainingSimulationCallbacks,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  modelInfo?: ModelInfo
 ): Promise<void> {
   const { onStatusUpdate, onLogEntry, onComplete, onError } = callbacks;
   const { hyperparameters } = config;
   const totalEpochs = hyperparameters.epochs;
   const stepsPerEpoch = Math.ceil(datasetSize / hyperparameters.batchSize);
+
+  const isClassification = modelInfo?.taskType === 'classification';
+  const isProtein = modelInfo?.modality === 'protein';
+  const modelName = modelInfo?.name || config.baseModel;
 
   const jobId = `ft-demo-${Date.now().toString(36)}`;
   const startTime = Date.now();
@@ -339,6 +252,8 @@ export async function simulateTraining(
         valR2: metrics.valR2,
         valMae: metrics.valMae,
         valRmse: metrics.valRmse,
+        valAccuracy: metrics.valAccuracy,
+        valF1: metrics.valF1,
         learningRate: hyperparameters.learningRate,
       },
       timing: {
@@ -371,7 +286,7 @@ export async function simulateTraining(
   try {
     // Phase 1: Initialization
     onStatusUpdate(createStatus('pending', 0, 0));
-    onLogEntry({ level: 'info', message: 'Requesting Nebius Serverless GPU...', emoji: '🚀' });
+    onLogEntry({ level: 'info', message: 'Requesting Nebius Jobs GPU...', emoji: '🚀' });
     await sleep(1500);
 
     if (signal?.aborted) throw new Error('Training cancelled');
@@ -384,18 +299,20 @@ export async function simulateTraining(
     });
     await sleep(1000);
 
-    onLogEntry({ level: 'info', message: 'Loading ChemBERTa base model...', emoji: '📦' });
+    onLogEntry({ level: 'info', message: `Loading ${modelName} base model...`, emoji: '📦' });
     await sleep(1500);
 
     onLogEntry({
       level: 'info',
-      message: `Dataset loaded: ${Math.floor(datasetSize * 0.8)} train / ${Math.floor(datasetSize * 0.1)} val samples`,
+      message: `Dataset loaded: ${Math.floor(datasetSize * 0.8)} train / ${Math.floor(datasetSize * 0.1)} val ${isProtein ? 'sequences' : 'samples'}`,
       emoji: '📊',
     });
     await sleep(500);
 
     // Phase 2: Training
     let bestValR2 = 0;
+    let bestValAcc = 0;
+    let bestValF1 = 0;
     let bestLoss = Infinity;
 
     for (let epoch = 1; epoch <= totalEpochs; epoch++) {
@@ -410,11 +327,7 @@ export async function simulateTraining(
         const loss = baseLoss + (Math.random() - 0.5) * 0.05;
 
         onStatusUpdate(
-          createStatus('running', epoch, step, {
-            loss,
-            valR2: undefined,
-            valMae: undefined,
-          })
+          createStatus('running', epoch, step, { loss })
         );
 
         await sleep(80);
@@ -422,32 +335,57 @@ export async function simulateTraining(
 
       // End of epoch - calculate validation metrics
       const epochProgress = epoch / totalEpochs;
-      const valR2 = 0.5 + 0.4 * (1 - Math.exp(-4 * epochProgress)) + (Math.random() - 0.5) * 0.02;
-      const valMae = 0.6 * Math.exp(-2 * epochProgress) + 0.25 + (Math.random() - 0.5) * 0.02;
-      const valRmse = valMae * 1.3;
       const epochLoss = 0.9 * Math.exp(-3 * epochProgress) + 0.15;
 
-      bestValR2 = Math.max(bestValR2, valR2);
       bestLoss = Math.min(bestLoss, epochLoss);
 
-      onStatusUpdate(
-        createStatus('running', epoch, stepsPerEpoch, {
-          loss: epochLoss,
-          valR2,
-          valMae,
-          valRmse,
-        })
-      );
+      if (isClassification) {
+        // Classification metrics: accuracy, F1
+        const valAccuracy = 0.55 + 0.35 * (1 - Math.exp(-4 * epochProgress)) + (Math.random() - 0.5) * 0.02;
+        const valF1 = 0.50 + 0.38 * (1 - Math.exp(-4 * epochProgress)) + (Math.random() - 0.5) * 0.02;
 
-      onLogEntry({
-        level: 'success',
-        message: `Epoch ${epoch}/${totalEpochs} - Loss: ${epochLoss.toFixed(3)} - Val R²: ${valR2.toFixed(3)}`,
-        emoji: '✓',
-      });
+        bestValAcc = Math.max(bestValAcc, valAccuracy);
+        bestValF1 = Math.max(bestValF1, valF1);
+
+        onStatusUpdate(
+          createStatus('running', epoch, stepsPerEpoch, {
+            loss: epochLoss,
+            valAccuracy,
+            valF1,
+          })
+        );
+
+        onLogEntry({
+          level: 'success',
+          message: `Epoch ${epoch}/${totalEpochs} - Loss: ${epochLoss.toFixed(3)} - Val Acc: ${valAccuracy.toFixed(3)} - Val F1: ${valF1.toFixed(3)}`,
+          emoji: '✓',
+        });
+      } else {
+        // Regression metrics: R², MAE
+        const valR2 = 0.5 + 0.4 * (1 - Math.exp(-4 * epochProgress)) + (Math.random() - 0.5) * 0.02;
+        const valMae = 0.6 * Math.exp(-2 * epochProgress) + 0.25 + (Math.random() - 0.5) * 0.02;
+        const valRmse = valMae * 1.3;
+
+        bestValR2 = Math.max(bestValR2, valR2);
+
+        onStatusUpdate(
+          createStatus('running', epoch, stepsPerEpoch, {
+            loss: epochLoss,
+            valR2,
+            valMae,
+            valRmse,
+          })
+        );
+
+        onLogEntry({
+          level: 'success',
+          message: `Epoch ${epoch}/${totalEpochs} - Loss: ${epochLoss.toFixed(3)} - Val R²: ${valR2.toFixed(3)}`,
+          emoji: '✓',
+        });
+      }
 
       // Check early stopping
       if (hyperparameters.earlyStoppingEnabled && epoch > 3) {
-        // Simulate early stopping trigger occasionally
         if (epoch > totalEpochs - 2 && Math.random() > 0.7) {
           onLogEntry({
             level: 'info',
@@ -479,9 +417,14 @@ export async function simulateTraining(
       finalMetrics: {
         trainLoss: bestLoss,
         valLoss: bestLoss * 1.1,
-        testR2: bestValR2 - 0.01,
-        testMae: 0.3,
-        testRmse: 0.4,
+        testR2: isClassification ? 0 : bestValR2 - 0.01,
+        testMae: isClassification ? 0 : 0.3,
+        testRmse: isClassification ? 0 : 0.4,
+        ...(isClassification && {
+          testAccuracy: bestValAcc - 0.005,
+          testF1: bestValF1 - 0.01,
+          testAucRoc: bestValAcc + 0.02,
+        }),
       },
       trainingTime: finalElapsed,
       totalCost: finalCost,
@@ -518,14 +461,13 @@ function formatDuration(ms: number): string {
 // Singleton instance
 let clientInstance: NebiusServerlessClient | null = null;
 
-export function getNebiusClient(config?: Partial<NebiusConfig>, isDemoMode = false): NebiusServerlessClient {
+export function getNebiusClient(config?: Partial<NebiusConfig>): NebiusServerlessClient {
   if (!clientInstance) {
-    clientInstance = new NebiusServerlessClient(config, isDemoMode);
+    clientInstance = new NebiusServerlessClient(config);
   } else {
     if (config?.apiBaseUrl) {
       clientInstance.setApiBaseUrl(config.apiBaseUrl);
     }
-    clientInstance.setDemoMode(isDemoMode);
   }
   return clientInstance;
 }

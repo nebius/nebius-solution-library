@@ -6,7 +6,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Markdown from 'react-markdown';
 import { streamChat } from '../services/nimApi';
-import { isDemoMode } from '../services/demoService';
 
 export type StepType =
   | 'sequence'
@@ -214,7 +213,7 @@ export function StepAssistant({
 
   const handleSendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isProcessing) return;
-    if (!gatewayUrl && !isDemoMode()) return;
+    if (!gatewayUrl) return;
 
     // Add user message
     const userMsg: Message = {
@@ -356,7 +355,7 @@ If the user asks about modifying parameters, respond with a JSON block like:
                       key={suggestion}
                       className="suggestion-chip"
                       onClick={() => handleSendMessage(suggestion)}
-                      disabled={isProcessing || (!gatewayUrl && !isDemoMode())}
+                      disabled={isProcessing || !gatewayUrl}
                     >
                       {suggestion}
                     </button>
@@ -393,12 +392,12 @@ If the user asks about modifying parameters, respond with a JSON block like:
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about this step..."
-              disabled={isProcessing || (!gatewayUrl && !isDemoMode())}
+              disabled={isProcessing || !gatewayUrl}
             />
             <button
               className="step-assistant-send"
               onClick={() => handleSendMessage(inputValue)}
-              disabled={!inputValue.trim() || isProcessing || (!gatewayUrl && !isDemoMode())}
+              disabled={!inputValue.trim() || isProcessing || !gatewayUrl}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M12 2L6 8M12 2l-4 10-2-4-4-2 10-4z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

@@ -208,8 +208,8 @@ export async function fetchActivityData(
     validCount: validMolecules.length,
     invalidCount: uniqueActivities.length - validMolecules.length,
     activityRange: {
-      min: Math.min(...activityValues),
-      max: Math.max(...activityValues),
+      min: activityValues.length > 0 ? Math.min(...activityValues) : 0,
+      max: activityValues.length > 0 ? Math.max(...activityValues) : 0,
     },
     molecularWeightRange: { min: 0, max: 0 }, // Would need calculation
     splits: {
@@ -308,12 +308,12 @@ export function getDemoDataset(datasetId: string): DatasetInfo {
     validCount: validMolecules.length,
     invalidCount: molecules.length - validMolecules.length,
     activityRange: {
-      min: Math.min(...activityValues),
-      max: Math.max(...activityValues),
+      min: activityValues.length > 0 ? Math.min(...activityValues) : 0,
+      max: activityValues.length > 0 ? Math.max(...activityValues) : 0,
     },
     molecularWeightRange: {
-      min: Math.min(...mwValues),
-      max: Math.max(...mwValues),
+      min: mwValues.length > 0 ? Math.min(...mwValues) : 0,
+      max: mwValues.length > 0 ? Math.max(...mwValues) : 0,
     },
     splits: {
       train: Math.floor(validMolecules.length * 0.8),
@@ -349,6 +349,85 @@ function isValidSmiles(smiles: string): boolean {
   }
 
   return parenCount === 0 && bracketCount === 0;
+}
+
+/**
+ * Parse uploaded SDF file
+ * SDF files contain molecule records separated by "$$$$"
+ */
+export function parseSdfFile(sdfContent: string): DatasetInfo {
+  const records = sdfContent.split('$$$$').filter((r) => r.trim().length > 0);
+
+  if (records.length === 0) {
+    throw new Error('No molecule records found in SDF file');
+  }
+
+  const molecules: DatasetMolecule[] = [];
+
+  for (const record of records) {
+    const lines = record.trim().split('\n');
+    if (lines.length < 4) continue;
+
+    // Try to extract SMILES from properties (>  <SMILES>) or use molecule name
+    let smiles = '';
+    let activity = NaN;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.match(/^>\s+<SMILES>/i) && i + 1 < lines.length) {
+        smiles = lines[i + 1].trim();
+      }
+      if (line.match(/^>\s+<(activity|IC50|Ki|value|pIC50|pChEMBL)/i) && i + 1 < lines.length) {
+        activity = parseFloat(lines[i + 1].trim());
+      }
+    }
+
+    // If no SMILES property, use molecule name (first line) as identifier
+    if (!smiles) {
+      smiles = lines[0].trim() || `mol_${molecules.length}`;
+    }
+
+    // If no activity found, assign random for demo
+    if (isNaN(activity)) {
+      activity = Math.pow(10, Math.random() * 4 - 1);
+    }
+
+    molecules.push({
+      smiles,
+      activity,
+      activityUnit: 'nM',
+      isValid: isValidSmiles(smiles),
+    });
+  }
+
+  if (molecules.length === 0) {
+    throw new Error('No valid molecule records found in SDF file');
+  }
+
+  const validMolecules = molecules.filter((m) => m.isValid);
+  const activityValues = validMolecules.map((m) => m.activity);
+
+  return {
+    id: `sdf-upload-${Date.now()}`,
+    name: 'Uploaded SDF',
+    source: 'upload',
+    activityType: 'custom',
+    activityUnit: 'nM',
+    molecules,
+    totalCount: molecules.length,
+    validCount: validMolecules.length,
+    invalidCount: molecules.length - validMolecules.length,
+    activityRange: {
+      min: activityValues.length > 0 ? Math.min(...activityValues) : 0,
+      max: activityValues.length > 0 ? Math.max(...activityValues) : 0,
+    },
+    molecularWeightRange: { min: 0, max: 0 },
+    splits: {
+      train: Math.floor(validMolecules.length * 0.8),
+      validation: Math.floor(validMolecules.length * 0.1),
+      test: Math.floor(validMolecules.length * 0.1),
+    },
+  };
 }
 
 /**
@@ -411,8 +490,8 @@ export function parseUploadedCsv(csvContent: string): DatasetInfo {
     validCount: validMolecules.length,
     invalidCount: molecules.length - validMolecules.length,
     activityRange: {
-      min: Math.min(...activityValues),
-      max: Math.max(...activityValues),
+      min: activityValues.length > 0 ? Math.min(...activityValues) : 0,
+      max: activityValues.length > 0 ? Math.max(...activityValues) : 0,
     },
     molecularWeightRange: { min: 0, max: 0 },
     splits: {

@@ -1,31 +1,33 @@
 /**
  * DataPreviewStep Component
  *
- * Second step: Preview and validate the selected dataset.
+ * Third step: Preview and validate the selected dataset.
  * Shows statistics, distribution, and data quality metrics.
+ * Adapts display based on modality (molecular vs protein).
  */
 
 import { useMemo } from 'react';
 import { useFineTuning } from '../../../contexts/FineTuningContext';
 
 export function DataPreviewStep() {
-  const { dataset, goToNextStep, goToPrevStep } = useFineTuning();
+  const { dataset, goToNextStep, goToPrevStep, modality } = useFineTuning();
 
-  // Calculate log-transformed activity distribution
+  const isProtein = modality === 'protein';
+
+  // Calculate activity/score distribution
   const activityDistribution = useMemo(() => {
     if (!dataset) return null;
 
     const validActivities = dataset.molecules
       .filter((m) => m.isValid && m.activity > 0)
-      .map((m) => Math.log10(m.activity));
+      .map((m) => isProtein ? m.activity : Math.log10(m.activity));
 
     if (validActivities.length === 0) return null;
 
-    // Create histogram bins
-    const min = Math.floor(Math.min(...validActivities));
-    const max = Math.ceil(Math.max(...validActivities));
+    const min = Math.floor(Math.min(...validActivities) * 10) / 10;
+    const max = Math.ceil(Math.max(...validActivities) * 10) / 10;
     const binCount = 20;
-    const binWidth = (max - min) / binCount;
+    const binWidth = (max - min) / binCount || 0.1;
 
     const bins = Array(binCount).fill(0);
     for (const val of validActivities) {
@@ -35,16 +37,28 @@ export function DataPreviewStep() {
 
     const maxCount = Math.max(...bins);
     return { bins, min, max, binWidth, maxCount };
-  }, [dataset]);
+  }, [dataset, isProtein]);
 
-  // Sample molecules for preview
-  const sampleMolecules = useMemo(() => {
+  // Sample entries for preview
+  const sampleEntries = useMemo(() => {
     if (!dataset) return [];
     return dataset.molecules
       .filter((m) => m.isValid)
       .sort((a, b) => a.activity - b.activity)
       .slice(0, 5);
   }, [dataset]);
+
+  // Sequence length stats for protein
+  const seqLengthStats = useMemo(() => {
+    if (!dataset || !isProtein) return null;
+    const lengths = dataset.molecules.filter((m) => m.isValid).map((m) => m.smiles.length);
+    if (lengths.length === 0) return null;
+    return {
+      min: Math.min(...lengths),
+      max: Math.max(...lengths),
+      avg: Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length),
+    };
+  }, [dataset, isProtein]);
 
   if (!dataset) {
     return (
@@ -84,7 +98,7 @@ export function DataPreviewStep() {
             </svg>
           </div>
           <div className="stat-value">{dataset.totalCount.toLocaleString()}</div>
-          <div className="stat-label">Total Compounds</div>
+          <div className="stat-label">Total {isProtein ? 'Sequences' : 'Compounds'}</div>
         </div>
 
         <div className="stat-card success">
@@ -94,39 +108,66 @@ export function DataPreviewStep() {
             </svg>
           </div>
           <div className="stat-value">{dataset.validCount.toLocaleString()}</div>
-          <div className="stat-label">Valid SMILES</div>
+          <div className="stat-label">Valid {isProtein ? 'Sequences' : 'SMILES'}</div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M3 17V7l7-5 7 5v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <div className="stat-value">
-            {dataset.activityRange.min.toFixed(1)} - {dataset.activityRange.max.toFixed(1)}
-          </div>
-          <div className="stat-label">Activity Range ({dataset.activityUnit})</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M7 10h6M10 7v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </div>
-          <div className="stat-value">{dataset.activityType}</div>
-          <div className="stat-label">Activity Type</div>
-        </div>
+        {isProtein && seqLengthStats ? (
+          <>
+            <div className="stat-card">
+              <div className="stat-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M3 17V7l7-5 7 5v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div className="stat-value">
+                {seqLengthStats.min} - {seqLengthStats.max}
+              </div>
+              <div className="stat-label">Sequence Length Range</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M7 10h6M10 7v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div className="stat-value">{seqLengthStats.avg}</div>
+              <div className="stat-label">Avg Sequence Length</div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="stat-card">
+              <div className="stat-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M3 17V7l7-5 7 5v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div className="stat-value">
+                {dataset.activityRange.min.toFixed(1)} - {dataset.activityRange.max.toFixed(1)}
+              </div>
+              <div className="stat-label">Activity Range ({dataset.activityUnit})</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M7 10h6M10 7v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div className="stat-value">{dataset.activityType}</div>
+              <div className="stat-label">Activity Type</div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Activity Distribution */}
+      {/* Distribution */}
       {activityDistribution && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Activity Distribution</h3>
-            <span className="card-badge">log10({dataset.activityUnit})</span>
+            <h3 className="card-title">{isProtein ? 'Score Distribution' : 'Activity Distribution'}</h3>
+            <span className="card-badge">{isProtein ? 'score' : `log10(${dataset.activityUnit})`}</span>
           </div>
           <div className="distribution-chart">
             <div className="histogram">
@@ -137,14 +178,14 @@ export function DataPreviewStep() {
                   style={{
                     height: `${(count / activityDistribution.maxCount) * 100}%`,
                   }}
-                  title={`${count} compounds`}
+                  title={`${count} ${isProtein ? 'sequences' : 'compounds'}`}
                 />
               ))}
             </div>
             <div className="histogram-axis">
-              <span>{activityDistribution.min}</span>
-              <span>log10({dataset.activityUnit})</span>
-              <span>{activityDistribution.max}</span>
+              <span>{activityDistribution.min.toFixed(1)}</span>
+              <span>{isProtein ? 'Score' : `log10(${dataset.activityUnit})`}</span>
+              <span>{activityDistribution.max.toFixed(1)}</span>
             </div>
           </div>
         </div>
@@ -193,18 +234,18 @@ export function DataPreviewStep() {
         </div>
       </div>
 
-      {/* Sample Compounds */}
+      {/* Sample Entries */}
       <div className="card">
         <div className="card-header">
-          <h3 className="card-title">Sample Compounds (Top 5 by Activity)</h3>
+          <h3 className="card-title">Sample {isProtein ? 'Sequences' : 'Compounds'} (Top 5)</h3>
         </div>
         <div className="sample-table">
           <div className="sample-table-header">
-            <span className="sample-col smiles">SMILES</span>
-            <span className="sample-col activity">Activity ({dataset.activityUnit})</span>
+            <span className="sample-col smiles">{isProtein ? 'Sequence' : 'SMILES'}</span>
+            <span className="sample-col activity">{isProtein ? 'Label / Score' : `Activity (${dataset.activityUnit})`}</span>
             <span className="sample-col status">Status</span>
           </div>
-          {sampleMolecules.map((mol, i) => (
+          {sampleEntries.map((mol, i) => (
             <div key={i} className="sample-table-row">
               <span className="sample-col smiles">
                 <code>
@@ -236,8 +277,8 @@ export function DataPreviewStep() {
             />
           </svg>
           <span>
-            {dataset.invalidCount} compound{dataset.invalidCount > 1 ? 's' : ''} will be excluded
-            due to invalid SMILES
+            {dataset.invalidCount} {isProtein ? 'sequence' : 'compound'}{dataset.invalidCount > 1 ? 's' : ''} will be excluded
+            due to invalid {isProtein ? 'sequences' : 'SMILES'}
           </span>
         </div>
       )}

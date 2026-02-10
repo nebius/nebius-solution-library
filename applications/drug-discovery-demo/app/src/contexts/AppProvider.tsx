@@ -20,7 +20,6 @@ import { FineTuningProvider } from './FineTuningContext';
 export interface AppProviderProps {
   children: ReactNode;
   initialGatewayUrl?: string;
-  initialDemoMode?: boolean;
   initialWorkflowMode?: WorkflowMode;
 }
 
@@ -63,13 +62,11 @@ function WorkflowWithDataReset({
 export function AppProvider({
   children,
   initialGatewayUrl = '',
-  initialDemoMode = false,
-  initialWorkflowMode = 'agent',
+  initialWorkflowMode = 'steps',
 }: AppProviderProps) {
   return (
     <GatewayProvider
       initialGatewayUrl={initialGatewayUrl}
-      initialDemoMode={initialDemoMode}
     >
       <WorkflowDataProvider>
         <WorkflowWithDataReset initialWorkflowMode={initialWorkflowMode}>

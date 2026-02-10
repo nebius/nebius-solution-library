@@ -1,10 +1,10 @@
 /**
  * DataSelectionStep Component
  *
- * First step: Select training data source
- * - ChEMBL database search
- * - Upload custom CSV
- * - Demo datasets
+ * Second step: Select training data source
+ * - Curated datasets (filtered by selected model's modality)
+ * - ChEMBL database search (molecular only)
+ * - Upload custom CSV/SDF
  */
 
 import { useState, useCallback } from 'react';
@@ -13,14 +13,18 @@ import {
   searchTargets,
   getActivityCount,
   fetchActivityData,
-  getDemoDataset,
   parseUploadedCsv,
-  DEMO_DATASETS,
+  parseSdfFile,
 } from '../../../services/chemblApi';
-import type { ChemBLTarget, DataSourceType } from '../../../types/finetuning';
+import { getDatasetsByModality } from '../../../data/datasetRegistry';
+import type { ChemBLTarget, CuratedDataset, DatasetInfo, DatasetMolecule } from '../../../types/finetuning';
+
+type TabId = 'curated' | 'chembl' | 'upload';
 
 export function DataSelectionStep() {
-  const { setDataSource, setDataset, goToNextStep } = useFineTuning();
+  const { setDataSource, setDataset, goToNextStep, goToPrevStep, selectedModel, modality } = useFineTuning();
+
+  const [activeTab, setActiveTab] = useState<TabId>('curated');
 
   // ChEMBL search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,8 +38,64 @@ export function DataSelectionStep() {
   // Upload state
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Selected source
-  const [selectedSource, setSelectedSource] = useState<DataSourceType | null>(null);
+  // Curated datasets filtered by modality
+  const curatedDatasets = getDatasetsByModality(modality || 'molecular');
+
+  // Handle curated dataset selection
+  const handleSelectCurated = useCallback(
+    (dataset: CuratedDataset) => {
+      // Generate synthetic data from curated dataset metadata
+      const molecules: DatasetMolecule[] = [];
+      const isMolecular = dataset.modality === 'molecular';
+
+      for (let i = 0; i < dataset.size && i < 5000; i++) {
+        const sampleIdx = i % dataset.sampleData.length;
+        const baseInput = dataset.sampleData[sampleIdx].input;
+        const input = i < dataset.sampleData.length ? baseInput : `${baseInput}.v${i}`;
+
+        molecules.push({
+          smiles: input,
+          activity: isMolecular
+            ? Math.pow(10, Math.random() * 4 - 1) // 0.1 to 1000 nM for molecular
+            : Math.random(), // 0-1 for protein classification
+          activityUnit: isMolecular ? 'nM' : 'score',
+          isValid: Math.random() > 0.01,
+          molecularWeight: isMolecular ? 200 + Math.random() * 400 : undefined,
+        });
+      }
+
+      const validMolecules = molecules.filter((m) => m.isValid);
+      const activityValues = validMolecules.map((m) => m.activity);
+
+      const datasetInfo: DatasetInfo = {
+        id: dataset.id,
+        name: dataset.name,
+        source: 'curated',
+        sourceId: dataset.source,
+        activityType: 'custom',
+        activityUnit: isMolecular ? 'nM' : 'score',
+        molecules,
+        totalCount: molecules.length,
+        validCount: validMolecules.length,
+        invalidCount: molecules.length - validMolecules.length,
+        activityRange: {
+          min: activityValues.length > 0 ? Math.min(...activityValues) : 0,
+          max: activityValues.length > 0 ? Math.max(...activityValues) : 0,
+        },
+        molecularWeightRange: { min: 0, max: 0 },
+        splits: {
+          train: Math.floor(validMolecules.length * 0.8),
+          validation: Math.floor(validMolecules.length * 0.1),
+          test: Math.floor(validMolecules.length * 0.1),
+        },
+      };
+
+      setDataSource('curated');
+      setDataset(datasetInfo);
+      goToNextStep();
+    },
+    [setDataSource, setDataset, goToNextStep]
+  );
 
   // Handle ChEMBL search
   const handleSearch = useCallback(async () => {
@@ -99,7 +159,8 @@ export function DataSelectionStep() {
 
       try {
         const content = await file.text();
-        const dataset = parseUploadedCsv(content);
+        const isSdf = file.name.toLowerCase().endsWith('.sdf');
+        const dataset = isSdf ? parseSdfFile(content) : parseUploadedCsv(content);
         dataset.name = file.name.replace(/\.[^/.]+$/, '');
         setDataSource('upload');
         setDataset(dataset);
@@ -111,51 +172,96 @@ export function DataSelectionStep() {
     [setDataSource, setDataset, goToNextStep]
   );
 
-  // Handle demo dataset selection
-  const handleSelectDemo = useCallback(
-    (datasetId: string) => {
-      const dataset = getDemoDataset(datasetId);
-      setDataSource('demo');
-      setDataset(dataset);
-      goToNextStep();
-    },
-    [setDataSource, setDataset, goToNextStep]
-  );
-
   return (
     <div className="step-content">
       <div className="content-header">
         <div>
           <h1 className="content-title">Select Training Data</h1>
           <p className="content-subtitle">
-            Choose a data source for fine-tuning your property prediction model.
+            Choose a dataset for fine-tuning {selectedModel?.name || 'your model'}.
+            {modality === 'protein' ? ' Showing protein datasets.' : ' Showing molecular datasets.'}
           </p>
         </div>
       </div>
 
-      {/* ChEMBL Search */}
-      <div
-        className={`card data-source-card ${selectedSource === 'chembl' ? 'selected' : ''}`}
-        onClick={() => setSelectedSource('chembl')}
-      >
-        <div className="card-header">
-          <div className="data-source-header">
-            <div className="data-source-icon chembl">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="card-title">ChEMBL Database</h3>
-              <p className="card-subtitle">Search millions of bioactivity measurements</p>
-            </div>
-          </div>
-          <span className="card-badge">Recommended</span>
-        </div>
+      {/* Tabs */}
+      <div className="model-tabs">
+        <button
+          className={`model-tab ${activeTab === 'curated' ? 'active' : ''}`}
+          onClick={() => setActiveTab('curated')}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M9 2l2.09 4.26L16 7.27l-3.5 3.41.82 4.82L9 13.27l-4.32 2.23.82-4.82L2 7.27l4.91-.71L9 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Curated Datasets
+          <span className="model-tab-count">{curatedDatasets.length}</span>
+        </button>
+        {modality === 'molecular' && (
+          <button
+            className={`model-tab ${activeTab === 'chembl' ? 'active' : ''}`}
+            onClick={() => setActiveTab('chembl')}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M9 5v4l2.5 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            ChEMBL Search
+          </button>
+        )}
+        <button
+          className={`model-tab ${activeTab === 'upload' ? 'active' : ''}`}
+          onClick={() => setActiveTab('upload')}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M15 11.25v2.5a1.25 1.25 0 01-1.25 1.25H4.25A1.25 1.25 0 013 13.75v-2.5M12.5 6.25L9 2.75 5.5 6.25M9 2.75v8.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Upload
+        </button>
+      </div>
 
-        {selectedSource === 'chembl' && (
-          <div className="card-body" onClick={(e) => e.stopPropagation()}>
+      {/* Curated Datasets Tab */}
+      {activeTab === 'curated' && (
+        <div className="curated-datasets-grid">
+          {curatedDatasets.map((ds) => (
+            <button
+              key={ds.id}
+              className="curated-dataset-card"
+              onClick={() => handleSelectCurated(ds)}
+            >
+              <div className="curated-dataset-header">
+                <span className="curated-dataset-name">{ds.name}</span>
+                <span className="curated-dataset-source">{ds.source}</span>
+              </div>
+              <p className="curated-dataset-description">{ds.description}</p>
+              <div className="curated-dataset-footer">
+                <span className="curated-dataset-size">
+                  {ds.size.toLocaleString()} samples
+                </span>
+                <span className={`model-card-task ${ds.taskType}`}>
+                  {ds.taskType === 'regression' ? 'Regression' : 'Classification'}
+                </span>
+              </div>
+              <div className="curated-dataset-columns">
+                {ds.columns.slice(0, 3).map((col) => (
+                  <span key={col} className="curated-dataset-column">{col}</span>
+                ))}
+                {ds.columns.length > 3 && (
+                  <span className="curated-dataset-column">+{ds.columns.length - 3}</span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ChEMBL Search Tab */}
+      {activeTab === 'chembl' && (
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">ChEMBL Database Search</h3>
+            <span className="card-badge">Recommended</span>
+          </div>
+          <div className="card-body">
             <div className="chembl-search">
               <div className="search-input-group">
                 <input
@@ -273,45 +379,25 @@ export function DataSelectionStep() {
               )}
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Upload CSV */}
-      <div
-        className={`card data-source-card ${selectedSource === 'upload' ? 'selected' : ''}`}
-        onClick={() => setSelectedSource('upload')}
-      >
-        <div className="card-header">
-          <div className="data-source-header">
-            <div className="data-source-icon upload">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <div>
-              <h3 className="card-title">Upload Your Data</h3>
-              <p className="card-subtitle">CSV file with SMILES and activity values</p>
-            </div>
-          </div>
         </div>
+      )}
 
-        {selectedSource === 'upload' && (
-          <div className="card-body" onClick={(e) => e.stopPropagation()}>
+      {/* Upload Tab */}
+      {activeTab === 'upload' && (
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Upload Your Data</h3>
+          </div>
+          <div className="card-body">
             <div className="upload-area">
               <input
                 type="file"
-                accept=".csv"
+                accept=".csv,.sdf"
                 onChange={handleFileUpload}
                 className="upload-input"
-                id="csv-upload"
+                id="file-upload"
               />
-              <label htmlFor="csv-upload" className="upload-label">
+              <label htmlFor="file-upload" className="upload-label">
                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                   <path
                     d="M28 20v5.333A2.667 2.667 0 0125.333 28H6.667A2.667 2.667 0 014 25.333V20M22.667 10.667L16 4l-6.667 6.667M16 4v16"
@@ -321,73 +407,28 @@ export function DataSelectionStep() {
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span className="upload-text">Drop CSV file here or click to browse</span>
-                <span className="upload-hint">Format: smiles, activity (header required)</span>
+                <span className="upload-text">Drop CSV or SDF file here or click to browse</span>
+                <span className="upload-hint">
+                  {modality === 'protein'
+                    ? 'CSV format: sequence, label (header required)'
+                    : 'CSV format: smiles, activity (header required) or SDF with activity field'}
+                </span>
               </label>
               {uploadError && <p className="upload-error">{uploadError}</p>}
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Demo Datasets */}
-      <div
-        className={`card data-source-card ${selectedSource === 'demo' ? 'selected' : ''}`}
-        onClick={() => setSelectedSource('demo')}
-      >
-        <div className="card-header">
-          <div className="data-source-header">
-            <div className="data-source-icon demo">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <div>
-              <h3 className="card-title">Demo Datasets</h3>
-              <p className="card-subtitle">Pre-loaded datasets for quick testing</p>
-            </div>
-          </div>
         </div>
+      )}
 
-        {selectedSource === 'demo' && (
-          <div className="card-body" onClick={(e) => e.stopPropagation()}>
-            <div className="demo-datasets">
-              {DEMO_DATASETS.map((demo) => (
-                <button
-                  key={demo.id}
-                  className="demo-dataset-item"
-                  onClick={() => handleSelectDemo(demo.id)}
-                >
-                  <div className="demo-dataset-info">
-                    <span className="demo-dataset-name">{demo.name}</span>
-                    <span className="demo-dataset-description">{demo.description}</span>
-                  </div>
-                  <div className="demo-dataset-meta">
-                    <span className="demo-dataset-count">
-                      {demo.compoundCount.toLocaleString()} compounds
-                    </span>
-                    <span className="demo-dataset-type">{demo.activityType}</span>
-                  </div>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path
-                      d="M6 12l4-4-4-4"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* Actions */}
+      <div className="step-actions">
+        <button className="btn btn-ghost" onClick={goToPrevStep}>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M12.5 15l-5-5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back
+        </button>
+        <div />
       </div>
     </div>
   );

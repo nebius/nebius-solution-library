@@ -13,7 +13,7 @@
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
-  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-deep-blue) 100%);
+  background: var(--color-deep-blue);
   border-radius: var(--radius-lg);
   color: var(--color-white);
 }
@@ -41,22 +41,6 @@
 .serverless-brand-subtitle {
   font-size: var(--font-size-small);
   opacity: 0.8;
-}
-
-/* Mode selector serverless button */
-.mode-selector-btn.serverless {
-  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-deep-blue) 100%);
-  color: var(--color-white);
-  border-color: transparent;
-}
-
-.mode-selector-btn.serverless:hover {
-  opacity: 0.9;
-}
-
-.mode-selector-btn.serverless.active {
-  background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-deep-blue) 100%);
-  color: var(--color-lime);
 }
 
 /* ============================================================================
@@ -1491,4 +1475,393 @@
   50% {
     opacity: 0.5;
   }
+}
+
+/* ============================================================================
+   Model Selection Step
+   ============================================================================ */
+
+.model-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  padding: 4px;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-lg);
+}
+
+.model-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: none;
+  background: transparent;
+  color: var(--color-gray-500);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  flex: 1;
+  justify-content: center;
+}
+
+.model-tab:hover {
+  color: var(--color-deep-blue);
+  background: var(--color-gray-50);
+}
+
+.model-tab.active {
+  background: var(--color-white);
+  color: var(--color-violet);
+  box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.model-tab svg {
+  flex-shrink: 0;
+}
+
+.model-tab-count {
+  padding: 1px 8px;
+  background: var(--color-gray-200);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.model-tab.active .model-tab-count {
+  background: var(--color-violet-light);
+  color: var(--color-violet);
+}
+
+/* Model Grid */
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.model-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  background: var(--color-white);
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  width: 100%;
+}
+
+.model-card:hover {
+  border-color: var(--color-gray-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.model-card.selected {
+  border-color: var(--color-violet);
+  background: var(--color-violet-light);
+}
+
+.model-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.model-card-name {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+}
+
+.model-card-params {
+  padding: 1px 6px;
+  background: var(--color-gray-200);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-600);
+  white-space: nowrap;
+}
+
+.model-card.selected .model-card-params {
+  background: rgba(124, 58, 237, 0.15);
+  color: var(--color-violet);
+}
+
+.model-card-provider {
+  font-size: var(--font-size-small);
+  color: var(--color-gray-500);
+}
+
+.model-card-description {
+  font-size: var(--font-size-small);
+  color: var(--color-gray-600);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.model-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.model-card-task {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.model-card-task.regression {
+  background: var(--color-violet-light);
+  color: var(--color-violet);
+}
+
+.model-card-task.classification {
+  background: var(--color-lime-light);
+  color: var(--color-deep-blue);
+}
+
+.model-card-links {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.model-card-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  color: var(--color-gray-400);
+  transition: all var(--transition-fast);
+}
+
+.model-card-link:hover {
+  background: var(--color-gray-100);
+  color: var(--color-violet);
+}
+
+.model-card-check {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--color-violet);
+  border-radius: 50%;
+  color: var(--color-white);
+}
+
+/* Model Summary Card */
+.model-summary-card {
+  border-color: var(--color-violet);
+  background: linear-gradient(135deg, var(--color-violet-light) 0%, var(--color-white) 100%);
+}
+
+.model-summary-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.model-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-summary-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+.model-summary-value {
+  font-weight: var(--font-weight-medium);
+}
+
+/* ============================================================================
+   Curated Datasets Grid (Data Selection)
+   ============================================================================ */
+
+.curated-datasets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.curated-dataset-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  width: 100%;
+}
+
+.curated-dataset-card:hover {
+  border-color: var(--color-violet);
+  box-shadow: var(--shadow-sm);
+}
+
+.curated-dataset-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.curated-dataset-name {
+  font-weight: var(--font-weight-semibold);
+}
+
+.curated-dataset-source {
+  padding: 1px 6px;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+  white-space: nowrap;
+}
+
+.curated-dataset-description {
+  font-size: var(--font-size-small);
+  color: var(--color-gray-600);
+  line-height: 1.4;
+}
+
+.curated-dataset-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.curated-dataset-size {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-500);
+}
+
+.curated-dataset-columns {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.curated-dataset-column {
+  padding: 1px 6px;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family-mono);
+  color: var(--color-gray-600);
+}
+
+/* ============================================================================
+   Confusion Matrix (Evaluation Step)
+   ============================================================================ */
+
+.confusion-matrix {
+  padding: var(--spacing-lg);
+  display: flex;
+  justify-content: center;
+}
+
+.confusion-matrix-grid {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 2px;
+  max-width: 400px;
+  width: 100%;
+}
+
+.confusion-matrix-corner {
+  background: transparent;
+}
+
+.confusion-matrix-header {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-gray-100);
+  text-align: center;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-500);
+  border-radius: var(--radius-sm);
+}
+
+.confusion-matrix-label {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-gray-100);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-500);
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+}
+
+.confusion-matrix-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-sm);
+}
+
+.confusion-matrix-cell span {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: var(--spacing-xs);
+}
+
+.confusion-matrix-cell.tp {
+  background: var(--color-success);
+  color: var(--color-white);
+}
+
+.confusion-matrix-cell.tn {
+  background: var(--color-success);
+  color: var(--color-white);
+  opacity: 0.8;
+}
+
+.confusion-matrix-cell.fp {
+  background: var(--color-error);
+  color: var(--color-white);
+  opacity: 0.7;
+}
+
+.confusion-matrix-cell.fn {
+  background: var(--color-error);
+  color: var(--color-white);
+  opacity: 0.7;
 }

@@ -26,7 +26,6 @@ type StepDef = { id: WorkflowStepId; title: string; subtitle: string };
 
 const SMALL_MOLECULE_STEPS: StepDef[] = [
   { id: 'use-case', title: 'Drug Target', subtitle: 'Select drug to rediscover' },
-  { id: 'ai-planning', title: 'AI Planning', subtitle: 'Qwen3 research plan' },
   { id: 'sequence', title: 'Sequence', subtitle: 'Fetch from UniProt' },
   { id: 'structure', title: 'Structure', subtitle: 'Predict target protein' },
   { id: 'molecules', title: 'Molecules', subtitle: 'Generate candidates' },
@@ -37,7 +36,6 @@ const SMALL_MOLECULE_STEPS: StepDef[] = [
 
 const PROTEIN_BINDER_STEPS: StepDef[] = [
   { id: 'use-case', title: 'Design Goal', subtitle: 'Select binder target' },
-  { id: 'ai-planning', title: 'AI Planning', subtitle: 'Qwen3 research plan' },
   { id: 'sequence', title: 'Target Sequence', subtitle: 'Fetch from UniProt' },
   { id: 'target-structure', title: 'Target Structure', subtitle: 'Predict target protein' },
   { id: 'protein-design', title: 'Binder Design', subtitle: 'RFDiffusion backbone' },
@@ -48,7 +46,6 @@ const PROTEIN_BINDER_STEPS: StepDef[] = [
 
 const DE_NOVO_PROTEIN_STEPS: StepDef[] = [
   { id: 'use-case', title: 'Design Goal', subtitle: 'Define protein specs' },
-  { id: 'ai-planning', title: 'AI Planning', subtitle: 'Qwen3 research plan' },
   { id: 'protein-design', title: 'Structure Design', subtitle: 'RFDiffusion backbone' },
   { id: 'sequence-design', title: 'Sequence Design', subtitle: 'ProteinMPNN' },
   { id: 'validation', title: 'Validation', subtitle: 'Verify folding' },
@@ -57,7 +54,6 @@ const DE_NOVO_PROTEIN_STEPS: StepDef[] = [
 
 const ENZYME_ENGINEERING_STEPS: StepDef[] = [
   { id: 'use-case', title: 'Enzyme Target', subtitle: 'Select enzyme' },
-  { id: 'ai-planning', title: 'AI Planning', subtitle: 'Qwen3 research plan' },
   { id: 'sequence', title: 'Sequence', subtitle: 'Fetch from UniProt' },
   { id: 'structure', title: 'Structure', subtitle: 'Predict enzyme structure' },
   { id: 'summary', title: 'Summary', subtitle: 'Analysis & insights' },
@@ -78,7 +74,7 @@ function getStepsForWorkflowType(workflowType: WorkflowType): StepDef[] {
   }
 }
 
-export type WorkflowMode = 'steps' | 'agent' | 'finetuning';
+export type WorkflowMode = 'steps' | 'finetuning' | 'playground';
 
 export interface WorkflowContextValue {
   // Mode
@@ -124,7 +120,7 @@ export interface WorkflowProviderProps {
 
 export function WorkflowProvider({
   children,
-  initialMode = 'agent',
+  initialMode = 'steps',
   onDrugChange,
 }: WorkflowProviderProps) {
   const [workflowMode, setWorkflowMode] = useState<WorkflowMode>(initialMode);
@@ -217,7 +213,7 @@ export function WorkflowProvider({
     setCustomPrompt('');
   }, []);
 
-  const value: WorkflowContextValue = {
+  const value: WorkflowContextValue = useMemo(() => ({
     workflowMode,
     setWorkflowMode,
     selectedDrugId,
@@ -236,7 +232,7 @@ export function WorkflowProvider({
     customPrompt,
     setCustomPrompt,
     resetWorkflow,
-  };
+  }), [workflowMode, setWorkflowMode, selectedDrugId, selectedDrug, selectDrug, workflowType, steps, currentStepIndex, furthestStepIndex, currentStepId, goToStep, goToNextStep, goToPrevStep, handleStepClick, canNavigateToStep, customPrompt, setCustomPrompt, resetWorkflow]);
 
   return (
     <WorkflowContext.Provider value={value}>

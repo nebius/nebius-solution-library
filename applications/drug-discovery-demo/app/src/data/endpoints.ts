@@ -176,18 +176,18 @@ export const NIM_ENDPOINTS: NimEndpoint[] = [
 // Structure models available for selection
 export const STRUCTURE_MODELS = [
   {
-    id: 'openfold3',
-    name: 'OpenFold3',
-    description: 'Latest generation model with improved predictions. Good balance of speed and accuracy.',
-    badge: 'Recommended',
-    port: 8000,
-  },
-  {
     id: 'boltz2',
     name: 'Boltz2',
-    description: 'Fast inference with competitive accuracy. Great for rapid prototyping.',
-    badge: 'Fast',
+    description: 'Best accuracy on this deployment. Fast inference with excellent pLDDT scores.',
+    badge: 'Recommended',
     port: 8001,
+  },
+  {
+    id: 'openfold3',
+    name: 'OpenFold3',
+    description: 'Next-gen structure prediction. May require MSA search for best results.',
+    badge: 'Experimental',
+    port: 8000,
   },
   {
     id: 'openfold2',

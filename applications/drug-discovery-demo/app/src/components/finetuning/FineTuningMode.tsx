@@ -1,12 +1,14 @@
 /**
  * FineTuningMode Component
  *
- * Main container for the Nebius Serverless Fine-Tuning workflow.
+ * Main container for the Nebius Jobs Fine-Tuning workflow.
  * Renders the appropriate step based on current navigation state.
  */
 
 import { useFineTuning } from '../../contexts/FineTuningContext';
+import { useGateway } from '../../contexts/GatewayContext';
 import { FineTuningSidebar } from './FineTuningSidebar';
+import { ModelSelectionStep } from './steps/ModelSelectionStep';
 import { DataSelectionStep } from './steps/DataSelectionStep';
 import { DataPreviewStep } from './steps/DataPreviewStep';
 import { ModelConfigStep } from './steps/ModelConfigStep';
@@ -14,21 +16,14 @@ import { TrainingStep } from './steps/TrainingStep';
 import { EvaluationStep } from './steps/EvaluationStep';
 import { ScreeningStep } from './steps/ScreeningStep';
 
-interface FineTuningModeProps {
-  gatewayUrl: string;
-  onGatewayUrlChange: (url: string) => void;
-  onBack: () => void;
-}
-
-export function FineTuningMode({
-  gatewayUrl,
-  onGatewayUrlChange,
-  onBack,
-}: FineTuningModeProps) {
+export function FineTuningMode() {
   const { currentStepId, steps } = useFineTuning();
+  const { gatewayUrl } = useGateway();
 
   const renderStepContent = () => {
     switch (currentStepId) {
+      case 'model-selection':
+        return <ModelSelectionStep />;
       case 'data-selection':
         return <DataSelectionStep />;
       case 'data-preview':
@@ -42,18 +37,13 @@ export function FineTuningMode({
       case 'screening':
         return <ScreeningStep gatewayUrl={gatewayUrl} />;
       default:
-        return <DataSelectionStep />;
+        return <ModelSelectionStep />;
     }
   };
 
   return (
     <>
-      <FineTuningSidebar
-        steps={steps}
-        gatewayUrl={gatewayUrl}
-        onGatewayUrlChange={onGatewayUrlChange}
-        onBack={onBack}
-      />
+      <FineTuningSidebar steps={steps} />
       <div className="content">{renderStepContent()}</div>
     </>
   );

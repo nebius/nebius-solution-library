@@ -167,4 +167,5 @@ function nimProxyPlugin(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), nimProxyPlugin(), kubectlPlugin()],
+  server: {},
 })

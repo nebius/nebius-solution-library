@@ -2,26 +2,22 @@
  * FineTuningSidebar Component
  *
  * Sidebar navigation for the Fine-Tuning workflow.
- * Shows workflow steps, connection settings, and Nebius branding.
+ * Shows shared sections (mode selector, gateway, infra) via SidebarCommon,
+ * plus fine-tuning-specific steps and model info.
  */
 
 import { useFineTuning } from '../../contexts/FineTuningContext';
+import { SidebarCommon } from '../SidebarCommon';
 import type { FineTuningStep, FineTuningStepId } from '../../types/finetuning';
 
 interface FineTuningSidebarProps {
   steps: FineTuningStep[];
-  gatewayUrl: string;
-  onGatewayUrlChange: (url: string) => void;
-  onBack: () => void;
 }
 
 export function FineTuningSidebar({
   steps,
-  gatewayUrl,
-  onGatewayUrlChange,
-  onBack,
 }: FineTuningSidebarProps) {
-  const { goToStep, canNavigateToStep, trainingStatus } = useFineTuning();
+  const { goToStep, canNavigateToStep, trainingStatus, selectedModel } = useFineTuning();
 
   const handleStepClick = (stepId: FineTuningStepId) => {
     if (canNavigateToStep(stepId)) {
@@ -31,23 +27,9 @@ export function FineTuningSidebar({
 
   return (
     <aside className="sidebar">
-      {/* Back Button */}
-      <div className="sidebar-section">
-        <button className="btn btn-ghost btn-sm" onClick={onBack} style={{ width: '100%' }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path
-              d="M9 11L5 7l4-4"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Back to Workflows
-        </button>
-      </div>
+      <SidebarCommon />
 
-      {/* Nebius Serverless Branding */}
+      {/* Nebius Jobs Branding */}
       <div className="sidebar-section">
         <div className="serverless-brand">
           <div className="serverless-brand-icon">
@@ -62,11 +44,39 @@ export function FineTuningSidebar({
             </svg>
           </div>
           <div className="serverless-brand-text">
-            <span className="serverless-brand-title">Nebius Serverless</span>
+            <span className="serverless-brand-title">Nebius Jobs</span>
             <span className="serverless-brand-subtitle">GPU Fine-Tuning</span>
           </div>
         </div>
       </div>
+
+      {/* Selected Model Info */}
+      {selectedModel && (
+        <div className="sidebar-section">
+          <div className="gpu-info-panel">
+            <div className="gpu-info-header">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 2v4l3 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <span>Selected Model</span>
+            </div>
+            <div className="gpu-info-details">
+              <div className="gpu-info-item">
+                <span className="gpu-info-label">Model</span>
+                <span className="gpu-info-value">{selectedModel.name}</span>
+              </div>
+              <div className="gpu-info-item">
+                <span className="gpu-info-label">Type</span>
+                <span className="gpu-info-value" style={{ textTransform: 'capitalize' }}>{selectedModel.modality}</span>
+              </div>
+              <div className="gpu-info-item">
+                <span className="gpu-info-label">Task</span>
+                <span className="gpu-info-value" style={{ textTransform: 'capitalize' }}>{selectedModel.taskType}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Workflow Steps */}
       <div className="sidebar-section">
@@ -103,61 +113,6 @@ export function FineTuningSidebar({
               )}
             </button>
           ))}
-        </div>
-      </div>
-
-      {/* Connection Settings */}
-      <div className="sidebar-section">
-        <div className="settings-panel">
-          <div className="settings-panel-header">
-            <svg
-              className="settings-panel-icon"
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-            >
-              <path
-                d="M8 10a2 2 0 100-4 2 2 0 000 4z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M13.5 8a5.5 5.5 0 11-11 0 5.5 5.5 0 0111 0z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-            </svg>
-            <span className="settings-panel-title">Nebius API</span>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="gateway-url-ft">
-              Gateway URL
-            </label>
-            <input
-              id="gateway-url-ft"
-              type="text"
-              className="form-input"
-              placeholder="http://10.0.0.1"
-              value={gatewayUrl}
-              onChange={(e) => onGatewayUrlChange(e.target.value)}
-            />
-          </div>
-
-          <div className="connection-status">
-            {gatewayUrl ? (
-              <span className="connection-status-badge connected">
-                <span className="status-dot" />
-                Connected
-              </span>
-            ) : (
-              <span className="connection-status-badge demo">
-                <span className="status-dot" />
-                Demo Mode
-              </span>
-            )}
-          </div>
         </div>
       </div>
 

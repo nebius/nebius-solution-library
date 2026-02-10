@@ -3,7 +3,6 @@
  *
  * Manages the connection to the NIM gateway, including:
  * - Gateway URL configuration
- * - Demo mode toggle
  * - Endpoint health status
  * - Health check functionality
  *
@@ -16,21 +15,17 @@ import {
   useState,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   type ReactNode,
 } from 'react';
 import { NIM_ENDPOINTS, type NimEndpoint } from '../data/endpoints';
 import { checkAllEndpointsHealth } from '../services/nimApi';
-import { setDemoMode } from '../services/demoService';
 
 export interface GatewayContextValue {
   // Connection settings
   gatewayUrl: string;
   setGatewayUrl: (url: string) => void;
-
-  // Demo mode
-  demoModeEnabled: boolean;
-  setDemoModeEnabled: (enabled: boolean) => void;
 
   // Endpoint status
   endpoints: NimEndpoint[];
@@ -48,16 +43,13 @@ const GatewayContext = createContext<GatewayContextValue | null>(null);
 export interface GatewayProviderProps {
   children: ReactNode;
   initialGatewayUrl?: string;
-  initialDemoMode?: boolean;
 }
 
 export function GatewayProvider({
   children,
   initialGatewayUrl = '',
-  initialDemoMode = false,
 }: GatewayProviderProps) {
   const [gatewayUrl, setGatewayUrlState] = useState(initialGatewayUrl);
-  const [demoModeEnabled, setDemoModeEnabledState] = useState(initialDemoMode);
   const [endpoints, setEndpoints] = useState<NimEndpoint[]>(NIM_ENDPOINTS);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
@@ -66,11 +58,11 @@ export function GatewayProvider({
 
   // Derived: connection state
   const requiredEndpoints = endpoints.filter((e) => e.required);
-  const isConnected = requiredEndpoints.some((e) => e.status === 'ready') || demoModeEnabled;
+  const isConnected = requiredEndpoints.some((e) => e.status === 'ready');
 
   // Health check function
   const runHealthCheck = useCallback(async () => {
-    if (!gatewayUrl.trim() || demoModeEnabled) return;
+    if (!gatewayUrl.trim()) return;
 
     setIsCheckingHealth(true);
     setEndpoints((prev) =>
@@ -86,36 +78,15 @@ export function GatewayProvider({
       })
     );
     setIsCheckingHealth(false);
-  }, [gatewayUrl, demoModeEnabled]);
+  }, [gatewayUrl]);
 
-  // Handle gateway URL changes with debounced health check
+  // Handle gateway URL changes
   const setGatewayUrl = useCallback((url: string) => {
     setGatewayUrlState(url);
   }, []);
 
-  // Handle demo mode changes
-  const setDemoModeEnabled = useCallback((enabled: boolean) => {
-    setDemoModeEnabledState(enabled);
-    setDemoMode(enabled);
-
-    if (enabled) {
-      // In demo mode, mark all endpoints as ready
-      setEndpoints((prev) =>
-        prev.map((e) => ({ ...e, status: 'ready' as const }))
-      );
-    } else {
-      // Reset endpoints to unknown
-      setEndpoints((prev) =>
-        prev.map((e) => ({ ...e, status: 'unknown' as const }))
-      );
-    }
-  }, []);
-
   // Run health check when gateway URL changes (debounced)
   useEffect(() => {
-    // Skip in demo mode
-    if (demoModeEnabled) return;
-
     if (healthCheckTimerRef.current) {
       clearTimeout(healthCheckTimerRef.current);
     }
@@ -134,18 +105,16 @@ export function GatewayProvider({
         clearTimeout(healthCheckTimerRef.current);
       }
     };
-  }, [gatewayUrl, runHealthCheck, demoModeEnabled]);
+  }, [gatewayUrl, runHealthCheck]);
 
-  const value: GatewayContextValue = {
+  const value: GatewayContextValue = useMemo(() => ({
     gatewayUrl,
     setGatewayUrl,
-    demoModeEnabled,
-    setDemoModeEnabled,
     endpoints,
     isCheckingHealth,
     isConnected,
     runHealthCheck,
-  };
+  }), [gatewayUrl, setGatewayUrl, endpoints, isCheckingHealth, isConnected, runHealthCheck]);
 
   return (
     <GatewayContext.Provider value={value}>

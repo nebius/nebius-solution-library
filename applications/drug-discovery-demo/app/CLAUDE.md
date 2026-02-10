@@ -1,140 +1,110 @@
-# Claude Code Project Configuration
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Build Commands
+
+```bash
+npm install          # Install dependencies
+npm run dev          # Start dev server (http://localhost:5173)
+npm run build        # TypeScript check + Vite production build
+npm run lint         # ESLint check
+npm run preview      # Preview production build
+```
 
 ## Project Overview
 
-Drug Discovery Demo - Interactive React application showcasing NVIDIA NIMs for AI-driven drug discovery on Nebius AI Cloud.
+Drug Discovery Demo - Interactive React application showcasing NVIDIA NIMs for AI-driven drug discovery on Nebius AI Cloud. Supports two workflow modes and multiple drug discovery pipelines.
 
-## Custom Agents
+## Architecture
 
-### UI Testing Agent
+### Two Workflow Modes
 
-Use this agent to validate UI components, user flows, and accessibility.
+1. **Step-by-Step Mode** (`workflowMode: 'steps'`) - Default. Guided linear workflow. Steps vary by workflow type:
+   - `small-molecule`: 8 steps (Use Case -> AI Planning -> Sequence -> Structure -> Molecules -> Docking -> Rediscovery -> Summary)
+   - `protein-binder`: 8 steps (adds RFDiffusion + ProteinMPNN)
+   - `de-novo-protein`: 6 steps (unconditional protein generation)
+   - `enzyme-engineering`: 5 steps
 
-**How to invoke:**
-```
-Use the Task tool with subagent_type="Explore" and include "UI-TESTING-AGENT" in the prompt
-```
+2. **Fine-Tuning Mode** (`workflowMode: 'finetuning'`) - Nebius Serverless AI for training custom QSAR models. 6 steps: Data Selection -> Preview -> Config -> Training -> Evaluation -> Screening.
 
-**Agent Prompt Template:**
-```
-UI-TESTING-AGENT: You are a specialized UI testing agent for the Drug Discovery Demo.
+### State Management (React Context)
 
-Your responsibilities:
-1. Review React components for correctness and best practices
-2. Check for accessibility issues (ARIA labels, keyboard navigation, color contrast)
-3. Validate user flows work correctly (step-by-step workflow, agent chat)
-4. Identify missing error handling or edge cases
-5. Check responsive design and mobile compatibility
-6. Verify loading states, error states, and empty states are handled
-7. Review CSS for consistency and potential issues
+State is managed via four contexts in `src/contexts/`:
 
-Focus areas:
-- src/components/ - All React components
-- src/styles/ - CSS files
-- User interactions and state management
+- **GatewayContext** - Connection settings, NIM endpoint health
+- **WorkflowContext** - Navigation, selected drug, workflow type, mode switching
+- **WorkflowDataContext** - Results flowing between steps (proteinInfo, structureResult, molecules, docking)
+- **FineTuningContext** - Dataset, model config, training status, evaluation results
 
-Report findings as:
-- CRITICAL: Broken functionality
-- WARNING: Usability issues
-- SUGGESTION: Improvements
+All contexts are combined in `AppProvider.tsx` which wraps the app in `main.tsx`.
 
-[TASK]: {describe what to test}
-```
+### NIM Service Layer
 
----
+Services in `src/services/` follow these patterns:
 
-### Drug Discovery Agent
+**URL Building**: All NIM calls use `buildNimUrl()` from `nimApi.ts`:
+- Both dev and prod route through `/api/nim-proxy/{host}/{port}{path}`
+- In dev: Vite plugin intercepts and proxies to NIM endpoints
+- In prod: Express server proxies to NIM endpoints (supports cluster-internal routing via `NIM_GATEWAY_URL` env var)
 
-Use this agent to validate scientific accuracy and drug discovery workflow correctness.
+**Key endpoints** (defined in `src/data/endpoints.ts`):
+| Service | Port | Purpose |
+|---------|------|---------|
+| Qwen3-80B | 8008 | LLM planning |
+| Boltz2 | 8001 | Structure prediction (recommended) |
+| OpenFold3 | 8000 | Structure prediction (experimental) |
+| DiffDock | 8007 | Molecular docking |
+| GenMol | 8005 | Molecule generation |
+| RFDiffusion | 8010 | Protein backbone design |
+| ProteinMPNN | 8009 | Sequence design |
 
-**How to invoke:**
-```
-Use the Task tool with subagent_type="Explore" and include "DRUG-DISCOVERY-AGENT" in the prompt
-```
+### Express Server (Production)
 
-**Agent Prompt Template:**
-```
-DRUG-DISCOVERY-AGENT: You are a specialized drug discovery validation agent.
+The `server/` directory contains a lightweight Express 5 server for production:
+- **NIM Proxy** (`server/routes/nimProxy.ts`) - Proxies browser requests to cluster-internal NIM services
+- **SPA fallback** - Serves the built React app for all non-API routes
+- **Express 5 gotcha**: Wildcard routes use `{*path}` syntax (not `*`). The `{*path}` param returns an **array** of segments.
 
-Your responsibilities:
-1. Validate scientific accuracy of drug targets (UniProt IDs, protein names, mechanisms)
-2. Check mock data correctness (SMILES strings, PDB structures, docking scores)
-3. Verify API request/response formats match NIM specifications
-4. Ensure drug-likeness calculations are correct (Lipinski, QED)
-5. Validate molecule generation parameters and constraints
-6. Check docking workflow logic and confidence score handling
-7. Review LLM prompts for scientific accuracy
+### K8s Deployment
 
-Focus areas:
-- src/data/drugs.ts - Drug target definitions
-- src/data/mockData.ts - Mock scientific data
-- src/services/ - API integrations
-- Scientific caveats and disclaimers
+- `Dockerfile` - Multi-stage build (React frontend + Express server)
+- `k8s/deployment.yaml` - Pod spec with `NIM_GATEWAY_URL=nims-gateway` for cluster-internal routing
+- `k8s/service.yaml` - LoadBalancer service on port 80
+- `deploy.sh` - Build, push, deploy script
 
-Report findings as:
-- SCIENTIFIC ERROR: Incorrect data or calculations
-- API MISMATCH: Request/response format issues
-- DATA QUALITY: Mock data improvements needed
-- ACCURACY: Suggestions for better scientific representation
+## Key Patterns
 
-[TASK]: {describe what to validate}
+### OpenFold3 API Format (Critical)
+
+```json
+{
+  "inputs": [{
+    "input_id": "prediction_1",
+    "molecules": [
+      {"type": "protein", "id": "A", "sequence": "...", "msa": {"main": {"a3m": {"alignment": ">query\n...", "format": "a3m"}}}}
+    ],
+    "diffusion_samples": 1,
+    "output_format": "cif"
+  }]
+}
 ```
 
----
+- `inputs` must be an **array**, not object
+- Each molecule needs `msa` with at least query sequence
+- For homodimers (e.g., COX-2): add multiple molecules with IDs "A", "B"
+- Response: `data.outputs[0].structures_with_scores[0]`
 
-## Example Agent Invocations
+### Homodimer Handling
 
-### Run UI Testing Agent
-```
-Task: UI-TESTING-AGENT - Review the K8sScalingPanel component for accessibility issues, proper error handling, and loading states. Check that the modal overlay works correctly and keyboard navigation is supported.
-```
+Check `DrugTarget.targetProtein.oligomericState` - if "homodimer", add multiple chains with same sequence. Use `getNumCopiesFromOligomericState()` helper.
 
-### Run Drug Discovery Agent
-```
-Task: DRUG-DISCOVERY-AGENT - Validate the mock protein data in mockData.ts. Ensure UniProt IDs are correct, protein sequences are valid, and the structure prediction mock data has realistic confidence scores.
-```
+### Structure Prediction Fallback
 
-### Run Both Agents After Changes
-```
-After making changes to the codebase, spawn both agents to validate:
-1. UI agent checks component correctness
-2. Drug discovery agent checks scientific accuracy
-```
+Primary model fails -> tries next in order: `boltz2 -> openfold3 -> openfold2`
 
----
+## Testing
 
-## Code Quality Guidelines
-
-### React Components
-- Use functional components with hooks
-- Proper TypeScript typing for all props
-- Handle loading, error, and empty states
-- Use semantic HTML and ARIA attributes
-
-### Services
-- All API calls should check for demo mode first
-- Proper error handling with user-friendly messages
-- TypeScript interfaces for all request/response types
-
-### Scientific Data
-- All UniProt IDs should be valid and verifiable
-- SMILES strings should be chemically valid
-- Confidence scores should be in realistic ranges
-- Include scientific caveats where appropriate
-
----
-
-## Testing Checklist
-
-### Before Committing
-- [ ] Build passes: `npm run build`
-- [ ] No TypeScript errors
-- [ ] UI flows work in browser
-- [ ] Demo mode functions correctly
-- [ ] K8s scaling panel works (if kubectl connected)
-
-### Periodic Validation
-- [ ] Run UI Testing Agent on modified components
-- [ ] Run Drug Discovery Agent on data changes
-- [ ] Verify all drug targets have correct UniProt IDs
-- [ ] Check mock data produces realistic results
+Before committing:
+- `npm run build` passes (TypeScript + Vite)
+- UI flows work in browser

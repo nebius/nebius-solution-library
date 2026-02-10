@@ -1,14 +1,54 @@
 /**
  * Fine-Tuning Types
  *
- * Type definitions for the Nebius Serverless Fine-Tuning workflow.
+ * Type definitions for the Nebius Jobs Fine-Tuning workflow.
  */
+
+// ============================================================================
+// Modality & Task Types
+// ============================================================================
+
+export type ModelModality = 'molecular' | 'protein';
+export type TaskType = 'regression' | 'classification';
+
+// ============================================================================
+// Model Registry Types
+// ============================================================================
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  provider: string;
+  params: string;
+  modality: ModelModality;
+  taskType: TaskType;
+  description: string;
+  paperUrl: string;
+  huggingFaceUrl: string;
+  defaultHyperparameters: HyperParameters;
+}
+
+// ============================================================================
+// Dataset Registry Types
+// ============================================================================
+
+export interface CuratedDataset {
+  id: string;
+  name: string;
+  source: string;
+  modality: ModelModality;
+  size: number;
+  taskType: TaskType;
+  description: string;
+  columns: string[];
+  sampleData: Array<{ input: string; label: string }>;
+}
 
 // ============================================================================
 // Data Types
 // ============================================================================
 
-export type DataSourceType = 'chembl' | 'upload' | 'demo';
+export type DataSourceType = 'chembl' | 'upload' | 'demo' | 'curated';
 
 export interface ChemBLTarget {
   chemblId: string;
@@ -60,7 +100,7 @@ export interface DemoDataset {
 // Model Configuration
 // ============================================================================
 
-export type BaseModelId = 'chemberta-77m-mtr' | 'chemberta-77m-mlm' | 'molbert-100m';
+export type BaseModelId = string;
 
 export interface BaseModel {
   id: BaseModelId;
@@ -89,7 +129,7 @@ export interface TrainingConfig {
 }
 
 // ============================================================================
-// Nebius Serverless Types
+// Nebius Jobs Types
 // ============================================================================
 
 export type JobState =
@@ -108,6 +148,8 @@ export interface TrainingMetrics {
   valR2?: number;
   valMae?: number;
   valRmse?: number;
+  valAccuracy?: number;
+  valF1?: number;
   learningRate: number;
 }
 
@@ -157,6 +199,9 @@ export interface TrainingResult {
     testR2: number;
     testMae: number;
     testRmse: number;
+    testAccuracy?: number;
+    testF1?: number;
+    testAucRoc?: number;
   };
   trainingTime: number;
   totalCost: number;
@@ -174,6 +219,14 @@ export interface EvaluationMetrics {
   spearmanR: number;
 }
 
+export interface ClassificationMetrics {
+  accuracy: number;
+  f1: number;
+  aucRoc: number;
+  confusionMatrix: number[][]; // [[TP, FP], [FN, TN]]
+  classLabels: string[];
+}
+
 export interface PredictionPoint {
   actual: number;
   predicted: number;
@@ -183,6 +236,7 @@ export interface PredictionPoint {
 
 export interface EvaluationResult {
   testMetrics: EvaluationMetrics;
+  classificationMetrics?: ClassificationMetrics;
   predictions: PredictionPoint[];
   residualStats: {
     mean: number;
@@ -242,6 +296,7 @@ export interface ScreeningJob {
 // ============================================================================
 
 export type FineTuningStepId =
+  | 'model-selection'
   | 'data-selection'
   | 'data-preview'
   | 'model-config'
@@ -257,10 +312,11 @@ export interface FineTuningStep {
 }
 
 export const FINETUNING_STEPS: Omit<FineTuningStep, 'status'>[] = [
+  { id: 'model-selection', title: 'Model', subtitle: 'Choose base model' },
   { id: 'data-selection', title: 'Data', subtitle: 'Select training data' },
   { id: 'data-preview', title: 'Preview', subtitle: 'Review & validate' },
-  { id: 'model-config', title: 'Configure', subtitle: 'Model & parameters' },
-  { id: 'training', title: 'Train', subtitle: 'Nebius Serverless' },
+  { id: 'model-config', title: 'Configure', subtitle: 'Hyperparameters' },
+  { id: 'training', title: 'Train', subtitle: 'Nebius Jobs' },
   { id: 'evaluation', title: 'Evaluate', subtitle: 'Model performance' },
   { id: 'screening', title: 'Screen', subtitle: 'Deploy & predict' },
 ];

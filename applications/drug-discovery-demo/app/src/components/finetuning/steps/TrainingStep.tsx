@@ -1,8 +1,8 @@
 /**
  * TrainingStep Component
  *
- * Fourth step: Execute training on Nebius Serverless with live updates.
- * This is the key showcase of Nebius Serverless capabilities.
+ * Fifth step: Execute training on Nebius Jobs with live updates.
+ * Modality-aware metrics display (R²/MAE for regression, Acc/F1 for classification).
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -13,10 +13,11 @@ interface TrainingStepProps {
   gatewayUrl: string;
 }
 
-export function TrainingStep({ gatewayUrl }: TrainingStepProps) {
+export function TrainingStep({ gatewayUrl: _gatewayUrl }: TrainingStepProps) {
   const {
     dataset,
     baseModel,
+    selectedModel,
     hyperparameters,
     trainingStatus,
     setTrainingStatus,
@@ -32,6 +33,8 @@ export function TrainingStep({ gatewayUrl }: TrainingStepProps) {
 
   const [isStarting, setIsStarting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const isClassification = selectedModel?.taskType === 'classification';
 
   // Check if training is in progress
   const isTraining = trainingStatus?.state === 'running' || trainingStatus?.state === 'initializing';
@@ -67,36 +70,30 @@ export function TrainingStep({ gatewayUrl }: TrainingStepProps) {
       hyperparameters,
     };
 
-    // For now, always use simulation (demo mode)
-    // In production, this would check gatewayUrl and call real API
-    const isDemoMode = !gatewayUrl;
+    setTrainingJobId(`ft-${Date.now().toString(36)}`);
+    setIsStarting(false);
 
-    if (isDemoMode || true) {
-      // Simulate training
-      setTrainingJobId(`ft-demo-${Date.now().toString(36)}`);
-      setIsStarting(false);
-
-      await simulateTraining(
-        config,
-        dataset.validCount,
-        {
-          onStatusUpdate: setTrainingStatus,
-          onLogEntry: addTrainingLog,
-          onComplete: (result) => {
-            setTrainingResult(result);
-          },
-          onError: (error) => {
-            addTrainingLog({ level: 'error', message: error, emoji: '❌' });
-          },
+    await simulateTraining(
+      config,
+      dataset.validCount,
+      {
+        onStatusUpdate: setTrainingStatus,
+        onLogEntry: addTrainingLog,
+        onComplete: (result) => {
+          setTrainingResult(result);
         },
-        abortControllerRef.current.signal
-      );
-    }
+        onError: (error) => {
+          addTrainingLog({ level: 'error', message: error, emoji: '' });
+        },
+      },
+      abortControllerRef.current.signal,
+      selectedModel ?? undefined
+    );
   }, [
     dataset,
     baseModel,
+    selectedModel,
     hyperparameters,
-    gatewayUrl,
     clearTrainingLogs,
     setTrainingResult,
     setTrainingJobId,
@@ -124,18 +121,18 @@ export function TrainingStep({ gatewayUrl }: TrainingStepProps) {
     <div className="step-content">
       <div className="content-header">
         <div>
-          <h1 className="content-title">Training on Nebius Serverless</h1>
+          <h1 className="content-title">Training on Nebius Jobs</h1>
           <p className="content-subtitle">
             {isTraining
-              ? 'Your model is training on Nebius Serverless GPU...'
+              ? `Training ${selectedModel?.name || 'model'} on Nebius Jobs GPU...`
               : isCompleted
               ? 'Training complete!'
-              : 'Ready to start training'}
+              : `Ready to train ${selectedModel?.name || 'model'}`}
           </p>
         </div>
       </div>
 
-      {/* Nebius Serverless Status Banner */}
+      {/* Nebius Jobs Status Banner */}
       <div className={`serverless-banner ${trainingStatus?.state || 'pending'}`}>
         <div className="serverless-banner-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -149,7 +146,7 @@ export function TrainingStep({ gatewayUrl }: TrainingStepProps) {
           </svg>
         </div>
         <div className="serverless-banner-content">
-          <span className="serverless-banner-title">NEBIUS SERVERLESS GPU</span>
+          <span className="serverless-banner-title">NEBIUS JOBS GPU</span>
           <span className="serverless-banner-status">
             {trainingStatus?.gpu.platform || 'gpu-h200-sxm'} •{' '}
             {trainingStatus?.gpu.preset || '1gpu-16vcpu-200gb'} •{' '}
@@ -181,8 +178,8 @@ export function TrainingStep({ gatewayUrl }: TrainingStepProps) {
             </div>
             <h3 className="training-start-title">Ready to Train</h3>
             <p className="training-start-description">
-              Fine-tune {baseModel.replace('-', ' ').toUpperCase()} on{' '}
-              {dataset?.validCount.toLocaleString()} compounds for {hyperparameters.epochs} epochs.
+              Fine-tune {selectedModel?.name || baseModel} on{' '}
+              {dataset?.validCount.toLocaleString()} {selectedModel?.modality === 'protein' ? 'sequences' : 'compounds'} for {hyperparameters.epochs} epochs.
             </p>
             <div className="training-start-estimates">
               <span>Est. Time: ~{Math.ceil((dataset?.validCount || 1000) / 100)}m</span>
@@ -245,18 +242,37 @@ export function TrainingStep({ gatewayUrl }: TrainingStepProps) {
                     {trainingStatus?.metrics.loss?.toFixed(3) || '-'}
                   </span>
                 </div>
-                <div className="metric-item">
-                  <span className="metric-label">Val R²</span>
-                  <span className="metric-value highlight">
-                    {trainingStatus?.metrics.valR2?.toFixed(3) || '-'}
-                  </span>
-                </div>
-                <div className="metric-item">
-                  <span className="metric-label">Val MAE</span>
-                  <span className="metric-value">
-                    {trainingStatus?.metrics.valMae?.toFixed(3) || '-'}
-                  </span>
-                </div>
+                {isClassification ? (
+                  <>
+                    <div className="metric-item">
+                      <span className="metric-label">Val Acc</span>
+                      <span className="metric-value highlight">
+                        {trainingStatus?.metrics.valAccuracy?.toFixed(3) || '-'}
+                      </span>
+                    </div>
+                    <div className="metric-item">
+                      <span className="metric-label">Val F1</span>
+                      <span className="metric-value">
+                        {trainingStatus?.metrics.valF1?.toFixed(3) || '-'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="metric-item">
+                      <span className="metric-label">Val R²</span>
+                      <span className="metric-value highlight">
+                        {trainingStatus?.metrics.valR2?.toFixed(3) || '-'}
+                      </span>
+                    </div>
+                    <div className="metric-item">
+                      <span className="metric-label">Val MAE</span>
+                      <span className="metric-value">
+                        {trainingStatus?.metrics.valMae?.toFixed(3) || '-'}
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="metric-item">
                   <span className="metric-label">GPU Util</span>
                   <span className="metric-value">
@@ -276,7 +292,7 @@ export function TrainingStep({ gatewayUrl }: TrainingStepProps) {
               </svg>
             </div>
             <div className="cost-tracker-content">
-              <span className="cost-tracker-label">SERVERLESS COST TRACKER</span>
+              <span className="cost-tracker-label">NEBIUS JOBS COST TRACKER</span>
               <div className="cost-tracker-details">
                 <span>
                   GPU Time: {formatTime((trainingStatus?.cost.gpuTimeSeconds || 0) * 1000)}
@@ -319,18 +335,37 @@ export function TrainingStep({ gatewayUrl }: TrainingStepProps) {
             <span className="card-badge success">Success</span>
           </div>
           <div className="training-complete-summary">
-            <div className="summary-item">
-              <span className="summary-label">Final Test R²</span>
-              <span className="summary-value highlight">
-                {trainingResult.finalMetrics.testR2.toFixed(3)}
-              </span>
-            </div>
-            <div className="summary-item">
-              <span className="summary-label">Test MAE</span>
-              <span className="summary-value">
-                {trainingResult.finalMetrics.testMae.toFixed(3)}
-              </span>
-            </div>
+            {isClassification ? (
+              <>
+                <div className="summary-item">
+                  <span className="summary-label">Test Accuracy</span>
+                  <span className="summary-value highlight">
+                    {(trainingResult.finalMetrics.testAccuracy ?? 0).toFixed(3)}
+                  </span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Test F1</span>
+                  <span className="summary-value">
+                    {(trainingResult.finalMetrics.testF1 ?? 0).toFixed(3)}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="summary-item">
+                  <span className="summary-label">Final Test R²</span>
+                  <span className="summary-value highlight">
+                    {trainingResult.finalMetrics.testR2.toFixed(3)}
+                  </span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Test MAE</span>
+                  <span className="summary-value">
+                    {trainingResult.finalMetrics.testMae.toFixed(3)}
+                  </span>
+                </div>
+              </>
+            )}
             <div className="summary-item">
               <span className="summary-label">Training Time</span>
               <span className="summary-value">{formatTime(trainingResult.trainingTime)}</span>

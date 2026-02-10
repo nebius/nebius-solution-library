@@ -6,6 +6,7 @@
  * - Size variants (sm, md, lg)
  * - Icon buttons
  * - Loading states
+ * - Focus-visible styles
  */
 
 /* Base Button */
@@ -27,6 +28,11 @@
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-violet);
+  outline-offset: 2px;
 }
 
 /* Primary Button */

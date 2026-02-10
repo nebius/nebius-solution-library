@@ -10,7 +10,6 @@ import {
   DEFAULT_NAMESPACE,
   type GpuType,
 } from '../data/k8sMapping';
-import { isDemoMode } from './demoService';
 
 // Types
 
@@ -74,10 +73,6 @@ function detectGpuType(labels: Record<string, string>): GpuType | null {
 // API Functions
 
 export async function checkK8sHealth(): Promise<K8sHealthCheck> {
-  if (isDemoMode()) {
-    return { connected: true, context: 'demo-cluster' };
-  }
-
   try {
     const res = await fetch('/api/k8s/health');
     const data = await res.json();
@@ -88,10 +83,6 @@ export async function checkK8sHealth(): Promise<K8sHealthCheck> {
 }
 
 export async function getDeployments(namespace = DEFAULT_NAMESPACE): Promise<K8sDeployment[]> {
-  if (isDemoMode()) {
-    return getMockDeployments();
-  }
-
   try {
     const res = await fetch(`/api/k8s/deployments?namespace=${namespace}`);
     const data = await res.json();
@@ -152,12 +143,6 @@ export async function scaleDeployment(
   replicas: number,
   namespace = DEFAULT_NAMESPACE
 ): Promise<{ success: boolean; error?: string }> {
-  if (isDemoMode()) {
-    // Simulate delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return { success: true };
-  }
-
   try {
     const res = await fetch('/api/k8s/scale', {
       method: 'POST',
@@ -173,10 +158,6 @@ export async function scaleDeployment(
 }
 
 export async function getClusterCapacity(): Promise<ClusterCapacity> {
-  if (isDemoMode()) {
-    return getMockClusterCapacity();
-  }
-
   const health = await checkK8sHealth();
   if (!health.connected) {
     return {
@@ -286,10 +267,6 @@ export async function canScale(
 // Node group functions
 
 export async function getNodeGroups(): Promise<NodeGroup[]> {
-  if (isDemoMode()) {
-    return getMockNodeGroups();
-  }
-
   try {
     const res = await fetch('/api/k8s/nodegroups');
     const data = await res.json();
@@ -345,12 +322,6 @@ export async function scaleNodeGroup(
   nodeGroupId: string,
   nodeCount: number
 ): Promise<ScaleNodeGroupResult> {
-  if (isDemoMode()) {
-    // Simulate delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return { success: true };
-  }
-
   try {
     const res = await fetch('/api/k8s/scale-nodegroup', {
       method: 'POST',
@@ -370,113 +341,3 @@ export async function scaleNodeGroup(
   }
 }
 
-// Mock data for demo mode
-
-function getMockNodeGroups(): NodeGroup[] {
-  return [
-    {
-      id: 'gpu-nodegroup-b200',
-      name: 'GPU Node Group (B200)',
-      nodeCount: 2,
-      gpuType: 'B200',
-      gpuPerNode: 8,
-      totalGpus: 16,
-    },
-  ];
-}
-
-function getMockDeployments(): K8sDeployment[] {
-  return [
-    {
-      name: 'openfold3',
-      nimId: 'openfold3',
-      displayName: 'OpenFold3',
-      replicas: 1,
-      availableReplicas: 1,
-      readyReplicas: 1,
-      gpuType: 'B200',
-      gpuCount: 1,
-      status: 'healthy',
-    },
-    {
-      name: 'boltz2',
-      nimId: 'boltz2',
-      displayName: 'Boltz2',
-      replicas: 1,
-      availableReplicas: 1,
-      readyReplicas: 1,
-      gpuType: 'B200',
-      gpuCount: 1,
-      status: 'healthy',
-    },
-    {
-      name: 'openfold2',
-      nimId: 'openfold2',
-      displayName: 'OpenFold2',
-      replicas: 1,
-      availableReplicas: 1,
-      readyReplicas: 1,
-      gpuType: 'B200',
-      gpuCount: 1,
-      status: 'healthy',
-    },
-    {
-      name: 'genmol',
-      nimId: 'genmol',
-      displayName: 'GenMol',
-      replicas: 1,
-      availableReplicas: 1,
-      readyReplicas: 1,
-      gpuType: 'B200',
-      gpuCount: 1,
-      status: 'healthy',
-    },
-    {
-      name: 'diffdock',
-      nimId: 'diffdock',
-      displayName: 'DiffDock',
-      replicas: 1,
-      availableReplicas: 1,
-      readyReplicas: 1,
-      gpuType: 'B200',
-      gpuCount: 1,
-      status: 'healthy',
-    },
-    {
-      name: 'qwen3-next-80b-a3b-instruct',
-      nimId: 'qwen3',
-      displayName: 'Qwen3-80B',
-      replicas: 1,
-      availableReplicas: 1,
-      readyReplicas: 1,
-      gpuType: 'B200',
-      gpuCount: 2,
-      status: 'healthy',
-    },
-    {
-      name: 'msa-search',
-      nimId: 'msa',
-      displayName: 'MSA Search',
-      replicas: 1,
-      availableReplicas: 1,
-      readyReplicas: 1,
-      gpuType: 'B200',
-      gpuCount: 1,
-      status: 'healthy',
-    },
-  ];
-}
-
-function getMockClusterCapacity(): ClusterCapacity {
-  return {
-    connected: true,
-    context: 'demo-nebius-cluster',
-    nodes: [
-      { name: 'gpu-node-b200-1', gpuType: 'B200', gpuCount: 8, gpuAllocatable: 8, status: 'Ready' },
-      { name: 'gpu-node-b200-2', gpuType: 'B200', gpuCount: 8, gpuAllocatable: 8, status: 'Ready' },
-    ],
-    totalGpus: { B200: 16 },
-    usedGpus: { B200: 9 },
-    availableGpus: { B200: 7 },
-  };
-}

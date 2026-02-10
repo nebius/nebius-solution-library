@@ -1,7 +1,5 @@
 // UniProt API service for fetching protein sequences
 
-import { isDemoMode, demoFetchSequence, demoSearchProteins } from './demoService';
-
 export interface UniProtEntry {
   accession: string;
   id: string;
@@ -19,23 +17,6 @@ export interface UniProtEntry {
 export async function fetchSequence(accession: string): Promise<UniProtEntry> {
   // Clean up accession (remove whitespace, convert to uppercase)
   const cleanAccession = accession.trim().toUpperCase();
-
-  // Check for demo mode
-  if (isDemoMode()) {
-    const mockData = await demoFetchSequence(cleanAccession);
-    if (mockData) {
-      return {
-        accession: mockData.accession,
-        id: mockData.accession,
-        proteinName: mockData.name,
-        geneName: '',
-        organism: mockData.organism,
-        sequence: mockData.sequence,
-        length: mockData.length,
-      };
-    }
-    throw new Error(`Protein not found in demo mode: ${cleanAccession}`);
-  }
 
   // Fetch FASTA format for the sequence
   const fastaUrl = `https://rest.uniprot.org/uniprotkb/${cleanAccession}.fasta`;
@@ -89,11 +70,6 @@ export async function searchProteins(
   query: string,
   limit: number = 10
 ): Promise<Array<{ accession: string; name: string; organism: string }>> {
-  // Check for demo mode
-  if (isDemoMode()) {
-    return demoSearchProteins(query, limit);
-  }
-
   const encodedQuery = encodeURIComponent(query);
   const url = `https://rest.uniprot.org/uniprotkb/search?query=${encodedQuery}&format=json&size=${limit}`;
 

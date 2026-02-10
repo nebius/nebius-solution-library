@@ -22,7 +22,6 @@
  */
 
 import type { NimEndpoint } from '../data/endpoints';
-import { isDemoMode, demoCheckHealth, demoStreamChat } from './demoService';
 
 /**
  * Centralized endpoint configuration
@@ -93,8 +92,10 @@ export function normalizeGatewayUrl(url: string): string {
 
 /**
  * Build URL for NIM endpoint.
- * In development, uses local proxy to avoid CORS.
- * In production, hits the NIM endpoints directly.
+ * In development, uses the Vite proxy to avoid CORS.
+ * In production, uses the Express server's NIM proxy (/api/nim-proxy/)
+ * so the browser only needs to reach the Express server, not each NIM directly.
+ * This is critical for K8s deployments where NIMs are cluster-internal.
  */
 export function buildNimUrl(
   gatewayUrl: string,
@@ -103,13 +104,11 @@ export function buildNimUrl(
 ): string {
   const baseUrl = normalizeGatewayUrl(gatewayUrl);
 
-  // In development, use the Vite proxy to avoid CORS
-  if (import.meta.env.DEV) {
-    return `/api/nim-proxy/${baseUrl}/${port}${path}`;
-  }
-
-  // In production, hit the endpoints directly
-  return `http://${baseUrl}:${port}${path}`;
+  // Both dev and prod use the proxy route.
+  // In dev: Vite intercepts /api/nim-proxy/* and proxies to the NIM.
+  // In prod: Express server intercepts /api/nim-proxy/* and proxies to the NIM.
+  // The server can override the host via NIM_GATEWAY_URL env var for cluster-internal routing.
+  return `/api/nim-proxy/${baseUrl}/${port}${path}`;
 }
 
 /**
@@ -156,15 +155,6 @@ export async function checkAllEndpointsHealth(
   endpoints: NimEndpoint[],
   timeoutMs: number = 5000
 ): Promise<HealthCheckResult[]> {
-  // Check for demo mode
-  if (isDemoMode()) {
-    const mockResults = await demoCheckHealth(endpoints);
-    return mockResults.map((r) => ({
-      id: r.id,
-      status: r.status === 'ready' ? 'ready' : 'not-ready',
-    }));
-  }
-
   const healthChecks = endpoints.map((endpoint) =>
     checkEndpointHealth(gatewayUrl, endpoint, timeoutMs)
   );
@@ -193,12 +183,6 @@ export async function* streamChat(
     maxTokens?: number;
   } = {}
 ): AsyncGenerator<string, void, unknown> {
-  // Check for demo mode
-  if (isDemoMode()) {
-    yield* demoStreamChat(messages);
-    return;
-  }
-
   const { model = 'Qwen/Qwen3-Next-80B-A3B-Instruct', temperature = 0, maxTokens = 2048 } = options;
 
   const chatUrl = buildNimUrl(gatewayUrl, 8008, '/v1/chat/completions');

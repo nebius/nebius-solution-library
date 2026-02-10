@@ -51,6 +51,7 @@ export function DockingStep({
   const [numPoses, setNumPoses] = useState(30); // 30 is optimal per 2024 research
   const [parallelism, setParallelism] = useState(3); // Number of parallel API calls
   const [viewingResult, setViewingResult] = useState<DockingResult | null>(null); // For 3D visualization
+  const [dockingError, setDockingError] = useState<string | null>(null);
 
   // Get molecules to dock
   const moleculesToDock = useMemo(() => {
@@ -91,6 +92,7 @@ export function DockingStep({
 
     const startTime = Date.now();
     setIsProcessing(true);
+    setDockingError(null);
     setProgress({ completed: 0, total: moleculesToDock.length, startTime, completionTimes: [] });
     lastCompletionTimeRef.current = startTime;
     setResults([]);
@@ -141,6 +143,7 @@ export function DockingStep({
       onDockingResults(dockingResults);
     } catch (error) {
       console.error('Docking failed:', error);
+      setDockingError(error instanceof Error ? error.message : 'Docking failed. Please check the NIM gateway connection and try again.');
     }
 
     setIsProcessing(false);
@@ -253,6 +256,18 @@ export function DockingStep({
           </div>
         </div>
       </div>
+
+      {/* Docking Error */}
+      {dockingError && !isProcessing && (
+        <div className="card" style={{ borderColor: 'var(--color-danger)', background: 'var(--color-danger-bg, rgba(239, 68, 68, 0.1))' }}>
+          <div className="card-header">
+            <h3 className="card-title" style={{ color: 'var(--color-danger)' }}>Docking Failed</h3>
+          </div>
+          <p style={{ padding: '0 var(--space-4) var(--space-4)', color: 'var(--color-text-secondary)' }}>
+            {dockingError}
+          </p>
+        </div>
+      )}
 
       {/* Molecule Selection */}
       {results.length === 0 && !isProcessing && (

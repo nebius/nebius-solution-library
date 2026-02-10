@@ -35,6 +35,8 @@
   --color-light-blue: #F0F8FF;
   --color-lavender: #C1C1FF;
   --color-violet: #5D52F6;
+  --color-violet-light: #EDE9FE;
+  --color-lime-light: #F7FDE0;
 
   /* Gradient Colors */
   --color-gradient-light-blue: #DFEEFD;
@@ -55,8 +57,11 @@
 
   /* Status Colors */
   --color-success: #22C55E;
+  --color-success-light: #DCFCE7;
   --color-warning: #F59E0B;
+  --color-warning-light: #FEF3C7;
   --color-error: #EF4444;
+  --color-error-light: #FEE2E2;
   --color-info: #3B82F6;
 
   /* Typography */
@@ -74,6 +79,7 @@
 
   /* Font Weights */
   --font-weight-regular: 400;
+  --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 

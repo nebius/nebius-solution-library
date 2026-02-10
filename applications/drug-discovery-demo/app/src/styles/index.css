@@ -30,8 +30,8 @@
 @import './components/forms.css';
 
 /* 4. Feature Styles - Feature-specific styles */
-@import './features/agent-chat.css';
 @import './features/finetuning.css';
+@import './features/playground.css';
 
 /* 5. Legacy Components - To be progressively split */
 /* This import contains all styles not yet migrated to modules */

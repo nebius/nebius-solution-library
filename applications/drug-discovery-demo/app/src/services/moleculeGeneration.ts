@@ -1,7 +1,6 @@
 // Molecule generation API service
 
 import { buildNimUrl } from './nimApi';
-import { isDemoMode, demoGenerateMolecules } from './demoService';
 
 export interface GeneratedMolecule {
   smiles: string;
@@ -51,13 +50,8 @@ export async function generateWithMolMIM(
   gatewayUrl: string,
   request: MolMIMRequest
 ): Promise<MoleculeGenerationResult> {
-  // Check for demo mode
-  if (isDemoMode()) {
-    return demoGenerateMolecules(request.smi, request.num_molecules || 30);
-  }
-
   const startTime = Date.now();
-  const url = buildNimUrl(gatewayUrl, 8006, '/generate');
+  const url = buildNimUrl(gatewayUrl, 8006, '/biology/nvidia/molmim/generate');
 
   let response: Response;
   try {
@@ -97,20 +91,6 @@ export async function generateWithMolMIM(
     modelUsed: 'MolMIM',
     elapsedTime,
   };
-}
-
-/**
- * Calculate Tanimoto similarity between two SMILES strings
- * This is a simplified version - in production you'd use RDKit
- */
-export function calculateSimilarity(smiles1: string, smiles2: string): number {
-  // Simple character-based similarity (placeholder)
-  // In production, use Morgan fingerprints with RDKit
-  const set1 = new Set(smiles1.split(''));
-  const set2 = new Set(smiles2.split(''));
-  const intersection = new Set([...set1].filter(x => set2.has(x)));
-  const union = new Set([...set1, ...set2]);
-  return intersection.size / union.size;
 }
 
 /**

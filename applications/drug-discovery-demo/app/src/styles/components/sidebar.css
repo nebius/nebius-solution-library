@@ -6,6 +6,7 @@
  * - Workflow step items
  * - Gateway configuration
  * - Endpoint status indicators
+ * - Mode selector
  */
 
 /* Sidebar Container */
@@ -57,6 +58,11 @@
 
 .workflow-step:hover {
   background: var(--color-gray-100);
+}
+
+.workflow-step:focus-visible {
+  outline: 2px solid var(--color-violet);
+  outline-offset: 2px;
 }
 
 .workflow-step.active {
@@ -116,6 +122,58 @@
 .workflow-step-subtitle {
   font-size: var(--font-size-xs);
   opacity: 0.7;
+}
+
+/* Mode Selector */
+.mode-selector {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.mode-selector-btn {
+  flex: 1 1 0%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--spacing-sm) var(--spacing-xs);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-500);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.mode-selector-btn:hover {
+  color: var(--color-deep-blue);
+  background: var(--color-gray-50);
+}
+
+.mode-selector-btn:focus-visible {
+  outline: 2px solid var(--color-violet);
+  outline-offset: 2px;
+}
+
+.mode-selector-btn.active {
+  background: var(--color-white);
+  color: var(--color-deep-blue);
+  box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.mode-selector-btn svg {
+  flex-shrink: 0;
 }
 
 /* Gateway Configuration */

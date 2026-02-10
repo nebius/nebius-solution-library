@@ -8,7 +8,6 @@ export type WorkflowType =
 export type WorkflowStepId =
   // Common steps
   | 'use-case'
-  | 'ai-planning'
   | 'summary'
   // Small molecule workflow
   | 'sequence'
@@ -49,12 +48,10 @@ export interface WorkflowData {
   selectedDrugId: string | null;
   customPrompt: string | null; // For custom drug discovery
 
-  // Step 2: AI Planning output
-  researchPlan: string | null;
-  identifiedUniprotId: string | null; // UniProt ID extracted from Qwen's response
-  identifiedProteinName: string | null;
+  // UniProt ID (auto-populated from selected drug)
+  identifiedUniprotId: string | null;
 
-  // Step 3: Sequence retrieval
+  // Step 2: Sequence retrieval
   proteinSequence: string | null; // FASTA sequence from UniProt
   sequenceLength: number | null;
 

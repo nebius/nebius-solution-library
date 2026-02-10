@@ -2,8 +2,8 @@
  * Structure Prediction Service
  *
  * This module handles 3D protein structure prediction using multiple AI models:
- * - OpenFold3 (port 8000) - Latest generation, recommended for most cases
- * - Boltz2 (port 8001) - Fast inference, MIT model
+ * - Boltz2 (port 8001) - Recommended, best accuracy on this deployment
+ * - OpenFold3 (port 8000) - Next-gen, may need MSA for good results
  * - OpenFold2 (port 8004) - High accuracy with MSA input
  *
  * ## Request Formats
@@ -24,8 +24,8 @@
  *
  * If the primary model fails, automatic fallback tries other models:
  * ```
- * openfold3 → boltz2 → openfold2
  * boltz2 → openfold3 → openfold2
+ * openfold3 → boltz2 → openfold2
  * openfold2 → boltz2 → openfold3
  * ```
  *
@@ -42,7 +42,6 @@
  */
 
 import { buildNimUrl } from './nimApi';
-import { isDemoMode, demoPredictStructure } from './demoService';
 
 export interface StructurePredictionResult {
   structure: string; // PDB or PDBx/mmCIF content
@@ -162,14 +161,14 @@ export function buildOpenFold2Request(sequence: string): Record<string, unknown>
 export function getAllModelRequests(gatewayUrl: string, sequence: string, numCopies = 1): ModelRequestBody[] {
   return [
     {
-      modelId: 'openfold3',
-      endpoint: buildNimUrl(gatewayUrl, 8000, '/biology/openfold/openfold3/predict'),
-      body: buildOpenFold3Request(sequence, numCopies),
-    },
-    {
       modelId: 'boltz2',
       endpoint: buildNimUrl(gatewayUrl, 8001, '/biology/mit/boltz2/predict'),
       body: buildBoltz2Request(sequence),
+    },
+    {
+      modelId: 'openfold3',
+      endpoint: buildNimUrl(gatewayUrl, 8000, '/biology/openfold/openfold3/predict'),
+      body: buildOpenFold3Request(sequence, numCopies),
     },
     {
       modelId: 'openfold2',
@@ -443,15 +442,10 @@ export async function predictStructure(
 ): Promise<StructurePredictionResult> {
   const { enableFallback = true, numCopies = 1 } = options;
 
-  // Check for demo mode
-  if (isDemoMode()) {
-    return demoPredictStructure(sequence, modelId);
-  }
-
   // Define fallback order for each model
   const fallbackOrder: Record<string, Array<'openfold3' | 'boltz2' | 'openfold2'>> = {
-    openfold3: ['openfold3', 'boltz2', 'openfold2'],
     boltz2: ['boltz2', 'openfold3', 'openfold2'],
+    openfold3: ['openfold3', 'boltz2', 'openfold2'],
     openfold2: ['openfold2', 'boltz2', 'openfold3'],
   };
 

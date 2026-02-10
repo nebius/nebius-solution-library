@@ -1,7 +1,8 @@
 /**
  * Fine-Tuning Context
  *
- * Manages state for the Nebius Serverless Fine-Tuning workflow:
+ * Manages state for the Nebius Jobs Fine-Tuning workflow:
+ * - Model selection (molecular vs protein)
  * - Dataset selection and validation
  * - Model configuration
  * - Training job management
@@ -30,19 +31,22 @@ import type {
   ScreeningResult,
   FineTuningStep,
   FineTuningStepId,
+  ModelInfo,
+  ModelModality,
 } from '../types/finetuning';
 
-// Re-import steps constant
+// Steps definition (7 steps)
 const STEPS: Omit<FineTuningStep, 'status'>[] = [
+  { id: 'model-selection', title: 'Model', subtitle: 'Choose base model' },
   { id: 'data-selection', title: 'Data', subtitle: 'Select training data' },
   { id: 'data-preview', title: 'Preview', subtitle: 'Review & validate' },
-  { id: 'model-config', title: 'Configure', subtitle: 'Model & parameters' },
-  { id: 'training', title: 'Train', subtitle: 'Nebius Serverless' },
+  { id: 'model-config', title: 'Configure', subtitle: 'Hyperparameters' },
+  { id: 'training', title: 'Train', subtitle: 'Nebius Jobs' },
   { id: 'evaluation', title: 'Evaluate', subtitle: 'Model performance' },
   { id: 'screening', title: 'Screen', subtitle: 'Deploy & predict' },
 ];
 
-// Default hyperparameters
+// Default hyperparameters (overridden by selected model)
 const DEFAULT_HYPERPARAMETERS: HyperParameters = {
   epochs: 10,
   batchSize: 32,
@@ -63,6 +67,11 @@ export interface FineTuningContextValue {
   goToNextStep: () => void;
   goToPrevStep: () => void;
   canNavigateToStep: (stepId: FineTuningStepId) => boolean;
+
+  // Model selection
+  selectedModel: ModelInfo | null;
+  setSelectedModel: (model: ModelInfo | null) => void;
+  modality: ModelModality | null;
 
   // Data selection
   dataSource: DataSourceType | null;
@@ -118,6 +127,9 @@ export function FineTuningProvider({ children }: FineTuningProviderProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [furthestStepIndex, setFurthestStepIndex] = useState(0);
 
+  // Model selection state
+  const [selectedModel, setSelectedModelState] = useState<ModelInfo | null>(null);
+
   // Data state
   const [dataSource, setDataSource] = useState<DataSourceType | null>(null);
   const [dataset, setDataset] = useState<DatasetInfo | null>(null);
@@ -143,8 +155,20 @@ export function FineTuningProvider({ children }: FineTuningProviderProps) {
   // Screening state
   const [screeningResults, setScreeningResults] = useState<ScreeningResult[] | null>(null);
 
+  // Derived: modality from selected model
+  const modality: ModelModality | null = selectedModel?.modality ?? null;
+
+  // Set selected model and sync baseModel + hyperparameters
+  const setSelectedModel = useCallback((model: ModelInfo | null) => {
+    setSelectedModelState(model);
+    if (model) {
+      setBaseModel(model.id);
+      setHyperparameters(model.defaultHyperparameters);
+    }
+  }, []);
+
   // Derived: current step ID
-  const currentStepId = STEPS[currentStepIndex]?.id || 'data-selection';
+  const currentStepId = STEPS[currentStepIndex]?.id || 'model-selection';
 
   // Derived: steps with status
   const steps: FineTuningStep[] = useMemo(() => {
@@ -215,6 +239,7 @@ export function FineTuningProvider({ children }: FineTuningProviderProps) {
   const resetAll = useCallback(() => {
     setCurrentStepIndex(0);
     setFurthestStepIndex(0);
+    setSelectedModelState(null);
     setDataSource(null);
     setDataset(null);
     setBaseModel('chemberta-77m-mtr');
@@ -228,7 +253,7 @@ export function FineTuningProvider({ children }: FineTuningProviderProps) {
     setScreeningResults(null);
   }, []);
 
-  const value: FineTuningContextValue = {
+  const value: FineTuningContextValue = useMemo(() => ({
     // Navigation
     currentStepIndex,
     currentStepId,
@@ -238,6 +263,11 @@ export function FineTuningProvider({ children }: FineTuningProviderProps) {
     goToNextStep,
     goToPrevStep,
     canNavigateToStep,
+
+    // Model selection
+    selectedModel,
+    setSelectedModel,
+    modality,
 
     // Data
     dataSource,
@@ -277,7 +307,7 @@ export function FineTuningProvider({ children }: FineTuningProviderProps) {
 
     // Reset
     resetAll,
-  };
+  }), [currentStepIndex, currentStepId, furthestStepIndex, steps, goToStep, goToNextStep, goToPrevStep, canNavigateToStep, selectedModel, setSelectedModel, modality, dataSource, dataset, baseModel, hyperparameters, updateHyperparameter, trainingJobId, trainingStatus, trainingLogs, addTrainingLog, clearTrainingLogs, trainingResult, evaluationResult, endpoint, screeningResults, resetAll]);
 
   return (
     <FineTuningContext.Provider value={value}>

@@ -84,15 +84,15 @@ Reference compound class: NSAIDs (non-steroidal anti-inflammatory drugs)`,
     workflowType: 'small-molecule',
     targetProtein: {
       name: 'PBP2a (Penicillin-binding protein 2a)',
-      uniprotId: 'P0A0K4', // mecA PBP2a from S. aureus N315 - canonical, well-characterized entry
-      // S. aureus PBP2a transpeptidase domain (truncated for demo)
-      sequence: 'MKKIKFVLALLVAGVTGIQSAQNETSNNSNSTEKSSEKPNVVNKKESHKEKETEKPENIKTDEKTKETKKPEATKTDKTVKETKTKPEKTPEKPEKTPDKPEKTKPEKTKPEKTKEKAEKPVKTKPDKPVKTKPDKPVKTKPDKPVKTKPDKPVKTKPDKPVKTKPEKTKPDKPVKTKPEKTKE',
+      uniprotId: 'Q53707', // mecA PBP2a from S. aureus - penicillin binding protein 2'
+      // S. aureus PBP2a transpeptidase domain (residues 327-668, truncated for demo)
+      sequence: 'NYPLEKATSHLLGYVGPINSEELKQKEYKGYKDDAVIGKKGLEKLYDKKLQHEDGYRVTIVDDNSNTIAHTLIEKKKKDGKDIQLTIDAKVQKSIYNNMKNDYGSGTAIHPQTGELLALVSTPSYDVYPFMYGMSNEEYNKLTEDKKEPLLNKFQITTSPGSTQKILTAMIGLNNKTLDDKTSYKIDGKGWQKDKSWGGYNVTRYEVVNGNIDLKQAIESSDNIFFARVALELGSKKFEKGMKKLGVGEDIPSDYPFYNAQISNKNLDNEILLADSGYGQGEILINPVQILSIYSALENNGNINAPHLLKDTKNKVWKKNIISKENINLLNDGMQQVVNKTHKEDIYRSYANLIGKSGTAELKMKQGESGRQIGWFISYDKDNPNMMMAINVKDVQDKGMASYNAKISGKVYDELYENGNKKYDIDE',
     },
     referenceSMILES: 'CC1(C(N2C(S1)C(C2=O)NC(=O)C(C3=CC=C(C=C3)O)N)C(=O)O)C',
     referenceQED: 0.60, // Amoxicillin QED from RDKit (MW=365, beta-lactam antibiotic)
     llmPrompt: `Develop a bactericidal compound effective against methicillin-resistant Staphylococcus aureus (MRSA). The compound should bind and inhibit PBP2a (penicillin-binding protein 2a), the mecA-encoded transpeptidase that confers beta-lactam resistance. By targeting PBP2a's active site, the compound should block peptidoglycan cross-linking and cause bacterial cell lysis.
 
-Target: PBP2a from Staphylococcus aureus (UniProt: P0A0K4)
+Target: PBP2a from Staphylococcus aureus (UniProt: Q53707)
 Desired outcome: Kill MRSA by inhibiting cell wall synthesis
 Reference compound class: Beta-lactam antibiotics`,
   },
@@ -133,7 +133,7 @@ Reference compound class: Biguanides`,
       // SARS-CoV-2 Mpro (3CLpro) - 306 residues, well-characterized drug target
       sequence: 'SGFRKMAFPSGKVEGCMVQVTCGTTTLNGLWLDDVVYCPRHVICTSEDMLNPNYEDLLIRKSNHNFLVQAGNVQLRVIGHSMQNCVLKLKVDTANPKTPKYKFVRIQPGQTFSVLACYNGSPSGVYQCAMRPNFTIKGSFLNGSCGSVGFNIDYDCVSFCYMHHMELPTGVHAGTDLEGNFYGPFVDRQTAQAAGTDTTITVNVLAWLYAAVINGDRWFLNRFTTTLNDFNLVAMKYNYEPLTQDHVDILGPLSAQTGIAVLDMCASLKELLQNGMNGRTILGSALLEDEFTPFDVVRQCSGVTFQ',
     },
-    referenceSMILES: 'CC(C)(C)c1cc(C(=O)Nc2ccc(C#N)cn2)cc(C(C)(C)C)c1O', // Nirmatrelvir-like scaffold (simplified)
+    referenceSMILES: 'CC1(C2C1C(N(C2)C(=O)C(C(C)(C)C)NC(=O)C(F)(F)F)C(=O)NC(CC3CCNC3=O)C#N)C', // Nirmatrelvir (PubChem CID 155903259)
     referenceQED: 0.65,
     llmPrompt: `Design a small-molecule inhibitor of SARS-CoV-2 main protease (Mpro/3CLpro), the essential cysteine protease that cleaves viral polyproteins pp1a and pp1ab at multiple sites. The compound should covalently or non-covalently target the catalytic dyad (Cys145-His41) in the active site, blocking proteolytic processing and halting viral replication.
 
@@ -237,7 +237,7 @@ Workflow: search_uniprot → predict_structure → analysis → potentially desi
       // Human MDM2 N-terminal domain (p53 binding region, residues 1-125)
       sequence: 'MCNTNMSVPTDGAVTTSQIPASEQETLVRPKPLLLKLLKSVGAQKDTYTMKEVLFYLGQYIMTKRLYDEKQQHIVYCSNDLLGDLFGVPSFSVKEHRKIYTMIYRNLVVVNQQESSDSGTSVSENRCHLEGGSDQKDLVQELQEEKPSSSHLVSRPSTSSRRRAISETEENSDELSGERQRKRHKSDSISLSFDESLALCVIREICCERSSSSESTGTPSNPDLDAGVSEHSGDWLDQDSVSDQFSVEFEVESLDSEDYSLSEEGQELSDEDDEVYQVTVYQAGESDTDSFEEDPEISLADYWKCTSCNEMNPPLPSHCNRCWALRENWLPEDKGKDKGEISEKAKLENSTQAEEGFDVPDCKKTIVNDSRESCVEENDDKITQASQSQESEDYSQPSTSSSIIYSSQEDVKEFEREETQDKEESVESSLPLNAIEPCVICQGRPKNGCIVHGKTGHLMACFTCAKKLKKRNKPCPVCRQPIQMIVLTYFP',
     },
-    referenceSMILES: 'Cc1ccc(cc1)c2nc(no2)c3ccc(Cl)cc3', // Nutlin-like scaffold (simplified)
+    referenceSMILES: 'CC(C)OC1=C(C=CC(=C1)OC)C2=NC(C(N2C(=O)N3CCNC(=O)C3)C4=CC=C(C=C4)Cl)C5=CC=C(C=C5)Cl', // Nutlin-3a (PubChem)
     referenceQED: 0.72,
     llmPrompt: `Design a small-molecule inhibitor that disrupts the protein-protein interaction (PPI) between p53 and MDM2. MDM2 binds and ubiquitinates p53, targeting it for degradation. In many cancers, MDM2 is overexpressed, suppressing p53 tumor suppressor activity.
 
@@ -267,7 +267,7 @@ Reference compound class: Nutlins, Idasanutlin, AMG 232`,
       // Human D2 receptor (truncated, transmembrane regions)
       sequence: 'MDPLNLSWYDDDLERQNWSRPFNGSEGKADRPHYNYYAMLLTLLIFVIVFGNVLVCMAVSREKALQTTTNYLIVSLAVADLLVATLVMPWVVYLEVVGEWKFSRIHCDIFVTLDVMMCTASILNLCAISIDRYTAVAMPMLYNTRYSSKRRVTVMISIVWVLSFTISCPLLFGLNNADQNECIIANPAFVVYSSIVSFYVPFIVTLLVYIKIYIVLRRRRKRVNTKRSSRAFRAHLRAPLKGNCTHPEDMKLCTVIMKSNGSFPVNRRRVEAARRAQELEMEMLSSTSPPERTRYSPIPPSHHQLTLPDPSHHGLHSTPDSPAKPEKNGHAKDHPKIAKIFEIQTMPNGKTRTSLKTMSRRKLSQQKEKKATQMLAIVLGVFIICWLPFFITHILNIHCDCNIPPVLYSAFTWLGYVNSAVNPIIYTTFNIEFRKAFLKILHC',
     },
-    referenceSMILES: 'CN1CCN(CC1)c2ccc(cc2)Nc3nc(nc(n3)N4CCOCC4)c5ccc(F)cc5', // Aripiprazole-like (simplified)
+    referenceSMILES: 'C1CC(=O)NC2=C1C=CC(=C2)OCCCCN3CCN(CC3)C4=C(C(=CC=C4)Cl)Cl', // Aripiprazole (PubChem)
     referenceQED: 0.58,
     llmPrompt: `Design a dopamine D2 receptor modulator for treatment of neuropsychiatric conditions. The compound could act as:
 - A partial agonist (like aripiprazole) for schizophrenia treatment

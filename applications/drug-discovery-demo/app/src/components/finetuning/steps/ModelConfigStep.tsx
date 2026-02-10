@@ -1,42 +1,16 @@
 /**
  * ModelConfigStep Component
  *
- * Third step: Configure the model and training hyperparameters.
+ * Fourth step: Configure training hyperparameters.
+ * Model is already selected in step 1 - shows summary and hyperparams.
  */
 
 import { useFineTuning } from '../../../contexts/FineTuningContext';
-import type { BaseModel, BaseModelId } from '../../../types/finetuning';
-
-const BASE_MODELS: BaseModel[] = [
-  {
-    id: 'chemberta-77m-mtr',
-    name: 'ChemBERTa-77M-MTR',
-    description: 'Pre-trained on 77M molecules with multi-task regression head',
-    parameters: '77M',
-    recommended: true,
-    bestFor: ['IC50', 'Ki', 'EC50', 'property prediction'],
-  },
-  {
-    id: 'chemberta-77m-mlm',
-    name: 'ChemBERTa-77M-MLM',
-    description: 'Masked language model for general molecular understanding',
-    parameters: '77M',
-    bestFor: ['transfer learning', 'molecular embeddings'],
-  },
-  {
-    id: 'molbert-100m',
-    name: 'MolBERT-100M',
-    description: 'Larger model for complex structure-activity relationships',
-    parameters: '100M',
-    bestFor: ['complex SAR', 'multi-target prediction'],
-  },
-];
 
 export function ModelConfigStep() {
   const {
     dataset,
-    baseModel,
-    setBaseModel,
+    selectedModel,
     hyperparameters,
     updateHyperparameter,
     goToNextStep,
@@ -61,52 +35,40 @@ export function ModelConfigStep() {
     <div className="step-content">
       <div className="content-header">
         <div>
-          <h1 className="content-title">Model Configuration</h1>
+          <h1 className="content-title">Training Configuration</h1>
           <p className="content-subtitle">
-            Select the base model and configure training hyperparameters.
+            Configure hyperparameters for fine-tuning{selectedModel ? ` ${selectedModel.name}` : ''}.
           </p>
         </div>
       </div>
 
-      {/* Base Model Selection */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="card-title">Base Model</h3>
+      {/* Selected Model Summary */}
+      {selectedModel && (
+        <div className="card model-summary-card">
+          <div className="card-header">
+            <h3 className="card-title">Base Model</h3>
+            <span className="card-badge">{selectedModel.params} parameters</span>
+          </div>
+          <div className="model-summary-details">
+            <div className="model-summary-item">
+              <span className="model-summary-label">Model</span>
+              <span className="model-summary-value">{selectedModel.name}</span>
+            </div>
+            <div className="model-summary-item">
+              <span className="model-summary-label">Provider</span>
+              <span className="model-summary-value">{selectedModel.provider}</span>
+            </div>
+            <div className="model-summary-item">
+              <span className="model-summary-label">Modality</span>
+              <span className="model-summary-value" style={{ textTransform: 'capitalize' }}>{selectedModel.modality}</span>
+            </div>
+            <div className="model-summary-item">
+              <span className="model-summary-label">Task</span>
+              <span className="model-summary-value" style={{ textTransform: 'capitalize' }}>{selectedModel.taskType}</span>
+            </div>
+          </div>
         </div>
-        <div className="model-selection">
-          {BASE_MODELS.map((model) => (
-            <label
-              key={model.id}
-              className={`model-option ${baseModel === model.id ? 'selected' : ''}`}
-            >
-              <input
-                type="radio"
-                name="baseModel"
-                value={model.id}
-                checked={baseModel === model.id}
-                onChange={() => setBaseModel(model.id as BaseModelId)}
-              />
-              <div className="model-option-content">
-                <div className="model-option-header">
-                  <span className="model-option-name">{model.name}</span>
-                  {model.recommended && (
-                    <span className="model-option-badge recommended">Recommended</span>
-                  )}
-                  <span className="model-option-badge params">{model.parameters}</span>
-                </div>
-                <p className="model-option-description">{model.description}</p>
-                <div className="model-option-tags">
-                  {model.bestFor.map((tag) => (
-                    <span key={tag} className="model-option-tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Hyperparameters */}
       <div className="card">
@@ -137,6 +99,7 @@ export function ModelConfigStep() {
               value={hyperparameters.batchSize}
               onChange={(e) => updateHyperparameter('batchSize', parseInt(e.target.value))}
             >
+              <option value={4}>4</option>
               <option value={8}>8</option>
               <option value={16}>16</option>
               <option value={32}>32</option>
@@ -156,8 +119,9 @@ export function ModelConfigStep() {
               <option value={1e-6}>1e-6 (Very Conservative)</option>
               <option value={5e-6}>5e-6 (Conservative)</option>
               <option value={1e-5}>1e-5 (Default)</option>
-              <option value={2e-5}>2e-5 (Aggressive)</option>
-              <option value={5e-5}>5e-5 (Very Aggressive)</option>
+              <option value={2e-5}>2e-5 (Moderate)</option>
+              <option value={5e-5}>5e-5 (Aggressive)</option>
+              <option value={1e-4}>1e-4 (Very Aggressive)</option>
             </select>
             <span className="hyperparam-hint">Step size for optimization</span>
           </div>
@@ -219,7 +183,7 @@ export function ModelConfigStep() {
         </div>
       </div>
 
-      {/* Nebius Serverless Compute */}
+      {/* Nebius Jobs Compute */}
       <div className="card serverless-card">
         <div className="card-header">
           <div className="serverless-header">
@@ -232,7 +196,7 @@ export function ModelConfigStep() {
                 strokeLinejoin="round"
               />
             </svg>
-            <h3 className="card-title">Nebius Serverless Compute</h3>
+            <h3 className="card-title">Nebius Jobs Compute</h3>
           </div>
         </div>
         <div className="serverless-info">
