@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drug-discovery-demo
+  namespace: nims
+  labels:
+    app: drug-discovery-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drug-discovery-demo
+  template:
+    metadata:
+      labels:
+        app: drug-discovery-demo
+    spec:
+      containers:
+        - name: app
+          image: cr.me-west1.nebius.cloud/i00sk4xvrcvbg80rm6/drug-discovery-demo:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+              name: http
+          env:
+            - name: PORT
+              value: "3001"
+            # Override gateway host: route NIM requests to the cluster-internal
+            # nims-gateway service instead of the external IP (46.243.144.128).
+            # Same port mapping (8000-8010), but reachable from inside the cluster.
+            - name: NIM_GATEWAY_URL
+              value: "nims-gateway"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          volumeMounts:
+            - name: pipeline-data
+              mountPath: /app/server/data/pipelines
+      volumes:
+        - name: pipeline-data
+          emptyDir: {}
+          # For persistent storage, replace with:
+          # persistentVolumeClaim:
+          #   claimName: pipeline-data-pvc
+

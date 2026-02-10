@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: drug-discovery-demo
+  namespace: nims
+  labels:
+    app: drug-discovery-demo
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: drug-discovery-demo

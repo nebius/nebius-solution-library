@@ -1,0 +1,206 @@
+/**
+ * NimResult Component
+ *
+ * Renders the result of a NIM API call.
+ * Handles different result types: structure, molecules, sequences, alignment, text, json.
+ */
+
+import { useState, useCallback } from 'react';
+import type { PlaygroundResult, PlaygroundResultItem } from '../../data/nimPlayground';
+
+interface NimResultProps {
+  result: PlaygroundResult;
+  elapsedMs: number;
+}
+
+export function NimResult({ result, elapsedMs }: NimResultProps) {
+  const [showRaw, setShowRaw] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set([0]));
+
+  const toggleItem = useCallback((index: number) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }, []);
+
+  const handleDownload = useCallback((item: PlaygroundResultItem) => {
+    const blob = new Blob([item.value], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = item.downloadFilename || 'result.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const handleCopy = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+  }, []);
+
+  if (result.error) {
+    return (
+      <div className="playground-result-card">
+        <div className="playground-result-header">
+          <div className="playground-result-header-left">
+            <h3>Error</h3>
+          </div>
+        </div>
+        <div className="playground-card-body">
+          <div className="playground-error">{result.error}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="playground-result-card">
+      <div className="playground-result-header">
+        <div className="playground-result-header-left">
+          <span className="playground-result-success-dot" />
+          <h3>Results</h3>
+        </div>
+        <div className="playground-result-header-actions">
+          <span className="playground-time-badge">
+            {(elapsedMs / 1000).toFixed(2)}s
+          </span>
+          <button
+            className={`playground-toggle-btn ${showRaw ? 'active' : ''}`}
+            onClick={() => setShowRaw(!showRaw)}
+          >
+            {showRaw ? 'Formatted' : 'Raw JSON'}
+          </button>
+        </div>
+      </div>
+
+      {showRaw ? (
+        <div className="playground-result-raw">
+          <pre className="playground-code-block">{JSON.stringify(result.raw, null, 2)}</pre>
+          <button
+            className="playground-copy-btn"
+            onClick={() => handleCopy(JSON.stringify(result.raw, null, 2))}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <rect x="4" y="4" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M10 4V3a1 1 0 00-1-1H3a1 1 0 00-1 1v6a1 1 0 001 1h1" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            Copy
+          </button>
+        </div>
+      ) : (
+        <div className="playground-result-items">
+          {result.items.map((item, index) => (
+            <div key={index} className="playground-result-item">
+              <button
+                className="playground-result-item-header"
+                onClick={() => toggleItem(index)}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  className={`playground-chevron ${expandedItems.has(index) ? 'expanded' : ''}`}
+                >
+                  <path d="M4 3l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="playground-result-item-label">{item.label}</span>
+                <div className="playground-result-item-actions">
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopy(item.value);
+                    }}
+                    title="Copy to clipboard"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1" stroke="currentColor" strokeWidth="1.25" />
+                      <path d="M8.5 3.5V2.5a1 1 0 00-1-1H3a1 1 0 00-1 1v4.5a1 1 0 001 1h1" stroke="currentColor" strokeWidth="1.25" />
+                    </svg>
+                  </button>
+                  {item.downloadFilename && (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(item);
+                      }}
+                      title={`Download as ${item.downloadFilename}`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M6 1v7M3 5.5l3 3 3-3M2 10h8" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </button>
+              {expandedItems.has(index) && (
+                <div className="playground-result-item-content">
+                  <ResultContent item={item} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultContent({ item }: { item: PlaygroundResultItem }) {
+  switch (item.format) {
+    case 'text':
+      return <div className="playground-result-text">{item.value}</div>;
+
+    case 'code':
+    case 'json':
+      return (
+        <pre className="playground-code-block">
+          {item.value.length > 10000 ? item.value.slice(0, 10000) + '\n\n... (truncated)' : item.value}
+        </pre>
+      );
+
+    case 'structure':
+      return (
+        <pre className="playground-code-block playground-structure-block">
+          {item.value.length > 5000 ? item.value.slice(0, 5000) + '\n\n... (truncated - download for full file)' : item.value}
+        </pre>
+      );
+
+    case 'smiles':
+      return (
+        <div className="playground-smiles-list">
+          {item.value.split('\n').map((line, i) => (
+            <div key={i} className="playground-smiles-line">
+              <code>{line}</code>
+            </div>
+          ))}
+        </div>
+      );
+
+    case 'sequence':
+      return (
+        <pre className="playground-code-block playground-sequence-block">
+          {item.value}
+        </pre>
+      );
+
+    default:
+      return <pre className="playground-code-block">{item.value}</pre>;
+  }
+}
