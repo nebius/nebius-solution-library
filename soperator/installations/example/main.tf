@@ -480,6 +480,7 @@ module "slurm" {
     gres_name        = lookup(module.resources.gres_name_by_platform, nodeset.resource.platform, null)
     gres_config      = lookup(module.resources.gres_config_by_platform, nodeset.resource.platform, null)
     create_partition = nodeset.create_partition != null ? nodeset.create_partition : false
+    ephemeral_nodes  = nodeset.ephemeral_nodes
   }]
 
   login_allocation_id            = module.k8s.static_ip_allocation_id

@@ -350,6 +350,10 @@ slurm_nodeset_workers = [
     features = null
     # Set to `true` to create partition for the NodeSet by default
     create_partition = null
+    # Whether to enable ephemeral nodes behavior for this worker nodeset.
+    # When true, nodes will use dynamic topology injection and power management.
+    # By default, false.
+    ephemeral_nodes = false
   },
 ]
 

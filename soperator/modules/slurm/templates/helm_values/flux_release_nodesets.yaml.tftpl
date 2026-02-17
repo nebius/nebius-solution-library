@@ -17,6 +17,9 @@ nodesets:
 
         replicas: ${nodeset.replicas}
         maxUnavailable: ${nodeset.max_unavailable}
+        %{~ if nodeset.ephemeral_nodes ~}
+        ephemeralNodes: true
+        %{~ endif ~}
 
         gpu:
           enabled: ${resources[i].gpus > 0}

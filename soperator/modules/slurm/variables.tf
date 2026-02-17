@@ -777,6 +777,7 @@ variable "worker_nodesets" {
     gres_name        = optional(string)
     gres_config      = list(string)
     create_partition = bool
+    ephemeral_nodes  = optional(bool, false)
   }))
   default = []
 }

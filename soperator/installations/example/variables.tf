@@ -742,6 +742,7 @@ variable "slurm_nodeset_workers" {
     }))
     features         = optional(list(string))
     create_partition = optional(bool)
+    ephemeral_nodes  = optional(bool, false)
   }))
   nullable = false
   default = [{
