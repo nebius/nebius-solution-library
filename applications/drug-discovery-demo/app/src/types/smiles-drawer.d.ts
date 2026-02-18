@@ -27,10 +27,11 @@ declare module 'smiles-drawer' {
   class SmiDrawer {
     constructor(options?: SmiDrawerOptions);
     draw(
-      tree: unknown,
-      canvas: HTMLCanvasElement,
+      smiles: string,
+      target: SVGElement | HTMLElement | string | null,
       theme?: string,
-      infoOnly?: boolean
+      successCallback?: ((el: Element) => void) | null,
+      errorCallback?: ((err: Error) => void) | null
     ): void;
   }
 

@@ -4417,7 +4417,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-white);
+  background: #1a1a2e;
   border-radius: var(--radius-md);
   overflow: hidden;
 }

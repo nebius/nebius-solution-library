@@ -9,14 +9,12 @@ interface MoleculeViewer2DProps {
   showError?: boolean;
 }
 
-// Singleton drawer instance for performance
+// Singleton SmiDrawer instance for performance
 let drawerInstance: SmilesDrawer.SmiDrawer | null = null;
 
 function getDrawer(): SmilesDrawer.SmiDrawer {
   if (!drawerInstance) {
     drawerInstance = new SmilesDrawer.SmiDrawer({
-      width: 300,
-      height: 200,
       bondThickness: 1.5,
       bondLength: 25,
       shortBondLength: 0.8,
@@ -76,33 +74,37 @@ export function MoleculeViewer2D({
   theme = 'light',
   showError = true,
 }: MoleculeViewer2DProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!canvasRef.current || !smiles) return;
+    if (!containerRef.current || !smiles) return;
 
-    const canvas = canvasRef.current;
+    const container = containerRef.current;
     const drawer = getDrawer();
 
     // Clear previous drawing
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
+    container.innerHTML = '';
+
+    // Create a fresh SVG element for this render
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svg.setAttributeNS(null, 'width', String(width));
+    svg.setAttributeNS(null, 'height', String(height));
+    container.appendChild(svg);
 
     setError(null);
 
     try {
-      // Parse and draw the molecule
-      SmilesDrawer.parse(smiles, (tree: unknown) => {
-        drawer.draw(tree, canvas, theme, false);
+      // SmiDrawer.draw takes a SMILES string and an SVG element
+      drawer.draw(smiles, svg, theme, () => {
+        // success - molecule drawn to SVG
       }, (err: Error) => {
-        console.warn('SMILES parse error:', err);
+        console.warn('SMILES draw error:', smiles, err);
         setError('Invalid structure');
       });
     } catch (err) {
-      console.warn('SMILES draw error:', err);
+      console.warn('SMILES draw error:', smiles, err);
       setError('Draw error');
     }
   }, [smiles, width, height, theme]);
@@ -117,11 +119,10 @@ export function MoleculeViewer2D({
 
   return (
     <div className="molecule-viewer-2d" style={{ width, height }}>
-      <canvas
-        ref={canvasRef}
-        width={width}
-        height={height}
+      <div
+        ref={containerRef}
         className="molecule-canvas"
+        style={{ width, height }}
       />
       {error && showError && (
         <div className="molecule-viewer-error">
