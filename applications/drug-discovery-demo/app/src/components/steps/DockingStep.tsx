@@ -12,7 +12,7 @@ import { MoleculeViewer2D } from '../MoleculeViewer2D';
 import { DrugLikenessBadge } from '../DrugLikenessPanel';
 import type { DrugTarget } from '../../data/drugs';
 import { formatDuration, formatEta } from '../../hooks/useProgressTracker';
-import { StepAssistant } from '../StepAssistant';
+
 
 interface DockingStepProps {
   structureResult: StructurePredictionResult | null;
@@ -671,22 +671,6 @@ export function DockingStep({
         </button>
       </div>
 
-      {/* Step Assistant */}
-      <StepAssistant
-        stepType="docking"
-        gatewayUrl={gatewayUrl}
-        context={{
-          proteinModel: structureResult?.modelUsed,
-          moleculesSelected: selectedMolecules.size,
-          numPoses,
-          parallelism,
-          completedDocks: results.length,
-          bestResults: bestResults.slice(0, 5).map(r => ({
-            smiles: r.ligandSmiles.substring(0, 30),
-            confidence: r.bestConfidence,
-          })),
-        }}
-      />
     </div>
   );
 }

@@ -563,7 +563,11 @@
   border: 1px solid color-mix(in srgb, var(--color-violet) 30%, transparent);
   border-radius: var(--radius-lg);
   font-size: var(--font-size-small);
-  color: var(--color-gray-300);
+  color: var(--color-gray-700);
+}
+
+.playground-example-banner strong {
+  color: var(--color-violet);
 }
 
 .playground-example-banner svg {
@@ -861,4 +865,70 @@
 .playground-snippet-copy:hover {
   background: var(--color-gray-50);
   border-color: var(--color-gray-300);
+}
+
+/* ---- Molecule Result Grid ---- */
+
+.playground-molecule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.playground-molecule-card {
+  background: var(--color-deep-blue);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.playground-molecule-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(5, 43, 66, 0.3);
+}
+
+.playground-molecule-viewer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #0a1e2e;
+  padding: var(--spacing-sm);
+}
+
+.playground-molecule-viewer .molecule-viewer-2d {
+  border-radius: var(--radius-md);
+}
+
+.playground-molecule-info {
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.playground-molecule-smiles {
+  display: block;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-300);
+  margin-bottom: 4px;
+  word-break: break-all;
+  line-height: 1.3;
+}
+
+.playground-molecule-scores {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.playground-molecule-score {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-lime);
+  font-family: var(--font-family-mono);
+}
+
+.playground-molecule-extra {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-400);
+  font-family: var(--font-family-mono);
 }

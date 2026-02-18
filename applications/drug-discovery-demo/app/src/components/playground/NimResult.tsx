@@ -5,9 +5,10 @@
  * Handles different result types: structure, molecules, sequences, alignment, text, json.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { PlaygroundResult, PlaygroundResultItem } from '../../data/nimPlayground';
 import { StructureViewer } from '../StructureViewer';
+import { MoleculeViewer2D } from '../MoleculeViewer2D';
 
 interface NimResultProps {
   result: PlaygroundResult;
@@ -192,15 +193,7 @@ function ResultContent({ item }: { item: PlaygroundResultItem }) {
     }
 
     case 'smiles':
-      return (
-        <div className="playground-smiles-list">
-          {item.value.split('\n').map((line, i) => (
-            <div key={i} className="playground-smiles-line">
-              <code>{line}</code>
-            </div>
-          ))}
-        </div>
-      );
+      return <MoleculeResultGrid value={item.value} />;
 
     case 'sequence':
       return (
@@ -212,4 +205,85 @@ function ResultContent({ item }: { item: PlaygroundResultItem }) {
     default:
       return <pre className="playground-code-block">{item.value}</pre>;
   }
+}
+
+// ============================================================================
+// Molecule Result Grid — renders SMILES lines as 2D structure cards
+// ============================================================================
+
+interface ParsedMolecule {
+  index: number;
+  smiles: string;
+  score?: number;
+  extra?: string;
+}
+
+function parseMoleculeLines(text: string): ParsedMolecule[] {
+  return text
+    .split('\n')
+    .filter((line) => line.trim())
+    .map((line) => {
+      // Expected format: "1. CC(C)C (score: 0.674) [sim: 0.350]"
+      const numMatch = line.match(/^(\d+)\.\s*/);
+      const rest = numMatch ? line.slice(numMatch[0].length) : line;
+
+      // Extract score from (score: X.XXX)
+      const scoreMatch = rest.match(/\(score:\s*([\d.]+)\)/);
+      const score = scoreMatch ? parseFloat(scoreMatch[1]) : undefined;
+
+      // Extract similarity from [sim: X.XXX]
+      const simMatch = rest.match(/\[sim:\s*([\d.]+)\]/);
+      const extra = simMatch ? `sim: ${simMatch[1]}` : undefined;
+
+      // SMILES is everything before the first parenthesis/bracket annotation
+      const smiles = rest.replace(/\s*\(score:.*?\)/, '').replace(/\s*\[sim:.*?\]/, '').trim();
+
+      return {
+        index: numMatch ? parseInt(numMatch[1]) : 0,
+        smiles,
+        score,
+        extra,
+      };
+    })
+    .filter((m) => m.smiles.length > 0);
+}
+
+function MoleculeResultGrid({ value }: { value: string }) {
+  const molecules = useMemo(() => parseMoleculeLines(value), [value]);
+
+  if (molecules.length === 0) {
+    return <pre className="playground-code-block">{value}</pre>;
+  }
+
+  return (
+    <div className="playground-molecule-grid">
+      {molecules.map((mol) => (
+        <div key={`${mol.index}-${mol.smiles}`} className="playground-molecule-card">
+          <div className="playground-molecule-viewer">
+            <MoleculeViewer2D
+              smiles={mol.smiles}
+              width={200}
+              height={150}
+              theme="dark"
+            />
+          </div>
+          <div className="playground-molecule-info">
+            <code className="playground-molecule-smiles" title={mol.smiles}>
+              {mol.smiles.length > 30 ? mol.smiles.slice(0, 28) + '...' : mol.smiles}
+            </code>
+            <div className="playground-molecule-scores">
+              {mol.score !== undefined && (
+                <span className="playground-molecule-score">
+                  QED: {mol.score.toFixed(3)}
+                </span>
+              )}
+              {mol.extra && (
+                <span className="playground-molecule-extra">{mol.extra}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }

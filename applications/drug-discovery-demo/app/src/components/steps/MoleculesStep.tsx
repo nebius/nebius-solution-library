@@ -12,7 +12,7 @@ import { MoleculeViewer2D } from '../MoleculeViewer2D';
 import { DrugLikenessBadge } from '../DrugLikenessPanel';
 import type { DrugTarget } from '../../data/drugs';
 import { formatDuration } from '../../hooks/useProgressTracker';
-import { StepAssistant } from '../StepAssistant';
+
 
 type GenerationStage = 'encoding' | 'exploring' | 'scoring';
 
@@ -807,23 +807,6 @@ export function MoleculesStep({
         </button>
       </div>
 
-      {/* Step Assistant */}
-      <StepAssistant
-        stepType="molecules"
-        gatewayUrl={gatewayUrl}
-        context={{
-          seedSmiles,
-          seedMode,
-          numMolecules,
-          scaledRadius,
-          generatedCount: result?.molecules.length,
-          selectedCount: selectedMolecules.size,
-          topMolecules: result?.molecules.slice(0, 5).map(m => ({
-            smiles: m.smiles,
-            score: m.score,
-          })),
-        }}
-      />
     </div>
   );
 }

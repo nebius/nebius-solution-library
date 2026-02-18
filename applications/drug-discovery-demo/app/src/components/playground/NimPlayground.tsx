@@ -76,7 +76,9 @@ export function NimPlayground() {
 
     try {
       const requestBody = nimConfig.buildRequest(formValues);
-      const url = buildNimUrl(gatewayUrl, endpointConfig.port, endpointConfig.path);
+      const path = nimConfig.endpointPath || endpointConfig.path;
+      const port = nimConfig.port || endpointConfig.port;
+      const url = buildNimUrl(gatewayUrl, port, path);
 
       const response = await fetch(url, {
         method: 'POST',
@@ -300,7 +302,9 @@ export function NimPlayground() {
                       <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
                       <path d="M8 5v3M8 10v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                     </svg>
-                    <span>Example result for <strong>villin headpiece HP35</strong> (35 residues) — click <strong>Run</strong> to generate with your own data</span>
+                    <span>
+                      <strong>Example result</strong> using default inputs — click <strong>Run</strong> to generate with your own data
+                    </span>
                   </div>
                 )}
                 <NimResult result={result} elapsedMs={elapsedMs} />
@@ -407,8 +411,8 @@ function RequestPreview({ nimConfig, formValues, gatewayUrl }: { nimConfig: NimP
   }
 
   const endpointConfig = ENDPOINT_CONFIG[nimConfig.id];
-  const port = endpointConfig?.port || 8000;
-  const path = endpointConfig?.path || '(unknown)';
+  const port = nimConfig.port || endpointConfig?.port || 8000;
+  const path = nimConfig.endpointPath || endpointConfig?.path || '(unknown)';
 
   // Build the direct URL (no proxy — for external use)
   const host = gatewayUrl.trim().replace(/^https?:\/\//, '').replace(/\/$/, '') || '<GATEWAY_HOST>';

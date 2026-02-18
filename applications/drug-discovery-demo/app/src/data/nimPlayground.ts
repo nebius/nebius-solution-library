@@ -66,7 +66,7 @@ export interface NimPlaygroundDef {
   exampleResult?: PlaygroundResult;
 }
 
-import { OPENFOLD3_EXAMPLE, BOLTZ2_EXAMPLE, OPENFOLD2_EXAMPLE } from './exampleResponses';
+import { OPENFOLD3_EXAMPLE, BOLTZ2_EXAMPLE, OPENFOLD2_EXAMPLE, MOLMIM_EXAMPLE } from './exampleResponses';
 
 // ============================================================================
 // Helper Functions
@@ -248,10 +248,11 @@ const OPENFOLD3: NimPlaygroundDef = {
       id: 'msa',
       label: 'MSA Alignment (A3M)',
       type: 'textarea',
-      group: 'advanced',
+      group: 'input',
       rows: 6,
+      default: '>query\nLSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF',
       placeholder: '>query\nMKFLILNK...\n>hit1\nMKFLILNK...',
-      description: 'Pre-computed MSA in A3M format for the first protein chain',
+      description: 'MSA in A3M format. At minimum, provide the query sequence. A single-sequence MSA is auto-generated if left empty.',
     },
     {
       id: 'diffusionSamples',
@@ -715,6 +716,7 @@ const GENMOL: NimPlaygroundDef = {
   categoryIcon: 'molecule',
   description: 'Generate novel drug-like molecules from SMILES scaffolds with masked positions.',
   resultType: 'molecules',
+  endpointPath: '/generate',
   fields: [
     {
       id: 'smiles',
@@ -722,6 +724,7 @@ const GENMOL: NimPlaygroundDef = {
       type: 'text',
       group: 'input',
       required: true,
+      default: '[MASK]c1ccc(C(=O)O)cc1',
       placeholder: '[MASK]c1ccc(C(=O)O)cc1',
       description: 'SMILES string. Use [MASK] tokens for positions to generate. Leave fully masked for de novo generation.',
     },
@@ -748,15 +751,27 @@ const GENMOL: NimPlaygroundDef = {
       description: 'Sampling temperature (higher = more diverse)',
     },
     {
+      id: 'scoring',
+      label: 'Scoring Function',
+      type: 'select',
+      group: 'parameters',
+      default: 'QED',
+      options: [
+        { value: 'QED', label: 'QED (Drug-likeness)' },
+        { value: 'plogP', label: 'plogP (Penalized LogP)' },
+      ],
+      description: 'Score generated molecules with this function',
+    },
+    {
       id: 'noise',
       label: 'Noise',
       type: 'number',
       group: 'advanced',
-      default: 0.0,
+      default: 1.0,
       min: 0,
-      max: 1,
+      max: 2,
       step: 0.1,
-      description: 'Noise level for generation',
+      description: 'Noise factor for top-K sampling',
     },
     {
       id: 'stepSize',
@@ -765,46 +780,26 @@ const GENMOL: NimPlaygroundDef = {
       group: 'advanced',
       default: 1,
       min: 1,
-      max: 20,
+      max: 10,
       step: 1,
-      description: 'Sampling step size',
-    },
-    {
-      id: 'scoring',
-      label: 'Scoring Functions',
-      type: 'multiselect',
-      group: 'parameters',
-      default: ['QED'],
-      options: [
-        { value: 'QED', label: 'QED (Drug-likeness)' },
-        { value: 'SA', label: 'SA (Synthetic Accessibility)' },
-        { value: 'logP', label: 'logP (Lipophilicity)' },
-      ],
-      description: 'Score generated molecules with these functions',
+      description: 'Diffusion step size',
     },
   ],
   buildRequest(values) {
-    const request: Record<string, unknown> = {
+    return {
       smiles: String(values.smiles || ''),
       num_molecules: Number(values.numMolecules ?? 10),
       temperature: Number(values.temperature ?? 1.0),
+      noise: Number(values.noise ?? 1.0),
+      step_size: Number(values.stepSize ?? 1),
+      scoring: values.scoring || 'QED',
     };
-    if (values.noise !== undefined && Number(values.noise) > 0) {
-      request.noise = Number(values.noise);
-    }
-    if (values.stepSize !== undefined && Number(values.stepSize) > 1) {
-      request.step_size = Number(values.stepSize);
-    }
-    if (Array.isArray(values.scoring) && (values.scoring as string[]).length > 0) {
-      request.scoring = values.scoring;
-    }
-    return request;
   },
   parseResponse(data: unknown): PlaygroundResult {
     const d = data as Record<string, unknown>;
     const items: PlaygroundResultItem[] = [];
 
-    const molecules = (d.molecules || d.generated_molecules || d.results) as
+    const molecules = (d.generated || d.molecules || d.generated_molecules || d.results) as
       | Array<Record<string, unknown>>
       | undefined;
 
@@ -843,6 +838,8 @@ const MOLMIM: NimPlaygroundDef = {
   categoryIcon: 'molecule',
   description: 'Generate molecules similar to a reference compound using controlled molecular interpolation.',
   resultType: 'molecules',
+  exampleResult: MOLMIM_EXAMPLE,
+  endpointPath: '/generate',
   fields: [
     {
       id: 'smi',
@@ -850,8 +847,9 @@ const MOLMIM: NimPlaygroundDef = {
       type: 'text',
       group: 'input',
       required: true,
+      default: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O',
       placeholder: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O',
-      description: 'Reference molecule SMILES to generate analogs of',
+      description: 'Reference molecule SMILES to generate analogs of (default: Ibuprofen)',
     },
     {
       id: 'numMolecules',
@@ -865,28 +863,28 @@ const MOLMIM: NimPlaygroundDef = {
       description: 'How many analog molecules to generate',
     },
     {
-      id: 'iterations',
-      label: 'Optimization Iterations',
-      type: 'number',
+      id: 'algorithm',
+      label: 'Algorithm',
+      type: 'select',
       group: 'parameters',
-      default: 10,
-      min: 1,
-      max: 50,
-      step: 1,
-      description: 'CMA-ES optimization iterations',
+      default: 'none',
+      options: [
+        { value: 'none', label: 'Random Sampling' },
+        { value: 'CMA-ES', label: 'CMA-ES Optimization' },
+      ],
+      description: 'Generation algorithm — Random Sampling is fast, CMA-ES optimizes for the chosen property',
     },
     {
       id: 'propertyName',
-      label: 'Optimization Property',
+      label: 'Scoring Property',
       type: 'select',
       group: 'parameters',
       default: 'QED',
       options: [
         { value: 'QED', label: 'QED (Drug-likeness)' },
-        { value: 'SA', label: 'SA (Synthetic Accessibility)' },
-        { value: 'logP', label: 'logP (Lipophilicity)' },
+        { value: 'plogP', label: 'plogP (Penalized LogP)' },
       ],
-      description: 'Property to optimize during generation',
+      description: 'Property to score/optimize molecules by',
     },
     {
       id: 'minSimilarity',
@@ -895,25 +893,68 @@ const MOLMIM: NimPlaygroundDef = {
       group: 'parameters',
       default: 0.3,
       min: 0,
-      max: 1,
+      max: 0.7,
       step: 0.05,
-      description: 'Minimum Tanimoto similarity to reference molecule',
+      description: 'Minimum Tanimoto similarity to reference molecule (max 0.7)',
+    },
+    {
+      id: 'scaledRadius',
+      label: 'Sampling Radius',
+      type: 'number',
+      group: 'advanced',
+      default: 1.0,
+      min: 0.1,
+      max: 3.0,
+      step: 0.1,
+      description: 'Radius of the latent space sampling (higher = more diverse)',
+    },
+    {
+      id: 'iterations',
+      label: 'CMA-ES Iterations',
+      type: 'number',
+      group: 'advanced',
+      default: 10,
+      min: 1,
+      max: 1000,
+      step: 1,
+      description: 'CMA-ES optimization iterations (only used with CMA-ES algorithm)',
+    },
+    {
+      id: 'particles',
+      label: 'Particles',
+      type: 'number',
+      group: 'advanced',
+      default: 30,
+      min: 2,
+      max: 100,
+      step: 1,
+      description: 'Number of candidate particles in CMA-ES (must be >= num_molecules)',
     },
   ],
   buildRequest(values) {
-    return {
+    const algorithm = String(values.algorithm || 'none');
+    const request: Record<string, unknown> = {
       smi: String(values.smi || ''),
       num_molecules: Number(values.numMolecules ?? 10),
-      iterations: Number(values.iterations ?? 10),
+      algorithm,
       property_name: values.propertyName || 'QED',
       min_similarity: Number(values.minSimilarity ?? 0.3),
+      scaled_radius: Number(values.scaledRadius ?? 1.0),
     };
+    if (algorithm === 'CMA-ES') {
+      request.iterations = Number(values.iterations ?? 10);
+      request.particles = Math.max(
+        Number(values.particles ?? 30),
+        Number(values.numMolecules ?? 10),
+      );
+    }
+    return request;
   },
   parseResponse(data: unknown): PlaygroundResult {
     const d = data as Record<string, unknown>;
     const items: PlaygroundResultItem[] = [];
 
-    const molecules = (d.molecules || d.generated_molecules || d.results) as
+    const molecules = (d.generated || d.molecules || d.generated_molecules || d.results) as
       | Array<Record<string, unknown>>
       | undefined;
 

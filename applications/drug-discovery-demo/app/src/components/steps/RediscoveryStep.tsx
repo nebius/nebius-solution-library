@@ -9,14 +9,13 @@ import {
   getSimilarityLevel,
   getMolecularProperties,
 } from '../../services/similarity';
-import { StepAssistant } from '../StepAssistant';
+
 
 interface RediscoveryStepProps {
   selectedDrug: DrugTarget | null;
   dockingResults: DockingResult[];
   onContinue: () => void;
   onBack: () => void;
-  gatewayUrl: string;
 }
 
 export function RediscoveryStep({
@@ -24,7 +23,6 @@ export function RediscoveryStep({
   dockingResults,
   onContinue,
   onBack,
-  gatewayUrl,
 }: RediscoveryStepProps) {
   const [rediscoveryResult, setRediscoveryResult] = useState<RediscoveryResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -378,22 +376,6 @@ export function RediscoveryStep({
         </button>
       </div>
 
-      {/* Step Assistant */}
-      <StepAssistant
-        stepType="rediscovery"
-        gatewayUrl={gatewayUrl}
-        context={{
-          referenceDrug: selectedDrug?.name,
-          referenceSMILES: selectedDrug?.referenceSMILES,
-          bestMatch: rediscoveryResult?.bestMatch ? {
-            smiles: rediscoveryResult.bestMatch.smiles.substring(0, 30),
-            similarity: rediscoveryResult.bestMatch.similarity,
-          } : null,
-          exactMatch: rediscoveryResult?.exactMatch,
-          totalAnalyzed: rediscoveryResult?.similarities.length,
-          highSimilarityCount: rediscoveryResult?.similarities.filter(s => s.similarity > 0.7).length,
-        }}
-      />
     </div>
   );
 }

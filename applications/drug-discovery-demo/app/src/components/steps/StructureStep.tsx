@@ -16,7 +16,7 @@ import {
 } from '../../services/msaSearch';
 import { buildNimUrl } from '../../services/nimApi';
 import { StructureViewer } from '../StructureViewer';
-import { StepAssistant } from '../StepAssistant';
+
 import { getNumCopiesFromOligomericState } from '../../data/drugs';
 
 interface ProteinInfo {
@@ -831,22 +831,6 @@ export function StructureStep({
         </button>
       </div>
 
-      {/* Step Assistant */}
-      <StepAssistant
-        stepType="structure"
-        gatewayUrl={gatewayUrl}
-        context={{
-          protein: proteinInfo,
-          selectedModel: selectedResultModel,
-          results: results.filter(r => r.status === 'success').map(r => ({
-            model: r.modelId,
-            confidence: r.result?.confidenceScore,
-            plddt: r.result?.plddt,
-            ptm: r.result?.ptm,
-          })),
-          msaUsed: !!msaResult,
-        }}
-      />
     </div>
   );
 }

@@ -223,7 +223,6 @@ function App() {
             dockingResults={dockingResults}
             onContinue={goToNextStep}
             onBack={goToPrevStep}
-            gatewayUrl={gatewayUrl}
           />
         );
 
