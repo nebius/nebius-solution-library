@@ -62,7 +62,7 @@ function WorkflowWithDataReset({
 export function AppProvider({
   children,
   initialGatewayUrl = '',
-  initialWorkflowMode = 'steps',
+  initialWorkflowMode = 'playground',
 }: AppProviderProps) {
   return (
     <GatewayProvider

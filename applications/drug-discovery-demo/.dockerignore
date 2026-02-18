@@ -5,3 +5,4 @@ app/dist
 app/server/data/pipelines/*.json
 .git
 *.md
+ma

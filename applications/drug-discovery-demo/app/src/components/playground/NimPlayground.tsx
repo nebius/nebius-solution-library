@@ -28,6 +28,8 @@ export function NimPlayground() {
     [selectedNimId]
   );
 
+  const [isExampleResult, setIsExampleResult] = useState(false);
+
   // Initialize form values when NIM changes
   const handleSelectNim = useCallback((nimId: string) => {
     const config = getPlaygroundConfig(nimId);
@@ -42,8 +44,17 @@ export function NimPlayground() {
 
     setSelectedNimId(nimId);
     setFormValues(defaults);
-    setResult(null);
     setShowAdvanced(false);
+
+    // Show example result if available
+    if (config.exampleResult) {
+      setResult(config.exampleResult);
+      setIsExampleResult(true);
+      setElapsedMs(0);
+    } else {
+      setResult(null);
+      setIsExampleResult(false);
+    }
   }, []);
 
   // Update a single form value
@@ -60,6 +71,7 @@ export function NimPlayground() {
 
     setIsRunning(true);
     setResult(null);
+    setIsExampleResult(false);
     const startTime = Date.now();
 
     try {
@@ -276,11 +288,24 @@ export function NimPlayground() {
               )}
             </div>
 
-            {/* Request Preview */}
-            <RequestPreview nimConfig={nimConfig} formValues={formValues} />
+            {/* API Code Snippets */}
+            <RequestPreview nimConfig={nimConfig} formValues={formValues} gatewayUrl={gatewayUrl} />
 
             {/* Results */}
-            {result && <NimResult result={result} elapsedMs={elapsedMs} />}
+            {result && (
+              <>
+                {isExampleResult && (
+                  <div className="playground-example-banner">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M8 5v3M8 10v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                    <span>Example result for <strong>villin headpiece HP35</strong> (35 residues) — click <strong>Run</strong> to generate with your own data</span>
+                  </div>
+                )}
+                <NimResult result={result} elapsedMs={elapsedMs} />
+              </>
+            )}
           </div>
         )}
       </div>
@@ -364,11 +389,15 @@ function PlaygroundWelcome() {
 }
 
 // ============================================================================
-// Request Preview
+// Request Preview + Code Snippets
 // ============================================================================
 
-function RequestPreview({ nimConfig, formValues }: { nimConfig: NimPlaygroundDef; formValues: Record<string, unknown> }) {
+type SnippetTab = 'json' | 'curl' | 'python';
+
+function RequestPreview({ nimConfig, formValues, gatewayUrl }: { nimConfig: NimPlaygroundDef; formValues: Record<string, unknown>; gatewayUrl: string }) {
   const [expanded, setExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<SnippetTab>('curl');
+  const [copied, setCopied] = useState(false);
 
   let requestBody: unknown;
   try {
@@ -378,7 +407,55 @@ function RequestPreview({ nimConfig, formValues }: { nimConfig: NimPlaygroundDef
   }
 
   const endpointConfig = ENDPOINT_CONFIG[nimConfig.id];
+  const port = endpointConfig?.port || 8000;
   const path = endpointConfig?.path || '(unknown)';
+
+  // Build the direct URL (no proxy — for external use)
+  const host = gatewayUrl.trim().replace(/^https?:\/\//, '').replace(/\/$/, '') || '<GATEWAY_HOST>';
+  const directUrl = `http://${host}:${port}${path}`;
+  const jsonStr = JSON.stringify(requestBody, null, 2);
+
+  const buildCurl = () => {
+    const escapedJson = JSON.stringify(requestBody);
+    return `curl -X POST '${directUrl}' \\\n  -H 'Content-Type: application/json' \\\n  -d '${escapedJson}'`;
+  };
+
+  const buildPython = () => {
+    return `import requests
+
+url = "${directUrl}"
+
+payload = ${jsonStr}
+
+response = requests.post(url, json=payload)
+response.raise_for_status()
+data = response.json()
+print(data)`;
+  };
+
+  const snippets: Record<SnippetTab, string> = {
+    json: jsonStr,
+    curl: buildCurl(),
+    python: buildPython(),
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(snippets[activeTab]);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = snippets[activeTab];
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <div className="playground-request-preview">
@@ -392,12 +469,47 @@ function RequestPreview({ nimConfig, formValues }: { nimConfig: NimPlaygroundDef
         >
           <path d="M4 3l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <span>Request Preview</span>
-        <code className="playground-endpoint-badge">POST {path}</code>
+        <span>API Code Snippets</span>
+        <code className="playground-endpoint-badge">POST :{port}{path}</code>
       </button>
       {expanded && (
         <div className="playground-card-body">
-          <pre className="playground-code-block">{JSON.stringify(requestBody, null, 2)}</pre>
+          <div className="playground-snippet-tabs">
+            <button
+              className={`playground-snippet-tab ${activeTab === 'curl' ? 'active' : ''}`}
+              onClick={() => setActiveTab('curl')}
+            >curl</button>
+            <button
+              className={`playground-snippet-tab ${activeTab === 'python' ? 'active' : ''}`}
+              onClick={() => setActiveTab('python')}
+            >Python</button>
+            <button
+              className={`playground-snippet-tab ${activeTab === 'json' ? 'active' : ''}`}
+              onClick={() => setActiveTab('json')}
+            >JSON Body</button>
+            <button
+              className="playground-snippet-copy"
+              onClick={handleCopy}
+            >
+              {copied ? (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <rect x="4" y="4" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M10 4V3a1 1 0 00-1-1H3a1 1 0 00-1 1v6a1 1 0 001 1h1" stroke="currentColor" strokeWidth="1.5" />
+                  </svg>
+                  Copy
+                </>
+              )}
+            </button>
+          </div>
+          <pre className="playground-code-block">{snippets[activeTab]}</pre>
         </div>
       )}
     </div>

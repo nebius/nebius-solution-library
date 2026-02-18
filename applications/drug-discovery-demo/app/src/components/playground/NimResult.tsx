@@ -7,6 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import type { PlaygroundResult, PlaygroundResultItem } from '../../data/nimPlayground';
+import { StructureViewer } from '../StructureViewer';
 
 interface NimResultProps {
   result: PlaygroundResult;
@@ -175,12 +176,20 @@ function ResultContent({ item }: { item: PlaygroundResultItem }) {
         </pre>
       );
 
-    case 'structure':
+    case 'structure': {
+      // Detect format from content
+      const isCif = item.value.trimStart().startsWith('data_') || item.value.includes('_atom_site.');
+      const structFormat = isCif ? 'cif' : 'pdb';
       return (
-        <pre className="playground-code-block playground-structure-block">
-          {item.value.length > 5000 ? item.value.slice(0, 5000) + '\n\n... (truncated - download for full file)' : item.value}
-        </pre>
+        <StructureViewer
+          structure={item.value}
+          format={structFormat as 'pdb' | 'cif'}
+          height={450}
+          colorScheme="confidence"
+          showControls={true}
+        />
       );
+    }
 
     case 'smiles':
       return (

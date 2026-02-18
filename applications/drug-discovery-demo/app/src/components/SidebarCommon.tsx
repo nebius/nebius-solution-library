@@ -42,13 +42,13 @@ export function SidebarCommon() {
         <h3 className="sidebar-section-title">Workflow Mode</h3>
         <div className="mode-selector">
           <button
-            className={`mode-selector-btn ${workflowMode === 'steps' ? 'active' : ''}`}
-            onClick={() => setWorkflowMode('steps')}
+            className={`mode-selector-btn playground ${workflowMode === 'playground' ? 'active' : ''}`}
+            onClick={() => setWorkflowMode('playground')}
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M2 3h10M2 7h10M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M8 1L2 8h5l-1 5 6-7H7l1-5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Step-by-Step
+            NIMs
           </button>
           <button
             className={`mode-selector-btn serverless ${workflowMode === 'finetuning' ? 'active' : ''}`}
@@ -60,13 +60,13 @@ export function SidebarCommon() {
             Fine-Tuning
           </button>
           <button
-            className={`mode-selector-btn playground ${workflowMode === 'playground' ? 'active' : ''}`}
-            onClick={() => setWorkflowMode('playground')}
+            className={`mode-selector-btn ${workflowMode === 'steps' ? 'active' : ''}`}
+            onClick={() => setWorkflowMode('steps')}
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M8 1L2 8h5l-1 5 6-7H7l1-5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 3h10M2 7h10M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            NIMs
+            Step-by-Step
           </button>
         </div>
       </div>

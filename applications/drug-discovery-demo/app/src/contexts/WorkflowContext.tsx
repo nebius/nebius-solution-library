@@ -120,7 +120,7 @@ export interface WorkflowProviderProps {
 
 export function WorkflowProvider({
   children,
-  initialMode = 'steps',
+  initialMode = 'playground',
   onDrugChange,
 }: WorkflowProviderProps) {
   const [workflowMode, setWorkflowMode] = useState<WorkflowMode>(initialMode);

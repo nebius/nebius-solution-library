@@ -554,6 +554,23 @@
   text-align: center;
 }
 
+.playground-example-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: color-mix(in srgb, var(--color-violet) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-violet) 30%, transparent);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-small);
+  color: var(--color-gray-300);
+}
+
+.playground-example-banner svg {
+  flex-shrink: 0;
+  color: var(--color-violet);
+}
+
 /* ---- Code Blocks (dark theme) ---- */
 
 .playground-code-block {
@@ -782,7 +799,7 @@
   word-break: break-all;
 }
 
-/* ---- Request Preview ---- */
+/* ---- Request Preview / Code Snippets ---- */
 
 .playground-request-preview {
   background: var(--color-white);
@@ -794,4 +811,54 @@
 .playground-request-preview .playground-code-block {
   border-radius: 0 0 var(--radius-xl) var(--radius-xl);
   margin: 0;
+}
+
+.playground-snippet-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0 var(--spacing-md) var(--spacing-sm);
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.playground-snippet-tab {
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-small);
+  font-family: var(--font-family-mono);
+  color: var(--color-gray-500);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.playground-snippet-tab:hover {
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
+}
+
+.playground-snippet-tab.active {
+  background: var(--color-deep-blue);
+  color: var(--color-lime);
+}
+
+.playground-snippet-copy {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--color-gray-200);
+  background: var(--color-white);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.playground-snippet-copy:hover {
+  background: var(--color-gray-50);
+  border-color: var(--color-gray-300);
 }

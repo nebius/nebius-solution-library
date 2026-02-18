@@ -62,7 +62,11 @@ export interface NimPlaygroundDef {
   endpointPath?: string;
   /** Override port (if different from ENDPOINT_CONFIG) */
   port?: number;
+  /** Pre-computed example result shown before the user clicks Run */
+  exampleResult?: PlaygroundResult;
 }
+
+import { OPENFOLD3_EXAMPLE, BOLTZ2_EXAMPLE, OPENFOLD2_EXAMPLE } from './exampleResponses';
 
 // ============================================================================
 // Helper Functions
@@ -201,6 +205,7 @@ const OPENFOLD3: NimPlaygroundDef = {
   categoryIcon: 'structure',
   description: 'Next-generation structure prediction supporting protein, DNA, RNA, and ligand complexes.',
   resultType: 'structure',
+  exampleResult: OPENFOLD3_EXAMPLE,
   fields: [
     {
       id: 'sequences',
@@ -209,6 +214,7 @@ const OPENFOLD3: NimPlaygroundDef = {
       group: 'input',
       required: true,
       rows: 6,
+      default: 'A:LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF',
       placeholder: 'A:MKFLILNKQKQLAWDLNPHADYLARIQKLF\nB:GKKVFLIANAQKALIDLNVSTQDDLARIQALFE',
       description: 'One chain per line, format: ChainID:Sequence (or just the sequence)',
     },
@@ -276,22 +282,24 @@ const OPENFOLD3: NimPlaygroundDef = {
     // Protein chains
     const chains = parseChainSequences(String(values.sequences || ''));
     for (const chain of chains) {
+      // OpenFold3 requires MSA for every protein chain — use provided MSA
+      // for the first chain, or auto-generate a single-sequence MSA
+      const msaAlignment = molecules.length === 0 && values.msa
+        ? String(values.msa)
+        : `>query\n${chain.sequence}`;
       const mol: Record<string, unknown> = {
         type: 'protein',
         id: chain.id,
         sequence: chain.sequence,
-      };
-      // Add MSA for first chain if provided
-      if (molecules.length === 0 && values.msa) {
-        mol.msa = {
+        msa: {
           main: {
             a3m: {
-              alignment: String(values.msa),
+              alignment: msaAlignment,
               format: 'a3m',
             },
           },
-        };
-      }
+        },
+      };
       molecules.push(mol);
     }
 
@@ -341,24 +349,53 @@ const OPENFOLD3: NimPlaygroundDef = {
   },
   parseResponse(data: unknown): PlaygroundResult {
     const d = data as Record<string, unknown>;
-    const nested = d.data as Record<string, unknown> | undefined;
-    const outputs = (d.outputs || nested?.outputs) as Array<Record<string, unknown>> | undefined;
     const items: PlaygroundResultItem[] = [];
 
-    if (outputs?.[0]) {
-      const output = outputs[0];
-      const structures = output.structures_with_scores as Array<Record<string, unknown>> | undefined;
+    // Try new format first: { playground_prediction: { structures: [{ structure, plddt, ptm }] } }
+    const predictionKey = Object.keys(d).find((k) => k !== 'outputs' && d[k] && typeof d[k] === 'object' && 'structures' in (d[k] as Record<string, unknown>));
+    if (predictionKey) {
+      const prediction = d[predictionKey] as Record<string, unknown>;
+      const structures = prediction.structures as Array<Record<string, unknown>> | undefined;
       if (structures?.[0]) {
         const struct = structures[0];
-        const structureData = (struct.structure || struct.pdb_string || struct.cif_string || '') as string;
-        const score = struct.plddt_score ?? struct.confidence_score ?? '';
-        const format = String(structureData).startsWith('data_') ? 'cif' : 'pdb';
-        items.push({
-          label: `Predicted Structure${score ? ` (pLDDT: ${Number(score).toFixed(1)})` : ''}`,
-          value: structureData,
-          format: 'structure',
-          downloadFilename: `openfold3_prediction.${format}`,
-        });
+        const structureData = (struct.structure || '') as string;
+        const plddt = struct.plddt as number | undefined;
+        const ptm = struct.ptm as number | undefined;
+
+        if (structureData) {
+          const scores: string[] = [];
+          if (plddt !== undefined) scores.push(`pLDDT: ${(plddt > 1 ? plddt : plddt * 100).toFixed(1)}`);
+          if (ptm !== undefined) scores.push(`pTM: ${ptm.toFixed(3)}`);
+          const ext = String(structureData).startsWith('data_') ? 'cif' : 'pdb';
+          items.push({
+            label: `Predicted Structure${scores.length ? ` (${scores.join(', ')})` : ''}`,
+            value: structureData,
+            format: 'structure',
+            downloadFilename: `openfold3_prediction.${ext}`,
+          });
+        }
+      }
+    }
+
+    // Fallback: old format { outputs: [{ structures_with_scores: [{ structure, plddt_score }] }] }
+    if (items.length === 0) {
+      const nested = d.data as Record<string, unknown> | undefined;
+      const outputs = (d.outputs || nested?.outputs) as Array<Record<string, unknown>> | undefined;
+      if (outputs?.[0]) {
+        const output = outputs[0];
+        const structures = output.structures_with_scores as Array<Record<string, unknown>> | undefined;
+        if (structures?.[0]) {
+          const struct = structures[0];
+          const structureData = (struct.structure || struct.pdb_string || struct.cif_string || '') as string;
+          const score = struct.plddt_score ?? struct.confidence_score ?? '';
+          const ext = String(structureData).startsWith('data_') ? 'cif' : 'pdb';
+          items.push({
+            label: `Predicted Structure${score ? ` (pLDDT: ${Number(score).toFixed(1)})` : ''}`,
+            value: structureData,
+            format: 'structure',
+            downloadFilename: `openfold3_prediction.${ext}`,
+          });
+        }
       }
     }
 
@@ -381,6 +418,7 @@ const BOLTZ2: NimPlaygroundDef = {
   categoryIcon: 'structure',
   description: 'Fast and accurate biomolecular structure prediction with affinity estimation.',
   resultType: 'structure',
+  exampleResult: BOLTZ2_EXAMPLE,
   fields: [
     {
       id: 'sequences',
@@ -389,6 +427,7 @@ const BOLTZ2: NimPlaygroundDef = {
       group: 'input',
       required: true,
       rows: 6,
+      default: 'A:LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF',
       placeholder: 'A:MKFLILNKQKQLAWDLNPHADYLARIQKLF\nB:GKKVFLIANAQKALIDLNVSTQDDLARIQALFE',
       description: 'One chain per line, format: ChainID:Sequence',
     },
@@ -445,17 +484,6 @@ const BOLTZ2: NimPlaygroundDef = {
       description: 'Diffusion step scale factor',
     },
     {
-      id: 'outputFormat',
-      label: 'Output Format',
-      type: 'select',
-      group: 'parameters',
-      default: 'pdb',
-      options: [
-        { value: 'pdb', label: 'PDB' },
-        { value: 'mmcif', label: 'mmCIF' },
-      ],
-    },
-    {
       id: 'predictAffinity',
       label: 'Predict Affinity',
       type: 'checkbox',
@@ -469,9 +497,9 @@ const BOLTZ2: NimPlaygroundDef = {
     const chains = parseChainSequences(String(values.sequences || ''));
     for (const chain of chains) {
       polymers.push({
-        entity_type: 'proteinChain',
-        id: chain.id,
+        molecule_type: 'protein',
         sequence: chain.sequence,
+        cyclic: false,
       });
     }
 
@@ -489,7 +517,7 @@ const BOLTZ2: NimPlaygroundDef = {
       sampling_steps: Number(values.samplingSteps ?? 200),
       diffusion_samples: Number(values.diffusionSamples ?? 1),
       step_scale: Number(values.stepScale ?? 1.638),
-      output_format: values.outputFormat || 'pdb',
+      output_format: 'mmcif',
     };
 
     if (ligands.length > 0) request.ligands = ligands;
@@ -501,18 +529,43 @@ const BOLTZ2: NimPlaygroundDef = {
     const d = data as Record<string, unknown>;
     const items: PlaygroundResultItem[] = [];
 
-    // Boltz2 response format
-    const structure = (d.pdb_string || d.cif_string || d.structure || '') as string;
-    const confidence = d.confidence_score ?? d.plddt ?? '';
+    // Boltz2 response: { structures: [{structure: "mmCIF..."}], confidence_scores: [n], complex_plddt_scores: [n], ptm_scores: [n] }
+    const structures = d.structures as Array<Record<string, unknown>> | undefined;
+    const confidenceScores = d.confidence_scores as number[] | undefined;
+    const plddtScores = d.complex_plddt_scores as number[] | undefined;
+    const ptmScores = d.ptm_scores as number[] | undefined;
 
-    if (structure) {
-      const format = String(structure).startsWith('data_') ? 'mmcif' : 'pdb';
-      items.push({
-        label: `Predicted Structure${confidence ? ` (confidence: ${Number(confidence).toFixed(2)})` : ''}`,
-        value: structure,
-        format: 'structure',
-        downloadFilename: `boltz2_prediction.${format}`,
-      });
+    if (structures?.[0]) {
+      const structure = (structures[0].structure || '') as string;
+      const confidence = confidenceScores?.[0];
+      const plddt = plddtScores?.[0];
+      const ptm = ptmScores?.[0];
+
+      if (structure) {
+        const scores: string[] = [];
+        if (plddt !== undefined) scores.push(`pLDDT: ${(plddt * 100).toFixed(1)}`);
+        if (confidence !== undefined) scores.push(`confidence: ${confidence.toFixed(3)}`);
+        if (ptm !== undefined) scores.push(`pTM: ${ptm.toFixed(3)}`);
+        items.push({
+          label: `Predicted Structure${scores.length ? ` (${scores.join(', ')})` : ''}`,
+          value: structure,
+          format: 'structure',
+          downloadFilename: 'boltz2_prediction.cif',
+        });
+      }
+    }
+
+    // Fallback: direct structure field
+    if (items.length === 0) {
+      const structure = (d.pdb_string || d.cif_string || d.structure || '') as string;
+      if (structure) {
+        items.push({
+          label: 'Predicted Structure',
+          value: structure,
+          format: 'structure',
+          downloadFilename: 'boltz2_prediction.cif',
+        });
+      }
     }
 
     // Check for affinity prediction
@@ -544,6 +597,7 @@ const OPENFOLD2: NimPlaygroundDef = {
   categoryIcon: 'structure',
   description: 'Structure prediction from multiple sequence alignment (MSA) and templates.',
   resultType: 'structure',
+  exampleResult: OPENFOLD2_EXAMPLE,
   fields: [
     {
       id: 'sequence',
@@ -552,6 +606,7 @@ const OPENFOLD2: NimPlaygroundDef = {
       group: 'input',
       required: true,
       rows: 4,
+      default: 'LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF',
       placeholder: 'MKFLILNKQKQLAWDLNPHADYLARIQKLF',
       description: 'Single protein sequence (no chain ID needed)',
     },
@@ -560,10 +615,10 @@ const OPENFOLD2: NimPlaygroundDef = {
       label: 'MSA Alignment (A3M)',
       type: 'textarea',
       group: 'input',
-      required: true,
       rows: 8,
+      default: '>query\nLSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF',
       placeholder: '>query\nMKFLILNK...\n>hit1\nMKFLILNK...\n>hit2\nMKFLILNK...',
-      description: 'Multiple sequence alignment in A3M format. Use MSA Search NIM to generate this.',
+      description: 'Multiple sequence alignment in A3M format. If empty, a single-sequence MSA is auto-generated.',
     },
     {
       id: 'selectedModels',
@@ -586,27 +641,59 @@ const OPENFOLD2: NimPlaygroundDef = {
       ? (values.selectedModels as string[]).map(Number)
       : [1, 2, 3, 4, 5];
 
+    const sequence = String(values.sequence || '').trim();
+    const alignment = values.alignment && String(values.alignment).trim()
+      ? String(values.alignment).trim()
+      : `>query\n${sequence}`;
+
     return {
-      sequence: String(values.sequence || '').trim(),
-      alignments: [String(values.alignment || '')],
+      sequence,
+      alignments: {
+        uniref90: {
+          a3m: {
+            alignment,
+            format: 'a3m',
+          },
+        },
+      },
       templates: [],
       selected_models: selectedModels,
+      output_format: 'cif',
     };
   },
   parseResponse(data: unknown): PlaygroundResult {
     const d = data as Record<string, unknown>;
     const items: PlaygroundResultItem[] = [];
 
-    const structure = (d.pdb_string || d.structure || '') as string;
-    const plddt = d.plddt ?? d.confidence_score ?? '';
+    // OpenFold2 response: { structures_in_ranked_order: [{ structure, format, confidence }] }
+    const ranked = d.structures_in_ranked_order as Array<Record<string, unknown>> | undefined;
+    if (ranked?.[0]) {
+      const struct = ranked[0];
+      const structure = (struct.structure || '') as string;
+      const confidence = struct.confidence as number | undefined;
 
-    if (structure) {
-      items.push({
-        label: `Predicted Structure${plddt ? ` (pLDDT: ${Number(plddt).toFixed(1)})` : ''}`,
-        value: structure,
-        format: 'structure',
-        downloadFilename: 'openfold2_prediction.pdb',
-      });
+      if (structure) {
+        const plddt = confidence !== undefined ? (confidence > 1 ? confidence : confidence * 100) : undefined;
+        items.push({
+          label: `Predicted Structure${plddt !== undefined ? ` (pLDDT: ${plddt.toFixed(1)})` : ''}`,
+          value: structure,
+          format: 'structure',
+          downloadFilename: 'openfold2_prediction.cif',
+        });
+      }
+    }
+
+    // Fallback: direct structure field
+    if (items.length === 0) {
+      const structure = (d.pdb_string || d.structure || '') as string;
+      if (structure) {
+        items.push({
+          label: 'Predicted Structure',
+          value: structure,
+          format: 'structure',
+          downloadFilename: 'openfold2_prediction.cif',
+        });
+      }
     }
 
     if (items.length === 0) {
