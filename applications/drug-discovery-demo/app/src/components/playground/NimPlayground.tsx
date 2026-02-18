@@ -20,6 +20,7 @@ export function NimPlayground() {
   const [result, setResult] = useState<PlaygroundResult | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [parallelProgress, setParallelProgress] = useState<{ done: number; total: number } | null>(null);
 
   const { endpoints, gatewayUrl } = useGateway();
 
@@ -62,7 +63,7 @@ export function NimPlayground() {
     setFormValues((prev) => ({ ...prev, [fieldId]: value }));
   }, []);
 
-  // Submit the request
+  // Submit the request (supports parallel requests for NIMs with supportsParallel)
   const handleSubmit = useCallback(async () => {
     if (!nimConfig || !selectedNimId) return;
 
@@ -72,6 +73,7 @@ export function NimPlayground() {
     setIsRunning(true);
     setResult(null);
     setIsExampleResult(false);
+    setParallelProgress(null);
     const startTime = Date.now();
 
     try {
@@ -79,41 +81,94 @@ export function NimPlayground() {
       const path = nimConfig.endpointPath || endpointConfig.path;
       const port = nimConfig.port || endpointConfig.port;
       const url = buildNimUrl(gatewayUrl, port, path);
+      const parallelCount = nimConfig.supportsParallel
+        ? Math.max(1, Math.min(10, Number(formValues.parallelRequests ?? 1)))
+        : 1;
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
+      if (parallelCount > 1 && nimConfig.mergeResults) {
+        // Parallel execution
+        setParallelProgress({ done: 0, total: parallelCount });
+        let completed = 0;
 
-      const elapsed = Date.now() - startTime;
-      setElapsedMs(elapsed);
+        const promises = Array.from({ length: parallelCount }, () =>
+          fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+          })
+            .then(async (response) => {
+              if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+              }
+              const data = await response.json();
+              const parsed = nimConfig.parseResponse(data);
+              completed++;
+              setParallelProgress({ done: completed, total: parallelCount });
+              return parsed;
+            })
+        );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage: string;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.detail || errorJson.message || errorJson.error || errorText;
-        } catch {
-          errorMessage = errorText;
+        const settled = await Promise.allSettled(promises);
+        const elapsed = Date.now() - startTime;
+        setElapsedMs(elapsed);
+
+        const successResults = settled
+          .filter((r): r is PromiseFulfilledResult<PlaygroundResult> => r.status === 'fulfilled')
+          .map((r) => r.value);
+        const failCount = settled.filter((r) => r.status === 'rejected').length;
+
+        if (successResults.length === 0) {
+          const firstError = settled.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+          setResult({
+            type: nimConfig.resultType,
+            raw: { error: 'All parallel requests failed' },
+            items: [],
+            error: firstError?.reason?.message || 'All parallel requests failed',
+          });
+        } else {
+          const merged = nimConfig.mergeResults(successResults);
+          if (failCount > 0) {
+            merged.error = `${failCount} of ${parallelCount} requests failed`;
+          }
+          setResult(merged);
         }
-        setResult({
-          type: nimConfig.resultType,
-          raw: { status: response.status, error: errorMessage },
-          items: [],
-          error: `HTTP ${response.status}: ${errorMessage}`,
+      } else {
+        // Single request
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
         });
-        return;
-      }
 
-      const data = await response.json();
-      const parsed = nimConfig.parseResponse(data);
-      // Attach protein structure for docking results so the viewer can show protein + ligands
-      if (nimConfig.resultType === 'docking' && formValues.protein) {
-        parsed.proteinStructure = String(formValues.protein);
+        const elapsed = Date.now() - startTime;
+        setElapsedMs(elapsed);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage: string;
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.detail || errorJson.message || errorJson.error || errorText;
+          } catch {
+            errorMessage = errorText;
+          }
+          setResult({
+            type: nimConfig.resultType,
+            raw: { status: response.status, error: errorMessage },
+            items: [],
+            error: `HTTP ${response.status}: ${errorMessage}`,
+          });
+          return;
+        }
+
+        const data = await response.json();
+        const parsed = nimConfig.parseResponse(data);
+        if (nimConfig.resultType === 'docking' && formValues.protein) {
+          parsed.proteinStructure = String(formValues.protein);
+        }
+        setResult(parsed);
       }
-      setResult(parsed);
     } catch (error) {
       setElapsedMs(Date.now() - startTime);
       setResult({
@@ -124,6 +179,7 @@ export function NimPlayground() {
       });
     } finally {
       setIsRunning(false);
+      setParallelProgress(null);
     }
   }, [nimConfig, selectedNimId, formValues, gatewayUrl]);
 
@@ -278,7 +334,10 @@ export function NimPlayground() {
                 {isRunning ? (
                   <>
                     <span className="spinner spinner-sm" />
-                    Running {nimConfig.name}...
+                    {parallelProgress
+                      ? `Running ${nimConfig.name}... (${parallelProgress.done}/${parallelProgress.total})`
+                      : `Running ${nimConfig.name}...`
+                    }
                   </>
                 ) : (
                   <>

@@ -724,6 +724,7 @@ const GENMOL: NimPlaygroundDef = {
   resultType: 'molecules',
   endpointPath: '/generate',
   exampleResult: GENMOL_EXAMPLE,
+  supportsParallel: true,
   fields: [
     {
       id: 'smiles',
@@ -744,7 +745,18 @@ const GENMOL: NimPlaygroundDef = {
       min: 1,
       max: 100,
       step: 1,
-      description: 'How many candidate molecules to generate',
+      description: 'How many candidate molecules to generate per request',
+    },
+    {
+      id: 'parallelRequests',
+      label: 'Parallel Requests',
+      type: 'number',
+      group: 'parameters',
+      default: 1,
+      min: 1,
+      max: 10,
+      step: 1,
+      description: 'Number of parallel requests to the load-balanced NIM. Each request generates the above number of molecules — results are merged.',
     },
     {
       id: 'temperature',
@@ -840,6 +852,43 @@ const GENMOL: NimPlaygroundDef = {
     }
 
     return { type: 'molecules', raw: data, items };
+  },
+  mergeResults(results: PlaygroundResult[]): PlaygroundResult {
+    // Collect all raw molecule arrays and deduplicate by SMILES
+    const seen = new Set<string>();
+    const allMolecules: { smi: string; score: number | null }[] = [];
+    for (const result of results) {
+      const raw = result.raw as Record<string, unknown>;
+      const molecules = (raw.generated || raw.molecules || raw.generated_molecules || raw.results) as
+        | Array<Record<string, unknown>>
+        | undefined;
+      if (Array.isArray(molecules)) {
+        for (const m of molecules) {
+          const smi = String(m.smiles || m.smi || m.molecule || '');
+          if (!smi || seen.has(smi)) continue;
+          seen.add(smi);
+          const score = m.score ?? m.qed ?? null;
+          allMolecules.push({ smi, score: score !== null ? Number(score) : null });
+        }
+      }
+    }
+    // Sort by score descending (best first)
+    allMolecules.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+
+    const smilesLines = allMolecules
+      .map((m, i) => `${i + 1}. ${m.smi}${m.score !== null ? ` (score: ${m.score.toFixed(3)})` : ''}`)
+      .join('\n');
+
+    return {
+      type: 'molecules',
+      raw: { merged: true, requestCount: results.length, totalMolecules: allMolecules.length },
+      items: [{
+        label: `Generated Molecules (${allMolecules.length} unique from ${results.length} requests)`,
+        value: smilesLines,
+        format: 'smiles',
+        downloadFilename: 'genmol_molecules.txt',
+      }],
+    };
   },
 };
 
