@@ -28,7 +28,7 @@ export NEBIUS_IAM_TOKEN=$(nebius iam get-access-token)
 NEBIUS_VPC_NETWORK_ID=$(nebius vpc network list \
   --parent-id "${NEBIUS_PROJECT_ID}" \
   --format json \
-  | jq -r '.items[] | select(.metadata.name == "default") | .metadata.id')
+  | jq -r '.items[] | select(.metadata.name | startswith("default")) | .metadata.id')
 export NEBIUS_VPC_NETWORK_ID
 
 # VPC subnet
