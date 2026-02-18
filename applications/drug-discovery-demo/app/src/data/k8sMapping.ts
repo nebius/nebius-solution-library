@@ -23,27 +23,26 @@ export const K8S_TO_NIM: Record<string, string> = Object.fromEntries(
   Object.entries(NIM_TO_K8S).map(([k, v]) => [v, k])
 );
 
-// GPU types available in the cluster
-export type GpuType = 'B200';
+// GPU type is a string detected dynamically from node labels
+export type GpuType = string;
 
-// GPU requirements per NIM
+// GPU requirements per NIM (count per replica)
 export interface GpuRequirement {
-  type: GpuType;
   count: number;
 }
 
 export const NIM_GPU_REQUIREMENTS: Record<string, GpuRequirement> = {
-  'openfold3': { type: 'B200', count: 1 },
-  'boltz2': { type: 'B200', count: 1 },
-  'openfold2': { type: 'B200', count: 1 },
-  'genmol': { type: 'B200', count: 1 },
-  'molmim': { type: 'B200', count: 1 },
-  'diffdock': { type: 'B200', count: 1 },
-  'qwen3': { type: 'B200', count: 2 },
-  'msa': { type: 'B200', count: 1 },
-  'evo2': { type: 'B200', count: 2 },
-  'proteinmpnn': { type: 'B200', count: 1 },
-  'rfdiffusion': { type: 'B200', count: 1 },
+  'openfold3': { count: 1 },
+  'boltz2': { count: 1 },
+  'openfold2': { count: 1 },
+  'genmol': { count: 1 },
+  'molmim': { count: 1 },
+  'diffdock': { count: 1 },
+  'qwen3': { count: 2 },
+  'msa': { count: 1 },
+  'evo2': { count: 2 },
+  'proteinmpnn': { count: 1 },
+  'rfdiffusion': { count: 1 },
 };
 
 // Display names for NIMs
@@ -67,12 +66,30 @@ export const PARALLELIZABLE_NIMS = ['openfold3', 'boltz2', 'openfold2'];
 // Default namespace for NIM deployments
 export const DEFAULT_NAMESPACE = 'nims';
 
-// GPU type display colors
-export const GPU_TYPE_COLORS: Record<GpuType, string> = {
-  'B200': '#76b900',    // NVIDIA green
-};
+/**
+ * Derive a display-friendly GPU name from a detected type string.
+ * e.g. "H200" → "NVIDIA H200 SXM", "B200" → "NVIDIA B200", "H100" → "NVIDIA H100"
+ */
+export function getGpuDisplayName(gpuType: string): string {
+  const upper = gpuType.toUpperCase();
+  if (upper.includes('H200')) return 'NVIDIA H200 SXM';
+  if (upper.includes('B200')) return 'NVIDIA B200';
+  if (upper.includes('H100')) return 'NVIDIA H100';
+  if (upper.includes('A100')) return 'NVIDIA A100';
+  if (upper.includes('L40')) return 'NVIDIA L40S';
+  if (upper.includes('RTX')) return `NVIDIA ${upper}`;
+  return `GPU (${gpuType})`;
+}
 
-// GPU type display names
-export const GPU_TYPE_NAMES: Record<GpuType, string> = {
-  'B200': 'NVIDIA B200',
-};
+/**
+ * Get a color for a GPU type for the capacity bars.
+ */
+export function getGpuColor(gpuType: string): string {
+  const upper = gpuType.toUpperCase();
+  if (upper.includes('H200')) return '#76b900';  // NVIDIA green
+  if (upper.includes('B200')) return '#1a8cff';  // blue
+  if (upper.includes('H100')) return '#ff6b00';  // orange
+  if (upper.includes('A100')) return '#9b59b6';  // purple
+  if (upper.includes('L40')) return '#e67e22';   // amber
+  return '#76b900'; // default NVIDIA green
+}

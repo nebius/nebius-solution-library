@@ -10,14 +10,13 @@ import {
   getDeployments,
   getClusterCapacity,
   scaleDeployment,
-  canScale,
   getNodeGroups,
   scaleNodeGroup,
   type K8sDeployment,
   type ClusterCapacity,
   type NodeGroup,
 } from '../services/k8sService';
-import { GPU_TYPE_COLORS, GPU_TYPE_NAMES, type GpuType } from '../data/k8sMapping';
+import { getGpuColor, getGpuDisplayName, type GpuType } from '../data/k8sMapping';
 
 interface K8sScalingPanelProps {
   isOpen: boolean;
@@ -93,14 +92,6 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
   const handleScale = useCallback(async (deployment: K8sDeployment, delta: number) => {
     const newReplicas = Math.max(0, deployment.replicas + delta);
 
-    if (delta > 0) {
-      const check = await canScale(deployment.nimId, newReplicas, deployment.replicas);
-      if (!check.allowed) {
-        setError(check.reason || 'Cannot scale up');
-        return;
-      }
-    }
-
     setScalingDeployment(deployment.name);
     setError(null);
 
@@ -138,18 +129,19 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
             : ng
         )
       );
-      // Also update capacity
+      // Also update capacity using the node group's GPU type
       if (capacity) {
         const gpuDelta = delta * nodeGroup.gpuPerNode;
+        const gpuType = nodeGroup.gpuType || Object.keys(capacity.totalGpus)[0] || 'GPU';
         setCapacity({
           ...capacity,
           totalGpus: {
             ...capacity.totalGpus,
-            B200: capacity.totalGpus.B200 + gpuDelta,
+            [gpuType]: (capacity.totalGpus[gpuType] || 0) + gpuDelta,
           },
           availableGpus: {
             ...capacity.availableGpus,
-            B200: capacity.availableGpus.B200 + gpuDelta,
+            [gpuType]: (capacity.availableGpus[gpuType] || 0) + gpuDelta,
           },
         });
       }
@@ -275,9 +267,9 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
                         <div className="k8s-gpu-bar-header">
                           <span
                             className="k8s-gpu-type"
-                            style={{ color: GPU_TYPE_COLORS[gpuType] }}
+                            style={{ color: getGpuColor(gpuType) }}
                           >
-                            {GPU_TYPE_NAMES[gpuType]}
+                            {getGpuDisplayName(gpuType)}
                           </span>
                           <span className="k8s-gpu-count">
                             {used}/{total}
@@ -288,7 +280,7 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
                             className="k8s-gpu-bar-fill"
                             style={{
                               width: `${percentage}%`,
-                              backgroundColor: GPU_TYPE_COLORS[gpuType],
+                              backgroundColor: getGpuColor(gpuType),
                             }}
                           />
                         </div>
@@ -365,7 +357,7 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
                       <span className="k8s-deployment-name">{dep.displayName}</span>
                       <span
                         className="k8s-deployment-gpu"
-                        style={{ backgroundColor: GPU_TYPE_COLORS[dep.gpuType] }}
+                        style={{ backgroundColor: getGpuColor(dep.gpuType) }}
                       >
                         {dep.gpuCount}x {dep.gpuType}
                       </span>

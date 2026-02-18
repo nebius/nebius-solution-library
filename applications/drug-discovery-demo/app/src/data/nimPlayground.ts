@@ -60,15 +60,19 @@ export interface NimPlaygroundDef {
   resultType: ResultType;
   buildRequest: (values: Record<string, unknown>) => unknown;
   parseResponse: (data: unknown) => PlaygroundResult;
+  /** Merge multiple parallel results into one (required when supportsParallel is true) */
+  mergeResults?: (results: PlaygroundResult[]) => PlaygroundResult;
   /** Override endpoint path (if different from ENDPOINT_CONFIG) */
   endpointPath?: string;
   /** Override port (if different from ENDPOINT_CONFIG) */
   port?: number;
   /** Pre-computed example result shown before the user clicks Run */
   exampleResult?: PlaygroundResult;
+  /** Allow sending multiple requests in parallel behind a load balancer */
+  supportsParallel?: boolean;
 }
 
-import { OPENFOLD3_EXAMPLE, BOLTZ2_EXAMPLE, OPENFOLD2_EXAMPLE, MOLMIM_EXAMPLE, GENMOL_EXAMPLE, DIFFDOCK_EXAMPLE, MSA_SEARCH_EXAMPLE, EVO2_EXAMPLE, PROTEINMPNN_EXAMPLE, OPENFOLD3_STRUCTURE } from './exampleResponses';
+import { OPENFOLD3_EXAMPLE, BOLTZ2_EXAMPLE, OPENFOLD2_EXAMPLE, MOLMIM_EXAMPLE, GENMOL_EXAMPLE, DIFFDOCK_EXAMPLE, MSA_SEARCH_EXAMPLE, EVO2_EXAMPLE, PROTEINMPNN_EXAMPLE, RFDIFFUSION_EXAMPLE, OPENFOLD3_STRUCTURE } from './exampleResponses';
 
 // ============================================================================
 // Helper Functions
@@ -1514,55 +1518,57 @@ const RFDIFFUSION: NimPlaygroundDef = {
   name: 'RFDiffusion',
   category: 'Protein Design',
   categoryIcon: 'design',
-  description: 'Generate de novo protein backbone structures using guided diffusion.',
+  description: 'Generate de novo protein backbone structures using guided diffusion. Requires an input PDB — designs binders or scaffolds around the target.',
   resultType: 'structure',
+  exampleResult: RFDIFFUSION_EXAMPLE,
   fields: [
+    {
+      id: 'inputPdb',
+      label: 'Input PDB',
+      type: 'textarea',
+      group: 'input',
+      required: true,
+      rows: 10,
+      default: OPENFOLD3_STRUCTURE,
+      placeholder: 'Paste PDB structure here...',
+      description: 'Target protein structure for binder/scaffold design',
+    },
     {
       id: 'contigs',
       label: 'Contigs',
       type: 'text',
       group: 'input',
       required: true,
-      placeholder: '100',
-      description: 'Contig specification. Examples: "100" for 100-residue protein, "A1-50/50/A80-120" for binder design',
+      default: 'A1-35/0 30-50',
+      placeholder: 'A1-35/0 30-50',
+      description: 'Contig specification. "A1-35/0 30-50" keeps chain A residues 1-35 as target, then generates a 30-50 residue binder on a new chain.',
     },
     {
       id: 'diffusionSteps',
       label: 'Diffusion Steps',
       type: 'number',
       group: 'parameters',
-      default: 25,
-      min: 10,
-      max: 200,
-      step: 5,
-      description: 'Number of denoising steps (more = higher quality, slower)',
-    },
-    {
-      id: 'inputPdb',
-      label: 'Input PDB (optional)',
-      type: 'textarea',
-      group: 'advanced',
-      rows: 10,
-      placeholder: 'ATOM      1  N   ALA A   1       1.000   2.000   3.000  1.00  0.00           N\n...',
-      description: 'Target protein structure for binder/scaffold design',
+      default: 50,
+      min: 1,
+      max: 50,
+      step: 1,
+      description: 'Number of denoising steps (more = higher quality, slower). Max 50.',
     },
     {
       id: 'hotspotRes',
       label: 'Hotspot Residues',
       type: 'text',
       group: 'advanced',
-      placeholder: 'A30,A33,A34',
-      description: 'Comma-separated residue IDs to use as binding hotspots',
+      placeholder: 'A15,A18,A19',
+      description: 'Comma-separated residue IDs the binder must contact (e.g. A15,A18,A19)',
     },
   ],
   buildRequest(values) {
     const request: Record<string, unknown> = {
-      contigs: String(values.contigs || '100'),
-      diffusion_steps: Number(values.diffusionSteps ?? 25),
+      input_pdb: String(values.inputPdb || ''),
+      contigs: String(values.contigs || 'A1-35/0 30-50'),
+      diffusion_steps: Number(values.diffusionSteps ?? 50),
     };
-    if (values.inputPdb && String(values.inputPdb).trim()) {
-      request.input_pdb = String(values.inputPdb).trim();
-    }
     if (values.hotspotRes && String(values.hotspotRes).trim()) {
       request.hotspot_res = String(values.hotspotRes)
         .split(',')
@@ -1575,7 +1581,7 @@ const RFDIFFUSION: NimPlaygroundDef = {
     const d = data as Record<string, unknown>;
     const items: PlaygroundResultItem[] = [];
 
-    const structure = (d.pdb_string || d.output || d.structure || '') as string;
+    const structure = (d.output_pdb || d.pdb_string || d.output || '') as string;
     if (structure) {
       items.push({
         label: 'Generated Backbone',

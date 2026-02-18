@@ -59,13 +59,20 @@ export interface NodeGroup {
 
 // Helper to detect GPU type from node labels
 function detectGpuType(labels: Record<string, string>): GpuType | null {
+  // Check various label keys for GPU product info
   const gpuLabel = labels['nvidia.com/gpu.product'] ||
                    labels['nvidia.com/gpu-product'] ||
                    labels['gpu-type'] || '';
 
-  const gpuLower = gpuLabel.toLowerCase();
-  // Currently the cluster only has B200 GPUs
-  if (gpuLower.includes('b200')) return 'B200';
+  // Also check instance type labels (e.g. "gpu-h200-sxm")
+  const instanceType = labels['node.kubernetes.io/instance-type'] || '';
+  const combined = `${gpuLabel} ${instanceType}`.toLowerCase();
+
+  if (combined.includes('h200')) return 'H200';
+  if (combined.includes('b200')) return 'B200';
+  if (combined.includes('h100')) return 'H100';
+  if (combined.includes('a100')) return 'A100';
+  if (combined.includes('l40'))  return 'L40S';
 
   return null;
 }
@@ -103,7 +110,7 @@ export async function getDeployments(namespace = DEFAULT_NAMESPACE): Promise<K8s
 
       const spec = item.spec || {};
       const status = item.status || {};
-      const gpuReq = NIM_GPU_REQUIREMENTS[nimId] || { type: 'H200' as GpuType, count: 1 };
+      const gpuReq = NIM_GPU_REQUIREMENTS[nimId] || { count: 1 };
 
       const replicas = spec.replicas || 0;
       const availableReplicas = status.availableReplicas || 0;
@@ -118,6 +125,8 @@ export async function getDeployments(namespace = DEFAULT_NAMESPACE): Promise<K8s
         deploymentStatus = 'degraded';
       }
 
+      // GPU type is determined at runtime from cluster nodes, not statically
+      // Default to 'H200' — will be overridden when cluster data is available
       deployments.push({
         name: k8sName,
         nimId,
@@ -125,7 +134,7 @@ export async function getDeployments(namespace = DEFAULT_NAMESPACE): Promise<K8s
         replicas,
         availableReplicas,
         readyReplicas,
-        gpuType: gpuReq.type,
+        gpuType: 'H200',
         gpuCount: gpuReq.count,
         status: deploymentStatus,
       });
@@ -163,18 +172,21 @@ export async function getClusterCapacity(): Promise<ClusterCapacity> {
     return {
       connected: false,
       nodes: [],
-      totalGpus: { B200: 0 },
-      usedGpus: { B200: 0 },
-      availableGpus: { B200: 0 },
+      totalGpus: {},
+      usedGpus: {},
+      availableGpus: {},
     };
   }
 
   try {
-    const res = await fetch('/api/k8s/nodes');
-    const data = await res.json();
+    const [nodesRes, deployments] = await Promise.all([
+      fetch('/api/k8s/nodes'),
+      getDeployments(),
+    ]);
+    const data = await nodesRes.json();
 
     const nodes: K8sNode[] = [];
-    const totalGpus: Record<GpuType, number> = { B200: 0 };
+    const totalGpus: Record<GpuType, number> = {};
 
     for (const item of data.items || []) {
       const name = item.metadata?.name || '';
@@ -188,30 +200,41 @@ export async function getClusterCapacity(): Promise<ClusterCapacity> {
       const readyCondition = conditions.find((c: { type: string }) => c.type === 'Ready');
       const status = readyCondition?.status === 'True' ? 'Ready' : 'NotReady';
 
-      if (gpuType && gpuCount > 0) {
-        totalGpus[gpuType] += gpuCount;
+      // Resolved type: detected label or default to 'GPU' for unknown
+      const resolvedType = gpuType || (gpuCount > 0 ? 'GPU' : null);
+
+      if (gpuCount > 0 && resolvedType) {
+        totalGpus[resolvedType] = (totalGpus[resolvedType] || 0) + gpuCount;
       }
 
       nodes.push({
         name,
-        gpuType,
+        gpuType: resolvedType,
         gpuCount,
         gpuAllocatable: gpuCount,
         status,
       });
     }
 
-    // Calculate used GPUs from deployments
-    const deployments = await getDeployments();
-    const usedGpus: Record<GpuType, number> = { B200: 0 };
+    // Determine the dominant GPU type (most common in the cluster)
+    const dominantGpuType = Object.entries(totalGpus)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || 'GPU';
 
+    // Update deployments with the actual detected GPU type
     for (const dep of deployments) {
-      usedGpus[dep.gpuType] += dep.availableReplicas * dep.gpuCount;
+      dep.gpuType = dominantGpuType;
     }
 
-    const availableGpus: Record<GpuType, number> = {
-      B200: totalGpus.B200 - usedGpus.B200,
-    };
+    // Calculate used GPUs from deployments
+    const usedGpus: Record<GpuType, number> = {};
+    for (const dep of deployments) {
+      usedGpus[dep.gpuType] = (usedGpus[dep.gpuType] || 0) + dep.availableReplicas * dep.gpuCount;
+    }
+
+    const availableGpus: Record<GpuType, number> = {};
+    for (const type of Object.keys(totalGpus)) {
+      availableGpus[type] = Math.max(0, totalGpus[type] - (usedGpus[type] || 0));
+    }
 
     return {
       connected: true,
@@ -226,9 +249,9 @@ export async function getClusterCapacity(): Promise<ClusterCapacity> {
     return {
       connected: false,
       nodes: [],
-      totalGpus: { B200: 0 },
-      usedGpus: { B200: 0 },
-      availableGpus: { B200: 0 },
+      totalGpus: {},
+      usedGpus: {},
+      availableGpus: {},
     };
   }
 }
@@ -252,12 +275,14 @@ export async function canScale(
 
   const delta = newReplicas - currentReplicas;
   const needed = delta * gpuReq.count;
-  const available = capacity.availableGpus[gpuReq.type];
 
-  if (needed > available) {
+  // Sum all available GPUs across types
+  const totalAvailable = Object.values(capacity.availableGpus).reduce((a, b) => a + b, 0);
+
+  if (needed > totalAvailable) {
     return {
       allowed: false,
-      reason: `Not enough ${gpuReq.type} GPUs available (need ${needed}, have ${available})`,
+      reason: `Not enough GPUs available (need ${needed}, have ${totalAvailable})`,
     };
   }
 
@@ -283,7 +308,7 @@ export async function getNodeGroups(): Promise<NodeGroup[]> {
         id: md.metadata?.name || '',
         name: md.metadata?.name || '',
         nodeCount: md.spec?.replicas || 0,
-        gpuType: 'B200', // Would need to parse from template
+        gpuType: 'H200', // Would need to parse from template
         gpuPerNode: 8,
         totalGpus: (md.spec?.replicas || 0) * 8,
       }));
@@ -297,7 +322,7 @@ export async function getNodeGroups(): Promise<NodeGroup[]> {
           id: name,
           name,
           nodeCount: count,
-          gpuType: gpuType || 'B200',
+          gpuType: gpuType || 'H200',
           gpuPerNode: gpuPerNode || 8,
           totalGpus: count * (gpuPerNode || 8),
         };
