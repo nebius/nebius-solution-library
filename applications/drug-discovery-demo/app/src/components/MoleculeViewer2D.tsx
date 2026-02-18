@@ -67,11 +67,61 @@ function getDrawer(): SmilesDrawer.SmiDrawer {
   return drawerInstance;
 }
 
+/**
+ * Quick structural validation before passing to the PEG parser.
+ * Rejects obviously-broken SMILES (unbalanced parens/brackets, unclosed rings).
+ */
+function isPlausibleSmiles(smi: string): boolean {
+  if (!smi || smi.length < 2) return false;
+
+  // Balanced parentheses and brackets
+  let parenDepth = 0;
+  let bracketDepth = 0;
+  for (const ch of smi) {
+    if (ch === '(') parenDepth++;
+    else if (ch === ')') parenDepth--;
+    else if (ch === '[') bracketDepth++;
+    else if (ch === ']') bracketDepth--;
+    if (parenDepth < 0 || bracketDepth < 0) return false;
+  }
+  if (parenDepth !== 0 || bracketDepth !== 0) return false;
+
+  // Ring-closure digits must come in pairs
+  // Count single digits outside brackets, and %nn pairs
+  let inBracket = false;
+  const ringCounts = new Map<string, number>();
+  for (let i = 0; i < smi.length; i++) {
+    const ch = smi[i];
+    if (ch === '[') { inBracket = true; continue; }
+    if (ch === ']') { inBracket = false; continue; }
+    if (inBracket) continue;
+    if (ch === '%' && i + 2 < smi.length) {
+      const pair = smi[i + 1] + smi[i + 2];
+      if (/^\d{2}$/.test(pair)) {
+        ringCounts.set(pair, (ringCounts.get(pair) || 0) + 1);
+        i += 2;
+        continue;
+      }
+    }
+    if (/\d/.test(ch)) {
+      ringCounts.set(ch, (ringCounts.get(ch) || 0) + 1);
+    }
+  }
+  for (const count of ringCounts.values()) {
+    if (count % 2 !== 0) return false;
+  }
+
+  // Must contain at least one organic atom
+  if (!/[BCNOPSFIHcnops]/.test(smi)) return false;
+
+  return true;
+}
+
 export function MoleculeViewer2D({
   smiles,
   width = 200,
   height = 150,
-  theme = 'light',
+  theme = 'dark',
   showError = true,
 }: MoleculeViewer2DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -81,31 +131,40 @@ export function MoleculeViewer2D({
     if (!containerRef.current || !smiles) return;
 
     const container = containerRef.current;
-    const drawer = getDrawer();
 
     // Clear previous drawing
     container.innerHTML = '';
+    setError(null);
 
-    // Create a fresh SVG element for this render
+    // Fast-reject invalid SMILES before touching the DOM
+    if (!isPlausibleSmiles(smiles)) {
+      setError('Invalid SMILES');
+      return;
+    }
+
+    // Create a fresh SVG element outside React's control
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     svg.setAttributeNS(null, 'width', String(width));
     svg.setAttributeNS(null, 'height', String(height));
     container.appendChild(svg);
 
-    setError(null);
-
+    const drawer = getDrawer();
     try {
-      // SmiDrawer.draw takes a SMILES string and an SVG element
-      drawer.draw(smiles, svg, theme, () => {
-        // success - molecule drawn to SVG
-      }, (err: Error) => {
-        console.warn('SMILES draw error:', smiles, err);
-        setError('Invalid structure');
-      });
-    } catch (err) {
-      console.warn('SMILES draw error:', smiles, err);
-      setError('Draw error');
+      drawer.draw(
+        smiles,
+        svg,
+        theme,
+        () => { /* success */ },
+        () => {
+          // Parse/draw error — remove the broken SVG
+          container.innerHTML = '';
+          setError('Invalid SMILES');
+        },
+      );
+    } catch {
+      container.innerHTML = '';
+      setError('Invalid SMILES');
     }
   }, [smiles, width, height, theme]);
 
@@ -126,6 +185,10 @@ export function MoleculeViewer2D({
       />
       {error && showError && (
         <div className="molecule-viewer-error">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="12" cy="12" r="6" />
+            <line x1="8" y1="8" x2="16" y2="16" />
+          </svg>
           <span>{error}</span>
         </div>
       )}

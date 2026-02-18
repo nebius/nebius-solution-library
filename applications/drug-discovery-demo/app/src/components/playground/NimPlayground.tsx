@@ -109,6 +109,10 @@ export function NimPlayground() {
 
       const data = await response.json();
       const parsed = nimConfig.parseResponse(data);
+      // Attach protein structure for docking results so the viewer can show protein + ligands
+      if (nimConfig.resultType === 'docking' && formValues.protein) {
+        parsed.proteinStructure = String(formValues.protein);
+      }
       setResult(parsed);
     } catch (error) {
       setElapsedMs(Date.now() - startTime);

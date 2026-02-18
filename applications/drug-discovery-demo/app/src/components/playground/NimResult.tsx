@@ -10,6 +10,8 @@ import type { PlaygroundResult, PlaygroundResultItem } from '../../data/nimPlayg
 import { StructureViewer } from '../StructureViewer';
 import { MoleculeViewer2D } from '../MoleculeViewer2D';
 
+const LIGAND_COLORS = ['#00FF88', '#FF6644', '#44AAFF', '#FFAA00', '#CC44FF'];
+
 interface NimResultProps {
   result: PlaygroundResult;
   elapsedMs: number;
@@ -105,11 +107,36 @@ export function NimResult({ result, elapsedMs }: NimResultProps) {
         </div>
       ) : (
         <div className="playground-result-items">
+          {/* Docking: combined 3D view showing protein + all ligand poses */}
+          {result.type === 'docking' && result.proteinStructure && result.items.some(i => i.format === 'docking') && (
+            <div className="playground-result-item">
+              <div className="playground-result-item-content">
+                <StructureViewer
+                  structure={result.proteinStructure}
+                  format="pdb"
+                  style="stick"
+                  height={500}
+                  colorScheme="spectrum"
+                  showControls={true}
+                  ligands={result.items
+                    .filter(i => i.format === 'docking')
+                    .map((item, idx) => ({
+                      sdf: item.value,
+                      label: item.label,
+                      color: LIGAND_COLORS[idx % LIGAND_COLORS.length],
+                    }))}
+                />
+              </div>
+            </div>
+          )}
           {result.items.map((item, index) => (
             <div key={index} className="playground-result-item">
-              <button
+              <div
                 className="playground-result-item-header"
+                role="button"
+                tabIndex={0}
                 onClick={() => toggleItem(index)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleItem(index); } }}
               >
                 <svg
                   width="12"
@@ -150,10 +177,10 @@ export function NimResult({ result, elapsedMs }: NimResultProps) {
                     </button>
                   )}
                 </div>
-              </button>
+              </div>
               {expandedItems.has(index) && (
                 <div className="playground-result-item-content">
-                  <ResultContent item={item} />
+                  <ResultContent item={item} proteinStructure={result.proteinStructure} />
                 </div>
               )}
             </div>
@@ -164,7 +191,7 @@ export function NimResult({ result, elapsedMs }: NimResultProps) {
   );
 }
 
-function ResultContent({ item }: { item: PlaygroundResultItem }) {
+function ResultContent({ item, proteinStructure }: { item: PlaygroundResultItem; proteinStructure?: string }) {
   switch (item.format) {
     case 'text':
       return <div className="playground-result-text">{item.value}</div>;
@@ -189,6 +216,29 @@ function ResultContent({ item }: { item: PlaygroundResultItem }) {
           colorScheme="confidence"
           showControls={true}
         />
+      );
+    }
+
+    case 'docking': {
+      // Individual docking pose — show protein + single ligand if protein available
+      if (proteinStructure) {
+        return (
+          <StructureViewer
+            structure={proteinStructure}
+            format="pdb"
+            style="stick"
+            height={400}
+            colorScheme="spectrum"
+            showControls={true}
+            ligands={[{ sdf: item.value, label: item.label }]}
+          />
+        );
+      }
+      // Fallback: show raw SDF
+      return (
+        <pre className="playground-code-block">
+          {item.value.length > 5000 ? item.value.slice(0, 5000) + '\n\n... (truncated)' : item.value}
+        </pre>
       );
     }
 

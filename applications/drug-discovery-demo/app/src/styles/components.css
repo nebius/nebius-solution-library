@@ -2542,6 +2542,123 @@
   line-height: 1.4;
 }
 
+/* Molecule Table Layout */
+.mol-table {
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.mol-table-header {
+  display: grid;
+  grid-template-columns: 36px 40px 1fr 80px 160px;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-gray-50);
+  border-bottom: 1px solid var(--color-gray-200);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mol-table-row {
+  display: grid;
+  grid-template-columns: 36px 40px 1fr 80px 160px;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-gray-100);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.mol-table-row:last-child {
+  border-bottom: none;
+}
+
+.mol-table-row:hover {
+  background: var(--color-gray-50);
+}
+
+.mol-table-row.selected {
+  background: rgba(218, 255, 51, 0.06);
+}
+
+.mol-table-row.reference {
+  background: rgba(93, 82, 246, 0.04);
+}
+
+.mol-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-gray-300);
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.mol-checkbox.checked {
+  background: var(--color-lime);
+  border-color: var(--color-lime);
+  color: var(--color-deep-blue);
+}
+
+.mol-col-rank {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-400);
+  text-align: center;
+}
+
+.mol-col-smiles {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.mol-col-smiles code {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mol-ref-tag {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: var(--font-weight-semibold);
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  background: rgba(93, 82, 246, 0.12);
+  color: var(--color-violet);
+}
+
+.mol-col-score {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-mono);
+  text-align: right;
+}
+
+.mol-col-score.score-high { color: #10b981; }
+.mol-col-score.score-medium { color: #f59e0b; }
+.mol-col-score.score-low { color: #ef4444; }
+
+.mol-col-dls {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mol-col-dls .drug-likeness-badge-row {
+  margin-top: 0;
+}
+
 .molecules-actions {
   display: flex;
   justify-content: center;
@@ -4434,14 +4551,15 @@
 
 .molecule-viewer-error {
   position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-size: var(--font-size-xs);
-  color: var(--color-error);
-  background: rgba(255, 255, 255, 0.9);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  color: var(--color-gray-400);
+  background: transparent;
 }
 
 /* Molecule Grid */

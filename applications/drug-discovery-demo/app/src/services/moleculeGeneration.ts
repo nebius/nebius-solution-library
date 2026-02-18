@@ -51,7 +51,7 @@ export async function generateWithMolMIM(
   request: MolMIMRequest
 ): Promise<MoleculeGenerationResult> {
   const startTime = Date.now();
-  const url = buildNimUrl(gatewayUrl, 8006, '/biology/nvidia/molmim/generate');
+  const url = buildNimUrl(gatewayUrl, 8006, '/generate');
 
   let response: Response;
   try {
@@ -80,7 +80,9 @@ export async function generateWithMolMIM(
   }
 
   const molecules: GeneratedMolecule[] = data.generated
-    .filter((m: { smiles?: string; score?: number }) => m.smiles && m.smiles.length > 0)
+    .filter((m: { smiles?: string; score?: number }) =>
+      m.smiles && m.smiles.length > 0 && isValidSmiles(m.smiles)
+    )
     .map((m: { smiles: string; score: number }) => ({
       smiles: m.smiles,
       score: m.score ?? 0,
@@ -91,6 +93,45 @@ export async function generateWithMolMIM(
     modelUsed: 'MolMIM',
     elapsedTime,
   };
+}
+
+/**
+ * Quick structural validation: balanced parens/brackets and paired ring digits.
+ */
+function isValidSmiles(smi: string): boolean {
+  if (!smi || smi.length < 2) return false;
+  let parenDepth = 0;
+  let bracketDepth = 0;
+  for (const ch of smi) {
+    if (ch === '(') parenDepth++;
+    else if (ch === ')') parenDepth--;
+    else if (ch === '[') bracketDepth++;
+    else if (ch === ']') bracketDepth--;
+    if (parenDepth < 0 || bracketDepth < 0) return false;
+  }
+  if (parenDepth !== 0 || bracketDepth !== 0) return false;
+  // Ring digits must come in pairs
+  let inBracket = false;
+  const ringCounts = new Map<string, number>();
+  for (let i = 0; i < smi.length; i++) {
+    const ch = smi[i];
+    if (ch === '[') { inBracket = true; continue; }
+    if (ch === ']') { inBracket = false; continue; }
+    if (inBracket) continue;
+    if (ch === '%' && i + 2 < smi.length && /^\d{2}$/.test(smi[i + 1] + smi[i + 2])) {
+      const pair = smi[i + 1] + smi[i + 2];
+      ringCounts.set(pair, (ringCounts.get(pair) || 0) + 1);
+      i += 2;
+      continue;
+    }
+    if (/\d/.test(ch)) {
+      ringCounts.set(ch, (ringCounts.get(ch) || 0) + 1);
+    }
+  }
+  for (const count of ringCounts.values()) {
+    if (count % 2 !== 0) return false;
+  }
+  return true;
 }
 
 /**

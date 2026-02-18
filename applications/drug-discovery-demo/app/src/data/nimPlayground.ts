@@ -39,12 +39,14 @@ export interface PlaygroundResult {
   raw: unknown;
   items: PlaygroundResultItem[];
   error?: string;
+  /** Protein structure (PDB) for docking results — used to render protein+ligand 3D views */
+  proteinStructure?: string;
 }
 
 export interface PlaygroundResultItem {
   label: string;
   value: string;
-  format: 'text' | 'code' | 'structure' | 'smiles' | 'sequence' | 'json';
+  format: 'text' | 'code' | 'structure' | 'smiles' | 'sequence' | 'json' | 'docking';
   downloadFilename?: string;
 }
 
@@ -66,7 +68,7 @@ export interface NimPlaygroundDef {
   exampleResult?: PlaygroundResult;
 }
 
-import { OPENFOLD3_EXAMPLE, BOLTZ2_EXAMPLE, OPENFOLD2_EXAMPLE, MOLMIM_EXAMPLE, GENMOL_EXAMPLE } from './exampleResponses';
+import { OPENFOLD3_EXAMPLE, BOLTZ2_EXAMPLE, OPENFOLD2_EXAMPLE, MOLMIM_EXAMPLE, GENMOL_EXAMPLE, DIFFDOCK_EXAMPLE, MSA_SEARCH_EXAMPLE, EVO2_EXAMPLE, PROTEINMPNN_EXAMPLE, OPENFOLD3_STRUCTURE } from './exampleResponses';
 
 // ============================================================================
 // Helper Functions
@@ -1004,6 +1006,7 @@ const DIFFDOCK: NimPlaygroundDef = {
   categoryIcon: 'docking',
   description: 'Predict how a small molecule binds to a protein using diffusion-based docking.',
   resultType: 'docking',
+  exampleResult: DIFFDOCK_EXAMPLE,
   fields: [
     {
       id: 'protein',
@@ -1012,6 +1015,7 @@ const DIFFDOCK: NimPlaygroundDef = {
       group: 'input',
       required: true,
       rows: 10,
+      default: OPENFOLD3_STRUCTURE,
       placeholder: 'ATOM      1  N   ALA A   1       1.000   2.000   3.000  1.00  0.00           N\n...',
       description: 'Protein structure in PDB format. Paste PDB content or use output from structure prediction NIMs.',
     },
@@ -1022,6 +1026,7 @@ const DIFFDOCK: NimPlaygroundDef = {
       group: 'input',
       required: true,
       rows: 3,
+      default: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O',
       placeholder: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O',
       description: 'Ligand as SMILES string or SDF content',
     },
@@ -1072,10 +1077,12 @@ const DIFFDOCK: NimPlaygroundDef = {
     },
   ],
   buildRequest(values) {
+    // DiffDock API uses 'txt' for SMILES input, not 'smi'
+    const fileType = values.ligandFileType === 'smi' || !values.ligandFileType ? 'txt' : String(values.ligandFileType);
     return {
       protein: String(values.protein || ''),
       ligand: String(values.ligand || ''),
-      ligand_file_type: values.ligandFileType || 'smi',
+      ligand_file_type: fileType,
       num_poses: Number(values.numPoses ?? 10),
       time_divisions: Number(values.timeDivisions ?? 20),
       steps: Number(values.steps ?? 18),
@@ -1085,34 +1092,33 @@ const DIFFDOCK: NimPlaygroundDef = {
     const d = data as Record<string, unknown>;
     const items: PlaygroundResultItem[] = [];
 
-    // DiffDock returns poses with scores
-    const poses = (d.poses || d.output_poses || d.results) as Array<Record<string, unknown>> | undefined;
+    // DiffDock response: { ligand_positions: string[], position_confidence: number[], status, details }
+    const ligandPositions = d.ligand_positions as string[] | undefined;
     const positionConfidence = d.position_confidence as number[] | undefined;
 
-    if (Array.isArray(poses)) {
+    if (Array.isArray(ligandPositions)) {
+      // Build poses with normalized confidence
+      const poses: { sdf: string; confidence: number; rawScore: number }[] = [];
+      for (let i = 0; i < ligandPositions.length; i++) {
+        if (!ligandPositions[i]) continue;
+        const rawScore = positionConfidence?.[i];
+        if (rawScore === null || rawScore === undefined) continue;
+        // DiffDock confidence is negative log-likelihood (more negative = worse)
+        // exp(score) gives probability [0, 1] — no negation needed for negative scores
+        const confidence = Math.min(1, Math.max(0, Math.exp(rawScore)));
+        poses.push({ sdf: ligandPositions[i], confidence, rawScore });
+      }
+      // Sort by confidence descending
+      poses.sort((a, b) => b.confidence - a.confidence);
+
       poses.forEach((pose, i) => {
-        const poseStr = (pose.pdb_string || pose.sdf_string || pose.pose || pose) as string;
-        const score = pose.confidence ?? pose.score ?? positionConfidence?.[i] ?? '';
         items.push({
-          label: `Pose ${i + 1}${score ? ` (confidence: ${Number(score).toFixed(3)})` : ''}`,
-          value: typeof poseStr === 'string' ? poseStr : JSON.stringify(poseStr, null, 2),
-          format: 'structure',
-          downloadFilename: `diffdock_pose_${i + 1}.pdb`,
+          label: `Pose ${i + 1} — ${(pose.confidence * 100).toFixed(1)}% confidence`,
+          value: pose.sdf,
+          format: 'docking',
+          downloadFilename: `diffdock_pose_${i + 1}.sdf`,
         });
       });
-    }
-
-    // Sometimes DiffDock returns a single structure string
-    if (items.length === 0) {
-      const structure = (d.pdb_string || d.output || '') as string;
-      if (structure) {
-        items.push({
-          label: 'Docked Pose',
-          value: structure,
-          format: 'structure',
-          downloadFilename: 'diffdock_docked.pdb',
-        });
-      }
     }
 
     if (items.length === 0) {
@@ -1134,6 +1140,7 @@ const MSA_SEARCH: NimPlaygroundDef = {
   categoryIcon: 'utility',
   description: 'Search for homologous sequences to build multiple sequence alignments for structure prediction.',
   resultType: 'alignment',
+  exampleResult: MSA_SEARCH_EXAMPLE,
   fields: [
     {
       id: 'sequence',
@@ -1142,6 +1149,7 @@ const MSA_SEARCH: NimPlaygroundDef = {
       group: 'input',
       required: true,
       rows: 4,
+      default: 'LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF',
       placeholder: 'MKFLILNKQKQLAWDLNPHADYLARIQKLF',
       description: 'Protein sequence to search for homologs',
     },
@@ -1150,11 +1158,12 @@ const MSA_SEARCH: NimPlaygroundDef = {
       label: 'Databases',
       type: 'multiselect',
       group: 'parameters',
-      default: ['uniref30', 'colabfold_envdb'],
+      default: ['Uniref30_2302', 'colabfold_envdb_202108'],
       options: [
-        { value: 'uniref30', label: 'UniRef30' },
-        { value: 'colabfold_envdb', label: 'ColabFold EnvDB' },
-        { value: 'pdb100', label: 'PDB100' },
+        { value: 'Uniref30_2302', label: 'UniRef30' },
+        { value: 'colabfold_envdb_202108', label: 'ColabFold EnvDB' },
+        { value: 'pdb100_230517', label: 'PDB100' },
+        { value: 'PDB70_220313', label: 'PDB70' },
       ],
       description: 'Sequence databases to search',
     },
@@ -1174,35 +1183,74 @@ const MSA_SEARCH: NimPlaygroundDef = {
       label: 'Max MSA Sequences',
       type: 'number',
       group: 'parameters',
-      default: 512,
+      default: 500,
       min: 1,
-      max: 10000,
-      step: 100,
+      max: 500,
+      step: 50,
       description: 'Maximum number of sequences in the resulting MSA',
     },
   ],
   buildRequest(values) {
     return {
       sequence: String(values.sequence || '').trim(),
-      databases: Array.isArray(values.databases) ? values.databases : ['uniref30', 'colabfold_envdb'],
+      databases: Array.isArray(values.databases) ? values.databases : ['Uniref30_2302', 'colabfold_envdb_202108'],
       e_value: Number(values.eValue ?? 0.001),
-      max_msa_sequences: Number(values.maxMsaSequences ?? 512),
+      max_msa_sequences: Number(values.maxMsaSequences ?? 500),
     };
   },
   parseResponse(data: unknown): PlaygroundResult {
     const d = data as Record<string, unknown>;
     const items: PlaygroundResultItem[] = [];
 
-    // MSA Search returns alignment text
-    const alignment = (d.alignment || d.a3m || d.msa || d.output || '') as string;
-    if (alignment) {
-      const seqCount = (alignment.match(/>/g) || []).length;
-      items.push({
-        label: `MSA Alignment (${seqCount} sequences)`,
-        value: alignment,
-        format: 'code',
-        downloadFilename: 'msa_search_result.a3m',
-      });
+    // Response format: { alignments: { <db>: { a3m: { alignment: "..." } }, ... , colabfold: { ... } }, metrics: {...} }
+    const alignments = d.alignments as Record<string, Record<string, unknown>> | undefined;
+    if (alignments) {
+      // Use the merged 'colabfold' key if available, otherwise concatenate individual databases
+      const merged = alignments.colabfold as Record<string, unknown> | undefined;
+      const a3mData = merged?.a3m as Record<string, unknown> | undefined;
+      const alignment = (a3mData?.alignment || '') as string;
+
+      if (alignment) {
+        const seqCount = (alignment.match(/>/g) || []).length;
+        items.push({
+          label: `MSA Alignment (${seqCount} sequences)`,
+          value: alignment,
+          format: 'code',
+          downloadFilename: 'msa_search_result.a3m',
+        });
+      }
+
+      // If no merged key, try individual databases
+      if (items.length === 0) {
+        for (const [dbName, dbData] of Object.entries(alignments)) {
+          if (dbName === 'colabfold') continue;
+          const dbA3m = (dbData as Record<string, unknown>)?.a3m as Record<string, unknown> | undefined;
+          const dbAlignment = (dbA3m?.alignment || '') as string;
+          if (dbAlignment) {
+            const seqCount = (dbAlignment.match(/>/g) || []).length;
+            items.push({
+              label: `${dbName} (${seqCount} sequences)`,
+              value: dbAlignment,
+              format: 'code',
+              downloadFilename: `msa_${dbName}.a3m`,
+            });
+          }
+        }
+      }
+    }
+
+    // Fallback: flat alignment string
+    if (items.length === 0) {
+      const alignment = (d.alignment || d.a3m || d.msa || d.output || '') as string;
+      if (alignment) {
+        const seqCount = (alignment.match(/>/g) || []).length;
+        items.push({
+          label: `MSA Alignment (${seqCount} sequences)`,
+          value: alignment,
+          format: 'code',
+          downloadFilename: 'msa_search_result.a3m',
+        });
+      }
     }
 
     if (items.length === 0) {
@@ -1224,6 +1272,7 @@ const EVO2: NimPlaygroundDef = {
   categoryIcon: 'utility',
   description: 'DNA/RNA foundation model for sequence generation and analysis.',
   resultType: 'sequences',
+  exampleResult: EVO2_EXAMPLE,
   fields: [
     {
       id: 'sequence',
@@ -1232,6 +1281,7 @@ const EVO2: NimPlaygroundDef = {
       group: 'input',
       required: true,
       rows: 4,
+      default: 'ATCGATCGATCGATCG',
       placeholder: 'ATCGATCGATCGATCG',
       description: 'DNA or RNA seed sequence to extend',
     },
@@ -1322,6 +1372,7 @@ const PROTEINMPNN: NimPlaygroundDef = {
   categoryIcon: 'design',
   description: 'Design amino acid sequences for a given protein backbone structure.',
   resultType: 'sequences',
+  exampleResult: PROTEINMPNN_EXAMPLE,
   fields: [
     {
       id: 'inputPdb',
@@ -1330,6 +1381,7 @@ const PROTEINMPNN: NimPlaygroundDef = {
       group: 'input',
       required: true,
       rows: 10,
+      default: OPENFOLD3_STRUCTURE,
       placeholder: 'ATOM      1  N   ALA A   1       1.000   2.000   3.000  1.00  0.00           N\n...',
       description: 'Protein backbone structure in PDB format',
     },
@@ -1349,7 +1401,7 @@ const PROTEINMPNN: NimPlaygroundDef = {
       group: 'parameters',
       default: 0.1,
       min: 0.01,
-      max: 2.0,
+      max: 1.0,
       step: 0.05,
       description: 'Lower = more conservative, higher = more diverse sequences',
     },
@@ -1365,21 +1417,13 @@ const PROTEINMPNN: NimPlaygroundDef = {
       description: 'Number of designed sequences to generate',
     },
     {
-      id: 'fixedPositions',
-      label: 'Fixed Positions',
-      type: 'text',
-      group: 'advanced',
-      placeholder: '1 2 3 10 15',
-      description: 'Space-separated residue positions to keep fixed (not redesign)',
-    },
-    {
       id: 'omitAAs',
       label: 'Omit Amino Acids',
       type: 'text',
       group: 'advanced',
       default: 'X',
       placeholder: 'CX',
-      description: 'Amino acid letters to exclude from design (e.g., "CX" to omit Cys and unknown)',
+      description: 'Amino acid letters to exclude from design (e.g., "C,X" to omit Cys and unknown)',
     },
     {
       id: 'biasAAs',
@@ -1392,19 +1436,19 @@ const PROTEINMPNN: NimPlaygroundDef = {
     },
   ],
   buildRequest(values) {
+    // API expects: input_pdb (string), input_pdb_chains (string[]), sampling_temp (number[]), omit_AAs (string[])
+    const chains = String(values.chainsToDesign || 'A').split(',').map(s => s.trim()).filter(Boolean);
+    const omit = String(values.omitAAs || 'X').split('').filter(c => c.trim());
     const request: Record<string, unknown> = {
-      input_pdb_string: String(values.inputPdb || ''),
-      chains_to_design: String(values.chainsToDesign || 'A'),
-      sampling_temp: Number(values.samplingTemp ?? 0.1),
+      input_pdb: String(values.inputPdb || ''),
+      input_pdb_chains: chains,
+      sampling_temp: [Number(values.samplingTemp ?? 0.1)],
       num_seq_per_target: Number(values.numSeqPerTarget ?? 8),
-      omit_AAs: String(values.omitAAs ?? 'X'),
+      omit_AAs: omit,
     };
-    if (values.fixedPositions && String(values.fixedPositions).trim()) {
-      request.fixed_positions = String(values.fixedPositions).trim();
-    }
     if (values.biasAAs && String(values.biasAAs).trim()) {
       try {
-        request.bias_AAs = JSON.parse(String(values.biasAAs));
+        request.bias_AA_jsonl = String(values.biasAAs).trim();
       } catch {
         // Skip invalid JSON
       }
@@ -1415,24 +1459,42 @@ const PROTEINMPNN: NimPlaygroundDef = {
     const d = data as Record<string, unknown>;
     const items: PlaygroundResultItem[] = [];
 
-    const sequences = (d.sequences || d.designed_sequences || d.results) as
-      | Array<Record<string, unknown>>
-      | undefined;
+    // Actual API response: { mfasta: "...", scores: number[], probs: number[][][] }
+    const mfasta = d.mfasta as string | undefined;
+    if (mfasta) {
+      // Parse FASTA entries to extract designed sequences (skip the input sequence)
+      const entries = mfasta.split(/(?=^>)/m).filter(s => s.trim());
+      const designedEntries = entries.filter(e => !e.startsWith('>input'));
+      const seqCount = designedEntries.length;
 
-    if (Array.isArray(sequences)) {
-      const seqText = sequences
-        .map((s, i) => {
-          const seq = s.sequence || s.seq || '';
-          const score = s.score ?? s.global_score ?? s.mean_plddt ?? '';
-          return `>designed_${i + 1}${score ? ` score=${Number(score).toFixed(3)}` : ''}\n${seq}`;
-        })
-        .join('\n');
       items.push({
-        label: `Designed Sequences (${sequences.length})`,
-        value: seqText,
+        label: `Designed Sequences (${seqCount})`,
+        value: mfasta,
         format: 'sequence',
         downloadFilename: 'proteinmpnn_sequences.fasta',
       });
+    }
+
+    // Fallback: array of sequence objects
+    if (items.length === 0) {
+      const sequences = (d.sequences || d.designed_sequences || d.results) as
+        | Array<Record<string, unknown>>
+        | undefined;
+      if (Array.isArray(sequences)) {
+        const seqText = sequences
+          .map((s, i) => {
+            const seq = s.sequence || s.seq || '';
+            const score = s.score ?? s.global_score ?? '';
+            return `>designed_${i + 1}${score ? ` score=${Number(score).toFixed(3)}` : ''}\n${seq}`;
+          })
+          .join('\n');
+        items.push({
+          label: `Designed Sequences (${sequences.length})`,
+          value: seqText,
+          format: 'sequence',
+          downloadFilename: 'proteinmpnn_sequences.fasta',
+        });
+      }
     }
 
     if (items.length === 0) {
@@ -1536,7 +1598,6 @@ const RFDIFFUSION: NimPlaygroundDef = {
 // ============================================================================
 
 export const NIM_PLAYGROUND_CONFIGS: NimPlaygroundDef[] = [
-  QWEN3,
   OPENFOLD3,
   BOLTZ2,
   OPENFOLD2,
@@ -1547,6 +1608,7 @@ export const NIM_PLAYGROUND_CONFIGS: NimPlaygroundDef[] = [
   EVO2,
   PROTEINMPNN,
   RFDIFFUSION,
+  QWEN3,
 ];
 
 export function getPlaygroundConfig(nimId: string): NimPlaygroundDef | undefined {

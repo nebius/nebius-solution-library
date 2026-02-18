@@ -295,45 +295,46 @@ export function DockingStep({
             <span className="selected-count-label">molecules selected for docking</span>
           </div>
 
-          <div className="molecules-grid">
+          <div className="mol-table">
+            <div className="mol-table-header">
+              <span className="mol-col-check"></span>
+              <span className="mol-col-rank">#</span>
+              <span className="mol-col-smiles">SMILES</span>
+              <span className="mol-col-score">QED</span>
+              <span className="mol-col-dls">Drug-Likeness</span>
+            </div>
             {generatedMolecules.map((mol, index) => {
               const isSelected = selectedMolecules.has(index);
               return (
                 <div
                   key={index}
-                  className={`molecule-card ${isSelected ? 'selected' : ''} ${mol.isReference ? 'reference' : ''}`}
+                  className={`mol-table-row ${isSelected ? 'selected' : ''} ${mol.isReference ? 'reference' : ''}`}
                   onClick={() => handleToggleMolecule(index)}
+                  role="button"
+                  tabIndex={0}
                 >
-                  <div className="molecule-card-header">
-                    <span className="molecule-rank">#{index + 1}</span>
-                    {mol.isReference && (
-                      <span className="molecule-reference-badge">
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <path d="M6 1l5 3v4l-5 3-5-3V4l5-3z" stroke="currentColor" strokeWidth="1.5" />
+                  <span className="mol-col-check">
+                    <span className={`mol-checkbox ${isSelected ? 'checked' : ''}`}>
+                      {isSelected && (
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                          <path d="M3 8l4 4 6-8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        {selectedDrug?.name || 'Reference'}
-                      </span>
-                    )}
-                    <span className={`molecule-score ${getScoreColor(mol.score)}`}>
-                      QED: {mol.score.toFixed(3)}
+                      )}
                     </span>
-                    {isSelected && (
-                      <span className="molecule-selected-icon">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M2 8l4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
+                  </span>
+                  <span className="mol-col-rank">{index + 1}</span>
+                  <span className="mol-col-smiles">
+                    <code>{mol.smiles}</code>
+                    {mol.isReference && (
+                      <span className="mol-ref-tag">{selectedDrug?.name || 'Reference'}</span>
                     )}
-                  </div>
-                  {/* 2D Molecule Structure */}
-                  <div className="molecule-card-structure">
-                    <MoleculeViewer2D smiles={mol.smiles} width={140} height={100} />
-                  </div>
-                  {/* Drug-Likeness Badge */}
-                  <DrugLikenessBadge smiles={mol.smiles} />
-                  <p className="molecule-smiles-preview">
-                    {mol.smiles.length > 40 ? `${mol.smiles.substring(0, 40)}...` : mol.smiles}
-                  </p>
+                  </span>
+                  <span className={`mol-col-score ${getScoreColor(mol.score)}`}>
+                    {mol.score.toFixed(3)}
+                  </span>
+                  <span className="mol-col-dls">
+                    <DrugLikenessBadge smiles={mol.smiles} />
+                  </span>
                 </div>
               );
             })}
@@ -536,7 +537,7 @@ export function DockingStep({
 
                   {/* 2D Molecule Structure */}
                   <div className="docking-result-structure">
-                    <MoleculeViewer2D smiles={result.ligandSmiles} width={180} height={120} />
+                    <MoleculeViewer2D smiles={result.ligandSmiles} width={180} height={120} theme="dark" />
                   </div>
 
                   {/* Drug-Likeness Badge */}

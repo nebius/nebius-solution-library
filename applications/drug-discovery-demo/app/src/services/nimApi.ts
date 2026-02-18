@@ -40,7 +40,7 @@ export const ENDPOINT_CONFIG: Record<string, { port: number; path: string }> = {
 
   // Molecule Generation
   genmol: { port: 8005, path: '/biology/nvidia/genmol/generate' },
-  molmim: { port: 8006, path: '/biology/nvidia/molmim/generate' },
+  molmim: { port: 8006, path: '/generate' },
 
   // Docking
   diffdock: { port: 8007, path: '/molecular-docking/diffdock/generate' },

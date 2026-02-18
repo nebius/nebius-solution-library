@@ -35,13 +35,55 @@ Think about what structural features are needed for activity, then find a DIVERS
 Format: SMILES: [your SMILES string here]`;
 
 /**
+ * Strip trailing punctuation that LLMs often append after SMILES
+ */
+function stripTrailingNoise(smi: string): string {
+  // Remove trailing periods, commas, colons, backticks, quotes, markdown artifacts
+  return smi.replace(/[.,;:`'"*_]+$/, '');
+}
+
+/**
+ * Validate and repair SMILES parentheses/brackets.
+ * Returns the repaired SMILES or null if unfixable.
+ */
+function validateSmiles(smi: string): string | null {
+  if (!smi || smi.length < 2) return null;
+
+  let cleaned = stripTrailingNoise(smi);
+
+  // Balance parentheses — append missing closing parens
+  let depth = 0;
+  for (const ch of cleaned) {
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    if (depth < 0) return null; // more closing than opening — unfixable
+  }
+  if (depth > 0) cleaned += ')'.repeat(depth);
+
+  // Balance square brackets
+  let bracketDepth = 0;
+  for (const ch of cleaned) {
+    if (ch === '[') bracketDepth++;
+    else if (ch === ']') bracketDepth--;
+    if (bracketDepth < 0) return null;
+  }
+  if (bracketDepth > 0) cleaned += ']'.repeat(bracketDepth);
+
+  // Basic sanity: must contain at least one carbon or nitrogen
+  if (!/[CN]/.test(cleaned)) return null;
+
+  return cleaned;
+}
+
+/**
  * Extract SMILES from LLM response
  */
 function extractSmilesFromResponse(text: string): string | null {
   // Try to find SMILES: pattern
   const smilesMatch = text.match(/SMILES:\s*([^\s\n]+)/i);
   if (smilesMatch && smilesMatch[1]) {
-    return smilesMatch[1].trim();
+    const validated = validateSmiles(smilesMatch[1].trim());
+    if (validated) return validated;
   }
 
   // Try to find a SMILES-like pattern (contains C, (, ), =, etc.)
@@ -50,7 +92,8 @@ function extractSmilesFromResponse(text: string): string | null {
     // Find the longest pattern that looks like SMILES
     for (const p of patterns.sort((a, b) => b.length - a.length)) {
       if (p.length > 5 && /[CNO]/.test(p) && /[\(\)=\[\]]/.test(p)) {
-        return p;
+        const validated = validateSmiles(p);
+        if (validated) return validated;
       }
     }
   }
@@ -486,7 +529,7 @@ export function MoleculesStep({
         {seedSmiles && (
           <div className="current-seed">
             <div className="current-seed-structure">
-              <MoleculeViewer2D smiles={seedSmiles} width={200} height={150} />
+              <MoleculeViewer2D smiles={seedSmiles} width={200} height={150} theme="dark" />
             </div>
             <div className="current-seed-info">
               <span className="current-seed-label">Active Seed:</span>
@@ -713,49 +756,46 @@ export function MoleculesStep({
             <span className="selected-count-label">molecules selected for docking</span>
           </div>
 
-          <div className="molecules-grid">
+          <div className="mol-table">
+            <div className="mol-table-header">
+              <span className="mol-col-check"></span>
+              <span className="mol-col-rank">#</span>
+              <span className="mol-col-smiles">SMILES</span>
+              <span className="mol-col-score">Score</span>
+              <span className="mol-col-dls">Drug-Likeness</span>
+            </div>
             {result.molecules.map((molecule, index) => {
               const isSelected = selectedMolecules.has(index);
               return (
                 <div
                   key={index}
-                  className={`molecule-card ${isSelected ? 'selected' : ''} ${molecule.isReference ? 'reference' : ''}`}
+                  className={`mol-table-row ${isSelected ? 'selected' : ''} ${molecule.isReference ? 'reference' : ''}`}
                   onClick={() => handleToggleMolecule(index)}
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="molecule-card-header">
-                    <span className="molecule-rank">#{index + 1}</span>
-                    {molecule.isReference && (
-                      <span className="molecule-reference-badge">
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <path d="M6 1l5 3v4l-5 3-5-3V4l5-3z" stroke="currentColor" strokeWidth="1.5" />
+                  <span className="mol-col-check">
+                    <span className={`mol-checkbox ${isSelected ? 'checked' : ''}`}>
+                      {isSelected && (
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                          <path d="M3 8l4 4 6-8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        {selectedDrug?.name}
-                      </span>
-                    )}
-                    <span className={`molecule-score ${getScoreColor(molecule.score)}`}>
-                      Score: {molecule.score.toFixed(3)}
+                      )}
                     </span>
-                    {isSelected && (
-                      <span className="molecule-selected-icon">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M2 8l4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
+                  </span>
+                  <span className="mol-col-rank">{index + 1}</span>
+                  <span className="mol-col-smiles">
+                    <code>{molecule.smiles}</code>
+                    {molecule.isReference && (
+                      <span className="mol-ref-tag">{selectedDrug?.name}</span>
                     )}
-                  </div>
-                  {/* 2D Molecule Structure */}
-                  <div className="molecule-card-structure">
-                    <MoleculeViewer2D smiles={molecule.smiles} width={160} height={120} />
-                  </div>
-                  {/* Drug-Likeness Badge */}
-                  <DrugLikenessBadge smiles={molecule.smiles} />
-                  <code className="molecule-smiles-preview">
-                    {molecule.smiles.length > 40
-                      ? molecule.smiles.substring(0, 40) + '...'
-                      : molecule.smiles}
-                  </code>
+                  </span>
+                  <span className={`mol-col-score ${getScoreColor(molecule.score)}`}>
+                    {molecule.score.toFixed(3)}
+                  </span>
+                  <span className="mol-col-dls">
+                    <DrugLikenessBadge smiles={molecule.smiles} />
+                  </span>
                 </div>
               );
             })}

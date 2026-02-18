@@ -133,7 +133,7 @@ export function StructureViewer({
       console.error('Failed to apply style:', err);
       // Fallback to simple stick representation
       try {
-        viewer.setStyle({}, { stick: { colorscheme: 'spectrum' } });
+        viewer.setStyle({}, { stick: { color: 'spectrum' } });
       } catch {
         // Last resort - ignore
       }
@@ -212,9 +212,20 @@ export function StructureViewer({
           });
         }
 
-        // Zoom to fit
+        // Zoom to fit and render — fall back to stick if cartoon crashes
         viewer.zoomTo();
-        viewer.render();
+        try {
+          viewer.render();
+        } catch (renderErr) {
+          console.warn('Initial render failed (likely cartoon), falling back to stick:', renderErr);
+          try {
+            viewer.setStyle({}, { stick: { color: 'spectrum', radius: 0.15 } });
+            viewer.render();
+            setCurrentStyle('stick');
+          } catch {
+            // Last resort - ignore
+          }
+        }
       } catch (err) {
         console.error('Failed to create 3Dmol viewer:', err);
       }
@@ -241,8 +252,19 @@ export function StructureViewer({
   // Update style when changed
   useEffect(() => {
     if (!viewerRef.current || isLoading) return;
-    applyStyle(viewerRef.current, currentStyle, currentColorScheme);
-    viewerRef.current.render();
+    try {
+      applyStyle(viewerRef.current, currentStyle, currentColorScheme);
+      viewerRef.current.render();
+    } catch (err) {
+      console.warn('Style render failed, falling back to stick:', err);
+      try {
+        viewerRef.current.setStyle({}, { stick: { color: 'spectrum', radius: 0.15 } });
+        viewerRef.current.render();
+        setCurrentStyle('stick');
+      } catch {
+        // Last resort - ignore
+      }
+    }
   }, [currentStyle, currentColorScheme, isLoading]);
 
   // Handle spinning

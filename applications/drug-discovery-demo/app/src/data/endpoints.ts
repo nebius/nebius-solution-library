@@ -92,7 +92,7 @@ export const NIM_ENDPOINTS: NimEndpoint[] = [
     name: 'MolMIM',
     category: 'molecule',
     port: 8006,
-    path: '/v1/biology/nvidia/molmim/generate',
+    path: '/generate',
     healthPath: '/v1/health/ready',
     description: 'Generate molecules around input SMILES',
     status: 'unknown',

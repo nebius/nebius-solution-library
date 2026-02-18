@@ -10,7 +10,7 @@ import type { PlaygroundResult } from './nimPlayground';
 // OpenFold3 Example
 // ============================================================================
 
-const OPENFOLD3_STRUCTURE = `ATOM      1  N   LEU A   1      16.335   0.152  -7.304  1.00 49.43           N  
+export const OPENFOLD3_STRUCTURE = `ATOM      1  N   LEU A   1      16.335   0.152  -7.304  1.00 49.43           N  
 ATOM      2  CA  LEU A   1      15.922  -0.082  -5.917  1.00 48.88           C  
 ATOM      3  C   LEU A   1      16.009  -1.565  -5.602  1.00 49.63           C  
 ATOM      4  O   LEU A   1      15.781  -2.404  -6.461  1.00 47.77           O  
@@ -1346,6 +1346,354 @@ export const GENMOL_EXAMPLE: PlaygroundResult = {
         .join('\n'),
       format: 'smiles' as const,
       downloadFilename: 'genmol_molecules.txt',
+    },
+  ],
+};
+
+// ============================================================================
+// DiffDock Example
+// ============================================================================
+// Generated from DiffDock API docking Ibuprofen (CC(C)Cc1ccc(cc1)C(C)C(=O)O)
+// against HP35 villin headpiece (LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF)
+// num_poses: 5, time_divisions: 20, steps: 18
+
+const DIFFDOCK_POSE_0 = `protein_ligand
+     RDKit          3D
+
+ 15 15  0  0  0  0  0  0  0  0999 V2000
+   -4.1806   -2.5772    5.7127 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.5513   -1.4114    4.9799 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.7559   -0.5943    5.9247 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.7947   -1.9145    3.7877 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.1630   -0.8590    2.9866 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.7045    0.3993    2.9370 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.1279    1.4207    2.1859 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.9640    1.1516    1.4634 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.4269   -0.1086    1.5167 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.0226   -1.0975    2.2701 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.3168    2.2147    0.6488 C   0  0  0  0  0  0  0  0  0  0  0  0
+    0.9097    2.7288    1.3335 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.0462    1.7308   -0.7291 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.6285    0.7250   -1.2135 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.8672    2.3842   -1.5267 O   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  2  3  1  0
+  2  4  1  0
+  4  5  1  0
+  5  6  2  0
+  6  7  1  0
+  7  8  2  0
+  8  9  1  0
+  9 10  2  0
+  8 11  1  0
+ 11 12  1  0
+ 11 13  1  0
+ 13 14  2  0
+ 13 15  1  0
+ 10  5  1  0
+M  END
+$$$$
+`;
+
+const DIFFDOCK_POSE_1 = `protein_ligand
+     RDKit          3D
+
+ 15 15  0  0  0  0  0  0  0  0999 V2000
+   -2.4318   -0.4303    4.4820 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.6667   -1.1065    5.0388 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -4.5072   -0.1138    5.7466 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -4.3638   -1.8610    3.9472 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -5.6241   -2.4901    4.3604 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -5.7121   -3.1615    5.5523 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -6.8938   -3.7682    5.9710 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -8.0202   -3.6882    5.1500 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -7.9263   -3.0155    3.9592 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -6.7413   -2.4259    3.5741 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -9.3016   -4.3226    5.5604 C   0  0  0  0  0  0  0  0  0  0  0  0
+  -10.0796   -4.7608    4.3603 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -9.0576   -5.4275    6.5225 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -9.6354   -6.5419    6.4252 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -8.1749   -5.2559    7.5661 O   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  2  3  1  0
+  2  4  1  0
+  4  5  1  0
+  5  6  2  0
+  6  7  1  0
+  7  8  2  0
+  8  9  1  0
+  9 10  2  0
+  8 11  1  0
+ 11 12  1  0
+ 11 13  1  0
+ 13 14  2  0
+ 13 15  1  0
+ 10  5  1  0
+M  END
+$$$$
+`;
+
+const DIFFDOCK_POSE_2 = `protein_ligand
+     RDKit          3D
+
+ 15 15  0  0  0  0  0  0  0  0999 V2000
+   -2.3393   -2.3647    2.6961 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.7536   -0.9419    3.0057 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.8432    0.0064    2.3238 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -4.2075   -0.7600    2.6897 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -5.1032   -1.6412    3.4487 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -4.6071   -2.4769    4.4154 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -5.4319   -3.3240    5.1516 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -6.8042   -3.3192    4.8948 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -7.2948   -2.4813    3.9269 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -6.4509   -1.6550    3.2160 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -7.7196   -4.2087    5.6588 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -8.7934   -3.4097    6.3266 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -8.2598   -5.2825    4.7864 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -9.0467   -6.1655    5.2181 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -7.9056   -5.3392    3.4564 O   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  2  3  1  0
+  2  4  1  0
+  4  5  1  0
+  5  6  2  0
+  6  7  1  0
+  7  8  2  0
+  8  9  1  0
+  9 10  2  0
+  8 11  1  0
+ 11 12  1  0
+ 11 13  1  0
+ 13 14  2  0
+ 13 15  1  0
+ 10  5  1  0
+M  END
+$$$$
+`;
+
+const DIFFDOCK_POSE_3 = `protein_ligand
+     RDKit          3D
+
+ 15 15  0  0  0  0  0  0  0  0999 V2000
+   -2.1245   -1.3688    2.6871 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.3157   -0.5037    2.3344 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -4.4562   -0.8337    3.2195 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.9097    0.9392    2.3382 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.7705    1.2462    1.4648 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.9538    1.4437    0.1207 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8927    1.7362   -0.7326 C   0  0  0  0  0  0  0  0  0  0  0  0
+    0.3945    1.8305   -0.2001 C   0  0  0  0  0  0  0  0  0  0  0  0
+    0.5717    1.6321    1.1448 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.5002    1.3440    1.9622 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.5549    2.1410   -1.0774 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.4088    1.4628   -2.4026 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.7439    3.6091   -1.2003 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.6834    4.3790   -0.2059 O   0  0  0  0  0  0  0  0  0  0  0  0
+    1.9952    4.1753   -2.4306 O   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  2  3  1  0
+  2  4  1  0
+  4  5  1  0
+  5  6  2  0
+  6  7  1  0
+  7  8  2  0
+  8  9  1  0
+  9 10  2  0
+  8 11  1  0
+ 11 12  1  0
+ 11 13  1  0
+ 13 14  2  0
+ 13 15  1  0
+ 10  5  1  0
+M  END
+$$$$
+`;
+
+const DIFFDOCK_POSE_4 = `protein_ligand
+     RDKit          3D
+
+ 15 15  0  0  0  0  0  0  0  0999 V2000
+   -2.5130    3.4265    0.4952 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.1828    2.3722   -0.5398 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8615    1.7729   -0.2429 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.3129    1.3924   -0.6398 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.2578    0.3074    0.3473 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.8036    0.4688    1.5944 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.7667   -0.5422    2.5516 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.1550   -1.7548    2.2281 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.6109   -1.9106    0.9794 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.6643   -0.8896    0.0547 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.0943   -2.8600    3.2219 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.6209   -2.4059    4.5462 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.7907   -4.0676    2.7093 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.9785   -4.2628    1.4797 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -4.2576   -5.0229    3.5851 O   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  2  3  1  0
+  2  4  1  0
+  4  5  1  0
+  5  6  2  0
+  6  7  1  0
+  7  8  2  0
+  8  9  1  0
+  9 10  2  0
+  8 11  1  0
+ 11 12  1  0
+ 11 13  1  0
+ 13 14  2  0
+ 13 15  1  0
+ 10  5  1  0
+M  END
+$$$$
+`;
+
+const DIFFDOCK_RAW = {
+  ligand_positions: [DIFFDOCK_POSE_0, DIFFDOCK_POSE_1, DIFFDOCK_POSE_2, DIFFDOCK_POSE_3, DIFFDOCK_POSE_4],
+  position_confidence: [-1.7879, -2.5771, -2.7596, -3.1826, -3.7566],
+  status: 'success',
+  details: '',
+};
+
+// Confidence: exp(rawScore) → [16.7%, 7.6%, 6.3%, 4.1%, 2.3%]
+const DIFFDOCK_POSES = [
+  { sdf: DIFFDOCK_POSE_0, confidence: 0.1673 },
+  { sdf: DIFFDOCK_POSE_1, confidence: 0.0760 },
+  { sdf: DIFFDOCK_POSE_2, confidence: 0.0633 },
+  { sdf: DIFFDOCK_POSE_3, confidence: 0.0415 },
+  { sdf: DIFFDOCK_POSE_4, confidence: 0.0234 },
+];
+
+export const DIFFDOCK_EXAMPLE: PlaygroundResult = {
+  type: 'docking',
+  raw: DIFFDOCK_RAW,
+  proteinStructure: OPENFOLD3_STRUCTURE,
+  items: DIFFDOCK_POSES.map((pose, i) => ({
+    label: `Pose ${i + 1} — ${(pose.confidence * 100).toFixed(1)}% confidence`,
+    value: pose.sdf,
+    format: 'docking' as const,
+    downloadFilename: `diffdock_pose_${i + 1}.sdf`,
+  })),
+};
+
+// ============================================================================
+// MSA Search Example
+// ============================================================================
+// Generated from MSA Search API using HP35 villin headpiece
+// databases: Uniref30_2302, colabfold_envdb_202108
+// Shows first 20 of 202 sequences found
+
+const MSA_ALIGNMENT = `>A|-|A
+LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF
+>UniRef100_UPI00020DB0F1\t62\t1.00\t1.345E-09\t0\t34\t35\t32\t66\t67
+LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF
+>UniRef100_UPI00005B2DE6\t62\t1.00\t1.345E-09\t0\t34\t35\t32\t66\t67
+LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF
+>UniRef100_UPI0001815F8B\t62\t1.00\t1.345E-09\t0\t34\t35\t32\t66\t67
+LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF
+>UniRef100_UPI0021E349EE\t62\t1.00\t1.345E-09\t0\t34\t35\t81\t115\t229
+LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF
+>UniRef100_UPI0021E349E0\t62\t1.00\t1.345E-09\t0\t34\t35\t81\t115\t273
+LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF
+>UniRef100_A0A8B9R3J0\t60\t0.857\t6.619E-09\t0\t34\t35\t49\t83\t84
+LSDQDFQAVFGMNRSAFGNLPVWKQQNLKKEKGLF
+>UniRef100_A0A493SVS3\t60\t0.857\t6.619E-09\t0\t34\t35\t334\t368\t369
+LSDQDFQAVFGMNRSAFGNLPVWKQQNLKKEKGLF
+>UniRef100_A0A3Q2G8Z3\t59\t0.714\t1.252E-08\t0\t34\t35\t775\t809\t810
+LSDDDFSSVFSMTKDEFAGLPQWKQLNLKKEKGLF
+>UniRef100_UPI0018E28CDE\t59\t0.714\t1.252E-08\t0\t34\t35\t781\t815\t816
+LSDDDFSSVFSMTKDEFAGLPQWKQLNLKKEKGLF
+>UniRef100_A0A3Q2C8C0\t59\t0.714\t1.252E-08\t0\t34\t35\t781\t815\t816
+LSDDDFSSVFSMTKDEFAGLPQWKQLNLKKEKGLF
+>UniRef100_UPI00020F052F\t59\t0.971\t1.723E-08\t0\t34\t35\t32\t66\t67
+LSDEDFKAVFGMTRSAFANGPLWKQQNLKKEKGLF
+>UniRef100_UPI000529D929\t59\t0.800\t1.723E-08\t0\t34\t35\t287\t321\t322
+LSDQDFQAVFGMKRSEFGNLPLWKQQKLKKDKGLF
+>UniRef100_UPI0015ABF9A0\t58\t0.657\t2.370E-08\t0\t34\t35\t784\t818\t819
+LSDEDFCDVFGITKDEFFSLPQWKQLNMKKSKGLF
+>UniRef100_UPI00020DB0F2\t57\t0.916\t4.485E-08\t0\t34\t35\t32\t67\t68
+LSDEDFKAVFGMTRSAFaNGLPLWKQQNLKKEKGLF
+>UniRef100_UPI00005B2DE5\t57\t0.971\t6.169E-08\t0\t34\t35\t32\t66\t67
+LSDEDFKAVFGMTRSAFANLPLYKQQNLKKEKGLF
+>UniRef100_A0A674I416\t57\t0.771\t6.169E-08\t0\t34\t35\t50\t84\t85
+LSSDDFTVVFGMPRNAFAALPLWKQQKLKKEKGLF
+>UniRef100_UPI001FAC87B1\t57\t0.657\t6.169E-08\t0\t34\t35\t781\t815\t816
+LSDADFSSLFGMTKDNFASLPQWKQLNLKKKTGLF
+>UniRef100_UPI00165CA5C3\t57\t0.657\t6.169E-08\t0\t34\t35\t781\t815\t816
+LSDADFSSLFGMTKDDFTSLPQWRQLNLKKEKGLF
+>UniRef100_A0A3Q2P4M0\t57\t0.657\t6.169E-08\t0\t34\t35\t783\t817\t818
+LSDADFSSLFGMTKDDFTSLPQWRQLNLKKEKGLF`;
+
+export const MSA_SEARCH_EXAMPLE: PlaygroundResult = {
+  type: 'alignment',
+  raw: { metrics: { search_type: 'colabfold' }, alignments: { colabfold: { a3m: { alignment: MSA_ALIGNMENT } } } },
+  items: [
+    {
+      label: `MSA Alignment (${(MSA_ALIGNMENT.match(/>/g) || []).length} sequences)`,
+      value: MSA_ALIGNMENT,
+      format: 'code',
+      downloadFilename: 'msa_search_result.a3m',
+    },
+  ],
+};
+
+// ============================================================================
+// Evo2 Example
+// ============================================================================
+// Generated from Evo2-40B API with seed sequence ATCGATCGATCGATCG
+// num_tokens: 100, temperature: 1.0, top_k: 4
+
+const EVO2_SEQUENCE = 'ATCGATCGATCGTTTGCGATGGACCTATTGATCGAATAGTGTGTATGCTGTTGTTCCGTATAGTTTTGCTGGACAACGGTCACGAAACGCGTGCACGTCC';
+
+export const EVO2_EXAMPLE: PlaygroundResult = {
+  type: 'sequences',
+  raw: { sequence: EVO2_SEQUENCE, elapsed_ms: 4107 },
+  items: [
+    {
+      label: `Generated Sequence (${EVO2_SEQUENCE.length} nt)`,
+      value: EVO2_SEQUENCE,
+      format: 'sequence',
+      downloadFilename: 'evo2_generated.fasta',
+    },
+  ],
+};
+
+// ============================================================================
+// ProteinMPNN Example
+// ============================================================================
+// Generated from ProteinMPNN API using HP35 villin headpiece backbone
+// sampling_temp: 0.1, num_seq_per_target: 8, chains: A
+
+const PROTEINMPNN_MFASTA = `>input, score=2.3144, global_score=2.3144, fixed_chains=[], designed_chains=['A'], model_name=v_48_002, seed=102
+LSDEDFKAVFGMTRSAFANLPLWKQQNLKKEKGLF
+>T=0.1, sample=1, score=1.1805, global_score=1.1805, seq_recovery=0.2286
+MTAEDVEKLAAAANEEFLKLPEEERKRIETELGLV
+>T=0.1, sample=2, score=1.1520, global_score=1.1520, seq_recovery=0.3143
+MTEEDLKEIGEKLRKEFEKLPEEEQKRILKELGIV
+>T=0.1, sample=3, score=1.1972, global_score=1.1972, seq_recovery=0.2286
+MTAEDVLEIATKLNEEFEKLPEEERKRIETELGLV
+>T=0.1, sample=4, score=1.2138, global_score=1.2138, seq_recovery=0.2286
+MTEEDLKRIGEAANKEFLKKSKEEQERIMTELGLI
+>T=0.1, sample=5, score=1.1671, global_score=1.1671, seq_recovery=0.2857
+MTEEDVKEIGAALNKEFEKLPKEEQERILTELGLV
+>T=0.1, sample=6, score=1.2156, global_score=1.2156, seq_recovery=0.2571
+MTAEDVRELAAAANKEFQKLPKEEQERIATELGLV
+>T=0.1, sample=7, score=1.1546, global_score=1.1546, seq_recovery=0.2857
+MTAEDLKKIGKKLSKEFKKLSKEEQEKIEKELGLI
+>T=0.1, sample=8, score=1.1922, global_score=1.1922, seq_recovery=0.2000
+MTEEDIKVISDKLNKEFLKLSEEERKRIETELGII`;
+
+export const PROTEINMPNN_EXAMPLE: PlaygroundResult = {
+  type: 'sequences',
+  raw: {
+    mfasta: PROTEINMPNN_MFASTA,
+    scores: [1.1805, 1.1520, 1.1972, 1.2138, 1.1671, 1.2156, 1.1546, 1.1922],
+  },
+  items: [
+    {
+      label: 'Designed Sequences (8)',
+      value: PROTEINMPNN_MFASTA,
+      format: 'sequence',
+      downloadFilename: 'proteinmpnn_sequences.fasta',
     },
   ],
 };
