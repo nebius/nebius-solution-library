@@ -66,7 +66,7 @@ export interface NimPlaygroundDef {
   exampleResult?: PlaygroundResult;
 }
 
-import { OPENFOLD3_EXAMPLE, BOLTZ2_EXAMPLE, OPENFOLD2_EXAMPLE, MOLMIM_EXAMPLE } from './exampleResponses';
+import { OPENFOLD3_EXAMPLE, BOLTZ2_EXAMPLE, OPENFOLD2_EXAMPLE, MOLMIM_EXAMPLE, GENMOL_EXAMPLE } from './exampleResponses';
 
 // ============================================================================
 // Helper Functions
@@ -714,19 +714,20 @@ const GENMOL: NimPlaygroundDef = {
   name: 'GenMol',
   category: 'Molecule Generation',
   categoryIcon: 'molecule',
-  description: 'Generate novel drug-like molecules from SMILES scaffolds with masked positions.',
+  description: 'Generate novel drug-like molecules using SAFE notation. Use [*{min-max}] to specify generation regions.',
   resultType: 'molecules',
   endpointPath: '/generate',
+  exampleResult: GENMOL_EXAMPLE,
   fields: [
     {
       id: 'smiles',
-      label: 'SMILES Scaffold',
+      label: 'SAFE Input',
       type: 'text',
       group: 'input',
       required: true,
-      default: '[MASK]c1ccc(C(=O)O)cc1',
-      placeholder: '[MASK]c1ccc(C(=O)O)cc1',
-      description: 'SMILES string. Use [MASK] tokens for positions to generate. Leave fully masked for de novo generation.',
+      default: '[*{20-30}]',
+      placeholder: '[*{20-30}]',
+      description: 'SAFE notation: [*{min-max}] for de novo, or scaffold.[*{min-max}] for scaffold-based (e.g. c1ccccc1.[*{10-20}])',
     },
     {
       id: 'numMolecules',
@@ -744,9 +745,9 @@ const GENMOL: NimPlaygroundDef = {
       label: 'Temperature',
       type: 'number',
       group: 'parameters',
-      default: 1.0,
+      default: 2.0,
       min: 0.1,
-      max: 2.0,
+      max: 10.0,
       step: 0.1,
       description: 'Sampling temperature (higher = more diverse)',
     },
@@ -761,6 +762,14 @@ const GENMOL: NimPlaygroundDef = {
         { value: 'plogP', label: 'plogP (Penalized LogP)' },
       ],
       description: 'Score generated molecules with this function',
+    },
+    {
+      id: 'unique',
+      label: 'Unique Only',
+      type: 'checkbox',
+      group: 'parameters',
+      default: true,
+      description: 'Only return unique molecules (deduplicate)',
     },
     {
       id: 'noise',
@@ -789,10 +798,11 @@ const GENMOL: NimPlaygroundDef = {
     return {
       smiles: String(values.smiles || ''),
       num_molecules: Number(values.numMolecules ?? 10),
-      temperature: Number(values.temperature ?? 1.0),
+      temperature: Number(values.temperature ?? 2.0),
       noise: Number(values.noise ?? 1.0),
       step_size: Number(values.stepSize ?? 1),
       scoring: values.scoring || 'QED',
+      unique: values.unique !== false,
     };
   },
   parseResponse(data: unknown): PlaygroundResult {
