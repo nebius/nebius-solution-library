@@ -143,6 +143,39 @@ resource "kubernetes_config_map_v1" "nginx_tcp_proxy" {
           proxy_connect_timeout 10s;
         }
 
+        # Port 8011 -> maisi
+        upstream maisi {
+          server maisi-svc.${var.namespace}.svc.cluster.local:8000;
+        }
+        server {
+          listen 8011;
+          proxy_pass maisi;
+          proxy_timeout 600s;
+          proxy_connect_timeout 10s;
+        }
+
+        # Port 8012 -> vista3d
+        upstream vista3d {
+          server vista3d-svc.${var.namespace}.svc.cluster.local:8000;
+        }
+        server {
+          listen 8012;
+          proxy_pass vista3d;
+          proxy_timeout 600s;
+          proxy_connect_timeout 10s;
+        }
+
+        # Port 8013 -> alphafold2-multimer
+        upstream alphafold2_multimer {
+          server alphafold2-multimer-svc.${var.namespace}.svc.cluster.local:8000;
+        }
+        server {
+          listen 8013;
+          proxy_pass alphafold2_multimer;
+          proxy_timeout 600s;
+          proxy_connect_timeout 10s;
+        }
+
         # Port 8080 -> metadata-service
         upstream metadata {
           server metadata-service-svc.${var.namespace}.svc.cluster.local:8080;
@@ -198,7 +231,7 @@ resource "kubernetes_deployment_v1" "nginx_tcp_proxy" {
           }
 
           dynamic "port" {
-            for_each = concat(range(8000, 8011), [8080])
+            for_each = concat(range(8000, 8014), [8080])
             content {
               container_port = port.value
             }
@@ -311,6 +344,27 @@ resource "kubernetes_service_v1" "nims_lb" {
       name        = "rfdiffusion"
       port        = 8010
       target_port = 8010
+      protocol    = "TCP"
+    }
+
+    port {
+      name        = "maisi"
+      port        = 8011
+      target_port = 8011
+      protocol    = "TCP"
+    }
+
+    port {
+      name        = "vista3d"
+      port        = 8012
+      target_port = 8012
+      protocol    = "TCP"
+    }
+
+    port {
+      name        = "alphafold2-multimer"
+      port        = 8013
+      target_port = 8013
       protocol    = "TCP"
     }
 

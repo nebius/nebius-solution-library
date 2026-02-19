@@ -198,6 +198,60 @@ resource "kubernetes_service_v1" "rfdiffusion" {
   }
 }
 
+resource "kubernetes_service_v1" "maisi" {
+  depends_on = [kubernetes_namespace_v1.nims]
+  metadata {
+    name      = "maisi-svc"
+    namespace = var.namespace
+  }
+  spec {
+    selector = {
+      app = "maisi"
+    }
+    port {
+      port        = 8000
+      target_port = 8000
+    }
+    type = "ClusterIP"
+  }
+}
+
+resource "kubernetes_service_v1" "vista3d" {
+  depends_on = [kubernetes_namespace_v1.nims]
+  metadata {
+    name      = "vista3d-svc"
+    namespace = var.namespace
+  }
+  spec {
+    selector = {
+      app = "vista3d"
+    }
+    port {
+      port        = 8000
+      target_port = 8000
+    }
+    type = "ClusterIP"
+  }
+}
+
+resource "kubernetes_service_v1" "alphafold2_multimer" {
+  depends_on = [kubernetes_namespace_v1.nims]
+  metadata {
+    name      = "alphafold2-multimer-svc"
+    namespace = var.namespace
+  }
+  spec {
+    selector = {
+      app = "alphafold2-multimer"
+    }
+    port {
+      port        = 8000
+      target_port = 8000
+    }
+    type = "ClusterIP"
+  }
+}
+
 resource "kubernetes_service_v1" "cosmos_reason1_7b" {
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {

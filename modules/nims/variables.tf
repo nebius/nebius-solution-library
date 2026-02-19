@@ -232,6 +232,60 @@ variable "rfdiffusion_replicas" {
   default     = 1
 }
 
+variable "maisi" {
+  description = "install maisi"
+  type        = bool
+  default     = false
+}
+
+variable "maisi_version" {
+  description = "maisi version"
+  type        = string
+  default     = "latest"
+}
+
+variable "maisi_replicas" {
+  description = "maisi instances"
+  type        = number
+  default     = 1
+}
+
+variable "vista3d" {
+  description = "install vista3d"
+  type        = bool
+  default     = false
+}
+
+variable "vista3d_version" {
+  description = "vista3d version"
+  type        = string
+  default     = "latest"
+}
+
+variable "vista3d_replicas" {
+  description = "vista3d instances"
+  type        = number
+  default     = 1
+}
+
+variable "alphafold2_multimer" {
+  description = "install alphafold2-multimer"
+  type        = bool
+  default     = false
+}
+
+variable "alphafold2_multimer_version" {
+  description = "alphafold2-multimer version"
+  type        = string
+  default     = "1.0.0"
+}
+
+variable "alphafold2_multimer_replicas" {
+  description = "alphafold2-multimer instances"
+  type        = number
+  default     = 1
+}
+
 variable "cosmos_reason1_7b" {
   description = "install cosmos-reason1-7b"
   type        = bool
