@@ -1,0 +1,249 @@
+# OSMO Service values - Auth Enabled (Keycloak OIDC + Envoy Sidecar)
+# This is the auth-enabled counterpart to osmo-values-noauth.yaml.
+# The deployment script (04-deploy-osmo-control-plane.sh) generates the final
+# values dynamically. This file serves as a reference template.
+
+global:
+  osmoImageLocation: nvcr.io/nvidia/osmo
+  osmoImageTag: latest
+  imagePullPolicy: IfNotPresent
+
+services:
+  postgres:
+    enabled: false
+    serviceName: ${POSTGRES_HOST}
+    port: ${POSTGRES_PORT}
+    db: osmo
+    user: ${POSTGRES_USER}
+    passwordSecretName: postgres-secret
+    passwordSecretKey: password
+  redis:
+    enabled: false
+    serviceName: redis-master.osmo.svc.cluster.local
+    port: 6379
+    tlsEnabled: false
+  service:
+    scaling:
+      minReplicas: 1
+      maxReplicas: 1
+    ingress:
+      enabled: true
+      prefix: /
+      ingressClass: nginx
+      sslEnabled: true
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+        nginx.ingress.kubernetes.io/proxy-buffers: "8 16k"
+        nginx.ingress.kubernetes.io/proxy-busy-buffers-size: "32k"
+        nginx.ingress.kubernetes.io/large-client-header-buffers: "4 16k"
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      tls:
+        - hosts:
+            - ${INGRESS_HOSTNAME}
+          secretName: ${TLS_SECRET_NAME}
+    auth:
+      enabled: true
+      device_endpoint: ${KEYCLOAK_EXTERNAL_URL}/realms/osmo/protocol/openid-connect/auth/device
+      device_client_id: osmo-device
+      browser_endpoint: ${KEYCLOAK_EXTERNAL_URL}/realms/osmo/protocol/openid-connect/auth
+      browser_client_id: osmo-browser-flow
+      token_endpoint: ${KEYCLOAK_EXTERNAL_URL}/realms/osmo/protocol/openid-connect/token
+      logout_endpoint: ${KEYCLOAK_EXTERNAL_URL}/realms/osmo/protocol/openid-connect/logout
+    extraEnv:
+      - name: OSMO_POSTGRES_HOST
+        value: "${POSTGRES_HOST}"
+      - name: OSMO_POSTGRES_PORT
+        value: "${POSTGRES_PORT}"
+      - name: OSMO_POSTGRES_USER
+        value: "${POSTGRES_USER}"
+      - name: OSMO_POSTGRES_DATABASE
+        value: "osmo"
+      - name: OSMO_POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: password
+      - name: METRICS_OTEL_ENABLE
+        value: "false"
+      - name: AWS_ENDPOINT_URL_S3
+        value: ${S3_NEBIUS_ENDPOINT}:443
+      - name: AWS_S3_FORCE_PATH_STYLE
+        value: "true"
+      - name: AWS_DEFAULT_REGION
+        value: ${NEBIUS_SELECTED_REGION}
+      - name: OSMO_SKIP_DATA_AUTH
+        value: "1"
+    extraVolumes:
+      - name: vault-secrets
+        secret:
+          secretName: vault-secrets
+    extraVolumeMounts:
+      - name: vault-secrets
+        mountPath: /home/osmo/vault-agent/secrets
+        readOnly: true
+  worker:
+    scaling:
+      minReplicas: 1
+      maxReplicas: 1
+    extraEnv:
+      - name: OSMO_POSTGRES_HOST
+        value: "${POSTGRES_HOST}"
+      - name: OSMO_POSTGRES_PORT
+        value: "${POSTGRES_PORT}"
+      - name: OSMO_POSTGRES_USER
+        value: "${POSTGRES_USER}"
+      - name: OSMO_POSTGRES_DATABASE
+        value: "osmo"
+      - name: OSMO_POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: password
+      - name: METRICS_OTEL_ENABLE
+        value: "false"
+      - name: AWS_ENDPOINT_URL_S3
+        value: ${S3_NEBIUS_ENDPOINT}:443
+      - name: AWS_S3_FORCE_PATH_STYLE
+        value: "true"
+      - name: AWS_DEFAULT_REGION
+        value: ${NEBIUS_SELECTED_REGION}
+    extraVolumes:
+      - name: vault-secrets
+        secret:
+          secretName: vault-secrets
+    extraVolumeMounts:
+      - name: vault-secrets
+        mountPath: /home/osmo/vault-agent/secrets
+        readOnly: true
+  logger:
+    scaling:
+      minReplicas: 1
+      maxReplicas: 1
+    extraEnv:
+      - name: OSMO_POSTGRES_HOST
+        value: "${POSTGRES_HOST}"
+      - name: OSMO_POSTGRES_PORT
+        value: "${POSTGRES_PORT}"
+      - name: OSMO_POSTGRES_USER
+        value: "${POSTGRES_USER}"
+      - name: OSMO_POSTGRES_DATABASE
+        value: "osmo"
+      - name: OSMO_POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: password
+      - name: METRICS_OTEL_ENABLE
+        value: "false"
+    extraVolumes:
+      - name: vault-secrets
+        secret:
+          secretName: vault-secrets
+    extraVolumeMounts:
+      - name: vault-secrets
+        mountPath: /home/osmo/vault-agent/secrets
+        readOnly: true
+  agent:
+    scaling:
+      minReplicas: 1
+      maxReplicas: 1
+    extraEnv:
+      - name: OSMO_POSTGRES_HOST
+        value: "${POSTGRES_HOST}"
+      - name: OSMO_POSTGRES_PORT
+        value: "${POSTGRES_PORT}"
+      - name: OSMO_POSTGRES_USER
+        value: "${POSTGRES_USER}"
+      - name: OSMO_POSTGRES_DATABASE
+        value: "osmo"
+      - name: OSMO_POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: password
+      - name: METRICS_OTEL_ENABLE
+        value: "false"
+    extraVolumes:
+      - name: vault-secrets
+        secret:
+          secretName: vault-secrets
+    extraVolumeMounts:
+      - name: vault-secrets
+        mountPath: /home/osmo/vault-agent/secrets
+        readOnly: true
+  delayedJobMonitor:
+    replicas: 1
+    extraEnv:
+      - name: OSMO_POSTGRES_HOST
+        value: "${POSTGRES_HOST}"
+      - name: OSMO_POSTGRES_PORT
+        value: "${POSTGRES_PORT}"
+      - name: OSMO_POSTGRES_USER
+        value: "${POSTGRES_USER}"
+      - name: OSMO_POSTGRES_DATABASE
+        value: "osmo"
+      - name: OSMO_POSTGRES_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres-secret
+            key: password
+      - name: METRICS_OTEL_ENABLE
+        value: "false"
+    extraVolumes:
+      - name: vault-secrets
+        secret:
+          secretName: vault-secrets
+    extraVolumeMounts:
+      - name: vault-secrets
+        mountPath: /home/osmo/vault-agent/secrets
+        readOnly: true
+
+sidecars:
+  envoy:
+    enabled: true
+    useKubernetesSecrets: true
+    skipAuthPaths:
+      - /api/version
+      - /api/auth/login
+      - /api/auth/keys
+      - /api/auth/refresh_token
+      - /api/auth/jwt/refresh_token
+      - /api/auth/jwt/access_token
+      - /client/version
+    service:
+      port: 8000
+      hostname: ${INGRESS_HOSTNAME}
+      address: 127.0.0.1
+    oauth2Filter:
+      enabled: true
+      tokenEndpoint: ${KEYCLOAK_EXTERNAL_URL}/realms/osmo/protocol/openid-connect/token
+      authEndpoint: ${KEYCLOAK_EXTERNAL_URL}/realms/osmo/protocol/openid-connect/auth
+      clientId: osmo-browser-flow
+      authProvider: ${AUTH_DOMAIN}
+      secretName: oidc-secrets
+      clientSecretKey: client_secret
+      hmacSecretKey: hmac_secret
+    jwt:
+      user_header: x-osmo-user
+      providers:
+        - issuer: ${KEYCLOAK_EXTERNAL_URL}/realms/osmo
+          audience: osmo-device
+          jwks_uri: ${KEYCLOAK_EXTERNAL_URL}/realms/osmo/protocol/openid-connect/certs
+          user_claim: preferred_username
+          cluster: oauth
+        - issuer: ${KEYCLOAK_EXTERNAL_URL}/realms/osmo
+          audience: osmo-browser-flow
+          jwks_uri: ${KEYCLOAK_EXTERNAL_URL}/realms/osmo/protocol/openid-connect/certs
+          user_claim: preferred_username
+          cluster: oauth
+        - issuer: osmo
+          audience: osmo
+          jwks_uri: http://localhost:8000/api/auth/keys
+          user_claim: unique_name
+          cluster: service
+  rateLimit:
+    enabled: false
+  logAgent:
+    enabled: false
+  otel:
+    enabled: false

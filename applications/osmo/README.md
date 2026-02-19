@@ -20,9 +20,9 @@ Deploy [NVIDIA OSMO](https://nvidia.github.io/OSMO/main/user_guide/index.html) o
 | No managed Redis service | Deploy Redis in-cluster via Helm | Workaround in place |
 | MysteryBox lacks K8s CSI integration | Scripts retrieve secrets and create K8s secrets manually | Workaround in place |
 | No External DNS service | Manual DNS configuration required | Not addressed |
-| No managed SSL/TLS service | Manual certificate management | Not addressed |
-| No public Load Balancer (ALB/NLB) | Use port-forwarding or WireGuard VPN for access | Workaround in place |
-| IDP integration for Nebius | Using OSMO dev auth mode; Keycloak available but not integrated | TBD |
+| No managed SSL/TLS service | cert-manager with Let's Encrypt via NGINX Ingress | **Implemented** |
+| No public Load Balancer (ALB/NLB) | NGINX Ingress Controller with Nebius LoadBalancer | **Implemented** |
+| IDP integration for Nebius | Keycloak OIDC + Envoy sidecar auth on all OSMO services | **Implemented** |
 | Nebius Observability Stack integration | Using self-deployed Prometheus/Grafana/Loki | TODO |
 | Single cluster for Control Plane + Backend | Using 1 MK8s cluster for both; production separation TBD | Discuss with Nebius |
 
@@ -226,6 +226,40 @@ See [Terraform README](deploy/001-iac/README.md) for configuration options, and 
    - Creates Kubernetes Ingress resources for path-based routing via the NGINX Ingress Controller
    
    > **Note:** The script automatically retrieves PostgreSQL password and MEK from MysteryBox if you ran `secrets-init.sh` earlier.
+
+6. (Optional) Enable TLS and Keycloak Auth:
+   
+   For production deployments with HTTPS and OIDC authentication:
+   ```bash
+   # Enable TLS via cert-manager + Let's Encrypt
+   export OSMO_TLS_ENABLED=true
+   export OSMO_TLS_MODE="cert-manager"
+   export LETSENCRYPT_EMAIL="your-email@example.com"
+   ./04-enable-tls.sh
+   ```
+   
+   Then deploy the control plane with auth-enabled values:
+   ```bash
+   # Use the auth-enabled values template
+   cp osmo-values-auth.yaml osmo-values.yaml
+   # Edit osmo-values.yaml to set your hostnames
+   ./04-deploy-osmo-control-plane.sh
+   ```
+   
+   This configures:
+   - **cert-manager** with Let's Encrypt ClusterIssuer for automatic TLS certificates
+   - **Keycloak** as the OIDC identity provider with an `osmo` realm
+   - **Envoy sidecars** on all OSMO services for token validation
+   - Path-based skip-auth for `/api/version` and health endpoints
+   
+   After deployment, access:
+   - OSMO UI: `https://osmo.<LB_IP>.nip.io`
+   - Keycloak Admin: `https://auth-osmo.<LB_IP>.nip.io/admin`
+   
+   Login via CLI:
+   ```bash
+   osmo login https://osmo.<LB_IP>.nip.io
+   ```
 
 7. Deploy OSMO backend operator:
    ```bash
