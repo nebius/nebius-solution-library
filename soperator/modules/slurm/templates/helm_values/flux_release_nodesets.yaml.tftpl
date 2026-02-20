@@ -1,5 +1,5 @@
 nodesets:
-  enabled: ${enabled}
+  enabled: true
 
   interval: 5m
   timeout: 5m
@@ -7,7 +7,7 @@ nodesets:
   namespace: ${namespace}
   releaseName: ${release_name}
 
-  overrideValues: %{ if !enabled || length(nodesets) == 0 ~}{}
+  overrideValues: %{ if length(nodesets) == 0 ~}{}
   %{~ else }
     nodesets:
       %{~ for i, nodeset in nodesets ~}

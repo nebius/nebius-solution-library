@@ -1,6 +1,6 @@
 locals {
-  # GPU clusters for v2 worker nodes (when nodesets are enabled)
-  gpu_clusters_v2 = var.slurm_nodesets_enabled ? {
+  # GPU clusters for v2 worker nodes
+  gpu_clusters_v2 = {
     for gpu_placement in distinct([for worker in var.node_group_workers_v2 :
       {
         fabric = worker.gpu_cluster.infiniband_fabric
@@ -10,8 +10,9 @@ locals {
     gpu_placement.fabric => {
       fabric = gpu_placement.fabric
     }
-  } : {}
-  gpu_clusters_by_nodegroup = var.slurm_nodesets_enabled ? {
+  }
+
+  gpu_clusters_by_nodegroup = {
     for ng in distinct([for worker in var.node_group_workers_v2 :
       {
         name   = worker.name
@@ -20,7 +21,7 @@ locals {
       if worker.gpu_cluster != null
     ]) :
     ng.name => ng.fabric
-  } : {}
+  }
 }
 
 resource "nebius_compute_v1_gpu_cluster" "this_v2" {
@@ -40,11 +41,11 @@ resource "nebius_compute_v1_gpu_cluster" "this_v2" {
 }
 
 resource "nebius_mk8s_v1_node_group" "worker_v2" {
-  count = var.slurm_nodesets_enabled ? length(var.node_group_workers_v2) : 0
+  count = length(var.node_group_workers_v2)
 
   depends_on = [
     nebius_mk8s_v1_cluster.this,
-    nebius_compute_v1_gpu_cluster.this,
+    nebius_compute_v1_gpu_cluster.this_v2,
     terraform_data.check_resource_preset_sufficiency,
   ]
 

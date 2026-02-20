@@ -80,10 +80,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     apparmor_enabled        = var.use_default_apparmor_profile
     enable_soperator_checks = var.enable_soperator_checks
 
-    operator_version = var.operator_version
-    operator_feature_gates = join(",", distinct(compact([
-      var.slurm_nodesets_enabled ? "NodeSetWorkers=true" : null,
-    ])))
+    operator_version                   = var.operator_version
     cert_manager_version               = var.cert_manager_version
     k8up_version                       = var.k8up_version
     mariadb_operator_version           = var.mariadb_operator_version
@@ -139,7 +136,6 @@ resource "helm_release" "soperator_fluxcd_cm" {
       use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
       cuda_version                 = var.cuda_version
 
-      slurm_worker_features     = var.slurm_worker_features
       slurm_health_check_config = var.slurm_health_check_config
 
       k8s_node_filters               = local.node_filters
@@ -188,7 +184,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
         }
 
         worker = {
-          size = var.slurm_nodesets_enabled ? 0 : var.node_count.worker[0]
+          size = 0
           resources = {
             cpu               = floor(var.resources.worker[0].cpu_cores - local.resources.munge.cpu) - local.resources.kruise_daemon.cpu
             memory            = floor(var.resources.worker[0].memory_gibibytes - local.resources.munge.memory) - local.resources.kruise_daemon.memory
@@ -261,7 +257,6 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
     vm_agent_queue_count = local.vm_agent_queue_count
 
-    slurm_nodesets_enabled    = var.slurm_nodesets_enabled
     slurm_nodesets_partitions = var.slurm_nodesets_partitions
     nodesets                  = var.worker_nodesets
 

@@ -248,9 +248,3 @@ variable "use_preinstalled_gpu_drivers" {
   type        = bool
   default     = false
 }
-
-variable "slurm_nodesets_enabled" {
-  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
-  type        = bool
-  default     = false
-}

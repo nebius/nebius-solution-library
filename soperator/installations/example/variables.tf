@@ -552,15 +552,8 @@ variable "slurm_operator_stable" {
   default     = true
 }
 
-variable "slurm_nodesets_enabled" {
-  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
-  type        = bool
-  default     = false
-}
-
 variable "slurm_nodesets_partitions" {
   description = <<-EOT
-    Partition configuration for nodesets. Used only when slurm_nodesets_enabled is true.
     Users must not remove the "hidden" partition.
     Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
   EOT
@@ -604,20 +597,6 @@ variable "slurm_partition_raw_config" {
 }
 
 # endregion PartitionConfiguration
-
-# region WorkerFeatures
-
-variable "slurm_worker_features" {
-  description = "List of features to be enabled on worker nodes."
-  type = list(object({
-    name          = string
-    hostlist_expr = string
-    nodeset_name  = optional(string)
-  }))
-  default = []
-}
-
-# endregion WorkerFeatures
 
 # region HealthCheckConfig
 

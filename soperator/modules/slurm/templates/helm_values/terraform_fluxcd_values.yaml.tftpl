@@ -245,8 +245,7 @@ resources:
             maintenance: ${slurm_cluster.maintenance}
 
             partitionConfiguration:
-            %{~ if slurm_nodesets_enabled ~}
-              configType: ${slurm_nodesets_enabled ? "structured" : slurm_cluster.partition_configuration.slurm_config_type}
+              configType: structured
               partitions:
                 %{~ for nodeset in nodesets ~}
                 %{~ if nodeset.create_partition ~}
@@ -268,22 +267,6 @@ resources:
                   %{~ endif ~}
                   config: "${partition.config}"
                 %{~ endfor ~}
-            %{~ else ~}
-              configType: ${slurm_cluster.partition_configuration.slurm_config_type}
-              %{~ if slurm_cluster.partition_configuration.slurm_config_type == "custom" ~}
-              rawConfig:
-              %{~ for partition in slurm_cluster.partition_configuration.slurm_raw_config ~}
-                - "${partition}"
-              %{~ endfor ~}
-              %{~ endif ~}
-            %{~ endif ~}
-
-            workerFeatures:
-              %{~ for feature in slurm_cluster.slurm_worker_features ~}
-              - name: ${feature.name}
-                hostlistExpr: "${feature.hostlist_expr}"
-                nodesetName: "${feature.nodeset_name}"
-              %{~ endfor ~}
 
             %{~ if slurm_cluster.slurm_health_check_config != null ~}
             healthCheckConfig:
@@ -543,137 +526,6 @@ resources:
                           storage: 50Gi
                       storageClassName: "compute-csi-network-ssd-ext4"
                     %{~ endif ~}
-              %{~ if slurm_nodesets_enabled ~}
-              worker: null
-              %{~ else ~}
-              worker:
-                size: ${slurm_cluster.nodes.worker.size}
-                k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.worker.name}
-                cgroupVersion: v2
-                enableGDRCopy: true
-                slurmNodeExtra: "${slurm_cluster.nodes.worker.slurm_node_extra}"
-                sshdConfigMapRefName: "${slurm_cluster.nodes.worker.sshd_config_map_ref_name}"
-                supervisordConfigMapRefName: custom-supervisord-config
-                slurmd:
-                  resources:
-                    cpu: ${slurm_cluster.nodes.worker.resources.cpu * 1000}m
-                    memory: ${slurm_cluster.nodes.worker.resources.memory}Gi
-                    ephemeralStorage: ${slurm_cluster.nodes.worker.resources.ephemeral_storage}Gi
-                    gpu: ${slurm_cluster.nodes.worker.resources.gpus}
-                munge:
-                  resources:
-                    cpu: ${slurm_cluster.nodes.munge.resources.cpu * 1000}m
-                    memory: ${slurm_cluster.nodes.munge.resources.memory}Gi
-                    ephemeralStorage: ${slurm_cluster.nodes.munge.resources.ephemeral_storage}Gi
-                customInitContainers:
-                  - name: ensure-jail-virtiofs
-                    image: cr.eu-north1.nebius.cloud/soperator/busybox
-                    volumeMounts: [{ name: jail, mountPath: /volume-mount }]
-                    command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
-                  %{~ for sub_mount in slurm_cluster.jail_submounts ~}
-                  - name: ensure-jail-submount-${sub_mount.name}-virtiofs
-                    image: cr.eu-north1.nebius.cloud/soperator/busybox
-                    volumeMounts: [{ name: '${sub_mount.name}', mountPath: /volume-mount }]
-                    command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
-                  %{~ endfor ~}
-                  %{~ for sub_mount in slurm_cluster.node_local_jail_submounts ~}
-                  - name: ensure-node-local-jail-submount-${sub_mount.name}-${sub_mount.filesystem_type}
-                    image: cr.eu-north1.nebius.cloud/soperator/busybox
-                    volumeMounts: [{ name: '${sub_mount.name}', mountPath: /volume-mount }]
-                    command: ["sh", "-c", "grep ' /volume-mount ${sub_mount.filesystem_type} ' /proc/mounts && chmod 777 /volume-mount"]
-                  %{~ endfor ~}
-                  %{~ if slurm_cluster.node_local_image_storage.enabled ~}
-                  - name: ensure-node-local-image-storage-${slurm_cluster.node_local_image_storage.spec.filesystem_type}
-                    image: cr.eu-north1.nebius.cloud/soperator/busybox
-                    volumeMounts: [{ name: 'image-storage', mountPath: /volume-mount }]
-                    command: ["grep", ' /volume-mount ${slurm_cluster.node_local_image_storage.spec.filesystem_type} ', "/proc/mounts"]
-                  - name: prepare-node-local-image-storage
-                    image: cr.eu-north1.nebius.cloud/soperator/busybox
-                    volumeMounts: [{ name: 'image-storage', mountPath: /volume-mount }]
-                    command:
-                    - "sh"
-                    - "-c"
-                    - |
-                      mkdir -p \
-                      %{~ for dir in ["cache", "data", "runtime"] ~}
-                        /volume-mount/enroot/${dir} \
-                      %{~ endfor ~}
-                        /volume-mount/docker \
-                      && chmod 777 -R /volume-mount/enroot /volume-mount/docker
-                  %{~ endif ~}
-                volumes:
-                  spool:
-                    volumeClaimTemplateSpec: null
-                    volumeSourceName: worker-spool
-                  jailSubMounts:
-                    %{~ if slurm_cluster.nfs.enabled ~}
-                    - mountPath: ${slurm_cluster.nfs.mount_path}
-                      name: nfs
-                      volumeSourceName: nfs
-                    %{~ endif ~}
-                    %{~ if slurm_cluster.nfs_in_k8s.enabled ~}
-                    - mountPath: /home
-                      name: home-dir
-                      volumeSourceName: home-dir
-                    %{~ endif ~}
-                    %{~ for sub_mount in slurm_cluster.jail_submounts ~}
-                    - name: ${sub_mount.name}
-                      mountPath: ${sub_mount.mount_path}
-                      volumeSourceName: jail-submount-${sub_mount.name}
-                    %{~ endfor ~}
-                    %{~ for sub_mount in slurm_cluster.node_local_jail_submounts ~}
-                    - name: ${sub_mount.name}
-                      mountPath: ${sub_mount.mount_path}
-                      volumeClaimTemplateSpec:
-                        accessModes:
-                          - ReadWriteOnce
-                        storageClassName: ${sub_mount.storage_class_name}
-                        resources:
-                          requests:
-                            storage: ${sub_mount.size_gibibytes}Gi
-                    %{~ endfor ~}
-                    %{~ if slurm_cluster.node_local_image_storage.enabled ~}
-                    - name: image-storage
-                      mountPath: /mnt/image-storage
-                      volumeClaimTemplateSpec:
-                        accessModes:
-                          - ReadWriteOnce
-                        storageClassName: ${slurm_cluster.node_local_image_storage.spec.storage_class_name}
-                        resources:
-                          requests:
-                            storage: ${slurm_cluster.node_local_image_storage.spec.size_gibibytes}Gi
-                    %{~ endif ~}
-                  customMounts:
-                    - name: sys-host
-                      mountPath: /mnt/jail.upper/sys-host
-                      readOnly: true
-                      volumeSourceName: sys-host
-                    %{~ if slurm_cluster.node_local_image_storage.enabled ~}
-                    - name: enroot-on-image-storage
-                      mountPath: /etc/enroot/enroot.conf.d/custom-dirs.conf
-                      subPath: enroot.conf
-                      readOnly: true
-                      volumeSourceName: image-storage
-                    - name: docker-on-image-storage
-                      mountPath: /etc/docker/daemon.json
-                      subPath: daemon.json
-                      readOnly: true
-                      volumeSourceName: image-storage
-                    %{~ endif ~}
-                    %{~ if dcgm_job_mapping_enabled ~}
-                    - name: hpc-jobs-dir
-                      mountPath: ${dcgm_job_map_dir}
-                      volumeSourceName: hpc-jobs-dir
-                    %{~ endif ~}
-                    %{~ if slurm_cluster.use_preinstalled_gpu_drivers~}
-                    - name: nvidia-driver-root
-                      mountPath: /run/nvidia/driver
-                      volumeSourceName: nvidia-driver-root
-                      readOnly: false
-                    %{~ endif ~}
-                  sharedMemorySize: ${slurm_cluster.nodes.worker.shared_memory}Gi
-              %{~ endif ~}
-
               login:
                 size: ${slurm_cluster.nodes.login.size}
                 k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.login.name}
@@ -891,9 +743,6 @@ resources:
           interval: 5m
           timeout: 5m
           version: ${operator_version}
-          %{~ if length(operator_feature_gates) > 0 ~}
-          featureGates: "${operator_feature_gates}"
-          %{~ endif ~}
           values:
             manager:
               resources:

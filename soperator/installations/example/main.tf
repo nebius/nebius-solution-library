@@ -194,12 +194,11 @@ module "k8s" {
 
   etcd_cluster_size = var.etcd_cluster_size
 
-  node_group_system      = var.slurm_nodeset_system
-  node_group_controller  = var.slurm_nodeset_controller
-  node_group_workers     = local.node_group_workers
-  node_group_workers_v2  = local.node_group_workers_v2
-  node_group_login       = var.slurm_nodeset_login
-  slurm_nodesets_enabled = var.slurm_nodesets_enabled
+  node_group_system     = var.slurm_nodeset_system
+  node_group_controller = var.slurm_nodeset_controller
+  node_group_workers    = local.node_group_workers
+  node_group_workers_v2 = local.node_group_workers_v2
+  node_group_login      = var.slurm_nodeset_login
   node_group_accounting = {
     enabled = var.accounting_enabled
     spec    = var.slurm_nodeset_accounting
@@ -460,10 +459,8 @@ module "slurm" {
   shared_memory_size_gibibytes    = var.slurm_shared_memory_size_gibibytes
   slurm_partition_config_type     = var.slurm_partition_config_type
   slurm_partition_raw_config      = var.slurm_partition_raw_config
-  slurm_worker_features           = var.slurm_worker_features
   slurm_health_check_config       = var.slurm_health_check_config
 
-  slurm_nodesets_enabled    = var.slurm_nodesets_enabled
   slurm_nodesets_partitions = var.slurm_nodesets_partitions
   worker_nodesets = [for nodeset in var.slurm_nodeset_workers : {
     name            = nodeset.name

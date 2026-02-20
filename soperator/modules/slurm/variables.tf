@@ -51,20 +51,6 @@ variable "slurm_partition_raw_config" {
 
 # endregion PartitionConfiguration
 
-# region WorkerFeatures
-
-variable "slurm_worker_features" {
-  description = "List of features to be enabled on worker nodes."
-  type = list(object({
-    name          = string
-    hostlist_expr = string
-    nodeset_name  = optional(string)
-  }))
-  default = []
-}
-
-# endregion WorkerFeatures
-
 # region HealthCheckConfig
 
 variable "slurm_health_check_config" {
@@ -142,11 +128,6 @@ variable "resources" {
     error_message = "At least one worker node must be provided."
   }
 
-  # Only enforce single worker nodeset when nodesets feature is disabled
-  validation {
-    condition     = var.slurm_nodesets_enabled || length(var.resources.worker) == 1
-    error_message = "Only one worker nodeset is supported when slurm_nodesets_enabled is false."
-  }
 }
 
 resource "terraform_data" "check_worker_nodesets" {
@@ -761,12 +742,6 @@ variable "active_checks_scope" {
 
 # region Nodesets
 
-variable "slurm_nodesets_enabled" {
-  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
-  type        = bool
-  default     = false
-}
-
 variable "worker_nodesets" {
   type = list(object({
     name             = string
@@ -784,7 +759,7 @@ variable "worker_nodesets" {
 
 variable "slurm_nodesets_partitions" {
   description = <<-EOT
-    Partition configuration for nodesets. Used only when slurm_nodesets_enabled is true.
+    Partition configuration for nodesets.
     Users must not remove the "hidden" partition.
     Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
   EOT

@@ -2,7 +2,6 @@ resource "local_file" "flux_release_rendered_nodesets" {
   filename = "${path.root}/assets/render/flux_release_nodesets.yaml"
 
   content = templatefile("${path.module}/templates/helm_values/flux_release_nodesets.yaml.tftpl", {
-    enabled      = var.slurm_nodesets_enabled
     version      = var.operator_version
     namespace    = "soperator"
     release_name = "soperator-nodesets"
