@@ -462,6 +462,41 @@ enable_wireguard        = false
 enable_public_endpoint  = true
 ```
 
+## Nebius SSO Integration (ARCHVTEAMS-1506)
+
+Replace Keycloak's default username/password with Nebius corporate SSO so users authenticate with their existing Nebius credentials.
+
+### Prerequisites
+
+1. An OIDC client registered with Nebius IAM for this OSMO instance. Contact your Nebius account team or IAM admin and provide the redirect URI:
+   ```
+   https://auth-<your-osmo-hostname>/realms/osmo/broker/nebius-sso/endpoint
+   ```
+2. Keycloak already deployed with TLS (Steps 1-6 above).
+
+### Configure SSO
+
+```bash
+cd deploy/002-setup
+
+export NEBIUS_SSO_CLIENT_ID="<your-nebius-oidc-client-id>"
+export NEBIUS_SSO_CLIENT_SECRET="<your-nebius-oidc-client-secret>"
+
+# Optional: disable local username/password login after SSO is working
+# export NEBIUS_SSO_DISABLE_LOCAL_LOGIN=true
+
+./06-configure-nebius-sso.sh
+```
+
+The script will:
+- Discover Nebius OIDC endpoints automatically (`https://auth.eu.nebius.com`)
+- Add Nebius as an Identity Provider in the Keycloak `osmo` realm (with PKCE S256)
+- Configure attribute mappers (email, name, username)
+- Assign the `osmo-user` role to all SSO-authenticated users
+- Show a "Nebius SSO" button on the Keycloak login page
+
+After running the script, the Keycloak login page will show both the existing username/password form and a "Nebius SSO" button. Users clicking it are redirected to Nebius for authentication, then back to OSMO.
+
 ## Cost Optimization Tips
 
 1. **Use preemptible GPU nodes** for non-critical workloads (up to 70% savings)

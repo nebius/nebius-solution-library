@@ -66,6 +66,21 @@ export KEYCLOAK_HOSTNAME="${KEYCLOAK_HOSTNAME:-}"
 # Run 03a with OSMO_TLS_SECRET_NAME=osmo-tls-auth for the auth subdomain.
 export KEYCLOAK_TLS_SECRET_NAME="${KEYCLOAK_TLS_SECRET_NAME:-osmo-tls-auth}"
 
+# Nebius SSO Integration (ARCHVTEAMS-1506)
+# OIDC discovery URL for the Nebius auth server.
+export NEBIUS_SSO_DISCOVERY_URL="${NEBIUS_SSO_DISCOVERY_URL:-https://auth.eu.nebius.com/.well-known/openid-configuration}"
+# OIDC client credentials registered with Nebius IAM for this OSMO instance.
+export NEBIUS_SSO_CLIENT_ID="${NEBIUS_SSO_CLIENT_ID:-}"
+export NEBIUS_SSO_CLIENT_SECRET="${NEBIUS_SSO_CLIENT_SECRET:-}"
+# Display name shown on the Keycloak login page ("Login with <display name>").
+export NEBIUS_SSO_DISPLAY_NAME="${NEBIUS_SSO_DISPLAY_NAME:-Nebius SSO}"
+# Keycloak IdP alias (used in redirect URIs — don't change after first setup).
+export NEBIUS_SSO_ALIAS="${NEBIUS_SSO_ALIAS:-nebius-sso}"
+# Default OSMO realm role assigned to all users who log in via Nebius SSO.
+export NEBIUS_SSO_DEFAULT_ROLE="${NEBIUS_SSO_DEFAULT_ROLE:-osmo-user}"
+# Set to "true" to disable local username/password login after SSO is configured.
+export NEBIUS_SSO_DISABLE_LOCAL_LOGIN="${NEBIUS_SSO_DISABLE_LOCAL_LOGIN:-false}"
+
 # Paths
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 export VALUES_DIR="${SCRIPT_DIR}/values"
