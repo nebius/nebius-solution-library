@@ -69,8 +69,9 @@ export KEYCLOAK_TLS_SECRET_NAME="${KEYCLOAK_TLS_SECRET_NAME:-osmo-tls-auth}"
 # Nebius SSO Integration (ARCHVTEAMS-1506)
 # OIDC discovery URL for the Nebius auth server.
 export NEBIUS_SSO_DISCOVERY_URL="${NEBIUS_SSO_DISCOVERY_URL:-https://auth.eu.nebius.com/.well-known/openid-configuration}"
-# OIDC client credentials registered with Nebius IAM for this OSMO instance.
-export NEBIUS_SSO_CLIENT_ID="${NEBIUS_SSO_CLIENT_ID:-}"
+# OIDC client credentials. Defaults to nebius-cli (Nebius public client, works
+# with PKCE S256 and no registration). Set to a dedicated client if available.
+export NEBIUS_SSO_CLIENT_ID="${NEBIUS_SSO_CLIENT_ID:-nebius-cli}"
 export NEBIUS_SSO_CLIENT_SECRET="${NEBIUS_SSO_CLIENT_SECRET:-}"
 # Display name shown on the Keycloak login page ("Login with <display name>").
 export NEBIUS_SSO_DISPLAY_NAME="${NEBIUS_SSO_DISPLAY_NAME:-Nebius SSO}"

@@ -468,34 +468,31 @@ Replace Keycloak's default username/password with Nebius corporate SSO so users 
 
 ### Prerequisites
 
-1. An OIDC client registered with Nebius IAM for this OSMO instance. Contact your Nebius account team or IAM admin and provide the redirect URI:
-   ```
-   https://auth-<your-osmo-hostname>/realms/osmo/broker/nebius-sso/endpoint
-   ```
-2. Keycloak already deployed with TLS (Steps 1-6 above).
+1. Keycloak already deployed with TLS (Steps 1-6 above).
+2. No external client registration is needed — the script uses the Nebius public OIDC client (`nebius-cli`) with PKCE S256 by default.
 
 ### Configure SSO
 
 ```bash
 cd deploy/002-setup
-
-export NEBIUS_SSO_CLIENT_ID="<your-nebius-oidc-client-id>"
-export NEBIUS_SSO_CLIENT_SECRET="<your-nebius-oidc-client-secret>"
-
-# Optional: disable local username/password login after SSO is working
-# export NEBIUS_SSO_DISABLE_LOCAL_LOGIN=true
-
 ./06-configure-nebius-sso.sh
 ```
 
-The script will:
+That's it. The script will:
 - Discover Nebius OIDC endpoints automatically (`https://auth.eu.nebius.com`)
-- Add Nebius as an Identity Provider in the Keycloak `osmo` realm (with PKCE S256)
+- Add Nebius as an Identity Provider in the Keycloak `osmo` realm using PKCE S256
 - Configure attribute mappers (email, name, username)
 - Assign the `osmo-user` role to all SSO-authenticated users
 - Show a "Nebius SSO" button on the Keycloak login page
 
-After running the script, the Keycloak login page will show both the existing username/password form and a "Nebius SSO" button. Users clicking it are redirected to Nebius for authentication, then back to OSMO.
+After running the script, the Keycloak login page will show both the existing username/password form and a "Nebius SSO" button. Users clicking it are redirected to Nebius for authentication (which delegates to the corporate IdP, e.g. Azure AD), then back to OSMO.
+
+If you have a dedicated Nebius OIDC client:
+```bash
+export NEBIUS_SSO_CLIENT_ID="<your-client-id>"
+export NEBIUS_SSO_CLIENT_SECRET="<your-client-secret>"
+./06-configure-nebius-sso.sh
+```
 
 ## Cost Optimization Tips
 

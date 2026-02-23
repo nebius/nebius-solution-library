@@ -9,11 +9,16 @@
 #
 # Prerequisites:
 #   - Keycloak deployed and accessible (run 04-deploy-osmo-control-plane.sh first)
-#   - An OIDC client registered with Nebius IAM for this OSMO instance
-#     (contact your Nebius account team or IAM admin)
-#   - NEBIUS_SSO_CLIENT_ID and NEBIUS_SSO_CLIENT_SECRET environment variables set
+#
+# The script defaults to using the Nebius public OIDC client (nebius-cli)
+# with PKCE S256, which works out of the box with no registration needed.
+# If you have a dedicated OIDC client registered with Nebius IAM, set
+# NEBIUS_SSO_CLIENT_ID and NEBIUS_SSO_CLIENT_SECRET before running.
 #
 # Usage:
+#   ./06-configure-nebius-sso.sh
+#
+# Or with a dedicated client:
 #   export NEBIUS_SSO_CLIENT_ID="your-nebius-client-id"
 #   export NEBIUS_SSO_CLIENT_SECRET="your-nebius-client-secret"
 #   ./06-configure-nebius-sso.sh
@@ -41,35 +46,22 @@ OSMO_NAMESPACE="${OSMO_NAMESPACE:-osmo}"
 # ─────────────────────────────────────────────────────────────────────────────
 
 NEBIUS_SSO_DISCOVERY_URL="${NEBIUS_SSO_DISCOVERY_URL:-https://auth.eu.nebius.com/.well-known/openid-configuration}"
-NEBIUS_SSO_CLIENT_ID="${NEBIUS_SSO_CLIENT_ID:-}"
+# Default to nebius-cli: Nebius's public OIDC client that accepts arbitrary
+# redirect URIs when PKCE S256 is used.  No client_secret is required.
+NEBIUS_SSO_CLIENT_ID="${NEBIUS_SSO_CLIENT_ID:-nebius-cli}"
 NEBIUS_SSO_CLIENT_SECRET="${NEBIUS_SSO_CLIENT_SECRET:-}"
 NEBIUS_SSO_ALIAS="${NEBIUS_SSO_ALIAS:-nebius-sso}"
 NEBIUS_SSO_DISPLAY_NAME="${NEBIUS_SSO_DISPLAY_NAME:-Nebius SSO}"
 NEBIUS_SSO_DEFAULT_ROLE="${NEBIUS_SSO_DEFAULT_ROLE:-osmo-user}"
 NEBIUS_SSO_DISABLE_LOCAL_LOGIN="${NEBIUS_SSO_DISABLE_LOCAL_LOGIN:-false}"
 
-# Validate required inputs
-if [[ -z "$NEBIUS_SSO_CLIENT_ID" ]]; then
-    log_error "NEBIUS_SSO_CLIENT_ID is required."
-    echo ""
-    echo "  To obtain a client ID, register an OIDC client with your Nebius IAM admin."
-    echo "  The redirect URI to register is:"
-    echo ""
-    AUTH_DOMAIN="${KEYCLOAK_HOSTNAME:-}"
-    if [[ -z "$AUTH_DOMAIN" && -n "${OSMO_INGRESS_HOSTNAME:-}" ]]; then
-        AUTH_DOMAIN="auth-${OSMO_INGRESS_HOSTNAME}"
-    fi
-    if [[ -n "$AUTH_DOMAIN" ]]; then
-        echo "    https://${AUTH_DOMAIN}/realms/osmo/broker/${NEBIUS_SSO_ALIAS}/endpoint"
-    else
-        echo "    https://<your-keycloak-host>/realms/osmo/broker/${NEBIUS_SSO_ALIAS}/endpoint"
-    fi
-    echo ""
-    echo "  Then set:"
-    echo "    export NEBIUS_SSO_CLIENT_ID=<client-id>"
-    echo "    export NEBIUS_SSO_CLIENT_SECRET=<client-secret>"
-    echo ""
-    exit 1
+# Determine client auth method: public (no secret) or confidential
+if [[ -z "$NEBIUS_SSO_CLIENT_SECRET" ]]; then
+    NEBIUS_SSO_CLIENT_AUTH="client_secret_post"
+    log_info "Using public client mode (no client_secret, PKCE only)"
+else
+    NEBIUS_SSO_CLIENT_AUTH="client_secret_basic"
+    log_info "Using confidential client mode (client_secret_basic)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -177,7 +169,7 @@ IDP_PAYLOAD=$(cat <<IDPEOF
     "jwksUrl": "${NEBIUS_JWKS_URI}",
     "clientId": "${NEBIUS_SSO_CLIENT_ID}",
     "clientSecret": "${NEBIUS_SSO_CLIENT_SECRET}",
-    "clientAuthMethod": "client_secret_basic",
+      "clientAuthMethod": "${NEBIUS_SSO_CLIENT_AUTH}",
     "syncMode": "IMPORT",
     "validateSignature": "true",
     "useJwksUrl": "true",
