@@ -67,10 +67,10 @@ log_info "Using Nebius Managed PostgreSQL..."
     log_info "Retrieving database configuration..."
 
     # Get connection details from Terraform outputs
-    POSTGRES_HOST=$(get_tf_output "postgresql.host" "../001-iac" || echo "")
-    POSTGRES_PORT=$(get_tf_output "postgresql.port" "../001-iac" || echo "5432")
-    POSTGRES_DB=$(get_tf_output "postgresql.database" "../001-iac" || echo "osmo")
-    POSTGRES_USER=$(get_tf_output "postgresql.username" "../001-iac" || echo "osmo_admin")
+    POSTGRES_HOST=${POSTGRES_HOST:-$(get_tf_output "postgresql.host" "../001-iac" || echo "")}
+    POSTGRES_PORT=${POSTGRES_PORT:-$(get_tf_output "postgresql.port" "../001-iac" || echo "5432")}
+    POSTGRES_DB=${POSTGRES_DB:-$(get_tf_output "postgresql.database" "../001-iac" || echo "osmo")}
+    POSTGRES_USER=${POSTGRES_USER:-$(get_tf_output "postgresql.username" "../001-iac" || echo "osmo_admin")}
     
     # Get password - try MysteryBox first, then Terraform output, then env vars
     # MysteryBox secret ID is set by secrets-init.sh as TF_VAR_postgresql_mysterybox_secret_id

@@ -206,3 +206,10 @@ variable "container_registry_name" {
   type        = string
   default     = ""
 }
+
+variable "postgresql_password_direct" {
+  description = "Direct PostgreSQL password (testing only)"
+  type        = string
+  sensitive   = true
+  default     = null
+}

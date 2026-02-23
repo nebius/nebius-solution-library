@@ -5,20 +5,20 @@
 # -----------------------------------------------------------------------------
 # Service Account for Node Groups
 # -----------------------------------------------------------------------------
-data "nebius_iam_v1_group" "editors" {
-  name      = "editors"
-  parent_id = var.tenant_id
-}
+# data "nebius_iam_v1_group" "editors" {
+#   name      = "editors"
+#   parent_id = var.tenant_id
+# }
 
 resource "nebius_iam_v1_service_account" "k8s_nodes" {
   parent_id = var.parent_id
   name      = "${var.name_prefix}-k8s-nodes-sa"
 }
 
-resource "nebius_iam_v1_group_membership" "k8s_nodes" {
-  parent_id = data.nebius_iam_v1_group.editors.id
-  member_id = nebius_iam_v1_service_account.k8s_nodes.id
-}
+# resource "nebius_iam_v1_group_membership" "k8s_nodes" {
+#   parent_id = data.nebius_iam_v1_group.editors.id
+#   member_id = nebius_iam_v1_service_account.k8s_nodes.id
+# }
 
 # -----------------------------------------------------------------------------
 # GPU Cluster (InfiniBand)

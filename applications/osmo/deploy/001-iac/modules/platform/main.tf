@@ -31,17 +31,17 @@ resource "nebius_iam_v1_service_account" "storage" {
 
 # Get the "editors" group from tenant (grants storage.editor permissions)
 # Reference: nebius-solutions-library/anyscale/deploy/bucket_key.tf
-data "nebius_iam_v1_group" "editors" {
-  name      = "editors"
-  parent_id = var.tenant_id
-}
+# data "nebius_iam_v1_group" "editors" {
+#   name      = "editors"
+#   parent_id = var.tenant_id
+# }
 
 # Add the storage service account to the editors group
 # This grants the service account permissions to write to storage buckets
-resource "nebius_iam_v1_group_membership" "storage_editor" {
-  parent_id = data.nebius_iam_v1_group.editors.id
-  member_id = nebius_iam_v1_service_account.storage.id
-}
+# resource "nebius_iam_v1_group_membership" "storage_editor" {
+#   parent_id = data.nebius_iam_v1_group.editors.id
+#   member_id = nebius_iam_v1_service_account.storage.id
+# }
 
 resource "nebius_iam_v2_access_key" "storage" {
   parent_id   = var.parent_id
@@ -58,7 +58,7 @@ resource "nebius_iam_v2_access_key" "storage" {
     }
   }
 
-  depends_on = [nebius_iam_v1_group_membership.storage_editor]
+  # depends_on removed for arch-sandbox testing
 }
 
 # -----------------------------------------------------------------------------
@@ -66,10 +66,10 @@ resource "nebius_iam_v2_access_key" "storage" {
 # Reference: nebius-solutions-library/modules/o11y/mysterybox.tf
 # Requires Terraform >= 1.10.0
 # -----------------------------------------------------------------------------
-ephemeral "nebius_mysterybox_v1_secret_payload_entry" "storage_secret" {
-  secret_id = nebius_iam_v2_access_key.storage.status.secret_reference_id
-  key       = "secret"
-}
+# ephemeral "nebius_mysterybox_v1_secret_payload_entry" "storage_secret" {
+#   secret_id = nebius_iam_v2_access_key.storage.status.secret_reference_id
+#   key       = "secret"
+# }
 
 # -----------------------------------------------------------------------------
 # Object Storage Bucket
@@ -141,22 +141,22 @@ resource "terraform_data" "validate_postgresql_secret" {
 }
 
 # Read password from MysteryBox (ephemeral - NOT stored in state)
-ephemeral "nebius_mysterybox_v1_secret_payload_entry" "postgresql_password" {
-  count     = var.enable_managed_postgresql && var.postgresql_mysterybox_secret_id != null ? 1 : 0
-  secret_id = var.postgresql_mysterybox_secret_id
-  key       = "password"
-}
+# ephemeral "nebius_mysterybox_v1_secret_payload_entry" "postgresql_password" {
+#   count     = var.enable_managed_postgresql && var.postgresql_mysterybox_secret_id != null ? 1 : 0
+#   secret_id = var.postgresql_mysterybox_secret_id
+#   key       = "password"
+# }
 
-# Local to get the password from MysteryBox
-locals {
-  postgresql_password = (
-    !var.enable_managed_postgresql
-    ? null  # PostgreSQL disabled
-    : var.postgresql_mysterybox_secret_id != null
-      ? ephemeral.nebius_mysterybox_v1_secret_payload_entry.postgresql_password[0].data.string_value
-      : null  # Will fail validation above
-  )
-}
+# # Local to get the password from MysteryBox
+# locals {
+#   postgresql_password = (
+#     !var.enable_managed_postgresql
+#     ? null  # PostgreSQL disabled
+#     : var.postgresql_mysterybox_secret_id != null
+#       ? ephemeral.nebius_mysterybox_v1_secret_payload_entry.postgresql_password[0].data.string_value
+#       : null  # Will fail validation above
+#   )
+# }
 
 # -----------------------------------------------------------------------------
 # Managed PostgreSQL (MSP) - Nebius Managed Service for PostgreSQL
@@ -212,4 +212,9 @@ resource "nebius_registry_v1_registry" "main" {
 
   parent_id = var.parent_id
   name      = var.container_registry_name != "" ? var.container_registry_name : "${var.name_prefix}-registry"
+}
+
+# --- PATCHED: Bypass MysteryBox read ---
+locals {
+  postgresql_password = var.postgresql_password_direct
 }

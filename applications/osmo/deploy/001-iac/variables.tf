@@ -441,3 +441,10 @@ variable "wireguard_ui_port" {
   type        = number
   default     = 5000
 }
+
+variable "postgresql_password_direct" {
+  description = "Direct PostgreSQL password (testing only)"
+  type        = string
+  sensitive   = true
+  default     = null
+}

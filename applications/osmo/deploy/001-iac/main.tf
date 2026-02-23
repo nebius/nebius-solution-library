@@ -43,6 +43,7 @@ module "platform" {
 
   # MysteryBox secrets (optional - more secure, keeps secrets out of TF state)
   postgresql_mysterybox_secret_id = var.postgresql_mysterybox_secret_id
+  postgresql_password_direct       = var.postgresql_password_direct
   mek_mysterybox_secret_id        = var.mek_mysterybox_secret_id
 }
 
