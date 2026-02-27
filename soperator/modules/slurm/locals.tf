@@ -173,4 +173,10 @@ locals {
     host = "vmsingle-metrics-victoria-metrics-k8s-stack.${local.namespace.monitoring}.svc.cluster.local"
     port = 8429
   }
+
+  # Source of truth for the mapping: https://github.com/nebius/ml-containers/blob/main/ansible/roles/nccl-tests/defaults/main.yml
+  nccl_tests_version = {
+    "12.9.0" = "2.16.4"
+    "13.0.2" = "2.17.6"
+  }[var.cuda_version]
 }

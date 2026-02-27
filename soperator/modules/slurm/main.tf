@@ -138,6 +138,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
       use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
       cuda_version                 = var.cuda_version
+      nccl_tests_version           = local.nccl_tests_version
 
       slurm_worker_features     = var.slurm_worker_features
       slurm_health_check_config = var.slurm_health_check_config
