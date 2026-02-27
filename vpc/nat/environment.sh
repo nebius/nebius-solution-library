@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Set the following environment variables:
-NEBIUS_TENANT_ID='tenant-e00f3wdfzwfjgbcyfv'
-NEBIUS_PROJECT_ID='project-e00xe1e0pr00z7ryx0vdbw'
+NEBIUS_TENANT_ID=''
+NEBIUS_PROJECT_ID=''
 NEBIUS_REGION='eu-north1'
 
 if [ -z "${NEBIUS_TENANT_ID}" ]; then
