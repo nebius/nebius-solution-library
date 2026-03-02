@@ -252,6 +252,24 @@ resource "kubernetes_service_v1" "alphafold2_multimer" {
   }
 }
 
+resource "kubernetes_service_v1" "nemotron_3_nano" {
+  depends_on = [kubernetes_namespace_v1.nims]
+  metadata {
+    name      = "nemotron-3-nano-svc"
+    namespace = var.namespace
+  }
+  spec {
+    selector = {
+      app = "nemotron-3-nano"
+    }
+    port {
+      port        = 8000
+      target_port = 8000
+    }
+    type = "ClusterIP"
+  }
+}
+
 resource "kubernetes_service_v1" "cosmos_reason1_7b" {
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {

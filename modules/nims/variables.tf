@@ -286,6 +286,24 @@ variable "alphafold2_multimer_replicas" {
   default     = 1
 }
 
+variable "nemotron_3_nano" {
+  description = "install nemotron-3-nano"
+  type        = bool
+  default     = false
+}
+
+variable "nemotron_3_nano_version" {
+  description = "nemotron-3-nano version"
+  type        = string
+  default     = "latest"
+}
+
+variable "nemotron_3_nano_replicas" {
+  description = "nemotron-3-nano instances"
+  type        = number
+  default     = 1
+}
+
 variable "cosmos_reason1_7b" {
   description = "install cosmos-reason1-7b"
   type        = bool

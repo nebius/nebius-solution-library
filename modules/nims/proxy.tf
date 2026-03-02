@@ -176,6 +176,17 @@ resource "kubernetes_config_map_v1" "nginx_tcp_proxy" {
           proxy_connect_timeout 10s;
         }
 
+        # Port 8014 -> nemotron-3-nano
+        upstream nemotron_3_nano {
+          server nemotron-3-nano-svc.${var.namespace}.svc.cluster.local:8000;
+        }
+        server {
+          listen 8014;
+          proxy_pass nemotron_3_nano;
+          proxy_timeout 600s;
+          proxy_connect_timeout 10s;
+        }
+
         # Port 8080 -> metadata-service
         upstream metadata {
           server metadata-service-svc.${var.namespace}.svc.cluster.local:8080;
@@ -231,7 +242,7 @@ resource "kubernetes_deployment_v1" "nginx_tcp_proxy" {
           }
 
           dynamic "port" {
-            for_each = concat(range(8000, 8014), [8080])
+            for_each = concat(range(8000, 8015), [8080])
             content {
               container_port = port.value
             }
@@ -365,6 +376,13 @@ resource "kubernetes_service_v1" "nims_lb" {
       name        = "alphafold2-multimer"
       port        = 8013
       target_port = 8013
+      protocol    = "TCP"
+    }
+
+    port {
+      name        = "nemotron-3-nano"
+      port        = 8014
+      target_port = 8014
       protocol    = "TCP"
     }
 
