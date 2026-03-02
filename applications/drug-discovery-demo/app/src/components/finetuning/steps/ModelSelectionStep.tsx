@@ -3,16 +3,58 @@
  *
  * First step: Select a base model for fine-tuning.
  * Two tabs: Molecular Models (SMILES-based) and Protein Models (sequence-based).
+ * Includes "Help Me Choose" AI assistant powered by Nemotron.
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useFineTuning } from '../../../contexts/FineTuningContext';
-import { getModelsByModality } from '../../../data/modelRegistry';
+import { useGatewayUrl } from '../../../contexts/GatewayContext';
+import { getModelsByModality, MODEL_REGISTRY, getModelById } from '../../../data/modelRegistry';
+import { streamChat } from '../../../services/nimApi';
 import type { ModelModality, ModelInfo } from '../../../types/finetuning';
+
+const EXAMPLE_PROBLEM = `I want to predict binding affinity of small molecules against the COX-2 enzyme for anti-inflammatory drug discovery. My dataset has ~3000 compounds with IC50 values.`;
+
+/** Build a compact model catalog string for the LLM prompt */
+function buildModelCatalog(): string {
+  const molecular = MODEL_REGISTRY.filter((m) => m.modality === 'molecular');
+  const protein = MODEL_REGISTRY.filter((m) => m.modality === 'protein');
+
+  const fmt = (m: ModelInfo) => `- ${m.name} (id: ${m.id}): ${m.params} params, ${m.provider}. ${m.description}`;
+
+  return [
+    'MOLECULAR MODELS (SMILES input, regression):',
+    ...molecular.map(fmt),
+    '',
+    'PROTEIN MODELS (sequence input, classification):',
+    ...protein.map(fmt),
+  ].join('\n');
+}
+
+const MODEL_ADVISOR_SYSTEM = `You are a machine learning advisor for drug discovery. The user will describe their problem and you must recommend the best base model to fine-tune from the available catalog.
+
+Available models:
+${buildModelCatalog()}
+
+Rules:
+- Recommend 1-2 best models from the catalog above
+- Mention the model name exactly as shown (e.g., "ChemBERTa-77M-MTR")
+- Explain briefly why (2-3 sentences max per model)
+- If the best possible model is NOT in the catalog, note what would be better
+- Keep it short and actionable
+- Do not use tables`;
 
 export function ModelSelectionStep() {
   const { selectedModel, setSelectedModel, goToNextStep } = useFineTuning();
+  const gatewayUrl = useGatewayUrl();
   const [activeTab, setActiveTab] = useState<ModelModality>('molecular');
+
+  // Help Me Choose state
+  const [showHelper, setShowHelper] = useState(true);
+  const [problemText, setProblemText] = useState(EXAMPLE_PROBLEM);
+  const [isRecommending, setIsRecommending] = useState(false);
+  const [recommendation, setRecommendation] = useState('');
+  const [recommendError, setRecommendError] = useState<string | null>(null);
 
   const molecularModels = getModelsByModality('molecular');
   const proteinModels = getModelsByModality('protein');
@@ -28,6 +70,64 @@ export function ModelSelectionStep() {
     }
   };
 
+  /** Find model IDs mentioned in the recommendation text */
+  const getRecommendedModels = useCallback((): ModelInfo[] => {
+    if (!recommendation) return [];
+    const found: ModelInfo[] = [];
+    for (const model of MODEL_REGISTRY) {
+      if (recommendation.includes(model.name) || recommendation.includes(model.id)) {
+        found.push(model);
+      }
+    }
+    return found;
+  }, [recommendation]);
+
+  const handleGetRecommendation = useCallback(async () => {
+    if (!gatewayUrl || !problemText.trim()) return;
+
+    setIsRecommending(true);
+    setRecommendation('');
+    setRecommendError(null);
+
+    try {
+      const messages = [
+        { role: 'system' as const, content: MODEL_ADVISOR_SYSTEM },
+        { role: 'user' as const, content: problemText.trim() },
+      ];
+
+      let content = '';
+
+      for await (const chunk of streamChat(gatewayUrl, messages, { maxTokens: 8192, temperature: 0.7 })) {
+        if (chunk.type === 'content') {
+          content += chunk.text;
+          setRecommendation(content.trim());
+        }
+        // Skip reasoning chunks — don't display
+      }
+
+      // If no content was produced, try to extract from reasoning
+      if (!content) {
+        setRecommendError('Model did not produce a recommendation. Please try again.');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to get recommendation';
+      setRecommendError(message);
+    } finally {
+      setIsRecommending(false);
+    }
+  }, [gatewayUrl, problemText]);
+
+  const handleUseModel = useCallback((modelId: string) => {
+    const model = getModelById(modelId);
+    if (model) {
+      setSelectedModel(model);
+      // Switch tab to the model's modality
+      setActiveTab(model.modality);
+    }
+  }, [setSelectedModel]);
+
+  const recommendedModels = getRecommendedModels();
+
   return (
     <div className="step-content">
       <div className="content-header">
@@ -37,6 +137,97 @@ export function ModelSelectionStep() {
             Choose an open-source model to fine-tune on your data. Models are organized by input modality.
           </p>
         </div>
+      </div>
+
+      {/* Help Me Choose Section */}
+      <div className="card">
+        <div className="card-header" style={{ cursor: 'pointer' }} onClick={() => setShowHelper(!showHelper)}>
+          <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M7 7a2 2 0 1 1 2 2v1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <circle cx="9" cy="13" r="0.75" fill="currentColor" />
+            </svg>
+            Help Me Choose
+          </h3>
+          <svg
+            width="16" height="16" viewBox="0 0 16 16" fill="none"
+            style={{ transform: showHelper ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+          >
+            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+
+        {showHelper && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <p className="content-subtitle" style={{ margin: 0 }}>
+              Describe your problem and let AI recommend the best base model.
+            </p>
+            <textarea
+              className="query-textarea"
+              value={problemText}
+              onChange={(e) => setProblemText(e.target.value)}
+              rows={3}
+              placeholder="Describe your drug discovery problem..."
+              disabled={isRecommending}
+              style={{ resize: 'vertical', minHeight: '60px' }}
+            />
+            <div>
+              <button
+                className="btn btn-outline"
+                onClick={handleGetRecommendation}
+                disabled={!gatewayUrl || !problemText.trim() || isRecommending}
+              >
+                {isRecommending ? (
+                  <>
+                    <span className="spinner spinner-sm" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M8 5v3l2 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                    Get Recommendation
+                  </>
+                )}
+              </button>
+              {!gatewayUrl && (
+                <span style={{ marginLeft: '0.75rem', fontSize: '0.8rem', opacity: 0.6 }}>
+                  Enter NIM Gateway URL first
+                </span>
+              )}
+            </div>
+
+            {recommendation && (
+              <div className="seed-response" style={{ marginTop: '0.25rem' }}>
+                <div className="seed-response-text" style={{ whiteSpace: 'pre-wrap' }}>{recommendation}</div>
+
+                {recommendedModels.length > 0 && (
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                    {recommendedModels.map((model) => (
+                      <button
+                        key={model.id}
+                        className={`btn ${selectedModel?.id === model.id ? 'btn-primary' : 'btn-outline'} btn-sm`}
+                        onClick={() => handleUseModel(model.id)}
+                      >
+                        {selectedModel?.id === model.id ? (
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M2 7l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        ) : null}
+                        Use {model.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {recommendError && <p className="seed-error">{recommendError}</p>}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
