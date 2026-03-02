@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: cr.me-west1.nebius.cloud/i00sk4xvrcvbg80rm6/drug-discovery-demo:latest
+          image: cr.eu-north1.nebius.cloud/e00nqjpcd9s536rfga/drug-discovery-demo:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3001
@@ -25,11 +25,9 @@ spec:
           env:
             - name: PORT
               value: "3001"
-            # Override gateway host: route NIM requests to the cluster-internal
-            # nims-gateway service instead of the external IP (46.243.144.128).
-            # Same port mapping (8000-8010), but reachable from inside the cluster.
-            - name: NIM_GATEWAY_URL
-              value: "nims-gateway"
+            # To use a cluster-internal NIM gateway, uncomment and set:
+            # - name: NIM_GATEWAY_URL
+            #   value: "nims-gateway"
           resources:
             requests:
               cpu: 100m

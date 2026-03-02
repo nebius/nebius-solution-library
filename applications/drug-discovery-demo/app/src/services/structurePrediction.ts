@@ -43,6 +43,11 @@
 
 import { buildNimUrl } from './nimApi';
 
+/** Normalize pLDDT to 0-100 scale (API may return 0-1 or 0-100) */
+function normalizePlddt(value: number): number {
+  return value > 0 && value <= 1.0 ? value * 100 : value;
+}
+
 export interface StructurePredictionResult {
   structure: string; // PDB or PDBx/mmCIF content
   format: 'pdb' | 'cif'; // 'cif' = PDBx/mmCIF format (standardized)
@@ -233,7 +238,7 @@ export async function predictWithOpenFold3(
     // Metrics might be at different levels
     const metrics = result.metrics || data.prediction_1.metrics || {};
     confidenceScore = metrics.confidence_score ?? metrics.ranking_score ?? 0;
-    plddt = metrics.avg_plddt ?? metrics.complex_plddt_score ?? 0;
+    plddt = normalizePlddt(metrics.avg_plddt ?? metrics.complex_plddt_score ?? 0);
     ptm = metrics.ptm ?? metrics.ptm_score ?? 0;
   }
   // Old format: data.outputs[0].structures_with_scores[0]
@@ -242,7 +247,7 @@ export async function predictWithOpenFold3(
     structure = structureWithScores.structure;
     format = structureWithScores.format || 'cif';
     confidenceScore = structureWithScores.confidence_score ?? 0;
-    plddt = structureWithScores.complex_plddt_score ?? 0;
+    plddt = normalizePlddt(structureWithScores.complex_plddt_score ?? 0);
     ptm = structureWithScores.ptm_score ?? 0;
   }
   // Fallback: try to find structure at root level
@@ -252,7 +257,7 @@ export async function predictWithOpenFold3(
     format = result.cif ? 'cif' : 'pdb';
     const metrics = data.metrics || {};
     confidenceScore = metrics.confidence_score ?? 0;
-    plddt = metrics.avg_plddt ?? 0;
+    plddt = normalizePlddt(metrics.avg_plddt ?? 0);
     ptm = metrics.ptm ?? 0;
   }
   else {
@@ -533,7 +538,7 @@ export async function predictWithCustomBody(
       format = result.cif ? 'cif' : 'pdb';
       const metrics = result.metrics || data.prediction_1.metrics || {};
       confidenceScore = metrics.confidence_score ?? metrics.ranking_score ?? 0;
-      plddt = metrics.avg_plddt ?? metrics.complex_plddt_score ?? 0;
+      plddt = normalizePlddt(metrics.avg_plddt ?? metrics.complex_plddt_score ?? 0);
       ptm = metrics.ptm ?? metrics.ptm_score ?? 0;
     }
     // Old format: data.outputs[0].structures_with_scores[0]
@@ -542,7 +547,7 @@ export async function predictWithCustomBody(
       structure = structureWithScores.structure;
       format = structureWithScores.format || 'cif';
       confidenceScore = structureWithScores.confidence_score ?? 0;
-      plddt = structureWithScores.complex_plddt_score ?? 0;
+      plddt = normalizePlddt(structureWithScores.complex_plddt_score ?? 0);
       ptm = structureWithScores.ptm_score ?? 0;
     }
     // Fallback: try to find structure at root level
@@ -552,7 +557,7 @@ export async function predictWithCustomBody(
       format = result.cif ? 'cif' : 'pdb';
       const metrics = data.metrics || {};
       confidenceScore = metrics.confidence_score ?? 0;
-      plddt = metrics.avg_plddt ?? 0;
+      plddt = normalizePlddt(metrics.avg_plddt ?? 0);
       ptm = metrics.ptm ?? 0;
     }
     else {

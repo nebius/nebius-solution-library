@@ -358,6 +358,9 @@ const OPENFOLD3: NimPlaygroundDef = {
     const d = data as Record<string, unknown>;
     const items: PlaygroundResultItem[] = [];
 
+    // Normalize pLDDT to 0-100 scale (API may return 0-1 or 0-100)
+    const normalizePlddt = (v: number): number => (v > 0 && v <= 1.0 ? v * 100 : v);
+
     // Try new format first: { playground_prediction: { structures: [{ structure, plddt, ptm }] } }
     const predictionKey = Object.keys(d).find((k) => k !== 'outputs' && d[k] && typeof d[k] === 'object' && 'structures' in (d[k] as Record<string, unknown>));
     if (predictionKey) {
@@ -366,13 +369,16 @@ const OPENFOLD3: NimPlaygroundDef = {
       if (structures?.[0]) {
         const struct = structures[0];
         const structureData = (struct.structure || '') as string;
-        const plddt = struct.plddt as number | undefined;
-        const ptm = struct.ptm as number | undefined;
+        const metrics = (struct.metrics || (prediction.metrics as Record<string, unknown>) || {}) as Record<string, unknown>;
+        const plddt = (metrics.avg_plddt ?? metrics.complex_plddt_score ?? struct.plddt) as number | undefined;
+        const ptm = (metrics.ptm ?? metrics.ptm_score ?? struct.ptm) as number | undefined;
+        const confidence = (metrics.confidence_score ?? metrics.ranking_score) as number | undefined;
 
         if (structureData) {
           const scores: string[] = [];
-          if (plddt !== undefined) scores.push(`pLDDT: ${(plddt > 1 ? plddt : plddt * 100).toFixed(1)}`);
+          if (plddt !== undefined) scores.push(`pLDDT: ${normalizePlddt(plddt).toFixed(1)}`);
           if (ptm !== undefined) scores.push(`pTM: ${ptm.toFixed(3)}`);
+          if (confidence !== undefined) scores.push(`Confidence: ${(confidence * 100).toFixed(1)}%`);
           const ext = String(structureData).startsWith('data_') ? 'cif' : 'pdb';
           items.push({
             label: `Predicted Structure${scores.length ? ` (${scores.join(', ')})` : ''}`,
@@ -384,7 +390,7 @@ const OPENFOLD3: NimPlaygroundDef = {
       }
     }
 
-    // Fallback: old format { outputs: [{ structures_with_scores: [{ structure, plddt_score }] }] }
+    // Fallback: old format { outputs: [{ structures_with_scores: [{ structure, complex_plddt_score, confidence_score, ptm_score }] }] }
     if (items.length === 0) {
       const nested = d.data as Record<string, unknown> | undefined;
       const outputs = (d.outputs || nested?.outputs) as Array<Record<string, unknown>> | undefined;
@@ -394,10 +400,16 @@ const OPENFOLD3: NimPlaygroundDef = {
         if (structures?.[0]) {
           const struct = structures[0];
           const structureData = (struct.structure || struct.pdb_string || struct.cif_string || '') as string;
-          const score = struct.plddt_score ?? struct.confidence_score ?? '';
+          const plddt = struct.complex_plddt_score as number | undefined;
+          const ptm = struct.ptm_score as number | undefined;
+          const confidence = struct.confidence_score as number | undefined;
           const ext = String(structureData).startsWith('data_') ? 'cif' : 'pdb';
+          const scores: string[] = [];
+          if (plddt !== undefined) scores.push(`pLDDT: ${normalizePlddt(plddt).toFixed(1)}`);
+          if (ptm !== undefined) scores.push(`pTM: ${ptm.toFixed(3)}`);
+          if (confidence !== undefined) scores.push(`Confidence: ${(confidence * 100).toFixed(1)}%`);
           items.push({
-            label: `Predicted Structure${score ? ` (pLDDT: ${Number(score).toFixed(1)})` : ''}`,
+            label: `Predicted Structure${scores.length ? ` (${scores.join(', ')})` : ''}`,
             value: structureData,
             format: 'structure',
             downloadFilename: `openfold3_prediction.${ext}`,
