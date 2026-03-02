@@ -70,6 +70,8 @@ export interface NimPlaygroundDef {
   exampleResult?: PlaygroundResult;
   /** Allow sending multiple requests in parallel behind a load balancer */
   supportsParallel?: boolean;
+  /** Enable SSE streaming for LLM endpoints */
+  supportsStreaming?: boolean;
 }
 
 import { OPENFOLD3_EXAMPLE, BOLTZ2_EXAMPLE, OPENFOLD2_EXAMPLE, MOLMIM_EXAMPLE, GENMOL_EXAMPLE, DIFFDOCK_EXAMPLE, MSA_SEARCH_EXAMPLE, EVO2_EXAMPLE, PROTEINMPNN_EXAMPLE, RFDIFFUSION_EXAMPLE, OPENFOLD3_STRUCTURE } from './exampleResponses';
@@ -94,16 +96,17 @@ function parseChainSequences(text: string): { id: string; sequence: string }[] {
 // ============================================================================
 
 // --------------------------------------------------------------------------
-// 1. Qwen3 (LLM Chat)
+// 1. Nemotron (LLM Chat)
 // --------------------------------------------------------------------------
 
-const QWEN3: NimPlaygroundDef = {
-  id: 'qwen3',
-  name: 'Qwen3-80B',
+const NEMOTRON: NimPlaygroundDef = {
+  id: 'nemotron',
+  name: 'Nemotron-3-Nano',
   category: 'LLM',
   categoryIcon: 'chat',
-  description: 'Large language model for scientific reasoning, drug discovery planning, and analysis.',
+  description: 'Reasoning LLM for scientific reasoning, drug discovery planning, and analysis.',
   resultType: 'text',
+  supportsStreaming: true,
   fields: [
     {
       id: 'systemPrompt',
@@ -162,7 +165,7 @@ const QWEN3: NimPlaygroundDef = {
       label: 'Model Name',
       type: 'text',
       group: 'advanced',
-      default: 'Qwen/Qwen3-Next-80B-A3B-Instruct',
+      default: 'nvidia/nemotron-3-nano',
       description: 'Model identifier',
     },
   ],
@@ -173,22 +176,26 @@ const QWEN3: NimPlaygroundDef = {
     }
     messages.push({ role: 'user', content: String(values.userMessage) });
     return {
-      model: values.model || 'Qwen/Qwen3-Next-80B-A3B-Instruct',
+      model: values.model || 'nvidia/nemotron-3-nano',
       messages,
       temperature: Number(values.temperature ?? 0.7),
       max_tokens: Number(values.maxTokens ?? 2048),
       top_p: Number(values.topP ?? 1.0),
-      stream: false,
+      stream: true,
     };
   },
   parseResponse(data: unknown): PlaygroundResult {
     const d = data as Record<string, unknown>;
-    const choices = d.choices as Array<{ message?: { content?: string } }>;
+    const choices = d.choices as Array<{ message?: { content?: string; reasoning_content?: string } }>;
     const content = choices?.[0]?.message?.content || '';
+    const reasoning = choices?.[0]?.message?.reasoning_content || '';
     const usage = d.usage as Record<string, number> | undefined;
     const items: PlaygroundResultItem[] = [
       { label: 'Response', value: content, format: 'text' },
     ];
+    if (reasoning) {
+      items.push({ label: 'Reasoning', value: reasoning, format: 'text' });
+    }
     if (usage) {
       items.push({
         label: 'Usage',
@@ -1675,7 +1682,7 @@ export const NIM_PLAYGROUND_CONFIGS: NimPlaygroundDef[] = [
   EVO2,
   PROTEINMPNN,
   RFDIFFUSION,
-  QWEN3,
+  NEMOTRON,
 ];
 
 export function getPlaygroundConfig(nimId: string): NimPlaygroundDef | undefined {

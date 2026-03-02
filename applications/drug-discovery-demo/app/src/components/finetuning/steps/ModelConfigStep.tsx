@@ -17,12 +17,11 @@ export function ModelConfigStep() {
     goToPrevStep,
   } = useFineTuning();
 
-  // Estimate training time and cost
+  // Estimate training time
   const estimatedEpochTime = dataset
     ? Math.ceil((dataset.validCount / hyperparameters.batchSize) * 0.1) // ~0.1s per step
     : 60;
   const estimatedTotalTime = estimatedEpochTime * hyperparameters.epochs;
-  const estimatedCost = (estimatedTotalTime / 3600) * 6; // $6/hr
 
   const formatTime = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`;
@@ -183,7 +182,7 @@ export function ModelConfigStep() {
         </div>
       </div>
 
-      {/* Nebius Jobs Compute */}
+      {/* Nebius Jobs */}
       <div className="card serverless-card">
         <div className="card-header">
           <div className="serverless-header">
@@ -196,7 +195,7 @@ export function ModelConfigStep() {
                 strokeLinejoin="round"
               />
             </svg>
-            <h3 className="card-title">Nebius Jobs Compute</h3>
+            <h3 className="card-title">Nebius Jobs</h3>
           </div>
         </div>
         <div className="serverless-info">
@@ -226,15 +225,6 @@ export function ModelConfigStep() {
               <span className="estimate-label">Est. Time</span>
               <span className="estimate-value">{formatTime(estimatedTotalTime)}</span>
             </div>
-            <div className="estimate-item">
-              <span className="estimate-icon">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 2v12M4 6l4-4 4 4M4 10l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <span className="estimate-label">Est. Cost</span>
-              <span className="estimate-value">${estimatedCost.toFixed(2)}</span>
-            </div>
           </div>
 
           <div className="serverless-note">
@@ -242,7 +232,7 @@ export function ModelConfigStep() {
               <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5" />
               <path d="M7 4v3M7 9h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            <span>Pay only for GPU time used. No idle costs. Cold start: ~7s.</span>
+            <span>Pay only for GPU time used. Cold start: ~7s.</span>
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
+import Markdown from 'react-markdown';
 import type { PlaygroundResult, PlaygroundResultItem } from '../../data/nimPlayground';
 import { StructureViewer } from '../StructureViewer';
 import { MoleculeViewer2D } from '../MoleculeViewer2D';
@@ -194,7 +195,13 @@ export function NimResult({ result, elapsedMs }: NimResultProps) {
 function ResultContent({ item, proteinStructure }: { item: PlaygroundResultItem; proteinStructure?: string }) {
   switch (item.format) {
     case 'text':
-      return <div className="playground-result-text">{item.value}</div>;
+      return (
+        <div className="playground-result-text">
+          <Markdown components={{ table: ({ children }) => <div className="playground-table-wrap"><table>{children}</table></div> }}>
+            {item.value}
+          </Markdown>
+        </div>
+      );
 
     case 'code':
     case 'json':

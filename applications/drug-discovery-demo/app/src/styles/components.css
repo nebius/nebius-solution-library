@@ -231,11 +231,12 @@
   height: 48px;
   border-radius: var(--radius-lg);
   background: var(--color-lime);
+  color: var(--color-deep-blue);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: var(--spacing-md);
-  font-size: 24px;
+  flex-shrink: 0;
 }
 
 .use-case-title {

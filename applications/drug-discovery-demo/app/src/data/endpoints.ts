@@ -19,17 +19,17 @@ export interface NimEndpoint {
 export const NIM_ENDPOINTS: NimEndpoint[] = [
   // LLM
   {
-    id: 'qwen3',
-    name: 'Qwen3-80B',
+    id: 'nemotron',
+    name: 'Nemotron-3-Nano',
     category: 'llm',
-    port: 8008,
+    port: 8014,
     path: '/v1/chat/completions',
     healthPath: '/v1/health/ready',
-    description: 'LLM copilot for planning and narration',
+    description: 'Reasoning LLM for planning and narration',
     status: 'unknown',
     required: true,
     gpu: 'H200',
-    gpuCount: 2,
+    gpuCount: 1,
   },
 
   // Structure Prediction - User can choose between these

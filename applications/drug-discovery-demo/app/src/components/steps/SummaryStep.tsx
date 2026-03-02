@@ -34,7 +34,7 @@ Structure your summary:
 4. **Scientific Insights** - What this tells us about the approach
 5. **Next Steps** - Recommendations for further research
 
-Be concise but impactful. Use scientific language appropriate for a biotech conference.`;
+Be concise but impactful. Use scientific language appropriate for a biotech conference. Do not use tables.`;
 
 export function SummaryStep({
   selectedDrug,
@@ -168,10 +168,20 @@ export function SummaryStep({
         { role: 'user' as const, content: buildPrompt() },
       ];
 
-      let fullSummary = '';
-      for await (const chunk of streamChat(gatewayUrl, messages, { maxTokens: 1500 })) {
-        fullSummary += chunk;
-        setSummary(fullSummary);
+      let reasoning = '';
+      let content = '';
+      for await (const chunk of streamChat(gatewayUrl, messages)) {
+        if (chunk.type === 'reasoning') {
+          reasoning += chunk.text;
+          setSummary(reasoning);
+        } else {
+          content += chunk.text;
+          setSummary(content);
+        }
+      }
+      // Prefer content, fall back to reasoning
+      if (content) {
+        setSummary(content);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate summary';
@@ -399,7 +409,7 @@ export function SummaryStep({
         {isGenerating && !summary && (
           <div className="summary-generating">
             <span className="spinner spinner-md" />
-            <span>Generating summary with Qwen3...</span>
+            <span>Generating summary with Nemotron...</span>
           </div>
         )}
 

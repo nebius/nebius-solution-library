@@ -17,22 +17,8 @@ import { formatDuration } from '../../hooks/useProgressTracker';
 type GenerationStage = 'encoding' | 'exploring' | 'scoring';
 
 // Prompt for generating seed molecule (pretending target drug doesn't exist)
-// IMPORTANT: Must be structurally DISTANT from the target drug to avoid data leakage
-const SEED_GENERATION_PROMPT = `You are a medicinal chemist. Based on the therapeutic goal below, suggest a SINGLE starting compound (seed molecule) for drug discovery.
-
-CRITICAL RULES:
-1. The seed must be STRUCTURALLY DISTINCT from known drugs for this target
-2. DO NOT suggest close analogs, derivatives, or molecules from the same chemical class
-3. Choose a scaffold with the right pharmacophore features (e.g., acidic group for COX, hinge binder for kinases) but DIFFERENT core structure
-4. Good starting points: natural products, fragments, hits from unrelated screens, or scaffolds from different therapeutic areas that happen to have relevant features
-5. Avoid: direct analogs, prodrugs, or molecules that would have high Tanimoto similarity (>0.5) to known drugs for this target
-6. Keep the molecule drug-like (MW 200-500, reasonable LogP)
-
-Therapeutic Goal:
-{PROMPT}
-
-Think about what structural features are needed for activity, then find a DIVERSE scaffold that has those features. Explain your reasoning (2-3 sentences), then provide the SMILES.
-Format: SMILES: [your SMILES string here]`;
+const SEED_GENERATION_PROMPT = `Give me one drug-like SMILES (MW 200-500) as a seed for: {PROMPT}
+Must be structurally different from known drugs for this target. Just the SMILES.`;
 
 /**
  * Strip trailing punctuation that LLMs often append after SMILES
@@ -79,19 +65,31 @@ function validateSmiles(smi: string): string | null {
  * Extract SMILES from LLM response
  */
 function extractSmilesFromResponse(text: string): string | null {
-  // Try to find SMILES: pattern
-  const smilesMatch = text.match(/SMILES:\s*([^\s\n]+)/i);
+  // Try to find SMILES: pattern (with optional backticks or code formatting)
+  const smilesMatch = text.match(/SMILES:\s*`?([^\s\n`]+)`?/i);
   if (smilesMatch && smilesMatch[1]) {
     const validated = validateSmiles(smilesMatch[1].trim());
     if (validated) return validated;
   }
 
-  // Try to find a SMILES-like pattern (contains C, (, ), =, etc.)
-  const patterns = text.match(/[A-Z][A-Za-z0-9@\[\]\(\)=#+\-\\\/\.]+/g);
+  // Try inline code blocks: `SMILES_STRING`
+  const codeBlocks = text.match(/`([A-Za-z0-9@\[\]\(\)=#+\-\\\/\.]{6,})`/g);
+  if (codeBlocks) {
+    for (const block of codeBlocks.sort((a, b) => b.length - a.length)) {
+      const inner = block.slice(1, -1);
+      if (/[CNO]/.test(inner) && /[\(\)=\[\]]/.test(inner)) {
+        const validated = validateSmiles(inner);
+        if (validated) return validated;
+      }
+    }
+  }
+
+  // Try to find a SMILES-like pattern (allow lowercase start for aromatic atoms)
+  const patterns = text.match(/[A-Za-z\[][A-Za-z0-9@\[\]\(\)=#+\-\\\/\.]{5,}/g);
   if (patterns) {
     // Find the longest pattern that looks like SMILES
     for (const p of patterns.sort((a, b) => b.length - a.length)) {
-      if (p.length > 5 && /[CNO]/.test(p) && /[\(\)=\[\]]/.test(p)) {
+      if (/[CNOcno]/.test(p) && /[\(\)=\[\]]/.test(p)) {
         const validated = validateSmiles(p);
         if (validated) return validated;
       }
@@ -181,7 +179,7 @@ export function MoleculesStep({
     }
   }, [seedMode, aiSeedSmiles, manualSeedSmiles, selectedDrug]);
 
-  // Generate seed using Qwen
+  // Generate seed using Nemotron
   const handleGenerateSeed = useCallback(async () => {
     if (!gatewayUrl || !selectedDrug) return;
 
@@ -194,26 +192,40 @@ export function MoleculesStep({
       const prompt = SEED_GENERATION_PROMPT.replace('{PROMPT}', selectedDrug.llmPrompt || selectedDrug.description);
 
       const messages = [
-        { role: 'system' as const, content: 'You are a medicinal chemist expert in drug discovery.' },
+        { role: 'system' as const, content: 'Reply with ONLY a SMILES string.' },
         { role: 'user' as const, content: prompt },
       ];
 
-      let fullResponse = '';
-      for await (const chunk of streamChat(gatewayUrl, messages, { maxTokens: 500 })) {
-        fullResponse += chunk;
-        setAiSeedResponse(fullResponse);
+      let reasoning = '';
+      let content = '';
 
-        // Try to extract SMILES as we stream
-        const smiles = extractSmilesFromResponse(fullResponse);
-        if (smiles) {
-          setAiSeedSmiles(smiles);
+      for await (const chunk of streamChat(gatewayUrl, messages, { maxTokens: 8192, temperature: 0.7 })) {
+        if (chunk.type === 'reasoning') {
+          reasoning += chunk.text;
+          // Don't show reasoning — just show a waiting indicator
+        } else {
+          content += chunk.text;
+          setAiSeedResponse(content.trim());
+
+          // Try to extract SMILES as content streams
+          const smiles = extractSmilesFromResponse(content);
+          if (smiles) {
+            setAiSeedSmiles(smiles);
+          }
         }
       }
 
-      // Final extraction
-      const smiles = extractSmilesFromResponse(fullResponse);
+      // Final extraction from content (preferred) or reasoning (fallback)
+      const extractFrom = content || reasoning;
+      const smiles = extractSmilesFromResponse(extractFrom);
       if (smiles) {
         setAiSeedSmiles(smiles);
+        if (content.trim()) {
+          setAiSeedResponse(content.trim());
+        } else {
+          // Model only produced reasoning — show extracted SMILES
+          setAiSeedResponse(smiles);
+        }
       } else {
         setSeedError('Could not extract SMILES from response. Please try again or enter manually.');
       }
@@ -453,7 +465,7 @@ export function MoleculesStep({
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
-                Generate Seed with Qwen
+                Generate Seed with Nemotron
               </button>
             )}
 

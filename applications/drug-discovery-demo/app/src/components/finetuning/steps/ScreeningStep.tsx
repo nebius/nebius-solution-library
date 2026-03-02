@@ -162,7 +162,7 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
         <div>
           <h1 className="content-title">Deploy & Screen</h1>
           <p className="content-subtitle">
-            Deploy your model to Nebius Jobs and screen {isProtein ? 'protein sequences' : 'compound libraries'}.
+            Deploy your model as a Nebius Endpoint and screen {isProtein ? 'protein sequences' : 'compound libraries'}.
           </p>
         </div>
       </div>
@@ -180,7 +180,7 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
                 strokeLinejoin="round"
               />
             </svg>
-            <h3 className="card-title">Nebius Jobs Endpoint</h3>
+            <h3 className="card-title">Nebius Endpoint</h3>
           </div>
           {endpoint && (
             <span className={`endpoint-status ${endpoint.state}`}>
@@ -192,19 +192,13 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
 
         {!endpoint ? (
           <div className="deployment-prompt">
-            <p>Deploy your trained model as a serverless endpoint for real-time predictions.</p>
+            <p>Deploy your trained model as a Nebius Endpoint for real-time predictions.</p>
             <div className="deployment-features">
               <div className="deployment-feature">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path d="M4 8l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span>Auto-scaling (0-10 replicas)</span>
-              </div>
-              <div className="deployment-feature">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M4 8l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span>No idle costs</span>
               </div>
               <div className="deployment-feature">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -228,7 +222,7 @@ export function ScreeningStep({ gatewayUrl }: ScreeningStepProps) {
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  Deploy to Nebius Jobs
+                  Deploy as Nebius Endpoint
                 </>
               )}
             </button>

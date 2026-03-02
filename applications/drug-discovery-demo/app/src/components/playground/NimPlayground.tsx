@@ -5,7 +5,8 @@
  * Allows direct interaction with any NIM endpoint using custom data.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import Markdown from 'react-markdown';
 import { PlaygroundSidebar } from './PlaygroundSidebar';
 import { NimResult } from './NimResult';
 import { getPlaygroundConfig, type PlaygroundField, type PlaygroundResult, type NimPlaygroundDef } from '../../data/nimPlayground';
@@ -21,6 +22,10 @@ export function NimPlayground() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [parallelProgress, setParallelProgress] = useState<{ done: number; total: number } | null>(null);
+  const [streamingText, setStreamingText] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const streamAbortRef = useRef<AbortController | null>(null);
 
   const { endpoints, gatewayUrl } = useGateway();
 
@@ -133,8 +138,112 @@ export function NimPlayground() {
           }
           setResult(merged);
         }
+      } else if (nimConfig.supportsStreaming) {
+        // Streaming request (LLM)
+        streamAbortRef.current = new AbortController();
+        setStreamingText('');
+        setIsStreaming(true);
+        setIsThinking(true);
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          signal: streamAbortRef.current.signal,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage: string;
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.detail || errorJson.message || errorJson.error || errorText;
+          } catch {
+            errorMessage = errorText;
+          }
+          setElapsedMs(Date.now() - startTime);
+          setResult({
+            type: nimConfig.resultType,
+            raw: { status: response.status, error: errorMessage },
+            items: [],
+            error: `HTTP ${response.status}: ${errorMessage}`,
+          });
+          return;
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('No response body');
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let content = '';
+        let reasoning = '';
+        let thinking = true;
+        let usage: Record<string, number> | undefined;
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed || trimmed === 'data: [DONE]') continue;
+
+              if (trimmed.startsWith('data: ')) {
+                try {
+                  const json = JSON.parse(trimmed.slice(6));
+                  const delta = json.choices?.[0]?.delta;
+                  if (delta?.reasoning_content) {
+                    reasoning += delta.reasoning_content;
+                  }
+                  if (delta?.content) {
+                    if (thinking) {
+                      thinking = false;
+                      setIsThinking(false);
+                    }
+                    content += delta.content;
+                    setStreamingText(content);
+                  }
+                  if (json.usage) {
+                    usage = json.usage;
+                  }
+                } catch {
+                  // Skip malformed JSON
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+
+        const elapsed = Date.now() - startTime;
+        setElapsedMs(elapsed);
+        setIsStreaming(false);
+        setIsThinking(false);
+
+        // Build final result with all data
+        const items: { label: string; value: string; format: 'text' }[] = [
+          { label: 'Response', value: content, format: 'text' },
+        ];
+        if (reasoning) {
+          items.push({ label: 'Reasoning', value: reasoning, format: 'text' });
+        }
+        if (usage) {
+          items.push({
+            label: 'Usage',
+            value: `Prompt: ${usage.prompt_tokens} tokens | Completion: ${usage.completion_tokens} tokens | Total: ${usage.total_tokens} tokens`,
+            format: 'text',
+          });
+        }
+        setResult({ type: 'text', raw: { content, reasoning, usage }, items });
       } else {
-        // Single request
+        // Single non-streaming request
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -170,6 +279,7 @@ export function NimPlayground() {
         setResult(parsed);
       }
     } catch (error) {
+      if (streamAbortRef.current?.signal.aborted) return;
       setElapsedMs(Date.now() - startTime);
       setResult({
         type: nimConfig.resultType,
@@ -179,7 +289,10 @@ export function NimPlayground() {
       });
     } finally {
       setIsRunning(false);
+      setIsStreaming(false);
+      setIsThinking(false);
       setParallelProgress(null);
+      streamAbortRef.current = null;
     }
   }, [nimConfig, selectedNimId, formValues, gatewayUrl]);
 
@@ -356,8 +469,35 @@ export function NimPlayground() {
             {/* API Code Snippets */}
             <RequestPreview nimConfig={nimConfig} formValues={formValues} gatewayUrl={gatewayUrl} />
 
+            {/* Streaming Display */}
+            {isStreaming && (
+              <div className="playground-result-card">
+                <div className="playground-result-header">
+                  <div className="playground-result-header-left">
+                    <span className="playground-streaming-dot" />
+                    <h3>{isThinking ? 'Thinking...' : 'Generating...'}</h3>
+                  </div>
+                </div>
+                <div className="playground-card-body">
+                  {isThinking ? (
+                    <div className="playground-thinking">
+                      <span className="spinner spinner-sm" />
+                      <span>Reasoning...</span>
+                    </div>
+                  ) : (
+                    <div className="playground-result-text playground-streaming-text">
+                      <Markdown components={{ table: ({ children }) => <div className="playground-table-wrap"><table>{children}</table></div> }}>
+                        {streamingText}
+                      </Markdown>
+                      <span className="playground-cursor" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Results */}
-            {result && (
+            {!isStreaming && result && (
               <>
                 {isExampleResult && (
                   <div className="playground-example-banner">
@@ -446,7 +586,7 @@ function PlaygroundWelcome() {
             </div>
             <div>
               <strong>LLM & Utilities</strong>
-              <span>Qwen3-80B, MSA Search, Evo2</span>
+              <span>Nemotron-3-Nano, MSA Search, Evo2</span>
             </div>
           </div>
         </div>

@@ -17,6 +17,7 @@ import {
   type NodeGroup,
 } from '../services/k8sService';
 import { getGpuColor, getGpuDisplayName, type GpuType } from '../data/k8sMapping';
+import { getDemoDeployments, getDemoCapacity, getDemoNodeGroups } from '../data/k8sDemoData';
 
 interface K8sScalingPanelProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ interface K8sScalingPanelProps {
 
 export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
   const [isConnected, setIsConnected] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [context, setContext] = useState<string>('');
   const [deployments, setDeployments] = useState<K8sDeployment[]>([]);
   const [capacity, setCapacity] = useState<ClusterCapacity | null>(null);
@@ -81,13 +83,43 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
     }
   }, []);
 
+  const enterDemoMode = useCallback(() => {
+    const demoDeps = getDemoDeployments();
+    setDeployments(demoDeps);
+    setCapacity(getDemoCapacity(demoDeps));
+    setNodeGroups(getDemoNodeGroups());
+    setContext('Demo Mode');
+    setIsConnected(true);
+    setIsDemoMode(true);
+    setIsLoading(false);
+    setError(null);
+  }, []);
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isDemoMode) {
       refresh();
       const interval = setInterval(refresh, 5000);
       return () => clearInterval(interval);
     }
-  }, [isOpen, refresh]);
+  }, [isOpen, isDemoMode, refresh]);
+
+  /** Recalculate capacity GPU usage from current deployments */
+  const recalcCapacity = useCallback((deps: K8sDeployment[]) => {
+    setCapacity((prev) => {
+      if (!prev) return prev;
+      const usedGpus: Record<string, number> = {};
+      for (const d of deps) {
+        if (d.replicas > 0) {
+          usedGpus[d.gpuType] = (usedGpus[d.gpuType] || 0) + d.replicas * d.gpuCount;
+        }
+      }
+      const availableGpus: Record<string, number> = {};
+      for (const type of Object.keys(prev.totalGpus)) {
+        availableGpus[type] = prev.totalGpus[type] - (usedGpus[type] || 0);
+      }
+      return { ...prev, usedGpus, availableGpus };
+    });
+  }, []);
 
   const handleScale = useCallback(async (deployment: K8sDeployment, delta: number) => {
     const newReplicas = Math.max(0, deployment.replicas + delta);
@@ -95,10 +127,22 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
     setScalingDeployment(deployment.name);
     setError(null);
 
+    if (isDemoMode) {
+      // Demo mode: local-only update
+      const updated = deployments.map((d) =>
+        d.name === deployment.name
+          ? { ...d, replicas: newReplicas, availableReplicas: newReplicas, readyReplicas: newReplicas, status: newReplicas > 0 ? 'healthy' as const : 'unavailable' as const }
+          : d
+      );
+      setDeployments(updated);
+      recalcCapacity(updated);
+      setScalingDeployment(null);
+      return;
+    }
+
     const result = await scaleDeployment(deployment.name, newReplicas);
 
     if (result.success) {
-      // Optimistically update UI
       setDeployments((prev) =>
         prev.map((d) =>
           d.name === deployment.name ? { ...d, replicas: newReplicas } : d
@@ -109,7 +153,7 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
     }
 
     setScalingDeployment(null);
-  }, []);
+  }, [isDemoMode, deployments, recalcCapacity]);
 
   const handleScaleNodeGroup = useCallback(async (nodeGroup: NodeGroup, delta: number) => {
     const newCount = Math.max(0, nodeGroup.nodeCount + delta);
@@ -118,10 +162,8 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
     setError(null);
     setErrorDetails(null);
 
-    const result = await scaleNodeGroup(nodeGroup.id, newCount);
-
-    if (result.success) {
-      // Optimistically update UI
+    if (isDemoMode) {
+      // Demo mode: local-only update
       setNodeGroups((prev) =>
         prev.map((ng) =>
           ng.id === nodeGroup.id
@@ -129,7 +171,35 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
             : ng
         )
       );
-      // Also update capacity using the node group's GPU type
+      if (capacity) {
+        const gpuDelta = delta * nodeGroup.gpuPerNode;
+        const gpuType = nodeGroup.gpuType || Object.keys(capacity.totalGpus)[0] || 'GPU';
+        setCapacity({
+          ...capacity,
+          totalGpus: {
+            ...capacity.totalGpus,
+            [gpuType]: (capacity.totalGpus[gpuType] || 0) + gpuDelta,
+          },
+          availableGpus: {
+            ...capacity.availableGpus,
+            [gpuType]: (capacity.availableGpus[gpuType] || 0) + gpuDelta,
+          },
+        });
+      }
+      setScalingNodeGroup(null);
+      return;
+    }
+
+    const result = await scaleNodeGroup(nodeGroup.id, newCount);
+
+    if (result.success) {
+      setNodeGroups((prev) =>
+        prev.map((ng) =>
+          ng.id === nodeGroup.id
+            ? { ...ng, nodeCount: newCount, totalGpus: newCount * ng.gpuPerNode }
+            : ng
+        )
+      );
       if (capacity) {
         const gpuDelta = delta * nodeGroup.gpuPerNode;
         const gpuType = nodeGroup.gpuType || Object.keys(capacity.totalGpus)[0] || 'GPU';
@@ -156,7 +226,7 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
     }
 
     setScalingNodeGroup(null);
-  }, [capacity]);
+  }, [isDemoMode, capacity]);
 
   if (!isOpen) return null;
 
@@ -186,6 +256,7 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
               <circle cx="10" cy="10" r="2" fill="currentColor" />
             </svg>
             <span id="k8s-panel-title">Cluster Scaling</span>
+            {isDemoMode && <span className="card-badge" style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>DEMO</span>}
           </div>
           <button className="k8s-panel-close" onClick={onClose} aria-label="Close panel">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -206,11 +277,15 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
               <path d="M24 16v8M24 28v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
             <h3>kubectl not connected</h3>
-            <p>Ensure kubectl is configured and connected to your cluster.</p>
-            <code>kubectl config current-context</code>
-            <button className="btn btn-primary" onClick={refresh}>
-              Retry Connection
-            </button>
+            <p>Connect to your cluster or try demo mode to explore the scaling interface.</p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button className="btn btn-primary" onClick={enterDemoMode}>
+                Try Demo Mode
+              </button>
+              <button className="btn btn-outline" onClick={refresh}>
+                Retry Connection
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -427,12 +502,18 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
                 <button
                   className="btn btn-primary"
                   onClick={async () => {
-                    for (const dep of deployments) {
-                      if (dep.replicas === 0) {
-                        await scaleDeployment(dep.name, 1);
+                    const updated = deployments.map((d) =>
+                      d.replicas === 0 ? { ...d, replicas: 1, availableReplicas: 1, readyReplicas: 1, status: 'healthy' as const } : d
+                    );
+                    if (isDemoMode) {
+                      setDeployments(updated);
+                      recalcCapacity(updated);
+                    } else {
+                      for (const dep of deployments) {
+                        if (dep.replicas === 0) await scaleDeployment(dep.name, 1);
                       }
+                      refresh();
                     }
-                    refresh();
                   }}
                   disabled={deployments.every(d => d.replicas > 0)}
                 >
@@ -444,10 +525,16 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
                 <button
                   className="btn btn-outline"
                   onClick={async () => {
-                    for (const dep of deployments) {
-                      await scaleDeployment(dep.name, dep.replicas + 1);
+                    const updated = deployments.map((d) => ({
+                      ...d, replicas: d.replicas + 1, availableReplicas: d.replicas + 1, readyReplicas: d.replicas + 1, status: 'healthy' as const,
+                    }));
+                    if (isDemoMode) {
+                      setDeployments(updated);
+                      recalcCapacity(updated);
+                    } else {
+                      for (const dep of deployments) await scaleDeployment(dep.name, dep.replicas + 1);
+                      refresh();
                     }
-                    refresh();
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -458,12 +545,19 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
                 <button
                   className="btn btn-outline"
                   onClick={async () => {
-                    for (const dep of deployments) {
-                      if (['openfold3', 'boltz2', 'openfold2'].includes(dep.nimId)) {
-                        await scaleDeployment(dep.name, 2);
+                    const targets = ['openfold3', 'boltz2', 'openfold2'];
+                    const updated = deployments.map((d) =>
+                      targets.includes(d.nimId) ? { ...d, replicas: 2, availableReplicas: 2, readyReplicas: 2, status: 'healthy' as const } : d
+                    );
+                    if (isDemoMode) {
+                      setDeployments(updated);
+                      recalcCapacity(updated);
+                    } else {
+                      for (const dep of deployments) {
+                        if (targets.includes(dep.nimId)) await scaleDeployment(dep.name, 2);
                       }
+                      refresh();
                     }
-                    refresh();
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -475,12 +569,19 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
                 <button
                   className="btn btn-outline"
                   onClick={async () => {
-                    for (const dep of deployments) {
-                      if (['openfold3', 'boltz2', 'diffdock'].includes(dep.nimId)) {
-                        await scaleDeployment(dep.name, 3);
+                    const targets = ['openfold3', 'boltz2', 'diffdock'];
+                    const updated = deployments.map((d) =>
+                      targets.includes(d.nimId) ? { ...d, replicas: 3, availableReplicas: 3, readyReplicas: 3, status: 'healthy' as const } : d
+                    );
+                    if (isDemoMode) {
+                      setDeployments(updated);
+                      recalcCapacity(updated);
+                    } else {
+                      for (const dep of deployments) {
+                        if (targets.includes(dep.nimId)) await scaleDeployment(dep.name, 3);
                       }
+                      refresh();
                     }
-                    refresh();
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -495,12 +596,18 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
                 <button
                   className="btn btn-ghost"
                   onClick={async () => {
-                    for (const dep of deployments) {
-                      if (dep.replicas > 1) {
-                        await scaleDeployment(dep.name, dep.replicas - 1);
+                    const updated = deployments.map((d) =>
+                      d.replicas > 1 ? { ...d, replicas: d.replicas - 1, availableReplicas: d.replicas - 1, readyReplicas: d.replicas - 1 } : d
+                    );
+                    if (isDemoMode) {
+                      setDeployments(updated);
+                      recalcCapacity(updated);
+                    } else {
+                      for (const dep of deployments) {
+                        if (dep.replicas > 1) await scaleDeployment(dep.name, dep.replicas - 1);
                       }
+                      refresh();
                     }
-                    refresh();
                   }}
                   disabled={deployments.every(d => d.replicas <= 1)}
                 >
@@ -512,12 +619,18 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
                 <button
                   className="btn btn-ghost"
                   onClick={async () => {
-                    for (const dep of deployments) {
-                      if (dep.replicas > 1) {
-                        await scaleDeployment(dep.name, 1);
+                    const updated = deployments.map((d) =>
+                      d.replicas > 1 ? { ...d, replicas: 1, availableReplicas: 1, readyReplicas: 1 } : d
+                    );
+                    if (isDemoMode) {
+                      setDeployments(updated);
+                      recalcCapacity(updated);
+                    } else {
+                      for (const dep of deployments) {
+                        if (dep.replicas > 1) await scaleDeployment(dep.name, 1);
                       }
+                      refresh();
                     }
-                    refresh();
                   }}
                   disabled={deployments.every(d => d.replicas <= 1)}
                 >
@@ -530,10 +643,16 @@ export function K8sScalingPanel({ isOpen, onClose }: K8sScalingPanelProps) {
                   className="btn btn-ghost btn-danger"
                   onClick={async () => {
                     if (window.confirm('Stop all NIM instances? This will scale all deployments to 0.')) {
-                      for (const dep of deployments) {
-                        await scaleDeployment(dep.name, 0);
+                      const updated = deployments.map((d) => ({
+                        ...d, replicas: 0, availableReplicas: 0, readyReplicas: 0, status: 'unavailable' as const,
+                      }));
+                      if (isDemoMode) {
+                        setDeployments(updated);
+                        recalcCapacity(updated);
+                      } else {
+                        for (const dep of deployments) await scaleDeployment(dep.name, 0);
+                        refresh();
                       }
-                      refresh();
                     }
                   }}
                   disabled={deployments.every(d => d.replicas === 0)}

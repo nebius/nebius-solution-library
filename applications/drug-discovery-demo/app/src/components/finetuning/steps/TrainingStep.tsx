@@ -183,8 +183,6 @@ export function TrainingStep({ gatewayUrl: _gatewayUrl }: TrainingStepProps) {
             </p>
             <div className="training-start-estimates">
               <span>Est. Time: ~{Math.ceil((dataset?.validCount || 1000) / 100)}m</span>
-              <span>•</span>
-              <span>Est. Cost: ~${((dataset?.validCount || 1000) / 100 / 60 * 6).toFixed(2)}</span>
             </div>
             <button className="btn btn-primary btn-lg" onClick={handleStartTraining}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -283,27 +281,6 @@ export function TrainingStep({ gatewayUrl: _gatewayUrl }: TrainingStepProps) {
             </div>
           </div>
 
-          {/* Cost Tracker */}
-          <div className="cost-tracker">
-            <div className="cost-tracker-icon">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M8 4v8M6 6h4M6 10h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div className="cost-tracker-content">
-              <span className="cost-tracker-label">NEBIUS JOBS COST TRACKER</span>
-              <div className="cost-tracker-details">
-                <span>
-                  GPU Time: {formatTime((trainingStatus?.cost.gpuTimeSeconds || 0) * 1000)}
-                </span>
-                <span>•</span>
-                <span>Current Cost: ${trainingStatus?.cost.estimatedCost?.toFixed(2) || '0.00'}</span>
-                <span>•</span>
-                <span>Rate: ${trainingStatus?.cost.ratePerHour || 6}/hr</span>
-              </div>
-            </div>
-          </div>
 
           {/* Training Logs */}
           <div className="card training-logs-card">
@@ -369,10 +346,6 @@ export function TrainingStep({ gatewayUrl: _gatewayUrl }: TrainingStepProps) {
             <div className="summary-item">
               <span className="summary-label">Training Time</span>
               <span className="summary-value">{formatTime(trainingResult.trainingTime)}</span>
-            </div>
-            <div className="summary-item">
-              <span className="summary-label">Total Cost</span>
-              <span className="summary-value">${trainingResult.totalCost.toFixed(2)}</span>
             </div>
           </div>
         </div>

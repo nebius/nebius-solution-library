@@ -31,7 +31,7 @@ import type { NimEndpoint } from '../data/endpoints';
  */
 export const ENDPOINT_CONFIG: Record<string, { port: number; path: string }> = {
   // LLM
-  qwen3: { port: 8008, path: '/v1/chat/completions' },
+  nemotron: { port: 8014, path: '/v1/chat/completions' },
 
   // Structure Prediction
   openfold3: { port: 8000, path: '/biology/openfold/openfold3/predict' },
@@ -171,9 +171,16 @@ export interface ChatMessage {
 }
 
 /**
- * Call the Qwen3 LLM with streaming support
- * Returns an async generator that yields content chunks
+ * Call the Nemotron LLM with streaming support.
+ * Returns an async generator that yields { type, text } chunks.
+ * The model is a reasoning model: it emits "reasoning" chunks first,
+ * then "content" chunks with the final answer.
  */
+export interface ChatChunk {
+  type: 'reasoning' | 'content';
+  text: string;
+}
+
 export async function* streamChat(
   gatewayUrl: string,
   messages: ChatMessage[],
@@ -182,10 +189,10 @@ export async function* streamChat(
     temperature?: number;
     maxTokens?: number;
   } = {}
-): AsyncGenerator<string, void, unknown> {
-  const { model = 'Qwen/Qwen3-Next-80B-A3B-Instruct', temperature = 0, maxTokens = 2048 } = options;
+): AsyncGenerator<ChatChunk, void, unknown> {
+  const { model = 'nvidia/nemotron-3-nano', temperature = 0, maxTokens = 4096 } = options;
 
-  const chatUrl = buildNimUrl(gatewayUrl, 8008, '/v1/chat/completions');
+  const chatUrl = buildNimUrl(gatewayUrl, 8014, '/v1/chat/completions');
 
   const response = await fetch(chatUrl, {
     method: 'POST',
@@ -212,13 +219,17 @@ export async function* streamChat(
 
   const decoder = new TextDecoder();
   let buffer = '';
+  let rawBody = ''; // Accumulate full response for non-SSE fallback
+  let yielded = false;
 
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
+      const chunk = decoder.decode(value, { stream: true });
+      rawBody += chunk;
+      buffer += chunk;
 
       // Process complete SSE lines
       const lines = buffer.split('\n');
@@ -229,21 +240,64 @@ export async function* streamChat(
         if (!trimmed || trimmed === 'data: [DONE]') continue;
 
         if (trimmed.startsWith('data: ')) {
+          const payload = trimmed.slice(6);
+          let json: Record<string, unknown>;
           try {
-            const json = JSON.parse(trimmed.slice(6));
-            const content = json.choices?.[0]?.delta?.content;
-            if (content) {
-              yield content;
-            }
+            json = JSON.parse(payload);
           } catch {
-            // Skip malformed JSON
+            continue; // Skip malformed JSON
+          }
+          if (json.error) {
+            const err = json.error as Record<string, unknown>;
+            throw new Error((err.message as string) || 'LLM returned an error');
+          }
+          const choices = json.choices as Array<Record<string, unknown>> | undefined;
+          const delta = choices?.[0]?.delta as Record<string, unknown> | undefined;
+          // Reasoning models emit reasoning_content first, then content
+          const reasoning = delta?.reasoning_content as string | undefined;
+          if (reasoning) {
+            yielded = true;
+            yield { type: 'reasoning' as const, text: reasoning };
+          }
+          const content = delta?.content as string | undefined;
+          if (content) {
+            yielded = true;
+            yield { type: 'content' as const, text: content };
           }
         }
+      }
+    }
+
+    // If nothing was yielded via SSE, the endpoint may have returned a plain JSON
+    // response (some NIM endpoints ignore stream=true). Try parsing the full body.
+    if (!yielded && rawBody.trim()) {
+      try {
+        const json = JSON.parse(rawBody.trim());
+        if (json.error) {
+          throw new Error(json.error.message || json.error || 'LLM returned an error');
+        }
+        const msg = json.choices?.[0]?.message;
+        if (msg?.reasoning_content) {
+          yield { type: 'reasoning' as const, text: msg.reasoning_content };
+        }
+        if (msg?.content) {
+          yield { type: 'content' as const, text: msg.content };
+        }
+      } catch (e) {
+        if (e instanceof Error && e.message !== 'LLM returned an error' && !e.message.startsWith('Unexpected')) {
+          throw e;
+        }
+        throw new Error(`Unexpected LLM response format: ${rawBody.substring(0, 200)}`);
       }
     }
   } finally {
     reader.releaseLock();
   }
+}
+
+export interface ChatResult {
+  content: string;
+  reasoning: string;
 }
 
 /**
@@ -257,10 +311,10 @@ export async function chat(
     temperature?: number;
     maxTokens?: number;
   } = {}
-): Promise<string> {
-  const { model = 'Qwen/Qwen3-Next-80B-A3B-Instruct', temperature = 0, maxTokens = 2048 } = options;
+): Promise<ChatResult> {
+  const { model = 'nvidia/nemotron-3-nano', temperature = 0, maxTokens = 4096 } = options;
 
-  const chatUrl = buildNimUrl(gatewayUrl, 8008, '/v1/chat/completions');
+  const chatUrl = buildNimUrl(gatewayUrl, 8014, '/v1/chat/completions');
 
   const response = await fetch(chatUrl, {
     method: 'POST',
@@ -281,5 +335,9 @@ export async function chat(
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+  const msg = data.choices?.[0]?.message;
+  return {
+    content: msg?.content || '',
+    reasoning: msg?.reasoning_content || msg?.reasoning || '',
+  };
 }

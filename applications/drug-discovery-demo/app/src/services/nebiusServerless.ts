@@ -399,14 +399,13 @@ export async function simulateTraining(
 
     // Phase 3: Completion
     const finalElapsed = Date.now() - startTime;
-    const finalCost = (finalElapsed / 1000 / 3600) * GPU_RATE_PER_HOUR;
 
     onLogEntry({ level: 'info', message: 'Saving model to Nebius Object Storage...', emoji: '💾' });
     await sleep(1000);
 
     onLogEntry({
       level: 'success',
-      message: `Training complete! Total time: ${formatDuration(finalElapsed)} | Cost: $${finalCost.toFixed(2)}`,
+      message: `Training complete! Total time: ${formatDuration(finalElapsed)}`,
       emoji: '🎉',
     });
 
@@ -427,7 +426,7 @@ export async function simulateTraining(
         }),
       },
       trainingTime: finalElapsed,
-      totalCost: finalCost,
+      totalCost: 0,
     };
 
     onStatusUpdate({ ...createStatus('completed', totalEpochs, stepsPerEpoch), state: 'completed' });
