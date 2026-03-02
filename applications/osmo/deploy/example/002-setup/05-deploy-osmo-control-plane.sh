@@ -34,7 +34,7 @@ fi
 
 if [[ "${DEPLOY_KEYCLOAK:-false}" == "true" && -z "${OSMO_INGRESS_HOSTNAME:-}" && -z "${KEYCLOAK_HOSTNAME:-}" ]]; then
     log_error "DEPLOY_KEYCLOAK=true requires OSMO_INGRESS_HOSTNAME or KEYCLOAK_HOSTNAME to be set."
-    echo "  KEYCLOAK_HOSTNAME is auto-derived as auth-<OSMO_INGRESS_HOSTNAME> if not set explicitly."
+    echo "  Example (nip.io, no /etc/hosts): OSMO_INGRESS_HOSTNAME=osmo.<LB_IP_DASHED>.nip.io; KEYCLOAK_HOSTNAME is auto-derived as auth-<OSMO_INGRESS_HOSTNAME> if not set."
     echo "  Set your domain: export OSMO_INGRESS_HOSTNAME=osmo.example.com"
     exit 1
 fi
@@ -214,6 +214,9 @@ log_info "Verifying PostgreSQL connection..."
     # -----------------------------------------------------------------------------
     # Connection Test - Verify credentials before proceeding
     # -----------------------------------------------------------------------------
+    if [[ "${SKIP_POSTGRES_CONNECTION_TEST:-0}" == "1" || "${SKIP_POSTGRES_CONNECTION_TEST}" == "true" ]]; then
+        log_warning "Skipping PostgreSQL connection test (SKIP_POSTGRES_CONNECTION_TEST is set). Fix cluster->DB connectivity (e.g. 001-iac / Nebius console), then re-run 04 without this env to verify."
+    else
     log_info "Testing PostgreSQL connection (this may take a moment)..."
     
     kubectl run osmo-db-test \
@@ -263,10 +266,13 @@ log_info "Verifying PostgreSQL connection..."
         echo "To debug manually:"
         echo "  kubectl run psql-debug --rm -it --image=postgres:16-alpine -n osmo -- sh"
         echo "  PGPASSWORD='<password>' psql -h ${POSTGRES_HOST} -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        echo ""
+        echo "To skip the test and continue (e.g. while fixing network): SKIP_POSTGRES_CONNECTION_TEST=1 ./04-deploy-osmo-control-plane.sh"
         exit 1
     fi
     
     log_success "PostgreSQL connection verified"
+    fi
 
     # -----------------------------------------------------------------------------
     # Database Creation
@@ -553,6 +559,136 @@ if [[ "${DEPLOY_KEYCLOAK:-false}" == "true" ]]; then
         --from-literal=postgres-password="${POSTGRES_PASSWORD}" \
         --dry-run=client -o yaml | kubectl apply -f -
     
+    # Nebius SSO: create OIDC client via npc when CLIENT_ID not set (per-cluster), then create secret for IdP
+    if [[ "${NEBIUS_SSO_ENABLED:-false}" == "true" ]]; then
+        if [[ -z "${NEBIUS_SSO_ISSUER_URL:-}" ]]; then
+            log_error "NEBIUS_SSO_ENABLED=true requires NEBIUS_SSO_ISSUER_URL to be set."
+            exit 1
+        fi
+        # Create OIDC client in Nebius IAM when npc available and CLIENT_ID not set
+        if [[ -z "${NEBIUS_SSO_CLIENT_ID:-}" && -n "${AUTH_DOMAIN:-}" && -n "${NEBIUS_PROJECT_ID:-}" ]] && command -v npc &>/dev/null; then
+            log_info "Creating Nebius IAM OIDC client (per-cluster) via npc..."
+            _oidc_redirect_uri="https://${AUTH_DOMAIN}/realms/osmo/broker/nebius-sso/endpoint"
+            _oidc_yaml="/tmp/oidc-client-$$.yaml"
+            cat > "$_oidc_yaml" << EOF
+metadata:
+  parent_id: "${NEBIUS_PROJECT_ID}"
+  name: "keycloak-osmo"
+spec:
+  client_authentication_methods:
+    - client_secret_basic
+  redirect_uris:
+    - "${_oidc_redirect_uri}"
+  pkce_enabled: true
+  scopes:
+    - openid
+  session_management_enabled: false
+  authorization_grant_types:
+    - authorization_code
+EOF
+            _create_out=$(npc iam oidc-client create --file "$_oidc_yaml" --format yaml 2>&1) || true
+            rm -f "$_oidc_yaml"
+            _client_id=""
+            if [[ -n "$_create_out" ]]; then
+                # Parse client id (grep returns 1 when no match; avoid set -e exit)
+                _client_id=$(echo "$_create_out" | grep -oE 'id:[[:space:]]*[^[:space:]]+' | head -1 | sed 's/id:[[:space:]]*//') || true
+                [[ -z "$_client_id" ]] && _client_id=$(echo "$_create_out" | grep -oE 'oidcclient-[a-z0-9]+' | head -1) || true
+                [[ -z "$_client_id" ]] && _client_id=$(echo "$_create_out" | grep -oE 'client_id:[[:space:]]*[^[:space:]]+' | head -1 | sed 's/client_id:[[:space:]]*//') || true
+                # npc may return JSON
+                [[ -z "$_client_id" ]] && _client_id=$(echo "$_create_out" | jq -r '.id // .client_id // empty' 2>/dev/null) || true
+            fi
+            if [[ -n "$_client_id" ]]; then
+                _secret_out=$(npc iam oidc-client generate-client-secret --client-id "$_client_id" --format yaml 2>&1) || true
+                _client_secret=""
+                if [[ -n "$_secret_out" ]]; then
+                    _client_secret=$(echo "$_secret_out" | grep -E 'client_secret|secret:' | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" | tr -d '\r') || true
+                fi
+                if [[ -n "$_client_secret" ]]; then
+                    export NEBIUS_SSO_CLIENT_ID="$_client_id"
+                    export NEBIUS_SSO_CLIENT_SECRET="$_client_secret"
+                    log_success "Created Nebius IAM OIDC client: ${NEBIUS_SSO_CLIENT_ID}. Add NEBIUS_SSO_CLIENT_ID=${NEBIUS_SSO_CLIENT_ID} to osmo-deploy.env for next run."
+                else
+                    log_warning "OIDC client created but could not parse client secret. Run: npc iam oidc-client generate-client-secret --client-id $_client_id --format yaml"
+                    export NEBIUS_SSO_CLIENT_ID="$_client_id"
+                fi
+            else
+                # Client may already exist (e.g. from a previous run); look up by name and use it
+                if echo "$_create_out" | grep -qiE 'AlreadyExists|already exists'; then
+                    log_info "OIDC client 'keycloak-osmo' already exists; looking up existing client id..."
+                    _get_out=$(npc iam oidc-client get-by-name --parent-id "${NEBIUS_PROJECT_ID}" --name "keycloak-osmo" --format yaml 2>&1) || true
+                    if [[ -n "$_get_out" ]]; then
+                        _client_id=$(echo "$_get_out" | grep -oE 'id:[[:space:]]*[^[:space:]]+' | head -1 | sed 's/id:[[:space:]]*//') || true
+                        [[ -z "$_client_id" ]] && _client_id=$(echo "$_get_out" | grep -oE 'oidcclient-[a-z0-9]+' | head -1) || true
+                        [[ -z "$_client_id" ]] && _client_id=$(echo "$_get_out" | jq -r '.id // .client_id // empty' 2>/dev/null) || true
+                    fi
+                    if [[ -n "$_client_id" ]]; then
+                        export NEBIUS_SSO_CLIENT_ID="$_client_id"
+                        _secret_out=$(npc iam oidc-client generate-client-secret --client-id "$_client_id" --format yaml 2>&1) || true
+                        _client_secret=""
+                        [[ -n "$_secret_out" ]] && _client_secret=$(echo "$_secret_out" | grep -E 'client_secret|secret:' | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" | tr -d '\r') || true
+                        if [[ -n "$_client_secret" ]]; then
+                            export NEBIUS_SSO_CLIENT_SECRET="$_client_secret"
+                            log_success "Using existing Nebius IAM OIDC client: ${NEBIUS_SSO_CLIENT_ID} (generated new secret). Add to osmo-deploy.env for next run."
+                        else
+                            log_success "Using existing Nebius IAM OIDC client: ${NEBIUS_SSO_CLIENT_ID}. Ensure NEBIUS_SSO_CLIENT_SECRET or keycloak-nebius-sso-secret is set."
+                        fi
+                    fi
+                fi
+                if [[ -z "${NEBIUS_SSO_CLIENT_ID:-}" ]]; then
+                    log_warning "npc oidc-client create failed or returned no id. Create manually (applications/osmo/iam-register/README.md) and set NEBIUS_SSO_CLIENT_ID and NEBIUS_SSO_CLIENT_SECRET."
+                    if [[ -n "$_create_out" ]]; then
+                        echo "  npc output (for debugging):"
+                        echo "$_create_out" | sed 's/^/    /'
+                    fi
+                fi
+            fi
+        fi
+        if [[ -z "${NEBIUS_SSO_CLIENT_ID:-}" ]]; then
+            log_error "NEBIUS_SSO_ENABLED=true requires NEBIUS_SSO_CLIENT_ID (create via npc or set in osmo-deploy.env)."
+            echo "  Tip: In the same shell, run: source applications/osmo/deploy/example/000-prerequisites/nebius-env-init.sh"
+            echo "       Then re-run: ./04-deploy-osmo-control-plane.sh (npc and NEBIUS_PROJECT_ID must be set for auto-create)."
+            echo "       Or create the OIDC client manually: applications/osmo/iam-register/README.md"
+            exit 1
+        fi
+        if [[ -n "${NEBIUS_SSO_CLIENT_SECRET:-}" ]]; then
+            kubectl create secret generic keycloak-nebius-sso-secret \
+                --namespace "${OSMO_NAMESPACE}" \
+                --from-literal=client_secret="${NEBIUS_SSO_CLIENT_SECRET}" \
+                --dry-run=client -o yaml | kubectl apply -f -
+            log_info "Created keycloak-nebius-sso-secret for Nebius SSO IdP"
+        elif ! kubectl get secret keycloak-nebius-sso-secret -n "${OSMO_NAMESPACE}" &>/dev/null; then
+            log_error "NEBIUS_SSO_ENABLED=true requires NEBIUS_SSO_CLIENT_SECRET or existing secret keycloak-nebius-sso-secret."
+            echo "  Tip: set NEBIUS_SSO_CLIENT_SECRET in osmo-deploy.env (see osmo-deploy.env.example) or create the K8s secret, then re-run."
+            exit 1
+        fi
+    fi
+
+    # Google / GitHub / Microsoft SSO (optional): create K8s secrets when env vars set
+    if [[ -n "${GOOGLE_SSO_CLIENT_ID:-}" && -n "${GOOGLE_SSO_CLIENT_SECRET:-}" ]]; then
+        kubectl create secret generic keycloak-google-secret \
+            --namespace "${OSMO_NAMESPACE}" \
+            --from-literal=client_id="${GOOGLE_SSO_CLIENT_ID}" \
+            --from-literal=client_secret="${GOOGLE_SSO_CLIENT_SECRET}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+        log_info "Created keycloak-google-secret for Google IdP"
+    fi
+    if [[ -n "${GITHUB_SSO_CLIENT_ID:-}" && -n "${GITHUB_SSO_CLIENT_SECRET:-}" ]]; then
+        kubectl create secret generic keycloak-github-secret \
+            --namespace "${OSMO_NAMESPACE}" \
+            --from-literal=client_id="${GITHUB_SSO_CLIENT_ID}" \
+            --from-literal=client_secret="${GITHUB_SSO_CLIENT_SECRET}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+        log_info "Created keycloak-github-secret for GitHub IdP"
+    fi
+    if [[ -n "${MICROSOFT_SSO_CLIENT_ID:-}" && -n "${MICROSOFT_SSO_CLIENT_SECRET:-}" ]]; then
+        kubectl create secret generic keycloak-microsoft-secret \
+            --namespace "${OSMO_NAMESPACE}" \
+            --from-literal=client_id="${MICROSOFT_SSO_CLIENT_ID}" \
+            --from-literal=client_secret="${MICROSOFT_SSO_CLIENT_SECRET}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+        log_info "Created keycloak-microsoft-secret for Microsoft/Azure IdP"
+    fi
+    
     log_success "Keycloak secrets created"
 
     # -------------------------------------------------------------------------
@@ -694,19 +830,15 @@ externalDatabase:
   password: "${POSTGRES_PASSWORD}"
   database: "keycloak"
 
-# Additional environment variables (KC_BOOTSTRAP_* required for Keycloak 26.x)
+# Additional environment variables (chart already sets KC_BOOTSTRAP_ADMIN_* from auth, KEYCLOAK_DATABASE_* from externalDatabase)
 extraEnvVars:
-  # Admin bootstrap (required for Keycloak 26.x)
   - name: KC_BOOTSTRAP_ADMIN_USERNAME
     value: "admin"
-  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-    value: "${KEYCLOAK_ADMIN_PASSWORD}"
   - name: KEYCLOAK_ADMIN
     value: "admin"
   - name: KEYCLOAK_ADMIN_PASSWORD
     value: "${KEYCLOAK_ADMIN_PASSWORD}"
-  # Database configuration (using Nebius Managed PostgreSQL)
-  # Bitnami entrypoint uses KEYCLOAK_DATABASE_* vars; KC_DB_* are Keycloak-native.
+  # Database host/port/name/user (chart sets password from externalDatabase.password)
   - name: KEYCLOAK_DATABASE_HOST
     value: "${POSTGRES_HOST}"
   - name: KEYCLOAK_DATABASE_PORT
@@ -715,8 +847,6 @@ extraEnvVars:
     value: "keycloak"
   - name: KEYCLOAK_DATABASE_USER
     value: "${POSTGRES_USER}"
-  - name: KEYCLOAK_DATABASE_PASSWORD
-    value: "${POSTGRES_PASSWORD}"
   - name: KC_DB
     value: "postgres"
   - name: KC_DB_URL_HOST
@@ -754,6 +884,14 @@ fi)
   - name: KC_HEALTH_ENABLED
     value: "true"
 EOF
+
+    # Remove Keycloak StatefulSet so Helm can recreate it (avoids "conflict with helm" on env/annotations from prior runs)
+    if kubectl get statefulset keycloak -n "${OSMO_NAMESPACE}" &>/dev/null; then
+        log_info "Removing existing Keycloak StatefulSet so Helm can recreate (realm data is in PostgreSQL)..."
+        kubectl delete statefulset keycloak -n "${OSMO_NAMESPACE}" --cascade=foreground --timeout=120s 2>/dev/null || \
+        kubectl delete statefulset keycloak -n "${OSMO_NAMESPACE}" --ignore-not-found 2>/dev/null || true
+        sleep 5
+    fi
 
     # Install or upgrade Keycloak
     # Note: Don't use --wait as it can hang; we'll check status separately
@@ -835,12 +973,57 @@ spec:
       - name: realm-json
         configMap:
           name: keycloak-realm-json
+      - name: nebius-sso-secret
+        secret:
+          secretName: keycloak-nebius-sso-secret
+          optional: true
+      - name: google-sso-secret
+        secret:
+          secretName: keycloak-google-secret
+          optional: true
+      - name: github-sso-secret
+        secret:
+          secretName: keycloak-github-secret
+          optional: true
+      - name: microsoft-sso-secret
+        secret:
+          secretName: keycloak-microsoft-secret
+          optional: true
       containers:
       - name: keycloak-setup
         image: curlimages/curl:8.5.0
+        env:
+        - name: OSMO_BASE_URL
+          value: "${OSMO_BASE_URL}"
+        - name: NEBIUS_SSO_ENABLED
+          value: "${NEBIUS_SSO_ENABLED:-false}"
+        - name: NEBIUS_SSO_ISSUER_URL
+          value: "${NEBIUS_SSO_ISSUER_URL:-}"
+        - name: NEBIUS_SSO_CLIENT_ID
+          value: "${NEBIUS_SSO_CLIENT_ID:-}"
+        - name: NEBIUS_SSO_GROUP_ATTRIBUTE
+          value: "${NEBIUS_SSO_GROUP_ATTRIBUTE:-groups}"
+        - name: CREATE_OSMO_TEST_USER
+          value: "${CREATE_OSMO_TEST_USER:-}"
+        - name: AUTH_DOMAIN
+          value: "${AUTH_DOMAIN:-}"
+        - name: MICROSOFT_SSO_TENANT
+          value: "${MICROSOFT_SSO_TENANT:-common}"
         volumeMounts:
         - name: realm-json
           mountPath: /data
+          readOnly: true
+        - name: nebius-sso-secret
+          mountPath: /etc/nebius-sso
+          readOnly: true
+        - name: google-sso-secret
+          mountPath: /etc/keycloak-google
+          readOnly: true
+        - name: github-sso-secret
+          mountPath: /etc/keycloak-github
+          readOnly: true
+        - name: microsoft-sso-secret
+          mountPath: /etc/keycloak-microsoft
           readOnly: true
         command:
         - /bin/sh
@@ -859,13 +1042,13 @@ spec:
           echo "Customising sample_osmo_realm.json for this deployment..."
           cp /data/realm.json /tmp/realm-import.json
 
-          # Replace placeholder URLs (https://default.com) with actual OSMO URL
-          sed -i "s|https://default.com|${OSMO_BASE_URL}|g" /tmp/realm-import.json
+          # Replace placeholder URLs (https://default.com) with actual OSMO URL (from env)
+          sed -i "s|https://default.com|\$OSMO_BASE_URL|g" /tmp/realm-import.json
 
-          # Replace masked client secret with generated secret
+          # Replace masked client secret with generated secret (host-interpolated)
           sed -i 's/"secret": "[*][*]*"/"secret": "${OIDC_CLIENT_SECRET}"/' /tmp/realm-import.json
 
-          echo "  OSMO URL:       ${OSMO_BASE_URL}"
+          echo "  OSMO URL:       \$OSMO_BASE_URL"
           echo "  Realm JSON:     \$(wc -c < /tmp/realm-import.json) bytes"
           echo ""
 
@@ -947,12 +1130,40 @@ spec:
           echo "Realm 'osmo' verified"
           echo ""
           
-          # ── Step 4b: Set client secret for osmo-browser-flow ───
+          # ── Step 4b: Set osmo-browser-flow redirect URIs (exact list, no empty string) ───
+          # Ensures Keycloak accepts the callback from Envoy; avoids "OAuth flow failed" at /getAToken.
+          echo "=== Step 4b: Set osmo-browser-flow redirect URIs ==="
+          TOKEN=\$(curl -s -X POST "\${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+            --data-urlencode "client_id=admin-cli" \
+            --data-urlencode "username=admin" \
+            --data-urlencode "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+            --data-urlencode "grant_type=password" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+          BROWSER_CLIENT_UUID=\$(curl -s "\${KEYCLOAK_URL}/admin/realms/osmo/clients?clientId=osmo-browser-flow" \
+            -H "Authorization: Bearer \$TOKEN" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+          if [ -n "\$BROWSER_CLIENT_UUID" ]; then
+            REDIRECT_URIS="[\"\$OSMO_BASE_URL/getAToken\",\"\$OSMO_BASE_URL/api/auth/getAToken\",\"\$OSMO_BASE_URL/setup/getAToken\"]"
+            curl -s "\${KEYCLOAK_URL}/admin/realms/osmo/clients/\${BROWSER_CLIENT_UUID}" \
+              -H "Authorization: Bearer \$TOKEN" > /tmp/browser-client-redirs.json
+            sed -i '/"redirectUris": \[/,/\]/c\
+  "redirectUris": '"\$REDIRECT_URIS" /tmp/browser-client-redirs.json
+            REDIR_PUT=\$(curl -s -o /dev/null -w "%{http_code}" -X PUT "\${KEYCLOAK_URL}/admin/realms/osmo/clients/\${BROWSER_CLIENT_UUID}" \
+              -H "Authorization: Bearer \$TOKEN" \
+              -H "Content-Type: application/json" \
+              -d @/tmp/browser-client-redirs.json)
+            if [ "\$REDIR_PUT" = "204" ] || [ "\$REDIR_PUT" = "200" ]; then
+              echo "  Redirect URIs set (getAToken, api/auth/getAToken, setup/getAToken)"
+            else
+              echo "  WARNING: Failed to set redirect URIs (HTTP \$REDIR_PUT)"
+            fi
+          fi
+          echo ""
+          
+          # ── Step 4c: Set client secret for osmo-browser-flow ───
           # Keycloak ignores the "secret" field during realm import and
           # generates its own random secret. We MUST explicitly set it via the
           # admin API so it matches the oidc-secrets Kubernetes secret that
           # Envoy reads at runtime.
-          echo "=== Step 4b: Set osmo-browser-flow client secret ==="
+          echo "=== Step 4c: Set osmo-browser-flow client secret ==="
           
           # Refresh token (import may have been slow)
           TOKEN=\$(curl -s -X POST "\${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
@@ -1007,7 +1218,152 @@ spec:
           fi
           echo ""
           
-          # ── Step 5: Create test user ────────────────────────────
+          # ── Step 4e: Ensure osmo-device has audience mapper (CLI dev-login token accepted by Envoy) ───
+          TOKEN=\$(curl -s -X POST "\${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+            --data-urlencode "client_id=admin-cli" \
+            --data-urlencode "username=admin" \
+            --data-urlencode "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+            --data-urlencode "grant_type=password" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+          DEVICE_CLIENT_UUID=\$(curl -s "\${KEYCLOAK_URL}/admin/realms/osmo/clients?clientId=osmo-device" \
+            -H "Authorization: Bearer \$TOKEN" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+          if [ -n "\$DEVICE_CLIENT_UUID" ]; then
+            HAS_AUD=\$(curl -s "\${KEYCLOAK_URL}/admin/realms/osmo/clients/\${DEVICE_CLIENT_UUID}/protocol-mappers/models" \
+              -H "Authorization: Bearer \$TOKEN" | grep -o '"name":"audience osmo-device"' || true)
+            if [ -z "\$HAS_AUD" ]; then
+              AUD_HTTP=\$(curl -s -o /dev/null -w "%{http_code}" -X POST "\${KEYCLOAK_URL}/admin/realms/osmo/clients/\${DEVICE_CLIENT_UUID}/protocol-mappers/models" \
+                -H "Authorization: Bearer \$TOKEN" \
+                -H "Content-Type: application/json" \
+                -d '{"name":"audience osmo-device","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.custom.audience":"osmo-device","access.token.claim":"true","id.token.claim":"false"}}')
+              if [ "\$AUD_HTTP" = "201" ] || [ "\$AUD_HTTP" = "204" ]; then
+                echo "  osmo-device audience mapper added (CLI tokens will include aud: osmo-device)"
+              fi
+            else
+              echo "  osmo-device audience mapper already present"
+            fi
+          fi
+          echo ""
+          
+          # ── Step 4d: Configure Nebius SSO IdP (when enabled) ──────
+          if [ "\$NEBIUS_SSO_ENABLED" = "true" ] && [ -n "\$NEBIUS_SSO_ISSUER_URL" ] && [ -n "\$NEBIUS_SSO_CLIENT_ID" ]; then
+            echo "=== Step 4c: Configure Nebius SSO Identity Provider ==="
+            NEBIUS_SSO_CLIENT_SECRET=""
+            if [ -f /etc/nebius-sso/client_secret ]; then
+              NEBIUS_SSO_CLIENT_SECRET=\$(cat /etc/nebius-sso/client_secret | tr -d '\n\r')
+            fi
+            if [ -z "\$NEBIUS_SSO_CLIENT_SECRET" ]; then
+              echo "  WARNING: Nebius SSO client secret not found (mount keycloak-nebius-sso-secret) – skipping IdP"
+            else
+              TOKEN=\$(curl -s -X POST "\${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+                --data-urlencode "client_id=admin-cli" \
+                --data-urlencode "username=admin" \
+                --data-urlencode "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+                --data-urlencode "grant_type=password" | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+              # Escape client secret for JSON (backslash and double-quote)
+              SECRET_ESC=\$(echo "\$NEBIUS_SSO_CLIENT_SECRET" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g')
+              # Delete existing nebius-sso IdP if present so re-run 04 always applies current config (e.g. pkceEnabled)
+              curl -s -o /dev/null -w "%{http_code}" -X DELETE "\${KEYCLOAK_URL}/admin/realms/osmo/identity-provider/instances/nebius-sso" -H "Authorization: Bearer \$TOKEN" | grep -q 204 && echo "  Removed existing nebius-sso IdP" || true
+              # Create custom first-broker-login flow for Nebius SSO:
+              # - Review Profile REQUIRED: user sets their username/display name on first login
+              # - Handle Existing Account DISABLED: no confusing "link existing account" password form
+              # Note: Nebius IAM only returns 'sub' in openid tokens (no preferred_username/email/profile scope)
+              #       so the Review Profile step lets users choose a readable display name once.
+              curl -s -o /dev/null -X DELETE "\${KEYCLOAK_URL}/admin/realms/osmo/authentication/flows/nebius-first-login" -H "Authorization: Bearer \$TOKEN" || true
+              curl -s -o /dev/null -w "%{http_code}" -X POST \
+                "\${KEYCLOAK_URL}/admin/realms/osmo/authentication/flows/first%20broker%20login/copy" \
+                -H "Authorization: Bearer \$TOKEN" -H "Content-Type: application/json" \
+                -d '{"newName":"nebius-first-login"}' | grep -qE "^(2|40)" || true
+              # Get the new flow's executions and update requirements
+              TOKEN=\$(curl -s -X POST "\${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+                --data-urlencode "client_id=admin-cli" --data-urlencode "username=admin" \
+                --data-urlencode "password=${KEYCLOAK_ADMIN_PASSWORD}" --data-urlencode "grant_type=password" \
+                | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+              _FLOW_EXECS=\$(curl -s "\${KEYCLOAK_URL}/admin/realms/osmo/authentication/flows/nebius-first-login/executions" -H "Authorization: Bearer \$TOKEN")
+              _REVIEW_ID=\$(echo "\$_FLOW_EXECS" | grep -o '"id":"[^"]*","requirement":"[^"]*","displayName":"Review Profile"' | grep -o '"id":"[^"]*"' | cut -d'"' -f4 || echo "\$_FLOW_EXECS" | python3 -c "import json,sys; d=json.load(sys.stdin); [print(e.get('id','')) for e in d if isinstance(e,dict) and 'Review Profile' in e.get('displayName','')]" 2>/dev/null | head -1)
+              _HANDLE_ID=\$(echo "\$_FLOW_EXECS" | python3 -c "import json,sys; d=json.load(sys.stdin); [print(e.get('id','')) for e in d if isinstance(e,dict) and 'Handle Existing Account' in e.get('displayName','')]" 2>/dev/null | head -1)
+              [ -n "\$_REVIEW_ID" ] && curl -s -o /dev/null -w "%{http_code}" -X PUT \
+                "\${KEYCLOAK_URL}/admin/realms/osmo/authentication/flows/nebius-first-login/executions" \
+                -H "Authorization: Bearer \$TOKEN" -H "Content-Type: application/json" \
+                -d "{\"id\":\"\$_REVIEW_ID\",\"requirement\":\"REQUIRED\"}" | grep -q 204 && echo "  Review Profile: REQUIRED" || true
+              [ -n "\$_HANDLE_ID" ] && curl -s -o /dev/null -w "%{http_code}" -X PUT \
+                "\${KEYCLOAK_URL}/admin/realms/osmo/authentication/flows/nebius-first-login/executions" \
+                -H "Authorization: Bearer \$TOKEN" -H "Content-Type: application/json" \
+                -d "{\"id\":\"\$_HANDLE_ID\",\"requirement\":\"DISABLED\"}" | grep -q 204 && echo "  Handle Existing Account: DISABLED" || true
+              # OIDC IdP: explicit auth/token URLs (Nebius discovery can yield null); pkceEnabled + pkceMethod S256 required by Nebius SSO
+              # authenticateByDefault=false: show login page so users can choose SSO vs local
+              echo "{\"alias\":\"nebius-sso\",\"providerId\":\"oidc\",\"displayName\":\"Nebius SSO\",\"enabled\":true,\"authenticateByDefault\":false,\"trustEmail\":true,\"storeToken\":false,\"addReadTokenRoleOnCreate\":false,\"linkOnly\":false,\"firstBrokerLoginFlowAlias\":\"nebius-first-login\",\"config\":{\"issuer\":\"\$NEBIUS_SSO_ISSUER_URL\",\"authorizationUrl\":\"\$NEBIUS_SSO_ISSUER_URL/oauth2/authorize\",\"tokenUrl\":\"\$NEBIUS_SSO_ISSUER_URL/oauth2/token\",\"clientId\":\"\$NEBIUS_SSO_CLIENT_ID\",\"clientSecret\":\"\$SECRET_ESC\",\"clientAuthMethod\":\"client_secret_basic\",\"defaultScope\":\"openid\",\"syncMode\":\"FORCE\",\"useJwksUrl\":\"true\",\"pkceEnabled\":\"true\",\"pkceMethod\":\"S256\"}}" > /tmp/idp.json
+              IDP_HTTP=\$(curl -s -o /tmp/idp-resp.txt -w "%{http_code}" -X POST "\${KEYCLOAK_URL}/admin/realms/osmo/identity-provider/instances" \
+                -H "Authorization: Bearer \$TOKEN" \
+                -H "Content-Type: application/json" \
+                -d @/tmp/idp.json)
+              if [ "\$IDP_HTTP" = "201" ] || [ "\$IDP_HTTP" = "204" ]; then
+                echo "  Nebius SSO IdP created (HTTP \$IDP_HTTP)"
+                # Add group mapper: map IdP group attribute to Keycloak realm groups (Admin, User, Backend Operator)
+                TOKEN=\$(curl -s -X POST "\${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+                  --data-urlencode "client_id=admin-cli" --data-urlencode "username=admin" \
+                  --data-urlencode "password=${KEYCLOAK_ADMIN_PASSWORD}" --data-urlencode "grant_type=password" \
+                  | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+                MAPPER_JSON="{\"name\":\"groups\",\"identityProviderMapper\":\"oidc-advanced-group-idp-mapper\",\"identityProviderAlias\":\"nebius-sso\",\"config\":{\"syncMode\":\"INHERIT\",\"groups.claim\":\"\$NEBIUS_SSO_GROUP_ATTRIBUTE\"}}"
+                curl -s -X POST "\${KEYCLOAK_URL}/admin/realms/osmo/identity-provider/instances/nebius-sso/mappers" \
+                  -H "Authorization: Bearer \$TOKEN" -H "Content-Type: application/json" -d "\$MAPPER_JSON" > /dev/null || echo "  Note: group mapper may need manual config in Keycloak"
+                echo "  Group/role mapping: IdP attribute '\$NEBIUS_SSO_GROUP_ATTRIBUTE' -> realm groups"
+                echo "  Username: set by user in Review Profile on first login (Nebius only provides 'sub', no preferred_username)"
+              else
+                echo "  WARNING: Nebius SSO IdP creation returned HTTP \$IDP_HTTP"
+                cat /tmp/idp-resp.txt 2>/dev/null || true
+              fi
+            fi
+            echo ""
+          fi
+
+          # ── Step 4e: Google / GitHub / Microsoft IdPs (when secrets mounted) ─
+          add_social_idp() {
+            ALIAS=\$1
+            PROVIDER=\$2
+            DISPLAY=\$3
+            SECRET_DIR=\$4
+            if [ -f "\${SECRET_DIR}/client_id" ] && [ -f "\${SECRET_DIR}/client_secret" ]; then
+              CID=\$(cat "\${SECRET_DIR}/client_id" | tr -d '\n\r')
+              SECRET=\$(cat "\${SECRET_DIR}/client_secret" | tr -d '\n\r')
+              [ -z "\$CID" ] || [ -z "\$SECRET" ] && return
+              TOKEN=\$(curl -s -X POST "\${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+                --data-urlencode "client_id=admin-cli" --data-urlencode "username=admin" \
+                --data-urlencode "password=${KEYCLOAK_ADMIN_PASSWORD}" --data-urlencode "grant_type=password" \
+                | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+              SECRET_ESC=\$(echo "\$SECRET" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g')
+              curl -s -o /dev/null -w "%{http_code}" -X DELETE "\${KEYCLOAK_URL}/admin/realms/osmo/identity-provider/instances/\${ALIAS}" -H "Authorization: Bearer \$TOKEN" | grep -q 204 && echo "  Removed existing \${ALIAS} IdP" || true
+              EXTRA=""
+              [ "\$PROVIDER" = "microsoft" ] && EXTRA=",\"tenant\":\"\${MICROSOFT_SSO_TENANT:-common}\""
+              BODY="{\"alias\":\"\${ALIAS}\",\"providerId\":\"\${PROVIDER}\",\"displayName\":\"\${DISPLAY}\",\"enabled\":true,\"trustEmail\":true,\"firstBrokerLoginFlowAlias\":\"first broker login\",\"config\":{\"clientId\":\"\${CID}\",\"clientSecret\":\"\${SECRET_ESC}\"\${EXTRA}}}"
+              HTTP=\$(curl -s -o /tmp/idp-resp.txt -w "%{http_code}" -X POST "\${KEYCLOAK_URL}/admin/realms/osmo/identity-provider/instances" \
+                -H "Authorization: Bearer \$TOKEN" -H "Content-Type: application/json" -d "\$BODY")
+              if [ "\$HTTP" = "201" ] || [ "\$HTTP" = "204" ]; then
+                echo "  \${DISPLAY} IdP created (HTTP \$HTTP)"
+                if [ -n "\$AUTH_DOMAIN" ]; then
+                  echo "    Redirect URI: https://\${AUTH_DOMAIN}/realms/osmo/broker/\${ALIAS}/endpoint"
+                fi
+              else
+                echo "  WARNING: \${DISPLAY} IdP returned HTTP \$HTTP"
+                cat /tmp/idp-resp.txt 2>/dev/null || true
+              fi
+            fi
+          }
+          if [ -d /etc/keycloak-google ] || [ -d /etc/keycloak-github ] || [ -d /etc/keycloak-microsoft ]; then
+            echo "=== Step 4e: Social IdPs (Google / GitHub / Microsoft) ==="
+            add_social_idp "google"   "google"   "Google"   "/etc/keycloak-google"
+            add_social_idp "github"   "github"   "GitHub"   "/etc/keycloak-github"
+            add_social_idp "microsoft" "microsoft" "Microsoft" "/etc/keycloak-microsoft"
+            echo ""
+          fi
+          
+          # ── Step 5: Create test user (skip when Nebius SSO is primary) ─
+          CREATE_USER="false"
+          if [ "\$NEBIUS_SSO_ENABLED" != "true" ]; then
+            CREATE_USER="true"
+          fi
+          if [ "\$CREATE_OSMO_TEST_USER" = "true" ]; then
+            CREATE_USER="true"
+          fi
+          if [ "\$CREATE_USER" = "true" ]; then
           echo "=== Step 5: Create test user ==="
           
           # Refresh admin token (import may have taken a while)
@@ -1032,32 +1388,20 @@ spec:
             }' || echo "User may already exist"
           echo ""
           
-          # ── Step 6: Assign user to Admin group ──────────────────
           echo "=== Step 6: Assign user to Admin group ==="
-          
-          # Get user internal ID
           USER_ID=\$(curl -s "\${KEYCLOAK_URL}/admin/realms/osmo/users?username=osmo-admin" \
             -H "Authorization: Bearer \$TOKEN" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
-          
           if [ -n "\$USER_ID" ]; then
-            echo "  User ID: \$USER_ID"
-            
-            # Get Admin group internal ID
             ADMIN_GROUP_ID=\$(curl -s "\${KEYCLOAK_URL}/admin/realms/osmo/groups?search=Admin" \
               -H "Authorization: Bearer \$TOKEN" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
-            
             if [ -n "\$ADMIN_GROUP_ID" ]; then
-              echo "  Admin Group ID: \$ADMIN_GROUP_ID"
               curl -s -X PUT "\${KEYCLOAK_URL}/admin/realms/osmo/users/\${USER_ID}/groups/\${ADMIN_GROUP_ID}" \
-                -H "Authorization: Bearer \$TOKEN" \
-                -H "Content-Type: application/json" \
-                -d '{}' || echo "Failed to assign group"
-              echo "  User 'osmo-admin' assigned to Admin group (osmo-admin + osmo-user roles)"
-            else
-              echo "  WARNING: Admin group not found – user roles may need manual assignment"
+                -H "Authorization: Bearer \$TOKEN" -H "Content-Type: application/json" -d '{}' || true
+              echo "  User 'osmo-admin' assigned to Admin group"
             fi
+          fi
           else
-            echo "  WARNING: Could not find osmo-admin user ID"
+          echo "=== Step 5: Skip test user (Nebius SSO is primary; set CREATE_OSMO_TEST_USER=true for break-glass user) ==="
           fi
           echo ""
           
@@ -1072,7 +1416,11 @@ spec:
           echo "Groups:   Admin, User, Backend Operator"
           echo "Roles:    osmo-admin, osmo-user, osmo-backend, grafana-*, dashboard-*"
           echo "Mappers:  JWT 'roles' claim configured on both clients"
-          echo "Test user: osmo-admin / osmo-admin (Admin group)"
+          if [ "\$NEBIUS_SSO_ENABLED" = "true" ]; then
+            echo "IdP:      Nebius SSO (primary); no default local user"
+          else
+            echo "Test user: osmo-admin / osmo-admin (Admin group)"
+          fi
           echo ""
 EOF
 
@@ -1088,6 +1436,70 @@ EOF
         kubectl logs -n "${KEYCLOAK_NAMESPACE}" -l job-name=keycloak-osmo-setup --tail=50 || true
     }
     
+    # Set osmo realm frontendUrl so Nebius SSO redirect_uri uses AUTH_DOMAIN (not .local)
+    if [[ "$KC_EXTERNAL" == "true" && -n "${AUTH_DOMAIN:-}" && -n "${KEYCLOAK_ADMIN_PASSWORD:-}" ]]; then
+        log_info "Setting Keycloak realm 'osmo' frontendUrl to https://${AUTH_DOMAIN} (for Nebius SSO redirect_uri)..."
+        KC_URL="https://${AUTH_DOMAIN}"
+        _kc_token=""
+        _token_resp="/tmp/osmo-kc-token.json"
+        for _i in 1 2 3 4 5; do
+            curl -sk -X POST "${KC_URL}/realms/master/protocol/openid-connect/token" \
+                --data-urlencode "client_id=admin-cli" \
+                --data-urlencode "username=admin" \
+                --data-urlencode "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+                --data-urlencode "grant_type=password" -o "$_token_resp" 2>/dev/null || true
+            if [[ -s "$_token_resp" ]] && jq -e . "$_token_resp" >/dev/null 2>&1; then
+                _kc_token=$(jq -r '.access_token // empty' "$_token_resp")
+            fi
+            [[ -n "$_kc_token" ]] && break
+            sleep 5
+        done
+        rm -f "$_token_resp"
+        if [[ -n "$_kc_token" ]]; then
+            _realm_json="/tmp/osmo-realm-get.json"
+            curl -sk -H "Authorization: Bearer $_kc_token" "${KC_URL}/admin/realms/osmo" -o "$_realm_json" 2>/dev/null || true
+            if [[ -s "$_realm_json" ]] && jq -e . "$_realm_json" >/dev/null 2>&1; then
+                if jq --arg url "https://${AUTH_DOMAIN}" '.attributes = ((.attributes // {}) | . + {"frontendUrl": $url})' "$_realm_json" > /tmp/osmo-realm-frontend.json 2>/dev/null; then
+                    _put_code=$(curl -sk -o /dev/null -w "%{http_code}" -X PUT "${KC_URL}/admin/realms/osmo" \
+                        -H "Authorization: Bearer $_kc_token" \
+                        -H "Content-Type: application/json" \
+                        -d @/tmp/osmo-realm-frontend.json 2>/dev/null)
+                    if [[ "$_put_code" == "204" || "$_put_code" == "200" ]]; then
+                        log_success "Realm frontendUrl set; Nebius SSO redirect_uri will use https://${AUTH_DOMAIN}"
+                    else
+                        log_warning "Realm frontendUrl PUT returned HTTP $_put_code"
+                    fi
+                else
+                    log_warning "Could not transform realm JSON for frontendUrl"
+                fi
+            else
+                log_warning "Keycloak realm 'osmo' not available yet (GET returned non-JSON or 404). Set frontendUrl later when Keycloak is ready, or re-run this script after Keycloak is up."
+            fi
+            rm -f /tmp/osmo-realm-frontend.json "$_realm_json"
+        else
+            log_warning "Could not get Keycloak admin token (is ${KC_URL} reachable?). Nebius SSO may show Invalid redirect_uri."
+        fi
+    fi
+
+    # Update Nebius IAM OIDC client redirect URI so this cluster's Keycloak callback is allowed (per-cluster).
+    if [[ "${NEBIUS_SSO_ENABLED:-false}" == "true" && -n "${NEBIUS_SSO_CLIENT_ID:-}" && -n "${AUTH_DOMAIN:-}" ]]; then
+        _npc_redirect_uri="https://${AUTH_DOMAIN}/realms/osmo/broker/nebius-sso/endpoint"
+        if command -v npc &>/dev/null; then
+            log_info "Updating Nebius IAM OIDC client redirect URI (per-cluster)..."
+            if npc iam oidc-client update "${NEBIUS_SSO_CLIENT_ID}" \
+                --redirect-uris "${_npc_redirect_uri}" \
+                --authorization-grant-types authorization_code \
+                --patch \
+                --format yaml &>/dev/null; then
+                log_success "Nebius IAM OIDC client redirect URI set to ${_npc_redirect_uri}"
+            else
+                log_warning "npc oidc-client update failed (run manually): npc iam oidc-client update ${NEBIUS_SSO_CLIENT_ID} --redirect-uris '${_npc_redirect_uri}' --authorization-grant-types authorization_code --patch --format yaml"
+            fi
+        else
+            log_warning "npc not found; update Nebius IAM OIDC client redirect URI manually (see end of script output)."
+        fi
+    fi
+
     # Store the client secret for OIDC (used by Envoy sidecar)
     kubectl create secret generic oidc-secrets \
         --namespace "${OSMO_NAMESPACE}" \
@@ -1106,7 +1518,11 @@ EOF
         echo "  URL: https://${AUTH_DOMAIN}"
         echo "  Admin console: https://${AUTH_DOMAIN}/admin"
         echo "  Admin: admin / ${KEYCLOAK_ADMIN_PASSWORD}"
-        echo "  Test User: osmo-admin / osmo-admin"
+        if [[ "${NEBIUS_SSO_ENABLED:-false}" == "true" ]]; then
+            echo "  Login: Nebius SSO (primary); no default username/password"
+        else
+            echo "  Test User: osmo-admin / osmo-admin"
+        fi
         echo ""
         echo "OSMO Auth Endpoints:"
         echo "  Token: https://${AUTH_DOMAIN}/realms/osmo/protocol/openid-connect/token"
@@ -1121,7 +1537,11 @@ EOF
         echo "  kubectl port-forward -n ${KEYCLOAK_NAMESPACE} svc/keycloak 8081:80"
         echo "  URL: http://localhost:8081"
         echo "  Admin: admin / ${KEYCLOAK_ADMIN_PASSWORD}"
-        echo "  Test User: osmo-admin / osmo-admin"
+        if [[ "${NEBIUS_SSO_ENABLED:-false}" == "true" ]]; then
+            echo "  Login: Nebius SSO (primary)"
+        else
+            echo "  Test User: osmo-admin / osmo-admin"
+        fi
         echo ""
         echo "OSMO Auth Endpoints (in-cluster):"
         echo "  Token: ${KEYCLOAK_URL}/realms/osmo/protocol/openid-connect/token"
@@ -1631,6 +2051,17 @@ if [[ "$TLS_ENABLED" == "true" && -n "$INGRESS_HOSTNAME" ]]; then
     fi
 fi
 
+# Remove all Envoy ConfigMaps so Helm can recreate them (avoids "conflict with helm" on .data.config.yaml)
+# Otherwise upgrades fail and pods keep old Keycloak URL (e.g. auth-osmo.local) -> 404 on /
+_envoy_cms=$(kubectl get configmap -n "${OSMO_NAMESPACE}" -o name 2>/dev/null | grep -E 'envoy-config$' || true)
+if [[ -n "$_envoy_cms" ]]; then
+    log_info "Removing Envoy ConfigMaps so Helm can recreate with current config..."
+    while IFS= read -r _cm; do
+        [[ -z "$_cm" ]] && continue
+        kubectl delete "$_cm" -n "${OSMO_NAMESPACE}" --ignore-not-found
+    done <<< "$_envoy_cms"
+fi
+
 helm upgrade --install osmo-router osmo/router \
     "${ROUTER_HELM_ARGS[@]}" \
     --wait --timeout 5m || log_warning "Router deployment had issues"
@@ -1643,6 +2074,16 @@ log_success "OSMO Router deployed"
 if [[ "${DEPLOY_UI:-true}" == "true" ]]; then
     log_info "Deploying OSMO Web UI..."
 
+    # When TLS is enabled, Next.js builds https://<apiHostname>/api/auth/login server-side.
+    # Using the internal cluster service (HTTP :80) with SSL=true causes a TLS handshake error
+    # ("packet length too long": HTTPS client hits HTTP port). Use the external ingress hostname
+    # so the call goes through nginx with proper TLS termination.
+    if [[ "$TLS_ENABLED" == "true" && -n "${INGRESS_HOSTNAME:-}" ]]; then
+        _UI_API_HOSTNAME="${INGRESS_HOSTNAME}"
+    else
+        _UI_API_HOSTNAME="osmo-service.${OSMO_NAMESPACE}.svc.cluster.local:80"
+    fi
+
     UI_HELM_ARGS=(
         --namespace "${OSMO_NAMESPACE}"
         --set services.ui.service.type=ClusterIP
@@ -1650,8 +2091,15 @@ if [[ "${DEPLOY_UI:-true}" == "true" ]]; then
         --set services.ui.ingress.ingressClass=nginx
         --set "services.ui.ingress.sslEnabled=${TLS_ENABLED}"
         --set services.ui.replicas=1
-        --set "services.ui.apiHostname=osmo-service.${OSMO_NAMESPACE}.svc.cluster.local:80"
+        --set "services.ui.apiHostname=${_UI_API_HOSTNAME}"
         --set sidecars.logAgent.enabled=false
+        # NEXT_PUBLIC_OSMO_AUTH_HOSTNAME: used by the UI to build Keycloak auth/token/logout URLs
+        # as a fallback when the backend /api/auth/login call is unavailable.
+        --set "services.ui.extraEnvs[0].name=NEXT_PUBLIC_OSMO_AUTH_HOSTNAME"
+        --set "services.ui.extraEnvs[0].value=${AUTH_DOMAIN:-}"
+        # NEXT_PUBLIC_OSMO_SSL_ENABLED: must match whether TLS is terminated at the ingress
+        # so the UI builds https:// URLs for Keycloak endpoints correctly.
+        --set "services.ui.nextjsSslEnabled=${TLS_ENABLED}"
     )
     [[ -n "$INGRESS_HOSTNAME" ]] && UI_HELM_ARGS+=(--set "services.ui.hostname=${INGRESS_HOSTNAME}" --set "global.domain=${INGRESS_HOSTNAME}")
 
@@ -1716,11 +2164,202 @@ if [[ "${DEPLOY_UI:-true}" == "true" ]]; then
         fi
     fi
 
+    # Remove osmo-ui-trpc ingress so Helm can recreate it (avoids "conflict with kubectl-patch" on .spec.rules)
+    kubectl delete ingress osmo-ui-trpc -n "${OSMO_NAMESPACE}" --ignore-not-found 2>/dev/null || true
+
     helm upgrade --install osmo-ui osmo/web-ui \
         "${UI_HELM_ARGS[@]}" \
         --wait --timeout 5m || log_warning "UI deployment had issues"
 
     log_success "OSMO Web UI deployed"
+
+    # tRPC routing fix: the Next.js app has a broken built-in rewrite
+    #   /api/:path* → https://undefined/api/:path*  (env var was unset at image build time)
+    # The actual tRPC handler in Next.js lives at /trpc/[trpc]/route.js (not /api/trpc/).
+    # The Helm chart already creates osmo-ui-trpc ingress with /api/trpc → osmo-ui.
+    # We just need to add configuration-snippet so nginx rewrites /api/trpc/... → /trpc/...
+    # before proxying, so Next.js receives /trpc/... (valid route) not /api/trpc/... (broken rewrite).
+    if [[ -n "${INGRESS_HOSTNAME:-}" ]]; then
+        # Enable snippet annotations (required for configuration-snippet; v1.9+ also needs annotations-risk-level=Critical)
+        _nginx_ns="${INGRESS_NAMESPACE:-ingress-nginx}"
+        if kubectl get configmap ingress-nginx-controller -n "$_nginx_ns" &>/dev/null; then
+            _snippets_val=$(kubectl get configmap ingress-nginx-controller -n "$_nginx_ns" -o jsonpath='{.data.allow-snippet-annotations}' 2>/dev/null || true)
+            _risk_val=$(kubectl get configmap ingress-nginx-controller -n "$_nginx_ns" -o jsonpath='{.data.annotations-risk-level}' 2>/dev/null || true)
+            if [[ "$_snippets_val" != "true" || "$_risk_val" != "Critical" ]]; then
+                log_info "Enabling allow-snippet-annotations + annotations-risk-level=Critical in nginx ingress controller..."
+                kubectl patch configmap ingress-nginx-controller -n "$_nginx_ns" \
+                    --type merge -p '{"data":{"allow-snippet-annotations":"true","annotations-risk-level":"Critical"}}' 2>/dev/null && \
+                    log_success "nginx ingress: snippet annotations enabled (risk level=Critical)" || \
+                    log_warning "Could not patch nginx ingress ConfigMap — snippet rewrite may fail"
+                # Restart controller so the admission webhook picks up the new settings
+                kubectl rollout restart deployment/ingress-nginx-controller -n "$_nginx_ns" 2>/dev/null || true
+                kubectl rollout status deployment/ingress-nginx-controller -n "$_nginx_ns" --timeout=90s 2>/dev/null || true
+            else
+                log_info "nginx ingress: snippet annotations already enabled"
+            fi
+        fi
+        # Delete the separate rewrite ingress if it exists from a previous run (no longer needed)
+        kubectl delete ingress osmo-ui-trpc-rewrite -n "${OSMO_NAMESPACE}" --ignore-not-found 2>/dev/null || true
+        # Patch the Helm-created osmo-ui-trpc ingress to add the rewrite snippet
+        if kubectl get ingress osmo-ui-trpc -n "${OSMO_NAMESPACE}" &>/dev/null; then
+            kubectl patch ingress osmo-ui-trpc -n "${OSMO_NAMESPACE}" --type merge \
+                -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/configuration-snippet":"rewrite ^/api/trpc(/?.*)$ /trpc$1 break;\n"}}}' \
+                2>/dev/null && log_info "osmo-ui-trpc ingress: added /api/trpc → /trpc rewrite snippet" || \
+                log_warning "Could not patch osmo-ui-trpc ingress with rewrite snippet"
+        else
+            log_warning "osmo-ui-trpc ingress not found — Helm may not have created it yet; re-run script after Helm deploy"
+        fi
+    fi
+    # Longer timeouts for osmo-service ingress: auth round-trip and workflow submit (CLI read timeout ~60s; use 300s so server is not the bottleneck)
+    if kubectl get ingress osmo-service -n "${OSMO_NAMESPACE}" &>/dev/null; then
+        kubectl patch ingress osmo-service -n "${OSMO_NAMESPACE}" --type=merge -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/proxy-read-timeout":"300","nginx.ingress.kubernetes.io/proxy-send-timeout":"300","nginx.ingress.kubernetes.io/proxy-connect-timeout":"60"}}}' 2>/dev/null && log_info "osmo-service ingress: proxy timeouts set to 300s (auth + workflow submit)" || true
+    fi
+fi
+
+# -----------------------------------------------------------------------------
+# Envoy hostname + Lua roles
+# -----------------------------------------------------------------------------
+# Required for: correct redirects (no .local), and Nebius SSO (Lua tolerates JWT
+# without .roles). Runs after Helm so chart-created ConfigMaps get patched.
+# /api/* is served by osmo-service, so service Envoy must have the same roles fix.
+if [[ -n "${AUTH_DOMAIN:-}" && -n "${INGRESS_HOSTNAME:-}" ]]; then
+    log_info "Applying Envoy hostname and Lua roles fix (redirects + Nebius SSO)..."
+    # If osmo-service-envoy-config is missing (chart sometimes doesn't create it), create from running pod.
+    if ! kubectl get configmap osmo-service-envoy-config -n "${OSMO_NAMESPACE}" &>/dev/null; then
+        _svc_pod=$(kubectl get pods -n "${OSMO_NAMESPACE}" -l app=osmo-service -o jsonpath='{.items[?(@.status.phase=="Running")].metadata.name}' 2>/dev/null | awk '{print $1}')
+        if [[ -n "$_svc_pod" ]]; then
+            log_info "Creating missing osmo-service-envoy-config from pod $_svc_pod..."
+            kubectl exec -n "${OSMO_NAMESPACE}" "$_svc_pod" -c envoy -- cat /var/config/config.yaml 2>/dev/null > /tmp/osmo-service-envoy-config.yaml || true
+            if [[ -s /tmp/osmo-service-envoy-config.yaml ]]; then
+                kubectl create configmap osmo-service-envoy-config -n "${OSMO_NAMESPACE}" --from-file=config.yaml=/tmp/osmo-service-envoy-config.yaml 2>/dev/null && log_success "Created osmo-service-envoy-config" || true
+            fi
+            rm -f /tmp/osmo-service-envoy-config.yaml
+        else
+            log_warning "osmo-service-envoy-config missing and no running osmo-service pod to copy from; /api may 403 until ConfigMap exists."
+        fi
+    fi
+    for _cm in osmo-ui-envoy-config osmo-router-envoy-config osmo-service-envoy-config osmo-agent-envoy-config osmo-logger-envoy-config; do
+        if kubectl get configmap "$_cm" -n "${OSMO_NAMESPACE}" -o json 2>/dev/null | jq -e '.data["config.yaml"]' &>/dev/null; then
+            _before=$(kubectl get configmap "$_cm" -n "${OSMO_NAMESPACE}" -o json 2>/dev/null | jq -r '.data["config.yaml"]' | grep -oE 'https?://[^"'\'' ]+' | grep -E 'auth-osmo\.local|osmo\.local' | head -3 || true)
+            # Lua fix: avoid "table expected, got nil" when JWT has no .roles (e.g. Nebius SSO).
+            # Always ensure osmo-user and osmo-admin are present.
+            _lua_safe='local roles = meta.verified_jwt.roles
+                          if roles == nil then
+                            local ra = meta.verified_jwt.realm_access
+                            if ra ~= nil and ra.roles ~= nil then
+                              roles = ra.roles
+                            end
+                          end
+                          if roles == nil then
+                            roles = {"osmo-user","osmo-admin"}
+                          else
+                            local has_osmo_user = false
+                            local has_osmo_admin = false
+                            for _, r in ipairs(roles) do
+                              if r == "osmo-user" then has_osmo_user = true end
+                              if r == "osmo-admin" then has_osmo_admin = true end
+                            end
+                            if not has_osmo_user then table.insert(roles, "osmo-user") end
+                            if not has_osmo_admin then table.insert(roles, "osmo-admin") end
+                          end
+                          local roles_list = table.concat(roles, '"'"','"'"')
+                          local user = request_handle:headers():get("x-osmo-user")
+                          if user == nil or user == "" then
+                            user = "osmo-admin"
+                          end
+                          request_handle:headers():replace("x-osmo-user", user)
+                          request_handle:headers():replace("x-osmo-roles", roles_list)'
+            # When JWT is missing or verification failed, don't return early: set default meta so
+            # the roles Lua still runs and sets x-osmo-user/x-osmo-roles (fixes UI 403 spinner).
+            _early_return_patch='if (meta == nil or meta.verified_jwt == nil) then meta = { verified_jwt = {} } end'
+            # Service Envoy uses only "if (meta.verified_jwt == nil) then return end"; set meta when nil so Lua does not error.
+            _early_return_service='if (meta == nil or meta.verified_jwt == nil) then meta = { verified_jwt = {} } end'
+            kubectl get configmap "$_cm" -n "${OSMO_NAMESPACE}" -o json | \
+                jq --arg auth "${AUTH_DOMAIN}" --arg host "${INGRESS_HOSTNAME}" --arg lua "$_lua_safe" --arg early "$_early_return_patch" --arg early_svc "$_early_return_service" \
+                '.data["config.yaml"] |= (
+                   gsub("auth-osmo\\.local"; $auth)
+                   | gsub("osmo\\.local"; $host)
+                   | gsub("if \\(meta == nil or meta\\.verified_jwt == nil\\) then\\s+return\\s+end"; $early)
+                   | gsub("if \\(meta\\.verified_jwt == nil\\) then\\s+return\\s+end"; $early_svc)
+                   | gsub("local roles_list = table.concat\\([^)]*\\)"; $lua)
+                 )' | \
+                kubectl apply -f -
+            if [[ -n "$_before" ]]; then
+                log_info "Patched $_cm: replaced .local hostnames with ${INGRESS_HOSTNAME} / ${AUTH_DOMAIN}"
+            fi
+        fi
+    done
+    # Fix prerendered /auth/login_info: baked at build time with "undefined" hostnames.
+    # Next.js statically generated this route during docker build (NEXT_PHASE=phase-production-build),
+    # so it serves a cached .body file with browser_endpoint="https://undefined/...".
+    # Fix: mount a corrected JSON body via ConfigMap, overriding the bad prerendered cache.
+    if kubectl get deployment osmo-ui -n "${OSMO_NAMESPACE}" &>/dev/null; then
+        log_info "Fixing prerendered auth/login_info cache (hostname was undefined at build time)..."
+        _li_scheme="https"; [[ "${TLS_ENABLED:-false}" != "true" ]] && _li_scheme="http"
+        printf '%s' "{\"auth_enabled\":true,\"device_endpoint\":\"${_li_scheme}://${AUTH_DOMAIN}/realms/osmo/protocol/openid-connect/auth/device\",\"device_client_id\":\"osmo-device\",\"browser_endpoint\":\"${_li_scheme}://${AUTH_DOMAIN}/realms/osmo/protocol/openid-connect/auth\",\"browser_client_id\":\"osmo-browser-flow\",\"token_endpoint\":\"${_li_scheme}://${AUTH_DOMAIN}/realms/osmo/protocol/openid-connect/token\",\"logout_endpoint\":\"${_li_scheme}://${AUTH_DOMAIN}/realms/osmo/protocol/openid-connect/logout\"}" \
+            > /tmp/osmo_login_info.body
+        kubectl create configmap osmo-ui-login-info-cache \
+            --from-file=login_info.body=/tmp/osmo_login_info.body \
+            -n "${OSMO_NAMESPACE}" \
+            --dry-run=client -o yaml | kubectl apply -f - 2>/dev/null && \
+            log_info "Created/updated osmo-ui-login-info-cache ConfigMap" || \
+            log_warning "Could not create osmo-ui-login-info-cache ConfigMap"
+        rm -f /tmp/osmo_login_info.body
+        _LI_BODY_PATH="/app/ui/standalone_server.runfiles/osmo_workspace+/ui/standalone_server/standalone/osmo_workspace+/ui/.next/server/app/auth/login_info.body"
+        _li_existing_vol=$(kubectl get deployment osmo-ui -n "${OSMO_NAMESPACE}" \
+            -o jsonpath='{.spec.template.spec.volumes[*].name}' 2>/dev/null | tr ' ' '\n' | grep -w "login-info-cache" || true)
+        if [[ -z "$_li_existing_vol" ]]; then
+            # Use strategic merge patch (JSON patch with '-' fails when volumeMounts is empty [])
+            kubectl patch deployment osmo-ui -n "${OSMO_NAMESPACE}" --type=strategic -p "{
+              \"spec\":{\"template\":{\"spec\":{
+                \"volumes\":[{\"name\":\"login-info-cache\",\"configMap\":{\"name\":\"osmo-ui-login-info-cache\"}}],
+                \"containers\":[{\"name\":\"osmo-ui\",\"volumeMounts\":[{\"name\":\"login-info-cache\",\"mountPath\":\"${_LI_BODY_PATH}\",\"subPath\":\"login_info.body\"}]}]
+              }}}}" 2>/dev/null && log_info "osmo-ui: login_info.body volume mount added" || \
+                log_warning "Could not patch osmo-ui deployment for login_info.body; username may still show 'undefined'"
+        else
+            log_info "osmo-ui already has login-info-cache volume (ConfigMap content updated above)"
+        fi
+    fi
+    # Restart deployments that use Envoy so they pick up patched config
+    for _d in osmo-ui osmo-router osmo-service osmo-agent osmo-logger; do
+        if kubectl get deployment "$_d" -n "${OSMO_NAMESPACE}" &>/dev/null; then
+            kubectl rollout restart deployment "$_d" -n "${OSMO_NAMESPACE}" 2>/dev/null || true
+        fi
+    done
+    # Wait for router, service, and UI so next request hits patched config. /api/* goes to osmo-service.
+    if kubectl get deployment osmo-router -n "${OSMO_NAMESPACE}" &>/dev/null; then
+        log_info "Waiting for osmo-router rollout to pick up Envoy config..."
+        kubectl rollout status deployment osmo-router -n "${OSMO_NAMESPACE}" --timeout=120s 2>/dev/null || true
+    fi
+    if kubectl get deployment osmo-service -n "${OSMO_NAMESPACE}" &>/dev/null; then
+        log_info "Waiting for osmo-service rollout to pick up Envoy config..."
+        kubectl rollout status deployment osmo-service -n "${OSMO_NAMESPACE}" --timeout=120s 2>/dev/null || true
+    fi
+    if kubectl get deployment osmo-ui -n "${OSMO_NAMESPACE}" &>/dev/null; then
+        log_info "Waiting for osmo-ui rollout to pick up Envoy config..."
+        kubectl rollout status deployment osmo-ui -n "${OSMO_NAMESPACE}" --timeout=120s 2>/dev/null || true
+    fi
+    # Verify roles fix and early-return fix in router and service (fixes 403 / UI spinner; /api/* is served by service)
+    _router_cfg=$(kubectl get configmap osmo-router-envoy-config -n "${OSMO_NAMESPACE}" -o jsonpath='{.data.config\.yaml}' 2>/dev/null || true)
+    _service_cfg=$(kubectl get configmap osmo-service-envoy-config -n "${OSMO_NAMESPACE}" -o jsonpath='{.data.config\.yaml}' 2>/dev/null || true)
+    if echo "$_router_cfg" | grep -q 'verified_jwt = {}'; then
+        log_info "Envoy early-return fix verified in router (nil JWT now gets default roles)."
+    fi
+    if echo "$_service_cfg" | grep -q 'verified_jwt = {}'; then
+        log_info "Envoy early-return fix verified in service (/api/* will get x-osmo-user/x-osmo-roles)."
+    fi
+    if echo "$_router_cfg" | grep -q 'osmo-admin'; then
+        log_info "Envoy roles fix verified in osmo-router-envoy-config (x-osmo-roles will include osmo-admin)."
+    else
+        log_warning "osmo-router-envoy-config may not have the roles fix (no 'osmo-admin' in Lua). If Workflows page keeps spinning with 403, patch the ConfigMap manually or re-run this script."
+    fi
+    if [[ -n "$_service_cfg" ]] && ! echo "$_service_cfg" | grep -q 'osmo-admin'; then
+        log_warning "osmo-service-envoy-config may not have the roles fix. /api/workflow, /api/users, /api/pool go to service; re-run this script to patch."
+    fi
+else
+    if [[ "${DEPLOY_KEYCLOAK:-false}" == "true" ]]; then
+        log_warning "Envoy hostname/Lua fix skipped: AUTH_DOMAIN or INGRESS_HOSTNAME not set. Set OSMO_INGRESS_HOSTNAME (e.g. in osmo-deploy.env) and re-run for correct redirects and Nebius SSO."
+    fi
 fi
 
 # Cleanup temp files
@@ -1745,6 +2384,7 @@ PATCH_EOF
 
 # All OSMO deployments that need the vault-secrets volume for MEK
 OSMO_DEPLOYMENTS=(osmo-service osmo-worker osmo-agent osmo-logger osmo-delayed-job-monitor osmo-router)
+VAULT_PATCHED_ANY=false
 
 for deploy in "${OSMO_DEPLOYMENTS[@]}"; do
     if kubectl get deployment/$deploy -n "${OSMO_NAMESPACE}" &>/dev/null; then
@@ -1756,6 +2396,7 @@ for deploy in "${OSMO_DEPLOYMENTS[@]}"; do
             log_info "  Patching $deploy to add vault-secrets volume..."
             if kubectl patch deployment/$deploy -n "${OSMO_NAMESPACE}" --type=json --patch-file=/tmp/vault-patch.json; then
                 log_success "  $deploy patched successfully"
+                VAULT_PATCHED_ANY=true
             else
                 log_warning "  Failed to patch $deploy"
             fi
@@ -1770,14 +2411,18 @@ done
 # Cleanup patch file
 rm -f /tmp/vault-patch.json
 
-# Wait for rollouts to complete
-log_info "Waiting for deployments to roll out with new configuration..."
-for deploy in "${OSMO_DEPLOYMENTS[@]}"; do
-    if kubectl get deployment/$deploy -n "${OSMO_NAMESPACE}" &>/dev/null; then
-        kubectl rollout status deployment/$deploy -n "${OSMO_NAMESPACE}" --timeout=180s || \
-            log_warning "  Timeout waiting for $deploy rollout"
-    fi
-done
+# Wait for rollouts only if we patched something (re-run: skip when all already had vault-secrets)
+if [[ "$VAULT_PATCHED_ANY" == "true" ]]; then
+    log_info "Waiting for deployments to roll out with new configuration..."
+    for deploy in "${OSMO_DEPLOYMENTS[@]}"; do
+        if kubectl get deployment/$deploy -n "${OSMO_NAMESPACE}" &>/dev/null; then
+            kubectl rollout status deployment/$deploy -n "${OSMO_NAMESPACE}" --timeout=300s || \
+                log_warning "  Timeout waiting for $deploy rollout. Check: kubectl get pods -n ${OSMO_NAMESPACE} -l app=$deploy"
+        fi
+    done
+else
+    log_info "No vault-secrets patches applied (all already have volume); skipping rollout wait."
+fi
 
 log_success "All OSMO deployments patched with vault-secrets volume"
 
@@ -1961,8 +2606,20 @@ if [[ "$AUTH_ENABLED" == "true" ]]; then
     echo ""
     echo "Test user: osmo-admin / osmo-admin"
     echo ""
+    if [[ "${NEBIUS_SSO_ENABLED:-false}" == "true" && -n "${AUTH_DOMAIN:-}" ]]; then
+        _nebius_redirect_uri="https://${AUTH_DOMAIN}/realms/osmo/broker/nebius-sso/endpoint"
+        echo "Nebius SSO – IAM redirect URI:"
+        echo "  This URI is set per-cluster (script runs 'npc iam oidc-client update' when npc is available)."
+        echo "  If you still see 'Invalid redirect_uri', run manually: npc iam oidc-client update <CLIENT_ID> --redirect-uris '${_nebius_redirect_uri}' --authorization-grant-types authorization_code --patch --format yaml"
+        echo "  See: applications/osmo/iam-register/README.md"
+        echo ""
+    fi
     echo "Keycloak realm management (groups, roles, users):"
     echo "  https://nvidia.github.io/OSMO/main/deployment_guide/appendix/authentication/keycloak_setup.html"
+    echo ""
+    echo "If you see 'OAuth flow failed' or UI spinning: check osmo-ui Envoy logs:"
+    echo "  kubectl logs -n ${OSMO_NAMESPACE} deployment/osmo-ui -c envoy --tail=80"
+    echo "  Ensure Keycloak client osmo-browser-flow has redirect URI https://<your-host>/getAToken and client secret matches oidc-secrets."
     echo ""
 else
     # --- No-auth output ---
@@ -2005,9 +2662,53 @@ else
     fi
 fi
 
+# --- Diagnostic: dig deeper if you still get 404 on / ---
+if [[ -n "${INGRESS_URL:-}" && -n "${AUTH_DOMAIN:-}" && "${DEPLOY_KEYCLOAK:-false}" == "true" ]]; then
+    echo ""
+    echo "--- Redirect diagnostic (if you see 404, check below) ---"
+    echo "Expected: Keycloak https://${AUTH_DOMAIN}  OSMO https://${INGRESS_HOSTNAME:-${OSMO_INGRESS_HOSTNAME:-}}"
+    _ui_cm="osmo-ui-envoy-config"
+    if kubectl get configmap "$_ui_cm" -n "${OSMO_NAMESPACE}" -o json 2>/dev/null | jq -e '.data["config.yaml"]' &>/dev/null; then
+        _redirect_hosts=$(kubectl get configmap "$_ui_cm" -n "${OSMO_NAMESPACE}" -o json | jq -r '.data["config.yaml"]' | grep -oE '(redirect_uri|authEndpoint|auth_provider_cluster)[^"'\'' ]*' | head -5 || true)
+        echo "Envoy (osmo-ui) config snippet (redirect/auth): $([ -n "$_redirect_hosts" ] && echo "$_redirect_hosts" | tr '\n' ' ' || echo '(none)')"
+        _bad=$(kubectl get configmap "$_ui_cm" -n "${OSMO_NAMESPACE}" -o json | jq -r '.data["config.yaml"]' | grep -oE 'auth-osmo\.local|osmo\.local' | head -1 || true)
+        if [[ -n "$_bad" ]]; then
+            echo "  WARNING: Envoy config still contains .local ($_bad). Re-run this script or patch the ConfigMap and restart osmo-ui."
+        fi
+    fi
+    echo -n "First redirect from /: "
+    _loc=$(curl -sI -k --connect-timeout 5 "${INGRESS_URL}/" 2>/dev/null | grep -i "^location:" | head -1 | sed 's/\r$//') || true
+    if [[ -n "$_loc" ]]; then
+        echo "$_loc"
+        if echo "$_loc" | grep -q '\.local'; then
+            echo "  -> Redirect still points to .local; Envoy pods may not have reloaded. Try: kubectl rollout restart deployment osmo-ui -n ${OSMO_NAMESPACE}"
+        fi
+    else
+        echo "(no redirect or unreachable)"
+    fi
+    echo "--- end diagnostic ---"
+    echo ""
+fi
+
 echo "Ingress resources:"
 kubectl get ingress -n "${OSMO_NAMESPACE}" 2>/dev/null || true
-echo ""
+# If using nip.io: hostname must match LoadBalancer IP or the UI "can't be reached"
+_lb_ip=$(kubectl get svc -n "${INGRESS_NAMESPACE:-ingress-nginx}" -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+if [[ -n "$_lb_ip" && -n "${OSMO_INGRESS_HOSTNAME:-}" ]] && echo "${OSMO_INGRESS_HOSTNAME}" | grep -q '\.nip\.io'; then
+    _expected_host="osmo.${_lb_ip//./-}.nip.io"
+    if [[ "${OSMO_INGRESS_HOSTNAME}" != "$_expected_host" ]]; then
+        echo ""
+        echo "--- Hostname vs LoadBalancer (if UI can't be reached) ---"
+        echo "  LoadBalancer IP: $_lb_ip  -> use hostname: $_expected_host"
+        echo "  Your OSMO_INGRESS_HOSTNAME: ${OSMO_INGRESS_HOSTNAME}"
+        echo "  If they differ, set OSMO_INGRESS_HOSTNAME=$_expected_host in osmo-deploy.env, re-run 03b-enable-tls.sh and this script, then open https://$_expected_host"
+        if [[ "${NEBIUS_SSO_ENABLED:-false}" == "true" ]]; then
+            echo "  Then update Nebius IAM OIDC client redirect URI to https://auth-$_expected_host/realms/osmo/broker/nebius-sso/endpoint (see 'Nebius SSO – IAM redirect URI' above after re-run)."
+        fi
+        echo "---"
+        echo ""
+    fi
+fi
 echo "Next step - Deploy Backend Operator:"
 echo "  ./06-deploy-osmo-backend.sh"
 echo ""

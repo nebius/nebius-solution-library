@@ -195,8 +195,24 @@ fi
 # -----------------------------------------------------------------------------
 # Step 6: Set default pool profile
 # -----------------------------------------------------------------------------
+# Default pool is a per-user setting. When using port-forward with auth bypass,
+# the OSMO CLI (osmo profile set pool) is not authenticated, so it may get 403.
+# Try API first with auth bypass; fall back to CLI and then to a clear message.
 log_info "Setting default pool to 'default'..."
-osmo profile set pool default 2>/dev/null && log_success "Default pool set" || log_warning "Could not set default pool (set manually: osmo profile set pool default)"
+_set_pool_ok=false
+_resp=$(osmo_curl PATCH "${OSMO_URL}/api/users/me" -d '{"default_pool":"default"}' -w "\n%{http_code}" 2>/dev/null) || true
+_http_code=$(echo "$_resp" | tail -n1)
+if [[ "$_http_code" =~ ^2 ]]; then
+    _set_pool_ok=true
+fi
+if [[ "$_set_pool_ok" != "true" ]]; then
+    osmo profile set pool default 2>/dev/null && _set_pool_ok=true || true
+fi
+if [[ "$_set_pool_ok" == "true" ]]; then
+    log_success "Default pool set"
+else
+    log_warning "Could not set default pool (403 is expected when using port-forward). Set once from the OSMO UI (Settings) or after logging in: osmo login <OSMO_URL> then osmo profile set pool default"
+fi
 
 # -----------------------------------------------------------------------------
 # Done

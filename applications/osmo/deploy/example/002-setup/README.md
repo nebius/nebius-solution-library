@@ -2,6 +2,38 @@
 
 This directory contains scripts for configuring the Kubernetes cluster with GPU infrastructure and OSMO components.
 
+For a single place to configure hostnames, Nebius SSO, and the DB password:
+
+1. **Copy and edit the deploy env file:**
+   ```bash
+   cp osmo-deploy.env.example osmo-deploy.env
+   # Edit osmo-deploy.env: set OSMO_INGRESS_HOSTNAME (e.g. osmo.<LB_IP_DASHED>.nip.io), NEBIUS_SSO_CLIENT_ID, NEBIUS_SSO_CLIENT_SECRET, OSMO_POSTGRESQL_PASSWORD
+   ```
+2. **Get your LoadBalancer IP** (for nip.io):  
+   `kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'`  
+   Use dashed form in the hostname (e.g. `89.169.122.246` → `89-169-122-246`).
+3. **Run in order** (scripts load `osmo-deploy.env` automatically via `defaults.sh`):
+   ```bash
+   ./03b-enable-tls.sh osmo.89-169-122-246.nip.io   # or your OSMO_INGRESS_HOSTNAME from osmo-deploy.env
+   ./04-deploy-osmo-control-plane.sh
+   ./05-deploy-osmo-backend.sh
+   ```
+4. Open **https://\<your-hostname\>** (e.g. `https://osmo.89-169-122-246.nip.io`) in the browser—no `/etc/hosts` needed with nip.io.
+
+OIDC client redirect URI must match your Keycloak hostname (e.g. `auth-osmo.89-169-122-246.nip.io`). See [applications/osmo/iam-register/README.md](../../../iam-register/README.md).
+
+### Finding your nip.io address
+
+The hostname is `osmo.<dashed-ip>.nip.io` where `<dashed-ip>` is your ingress LoadBalancer IP with dots replaced by dashes (e.g. `89.169.120.232` → `89-169-120-232`). To print the full OSMO URL in one command:
+
+```bash
+# From repo root or 002-setup; uses default namespace ingress-nginx
+IP=$(kubectl get svc -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null)
+[[ -n "$IP" ]] && echo "https://osmo.${IP//./-}.nip.io" || echo "Could not get LoadBalancer IP (is ingress deployed?)"
+```
+
+Scripts that source `defaults.sh` (e.g. 04, 05, 07) auto-set `OSMO_INGRESS_HOSTNAME` from this value when unset.
+
 ## Prerequisites
 
 1. Complete infrastructure deployment (001-iac)
@@ -24,16 +56,19 @@ Run scripts in order:
 # 3. NGINX Ingress Controller (required – provides routing for OSMO services)
 ./03-deploy-nginx-ingress.sh
 
-# 4. OSMO Control Plane
+# 4. Enable TLS (optional, recommended)
+./03b-enable-tls.sh <hostname>   # omit <hostname> to use OSMO_INGRESS_HOSTNAME
+
+# 5. OSMO Control Plane
 ./04-deploy-osmo-control-plane.sh
 
-# 5. OSMO Backend
+# 6. OSMO Backend
 ./05-deploy-osmo-backend.sh
 
-# 6. Configure Storage (requires port-forward, see main README)
+# 7. Configure Storage (requires port-forward, see main README)
 ./06-configure-storage.sh
 
-# 7. Configure GPU Platform (required for GPU workflows)
+# 8. Configure GPU Platform (required for GPU workflows)
 ./08-configure-gpu-platform.sh
 ```
 
@@ -82,6 +117,13 @@ GRAFANA_ADMIN_PASSWORD=""
 # NGINX Ingress (deploy 03-deploy-nginx-ingress.sh before 04-deploy-osmo-control-plane.sh)
 OSMO_INGRESS_HOSTNAME=""         # hostname for Ingress rules (e.g. osmo.example.com); leave empty for IP-based access
 OSMO_INGRESS_BASE_URL=""         # override for service_base_url; auto-detected from LoadBalancer if empty
+
+# Keycloak / Nebius SSO (see AUTHENTICATION.md for full details)
+DEPLOY_KEYCLOAK="true"           # set false to disable Keycloak (dev/open API)
+NEBIUS_SSO_ENABLED="false"       # set true to use Nebius SSO as primary login (no default username/password)
+NEBIUS_SSO_ISSUER_URL=""         # OIDC issuer URL (e.g. https://auth.example.com/realms/corporate)
+NEBIUS_SSO_CLIENT_ID=""          # OAuth client ID in Nebius SSO
+NEBIUS_SSO_CLIENT_SECRET=""      # OAuth client secret (or create secret keycloak-nebius-sso-secret)
 ```
 
 ### Secrets from MysteryBox
@@ -113,6 +155,21 @@ nebius mysterybox v1 payload get-by-key \
   --secret-id $TF_VAR_mek_mysterybox_secret_id \
   --key mek --format json | jq -r '.data.string_value'
 ```
+
+## Authentication (Keycloak and Nebius SSO)
+
+Authentication is handled by **Keycloak**. You can use either:
+
+- **Local users (default):** A test user `osmo-admin` / `osmo-admin` is created when Nebius SSO is not enabled. Suitable for dev/test.
+- **Nebius System SSO (recommended for production):** Set `NEBIUS_SSO_ENABLED=true` and provide Nebius SSO OIDC settings. Login uses corporate credentials; no default username/password is created.
+- **Google / GitHub / Microsoft SSO (optional):** Set `GOOGLE_SSO_CLIENT_ID` + `GOOGLE_SSO_CLIENT_SECRET`, and/or `GITHUB_SSO_CLIENT_ID` + `GITHUB_SSO_CLIENT_SECRET`, and/or `MICROSOFT_SSO_CLIENT_ID` + `MICROSOFT_SSO_CLIENT_SECRET` in `osmo-deploy.env`. Create OAuth apps in [Google Cloud Console](https://console.cloud.google.com/apis/credentials), [GitHub Developer Settings](https://github.com/settings/developers), and [Azure Portal App registrations](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade). Set the redirect URI in each provider to `https://<AUTH_DOMAIN>/realms/osmo/broker/<alias>/endpoint` with alias `google`, `github`, or `microsoft`. Re-run `04-deploy-osmo-control-plane.sh` to register the IdPs.
+
+See **[AUTHENTICATION.md](AUTHENTICATION.md)** for:
+
+- Authentication flow (browser, API, backend)
+- Enabling Nebius SSO and required redirect URIs
+- Role and group mapping (Admin, User, Backend Operator)
+- TLS and compatibility with OSMO control plane and UI
 
 ## Accessing Services
 
@@ -276,6 +333,14 @@ workflow:
 
 ## Troubleshooting
 
+### CLI "Read timed out" or 504 "upstream request timeout"
+
+`04-deploy-osmo-control-plane.sh` patches the osmo-service ingress with 300s proxy timeouts (read/send) so long API calls (auth, workflow submit, resource list) do not hit upstream timeout on a fresh install. If you see 504 on an existing cluster that was deployed before this change, re-run `./04-deploy-osmo-control-plane.sh` to re-apply the patch, or run the kubectl patch once (see 04 script for the exact annotation payload). If the CLI still times out at 60s, the bottleneck is the client.
+
+### "Value 1 too high for CPU" on workflow submit
+
+The default pool may expose only GPU nodes, where allocatable CPU is small (e.g. 3 = 0.3 core). Requesting `cpu: 1` then fails. Use `cpu: 0` in the task resources to use the pool minimum (see `workflows/hello_osmo_minimal.yaml`). If the API rejects `cpu: 0`, add a CPU-only pool or use a GPU workflow (e.g. `workflows/osmo/gpu_test.yaml`).
+
 ### GPU Nodes Not Ready
 
 1. Check GPU operator pods:
@@ -328,6 +393,12 @@ workflow:
    ```bash
    kubectl run pg-test --rm -it --image=postgres:16 -- psql -h <host> -U <user> -d <db>
    ```
+
+3. If you see **Operation timed out** (cluster cannot reach the DB host): Terraform places both the Kubernetes cluster and managed PostgreSQL in the same network (`network_id` / `subnet_id` from 000-prerequisites), so connectivity should work. If it doesn't, verify in the Nebius console: (a) PostgreSQL and Kubernetes use the same network, (b) no firewall or "allowed networks" is blocking the cluster subnet, (c) the DB is in "Running" state. If all look correct, consider opening a Nebius support ticket (MSP PostgreSQL private endpoint reachability from same-VPC Kubernetes). To continue deploying the rest of 04 (Keycloak, Envoy, etc.) while resolving this, run:
+   ```bash
+   SKIP_POSTGRES_CONNECTION_TEST=1 ./04-deploy-osmo-control-plane.sh
+   ```
+   After fixing network, re-run 04 without `SKIP_POSTGRES_CONNECTION_TEST` to verify the connection.
 
 ### OSMO Not Seeing GPU Resources
 

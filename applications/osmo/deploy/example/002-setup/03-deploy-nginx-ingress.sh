@@ -9,7 +9,7 @@
 # We do not use the quick-start umbrella chart here (Nebius uses managed DB, etc.),
 # so we install the controller explicitly. Not a duplicate of OSMO—same upstream chart.
 #
-# Run before 05-deploy-osmo-control-plane.sh.
+# Run before 04-deploy-osmo-control-plane.sh (and optionally 03b-enable-tls.sh).
 # See: https://kubernetes.github.io/ingress-nginx/deploy/
 
 set -e
@@ -84,6 +84,7 @@ echo "========================================"
 log_success "NGINX Ingress deployment complete"
 echo "========================================"
 echo ""
-echo "Next: run 04-enable-tls.sh <hostname>  (optional, recommended)"
-echo "      then 05-deploy-osmo-control-plane.sh"
+echo "Next: run 03b-enable-tls.sh <hostname>  (optional, recommended)"
+echo "      - If you omit <hostname>, it will use OSMO_INGRESS_HOSTNAME."
+echo "Then: run 04-deploy-osmo-control-plane.sh"
 echo ""

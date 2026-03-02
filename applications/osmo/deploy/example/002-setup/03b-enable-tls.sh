@@ -6,7 +6,7 @@
 #   1) cert-manager (default) — automated HTTP-01 challenges via in-cluster cert-manager
 #   2) certbot — interactive manual DNS-01 challenges via local certbot binary
 #
-# Set OSMO_TLS_MODE=certbot or OSMO_TLS_MODE=cert-manager to skip the prompt.
+# Default: OSMO_TLS_MODE=cert-manager (no prompt). Set to certbot to use certbot instead.
 #
 # Can be run at two points in the deployment flow:
 #
@@ -24,10 +24,12 @@
 #      (A record for cert-manager/HTTP-01; TXT record for certbot/DNS-01)
 #
 # Usage:
-#   ./04-enable-tls.sh [hostname]
+#   ./03b-enable-tls.sh [hostname]
+#     - If [hostname] is omitted, the script uses OSMO_INGRESS_HOSTNAME.
 #
 # Optional environment variables:
-#   OSMO_TLS_MODE         - "cert-manager" or "certbot" (skips prompt)
+#   OSMO_TLS_MODE         - "cert-manager" (default) or "certbot"
+#   OSMO_TLS_SKIP_DNS_CONFIRM - set to "true" to skip DNS confirmation prompt (auto-set for nip.io hostnames)
 #   OSMO_TLS_EMAIL        - Email for Let's Encrypt (default: noreply@<domain>)
 #   OSMO_TLS_SECRET_NAME  - K8s Secret name for certificate (default: osmo-tls)
 #   LETSENCRYPT_EMAIL     - Alias for OSMO_TLS_EMAIL (certbot path)
@@ -75,14 +77,14 @@ check_kubectl || exit 1
 log_info "Hostname: ${MAIN_HOSTNAME}"
 log_info "TLS secret: ${TLS_SECRET}"
 
-# Keycloak auth subdomain support
+# Keycloak auth subdomain support (auth-<main> e.g. auth-osmo.89-169-122-246.nip.io for nip.io)
 KC_TLS_SECRET="${KEYCLOAK_TLS_SECRET_NAME:-osmo-tls-auth}"
 AUTH_HOSTNAME=""
 if [[ "${DEPLOY_KEYCLOAK:-false}" == "true" ]]; then
     if [[ -n "${KEYCLOAK_HOSTNAME:-}" ]]; then
         AUTH_HOSTNAME="${KEYCLOAK_HOSTNAME}"
     else
-        AUTH_HOSTNAME="auth.${MAIN_HOSTNAME}"
+        AUTH_HOSTNAME="auth-${MAIN_HOSTNAME}"
     fi
     log_info "Keycloak auth hostname: ${AUTH_HOSTNAME}"
     log_info "Keycloak TLS secret: ${KC_TLS_SECRET}"
@@ -148,7 +150,13 @@ else
     echo "Let's Encrypt HTTP-01 challenges require DNS to resolve to the LoadBalancer."
 fi
 echo ""
-read_prompt_var "Press Enter once DNS records are configured (or type 'skip' to skip DNS check)" DNS_CONFIRM ""
+# Skip DNS confirmation when using nip.io (resolves automatically) or when OSMO_TLS_SKIP_DNS_CONFIRM is set
+if [[ "${MAIN_HOSTNAME}" == *"nip.io"* || "${OSMO_TLS_SKIP_DNS_CONFIRM:-false}" == "true" ]]; then
+    DNS_CONFIRM="skip"
+    log_info "Skipping DNS confirmation (nip.io or OSMO_TLS_SKIP_DNS_CONFIRM=true)"
+else
+    read_prompt_var "Press Enter once DNS records are configured (or type 'skip' to skip DNS check)" DNS_CONFIRM ""
+fi
 
 # Verify DNS resolves to the LoadBalancer IP
 if [[ "$DNS_CONFIRM" != "skip" ]]; then
@@ -595,42 +603,52 @@ EOF
 
     # -------------------------------------------------------------------------
     # Restore OSMO Ingress resources with TLS (Mode B)
+    # Restore osmo-ui first so it is oldest for host+path / and wins in NGINX merge (avoids 404 on /).
     # -------------------------------------------------------------------------
     if [[ "$OSMO_DEPLOYED" == "true" && "$CERT_READY" == "True" ]]; then
         log_info "Restoring OSMO Ingress resources with TLS..."
 
+        # Order: osmo-ui first so it is oldest for host osmo.* and wins path / (avoids 404 on /)
+        RESTORE_ORDER=()
         for ing_name in "${REMOVED_INGRESSES[@]}"; do
+            if [[ "$ing_name" == "osmo-ui" ]]; then
+                RESTORE_ORDER=("$ing_name" "${RESTORE_ORDER[@]}")
+            else
+                RESTORE_ORDER+=("$ing_name")
+            fi
+        done
+        for ing_name in "${RESTORE_ORDER[@]}"; do
             backup_file="/tmp/osmo-tls-backup/${ing_name}.yaml"
             [[ ! -f "$backup_file" ]] && continue
 
-            # Determine which hostname/secret this ingress should use
+            # Determine which hostname/secret this ingress should use (keycloak = auth host, rest = main host)
             local_host=$(yq -r '.spec.rules[0].host // ""' "$backup_file" 2>/dev/null || \
                          python3 -c "import yaml,sys; d=yaml.safe_load(open('$backup_file')); print(d.get('spec',{}).get('rules',[{}])[0].get('host',''))" 2>/dev/null || echo "")
             tls_secret_name="${TLS_SECRET}"
             tls_host="${MAIN_HOSTNAME}"
-            if [[ "$local_host" == *"auth."* && -n "$AUTH_HOSTNAME" && "$AUTH_CERT_READY" == "True" ]]; then
+            if [[ ( "$ing_name" == "keycloak" || "$local_host" == *"auth"* ) && -n "$AUTH_HOSTNAME" && "$AUTH_CERT_READY" == "True" ]]; then
                 tls_secret_name="${KC_TLS_SECRET}"
                 tls_host="${AUTH_HOSTNAME}"
             fi
 
-            # Re-apply the backup, then patch in TLS (no cert-manager annotation)
+            # Re-apply the backup, then patch host + TLS so Ingress matches intended hostname (not stale .local from backup)
             kubectl apply -f "$backup_file" 2>/dev/null || true
-            kubectl patch ingress "$ing_name" -n "${OSMO_NS}" --type=merge -p "$(cat <<PATCH
-{
-  "metadata": {
-    "annotations": {
-      "nginx.ingress.kubernetes.io/ssl-redirect": "true"
-    }
-  },
-  "spec": {
-    "tls": [{
-      "hosts": ["${tls_host}"],
-      "secretName": "${tls_secret_name}"
-    }]
-  }
-}
-PATCH
-)" && log_success "  ${ing_name}: restored with TLS" || log_warning "  ${ing_name}: failed to restore"
+            if kubectl patch ingress "$ing_name" -n "${OSMO_NS}" --type=merge -p '{"metadata":{"annotations":{"nginx.ingress.kubernetes.io/ssl-redirect":"true"}},"spec":{"tls":[{"hosts":["'"${tls_host}"'"],"secretName":"'"${tls_secret_name}"'"}]}}' 2>/dev/null; then
+                # Patch host on first rule (some Ingress have multiple rules; we only set rules[0].host)
+                kubectl patch ingress "$ing_name" -n "${OSMO_NS}" --type=json -p '[{"op":"replace","path":"/spec/rules/0/host","value":"'"${tls_host}"'"}]' 2>/dev/null || true
+                # For osmo host only: give non-UI ingresses path /api or /api/... so only osmo-ui has path / (avoids 404 on /)
+                if [[ "$tls_host" == "$MAIN_HOSTNAME" && "$ing_name" != "osmo-ui" ]]; then
+                    if [[ "$ing_name" == "osmo-service" ]]; then
+                        api_path="/api"
+                    else
+                        api_path="/api/${ing_name#osmo-}"
+                    fi
+                    kubectl patch ingress "$ing_name" -n "${OSMO_NS}" --type=json -p '[{"op":"replace","path":"/spec/rules/0/http/paths/0/path","value":"'"${api_path}"'"}]' 2>/dev/null && log_info "  ${ing_name}: path set to ${api_path}" || true
+                fi
+                log_success "  ${ing_name}: restored with TLS (host: ${tls_host})"
+            else
+                log_warning "  ${ing_name}: failed to restore"
+            fi
         done
 
         # Clean up backups
@@ -658,12 +676,13 @@ fi  # end TLS_MODE
 
 # =============================================================================
 # Update OSMO service_base_url to HTTPS (only if OSMO is already deployed)
+# Use auth-bypass port-forward + direct PATCH so we don't trigger Keycloak (.local redirect).
 # =============================================================================
 if [[ "$OSMO_DEPLOYED" == "true" ]]; then
     log_info "Updating OSMO service_base_url to https://${MAIN_HOSTNAME}..."
 
-    kubectl port-forward -n "${OSMO_NS}" svc/osmo-service 8080:80 &>/dev/null &
-    _PF_PID=$!
+    start_osmo_port_forward "${OSMO_NS}" 8080
+    _PF_PID=$PORT_FORWARD_PID
     trap 'kill $_PF_PID 2>/dev/null; wait $_PF_PID 2>/dev/null' EXIT
 
     _pf_ready=false
@@ -676,24 +695,19 @@ if [[ "$OSMO_DEPLOYED" == "true" ]]; then
     done
 
     if [[ "$_pf_ready" == "true" ]]; then
-        if osmo login http://localhost:8080 --method dev --username admin 2>/dev/null; then
-            cat > /tmp/service_url_tls.json <<SVCEOF
+        cat > /tmp/service_url_tls.json <<SVCEOF
 {
   "service_base_url": "https://${MAIN_HOSTNAME}"
 }
 SVCEOF
-            if osmo config update SERVICE --file /tmp/service_url_tls.json --description "Enable HTTPS" 2>/dev/null; then
-                NEW_URL=$(curl -s "http://localhost:8080/api/configs/service" 2>/dev/null | jq -r '.service_base_url // ""')
-                log_success "service_base_url updated to: ${NEW_URL}"
-            else
-                log_warning "Could not update service_base_url automatically."
-                log_info "Run: ./08-configure-service-url.sh https://${MAIN_HOSTNAME}"
-            fi
-            rm -f /tmp/service_url_tls.json
+        if osmo_config_update SERVICE /tmp/service_url_tls.json "Enable HTTPS" 8080; then
+            NEW_URL=$(osmo_curl GET "http://localhost:8080/api/configs/service" 2>/dev/null | jq -r '.service_base_url // ""')
+            log_success "service_base_url updated to: ${NEW_URL}"
         else
-            log_warning "Could not login to OSMO API. Update service_base_url manually:"
-            log_info "  ./08-configure-service-url.sh https://${MAIN_HOSTNAME}"
+            log_warning "Could not update service_base_url automatically."
+            log_info "Run: ./08-configure-service-url.sh https://${MAIN_HOSTNAME}"
         fi
+        rm -f /tmp/service_url_tls.json
     else
         log_warning "Could not connect to OSMO API. Update service_base_url manually:"
         log_info "  ./08-configure-service-url.sh https://${MAIN_HOSTNAME}"

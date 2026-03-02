@@ -33,6 +33,7 @@ kubectl delete configmap keycloak-realm-json -n "${OSMO_NS}" --ignore-not-found 
 log_info "Deleting Keycloak secrets..."
 kubectl delete secret keycloak-admin-secret -n "${OSMO_NS}" --ignore-not-found 2>/dev/null || true
 kubectl delete secret keycloak-db-secret -n "${OSMO_NS}" --ignore-not-found 2>/dev/null || true
+kubectl delete secret keycloak-nebius-sso-secret -n "${OSMO_NS}" --ignore-not-found 2>/dev/null || true
 kubectl delete secret oidc-secrets -n "${OSMO_NS}" --ignore-not-found 2>/dev/null || true
 log_success "Keycloak secrets deleted"
 
@@ -52,7 +53,7 @@ echo ""
 echo "Next steps:"
 echo "  1. Re-deploy OSMO control plane without authentication:"
 echo "     unset DEPLOY_KEYCLOAK"
-echo "     ./05-deploy-osmo-control-plane.sh"
+echo "     ./04-deploy-osmo-control-plane.sh"
 echo ""
 echo "  2. (Optional) Drop the Keycloak database from PostgreSQL:"
 echo "     Connect to your Managed PostgreSQL and run:"

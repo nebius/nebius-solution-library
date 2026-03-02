@@ -167,9 +167,10 @@ output "next_steps" {
        ./01-deploy-gpu-infrastructure.sh
        ./02-deploy-observability.sh
        ./03-deploy-nginx-ingress.sh
-       ./04-enable-tls.sh <hostname>
-       ./05-deploy-osmo-control-plane.sh
-       ./06-deploy-osmo-backend.sh
+       ./03b-enable-tls.sh <hostname>   # optional, recommended; omit <hostname> to use OSMO_INGRESS_HOSTNAME
+       ./04-deploy-osmo-control-plane.sh
+       ./05-deploy-osmo-backend.sh
+       ./06-configure-storage.sh
     
     ${var.enable_managed_postgresql ? "PostgreSQL Connection (Managed):\n       Host: ${module.platform.postgresql_host}\n       Port: ${module.platform.postgresql_port}\n       Database: ${module.platform.postgresql_database}\n       Username: ${module.platform.postgresql_username}" : "PostgreSQL: Using in-cluster PostgreSQL (deployed via Helm in 05-deploy-osmo-control-plane.sh)"}
     

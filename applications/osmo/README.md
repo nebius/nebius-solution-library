@@ -22,7 +22,7 @@ Deploy [NVIDIA OSMO](https://nvidia.github.io/OSMO/main/user_guide/index.html) o
 | No External DNS service | Manual DNS configuration required | Not addressed |
 | No managed SSL/TLS service | Manual certificate management | Not addressed |
 | No public Load Balancer (ALB/NLB) | Use port-forwarding or WireGuard VPN for access | Workaround in place |
-| IDP integration for Nebius | Using OSMO dev auth mode; Keycloak available but not integrated | TBD |
+| IDP integration for Nebius | Keycloak + Nebius SSO (OIDC) supported; see [Authentication](deploy/example/002-setup/AUTHENTICATION.md) | Done |
 | Nebius Observability Stack integration | Using self-deployed Prometheus/Grafana/Loki | TODO |
 | Single cluster for Control Plane + Backend | Using 1 MK8s cluster for both; production separation TBD | Discuss with Nebius |
 
@@ -234,7 +234,7 @@ See [Terraform README](deploy/001-iac/README.md) for configuration options, and 
    
    The script automatically:
    - Starts a port-forward to OSMO service
-   - Logs in using dev method (since Keycloak auth is disabled)
+   - Logs in via Keycloak (or dev method if Keycloak is disabled)
    - Creates a service token for the backend operator
    - Deploys the backend operator
    - Cleans up the port-forward

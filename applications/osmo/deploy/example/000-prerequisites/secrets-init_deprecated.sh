@@ -32,6 +32,17 @@ echo "  OSMO Secrets Initialization"
 echo "========================================"
 echo ""
 
+# If env not set, source nebius-env-init.sh from this script's directory (so ./secrets-init.sh works without prior source)
+if [[ -z "${NEBIUS_PROJECT_ID:-}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+    if [[ -f "${SCRIPT_DIR}/nebius-env-init.sh" ]]; then
+        echo "Sourcing ${SCRIPT_DIR}/nebius-env-init.sh (NEBIUS_PROJECT_ID not set)..."
+        # shellcheck source=./nebius-env-init.sh
+        source "${SCRIPT_DIR}/nebius-env-init.sh"
+        echo ""
+    fi
+fi
+
 # -----------------------------------------------------------------------------
 # Helper Functions
 # -----------------------------------------------------------------------------

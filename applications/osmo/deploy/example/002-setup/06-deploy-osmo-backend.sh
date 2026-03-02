@@ -122,15 +122,35 @@ if [[ -z "${OSMO_SERVICE_TOKEN:-}" ]]; then
             # ---------------------------------------------------------------
             log_info "Keycloak detected - using password grant for token creation..."
 
-            # Derive Keycloak external URL from the ingress (ensures JWT issuer matches
-            # what Envoy expects -- using port-forward would produce a wrong issuer)
+            # Derive Keycloak URL: KEYCLOAK_HOSTNAME env (from osmo-deploy.env) > ingress host > port-forward fallback
             KC_INGRESS_HOST=$(kubectl get ingress -n "${OSMO_NAMESPACE:-osmo}" keycloak -o jsonpath='{.spec.rules[0].host}' 2>/dev/null || echo "")
-            if [[ -z "$KC_INGRESS_HOST" ]]; then
-                log_error "Could not detect Keycloak ingress hostname"
-                exit 1
+            KC_PF_PID=""
+            if [[ -n "${KEYCLOAK_HOSTNAME:-}" ]]; then
+                KEYCLOAK_TOKEN_URL="https://${KEYCLOAK_HOSTNAME}/realms/osmo/protocol/openid-connect/token"
+                log_info "Keycloak token endpoint (KEYCLOAK_HOSTNAME): ${KEYCLOAK_TOKEN_URL}"
+            elif [[ -n "$KC_INGRESS_HOST" ]]; then
+                KEYCLOAK_TOKEN_URL="https://${KC_INGRESS_HOST}/realms/osmo/protocol/openid-connect/token"
+                log_info "Keycloak token endpoint (ingress): ${KEYCLOAK_TOKEN_URL}"
+            else
+                # No ingress and no KEYCLOAK_HOSTNAME: use port-forward so 05 can complete
+                KC_PF_PORT="${KC_PF_PORT:-8082}"
+                log_info "No Keycloak ingress found; using port-forward to Keycloak on localhost:${KC_PF_PORT}..."
+                kubectl port-forward -n "${OSMO_NAMESPACE:-osmo}" svc/keycloak "${KC_PF_PORT}:80" &>/dev/null &
+                KC_PF_PID=$!
+                PF_PIDS+=($KC_PF_PID)
+                for i in $(seq 1 15); do
+                    if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${KC_PF_PORT}/realms/osmo" 2>/dev/null | grep -q 200; then
+                        break
+                    fi
+                    sleep 1
+                    if [[ $i -eq 15 ]]; then
+                        log_error "Keycloak port-forward failed to respond in time"
+                        exit 1
+                    fi
+                done
+                KEYCLOAK_TOKEN_URL="http://localhost:${KC_PF_PORT}/realms/osmo/protocol/openid-connect/token"
+                log_info "Keycloak token endpoint (port-forward): ${KEYCLOAK_TOKEN_URL}"
             fi
-            KEYCLOAK_TOKEN_URL="https://${KC_INGRESS_HOST}/realms/osmo/protocol/openid-connect/token"
-            log_info "Keycloak token endpoint: ${KEYCLOAK_TOKEN_URL}"
 
             # Port-forward to OSMO service (for the token creation API)
             log_info "Starting port-forward to OSMO service..."
@@ -160,6 +180,8 @@ if [[ -z "${OSMO_SERVICE_TOKEN:-}" ]]; then
             # MUST use external Keycloak URL so the JWT issuer matches what Envoy expects
             KC_ADMIN_USER="${OSMO_KC_ADMIN_USER:-osmo-admin}"
             KC_ADMIN_PASS="${OSMO_KC_ADMIN_PASS:-osmo-admin}"
+            # When Nebius SSO is primary, the default osmo-admin user is not created; set CREATE_OSMO_TEST_USER=true
+            # in 04-deploy-osmo-control-plane.sh or set OSMO_KC_ADMIN_USER/OSMO_KC_ADMIN_PASS to a valid local user.
 
             log_info "Authenticating with Keycloak as '${KC_ADMIN_USER}'..."
             KC_RESPONSE=$(curl -s -X POST "${KEYCLOAK_TOKEN_URL}" \
@@ -172,7 +194,7 @@ if [[ -z "${OSMO_SERVICE_TOKEN:-}" ]]; then
             if [[ -z "$KC_JWT" ]]; then
                 KC_ERROR=$(echo "$KC_RESPONSE" | jq -r '.error_description // .error // empty' 2>/dev/null || echo "unknown error")
                 log_error "Keycloak authentication failed: $KC_ERROR"
-                log_error "Ensure OSMO_KC_ADMIN_USER and OSMO_KC_ADMIN_PASS are set, or that osmo-admin/osmo-admin is valid"
+                log_error "Ensure OSMO_KC_ADMIN_USER and OSMO_KC_ADMIN_PASS are set. If using Nebius SSO, create a local user (e.g. CREATE_OSMO_TEST_USER=true) or see AUTHENTICATION.md"
                 exit 1
             fi
             log_success "Keycloak authentication successful"

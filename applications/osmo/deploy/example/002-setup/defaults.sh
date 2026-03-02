@@ -53,20 +53,71 @@ export LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
 export CERT_MANAGER_NAMESPACE="${CERT_MANAGER_NAMESPACE:-cert-manager}"
 # Name of the ClusterIssuer created by 03c (Path B only).
 export CLUSTER_ISSUER_NAME="${CLUSTER_ISSUER_NAME:-letsencrypt-prod}"
-# TLS mode: "certbot" or "cert-manager". Set automatically by 03a/03c.
-export OSMO_TLS_MODE="${OSMO_TLS_MODE:-}"
+# TLS mode: "certbot" or "cert-manager". Default cert-manager so 03b-enable-tls.sh runs without prompting.
+export OSMO_TLS_MODE="${OSMO_TLS_MODE:-cert-manager}"
 
 # Keycloak / Authentication
 # Keycloak deployed by default. Requires OSMO_INGRESS_HOSTNAME or KEYCLOAK_HOSTNAME. Set to false to disable.
 export DEPLOY_KEYCLOAK="${DEPLOY_KEYCLOAK:-true}"
-# Keycloak hostname (e.g. auth-osmo-nebius.csptst.nvidia.com).
-# Auto-derived from OSMO_INGRESS_HOSTNAME if empty: auth-<OSMO_INGRESS_HOSTNAME>.
+# Keycloak hostname. Use a hostname that resolves from inside the cluster (so Envoy can fetch JWKS).
+# Recommended: nip.io (no /etc/hosts) e.g. auth-osmo.<LB_IP_DASHED>.nip.io (see applications/osmo/iam-register/README.md).
+# Or: auth-osmo.local (add to /etc/hosts on your machine only; pods need a resolvable hostname or you get 502).
+# Auto-derived from OSMO_INGRESS_HOSTNAME if set and KEYCLOAK_HOSTNAME empty: auth-<OSMO_INGRESS_HOSTNAME>.
 export KEYCLOAK_HOSTNAME="${KEYCLOAK_HOSTNAME:-}"
 # TLS secret name for the Keycloak ingress (separate from the main osmo-tls).
 # Run 03a with OSMO_TLS_SECRET_NAME=osmo-tls-auth for the auth subdomain.
 export KEYCLOAK_TLS_SECRET_NAME="${KEYCLOAK_TLS_SECRET_NAME:-osmo-tls-auth}"
 
+# Nebius System SSO (primary authentication when enabled)
+# When true, Keycloak uses Nebius SSO as the primary IdP; default username/password login is not created.
+# Requires: NEBIUS_SSO_ISSUER_URL, NEBIUS_SSO_CLIENT_ID, NEBIUS_SSO_CLIENT_SECRET (or keycloak-nebius-sso-secret in cluster).
+export NEBIUS_SSO_ENABLED="${NEBIUS_SSO_ENABLED:-false}"
+# OIDC issuer URL of Nebius SSO. Use prod for auth: https://auth.nebius.com (beta: https://auth.beta.nebius.ai).
+export NEBIUS_SSO_ISSUER_URL="${NEBIUS_SSO_ISSUER_URL:-}"
+export NEBIUS_SSO_CLIENT_ID="${NEBIUS_SSO_CLIENT_ID:-}"
+# Client secret. Prefer storing in K8s secret keycloak-nebius-sso-secret (key: client_secret); or set here.
+export NEBIUS_SSO_CLIENT_SECRET="${NEBIUS_SSO_CLIENT_SECRET:-}"
+# Attribute/claim from IdP used for group/role mapping (e.g. "groups", "member_of"). Optional.
+export NEBIUS_SSO_GROUP_ATTRIBUTE="${NEBIUS_SSO_GROUP_ATTRIBUTE:-groups}"
+
 # Paths
 export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+# Optional one-file deploy config: copy osmo-deploy.env.example to osmo-deploy.env and set hostnames + Nebius SSO + DB password
+if [[ -f "${SCRIPT_DIR}/osmo-deploy.env" ]]; then set -a; source "${SCRIPT_DIR}/osmo-deploy.env"; set +a; fi
 export VALUES_DIR="${SCRIPT_DIR}/values"
 export LIB_DIR="${SCRIPT_DIR}/lib"
+
+# Create a local test user (osmo-admin). When Nebius SSO is enabled and this
+# is unset, default to true so backend deploy (05) can always create a service
+# token without manual tweaks. This logic runs *after* loading osmo-deploy.env
+# so NEBIUS_SSO_ENABLED from that file is respected. You can override by
+# setting CREATE_OSMO_TEST_USER explicitly.
+export CREATE_OSMO_TEST_USER="${CREATE_OSMO_TEST_USER:-}"
+if [[ "${NEBIUS_SSO_ENABLED:-false}" == "true" && -z "${CREATE_OSMO_TEST_USER:-}" ]]; then
+  export CREATE_OSMO_TEST_USER="true"
+fi
+
+# Auto-detect OSMO_INGRESS_HOSTNAME from LoadBalancer IP when using nip.io (so UI is reachable)
+# Run after osmo-deploy.env so we can override a stale or empty hostname.
+_osmo_lb_ip=$(kubectl get svc -n "${INGRESS_NAMESPACE:-ingress-nginx}" \
+    -l app.kubernetes.io/name=ingress-nginx,app.kubernetes.io/component=controller \
+    -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+if [[ -n "$_osmo_lb_ip" ]]; then
+    _osmo_lb_dashed="${_osmo_lb_ip//./-}"
+    if [[ -z "${OSMO_INGRESS_HOSTNAME:-}" ]]; then
+        export OSMO_INGRESS_HOSTNAME="osmo.${_osmo_lb_dashed}.nip.io"
+    elif [[ "${OSMO_INGRESS_HOSTNAME}" == osmo.*.nip.io ]]; then
+        _osmo_current_dashed="${OSMO_INGRESS_HOSTNAME#osmo.}"
+        _osmo_current_dashed="${_osmo_current_dashed%%.nip.io}"
+        _osmo_current_ip="${_osmo_current_dashed//-/.}"
+        if [[ "$_osmo_current_ip" != "$_osmo_lb_ip" ]]; then
+            export OSMO_INGRESS_HOSTNAME="osmo.${_osmo_lb_dashed}.nip.io"
+            export KEYCLOAK_HOSTNAME="auth-osmo.${_osmo_lb_dashed}.nip.io"
+            export OSMO_NIPIO_HOSTNAME_CORRECTED="true"
+        fi
+    fi
+fi
+unset _osmo_lb_ip _osmo_lb_dashed _osmo_current_dashed _osmo_current_ip 2>/dev/null || true
+
+# Keycloak hostname: auto-derive from OSMO_INGRESS_HOSTNAME when unset (e.g. osmo.89-169-122-246.nip.io -> auth-osmo.89-169-122-246.nip.io)
+if [[ -z "${KEYCLOAK_HOSTNAME:-}" && -n "${OSMO_INGRESS_HOSTNAME:-}" ]]; then export KEYCLOAK_HOSTNAME="auth-${OSMO_INGRESS_HOSTNAME}"; fi

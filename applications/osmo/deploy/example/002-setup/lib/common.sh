@@ -362,7 +362,9 @@ start_osmo_port_forward() {
 
     if has_envoy_sidecar "$ns" "app=osmo-service"; then
         local pod_name
-        pod_name=$(kubectl get pod -n "$ns" -l app=osmo-service -o jsonpath='{.items[0].metadata.name}')
+        # Prefer a Running pod so we don't port-forward to one stuck in ContainerCreating
+        pod_name=$(kubectl get pod -n "$ns" -l app=osmo-service --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+        [[ -z "$pod_name" ]] && pod_name=$(kubectl get pod -n "$ns" -l app=osmo-service -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
         log_info "Envoy sidecar detected -- port-forwarding to pod/${pod_name}:8000 (bypassing auth)..."
         kubectl port-forward -n "$ns" "pod/${pod_name}" "${local_port}:8000" &>/dev/null &
         _OSMO_AUTH_BYPASS=true

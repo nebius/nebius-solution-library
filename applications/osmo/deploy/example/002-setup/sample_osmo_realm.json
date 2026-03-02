@@ -857,7 +857,6 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "**********",
       "redirectUris": [
-        "",
         "https://default.com/setup/getAToken",
         "https://default.com/getAToken",
         "https://default.com/api/auth/getAToken"
@@ -985,6 +984,17 @@
             "claim.name": "roles",
             "jsonType.label": "String",
             "usermodel.clientRoleMapping.clientId": "osmo-device"
+          }
+        },
+        {
+          "name": "audience osmo-device",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "osmo-device",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
           }
         }
       ],
@@ -1398,7 +1408,7 @@
           "id": "89c031e1-bfad-4afd-af24-51db2c62a11f",
           "name": "username",
           "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "protocolMapper": "oidc-usermodel-property-mapper",
           "consentRequired": false,
           "config": {
             "user.attribute": "username",
@@ -2338,7 +2348,7 @@
           "authenticatorConfig": "review profile config",
           "authenticator": "idp-review-profile",
           "authenticatorFlow": false,
-          "requirement": "REQUIRED",
+          "requirement": "DISABLED",
           "priority": 10,
           "autheticatorFlow": false,
           "userSetupAllowed": false
@@ -2505,7 +2515,7 @@
       "id": "9abca294-1e03-418f-841c-18b00053f949",
       "alias": "review profile config",
       "config": {
-        "update.profile.on.first.login": "missing"
+        "update.profile.on.first.login": "off"
       }
     }
   ],

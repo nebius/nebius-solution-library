@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Uninstall OSMO Backend Operator
-# Reverses everything deployed by 06-deploy-osmo-backend.sh
+# Reverses everything deployed by 05-deploy-osmo-backend.sh
 #
 
 set -e
@@ -44,7 +44,7 @@ fi
 log_info "Removing secrets..."
 kubectl delete secret osmo-operator-token -n "${OSMO_OPERATOR_NAMESPACE}" --ignore-not-found
 
-# Delete the internal agent service (created by 05-deploy-osmo-control-plane.sh for backend operator)
+# Delete the internal agent service (created by 04-deploy-osmo-control-plane.sh for backend operator)
 log_info "Removing osmo-agent-internal service..."
 kubectl delete svc osmo-agent-internal -n "${OSMO_NAMESPACE}" --ignore-not-found
 

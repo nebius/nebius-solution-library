@@ -110,15 +110,17 @@ cleanup_port_forward() {
 }
 trap cleanup_port_forward EXIT
 
-# Wait for port-forward to be ready
+# Wait for port-forward to be ready (tunnel can take a few seconds to establish)
 log_info "Waiting for port-forward to be ready..."
-max_wait=30
+sleep 3
+max_wait=60
 elapsed=0
 while ! curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080/api/version" 2>/dev/null | grep -q "200\|401\|403"; do
     sleep 1
     ((elapsed += 1))
     if [[ $elapsed -ge $max_wait ]]; then
         log_error "Port-forward failed to start within ${max_wait}s"
+        echo "  Check: kubectl get pods -n ${OSMO_NS} -l app=osmo-service"
         exit 1
     fi
 done
