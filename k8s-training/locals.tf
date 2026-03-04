@@ -74,43 +74,6 @@ locals {
     "gpu-b300-sxm"   = ["all-disabled", "all-enabled", "all-balanced", "all-1g.23gb", "all-1g.23gb.me", "all-1g.45gb", "all-2g.45gb", "all-3g.90gb", "all-4g.90gb", "all-7g.180gb"]
 
   }
-
-  # Mapping from platform and preset to hardware profile for nebius-gpu-health-checker
-  platform_preset_to_hardware_profile = {
-    # H100 configurations
-    "gpu-h100-sxm-1gpu-16vcpu-200gb"   = "1xH100"
-    "gpu-h100-sxm-8gpu-128vcpu-1600gb" = "8xH100"
-
-    # H200 configurations
-    "gpu-h200-sxm-1gpu-16vcpu-200gb"   = "1xH200"
-    "gpu-h200-sxm-8gpu-128vcpu-1600gb" = "8xH200"
-
-    # B200 configurations
-    "gpu-b200-sxm-1gpu-20vcpu-224gb"     = "1xB200"
-    "gpu-b200-sxm-8gpu-160vcpu-1792gb"   = "8xB200"
-    "gpu-b200-sxm-a-8gpu-160vcpu-1792gb" = "8xB200"
-
-    #B300 configuration
-    "gpu-b300-sxm-8gpu-192vcpu-2768gb" = "8xB300"
-    "gpu-b300-sxm-1gpu-24vcpu-346gb"   = "1xB300"
-
-    # L40 configurations
-    "gpu-l40s-d-1gpu-16vcpu-96gb"    = "1xL40S"
-    "gpu-l40s-d-1gpu-32vcpu-192gb"   = "1xL40S"
-    "gpu-l40s-d-1gpu-48vcpu-288gb"   = "1xL40S"
-    "gpu-l40s-d-2gpu-64vcpu-384gb"   = "2xL40S"
-    "gpu-l40s-d-2gpu-64vcpu-384gb"   = "2xL40S"
-    "gpu-l40s-d-2gpu-96vcpu-576gb"   = "2xL40S"
-    "gpu-l40s-d-4gpu-128vcpu-768gb"  = "4xL40S"
-    "gpu-l40s-d-4gpu-192vcpu-1152gb" = "4xL40S"
-    "gpu-l40s-a-1gpu-8vcpu-32gb"     = "1XL40S"
-    "gpu-l40s-a-1gpu-24vcpu-96gb"    = "1X40S"
-    "gpu-l40s-a-1gpu-32vcpu-128gb"   = "1X40S"
-    "gpu-l40s-a-1gpu-40vcpu-160gb"   = "1X40S"
-  }
-
-  # Create the key for hardware profile lookup
-  hardware_profile_key = "${local.gpu_nodes_platform}-${local.gpu_nodes_preset}"
 }
 
 resource "random_string" "random" {

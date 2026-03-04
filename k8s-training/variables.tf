@@ -387,11 +387,6 @@ variable "gpu_nodes_preemptible" {
   default     = false
 }
 
-variable "gpu_health_cheker" {
-  description = "Use preemptible VMs for GPU nodes"
-  type        = bool
-  default     = true
-}
 variable "custom_driver" {
   description = "Use customized driver for the GPU Operator, e.g. to run Cuda 13 on H200"
   type        = bool
