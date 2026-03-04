@@ -283,11 +283,11 @@ slurm_nodeset_controller = {
   size = 1
   resource = {
     platform = "cpu-d3"
-    preset   = "4vcpu-16gb"
+    preset   = "16vcpu-32gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 128
+    size_gibibytes       = 256
     block_size_kibibytes = 4
   }
 }
