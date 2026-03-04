@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   cleanup-k8s-training-on-cancel:
+    name: '[AUTO] Terraform - Cancelled Cleanup (k8s-training)'
     # Fallback cleanup for runs canceled before in-job cleanup could execute.
     if: github.event.workflow_run.conclusion == 'cancelled' && github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest

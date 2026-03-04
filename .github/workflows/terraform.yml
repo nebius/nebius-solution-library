@@ -29,6 +29,7 @@ env:
 
 jobs:
   detect-changes:
+    name: '[REQ] Terraform - Detect Changes'
     runs-on: ubuntu-latest
     outputs:
       solutions: ${{ steps.parse-changed-files.outputs.solutions }}
@@ -68,7 +69,7 @@ jobs:
   terraform-format:
     needs: detect-changes
     runs-on: ubuntu-latest
-    name: 'Terraform Format Check'
+    name: '[REQ] Terraform - Format'
 
     steps:
     - name: Checkout
@@ -85,7 +86,7 @@ jobs:
 
   approve_terraform:
     needs: terraform-format
-    name: 'Terraform Approval'
+    name: '[REQ] Terraform - Approval-Gate'
     environment:
       name: project-e00pjzzrtk1fs3yavy
     concurrency:
@@ -100,7 +101,7 @@ jobs:
   terraform:
     needs: [approve_terraform, detect-changes]
     if: needs.detect-changes.outputs.solutions != '[]'
-    name: 'Terraform ${{ matrix.solution }}'
+    name: '[REQ] Terraform - Plan/Test (${{ matrix.solution }})'
     environment:
       name: project-e00pjzzrtk1fs3yavy
     concurrency:
