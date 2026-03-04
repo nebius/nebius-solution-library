@@ -17,6 +17,15 @@ permissions:
 env:
   TF_VAR_parent_id: project-e00pjzzrtk1fs3yavy
   TF_VAR_tenant_id: tenant-e00f3wdfzwfjgbcyfv
+  # Generic CI suffix seed used to build resource suffixes.
+  # In the terraform job, this is set to:
+  #   -<jira_ticket_number>-<run_attempt>
+  # If no JIRA ticket is found in the branch name, fallback is:
+  #   -<random_4_alnum>-<run_attempt>
+  # Modules can opt in by mapping this to their own TF_VAR, for example:
+  #   echo "TF_VAR_name_suffix=${CI_RUN_SUFFIX}" >> $GITHUB_ENV
+  # This is intentionally NOT a TF_VAR itself, so modules that don't use it are unaffected.
+  CI_RUN_SUFFIX: ""
 
 jobs:
   detect-changes:
@@ -76,7 +85,7 @@ jobs:
 
   approve_terraform:
     needs: terraform-format
-    name: 'Terraform ${{ matrix.solution }}'
+    name: 'Terraform Approval'
     environment:
       name: project-e00pjzzrtk1fs3yavy
     concurrency:
@@ -90,12 +99,16 @@ jobs:
 
   terraform:
     needs: [approve_terraform, detect-changes]
+    if: needs.detect-changes.outputs.solutions != '[]'
     name: 'Terraform ${{ matrix.solution }}'
     environment:
       name: project-e00pjzzrtk1fs3yavy
+    concurrency:
+      group: ${{ matrix.solution == 'k8s-training' && 'k8s-training-gpu-ci' || format('terraform-{0}-{1}', github.run_id, matrix.solution) }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
-    continue-on-error: true
     strategy:
+      fail-fast: false
       max-parallel: 4
       matrix:
         solution: ${{ fromJson(needs.detect-changes.outputs.solutions) }}
@@ -160,6 +173,29 @@ jobs:
         echo "NEBIUS_IAM_TOKEN=$NEBIUS_IAM_TOKEN" >> $GITHUB_ENV
         echo "TF_VAR_iam_token=$TF_VAR_iam_token" >> $GITHUB_ENV
 
+    - name: Build CI run suffix from JIRA number and run attempt
+      run: |
+        branch_ref="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+        ticket_number=$(echo "${branch_ref}" | grep -oE '[A-Za-z]+-[0-9]+' | head -n1 | awk -F- '{print $2}')
+        if [ -z "${ticket_number}" ]; then
+          ticket_number=$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 4)
+        fi
+        suffix="-${ticket_number}-${GITHUB_RUN_ATTEMPT}"
+        echo "CI_RUN_SUFFIX=${suffix}" >> "$GITHUB_ENV"
+        echo "Using CI_RUN_SUFFIX=${suffix}"
+
+    - name: Export k8s-training name suffix
+      if: matrix.solution == 'k8s-training'
+      run: |
+        echo "TF_VAR_name_suffix=${CI_RUN_SUFFIX}" >> "$GITHUB_ENV"
+        echo "Using TF_VAR_name_suffix=${CI_RUN_SUFFIX}"
+
+    - name: Preflight cleanup for k8s-training
+      if: matrix.solution == 'k8s-training'
+      continue-on-error: true
+      run: |
+        ../.github/scripts/cleanup-k8s-training.sh "${TF_VAR_parent_id}" "k8s-training"
+
     # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
@@ -192,7 +228,7 @@ jobs:
         tests/reports/TEST-result-${{ github.run_id }}.xml
 
     - name: Upload test results
-      run: s3cmd sync tests/reports s3://terraform-test-reports/${{ matrix.solution.name }}/
+      run: s3cmd sync tests/reports s3://terraform-test-reports/${{ matrix.solution }}/
       if: always()
 
     - name: Load test report history
@@ -221,71 +257,7 @@ jobs:
         publish_dir: allure-history
         keep_files: true
 
-  cleanup-infra:
-    name: 'Cleanup Infra'
-    environment:
-      name: project-e00pjzzrtk1fs3yavy
-    concurrency:
-      group: project-e00pjzzrtk1fs3yavy
-    runs-on: ubuntu-latest
-    needs: terraform
-    if: always() && needs.terraform.result != 'success'
-    steps:
-    - name: Status of the tf tests
-      run: echo TF Matrix Job result is ${{ needs.terraform.result }}
-
-    - name: Install Nebius CLI
+    - name: Post-run cleanup for k8s-training
+      if: always() && matrix.solution == 'k8s-training'
       run: |
-        curl -sSL https://storage.eu-north1.nebius.cloud/cli/install.sh | bash
-        echo "${HOME}/.nebius/bin" >> $GITHUB_PATH
-
-    - name: Nebius CLI init
-      run: |
-        cat << EOF > /tmp/sa.pem
-        ${{ secrets.TERRAFORM_SA_PRIVATE_KEY }}
-        EOF
-        nebius profile create ${{ vars.TERRAFORM_SA_ID }} --skip-auth \
-          --endpoint api.eu.nebius.cloud \
-          --service-account-id ${{ vars.TERRAFORM_SA_ID }} \
-          --public-key-id ${{ secrets.TERRAFORM_SA_PUBLIC_KEY_ID }} \
-          --parent-id ${{ env.TF_VAR_parent_id }} \
-          --private-key-file /tmp/sa.pem
-    
-    - name: Setup s3cmd
-      run: |
-        pip3 install s3cmd --no-cache --quiet
-        s3cmd --configure --dump-config \
-        --access_key="${{ secrets.SA_ACCESS_KEY_ID }}" \
-        --secret_key="${{ secrets.SA_SECRET_KEY }}" \
-        --host="storage.eu-north1.nebius.cloud:443" \
-        --host-bucket="%(bucket)s.storage.eu-north1.nebius.cloud" \
-        > ~/.s3cfg
-    
-    - name: Cleanup buckets
-      continue-on-error: true
-      run: |
-        for resource in \
-          "storage bucket" \
-        ; do
-        echo Cleaning up buckets $resource 
-        eval nebius --format json $resource list \
-          | jq -r 'try .items[] | select(.metadata.name!="terraform-test-reports") | .metadata.name' \
-          | eval xargs -r -t -n 1 -I {} s3cmd del --force --recursive s3://{}
-        done
-
-    - name: Perform forced cleanup
-      run: |
-        for resource in \
-          "mk8s v1 cluster" \
-          "compute v1 instance" \
-          "compute v1 filesystem" \
-          "compute v1 disk" \
-          "compute v1 gpu-cluster" \
-          "vpc v1alpha1 allocation" \
-          "storage bucket" \
-        ; do
-          echo Deleting all $resource
-          eval nebius --format json $resource list \
-          | jq -r 'try .items[] | select(.metadata.name!="terraform-test-reports") | .metadata.id' \
-          | eval xargs -r -n 1 nebius $resource delete --id
-        done
+        ../.github/scripts/cleanup-k8s-training.sh "${TF_VAR_parent_id}" "k8s-training"

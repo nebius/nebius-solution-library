@@ -1,5 +1,10 @@
 locals {
   release-suffix = random_string.random.result
+  normalized_name_suffix = trimspace(var.name_suffix) == "" ? "" : (
+    startswith(trimspace(var.name_suffix), "-") ? trimspace(var.name_suffix) : "-${trimspace(var.name_suffix)}"
+  )
+  # CI can pass name_suffix (for example: -1583-1) so names are unique per run.
+  cluster_name_with_suffix = "${var.cluster_name}${local.normalized_name_suffix}"
   ssh_public_key = var.ssh_public_key.key != null ? var.ssh_public_key.key : (
   fileexists(var.ssh_public_key.path) ? file(var.ssh_public_key.path) : null)
 

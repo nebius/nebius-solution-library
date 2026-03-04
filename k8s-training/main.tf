@@ -1,6 +1,6 @@
 resource "nebius_mk8s_v1_cluster" "k8s-cluster" {
   parent_id = var.parent_id
-  name      = var.cluster_name
+  name      = local.cluster_name_with_suffix
   control_plane = {
     endpoints = {
       public_endpoint = var.mk8s_cluster_public_endpoint ? {} : null
@@ -36,7 +36,7 @@ data "nebius_iam_v1_group" "editors" {
 resource "nebius_iam_v1_service_account" "k8s_node_group_sa" {
   count     = var.enable_k8s_node_group_sa ? 1 : 0
   parent_id = var.parent_id
-  name      = "${var.cluster_name}-k8s-node-group-sa"
+  name      = "${var.cluster_name}-k8s-node-group-sa${local.normalized_name_suffix}"
 }
 
 resource "nebius_iam_v1_group_membership" "k8s_node_group_sa-admin" {

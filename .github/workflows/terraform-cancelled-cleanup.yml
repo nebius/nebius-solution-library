@@ -1,0 +1,47 @@
+name: "Terraform Cancelled Cleanup"
+
+on:
+  workflow_run:
+    workflows: ["Terraform"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup-k8s-training-on-cancel:
+    # Fallback cleanup for runs canceled before in-job cleanup could execute.
+    if: github.event.workflow_run.conclusion == 'cancelled' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: k8s-training-gpu-ci
+      cancel-in-progress: false
+    env:
+      TF_VAR_parent_id: project-e00pjzzrtk1fs3yavy
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Nebius CLI
+      run: |
+        curl -sSL https://storage.eu-north1.nebius.cloud/cli/install.sh | bash
+        echo "${HOME}/.nebius/bin" >> $GITHUB_PATH
+
+    - name: Nebius CLI init
+      run: |
+        cat << EOF > /tmp/sa.pem
+        ${{ secrets.TERRAFORM_SA_PRIVATE_KEY }}
+        EOF
+        nebius profile create ${{ vars.TERRAFORM_SA_ID }} --skip-auth \
+          --endpoint api.eu.nebius.cloud \
+          --service-account-id ${{ vars.TERRAFORM_SA_ID }} \
+          --public-key-id ${{ secrets.TERRAFORM_SA_PUBLIC_KEY_ID }} \
+          --parent-id ${{ env.TF_VAR_parent_id }} \
+          --private-key-file /tmp/sa.pem
+        NEBIUS_IAM_TOKEN=$(nebius iam get-access-token)
+        echo "::add-mask::$NEBIUS_IAM_TOKEN"
+        echo "NEBIUS_IAM_TOKEN=$NEBIUS_IAM_TOKEN" >> $GITHUB_ENV
+
+    - name: Cleanup k8s-training resources
+      run: ./.github/scripts/cleanup-k8s-training.sh "${TF_VAR_parent_id}" "k8s-training"

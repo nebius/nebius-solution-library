@@ -23,9 +23,15 @@ variable "region" {
 
 # Mk8s cluster name
 variable "cluster_name" {
-  description = "Base name used for MK8s cluster and related resources (node groups, service accounts)."
+  description = "Base name used for MK8s cluster and related resources. CI can append name_suffix for unique test runs."
   type        = string
   default     = "k8s-training"
+}
+
+variable "name_suffix" {
+  description = "Optional suffix appended to selected resource names (for example: -<run-id>-<attempt> in CI)."
+  type        = string
+  default     = ""
 }
 
 variable "k8s_version" {
