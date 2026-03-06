@@ -180,7 +180,78 @@ jobs:
 
     # Run Terraform Tests
     - name: Terraform Test
-      run: terraform test -junit-xml=tests/reports/TEST-result-${{ github.run_id }}.xml
+      timeout-minutes: 150
+      run: |
+        report_path="tests/reports/TEST-result-${{ github.run_id }}.xml"
+
+        if [ "${{ matrix.solution }}" != "k8s-training" ]; then
+          terraform test -junit-xml="${report_path}"
+          exit $?
+        fi
+
+        cluster_name="${TF_VAR_cluster_name:-k8s-training}"
+        gpu_node_group_name="${cluster_name}-ng-gpu-0"
+        poll_seconds=60
+
+        terraform test -junit-xml="${report_path}" &
+        test_pid=$!
+
+        stop_test() {
+          if kill -0 "${test_pid}" 2>/dev/null; then
+            kill "${test_pid}" || true
+            wait "${test_pid}" || true
+          fi
+        }
+
+        # Fail early when the GPU node group reaches a terminal provisioning state.
+        while kill -0 "${test_pid}" 2>/dev/null; do
+          cluster_id="$(
+            { nebius mk8s v1 cluster list --parent-id "${TF_VAR_parent_id}" --format json 2>/dev/null || true; } \
+              | jq -r --arg name "${cluster_name}" '
+                  [(.items // [])[] | select(.metadata.name == $name)]
+                  | sort_by(.metadata.created_at)
+                  | last
+                  | .metadata.id // empty
+                '
+          )"
+
+          if [ -n "${cluster_id}" ]; then
+            node_group_json="$(
+              { nebius mk8s v1 node-group list --parent-id "${cluster_id}" --format json 2>/dev/null || true; } \
+                | jq -c --arg name "${gpu_node_group_name}" '
+                    [(.items // [])[] | select(.metadata.name == $name)]
+                    | sort_by(.metadata.created_at)
+                    | last // empty
+                  '
+            )"
+
+            if [ -n "${node_group_json}" ] && printf '%s\n' "${node_group_json}" | jq -e '
+              (.status.events // [])
+              | map(.last_occurrence)
+              | any(
+                  (.code == "ComputeInstanceCreationFailed") or
+                  (.code == "NodeNotFound" and ((.message // "") | contains("STOPPED for longer than")))
+                )
+            ' >/dev/null; then
+              echo "Detected fatal GPU node provisioning event for ${gpu_node_group_name}"
+              printf '%s\n' "${node_group_json}" | jq -r '
+                (.status.events // [])
+                | map(.last_occurrence)
+                | map(select(
+                    (.code == "ComputeInstanceCreationFailed") or
+                    (.code == "NodeNotFound" and ((.message // "") | contains("STOPPED for longer than")))
+                  ))
+                | .[]
+              '
+              stop_test
+              exit 1
+            fi
+          fi
+
+          sleep "${poll_seconds}"
+        done
+
+        wait "${test_pid}"
 
     - name: Set date in report
       run: |
