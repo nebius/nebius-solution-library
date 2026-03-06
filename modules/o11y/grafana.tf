@@ -12,7 +12,7 @@ resource "random_password" "grafana_password" {
 resource "nebius_iam_v2_access_key" "grafana_key" {
   count       = var.o11y.grafana.enabled && var.k8s_node_group_sa_enabled ? 1 : 0
   parent_id   = var.parent_id
-  name        = "grafana-access-key"
+  name        = local.grafana_access_key_name
   description = "Access key for Grafana module"
   account = {
     service_account = {
@@ -72,6 +72,11 @@ EOT
 }
 
 locals {
+  normalized_name_suffix = trimspace(var.name_suffix) == "" ? "" : (
+    startswith(trimspace(var.name_suffix), "-") ? trimspace(var.name_suffix) : "-${trimspace(var.name_suffix)}"
+  )
+  grafana_access_key_name   = "${var.resource_name_prefix}grafana-access-key${local.normalized_name_suffix}"
+  loki_access_key_name      = "${var.resource_name_prefix}loki-s3-access-key${local.normalized_name_suffix}"
   grafana_access_token_path = "${path.root}/grafana_access_token.txt"
   grafana_access_token      = var.o11y.grafana.enabled && var.k8s_node_group_sa_enabled ? try(trimspace(file(local.grafana_access_token_path)), "") : ""
 }
@@ -93,4 +98,3 @@ resource "nebius_applications_v1alpha1_k8s_release" "grafana" {
     }
   }
 }
-

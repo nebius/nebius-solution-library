@@ -62,6 +62,18 @@ variable "k8s_node_group_sa_enabled" {
   default     = false
 }
 
+variable "resource_name_prefix" {
+  description = "Optional prefix for IAM resource names (for example, k8s-training-)."
+  type        = string
+  default     = ""
+}
+
+variable "name_suffix" {
+  description = "Optional suffix appended to IAM resource names for CI uniqueness."
+  type        = string
+  default     = ""
+}
+
 variable "test_mode" {
   description = "Switch between real usage and testing"
   type        = bool

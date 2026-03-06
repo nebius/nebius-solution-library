@@ -1,6 +1,6 @@
 ###GLOBALVARIABLES OWERWITE BLOCK###
 variables {
-  gpu_nodes_platform = "gpu-h100-sxm"
+  gpu_nodes_platform    = "gpu-h100-sxm"
   gpu_nodes_preemptible = true
 }
 ######

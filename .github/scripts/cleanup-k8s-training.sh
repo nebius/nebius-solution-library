@@ -26,13 +26,15 @@ set -euo pipefail
 # - Exits non-zero if prefixed resources remain after timeout
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <parent_id> [cluster_prefix] [sa_prefix]"
+  echo "Usage: $0 <parent_id> [cluster_prefix] [sa_prefix] [grafana_key_prefix] [loki_key_prefix]"
   exit 1
 fi
 
 PARENT_ID="$1"
 CLUSTER_PREFIX="${2:-k8s-training}"
 SA_PREFIX="${3:-${CLUSTER_PREFIX}-k8s-node-group-sa}"
+GRAFANA_KEY_PREFIX="${4:-${CLUSTER_PREFIX}-grafana-access-key}"
+LOKI_KEY_PREFIX="${5:-${CLUSTER_PREFIX}-loki-s3-access-key}"
 MAX_RETRIES=3
 RETRY_DELAY_SECONDS=10
 WAIT_TIMEOUT_SECONDS=300
@@ -67,6 +69,31 @@ list_service_account_ids() {
     | jq -r --arg prefix "${SA_PREFIX}" '(.items // [])[] | select(.metadata.name | startswith($prefix)) | .metadata.id'
 }
 
+list_access_key_ids() {
+  local matching_sa_ids
+  local matching_sa_ids_json
+
+  mapfile -t matching_sa_ids < <(list_service_account_ids)
+  if [[ ${#matching_sa_ids[@]} -eq 0 ]]; then
+    matching_sa_ids_json='[]'
+  else
+    matching_sa_ids_json="$(printf '%s\n' "${matching_sa_ids[@]}" | jq -R . | jq -s -c .)"
+  fi
+
+  nebius --format json iam v2 access-key list --parent-id "${PARENT_ID}" \
+    | jq -r \
+      --arg grafana_prefix "${GRAFANA_KEY_PREFIX}" \
+      --arg loki_prefix "${LOKI_KEY_PREFIX}" \
+      --argjson matching_sa_ids "${matching_sa_ids_json}" \
+      '(.items // [])[]
+      | select(
+          ((.metadata.name // "") | startswith($grafana_prefix))
+          or ((.metadata.name // "") | startswith($loki_prefix))
+          or ((.account.service_account.id // "") as $sa_id | ($matching_sa_ids | index($sa_id)) != null)
+        )
+      | .metadata.id'
+}
+
 delete_clusters() {
   mapfile -t ids < <(list_cluster_ids)
   if [[ ${#ids[@]} -eq 0 ]]; then
@@ -95,6 +122,20 @@ delete_service_accounts() {
   done
 }
 
+delete_access_keys() {
+  mapfile -t ids < <(list_access_key_ids)
+  if [[ ${#ids[@]} -eq 0 ]]; then
+    log "No IAM access keys found for prefixes ${GRAFANA_KEY_PREFIX} / ${LOKI_KEY_PREFIX}"
+    return 0
+  fi
+
+  for id in "${ids[@]}"; do
+    [[ -z "${id}" ]] && continue
+    log "Deleting IAM access key ${id}"
+    retry_cmd nebius iam v2 access-key delete --id "${id}"
+  done
+}
+
 wait_until_empty() {
   local name="$1"
   local list_fn="$2"
@@ -120,9 +161,11 @@ wait_until_empty() {
   done
 }
 
-log "Starting k8s-training cleanup with cluster prefix ${CLUSTER_PREFIX} and SA prefix ${SA_PREFIX}"
+log "Starting k8s-training cleanup with cluster prefix ${CLUSTER_PREFIX}, SA prefix ${SA_PREFIX}, key prefixes ${GRAFANA_KEY_PREFIX} / ${LOKI_KEY_PREFIX}"
 delete_clusters
+delete_access_keys
 delete_service_accounts
 wait_until_empty "cluster" list_cluster_ids
+wait_until_empty "access key" list_access_key_ids
 wait_until_empty "service account" list_service_account_ids
 log "k8s-training cleanup finished"

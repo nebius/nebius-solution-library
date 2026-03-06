@@ -20,7 +20,7 @@ resource "nebius_iam_v1_group_membership" "loki_sa_storage_editor" {
 resource "nebius_iam_v2_access_key" "loki_s3_key" {
   count                = var.o11y.loki.enabled ? 1 : 0
   parent_id            = var.parent_id
-  name                 = "loki-s3-access-key"
+  name                 = local.loki_access_key_name
   description          = "Access key for Loki module"
   secret_delivery_mode = "MYSTERY_BOX"
   account = {
