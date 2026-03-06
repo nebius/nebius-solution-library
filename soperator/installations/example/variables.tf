@@ -950,11 +950,11 @@ resource "terraform_data" "check_local_nvme" {
         alltrue([
           for worker in var.slurm_nodeset_workers :
           !try(worker.local_nvme.enabled, false) || (
-            try(module.resources.by_platform[worker.resource.platform][worker.resource.preset].local_nvme_supported, false)
+            try(module.resources.local_nvme_supported_by_region_platform_preset[var.region][worker.resource.platform][worker.resource.preset], false)
           )
         ])
       )
-      error_message = "Local NVMe is enabled, but one or more worker nodesets use unsupported platform/preset."
+      error_message = "Local NVMe is enabled, but one or more worker nodesets use unsupported region/platform/preset."
     }
   }
 }
