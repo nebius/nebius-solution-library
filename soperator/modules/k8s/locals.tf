@@ -8,10 +8,14 @@ locals {
     cloud_init_data = templatefile("${path.module}/templates/cloud_init.yaml.tftpl", {
       ssh_users               = var.node_ssh_access_users
       nvidia_admin_conf_lines = var.nvidia_admin_conf_lines
+      local_nvme_enabled      = false
+      local_nvme_mount_path   = "/mnt/local-nvme"
     })
     cloud_init_data_no_nvidia = templatefile("${path.module}/templates/cloud_init.yaml.tftpl", {
       ssh_users               = var.node_ssh_access_users
       nvidia_admin_conf_lines = []
+      local_nvme_enabled      = false
+      local_nvme_mount_path   = "/mnt/local-nvme"
     })
   }
 

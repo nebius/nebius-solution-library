@@ -23,6 +23,11 @@ output "by_platform" {
   value       = local.presets_by_platforms
 }
 
+output "local_nvme_supported_by_region_platform_preset" {
+  description = "Local NVMe support matrix by region/platform/preset."
+  value       = local.local_nvme_supported_by_region_platform_preset
+}
+
 output "k8s_ephemeral_storage_coefficient" {
   value = local.reserve.ephemeral_storage.coefficient
 }

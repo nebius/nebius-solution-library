@@ -244,6 +244,13 @@ resources:
             useDefaultAppArmorProfile: ${apparmor_enabled}
             maintenance: ${slurm_cluster.maintenance}
 
+            %{~ if has_local_nvme ~}
+            slurmScripts:
+              builtIn:
+                nvme_raid_health.sh:
+                  enabled: true
+            %{~ endif ~}
+
             partitionConfiguration:
               configType: structured
               partitions:

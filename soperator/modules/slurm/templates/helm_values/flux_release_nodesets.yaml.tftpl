@@ -98,6 +98,12 @@ nodesets:
               %{~ for sub_mount in jail_submounts.local ~}
               - name: ${sub_mount.name}
                 mountPath: ${sub_mount.mount_path}
+                %{~ if sub_mount.source_type == "host_path" ~}
+                volumeSource:
+                  hostPath:
+                    path: ${sub_mount.host_path}
+                    type: Directory
+                %{~ else ~}
                 volumeClaimTemplateSpec:
                   accessModes:
                     - ReadWriteOnce
@@ -105,7 +111,17 @@ nodesets:
                   resources:
                     requests:
                       storage: ${sub_mount.size_gibibytes}Gi
+                %{~ endif ~}
               %{~ endfor ~}
+
+              %{~ if try(nodeset.local_nvme.enabled, false) ~}
+              - name: local-nvme
+                mountPath: ${try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")}
+                volumeSource:
+                  hostPath:
+                    path: ${try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")}
+                    type: Directory
+              %{~ endif ~}
 
               %{~ if jail_submounts.image_storage.enabled ~}
               - name: image-storage
@@ -229,6 +245,13 @@ nodesets:
             volumeMounts: [{ name: '${sub_mount.name}', mountPath: /volume-mount }]
             command: ["grep", ' /volume-mount ${sub_mount.filesystem_type} ', "/proc/mounts"]
           %{~ endfor ~}
+
+          %{~ if try(nodeset.local_nvme.enabled, false) ~}
+          - name: ensure-node-local-jail-submount-local-nvme-${try(nodeset.local_nvme.filesystem_type, "xfs")}
+            image: cr.eu-north1.nebius.cloud/soperator/busybox
+            volumeMounts: [{ name: 'local-nvme', mountPath: /volume-mount }]
+            command: ["grep", ' /volume-mount ${try(nodeset.local_nvme.filesystem_type, "xfs")} ', "/proc/mounts"]
+          %{~ endif ~}
 
           %{~ if jail_submounts.image_storage.enabled ~}
           - name: ensure-node-local-image-storage-${jail_submounts.image_storage.spec.filesystem_type}

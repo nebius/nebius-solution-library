@@ -97,6 +97,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     cluster_name        = var.cluster_name
     region              = var.region
     public_o11y_enabled = var.public_o11y_enabled
+    has_local_nvme      = anytrue([for nodeset in var.worker_nodesets : try(nodeset.local_nvme.enabled, false)])
     metrics_collector   = local.metrics_collector
     create_pvcs         = var.create_pvcs
 
@@ -145,8 +146,11 @@ resource "helm_release" "soperator_fluxcd_cm" {
       node_local_image_storage  = var.node_local_image_storage
 
       jail_submounts = [for submount in var.filestores.jail_submounts : {
-        name       = submount.name
-        mount_path = submount.mount_path
+        name            = submount.name
+        mount_path      = submount.mount_path
+        source_type     = "filestore"
+        host_path       = null
+        filesystem_type = null
       }]
 
       controller_state_on_filestore = var.controller_state_on_filestore
