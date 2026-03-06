@@ -1,6 +1,6 @@
 ###GLOBAL VARIABLES OWERWITE BLOCK###
 variables {
-  gpu_nodes_platform = "gpu-h100-sxm"
+  gpu_nodes_platform    = "gpu-h100-sxm"
   gpu_nodes_preemptible = true
 }
 ######
@@ -27,6 +27,6 @@ run "full_training_kuberay_apply" {
   command = apply
 
   variables {
-    enable_kuberay = true
+    enable_kuberay_cluster = true
   }
 }
