@@ -343,7 +343,7 @@ slurm_nodeset_workers = [
     # jail_submount_path: path inside jail mounted from the hostPath in Slurm worker pods.
     # local_nvme = {
     #   enabled            = true
-    #   mount_path         = "/mnt/local-nvme"
+    #   node_mount_path    = "/mnt/local-nvme"
     #   jail_submount_path = "/mnt/local-nvme"
     # }
   },
