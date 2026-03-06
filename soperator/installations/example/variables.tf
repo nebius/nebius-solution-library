@@ -723,9 +723,8 @@ variable "slurm_nodeset_workers" {
     create_partition = optional(bool)
     ephemeral_nodes  = optional(bool, false)
     local_nvme = optional(object({
-      enabled            = optional(bool, false)
-      node_mount_path    = optional(string, "/mnt/local-nvme")
-      jail_submount_path = optional(string, "/mnt/local-nvme")
+      enabled    = optional(bool, false)
+      mount_path = optional(string, "/mnt/local-nvme")
     }), {})
   }))
   nullable = false
@@ -781,11 +780,10 @@ variable "slurm_nodeset_workers" {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
       !try(worker.local_nvme.enabled, false) || (
-        startswith(try(worker.local_nvme.node_mount_path, "/mnt/local-nvme"), "/") &&
-        startswith(try(worker.local_nvme.jail_submount_path, "/mnt/local-nvme"), "/")
+        startswith(try(worker.local_nvme.mount_path, "/mnt/local-nvme"), "/")
       )
     ])
-    error_message = "When worker local NVMe is enabled, mount_path and jail_submount_path must be absolute paths."
+    error_message = "When worker local NVMe is enabled, mount_path must be an absolute path."
   }
 }
 

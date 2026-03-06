@@ -56,7 +56,7 @@ locals {
       reservation_policy = nodeset.reservation_policy
       local_nvme = {
         enabled    = try(nodeset.local_nvme.enabled, false)
-        mount_path = try(nodeset.local_nvme.node_mount_path, "/mnt/local-nvme")
+        mount_path = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
       }
     }
   ]])
@@ -485,7 +485,7 @@ module "slurm" {
     ephemeral_nodes  = nodeset.ephemeral_nodes
     local_nvme = {
       enabled         = try(nodeset.local_nvme.enabled, false)
-      mount_path      = try(nodeset.local_nvme.jail_submount_path, "/mnt/local-nvme")
+      mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
       filesystem_type = "ext4"
     }
   }]

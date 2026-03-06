@@ -339,12 +339,10 @@ slurm_nodeset_workers = [
     ephemeral_nodes = false
     # Optional local NVMe passthrough for this nodeset only.
     # Uses local instance disks, creates a RAID0 array and mounts it on the host via cloud-init.
-    # mount_path: host path where RAID is mounted (used by prepare-disks script).
-    # jail_submount_path: path inside jail mounted from the hostPath in Slurm worker pods.
+    # mount_path: path used for both host RAID mount and jail submount.
     # local_nvme = {
-    #   enabled            = true
-    #   node_mount_path    = "/mnt/local-nvme"
-    #   jail_submount_path = "/mnt/local-nvme"
+    #   enabled    = true
+    #   mount_path = "/mnt/local-nvme"
     # }
   },
 ]
