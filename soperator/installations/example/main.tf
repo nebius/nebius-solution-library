@@ -54,6 +54,10 @@ locals {
       subset_index       = subset
       preemptible        = nodeset.preemptible
       reservation_policy = nodeset.reservation_policy
+      local_nvme = {
+        enabled    = try(nodeset.local_nvme.enabled, false)
+        mount_path = try(nodeset.local_nvme.node_mount_path, "/mnt/local-nvme")
+      }
     }
   ]])
 }
@@ -63,6 +67,7 @@ resource "terraform_data" "check_variables" {
     terraform_data.check_slurm_nodeset,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_nfs,
+    terraform_data.check_local_nvme,
   ]
 }
 
@@ -414,7 +419,6 @@ module "slurm" {
       storage_class_name = replace("${local.storage_class_prefix}-${lower(var.node_local_image_disk.spec.disk_type)}-${lower(var.node_local_image_disk.spec.filesystem_type)}", "_", "-")
     } : null
   }
-
   nfs = {
     enabled    = var.nfs.enabled
     path       = var.nfs.enabled ? module.nfs-server[0].nfs_export_path : null
@@ -479,6 +483,11 @@ module "slurm" {
     gres_config      = lookup(module.resources.gres_config_by_platform, nodeset.resource.platform, null)
     create_partition = nodeset.create_partition != null ? nodeset.create_partition : false
     ephemeral_nodes  = nodeset.ephemeral_nodes
+    local_nvme = {
+      enabled         = try(nodeset.local_nvme.enabled, false)
+      mount_path      = try(nodeset.local_nvme.jail_submount_path, "/mnt/local-nvme")
+      filesystem_type = "ext4"
+    }
   }]
 
   login_allocation_id            = module.k8s.static_ip_allocation_id

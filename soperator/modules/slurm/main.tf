@@ -145,8 +145,11 @@ resource "helm_release" "soperator_fluxcd_cm" {
       node_local_image_storage  = var.node_local_image_storage
 
       jail_submounts = [for submount in var.filestores.jail_submounts : {
-        name       = submount.name
-        mount_path = submount.mount_path
+        name            = submount.name
+        mount_path      = submount.mount_path
+        source_type     = "filestore"
+        host_path       = null
+        filesystem_type = null
       }]
 
       controller_state_on_filestore = var.controller_state_on_filestore

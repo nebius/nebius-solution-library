@@ -722,6 +722,11 @@ variable "slurm_nodeset_workers" {
     features         = optional(list(string))
     create_partition = optional(bool)
     ephemeral_nodes  = optional(bool, false)
+    local_nvme = optional(object({
+      enabled            = optional(bool, false)
+      node_mount_path    = optional(string, "/mnt/local-nvme")
+      jail_submount_path = optional(string, "/mnt/local-nvme")
+    }), {})
   }))
   nullable = false
   default = [{
@@ -770,6 +775,17 @@ variable "slurm_nodeset_workers" {
       worker.autoscaling.min_size == null || worker.autoscaling.min_size <= worker.size
     ])
     error_message = "Worker nodeset autoscaling.min_size must be less than or equal to size."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      !try(worker.local_nvme.enabled, false) || (
+        startswith(try(worker.local_nvme.node_mount_path, "/mnt/local-nvme"), "/") &&
+        startswith(try(worker.local_nvme.jail_submount_path, "/mnt/local-nvme"), "/")
+      )
+    ])
+    error_message = "When worker local NVMe is enabled, mount_path and jail_submount_path must be absolute paths."
   }
 }
 
@@ -920,6 +936,26 @@ resource "terraform_data" "check_slurm_nodeset" {
     }
 
     # TODO: precondition for total node group count
+  }
+}
+
+resource "terraform_data" "check_local_nvme" {
+  lifecycle {
+    precondition {
+      condition = (
+        !anytrue([
+          for worker in var.slurm_nodeset_workers :
+          try(worker.local_nvme.enabled, false)
+        ]) ||
+        alltrue([
+          for worker in var.slurm_nodeset_workers :
+          !try(worker.local_nvme.enabled, false) || (
+            try(module.resources.by_platform[worker.resource.platform][worker.resource.preset].local_nvme_supported, false)
+          )
+        ])
+      )
+      error_message = "Local NVMe is enabled, but one or more worker nodesets use unsupported platform/preset."
+    }
   }
 }
 

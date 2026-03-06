@@ -29,6 +29,7 @@ locals {
       memory_gibibytes       = 8 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = true
       sufficient = {
         (module.labels.name_nodeset_system)     = false
         (module.labels.name_nodeset_controller) = true
@@ -43,6 +44,7 @@ locals {
       memory_gibibytes       = 16 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = true
       sufficient = {
         (module.labels.name_nodeset_system)     = false
         (module.labels.name_nodeset_controller) = true
@@ -57,6 +59,7 @@ locals {
       memory_gibibytes       = 32 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = true
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -71,6 +74,7 @@ locals {
       memory_gibibytes       = 64 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -85,6 +89,7 @@ locals {
       memory_gibibytes       = 128 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -99,6 +104,7 @@ locals {
       memory_gibibytes       = 192 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -113,6 +119,7 @@ locals {
       memory_gibibytes       = 256 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -127,6 +134,7 @@ locals {
       memory_gibibytes       = 320 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -141,6 +149,7 @@ locals {
       memory_gibibytes       = 384 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -155,6 +164,7 @@ locals {
       memory_gibibytes       = 512 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -169,6 +179,7 @@ locals {
       memory_gibibytes       = 640 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -183,6 +194,7 @@ locals {
       memory_gibibytes       = 768 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -197,6 +209,7 @@ locals {
       memory_gibibytes       = 896 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -211,6 +224,7 @@ locals {
       memory_gibibytes       = 1024 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 0
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -228,6 +242,7 @@ locals {
       memory_gibibytes       = 200 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 1
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -242,6 +257,7 @@ locals {
       memory_gibibytes       = 1600 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 8
       gpu_cluster_compatible = true
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -256,6 +272,7 @@ locals {
       memory_gibibytes       = 224 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 1
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -270,6 +287,7 @@ locals {
       memory_gibibytes       = 1792 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 8
       gpu_cluster_compatible = true
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -284,6 +302,7 @@ locals {
       memory_gibibytes       = 346 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 1
       gpu_cluster_compatible = false
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true
@@ -298,6 +317,7 @@ locals {
       memory_gibibytes       = 2768 * local.reserve.ram.coefficient - local.reserve.ram.count
       gpus                   = 8
       gpu_cluster_compatible = true
+      local_nvme_supported   = false
       sufficient = {
         (module.labels.name_nodeset_system)     = true
         (module.labels.name_nodeset_controller) = true

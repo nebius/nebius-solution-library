@@ -137,6 +137,15 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
       block_size_bytes = provider::units::from_kib(var.node_group_workers_v2[count.index].boot_disk.block_size_kibibytes)
     }
 
+    local_disks = try(var.node_group_workers_v2[count.index].local_nvme.enabled, false) ? {
+      config = {
+        none = true
+      }
+      passthrough_group = {
+        requested = true
+      }
+    } : null
+
     filesystems = concat(
       [
         {
@@ -166,11 +175,16 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
     os = "ubuntu24.04"
 
-    cloud_init_user_data = local.node_group_gpu_present_v2.worker[count.index] ? (
-      local.node_cloud_init.enabled ? local.node_cloud_init.cloud_init_data : null
-      ) : (
-      local.node_ssh_access.enabled ? local.node_cloud_init.cloud_init_data_no_nvidia : null
-    )
+    cloud_init_user_data = (
+      local.node_ssh_access.enabled ||
+      (local.node_group_gpu_present_v2.worker[count.index] && length(var.nvidia_admin_conf_lines) > 0) ||
+      try(var.node_group_workers_v2[count.index].local_nvme.enabled, false)
+      ) ? templatefile("${path.module}/templates/cloud_init.yaml.tftpl", {
+        ssh_users               = var.node_ssh_access_users
+        nvidia_admin_conf_lines = local.node_group_gpu_present_v2.worker[count.index] ? var.nvidia_admin_conf_lines : []
+        local_nvme_enabled      = try(var.node_group_workers_v2[count.index].local_nvme.enabled, false)
+        local_nvme_mount_path   = try(var.node_group_workers_v2[count.index].local_nvme.mount_path, "/mnt/local-nvme")
+    }) : null
   }
 
   lifecycle {
