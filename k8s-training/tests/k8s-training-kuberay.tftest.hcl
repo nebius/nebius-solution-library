@@ -27,6 +27,6 @@ run "full_training_kuberay_apply" {
   command = apply
 
   variables {
-    enable_kuberay = true
+    enable_kuberay_cluster = true
   }
 }

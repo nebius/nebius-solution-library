@@ -93,6 +93,9 @@ jobs:
     name: 'Terraform ${{ matrix.solution }}'
     environment:
       name: project-e00pjzzrtk1fs3yavy
+    concurrency:
+      group: ${{ matrix.solution == 'k8s-training' && 'k8s-training-gpu-ci' || format('terraform-{0}-{1}', github.run_id, matrix.solution) }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     continue-on-error: true
     strategy:
