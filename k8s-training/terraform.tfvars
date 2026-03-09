@@ -39,6 +39,12 @@ gpu_nodes_preset   = "8gpu-128vcpu-1600gb" # GPU nodes preset: 8gpu-128vcpu-1600
 # Infiniband fabrics: https://docs.nebius.com/compute/clusters/gpu#fabrics
 infiniband_fabric = "" # Infiniband fabric name
 
+# gpu_nodes_reservation_policy = {
+#     policy          = "STRICT"
+#     reservation_ids = ["capacityblockgroup-e00xxxxx"]
+# }
+
+
 gpu_nodes_driverfull_image = true
 enable_k8s_node_group_sa   = true
 enable_egress_gateway      = false
