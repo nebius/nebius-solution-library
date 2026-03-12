@@ -97,6 +97,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     cluster_name        = var.cluster_name
     region              = var.region
     public_o11y_enabled = var.public_o11y_enabled
+    has_local_nvme      = anytrue([for nodeset in var.worker_nodesets : try(nodeset.local_nvme.enabled, false)])
     metrics_collector   = local.metrics_collector
     create_pvcs         = var.create_pvcs
 
