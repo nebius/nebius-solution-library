@@ -311,12 +311,10 @@ locals {
 
   # Allow-list: "${region}/${platform}/${preset}"
   local_nvme_supported_true_region_platform_preset = toset([
-    # cpu-d3
-    "${local.regions.eu-north1}/${local.platforms.cpu-d3}/${local.presets.p-4c-16g}",
-    "${local.regions.eu-north1}/${local.platforms.cpu-d3}/${local.presets.p-8c-32g}",
-
-    # gpu-h200-sxm
-    "${local.regions.eu-north1}/${local.platforms.gpu-h200-sxm}/${local.presets.p-1g-16c-200g}",
+    # gpu-b300-sxm
+    "${local.regions.uk-south1}/${local.platforms.gpu-b300-sxm}/${local.presets.p-8g-128c-1600g}",
+    "${local.regions.uk-south1}/${local.platforms.gpu-b300-sxm}/${local.presets.p-8g-160c-1792g}",
+    "${local.regions.uk-south1}/${local.platforms.gpu-b300-sxm}/${local.presets.p-8g-192c-2768g}",
   ])
 
   presets_by_platforms_raw = tomap({
