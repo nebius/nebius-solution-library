@@ -17,6 +17,7 @@ package_update: true
 packages:
   - mdadm
   - nvme-cli
+  - xfsprogs
 %{ endif }
 
 %{ if length(nvidia_admin_conf_lines) > 0 || local_nvme_enabled }
@@ -110,6 +111,7 @@ write_files:
 
       MOUNTPOINT="$${1:-/mnt/local-nvme}"
       MD_DEV="/dev/md0"
+      MOUNT_OPTS="noatime,nodiratime"
 
       echo "Detecting NVMe disks..."
       nvme list
@@ -143,6 +145,16 @@ write_files:
 
       echo "Using $${DISK_COUNT} NVMe disk(s): $${NVME_DISKS[*]}"
 
+      for d in "$${NVME_DISKS[@]}"; do
+        DISK_BASENAME="$(basename "$${d}")"
+        SCHEDULER_PATH="/sys/block/$${DISK_BASENAME}/queue/scheduler"
+        if [[ -w "$${SCHEDULER_PATH}" ]]; then
+          echo none | tee "$${SCHEDULER_PATH}" >/dev/null
+        else
+          echo "Skipping scheduler update for $${d}: $${SCHEDULER_PATH} is not writable"
+        fi
+      done
+
       if [[ -e "$${MD_DEV}" ]]; then
         mdadm --stop "$${MD_DEV}" || true
       fi
@@ -154,13 +166,13 @@ write_files:
 
       udevadm settle
 
-      mkfs.ext4 -F "$${MD_DEV}"
+      mkfs.xfs -f "$${MD_DEV}"
 
       mkdir -p "$${MOUNTPOINT}"
-      mount "$${MD_DEV}" "$${MOUNTPOINT}"
+      mount -o "$${MOUNT_OPTS}" "$${MD_DEV}" "$${MOUNTPOINT}"
 
       UUID="$(blkid -s UUID -o value "$${MD_DEV}")"
-      grep -q "$${UUID}" /etc/fstab || echo "UUID=$${UUID} $${MOUNTPOINT} ext4 defaults,nofail 0 2" >> /etc/fstab
+      grep -q "$${UUID}" /etc/fstab || echo "UUID=$${UUID} $${MOUNTPOINT} xfs $${MOUNT_OPTS},nofail 0 2" >> /etc/fstab
 
       if [[ -d /etc/mdadm ]]; then
         mdadm --detail --scan > /etc/mdadm/mdadm.conf
