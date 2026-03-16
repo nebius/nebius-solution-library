@@ -98,12 +98,6 @@ nodesets:
               %{~ for sub_mount in jail_submounts.local ~}
               - name: ${sub_mount.name}
                 mountPath: ${sub_mount.mount_path}
-                %{~ if sub_mount.source_type == "host_path" ~}
-                volumeSource:
-                  hostPath:
-                    path: ${sub_mount.host_path}
-                    type: Directory
-                %{~ else ~}
                 volumeClaimTemplateSpec:
                   accessModes:
                     - ReadWriteOnce
@@ -111,7 +105,6 @@ nodesets:
                   resources:
                     requests:
                       storage: ${sub_mount.size_gibibytes}Gi
-                %{~ endif ~}
               %{~ endfor ~}
 
               %{~ if try(nodeset.local_nvme.enabled, false) ~}

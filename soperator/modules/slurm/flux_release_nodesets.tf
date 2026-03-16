@@ -26,15 +26,7 @@ resource "local_file" "flux_release_rendered_nodesets" {
         mount_path = submount.mount_path
       }]
 
-      local = [for submount in var.node_local_jail_submounts : {
-        name               = submount.name
-        mount_path         = submount.mount_path
-        source_type        = "volume_claim_template"
-        host_path          = null
-        filesystem_type    = submount.filesystem_type
-        storage_class_name = submount.storage_class_name
-        size_gibibytes     = submount.size_gibibytes
-      }]
+      local = var.node_local_jail_submounts
 
       image_storage = var.node_local_image_storage
     }
