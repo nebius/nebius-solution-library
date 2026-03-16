@@ -17,7 +17,9 @@ package_update: true
 packages:
   - mdadm
   - nvme-cli
+%{ if local_nvme_filesystem_type == "xfs" }
   - xfsprogs
+%{ endif }
 %{ endif }
 
 %{ if length(nvidia_admin_conf_lines) > 0 || local_nvme_enabled }
@@ -110,8 +112,22 @@ write_files:
       set -euo pipefail
 
       MOUNTPOINT="$${1:-/mnt/local-nvme}"
+      FILESYSTEM_TYPE="${local_nvme_filesystem_type}"
       MD_DEV="/dev/md0"
-      MOUNT_OPTS="noatime,nodiratime"
+      case "$${FILESYSTEM_TYPE}" in
+        ext4)
+          MOUNT_OPTS="noatime,nodiratime,lazytime,commit=60"
+          MKFS_CMD=(mkfs.ext4 -F -m 0)
+          ;;
+        xfs)
+          MOUNT_OPTS="noatime,nodiratime,logbufs=8,inode64"
+          MKFS_CMD=(mkfs.xfs -f)
+          ;;
+        *)
+          echo "Unsupported filesystem type: $${FILESYSTEM_TYPE}"
+          exit 1
+          ;;
+      esac
 
       echo "Detecting NVMe disks..."
       nvme list
@@ -166,13 +182,13 @@ write_files:
 
       udevadm settle
 
-      mkfs.xfs -f "$${MD_DEV}"
+      "$${MKFS_CMD[@]}" "$${MD_DEV}"
 
       mkdir -p "$${MOUNTPOINT}"
       mount -o "$${MOUNT_OPTS}" "$${MD_DEV}" "$${MOUNTPOINT}"
 
       UUID="$(blkid -s UUID -o value "$${MD_DEV}")"
-      grep -q "$${UUID}" /etc/fstab || echo "UUID=$${UUID} $${MOUNTPOINT} xfs $${MOUNT_OPTS},nofail 0 2" >> /etc/fstab
+      grep -q "$${UUID}" /etc/fstab || echo "UUID=$${UUID} $${MOUNTPOINT} $${FILESYSTEM_TYPE} $${MOUNT_OPTS},nofail 0 2" >> /etc/fstab
 
       if [[ -d /etc/mdadm ]]; then
         mdadm --detail --scan > /etc/mdadm/mdadm.conf

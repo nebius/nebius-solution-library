@@ -756,7 +756,7 @@ variable "worker_nodesets" {
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")
-      filesystem_type = optional(string, "xfs")
+      filesystem_type = optional(string, "ext4")
     }), {})
   }))
   default = []

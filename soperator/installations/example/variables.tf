@@ -723,8 +723,9 @@ variable "slurm_nodeset_workers" {
     create_partition = optional(bool)
     ephemeral_nodes  = optional(bool, false)
     local_nvme = optional(object({
-      enabled    = optional(bool, false)
-      mount_path = optional(string, "/mnt/local-nvme")
+      enabled         = optional(bool, false)
+      mount_path      = optional(string, "/mnt/local-nvme")
+      filesystem_type = optional(string, "ext4")
     }), {})
   }))
   nullable = false
@@ -784,6 +785,14 @@ variable "slurm_nodeset_workers" {
       )
     ])
     error_message = "When worker local NVMe is enabled, mount_path must be an absolute path."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      contains(["ext4", "xfs"], try(worker.local_nvme.filesystem_type, "ext4"))
+    ])
+    error_message = "When worker local NVMe filesystem_type is set, it must be `ext4` or `xfs`."
   }
 }
 

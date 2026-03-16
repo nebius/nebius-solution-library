@@ -341,8 +341,9 @@ slurm_nodeset_workers = [
     # Uses local instance disks, creates a RAID0 array and mounts it on the host via cloud-init.
     # mount_path: path used for both host RAID mount and jail submount.
     # local_nvme = {
-    #   enabled    = true
-    #   mount_path = "/mnt/local-nvme"
+    #   enabled         = true
+    #   mount_path      = "/mnt/local-nvme"
+    #   filesystem_type = "ext4"
     # }
   },
 ]
