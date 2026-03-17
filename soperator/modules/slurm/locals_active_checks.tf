@@ -125,6 +125,20 @@ locals {
         drainReasonPrefix = null
       }
     }
+    # Run only CPU-related validation checks
+    cpu = {
+      mem-perf = {}
+      ssh-check = {
+        k8sJobSpec = {
+          jobContainer = {
+            env = [{
+              name : "NUM_OF_LOGIN_NODES",
+              value : tostring(var.node_count.login)
+            }]
+          }
+        }
+      }
+    }
   }
 
   soperator_activechecks_override_yaml = yamlencode(local.active_checks_scopes[var.active_checks_scope])
