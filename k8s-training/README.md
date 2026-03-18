@@ -51,9 +51,12 @@ To deploy a Kubernetes cluster, follow these steps:
    terraform init
    ```
 
-4. Replace the placeholder content
-   in `terraform.tfvars` with configuration values that meet your specific
-   requirements. See the details [below](#configuration-variables).
+4. Copy the example variables file and fill in your values:
+   ```bash
+   cp terraform.tfvars.example terraform.tfvars
+   ```
+   Replace the placeholder content in `terraform.tfvars` with configuration
+   values that meet your specific requirements. See the details [below](#configuration-variables).
 
 5. Preview the deployment plan:
    ```bash
@@ -67,7 +70,7 @@ To deploy a Kubernetes cluster, follow these steps:
 
 ## Configuration variables
 
-These are the basic configurations required to deploy Kubernetes for training in Nebius AI. Edit the configurations as necessary in the `terraform.tfvars` file.
+These are the basic configurations required to deploy Kubernetes for training in Nebius AI. Edit the configurations as necessary in your local `terraform.tfvars` file (copied from `terraform.tfvars.example`).
 
 Additional configurable variables can be found in the `variables.tf` file.
 

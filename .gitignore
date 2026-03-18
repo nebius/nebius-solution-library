@@ -35,6 +35,9 @@ terraform.rc
 
 *.pem
 
+# Terraform tfvars
+k8s-training/terraform.tfvars
+
 # IDE
 .idea
 
