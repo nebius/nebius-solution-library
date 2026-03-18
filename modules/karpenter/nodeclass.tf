@@ -15,10 +15,6 @@ resource "kubectl_manifest" "default-nodeclass" {
       "serviceAccountID" = nebius_iam_v1_service_account.karpenter-node-sa.id
     }
   })
-
-  depends_on = [
-    helm_release.karpenter
-  ]
 }
 
 # NodeClass for GPU workloads with CUDA drivers
@@ -38,8 +34,4 @@ resource "kubectl_manifest" "gpu-nodeclass" {
       "serviceAccountID" = nebius_iam_v1_service_account.karpenter-node-sa.id
     }
   })
-
-  depends_on = [
-    helm_release.karpenter
-  ]
 }

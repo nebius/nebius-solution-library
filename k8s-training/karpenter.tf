@@ -20,3 +20,43 @@ module "karpenter" {
     nebius_mk8s_v1_node_group.cpu-only,
   ]
 }
+
+# Karpenter requires special service account for the system cpu nodegroup
+#
+resource "nebius_iam_v1_service_account" "karpenter_system_sa" {
+  count     = var.enable_karpenter ? 1 : 0
+  name      = "${var.cluster_name}-karpenter-manager"
+  parent_id = var.parent_id
+  description = "Service account for the karpenter system nodegroup"
+}
+
+# We create a group because access permits can only be granted to groups
+resource "nebius_iam_v1_group" "karpenter_manager" {
+  count       = var.enable_karpenter ? 1 : 0
+  name        = "${var.cluster_name}-karpenter-manager"
+  parent_id   = var.tenant_id
+}
+
+# Grant project admin access to the project for the karpenter-manager group
+resource "nebius_iam_v1_access_permit" "karpenter_manager_project_admin" {
+  count       = var.enable_karpenter ? 1 : 0
+  parent_id   = nebius_iam_v1_group.karpenter_manager[count.index].id
+  resource_id = var.parent_id
+  role        = "admin"
+}
+
+# Grant project viewer access to the tenant for the karpenter-manager group
+resource "nebius_iam_v1_access_permit" "karpenter_manager_tenant_viewer" {
+  count       = var.enable_karpenter ? 1 : 0
+  parent_id   = nebius_iam_v1_group.karpenter_manager[count.index].id
+  resource_id = var.tenant_id
+  role        = "viewer"
+}
+
+
+# Add service account to the group
+resource "nebius_iam_v1_group_membership" "karpenter_manager_membership" {
+  count     = var.enable_karpenter ? 1 : 0
+  parent_id = nebius_iam_v1_group.karpenter_manager[count.index].id
+  member_id = nebius_iam_v1_service_account.karpenter_system_sa[count.index].id
+}

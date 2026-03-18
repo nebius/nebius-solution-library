@@ -29,7 +29,7 @@ gpu_nodes_autoscaling = {
   min_size = null
   max_size = 1
 }
-gpu_node_groups = 1 # In case you need more then 100 nodes in cluster you have to put multiple node groups
+gpu_node_groups = 0 # In case you need more then 100 nodes in cluster you have to put multiple node groups
 # CPU platform and presets: https://docs.nebius.com/compute/virtual-machines/types#cpu-configurations
 cpu_nodes_platform = "cpu-d3"     # CPU nodes platform
 cpu_nodes_preset   = "4vcpu-16gb" # CPU nodes preset
