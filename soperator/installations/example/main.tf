@@ -164,7 +164,7 @@ module "nfs-server" {
 module "cleanup" {
   source = "../../modules/cleanup"
 
-  iam_project_id = var.iam_project_id
+  iam_project_id = local.iam_project_id
 }
 
 module "k8s_cleanup" {
@@ -291,9 +291,9 @@ module "o11y" {
 
   source = "../../modules/o11y"
 
-  iam_project_id      = var.iam_project_id
-  o11y_iam_tenant_id  = var.o11y_iam_tenant_id
-  o11y_profile        = var.o11y_profile
+  iam_project_id      = local.iam_project_id
+  o11y_iam_tenant_id  = local.o11y_iam_tenant_id
+  o11y_profile        = local.o11y_profile
   k8s_cluster_context = module.k8s.cluster_context
   company_name        = var.company_name
 }
@@ -310,9 +310,9 @@ module "slurm" {
 
   active_checks_scope = var.active_checks_scope
 
-  region              = var.region
-  iam_tenant_id       = var.iam_tenant_id
-  iam_project_id      = var.iam_project_id
+  region              = local.region
+  iam_tenant_id       = data.nebius_iam_v1_tenant.this.id
+  iam_project_id      = data.nebius_iam_v1_project.this.id
   cluster_name        = var.company_name
   name                = local.slurm_cluster_name
   k8s_cluster_context = module.k8s.cluster_context
@@ -525,7 +525,7 @@ module "backups_store" {
 
   source = "../../modules/backups_store"
 
-  iam_project_id = var.iam_project_id
+  iam_project_id = local.iam_project_id
   instance_name  = local.k8s_cluster_name
 
   cleanup_bucket_on_destroy = var.cleanup_bucket_on_destroy
@@ -544,8 +544,8 @@ module "backups" {
   k8s_cluster_context = module.k8s.cluster_context
   k8s_cluster_id      = module.k8s.cluster_id
 
-  iam_project_id      = var.iam_project_id
-  iam_tenant_id       = var.iam_tenant_id
+  iam_project_id      = data.nebius_iam_v1_project.this.id
+  iam_tenant_id       = data.nebius_iam_v1_tenant.this.id
   instance_name       = local.k8s_cluster_name
   soperator_namespace = local.slurm_cluster_name
   backups_password    = var.backups_password

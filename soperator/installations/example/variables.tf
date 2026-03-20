@@ -1,62 +1,54 @@
 # region Cloud
 
+data "external" "env" {
+  program = ["jq", "--null-input", "env | { NEBIUS_PROJECT_ID, NEBIUS_OLLY_PROFILE, NEBIUS_OLLY_TENANT_ID }"]
+}
+locals {
+  region             = coalesce(var.region, data.nebius_iam_v1_project.this.region)
+  iam_project_id     = coalesce(var.iam_project_id, data.external.env.result.NEBIUS_PROJECT_ID)
+  o11y_profile       = coalesce(var.o11y_profile, data.external.env.result.NEBIUS_OLLY_PROFILE, "soperator-telemetry")
+  o11y_iam_tenant_id = coalesce(var.o11y_iam_tenant_id, data.external.env.result.NEBIUS_OLLY_TENANT_ID, "tenant-e00vyb5y1x5vqkzw5e")
+}
+
 variable "region" {
   description = "Region of the project."
   type        = string
-  nullable    = false
+  default     = null
 }
 resource "terraform_data" "check_region" {
   lifecycle {
     precondition {
-      condition     = contains(module.resources.regions, var.region)
-      error_message = "Unknown region '${var.region}'. See https://docs.nebius.com/overview/regions"
+      condition     = var.region == null || contains(module.resources.regions, var.region)
+      error_message = "Unknown region '${var.region != null ? var.region : ""}'. See https://docs.nebius.com/overview/regions"
     }
   }
-}
-
-variable "iam_token" {
-  description = "IAM token used for communicating with Nebius services."
-  type        = string
-  nullable    = false
-  sensitive   = true
 }
 
 variable "iam_project_id" {
   description = "ID of the IAM project."
   type        = string
-  nullable    = false
+  default     = null
 
   validation {
-    condition     = startswith(var.iam_project_id, "project-")
+    condition     = var.iam_project_id == null || startswith(var.iam_project_id, "project-")
     error_message = "ID of the IAM project must start with `project-`."
   }
 }
 data "nebius_iam_v1_project" "this" {
-  id = var.iam_project_id
-}
-
-variable "iam_tenant_id" {
-  description = "ID of the IAM tenant."
-  type        = string
-  nullable    = false
-
-  validation {
-    condition     = startswith(var.iam_tenant_id, "tenant-")
-    error_message = "ID of the IAM tenant must start with `tenant-`."
-  }
+  id = local.iam_project_id
 }
 
 data "nebius_iam_v1_tenant" "this" {
-  id = var.iam_tenant_id
+  id = data.nebius_iam_v1_project.this.parent_id
 }
 
 variable "o11y_iam_tenant_id" {
   description = "ID of the IAM tenant for O11y."
   type        = string
-  nullable    = false
+  default     = null
 
   validation {
-    condition     = startswith(var.o11y_iam_tenant_id, "tenant-")
+    condition     = var.o11y_iam_tenant_id == null || startswith(var.o11y_iam_tenant_id, "tenant-")
     error_message = "ID of the IAM tenant must start with `tenant-`."
   }
 }
@@ -64,10 +56,10 @@ variable "o11y_iam_tenant_id" {
 variable "o11y_profile" {
   description = "Profile for nebius CLI for public o11y."
   type        = string
-  nullable    = false
+  default     = null
 
   validation {
-    condition = (
+    condition = var.o11y_profile == null || (
       (length(var.o11y_profile) >= 1 && var.public_o11y_enabled) ||
       !var.public_o11y_enabled
     )
@@ -97,14 +89,24 @@ If you provision a NON-PRODUCTION cluster, set "production" variable to false.
 variable "vpc_subnet_id" {
   description = "ID of VPC subnet."
   type        = string
+  nullable    = true
+  default     = null
 
   validation {
-    condition     = startswith(var.vpc_subnet_id, "vpcsubnet-")
+    condition     = var.vpc_subnet_id == null || startswith(var.vpc_subnet_id, "vpcsubnet-")
     error_message = "The ID of the VPC subnet must start with `vpcsubnet-`."
   }
 }
+
+data "external" "default_vpc_subnet" {
+  program = ["bash", "-euo", "pipefail", "-c", <<-BASH
+    nebius vpc subnet list --parent-id "$0" --format json | jq -r '.items[0].metadata | { id }'
+  BASH
+  , data.nebius_iam_v1_project.this.id]
+}
+
 data "nebius_vpc_v1_subnet" "this" {
-  id = var.vpc_subnet_id
+  id = var.vpc_subnet_id != null ? var.vpc_subnet_id : data.external.default_vpc_subnet.result.id
 }
 
 variable "slurm_login_public_ip" {
@@ -420,10 +422,10 @@ resource "terraform_data" "check_nfs" {
 
     precondition {
       condition = (var.nfs.enabled
-        ? contains(module.resources.platform_regions[var.nfs.resource.platform], var.region)
+        ? contains(module.resources.platform_regions[var.nfs.resource.platform], local.region)
         : true
       )
-      error_message = "Unsupported platform '${var.nfs.resource.platform}' in region '${var.region}'. See https://docs.nebius.com/compute/virtual-machines/types"
+      error_message = "Unsupported platform '${var.nfs.resource.platform}' in region '${local.region}'. See https://docs.nebius.com/compute/virtual-machines/types"
     }
   }
 }
@@ -938,8 +940,8 @@ resource "terraform_data" "check_slurm_nodeset" {
     }
 
     precondition {
-      condition     = contains(module.resources.platform_regions[each.value.resource.platform], var.region)
-      error_message = "Unsupported platform '${each.value.resource.platform}' in region '${var.region}'. See https://docs.nebius.com/compute/virtual-machines/types"
+      condition     = contains(module.resources.platform_regions[each.value.resource.platform], local.region)
+      error_message = "Unsupported platform '${each.value.resource.platform}' in region '${local.region}'. See https://docs.nebius.com/compute/virtual-machines/types"
     }
 
     # TODO: precondition for total node group count
@@ -957,7 +959,7 @@ resource "terraform_data" "check_local_nvme" {
         alltrue([
           for worker in var.slurm_nodeset_workers :
           !try(worker.local_nvme.enabled, false) || (
-            try(module.resources.local_nvme_supported_by_region_platform_preset[var.region][worker.resource.platform][worker.resource.preset], false)
+            try(module.resources.local_nvme_supported_by_region_platform_preset[local.region][worker.resource.platform][worker.resource.preset], false)
           )
         ])
       )
