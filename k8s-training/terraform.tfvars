@@ -1,5 +1,5 @@
 # Mk8s cluster name. By default it is "k8s-training"
-cluster_name = "k8s-training"
+cluster_name = "k8s-karpenter-test"
 
 # SSH config
 ssh_user_name = "ubuntu" # Username you want to use to connect to the nodes
@@ -29,7 +29,7 @@ gpu_nodes_autoscaling = {
   min_size = null
   max_size = 1
 }
-gpu_node_groups = 1 # In case you need more then 100 nodes in cluster you have to put multiple node groups
+gpu_node_groups = 0 # In case you need more then 100 nodes in cluster you have to put multiple node groups
 # CPU platform and presets: https://docs.nebius.com/compute/virtual-machines/types#cpu-configurations
 cpu_nodes_platform = "cpu-d3"     # CPU nodes platform
 cpu_nodes_preset   = "4vcpu-16gb" # CPU nodes preset
@@ -99,3 +99,8 @@ kuberay_max_gpu_replicas = 8
 # Enable to deploy KubeRay Operator with RayService CR 
 enable_kuberay_service = false
 
+# Karpenter - Automatic Node Provisioning
+# When enabled, Karpenter will dynamically provision nodes based on workload demands.
+# Note: For InfiniBand GPU workloads, use static node groups (set gpu_nodes_count_per_group > 0)
+enable_karpenter           = true # Enable Karpenter for automatic node scaling
+karpenter_create_nodepools = true # Create default CPU and GPU NodePools

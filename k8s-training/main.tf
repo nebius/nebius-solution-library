@@ -8,6 +8,7 @@ resource "nebius_mk8s_v1_cluster" "k8s-cluster" {
     etcd_cluster_size = var.etcd_cluster_size
     subnet_id         = var.subnet_id
     version           = var.k8s_version
+    karpenter         = var.enable_karpenter ? {} : null
   }
 }
 
@@ -44,11 +45,11 @@ resource "nebius_iam_v1_group_membership" "k8s_node_group_sa-admin" {
   parent_id = data.nebius_iam_v1_group.editors[0].id
   member_id = nebius_iam_v1_service_account.k8s_node_group_sa[count.index].id
 }
+
 ################
 # CPU NODE GROUP
 ################
 resource "nebius_mk8s_v1_node_group" "cpu-only" {
-
   autoscaling = var.cpu_nodes_autoscaling.enabled ? {
     min_node_count = var.cpu_nodes_autoscaling.min_size == null ? var.cpu_nodes_autoscaling.max_size : var.cpu_nodes_autoscaling.min_size
     max_node_count = var.cpu_nodes_autoscaling.max_size
@@ -69,7 +70,9 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       type           = var.cpu_disk_type
     }
 
-    service_account_id = var.enable_k8s_node_group_sa ? nebius_iam_v1_service_account.k8s_node_group_sa[0].id : null
+    service_account_id = var.enable_karpenter ? nebius_iam_v1_service_account.karpenter_system_sa[0].id : (
+      var.enable_k8s_node_group_sa ? nebius_iam_v1_service_account.k8s_node_group_sa[0].id : null
+    )
 
     network_interfaces = [
       {

@@ -70,7 +70,7 @@ fi
 # Ensure service account is member of editors group
 NEBIUS_GROUP_EDITORS_ID=$(nebius iam group get-by-name \
   --parent-id "${NEBIUS_TENANT_ID}" \
-  --name 'editors' \
+  --name 'admins' \
   --format json \
   | jq -r '.metadata.id')
 IS_MEMBER=$(nebius iam group-membership list-members \

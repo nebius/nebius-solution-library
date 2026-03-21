@@ -1,4 +1,5 @@
 module "network-operator" {
+  count = var.enable_karpenter ? 0 : 1
   depends_on = [
     nebius_mk8s_v1_node_group.cpu-only,
     nebius_mk8s_v1_node_group.gpu,
