@@ -482,13 +482,17 @@ variable "platform_cuda_versions" {
   description = "Per-platform CUDA versions consumed by Slurm/operator (e.g., 12.8.2). Keys are platform IDs (e.g., gpu-h100-sxm)."
   type        = map(string)
   default = {
+    cpu-e1         = "12.9.0"
     cpu-e2         = "12.9.0"
     cpu-d3         = "12.9.0"
-    gpu-h100-sxm   = "12.9.0"
-    gpu-h200-sxm   = "12.9.0"
-    gpu-b200-sxm   = "12.9.0"
-    gpu-b200-sxm-a = "12.9.0"
+    gpu-l40s-a     = "13.0.2"
+    gpu-l40s-d     = "13.0.2"
+    gpu-h100-sxm   = "13.0.2"
+    gpu-h200-sxm   = "13.0.2"
+    gpu-b200-sxm   = "13.0.2"
+    gpu-b200-sxm-a = "13.0.2"
     gpu-b300-sxm   = "13.0.2"
+    gpu-rtx6000    = "13.0.2"
   }
 }
 
@@ -496,13 +500,17 @@ variable "platform_driver_presets" {
   description = "Per-platform GPU driver presets. Keys are platform IDs (e.g., gpu-h100-sxm); values are driver presets (e.g., cuda13.0)."
   type        = map(string)
   default = {
-    cpu-e2         = "cuda12.8"
-    cpu-d3         = "cuda12.8"
-    gpu-h100-sxm   = "cuda12.8"
-    gpu-h200-sxm   = "cuda12.8"
-    gpu-b200-sxm   = "cuda12.8"
-    gpu-b200-sxm-a = "cuda12.8"
+    cpu-e1         = null
+    cpu-e2         = null
+    cpu-d3         = null
+    gpu-l40s-a     = "cuda13.0"
+    gpu-l40s-d     = "cuda13.0"
+    gpu-h100-sxm   = "cuda13.0"
+    gpu-h200-sxm   = "cuda13.0"
+    gpu-b200-sxm   = "cuda13.0"
+    gpu-b200-sxm-a = "cuda13.0"
     gpu-b300-sxm   = "cuda13.0"
+    gpu-rtx6000    = "cuda13.0"
   }
 }
 
