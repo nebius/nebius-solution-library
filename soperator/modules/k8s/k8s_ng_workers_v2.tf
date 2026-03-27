@@ -177,11 +177,11 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
     cloud_init_user_data = (
       local.node_ssh_access.enabled ||
-      (local.node_group_gpu_present_v2.worker[count.index] && length(var.nvidia_admin_conf_lines) > 0) ||
+      (local.node_group_gpu_present_v2.worker[count.index] && length(var.nvidia_config_lines) > 0) ||
       try(var.node_group_workers_v2[count.index].local_nvme.enabled, false)
       ) ? templatefile("${path.module}/templates/cloud_init.yaml.tftpl", {
         ssh_users                  = var.node_ssh_access_users
-        nvidia_admin_conf_lines    = local.node_group_gpu_present_v2.worker[count.index] ? var.nvidia_admin_conf_lines : []
+        nvidia_config_lines        = local.node_group_gpu_present_v2.worker[count.index] ? var.nvidia_config_lines : []
         local_nvme_enabled         = try(var.node_group_workers_v2[count.index].local_nvme.enabled, false)
         local_nvme_mount_path      = try(var.node_group_workers_v2[count.index].local_nvme.mount_path, "/mnt/local-nvme")
         local_nvme_filesystem_type = try(var.node_group_workers_v2[count.index].local_nvme.filesystem_type, "ext4")

@@ -4,17 +4,17 @@ locals {
   }
 
   node_cloud_init = {
-    enabled = length(var.node_ssh_access_users) > 0 || length(var.nvidia_admin_conf_lines) > 0
+    enabled = length(var.node_ssh_access_users) > 0 || length(var.nvidia_config_lines) > 0
     cloud_init_data = templatefile("${path.module}/templates/cloud_init.yaml.tftpl", {
       ssh_users                  = var.node_ssh_access_users
-      nvidia_admin_conf_lines    = var.nvidia_admin_conf_lines
+      nvidia_config_lines        = var.nvidia_config_lines
       local_nvme_enabled         = false
       local_nvme_mount_path      = "/mnt/local-nvme"
       local_nvme_filesystem_type = "ext4"
     })
     cloud_init_data_no_nvidia = templatefile("${path.module}/templates/cloud_init.yaml.tftpl", {
       ssh_users                  = var.node_ssh_access_users
-      nvidia_admin_conf_lines    = []
+      nvidia_config_lines        = []
       local_nvme_enabled         = false
       local_nvme_mount_path      = "/mnt/local-nvme"
       local_nvme_filesystem_type = "ext4"
