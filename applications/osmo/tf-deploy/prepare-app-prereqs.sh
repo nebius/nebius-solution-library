@@ -258,11 +258,32 @@ json_client_has_redirect_uri() {
 
 npc_extract_json_payload() {
     local raw="$1"
+    local candidate=""
+    local json_payload=""
+    local line=""
 
-    awk '
-      found { print; next }
-      /^[[:space:]]*[{[]/ { found=1; print }
-    ' <<<"${raw}"
+    candidate="$(
+        awk '
+          found { print; next }
+          /^[[:space:]]*[{[]/ { found=1; print }
+        ' <<<"${raw}"
+    )"
+
+    [[ -n "${candidate}" ]] || return 1
+
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        if [[ -n "${json_payload}" ]]; then
+            json_payload+=$'\n'
+        fi
+        json_payload+="${line}"
+
+        if jq -e . >/dev/null 2>&1 <<<"${json_payload}"; then
+            printf '%s\n' "${json_payload}"
+            return 0
+        fi
+    done <<<"${candidate}"
+
+    return 1
 }
 
 npc_run_json() {
@@ -351,8 +372,8 @@ prepare_bootstrap_ingress_for_nipio() {
     terraform -chdir="${SCRIPT_DIR}" init -input=false >/dev/null
     terraform -chdir="${SCRIPT_DIR}" apply \
       -auto-approve \
-      -target=helm_release.ingress_nginx \
-      -target=terraform_data.ingress_ready \
+      -target=module.app.helm_release.ingress_nginx \
+      -target=module.app.terraform_data.ingress_ready \
       -var 'ingress_hostname=osmo.invalid' \
       -var 'keycloak_hostname=auth-osmo.invalid'
 

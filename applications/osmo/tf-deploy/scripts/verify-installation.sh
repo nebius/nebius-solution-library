@@ -334,6 +334,7 @@ EXPECTED_SERVICE_BASE_URL="${EXPECTED_SERVICE_BASE_URL:-$(tf_output_value "${APP
 STORAGE_BUCKET_NAME="${STORAGE_BUCKET_NAME:-$(printf '%s' "${INFRA_OUTPUTS_JSON}" | jq -r '.storage_bucket.value.name // empty' 2>/dev/null || true)}"
 STORAGE_ENDPOINT="${STORAGE_ENDPOINT:-$(printf '%s' "${INFRA_OUTPUTS_JSON}" | jq -r '.storage_bucket.value.endpoint // empty' 2>/dev/null || true)}"
 NEBIUS_REGION="${NEBIUS_REGION:-$(printf '%s' "${INFRA_OUTPUTS_JSON}" | jq -r '.region.value // empty' 2>/dev/null || true)}"
+EXPECTED_GPU_PLATFORM="${EXPECTED_GPU_PLATFORM:-$(printf '%s' "${INFRA_OUTPUTS_JSON}" | jq -r '.gpu_nodes_platform.value // empty' 2>/dev/null | sed -E 's/^gpu-([^-]+).*/\1/' | tr '[:lower:]' '[:upper:]')}"
 GPU_OPERATOR_NAMESPACE="${GPU_OPERATOR_NAMESPACE:-gpu-operator}"
 KAI_SCHEDULER_NAMESPACE="${KAI_SCHEDULER_NAMESPACE:-kai-scheduler}"
 
@@ -595,10 +596,16 @@ if [[ -n "${GPU_NODE}" ]]; then
 
     POOL_CONFIG="$(osmo_curl GET "/api/configs/pool/default" 2>/dev/null || true)"
     PLATFORM_NAMES="$(printf '%s' "${POOL_CONFIG}" | jq -r '.platforms // {} | keys[]' 2>/dev/null || true)"
-    if printf '%s\n' "${PLATFORM_NAMES}" | grep -qiE '^(h100|h200|b200|b300|l40s|a100|a10)'; then
-        check_pass "Default pool contains a GPU-type platform: $(printf '%s\n' "${PLATFORM_NAMES}" | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
+    if [[ -n "${EXPECTED_GPU_PLATFORM}" ]]; then
+        if printf '%s\n' "${PLATFORM_NAMES}" | grep -qx "${EXPECTED_GPU_PLATFORM}"; then
+            check_pass "Default pool contains platform ${EXPECTED_GPU_PLATFORM}"
+        else
+            check_fail "Default pool is missing expected platform ${EXPECTED_GPU_PLATFORM}"
+        fi
+    elif [[ -n "${PLATFORM_NAMES}" ]]; then
+        check_pass "Default pool has platform entries: $(printf '%s\n' "${PLATFORM_NAMES}" | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
     else
-        check_fail "Default pool has no GPU-type platform name"
+        check_fail "Default pool has no platform entries"
     fi
 fi
 
@@ -686,4 +693,4 @@ fi
 echo ""
 echo "Optional smoke tests:"
 echo "  osmo workflow submit ${TF_DEPLOY_DIR}/../workflows/osmo/hello_nebius.yaml"
-echo "  osmo workflow submit ${TF_DEPLOY_DIR}/../workflows/osmo/test_h100_smoke.yaml"
+echo "  osmo workflow submit ${TF_DEPLOY_DIR}/../workflows/osmo/test_gpu_smoke.yaml"
