@@ -1,6 +1,4 @@
 locals {
-  effective_k8s_version = coalesce(var.k8s_version, "1.33")
-
   supported_gpu_driver_presets_by_k8s = {
     "1.32" = {
       gpu-l40s-a     = ["cuda12", "cuda12.8", "cuda13.0"]
@@ -24,7 +22,7 @@ locals {
     }
   }
 
-  supported_gpu_driver_presets = lookup(local.supported_gpu_driver_presets_by_k8s, local.effective_k8s_version, {})
+  supported_gpu_driver_presets = lookup(local.supported_gpu_driver_presets_by_k8s, var.k8s_version, {})
 
   worker_gpu_platforms_all = distinct([
     for worker in var.slurm_nodeset_workers : worker.resource.platform
@@ -50,10 +48,10 @@ locals {
 resource "terraform_data" "check_driver_presets" {
   lifecycle {
     precondition {
-      condition = contains(keys(local.supported_gpu_driver_presets_by_k8s), local.effective_k8s_version)
+      condition = contains(keys(local.supported_gpu_driver_presets_by_k8s), var.k8s_version)
       error_message = format(
         "Unsupported k8s_version `%s` for preinstalled GPU image validation. Supported versions: %s",
-        local.effective_k8s_version,
+        var.k8s_version,
         join(", ", sort(keys(local.supported_gpu_driver_presets_by_k8s)))
       )
     }
@@ -107,7 +105,7 @@ resource "terraform_data" "check_driver_presets" {
       ])
       error_message = format(
         "Some GPU platforms do not have preinstalled images for k8s_version `%s`: %s",
-        local.effective_k8s_version,
+        var.k8s_version,
         join(
           ", ",
           setsubtract(
