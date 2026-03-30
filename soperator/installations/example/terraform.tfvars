@@ -591,7 +591,7 @@ cleanup_bucket_on_destroy = false
 # Version of the k8s to be used.
 # Set to null or don't set to use Nebius default (recommended), or specify explicitly
 # ---
-k8s_version = 1.33
+k8s_version = 1.32
 
 # SSH user credentials for accessing k8s nodes.
 # That option add public ip address to every node.
@@ -605,9 +605,10 @@ k8s_version = 1.33
 #   ]
 # }]
 
-# Lines to write to /etc/modprobe.d/nvidia_admin.conf via cloud-init (GPU workers only).
+# Lines to write to /etc/modprobe.d/nvidia_config.conf via cloud-init (GPU workers only).
+# One option per line.
 # ---
-nvidia_admin_conf_lines = [
+nvidia_config_lines = [
   "options nvidia NVreg_RestrictProfilingToAdminUsers=0", # Allow access to GPU counters in nsys profiler for non-root users
   "options nvidia NVreg_EnableStreamMemOPs=1",
   "options nvidia NVreg_RegistryDwords=\"PeerMappingOverride=1;\"",
