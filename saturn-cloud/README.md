@@ -2,11 +2,9 @@
 
 This Terraform configuration creates a Nebius Managed Kubernetes cluster configured for Saturn Cloud Enterprise, leveraging Nebius GPU infrastructure with support for NVIDIA H100, H200, and GB200 GPUs with InfiniBand networking.
 
-## Available Regions
+## Structure
 
-This repository includes configurations for two Nebius regions:
-- **eu-north1**: European region with H100 and H200 GPU support
-- **us-central1**: US region with H200 GPU support
+A single set of Terraform files at the module root handles all regions. The target region is set via the `region` variable. Example tfvars for each region are in the `examples/` directory.
 
 ## Prerequisites
 
@@ -43,24 +41,16 @@ https://manager.saturnenterprise.io/v2/activate
 
 After activation, you'll receive your bootstrap token.
 
-### 3. Choose Your Region
+### 3. Configure Variables
 
-Navigate to the appropriate region directory:
+Copy one of the example tfvars files as a starting point:
 
 ```bash
 # For European deployment
-cd eu-north1
+cp examples/eu-north1.tfvars terraform.tfvars
 
 # For US deployment
-cd us-central1
-```
-
-### 4. Configure Variables
-
-Copy the example configuration and fill in your values:
-
-```bash
-cp terraform.tfvars.example terraform.tfvars
+cp examples/us-central1.tfvars terraform.tfvars
 ```
 
 Edit `terraform.tfvars` with your actual values:
@@ -70,27 +60,34 @@ Edit `terraform.tfvars` with your actual values:
 project_id       = "your-project-id"
 subnet_id        = "your-subnet-id"
 viewers_group_id = "your-viewers-group-id"
-cluster_name     = "saturn-cluster"
+iam_token        = "your-nebius-iam-token"
+region           = "eu-north1"  # or "us-central1"
 
-# IAM Authentication
-iam_token = "your-nebius-iam-token"
+# Cluster
+cluster_name = "saturn-cluster"
 
 # Saturn Cloud Configuration
-saturn_domain                = "your-domain.com"
-saturn_bucket_name           = "your-s3-bucket"  # Optional
-saturn_admin_email           = "admin@yourcompany.com"
-saturn_customer_name         = "Your Company"
-saturn_base_url              = "https://your-domain.com"
-saturn_ssh_domain            = "ssh.your-domain.com"
-saturn_bootstrap_token       = "your-bootstrap-token"
-saturn_image_build_node_role = "cpu-d3-4vcpu-16gb"
+saturn_domain          = "your-domain.com"
+saturn_admin_email     = "admin@yourcompany.com"
+saturn_customer_name   = "Your Company"
+saturn_bootstrap_token = "your-bootstrap-token"
 
-# Region-specific settings (adjust based on chosen region)
-saturn_region            = "eu-north1"  # or "us-central1"
-saturn_availability_zone = "eu-north1"  # or "us-central1"
+# Node pools (customize platforms/presets and add infiniband_fabric for multi-GPU)
+node_pools = [
+  { platform = "cpu-d3", preset = "4vcpu-16gb",  max_nodes = 100 },
+  { platform = "cpu-d3", preset = "16vcpu-64gb", max_nodes = 100 },
+  { platform = "gpu-h200-sxm", preset = "1gpu-16vcpu-200gb",   max_nodes = 100 },
+  { platform = "gpu-h200-sxm", preset = "8gpu-128vcpu-1600gb", max_nodes = 100, infiniband_fabric = "us-central1-a" },
+]
 ```
 
-### 5. Deploy Infrastructure
+The following values are derived automatically and do not need to be set:
+- `base_url` — set to `https://app.<saturn_domain>`
+- `ssh_domain` — set to `ssh.<saturn_domain>`
+- `saturn_cloud_provider` — hardcoded to `nebius`
+- `saturn_image_build_node_role` — hardcoded to `cpu-d3-4vcpu-16gb`
+
+### 4. Deploy Infrastructure
 
 Initialize Terraform:
 ```bash

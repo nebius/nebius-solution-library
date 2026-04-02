@@ -18,21 +18,16 @@ terraform {
   #    export AWS_ACCESS_KEY_ID="<your-nebius-access-key-id>"
   #    export AWS_SECRET_ACCESS_KEY="<your-nebius-secret-access-key>"
   #
-  # 5. Update the bucket name below, then uncomment the backend block
+  # 5. Update the bucket name and region below, then uncomment the backend block
   #
   # 6. Initialize the backend:
   #    terraform init -migrate-state
   #
-  # For more information:
-  # - Nebius Object Storage: https://docs.nebius.com/object-storage/
-  # - Terraform S3 Backend: https://developer.hashicorp.com/terraform/language/backend/s3
-  #
   # backend "s3" {
   #   bucket = "my-terraform-state-bucket"  # CHANGE THIS to your bucket name
-  #   key    = "nebius/eu-north1/terraform.tfstate"
+  #   key    = "nebius/base/terraform.tfstate"
   #
-  #   # Nebius Object Storage endpoint for eu-north1 region
-  #   # Other regions: eu-west1, us-central1
+  #   # Nebius Object Storage endpoint - update region as needed
   #   endpoints = {
   #     s3 = "https://storage.eu-north1.nebius.cloud:443"
   #   }
