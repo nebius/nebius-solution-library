@@ -3,6 +3,12 @@ resource "nebius_iam_v1_service_account" "ncr_nodes" {
   parent_id   = var.project_id
   name        = "${var.cluster_name}-ncr-nodes"
   description = "Node-group SA for pulling from Nebius Container Registry"
+
+  depends_on = [
+    terraform_data.validate_platforms,
+    terraform_data.validate_infiniband,
+    terraform_data.validate_no_duplicates,
+  ]
 }
 
 # --- Lookup the built-in 'viewers' group ---
@@ -32,6 +38,12 @@ resource "nebius_mk8s_v1_cluster" "saturn_cluster" {
     etcd_cluster_size = 1
     version           = var.k8s_version
   }
+
+  depends_on = [
+    terraform_data.validate_platforms,
+    terraform_data.validate_infiniband,
+    terraform_data.validate_no_duplicates,
+  ]
 }
 
 ############################
@@ -44,6 +56,12 @@ resource "nebius_compute_v1_gpu_cluster" "gpu_clusters" {
   name              = "${var.cluster_name}-${each.key}"
   parent_id         = var.project_id
   infiniband_fabric = each.value.infiniband_fabric
+
+  depends_on = [
+    terraform_data.validate_platforms,
+    terraform_data.validate_infiniband,
+    terraform_data.validate_no_duplicates,
+  ]
 }
 
 ############################

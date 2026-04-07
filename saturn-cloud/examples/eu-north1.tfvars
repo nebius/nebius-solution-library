@@ -3,7 +3,6 @@
 project_id       = ""
 subnet_id        = ""
 viewers_group_id = ""
-iam_token        = ""
 region           = "eu-north1"
 
 cluster_name           = "saturn-cluster"

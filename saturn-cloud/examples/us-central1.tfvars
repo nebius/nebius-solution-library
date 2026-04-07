@@ -3,7 +3,6 @@
 project_id       = "project-u00f9898pr00qmxch9byhe"
 subnet_id        = "vpcsubnet-u00z0n6raqyjvjdv1d"
 viewers_group_id = "group-e00hzrbenwh3fmggny"
-iam_token        = ""
 region           = "us-central1"
 
 cluster_name           = "saturn-cluster-nebius-demo"

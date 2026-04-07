@@ -8,7 +8,6 @@
 project_id       = ""
 subnet_id        = ""
 viewers_group_id = ""
-iam_token        = ""
 region           = "eu-north1"
 
 ############################
@@ -22,7 +21,7 @@ saturn_customer_name   = "my-org"
 saturn_bootstrap_token = ""
 
 # Uncomment to pin a specific chart version (default: latest)
-# helm_chart_version = "2026.02.01-66"
+helm_chart_version = "2026.02.01-75"
 
 ############################
 # Node pools

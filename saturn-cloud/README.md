@@ -26,7 +26,8 @@ curl -X POST https://manager.saturnenterprise.io/api/v2/customers/register \
   -H "Content-Type: application/json" \
   -d '{
     "organization_name": "Your Company",
-    "contact_email": "admin@yourcompany.com"
+    "contact_email": "admin@yourcompany.com",
+    "cloud": "nebius"
   }'
 ```
 
@@ -34,12 +35,8 @@ You'll receive an activation token via email.
 
 ### 2. Activate Your Account
 
-Visit the activation URL from your email or use:
-```
-https://manager.saturnenterprise.io/v2/activate
-```
-
-After activation, you'll receive your bootstrap token.
+Visit the activation URL from your email: After activation, you'll receive a sample terraform.tfvars file which will also contain
+your bootstrap token
 
 ### 3. Configure Variables
 

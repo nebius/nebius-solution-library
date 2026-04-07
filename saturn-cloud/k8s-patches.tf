@@ -26,7 +26,16 @@ resource "null_resource" "patch_system_deployments" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      kubectl patch deployment ${each.value} -n kube-system --type=strategic -p '{"spec":{"template":{"spec":{"nodeSelector":${jsonencode(local.system_node_selector)}}}}}'
+      CA_FILE=$(mktemp)
+      echo '${nebius_mk8s_v1_cluster.saturn_cluster.status.control_plane.auth.cluster_ca_certificate}' > "$CA_FILE"
+      kubectl --server="${nebius_mk8s_v1_cluster.saturn_cluster.status.control_plane.endpoints.public_endpoint}" \
+        --certificate-authority="$CA_FILE" \
+        --token="${var.iam_token}" \
+        patch deployment ${each.value} -n kube-system --type=strategic \
+        -p '{"spec":{"template":{"spec":{"nodeSelector":${jsonencode(local.system_node_selector)}}}}}'
+      EXIT_CODE=$?
+      rm -f "$CA_FILE"
+      exit $EXIT_CODE
     EOT
   }
 
