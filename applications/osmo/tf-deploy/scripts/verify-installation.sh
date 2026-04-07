@@ -693,4 +693,4 @@ fi
 echo ""
 echo "Optional smoke tests:"
 echo "  osmo workflow submit ${TF_DEPLOY_DIR}/../workflows/osmo/hello_nebius.yaml"
-echo "  osmo workflow submit ${TF_DEPLOY_DIR}/../workflows/osmo/test_gpu_smoke.yaml"
+echo "  osmo workflow submit ${TF_DEPLOY_DIR}/../workflows/osmo/gpu_test.yaml"

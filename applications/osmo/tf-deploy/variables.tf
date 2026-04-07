@@ -138,9 +138,9 @@ variable "tls_secret_name" {
 }
 
 variable "tls_mode" {
-  description = "TLS mode for ingress handling. Use self-signed for a Terraform-only bootstrap without cert-manager."
+  description = "TLS mode for ingress handling. cert-manager is the default for real public hostnames; self-signed remains available as a fallback."
   type        = string
-  default     = "self-signed"
+  default     = "cert-manager"
 
   validation {
     condition     = contains(["self-signed", "cert-manager"], var.tls_mode)
@@ -190,10 +190,28 @@ variable "cert_manager_http01_ingress_class" {
   default     = "nginx"
 }
 
+variable "dns_base_domain" {
+  description = "Base domain used to derive relative DNS names for public record management."
+  type        = string
+  default     = null
+}
+
+variable "dns_npc_profile" {
+  description = "Optional npc profile used to manage public DNS recordsets for the derived OSMO and Keycloak hostnames."
+  type        = string
+  default     = null
+}
+
+variable "dns_zone_id" {
+  description = "Optional public DNS zone id used to manage OSMO and Keycloak A recordsets."
+  type        = string
+  default     = null
+}
+
 variable "oauth2_proxy_insecure_skip_tls_verify" {
-  description = "Whether oauth2-proxy sidecars should skip TLS verification when calling the IdP. Useful for self-signed or not-yet-public ingress certificates."
+  description = "Whether oauth2-proxy sidecars should skip TLS verification when calling the IdP. Defaults to true only for self-signed installs."
   type        = bool
-  default     = true
+  default     = null
 }
 
 variable "oauth2_proxy_cookie_refresh" {
@@ -319,7 +337,13 @@ variable "mek_encoded" {
 variable "osmo_image_tag" {
   description = "OSMO image tag to deploy."
   type        = string
-  default     = "latest"
+  default     = "6.2"
+}
+
+variable "osmo_chart_version" {
+  description = "Shared OSMO Helm chart version for service, router, and web-ui."
+  type        = string
+  default     = "1.2.1"
 }
 
 variable "service_base_url" {

@@ -64,6 +64,7 @@ resource "terraform_data" "post_install" {
       TLS_ENABLED           = tostring(var.tls_enabled)
       TLS_MODE              = var.tls_mode
       TLS_SECRET_NAME       = var.tls_secret_name
+      KEYCLOAK_TLS_SECRET_NAME = var.keycloak_tls_secret_name
       ENABLE_AUTH           = tostring(var.enable_auth)
       DEPLOY_UI             = tostring(var.deploy_ui)
       SERVICE_BASE_URL      = local.service_base_url_value
@@ -153,6 +154,7 @@ resource "terraform_data" "app_config" {
       TLS_ENABLED                  = tostring(var.tls_enabled)
       TLS_MODE                     = var.tls_mode
       TLS_SECRET_NAME              = var.tls_secret_name
+      KEYCLOAK_TLS_SECRET_NAME     = var.keycloak_tls_secret_name
       ENABLE_AUTH                  = tostring(var.enable_auth)
       DEPLOY_UI                    = tostring(var.deploy_ui)
       SERVICE_BASE_URL             = local.service_base_url_value

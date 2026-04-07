@@ -27,7 +27,7 @@ workflow:
   name: gpu-test-nebius
   resources:
     gpu-resource:
-      platform: gpu
+      platform: L40S # Set this to GPU platform
       gpu: 1
       memory: 4Gi
       cpu: 2

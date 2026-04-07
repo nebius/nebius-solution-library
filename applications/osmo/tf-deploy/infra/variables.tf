@@ -66,10 +66,10 @@ variable "ssh_user_name" {
 }
 
 variable "ssh_public_key" {
-  description = "SSH public key for node access"
+  description = "Optional SSH public key for node access"
   type = object({
     key  = optional(string)
-    path = optional(string, "~/.ssh/id_rsa.pub")
+    path = optional(string)
   })
   default = {}
 }

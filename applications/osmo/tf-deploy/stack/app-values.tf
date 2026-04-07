@@ -5,6 +5,11 @@ locals {
   storage_endpoint_value        = trimsuffix(local.storage_endpoint, "/")
   cookie_secret_value           = coalesce(var.oauth2_proxy_cookie_secret, random_id.oauth2_cookie.hex)
   ingress_controller_cluster_ip = var.enable_auth ? try(data.kubernetes_service_v1.ingress_controller[0].spec[0].cluster_ip, "") : ""
+  oauth2_proxy_insecure_skip_tls_verify_effective = (
+    var.oauth2_proxy_insecure_skip_tls_verify != null
+    ? var.oauth2_proxy_insecure_skip_tls_verify
+    : (var.tls_enabled && var.tls_mode == "self-signed")
+  )
   in_cluster_host_aliases = local.ingress_controller_cluster_ip != "" ? [
     {
       ip        = local.ingress_controller_cluster_ip
@@ -16,7 +21,7 @@ locals {
       "--insecure-oidc-allow-unverified-email=true",
       "--oidc-email-claim=preferred_username",
     ],
-    var.oauth2_proxy_insecure_skip_tls_verify ? ["--ssl-insecure-skip-verify=true"] : []
+    local.oauth2_proxy_insecure_skip_tls_verify_effective ? ["--ssl-insecure-skip-verify=true"] : []
   )
   oauth2_proxy_common = {
     enabled              = var.enable_auth

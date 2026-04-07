@@ -54,17 +54,18 @@ resource "helm_release" "osmo_service" {
   namespace       = kubernetes_namespace_v1.osmo.metadata[0].name
   repository      = "https://helm.ngc.nvidia.com/nvidia/osmo"
   chart           = "service"
+  version         = var.osmo_chart_version
   values          = [yamlencode(local.osmo_service_values)]
   atomic          = true
   cleanup_on_fail = true
-  timeout         = 1200
+  timeout         = 1800
 
   depends_on = [
     terraform_data.validate,
     terraform_data.ingress_ready,
     terraform_data.keycloak_bootstrap,
     terraform_data.runtime_secrets,
-    kubernetes_manifest.cert_manager_cluster_issuer,
+    terraform_data.cert_manager_cluster_issuer,
     kubernetes_secret_v1.osmo_ingress_tls,
     kubernetes_config_map_v1.mek_config,
     kubernetes_secret_v1.vault_secrets,
@@ -79,6 +80,7 @@ resource "helm_release" "osmo_router" {
   namespace       = kubernetes_namespace_v1.osmo.metadata[0].name
   repository      = "https://helm.ngc.nvidia.com/nvidia/osmo"
   chart           = "router"
+  version         = var.osmo_chart_version
   values          = [yamlencode(local.router_values)]
   atomic          = true
   cleanup_on_fail = true
@@ -87,7 +89,7 @@ resource "helm_release" "osmo_router" {
   depends_on = [
     terraform_data.ingress_ready,
     helm_release.osmo_service,
-    kubernetes_manifest.cert_manager_cluster_issuer,
+    terraform_data.cert_manager_cluster_issuer,
     kubernetes_secret_v1.osmo_ingress_tls,
     kubernetes_config_map_v1.mek_config,
     terraform_data.runtime_secrets,
@@ -100,6 +102,7 @@ resource "helm_release" "osmo_ui" {
   namespace       = kubernetes_namespace_v1.osmo.metadata[0].name
   repository      = "https://helm.ngc.nvidia.com/nvidia/osmo"
   chart           = "web-ui"
+  version         = var.osmo_chart_version
   values          = [yamlencode(local.ui_values)]
   atomic          = true
   cleanup_on_fail = true
@@ -109,7 +112,7 @@ resource "helm_release" "osmo_ui" {
     terraform_data.ingress_ready,
     helm_release.osmo_service,
     helm_release.osmo_router,
-    kubernetes_manifest.cert_manager_cluster_issuer,
+    terraform_data.cert_manager_cluster_issuer,
     kubernetes_secret_v1.osmo_ingress_tls,
   ]
 }

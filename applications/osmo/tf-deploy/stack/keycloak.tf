@@ -141,7 +141,7 @@ resource "helm_release" "keycloak" {
 
   depends_on = [
     terraform_data.cleanup_stale_keycloak_release,
-    kubernetes_manifest.cert_manager_cluster_issuer,
+    terraform_data.cert_manager_cluster_issuer,
     kubernetes_namespace_v1.osmo,
     kubernetes_secret_v1.keycloak_ingress_tls,
   ]
@@ -156,8 +156,8 @@ resource "terraform_data" "keycloak_bootstrap" {
     oidc_client_secret_hash  = sha256(local.oidc_client_secret)
     keycloak_admin_hash      = sha256(local.keycloak_admin_password)
     nebius_sso_enabled       = tostring(var.nebius_sso_enabled)
-    nebius_sso_client_id     = coalesce(var.nebius_sso_client_id, "")
-    nebius_sso_client_secret = sha256(coalesce(var.nebius_sso_client_secret, ""))
+    nebius_sso_client_id     = var.nebius_sso_client_id != null ? var.nebius_sso_client_id : ""
+    nebius_sso_client_secret = sha256(var.nebius_sso_client_secret != null ? var.nebius_sso_client_secret : "")
     nebius_sso_issuer_url    = var.nebius_sso_issuer_url
     nebius_sso_group_attr    = var.nebius_sso_group_attribute
     breakglass_user_enabled  = tostring(var.keycloak_create_breakglass_user)
@@ -171,8 +171,8 @@ resource "terraform_data" "keycloak_bootstrap" {
     oidc_client_secret_hash  = sha256(local.oidc_client_secret)
     keycloak_admin_hash      = sha256(local.keycloak_admin_password)
     nebius_sso_enabled       = tostring(var.nebius_sso_enabled)
-    nebius_sso_client_id     = coalesce(var.nebius_sso_client_id, "")
-    nebius_sso_client_secret = sha256(coalesce(var.nebius_sso_client_secret, ""))
+    nebius_sso_client_id     = var.nebius_sso_client_id != null ? var.nebius_sso_client_id : ""
+    nebius_sso_client_secret = sha256(var.nebius_sso_client_secret != null ? var.nebius_sso_client_secret : "")
     nebius_sso_issuer_url    = var.nebius_sso_issuer_url
     nebius_sso_group_attr    = var.nebius_sso_group_attribute
     breakglass_user_enabled  = tostring(var.keycloak_create_breakglass_user)
@@ -198,8 +198,8 @@ resource "terraform_data" "keycloak_bootstrap" {
       OIDC_CLIENT_SECRET         = local.oidc_client_secret
       NEBIUS_SSO_ENABLED         = tostring(var.nebius_sso_enabled)
       NEBIUS_SSO_ISSUER_URL      = var.nebius_sso_issuer_url
-      NEBIUS_SSO_CLIENT_ID       = coalesce(var.nebius_sso_client_id, "")
-      NEBIUS_SSO_CLIENT_SECRET   = coalesce(var.nebius_sso_client_secret, "")
+      NEBIUS_SSO_CLIENT_ID       = var.nebius_sso_client_id != null ? var.nebius_sso_client_id : ""
+      NEBIUS_SSO_CLIENT_SECRET   = var.nebius_sso_client_secret != null ? var.nebius_sso_client_secret : ""
       NEBIUS_SSO_GROUP_ATTRIBUTE = var.nebius_sso_group_attribute
       CREATE_BREAKGLASS_USER     = tostring(var.keycloak_create_breakglass_user)
       REALM_TEMPLATE             = "${path.module}/../config/keycloak/realm.json"

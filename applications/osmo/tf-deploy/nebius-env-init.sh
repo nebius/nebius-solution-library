@@ -20,15 +20,20 @@ fi
 NEBIUS_TENANT_ID="${NEBIUS_TENANT_ID:-tenant-<your-tenant-id>}"
 NEBIUS_PROJECT_ID="${NEBIUS_PROJECT_ID:-project-<your-project-id>}"
 NEBIUS_REGION="${NEBIUS_REGION:-<your-region>}"
+CERT_MANAGER_EMAIL="${CERT_MANAGER_EMAIL:-}"
+OSMO_IMAGE_TAG="${OSMO_IMAGE_TAG:-}"
+OSMO_CHART_VERSION="${OSMO_CHART_VERSION:-}"
 
-# For short-lived testing, prefer explicit nip.io hostnames:
+# Default to the delegated prod DNS zone and derive stable hostnames from the
+# project id suffix. For short-lived testing, you can still override this with:
+#   OSMO_BASE_DOMAIN="nip.io"
 #   OSMO_INGRESS_HOSTNAME="osmo.<ingress-lb-ip>.nip.io"
 #   KEYCLOAK_HOSTNAME="auth-osmo.<ingress-lb-ip>.nip.io"
-# If you own a real DNS zone, you can instead set OSMO_BASE_DOMAIN and let
-# this script derive hostnames from the project id suffix.
-OSMO_BASE_DOMAIN="${OSMO_BASE_DOMAIN:-nip.io}"
+OSMO_BASE_DOMAIN="${OSMO_BASE_DOMAIN:-osmo.eu-north1.nebius.cloud}"
 OSMO_INGRESS_HOSTNAME="${OSMO_INGRESS_HOSTNAME:-}"
 KEYCLOAK_HOSTNAME="${KEYCLOAK_HOSTNAME:-}"
+DNS_NPC_PROFILE="${DNS_NPC_PROFILE:-}"
+DNS_ZONE_ID="${DNS_ZONE_ID:-}"
 
 NEBIUS_NETWORK_ID="${NEBIUS_NETWORK_ID:-}"
 NEBIUS_SUBNET_ID="${NEBIUS_SUBNET_ID:-}"
@@ -107,6 +112,13 @@ _tf_deploy_derive_hostnames() {
     fi
 }
 
+_tf_deploy_apply_dns_defaults() {
+    if [[ "${OSMO_BASE_DOMAIN:-}" == "osmo.eu-north1.nebius.cloud" ]]; then
+        DNS_NPC_PROFILE="${DNS_NPC_PROFILE:-prod}"
+        DNS_ZONE_ID="${DNS_ZONE_ID:-dnszone-e00gx67zvqhjmpmd6m}"
+    fi
+}
+
 _tf_deploy_discover_networking() {
     local nebius_bin="$1"
     local network_json=""
@@ -136,9 +148,14 @@ _tf_deploy_export_vars() {
     export NEBIUS_TENANT_ID
     export NEBIUS_PROJECT_ID
     export NEBIUS_REGION
+    export CERT_MANAGER_EMAIL
+    export OSMO_IMAGE_TAG
+    export OSMO_CHART_VERSION
     export OSMO_BASE_DOMAIN
     export OSMO_INGRESS_HOSTNAME
     export KEYCLOAK_HOSTNAME
+    export DNS_NPC_PROFILE
+    export DNS_ZONE_ID
     export NEBIUS_NETWORK_ID
     export NEBIUS_SUBNET_ID
     export KUBECONFIG_CONTEXT
@@ -146,6 +163,12 @@ _tf_deploy_export_vars() {
     export TF_VAR_tenant_id="$NEBIUS_TENANT_ID"
     export TF_VAR_parent_id="$NEBIUS_PROJECT_ID"
     export TF_VAR_region="$NEBIUS_REGION"
+    _tf_deploy_export_optional_tf_var "TF_VAR_cert_manager_email" "$CERT_MANAGER_EMAIL"
+    _tf_deploy_export_optional_tf_var "TF_VAR_osmo_image_tag" "$OSMO_IMAGE_TAG"
+    _tf_deploy_export_optional_tf_var "TF_VAR_osmo_chart_version" "$OSMO_CHART_VERSION"
+    _tf_deploy_export_optional_tf_var "TF_VAR_dns_base_domain" "$OSMO_BASE_DOMAIN"
+    _tf_deploy_export_optional_tf_var "TF_VAR_dns_npc_profile" "$DNS_NPC_PROFILE"
+    _tf_deploy_export_optional_tf_var "TF_VAR_dns_zone_id" "$DNS_ZONE_ID"
     _tf_deploy_export_optional_tf_var "TF_VAR_network_id" "$NEBIUS_NETWORK_ID"
     _tf_deploy_export_optional_tf_var "TF_VAR_subnet_id" "$NEBIUS_SUBNET_ID"
     _tf_deploy_export_optional_tf_var "TF_VAR_ingress_hostname" "$OSMO_INGRESS_HOSTNAME"
@@ -155,6 +178,7 @@ _tf_deploy_export_vars() {
 
 if [[ "${TF_DEPLOY_ENV_INIT_EXPORT_ONLY:-0}" == "1" ]]; then
     _tf_deploy_derive_hostnames
+    _tf_deploy_apply_dns_defaults
 
     if [[ "${OSMO_BASE_DOMAIN:-}" == "nip.io" && -z "${OSMO_INGRESS_HOSTNAME:-}" ]]; then
         _tf_deploy_info "OSMO_BASE_DOMAIN is nip.io and no explicit hostname is set. Step 4 (prepare-app-prereqs.sh) will bootstrap ingress-nginx, discover the public IP, and derive nip.io hostnames automatically."
@@ -175,6 +199,11 @@ _tf_deploy_main() {
     _tf_deploy_require_id "NEBIUS_PROJECT_ID" "$NEBIUS_PROJECT_ID" '^project-[a-z0-9]+$' || return 1
 
     _tf_deploy_derive_hostnames
+    _tf_deploy_apply_dns_defaults
+
+    if [[ -z "${CERT_MANAGER_EMAIL:-}" ]]; then
+        _tf_deploy_warn "CERT_MANAGER_EMAIL is unset. The default app deployment now uses cert-manager and step 5 will fail until you set CERT_MANAGER_EMAIL or TF_VAR_cert_manager_email."
+    fi
 
     if nebius_bin=$(_tf_deploy_get_nebius_path); then
         if ! command -v nebius >/dev/null 2>&1; then
@@ -208,11 +237,16 @@ _tf_deploy_main() {
     echo "  NEBIUS_TENANT_ID      = ${NEBIUS_TENANT_ID}"
     echo "  NEBIUS_PROJECT_ID     = ${NEBIUS_PROJECT_ID}"
     echo "  NEBIUS_REGION         = ${NEBIUS_REGION}"
+    echo "  CERT_MANAGER_EMAIL    = ${CERT_MANAGER_EMAIL:-<unset>}"
+    echo "  OSMO_IMAGE_TAG        = ${OSMO_IMAGE_TAG:-<terraform-default>}"
+    echo "  OSMO_CHART_VERSION    = ${OSMO_CHART_VERSION:-<terraform-default>}"
     echo "  NEBIUS_NETWORK_ID     = ${NEBIUS_NETWORK_ID:-<unset>}"
     echo "  NEBIUS_SUBNET_ID      = ${NEBIUS_SUBNET_ID:-<unset>}"
     echo "  OSMO_BASE_DOMAIN      = ${OSMO_BASE_DOMAIN:-<unset>}"
     echo "  OSMO_INGRESS_HOSTNAME = ${OSMO_INGRESS_HOSTNAME:-<unset>}"
     echo "  KEYCLOAK_HOSTNAME     = ${KEYCLOAK_HOSTNAME:-<unset>}"
+    echo "  DNS_NPC_PROFILE       = ${DNS_NPC_PROFILE:-<unset>}"
+    echo "  DNS_ZONE_ID           = ${DNS_ZONE_ID:-<unset>}"
     if [[ -n "${KUBECONFIG_CONTEXT:-}" ]]; then
         echo "  KUBECONFIG_CONTEXT    = ${KUBECONFIG_CONTEXT}"
     fi

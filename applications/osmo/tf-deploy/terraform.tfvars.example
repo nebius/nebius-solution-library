@@ -19,19 +19,20 @@
 
 # tls_enabled         = true
 # tls_secret_name     = "osmo-tls"
-# tls_mode            = "self-signed"
+# tls_mode            = "cert-manager"
 # deploy_cert_manager = true
 # cert_manager_namespace           = "cert-manager"
 # cert_manager_chart_version       = null
-# cert_manager_email               = "ops@example.com"
+# cert_manager_email               = "your-email@example.com"
 # cert_manager_acme_server         = "https://acme-v02.api.letsencrypt.org/directory"
 # cert_manager_http01_ingress_class = "nginx"
 # cluster_issuer_name = "letsencrypt-prod"
-# oauth2_proxy_insecure_skip_tls_verify = true
+# oauth2_proxy_insecure_skip_tls_verify = null # Optional override. Defaults to true only for self-signed installs.
 
 # ingress_nginx_chart_version = "4.14.2"
 # redis_chart_version         = "25.3.1"
-# osmo_image_tag              = "latest"
+# osmo_image_tag              = "6.2"
+# osmo_chart_version          = "1.2.1"
 
 # oauth2_proxy_cookie_refresh = "4m"
 # oauth2_proxy_cookie_secret  = "existing-cookie-secret"

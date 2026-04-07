@@ -5,6 +5,7 @@
 
 set -Eeuo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PORT_FORWARD_PID=""
 PORT_FORWARD_LOG=""
 PORT_FORWARD_PORT=""
@@ -65,6 +66,24 @@ make_temp_file() {
     fi
 
     printf '%s\n' "${tmp_path}"
+}
+
+write_file_atomically() {
+    local dest="$1"
+    local tmp=""
+
+    mkdir -p "$(dirname "${dest}")"
+    tmp="$(mktemp "${TMPDIR:-/tmp}/tf-deploy-write.XXXXXX")"
+    cat >"${tmp}"
+    chmod 600 "${tmp}"
+    mv "${tmp}" "${dest}"
+}
+
+write_export_line() {
+    local name="$1"
+    local value="$2"
+
+    printf 'export %s=%q\n' "${name}" "${value}"
 }
 
 kubectl_cmd() {
@@ -191,10 +210,44 @@ has_envoy_sidecar() {
     local namespace="$1"
     local pod_name
 
-    pod_name="$(kubectl_cmd get pod -n "${namespace}" -l app=osmo-service -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+    pod_name="$(kubectl_cmd get pods -n "${namespace}" -l app=osmo-service -o json 2>/dev/null | jq -r '
+      .items
+      | sort_by(.metadata.creationTimestamp)
+      | reverse
+      | .[0].metadata.name // empty
+    ' 2>/dev/null || true)"
     [[ -n "${pod_name}" ]] || return 1
 
     kubectl_cmd get pod -n "${namespace}" "${pod_name}" -o jsonpath='{.spec.containers[*].name}' 2>/dev/null | grep -q 'envoy'
+}
+
+find_ready_pod_by_label() {
+    local namespace="$1"
+    local selector="$2"
+    local timeout="${3:-120}"
+    local end_time
+    local pod_name
+
+    end_time=$((SECONDS + timeout))
+    while (( SECONDS < end_time )); do
+        pod_name="$(kubectl_cmd get pods -n "${namespace}" -l "${selector}" -o json 2>/dev/null | jq -r '
+          .items
+          | map(select(.status.phase == "Running"))
+          | sort_by(.metadata.creationTimestamp)
+          | reverse
+          | (
+              map(select(any(.status.conditions[]?; .type == "Ready" and .status == "True")))
+              | .[0].metadata.name
+            ) // empty
+        ' 2>/dev/null || true)"
+        if [[ -n "${pod_name}" ]]; then
+            printf '%s\n' "${pod_name}"
+            return 0
+        fi
+        sleep 2
+    done
+
+    return 1
 }
 
 start_osmo_api_session() {
@@ -202,8 +255,20 @@ start_osmo_api_session() {
     local pod_name
 
     if has_envoy_sidecar "${namespace}"; then
-        pod_name="$(kubectl_cmd get pod -n "${namespace}" -l app=osmo-service --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
-        [[ -n "${pod_name}" ]] || pod_name="$(kubectl_cmd get pod -n "${namespace}" -l app=osmo-service -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+        pod_name="$(find_ready_pod_by_label "${namespace}" "app=osmo-service" 120 || true)"
+        [[ -n "${pod_name}" ]] || pod_name="$(kubectl_cmd get pods -n "${namespace}" -l app=osmo-service -o json 2>/dev/null | jq -r '
+          .items
+          | map(select(.status.phase == "Running"))
+          | sort_by(.metadata.creationTimestamp)
+          | reverse
+          | .[0].metadata.name // empty
+        ' 2>/dev/null || true)"
+        [[ -n "${pod_name}" ]] || pod_name="$(kubectl_cmd get pods -n "${namespace}" -l app=osmo-service -o json 2>/dev/null | jq -r '
+          .items
+          | sort_by(.metadata.creationTimestamp)
+          | reverse
+          | .[0].metadata.name // empty
+        ' 2>/dev/null || true)"
         [[ -n "${pod_name}" ]] || die "Could not find an osmo-service pod for API access"
         start_kubectl_port_forward "${namespace}" "pod/${pod_name}" 8000 8080 "OSMO API"
         OSMO_AUTH_BYPASS="true"
@@ -585,11 +650,102 @@ ensure_workflow_ingress_ca_secret() {
     rm -f "${tmp_cert}"
 }
 
+write_cli_self_signed_trust_env() {
+    local sso_env_path="${OSMO_SSO_ENV_PATH:-${SCRIPT_DIR}/../osmo-sso.env}"
+    local generated_dir="${SCRIPT_DIR}/../generated"
+    local bundle_path="${generated_dir}/osmo-cli-ca.pem"
+    local system_ca_bundle=""
+    local tmp_osmo_cert=""
+    local tmp_keycloak_cert=""
+    local existing_content=""
+    local filtered_content=""
+
+    [[ "${TLS_ENABLED}" == "true" && "${TLS_MODE:-}" == "self-signed" ]] || return 0
+    [[ -n "${TLS_SECRET_NAME:-}" ]] || die "TLS_SECRET_NAME is required for self-signed CLI trust"
+    [[ -n "${KEYCLOAK_TLS_SECRET_NAME:-}" ]] || die "KEYCLOAK_TLS_SECRET_NAME is required for self-signed CLI trust"
+
+    if ! kubectl_cmd get secret "${TLS_SECRET_NAME}" -n "${OSMO_NAMESPACE}" >/dev/null 2>&1; then
+        die "TLS secret ${TLS_SECRET_NAME} was not found in namespace ${OSMO_NAMESPACE}"
+    fi
+    if ! kubectl_cmd get secret "${KEYCLOAK_TLS_SECRET_NAME}" -n "${OSMO_NAMESPACE}" >/dev/null 2>&1; then
+        die "Keycloak TLS secret ${KEYCLOAK_TLS_SECRET_NAME} was not found in namespace ${OSMO_NAMESPACE}"
+    fi
+
+    tmp_osmo_cert="$(make_temp_file "osmo-cli-main" ".crt")"
+    tmp_keycloak_cert="$(make_temp_file "osmo-cli-keycloak" ".crt")"
+
+    kubectl_cmd get secret "${TLS_SECRET_NAME}" -n "${OSMO_NAMESPACE}" -o jsonpath='{.data.tls\.crt}' \
+      | openssl base64 -d -A >"${tmp_osmo_cert}"
+    kubectl_cmd get secret "${KEYCLOAK_TLS_SECRET_NAME}" -n "${OSMO_NAMESPACE}" -o jsonpath='{.data.tls\.crt}' \
+      | openssl base64 -d -A >"${tmp_keycloak_cert}"
+
+    if [[ ! -s "${tmp_osmo_cert}" ]]; then
+        rm -f "${tmp_osmo_cert}" "${tmp_keycloak_cert}"
+        die "Failed to extract tls.crt from secret ${TLS_SECRET_NAME}"
+    fi
+    if [[ ! -s "${tmp_keycloak_cert}" ]]; then
+        rm -f "${tmp_osmo_cert}" "${tmp_keycloak_cert}"
+        die "Failed to extract tls.crt from secret ${KEYCLOAK_TLS_SECRET_NAME}"
+    fi
+
+    for candidate in /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/ca-bundle.pem; do
+        if [[ -f "${candidate}" ]]; then
+            system_ca_bundle="${candidate}"
+            break
+        fi
+    done
+
+    {
+        if [[ -n "${system_ca_bundle}" ]]; then
+            cat "${system_ca_bundle}"
+            printf '\n'
+        else
+            warn "Could not find a local system CA bundle; OSMO CLI trust will include only the self-signed OSMO certs"
+        fi
+        cat "${tmp_osmo_cert}"
+        printf '\n'
+        cat "${tmp_keycloak_cert}"
+        printf '\n'
+    } | write_file_atomically "${bundle_path}"
+
+    rm -f "${tmp_osmo_cert}" "${tmp_keycloak_cert}"
+
+    if [[ -f "${sso_env_path}" ]]; then
+        existing_content="$(cat "${sso_env_path}")"
+        filtered_content="$(
+            printf '%s\n' "${existing_content}" \
+            | sed \
+                -e '/^export REQUESTS_CA_BUNDLE=/d' \
+                -e '/^export CURL_CA_BUNDLE=/d' \
+                -e '/^export SSL_CERT_FILE=/d' \
+                -e '/^export OSMO_CLI_CA_BUNDLE=/d'
+        )"
+    else
+        filtered_content=""
+    fi
+
+    {
+        printf '%s\n' "${filtered_content}" | sed '/^$/N;/^\n$/D'
+        write_export_line "OSMO_CLI_CA_BUNDLE" "${bundle_path}"
+        write_export_line "REQUESTS_CA_BUNDLE" "${bundle_path}"
+        write_export_line "CURL_CA_BUNDLE" "${bundle_path}"
+        write_export_line "SSL_CERT_FILE" "${bundle_path}"
+    } | write_file_atomically "${sso_env_path}"
+
+    log "Wrote self-signed OSMO CLI trust bundle to ${bundle_path}"
+    log "Updated ${sso_env_path} with OSMO CLI trust exports"
+}
+
 inject_workflow_ingress_ca_into_template() {
     local input_template="$1"
     local output_template="$2"
     local ca_secret_name="osmo-workflow-ingress-ca"
-    local ca_mount_path="/opt/osmo/certs/osmo-ingress-ca.crt"
+    local ca_bundle_volume_name="osmo-workflow-ca-bundle"
+    local ca_source_mount_path="/opt/osmo/source-certs/osmo-ingress-ca.crt"
+    local ca_bundle_dir="/opt/osmo/combined-certs"
+    local ca_bundle_path="${ca_bundle_dir}/ca-bundle.crt"
+    local ca_init_container_name="osmo-workflow-ca-init"
+    local ca_init_image="amazon/aws-cli:2.15.0"
 
     if [[ "${TLS_ENABLED}" != "true" || "${TLS_MODE:-}" != "self-signed" ]]; then
         cp "${input_template}" "${output_template}"
@@ -600,37 +756,79 @@ inject_workflow_ingress_ca_into_template() {
 
     jq \
       --arg secret_name "${ca_secret_name}" \
-      --arg mount_path "${ca_mount_path}" \
+      --arg bundle_volume_name "${ca_bundle_volume_name}" \
+      --arg source_mount_path "${ca_source_mount_path}" \
+      --arg bundle_dir "${ca_bundle_dir}" \
+      --arg bundle_path "${ca_bundle_path}" \
+      --arg init_container_name "${ca_init_container_name}" \
+      --arg init_container_image "${ca_init_image}" \
       '
       .configs.spec.volumes = (
         (.configs.spec.volumes // [])
-        | map(select(.name != $secret_name))
-        + [{
-          name: $secret_name,
-          secret: { secretName: $secret_name }
-        }]
+        | map(select(.name != $secret_name and .name != $bundle_volume_name))
+        + [
+          {
+            name: $secret_name,
+            secret: { secretName: $secret_name }
+          },
+          {
+            name: $bundle_volume_name,
+            emptyDir: {}
+          }
+        ]
+      )
+      | .configs.spec.initContainers = (
+          (.configs.spec.initContainers // [])
+          | map(select(.name != $init_container_name))
+          + [{
+            name: $init_container_name,
+            image: $init_container_image,
+            command: ["/bin/sh", "-lc"],
+            args: [
+              "set -e; bundle=\"\($bundle_path)\"; for candidate in /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/ca-bundle.pem; do if [ -f \"$candidate\" ]; then cat \"$candidate\" \"\($source_mount_path)\" > \"$bundle\"; exit 0; fi; done; cat \"\($source_mount_path)\" > \"$bundle\""
+            ],
+            volumeMounts: [
+              {
+                name: $secret_name,
+                mountPath: $source_mount_path,
+                subPath: "ca.crt",
+                readOnly: true
+              },
+              {
+                name: $bundle_volume_name,
+                mountPath: $bundle_dir
+              }
+            ]
+          }]
       )
       | .configs.spec.containers = (
           ((.configs.spec.containers // []) | map(
             if .name == "osmo-ctrl" then
               .env = (
                 (.env // [])
-                | map(select(.name != "SSL_CERT_FILE" and .name != "REQUESTS_CA_BUNDLE" and .name != "CURL_CA_BUNDLE"))
+                | map(select(.name != "SSL_CERT_FILE" and .name != "REQUESTS_CA_BUNDLE" and .name != "CURL_CA_BUNDLE" and .name != "AWS_CA_BUNDLE"))
                 + [
-                  { name: "SSL_CERT_FILE", value: $mount_path },
-                  { name: "REQUESTS_CA_BUNDLE", value: $mount_path },
-                  { name: "CURL_CA_BUNDLE", value: $mount_path }
+                  { name: "SSL_CERT_FILE", value: $bundle_path },
+                  { name: "REQUESTS_CA_BUNDLE", value: $bundle_path },
+                  { name: "CURL_CA_BUNDLE", value: $bundle_path },
+                  { name: "AWS_CA_BUNDLE", value: $bundle_path }
                 ]
               )
               | .volumeMounts = (
                 (.volumeMounts // [])
-                | map(select(.name != $secret_name and .mountPath != $mount_path))
-                + [{
-                  name: $secret_name,
-                  mountPath: $mount_path,
-                  subPath: "ca.crt",
-                  readOnly: true
-                }]
+                | map(select(.name != $secret_name and .name != $bundle_volume_name and .mountPath != $source_mount_path and .mountPath != $bundle_dir))
+                + [
+                  {
+                    name: $secret_name,
+                    mountPath: $source_mount_path,
+                    subPath: "ca.crt",
+                    readOnly: true
+                  },
+                  {
+                    name: $bundle_volume_name,
+                    mountPath: $bundle_dir
+                  }
+                ]
               )
             else
               .
@@ -640,16 +838,23 @@ inject_workflow_ingress_ca_into_template() {
               $containers + [{
                 name: "osmo-ctrl",
                 env: [
-                  { name: "SSL_CERT_FILE", value: $mount_path },
-                  { name: "REQUESTS_CA_BUNDLE", value: $mount_path },
-                  { name: "CURL_CA_BUNDLE", value: $mount_path }
+                  { name: "SSL_CERT_FILE", value: $bundle_path },
+                  { name: "REQUESTS_CA_BUNDLE", value: $bundle_path },
+                  { name: "CURL_CA_BUNDLE", value: $bundle_path },
+                  { name: "AWS_CA_BUNDLE", value: $bundle_path }
                 ],
-                volumeMounts: [{
-                  name: $secret_name,
-                  mountPath: $mount_path,
-                  subPath: "ca.crt",
-                  readOnly: true
-                }]
+                volumeMounts: [
+                  {
+                    name: $secret_name,
+                    mountPath: $source_mount_path,
+                    subPath: "ca.crt",
+                    readOnly: true
+                  },
+                  {
+                    name: $bundle_volume_name,
+                    mountPath: $bundle_dir
+                  }
+                ]
               }]
             else
               $containers
@@ -931,8 +1136,9 @@ configure_gpu_platform() {
       -e "s|{{NEBIUS_REGION}}|${NEBIUS_REGION}|g" \
       -e "s|{{STORAGE_ENDPOINT}}|${STORAGE_ENDPOINT}|g" \
       "${GPU_POD_TEMPLATE}" >"${resolved_gpu_template}" || die "Failed to render GPU pod template"
-    inject_workflow_ingress_ca_into_template "${resolved_gpu_template}" "${resolved_gpu_template}.patched"
-    mv "${resolved_gpu_template}.patched" "${resolved_gpu_template}" || die "Failed to finalize GPU pod template"
+    # Inject the workflow ingress CA only into the shared default_user template.
+    # OSMO merges default_user + gpu_tolerations for GPU workflows; injecting the
+    # same init container into both templates causes duplicated command/args.
     put_json_file "${OSMO_API_URL}/api/configs/pod_template/gpu_tolerations" "${resolved_gpu_template}"
     rm -f "${resolved_gpu_template}"
 
@@ -980,6 +1186,8 @@ run_post_install() {
     refresh_service_auth_config || true
     set_phase "Configuring service base URL"
     configure_service_base_url
+    set_phase "Writing CLI trust bundle"
+    write_cli_self_signed_trust_env
     log "OSMO post-install fixes complete"
 }
 
@@ -1031,9 +1239,9 @@ RUN_APP_CONFIGURATION="$(normalize_bool "${RUN_APP_CONFIGURATION:-false}")"
 if [[ "${RUN_APP_CONFIGURATION}" == "true" ]]; then
     require_command curl
     require_command lsof
-    if [[ "${TLS_ENABLED:-false}" == "true" && "${TLS_MODE:-}" == "self-signed" ]]; then
-        require_command openssl
-    fi
+fi
+if [[ "${TLS_ENABLED:-false}" == "true" && "${TLS_MODE:-}" == "self-signed" ]]; then
+    require_command openssl
 fi
 
 : "${OSMO_NAMESPACE:?OSMO_NAMESPACE is required}"
@@ -1043,6 +1251,7 @@ fi
 : "${TLS_ENABLED:?TLS_ENABLED is required}"
 : "${TLS_MODE:=}"
 : "${TLS_SECRET_NAME:=}"
+: "${KEYCLOAK_TLS_SECRET_NAME:=}"
 : "${ENABLE_AUTH:?ENABLE_AUTH is required}"
 : "${DEPLOY_UI:?DEPLOY_UI is required}"
 : "${SERVICE_BASE_URL:?SERVICE_BASE_URL is required}"

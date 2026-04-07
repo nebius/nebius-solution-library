@@ -52,7 +52,7 @@ resource "terraform_data" "validate" {
       error_message = "Storage values could not be resolved. Run terraform -chdir=./infra apply first or set storage_* overrides."
     }
     precondition {
-      condition     = !var.nebius_sso_enabled || (coalesce(var.nebius_sso_client_id, "") != "" && coalesce(var.nebius_sso_client_secret, "") != "")
+      condition     = !var.nebius_sso_enabled || ((var.nebius_sso_client_id != null ? var.nebius_sso_client_id : "") != "" && (var.nebius_sso_client_secret != null ? var.nebius_sso_client_secret : "") != "")
       error_message = "Nebius SSO is enabled but nebius_sso_client_id or nebius_sso_client_secret is missing."
     }
     precondition {
@@ -60,7 +60,7 @@ resource "terraform_data" "validate" {
         !var.tls_enabled
         || var.tls_mode != "cert-manager"
         || !var.deploy_cert_manager
-        || coalesce(var.cert_manager_email, "") != ""
+        || (var.cert_manager_email != null ? var.cert_manager_email : "") != ""
       )
       error_message = "cert_manager_email must be set when tls_mode=cert-manager and deploy_cert_manager=true."
     }

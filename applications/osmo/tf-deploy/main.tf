@@ -40,6 +40,9 @@ module "app" {
   cert_manager_email                    = var.cert_manager_email
   cert_manager_acme_server              = var.cert_manager_acme_server
   cert_manager_http01_ingress_class     = var.cert_manager_http01_ingress_class
+  dns_base_domain                       = var.dns_base_domain
+  dns_npc_profile                       = var.dns_npc_profile
+  dns_zone_id                           = var.dns_zone_id
   oauth2_proxy_insecure_skip_tls_verify = var.oauth2_proxy_insecure_skip_tls_verify
   oauth2_proxy_cookie_refresh           = var.oauth2_proxy_cookie_refresh
   oidc_client_secret                    = var.oidc_client_secret
@@ -61,6 +64,7 @@ module "app" {
   mek_id                                = var.mek_id
   mek_encoded                           = var.mek_encoded
   osmo_image_tag                        = var.osmo_image_tag
+  osmo_chart_version                    = var.osmo_chart_version
   service_base_url                      = var.service_base_url
   redis_chart_version                   = var.redis_chart_version
   deploy_observability                  = var.deploy_observability

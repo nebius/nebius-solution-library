@@ -7,8 +7,12 @@ locals {
   name_prefix = "${var.project_name}-${var.environment}"
 
   # SSH key handling
-  ssh_public_key = var.ssh_public_key.key != null ? var.ssh_public_key.key : (
-    fileexists(var.ssh_public_key.path) ? file(var.ssh_public_key.path) : null
+  ssh_public_key = (
+    try(trimspace(var.ssh_public_key.key), "") != ""
+    ? trimspace(var.ssh_public_key.key)
+    : try(trimspace(var.ssh_public_key.path), "") != "" && fileexists(trimspace(var.ssh_public_key.path))
+    ? file(trimspace(var.ssh_public_key.path))
+    : null
   )
 
   # Region-specific defaults
