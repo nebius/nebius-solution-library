@@ -162,6 +162,7 @@ filestore_accounting = {
 nfs_in_k8s = {
   enabled         = true
   version         = "1.2.0"
+  use_stable_repo = true
   size_gibibytes  = 3720
   disk_type       = "NETWORK_SSD_IO_M3"
   filesystem_type = "ext4"
@@ -181,29 +182,30 @@ nfs_in_k8s = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "2.0.0"
+slurm_operator_version = "3.0.2"
 
 # Is the version of soperator stable or not.
 # ---
 slurm_operator_stable = true
 
-# Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration.
+# Each partition must have either is_all = true (includes all nodesets) or nodeset_refs (list of specific nodesets).
+# Users must not remove the "hidden" partition.
+# Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
 # ---
-slurm_nodesets_enabled = true
-
-# Partition configuration for nodesets. Used only when slurm_nodesets_enabled is true.
-# If empty, a default partition "main" with all nodes will be created.
-# ---
-# slurm_nodesets_partitions = [
-#   {
-#     name   = "workers"
-#     is_all = false
-#     config = "Default=NO PriorityTier=10 MaxTime=INFINITE State=UP OverSubscribe=YES"
-#     nodeset_refs = [
-#       "worker",
-#     ]
-#   },
-# ]
+slurm_nodesets_partitions = [
+  {
+    name         = "main"
+    is_all       = true
+    nodeset_refs = [] # e.g. ["worker"], but is_all must be false in this case
+    config       = "Default=YES PriorityTier=10 PreemptMode=OFF MaxTime=INFINITE State=UP OverSubscribe=YES"
+  },
+  {
+    name         = "hidden"
+    is_all       = true
+    nodeset_refs = []
+    config       = "Default=NO PriorityTier=10 PreemptMode=OFF Hidden=YES MaxTime=INFINITE State=UP OverSubscribe=YES"
+  },
+]
 
 # Type of the Slurm partition config. Could be either `default` or `custom`.
 # By default, "default".
@@ -231,18 +233,6 @@ slurm_partition_config_type = "default"
 #   This nodeset may be used in conjunction with partitions.
 #   It is required if `Nodes=<nodeset_name>` is used for a partition.
 #
-# slurm_worker_features = [
-#   {
-#     name = "low_priority"
-#     hostlist_expr = "worker-[0-0]"
-#     nodeset_name = "low_priority"
-#   },
-#   {
-#     name = "low_priority"
-#     hostlist_expr = "worker-1"
-#     nodeset_name = "high_priority"
-#   }
-# ]
 
 # Health check config:
 # - health_check_interval: (Required) Interval for health check run in seconds.
@@ -293,11 +283,11 @@ slurm_nodeset_controller = {
   size = 1
   resource = {
     platform = "cpu-d3"
-    preset   = "4vcpu-16gb"
+    preset   = "16vcpu-64gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 128
+    size_gibibytes       = 256
     block_size_kibibytes = 4
   }
 }
@@ -311,6 +301,15 @@ slurm_nodeset_workers = [
   {
     name = "worker"
     size = 128
+    # Autoscaling configuration. Set enabled = false to use fixed node count instead.
+    autoscaling = {
+      enabled = true
+      # min_size options:
+      # - null: min=max, no scale-down (default, recommended - saves ~10 min on initial provisioning)
+      #   it can be changed to a number later if needed.
+      # - N: can scale down to N nodes
+      min_size = null
+    }
     resource = {
       platform = "gpu-h100-sxm"
       preset   = "8gpu-128vcpu-1600gb"
@@ -325,12 +324,35 @@ slurm_nodeset_workers = [
     }
     # Change to preemptible = {} in case you want to use preemptible nodes
     preemptible = null
+    # Use reservation_policy to leverage compute reservations (capacity blocks)
+    # reservation_policy = {
+    #   policy          = "AUTO"  # AUTO, FORBID, or STRICT
+    #   reservation_ids = ["capacityblockgroup-xYYzzzzzz"]
+    # }
     # Provide a list of strings to set Slurm Node features
     features = null
     # Set to `true` to create partition for the NodeSet by default
     create_partition = null
+    # Whether to enable ephemeral nodes behavior for this worker nodeset.
+    # When true, nodes will use dynamic topology injection and power management.
+    # By default, false.
+    ephemeral_nodes = false
+    # Optional local NVMe passthrough for this nodeset only.
+    # Uses local instance disks, creates a RAID0 array and mounts it on the host via cloud-init.
+    # mount_path: path used for both host RAID mount and jail submount.
+    # local_nvme = {
+    #   enabled         = true
+    #   mount_path      = "/mnt/local-nvme"
+    #   filesystem_type = "ext4"
+    # }
   },
 ]
+
+# Per-platform CUDA versions consumed by Slurm/operator (e.g., 12.8.2). Keys are platform IDs (e.g., gpu-h100-sxm).
+#platform_cuda_versions = {}
+
+# Per-platform GPU driver presets. Keys are platform IDs (e.g., gpu-h100-sxm); values are driver presets (e.g., cuda13.0).
+#platform_driver_presets = {}
 
 # Driverfull mode is used to run Slurm jobs with GPU drivers installed on the worker nodes.
 use_preinstalled_gpu_drivers = true
@@ -396,6 +418,21 @@ slurm_login_public_ip = true
 # ---
 tailscale_enabled = false
 
+# Whether to enable the SSSD sidecar on Slurm controller, login, and worker nodes.
+# By default, false
+# ---
+slurm_sssd_enabled = false
+
+# Name of Secret containing sssd.conf for controller, login, and worker sssd containers.
+# By default, empty
+# ---
+slurm_sssd_conf_secret_ref_name = ""
+
+# Name of ConfigMap containing LDAP CA certificates for controller, login, and worker sssd containers.
+# By default, empty
+# ---
+slurm_sssd_ldap_ca_config_map_ref_name = ""
+
 # Authorized keys accepted for connecting to Slurm login nodes via SSH as 'root' user.
 # ---
 slurm_login_ssh_root_public_keys = [
@@ -427,6 +464,7 @@ slurm_exporter_enabled = true
 # - "prod_quick" - run all health-checks except those that take long. Takes additional 10 minutes (H100) - 30 minutes (B300).
 # - "testing" - to be used for Soperator E2E tests.
 # - "dev" - to be used for Soperator development clusters.
+# - "essential" - skip most of checks and run only essential ones. Don't use in production.
 # ---
 active_checks_scope = ""
 
@@ -553,7 +591,7 @@ cleanup_bucket_on_destroy = false
 # Version of the k8s to be used.
 # Set to null or don't set to use Nebius default (recommended), or specify explicitly
 # ---
-k8s_version = 1.32
+k8s_version = 1.33
 
 # SSH user credentials for accessing k8s nodes.
 # That option add public ip address to every node.
@@ -567,10 +605,13 @@ k8s_version = 1.32
 #   ]
 # }]
 
-# Lines to write to /etc/modprobe.d/nvidia_admin.conf via cloud-init (GPU workers only).
+# Lines to write to /etc/modprobe.d/nvidia_config.conf via cloud-init (GPU workers only).
+# One option per line.
 # ---
-nvidia_admin_conf_lines = [
+nvidia_config_lines = [
   "options nvidia NVreg_RestrictProfilingToAdminUsers=0", # Allow access to GPU counters in nsys profiler for non-root users
+  "options nvidia NVreg_EnableStreamMemOPs=1",
+  "options nvidia NVreg_RegistryDwords=\"PeerMappingOverride=1;\"",
 ]
 
 # endregion k8s

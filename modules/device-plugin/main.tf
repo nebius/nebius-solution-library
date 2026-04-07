@@ -8,7 +8,7 @@ resource "nebius_applications_v1alpha1_k8s_release" "this" {
 
   sensitive = {
     set = {
-      "dcgm-exporter.enabled" : true
+      "dcgm-exporter.enabled" = var.dcgm_exporter_enabled
     }
   }
 }

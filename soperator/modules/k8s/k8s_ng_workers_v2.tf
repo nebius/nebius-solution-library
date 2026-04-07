@@ -1,6 +1,6 @@
 locals {
-  # GPU clusters for v2 worker nodes (when nodesets are enabled)
-  gpu_clusters_v2 = var.slurm_nodesets_enabled ? {
+  # GPU clusters for v2 worker nodes
+  gpu_clusters_v2 = {
     for gpu_placement in distinct([for worker in var.node_group_workers_v2 :
       {
         fabric = worker.gpu_cluster.infiniband_fabric
@@ -10,8 +10,9 @@ locals {
     gpu_placement.fabric => {
       fabric = gpu_placement.fabric
     }
-  } : {}
-  gpu_clusters_by_nodegroup = var.slurm_nodesets_enabled ? {
+  }
+
+  gpu_clusters_by_nodegroup = {
     for ng in distinct([for worker in var.node_group_workers_v2 :
       {
         name   = worker.name
@@ -20,7 +21,7 @@ locals {
       if worker.gpu_cluster != null
     ]) :
     ng.name => ng.fabric
-  } : {}
+  }
 }
 
 resource "nebius_compute_v1_gpu_cluster" "this_v2" {
@@ -40,15 +41,17 @@ resource "nebius_compute_v1_gpu_cluster" "this_v2" {
 }
 
 resource "nebius_mk8s_v1_node_group" "worker_v2" {
-  count = var.slurm_nodesets_enabled ? length(var.node_group_workers_v2) : 0
+  count = length(var.node_group_workers_v2)
 
   depends_on = [
     nebius_mk8s_v1_cluster.this,
-    nebius_compute_v1_gpu_cluster.this,
+    nebius_compute_v1_gpu_cluster.this_v2,
     terraform_data.check_resource_preset_sufficiency,
   ]
 
   parent_id = nebius_mk8s_v1_cluster.this.id
+
+  version = var.k8s_version
 
   name = join("-", [
     var.node_group_workers_v2[count.index].name,
@@ -122,8 +125,10 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
     preemptible = var.node_group_workers_v2[count.index].preemptible
 
+    reservation_policy = var.node_group_workers_v2[count.index].reservation_policy
+
     gpu_settings = (var.use_preinstalled_gpu_drivers && local.node_group_gpu_present_v2.worker[count.index]) ? {
-      drivers_preset = module.resources.driver_preset_by_platform[var.node_group_workers_v2[count.index].resource.platform]
+      drivers_preset = lookup(var.platform_driver_presets, var.node_group_workers_v2[count.index].resource.platform)
     } : null
 
     boot_disk = {
@@ -131,6 +136,15 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
       size_bytes       = provider::units::from_gib(var.node_group_workers_v2[count.index].boot_disk.size_gibibytes)
       block_size_bytes = provider::units::from_kib(var.node_group_workers_v2[count.index].boot_disk.block_size_kibibytes)
     }
+
+    local_disks = try(var.node_group_workers_v2[count.index].local_nvme.enabled, false) ? {
+      config = {
+        none = true
+      }
+      passthrough_group = {
+        requested = true
+      }
+    } : null
 
     filesystems = concat(
       [
@@ -161,11 +175,17 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
     os = "ubuntu24.04"
 
-    cloud_init_user_data = local.node_group_gpu_present_v2.worker[count.index] ? (
-      local.node_cloud_init.enabled ? local.node_cloud_init.cloud_init_data : null
-      ) : (
-      local.node_ssh_access.enabled ? local.node_cloud_init.cloud_init_data_no_nvidia : null
-    )
+    cloud_init_user_data = (
+      local.node_ssh_access.enabled ||
+      (local.node_group_gpu_present_v2.worker[count.index] && length(var.nvidia_config_lines) > 0) ||
+      try(var.node_group_workers_v2[count.index].local_nvme.enabled, false)
+      ) ? templatefile("${path.module}/templates/cloud_init.yaml.tftpl", {
+        ssh_users                  = var.node_ssh_access_users
+        nvidia_config_lines        = local.node_group_gpu_present_v2.worker[count.index] ? var.nvidia_config_lines : []
+        local_nvme_enabled         = try(var.node_group_workers_v2[count.index].local_nvme.enabled, false)
+        local_nvme_mount_path      = try(var.node_group_workers_v2[count.index].local_nvme.mount_path, "/mnt/local-nvme")
+        local_nvme_filesystem_type = try(var.node_group_workers_v2[count.index].local_nvme.filesystem_type, "ext4")
+    }) : null
   }
 
   lifecycle {

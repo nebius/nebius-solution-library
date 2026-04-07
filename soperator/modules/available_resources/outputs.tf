@@ -23,6 +23,11 @@ output "by_platform" {
   value       = local.presets_by_platforms
 }
 
+output "local_nvme_supported_by_region_platform_preset" {
+  description = "Local NVMe support matrix by region/platform/preset."
+  value       = local.local_nvme_supported_by_region_platform_preset
+}
+
 output "k8s_ephemeral_storage_coefficient" {
   value = local.reserve.ephemeral_storage.coefficient
 }
@@ -41,11 +46,6 @@ output "filesystem_types" {
   value       = local.filesystem_types
 }
 
-output "driver_preset_by_platform" {
-  description = "Supported driver preset by platform."
-  value       = local.platform_driver_presets
-}
-
 output "cpu_topology_by_platform" {
   description = "CPU topologies preset by platform."
   value       = local.cpu_topologies_by_platforms
@@ -54,4 +54,9 @@ output "cpu_topology_by_platform" {
 output "gres_name_by_platform" {
   description = "GRes name by platform."
   value       = local.gres_by_platforms
+}
+
+output "gres_config_by_platform" {
+  description = "GRes config by platform."
+  value       = local.gres_config_by_platforms
 }

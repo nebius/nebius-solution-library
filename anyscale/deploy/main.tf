@@ -36,15 +36,17 @@ resource "nebius_applications_v1alpha1_k8s_release" "this" {
   namespace        = "anyscale-operator"
   product_slug     = "nebius/anyscale-operator"
 
-  set = {
-    "cloudDeploymentId" : local.config.anyscale.cloud_deployment_id,
-    "anyscaleCliToken" : local.config.anyscale.anyscale_cli_token,
-    "aws.objectStorage.endpoint_url" : "https://storage.${var.region}.nebius.cloud:443",
-    "aws.credentialSecret.accessKeyId" : nebius_iam_v2_access_key.anyscale_bucket_key.status.aws_access_key_id,
-    "aws.credentialSecret.secretAccessKey" : nebius_iam_v2_access_key.anyscale_bucket_key.status.secret
+  sensitive = {
+    set = {
+      "cloudDeploymentId"                    = local.config.anyscale.cloud_deployment_id
+      "anyscaleCliToken"                     = local.config.anyscale.anyscale_cli_token
+      "aws.objectStorage.endpoint_url"       = "https://storage.${var.region}.nebius.cloud:443"
+      "aws.credentialSecret.accessKeyId"     = nebius_iam_v2_access_key.anyscale_bucket_key.status.aws_access_key_id
+      "aws.credentialSecret.secretAccessKey" = nebius_iam_v2_access_key.anyscale_bucket_key.status.secret
+    }
   }
 
   depends_on = [
-    module.k8s-training
+    module.k8s-training,
   ]
 }

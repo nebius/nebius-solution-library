@@ -4,14 +4,6 @@
 
 - Creating a Kubernetes cluster with CPU and GPU nodes.
 
-- Installing the required [Nvidia Gpu Operator](https://github.com/NVIDIA/gpu-operator)
-  and [Network Operator](https://docs.nvidia.com/networking/display/cokan10/network+operator) for running GPU
-  workloads.- Installing [Grafana](https://github.com/grafana/helm-charts/tree/main/charts/grafana).
-
-- Installing [Prometheus](https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus).
-- Installing [Loki](https://github.com/grafana/loki/tree/main/production/helm/loki).
-- Installing [Promtail](https://github.com/grafana/helm-charts/tree/main/charts/promtail).
-
 ## Prerequisites
 
 1. Install [Nebius CLI](https://docs.nebius.ai/cli/install/):
@@ -31,7 +23,6 @@
    source ~/.bashrc
    ```
 
-
 3. [Configure Nebius CLI](https://docs.nebius.com/cli/configure/) (it is recommended to use [service account](https://docs.nebius.com/iam/service-accounts/manage/) for configuration)
 
 4. Install JQ:
@@ -43,7 +34,6 @@
      ```bash
      sudo apt install jq -y
      ```
-
 
 ## Usage
 
@@ -104,15 +94,6 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 
 
 ```
 
-### Infiniband Fabric
-
-```hcl
-# Infiniband fabrics: https://docs.nebius.com/compute/clusters/gpu#fabrics
-infiniband_fabric = "" # Infiniband fabric name
-```
-Please select the correct Infiniband fabric based on the GPU platform and region.
-
-
 ### Nvidia Multi Instance GPU (MIG) configuration
 
 ```hcl
@@ -127,19 +108,10 @@ See [NVIDIA documentation for different MIG strategies](https://docs.nvidia.com/
 
 ```hcl
 # Observability
-enable_grafana    = true # Enable or disable Grafana deployment with true or false
-enable_prometheus = true # Enable or disable Prometheus deployment with true or false
-enable_loki       = true # Enable or disable Loki deployment with true or false
-enable_dcgm       = true # Enable or disable NVIDIA DCGM Exporter Dashboard and Alerting deployment using true or false
-
-## Loki
-loki_access_key_id = "" # See README.md for instructions. Leave empty if you are not deploying Loki.
-loki_secret_key    = "" # See the instruction in README.md on how to create this.  If you are not deploying Loki, leave it empty.
-```
-
-See the details below for more information on [Grafana](#grafana), [Prometheus](#prometheus), [Loki](#temporary-block-to-make-loki-work-now) and [NVIDIA DCGM](#nvidia-dcgm-exporter-dashboard-and-alerting).
-
-> Deploying Loki will require you to create a service account! Please check the instructions [here](https://docs.nebius.com/iam/service-accounts/manage) to create a serice account to access to the storage and [here](https://docs.nebius.com/iam/service-accounts/access-keys) to create the access key. You can refer to the access key creation command [here](https://docs.nebius.com/cli/reference/iam/access-key/create).
+enable_nebius_o11y_agent = true  # Enable or disable Nebius Observability Agent deployment for metrics and logs from user workloads.
+enable_grafana           = true  # Enable or disable Grafana® solution by Nebius used together with Nebius Observability Agent
+enable_prometheus        = false # Enable or disable Prometheus and Grafana deployment for local metric storage (not using Nebius observability stack)
+enable_loki              = false # Enable or disable Loki deployment for local logs storage (not using Nebius observability stack)
 
 ### Storage configuration
 
@@ -154,6 +126,24 @@ filestore_block_size = 4096 # Set the Filestore block size in bytes
 You can use Filestore to add external storage to K8s clusters, this allows you to create a Read-Write-Many HostPath PVCs in a K8s cluster. Use the following paths: `/mnt/filestore` for Filestore.
 
 For more information on how to access storage in K8s, refer [here](#accessing-storage).
+
+### Shared filesystem CSI automation
+
+When a shared filesystem is present, either because this stack created it or because `existing_filestore` was provided, Terraform can also install the Nebius Shared Filesystem CSI driver and promote its StorageClass to the cluster default.
+
+```hcl
+enable_filestore                                  = true
+existing_filestore                                = "" # or an existing filesystem ID
+filestore_mount_path                              = "/mnt/data"
+filesystem_csi = {
+  chart_version                       = "0.1.5"
+  namespace                           = "kube-system"
+  make_default_storage_class          = true
+  previous_default_storage_class_name = "compute-csi-default-sc"
+}
+```
+
+This Terraform automation installs the CSI driver and configures the StorageClass only. Verification, pod-level validation, and cleanup remain in `filesystem-csi-validation/` as an explicit opt-in workflow.
 
 ## Connecting to the cluster
 
@@ -171,23 +161,11 @@ For more information on how to access storage in K8s, refer [here](#accessing-st
 nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
 ```
 
-   Alternatively, use the k8s cluster id shown on the Nebius console: 
-```bash
-nebius mk8s v1 cluster get-credentials --id mk8scluster-<cluster_id> --external
-```
-
-
 ### Add credentials to the kubectl configuration file
 1. Run the following command from the terraform deployment folder:
    ```bash
    nebius mk8s v1 cluster get-credentials --id $(cat terraform.tfstate | jq -r '.resources[] | select(.type == "nebius_mk8s_v1_cluster") | .instances[].attributes.id') --external
    ```
-
-   Alternatively, use the k8s cluster id shown on the Nebius console: 
-   ```bash
-   nebius mk8s v1 cluster get-credentials --id mk8scluster-<cluster_id> --external
-   ```
-
 2. Verify the kubectl configuration after adding the credentials:
 
    ```bash
@@ -218,83 +196,13 @@ kubectl get pods -A
 
 ## Observability
 
-Observability stack is enabled by default. It includes the following components:
+Observability stack by default use Nebius Observability Agent deployment for metrics and logs storage. and Grafana® solution by Nebius.
 
-- Grafana
-- Prometheus
-- Loki
-
-### Grafana
-
-To disable it, set the `enable_grafana` variable to `false` in the `terraform.tfvars` file.
-
-
-To access Grafana:
-
-1. **Port-forward to the Grafana service:** Run the following command to port-forward to the Grafana service:
-   ```sh
-   kubectl --namespace o11y port-forward service/grafana 8080:80
-   ```
-
-
-2. **Access the Grafana dashboard:** Open your browser and go to `http://localhost:8080`.
-
-
-3. **Log in:** Use the default credentials to log in:
-   - **Username:** `admin`
-   - **Password:** `admin`
-
-### Log aggregation
-
-#### Create a temporary block to enable Loki
-
-
-1. Create a SA \
-   `nebius iam service-account create --parent-id <parent-id> --name <name>`.
-2. Add an SA to editors group. \
-    Get your tenant id using `nebius iam whoami`. \
-    Get the `editors` group id using `nebius iam group list --parent-id <tenant-id> | grep -n5 "name: editors"`. \
-
-    List all members of the `editors` group 
-   with `nebius iam group-membership list-members --parent-id <group-id>`. \
-    Add your SA to the `editors` group
-   with `nebius iam group-membership create --parent-id <group-id> --member-id <sa-id>` \
-3. Create access key and get its credentials: \
-    `nebius iam v2 access-key create --account-service-account-id <SA-ID> --description 'AWS CLI' --format json` \
-    `nebius iam v2 access-key get-by-aws-id --aws-access-key-id <AWS-KEY-ID-FROM-PREVIOUS-COMMAND> --format json` \
-
-4. Update `loki_access_key_id` and `loki_secret_key` in `terraform.tfvars` with the result of the previous command.
-
-Log aggregation with Loki is enabled by default. If you want to disable it, set the `enable_loki` variable to `false` in the
-`terraform.tfvars` file.
-
-To access logs, go to the Loki dashboard `http://localhost:8080/d/o6-BGgnnk/loki-kubernetes-logs`.
-
-**NB!** You will have to manually clean the Loki bucket before performing the `terraform destroy` command.
-
-### Prometheus
-
-
-Prometheus server is enabled by default. If you want to disable it, set the `enable_prometheus` variable to `false` in the `terraform.tfvars` file.
-Because `DCGM exporter` uses Prometheus as a data source it will also be disabled.
-
-
-To access logs, go to the Node exporter folder `http://localhost:8080/f/e6acfbcb-6f13-4a58-8e02-f780811a2404/`
-
-### NVIDIA DCGM Exporter Dashboard and Alerting
-
-
-NVIDIA DCGM Exporter Dashboard and Alerting rules are enabled by default. If you need to disable it, set the `enable_dcgm` variable to `false` in terraform.tfvars\` file.
-
-
-
-Alerting rules are created for node groups with GPUs by default.
-
-To access the NVIDIA DCGM Exporter dashboard, go to `http://localhost:8080/d/Oxed_c6Wz/nvidia-dcgm-exporter-dashboard`
-
-### Alerting
-
-To enable alert messages for Slack, refer to this [article](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-slack/)
+To access Grafana GUI:
+```
+Nebius Web GUI > Main menu > Applications > grafana-solution-by-nebius > Endpoints + Create > Copy URL
+```
+Open browser to newly created URL with username “admin” and password from output of “terraform output grafana_password”
 
 ## Accessing storage
 
@@ -331,7 +239,6 @@ spec:
     requests:
       storage: "<SIZE>"
 ```
-
 
 ## CSI limitations:
 - FS should be mounted to all NodeGroups, because PV attachmend to pod runniing on Node without FS will fail

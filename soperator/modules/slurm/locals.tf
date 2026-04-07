@@ -5,10 +5,11 @@ locals {
   }
   helm = {
     repository = {
-      slurm   = "oci://cr.eu-north1.nebius.cloud/soperator${!var.operator_stable ? "-unstable" : ""}"
-      mariadb = "https://helm.mariadb.com/mariadb-operator"
-      raw     = "https://bedag.github.io/helm-charts/"
-      spo     = "oci://cr.eu-north1.nebius.cloud/e00xdc03sb7gpqfd0a"
+      slurm        = "oci://cr.eu-north1.nebius.cloud/soperator${!var.operator_stable ? "-unstable" : ""}"
+      slurm_stable = "oci://cr.eu-north1.nebius.cloud/soperator"
+      mariadb      = "https://helm.mariadb.com/mariadb-operator"
+      raw          = "https://bedag.github.io/helm-charts/"
+      spo          = "oci://cr.eu-north1.nebius.cloud/e00xdc03sb7gpqfd0a"
     }
 
     chart = {
@@ -35,8 +36,9 @@ locals {
   }
 
   image = {
-    repository = "cr.eu-north1.nebius.cloud/soperator${!var.operator_stable ? "-unstable" : ""}"
-    tag        = var.operator_version
+    repository        = "cr.eu-north1.nebius.cloud/soperator${!var.operator_stable ? "-unstable" : ""}"
+    repository_stable = "cr.eu-north1.nebius.cloud/soperator"
+    tag               = var.operator_version
   }
 
   node_filters = {
@@ -92,6 +94,11 @@ locals {
   resources = {
     munge = {
       cpu               = 0.1
+      memory            = 0.5
+      ephemeral_storage = 5
+    }
+    sssd = {
+      cpu               = 0.2
       memory            = 0.5
       ephemeral_storage = 5
     }
@@ -156,7 +163,7 @@ locals {
     }
   }
 
-  slurm_node_extra = "\\\"{ \\\\\\\"monitoring\\\\\\\": \\\\\\\"https://console.eu.nebius.com/${var.iam_project_id}/compute/instances/$INSTANCE_ID/monitoring\\\\\\\" }\\\""
+  slurm_node_extra = "\\\"{ \\\\\\\"ib_pod\\\\\\\": \\\\\\\"$TOPO_SWITCH_TIER2\\\\\\\", \\\\\\\"ib_su\\\\\\\": \\\\\\\"$TOPO_SWITCH_TIER1\\\\\\\" }\\\""
 
   # Calculate vmagent remote write queue count based on cluster size
   # This sets metrics ingestion capacity for larger clusters properly

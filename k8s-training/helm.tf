@@ -9,7 +9,7 @@ module "network-operator" {
 }
 
 module "gpu-operator" {
-  count = var.gpu_nodes_driverfull_image ? 0 : 1
+  count = (!var.gpu_nodes_driverfull_image && !var.custom_driver) ? 1 : 0
 
   depends_on = [
     module.network-operator
@@ -20,6 +20,16 @@ module "gpu-operator" {
   mig_strategy = var.mig_strategy
 }
 
+module "gpu-operator-custom" {
+  count = var.custom_driver ? 1 : 0
+  depends_on = [
+    module.network-operator
+  ]
+  source       = "../modules/gpu-operator-custom"
+  mig_strategy = var.mig_strategy != null ? var.mig_strategy : "none"
+}
+
+
 module "device-plugin" {
   count = var.gpu_nodes_driverfull_image ? 1 : 0
 
@@ -29,17 +39,24 @@ module "device-plugin" {
 }
 
 module "o11y" {
-  source          = "../modules/o11y"
-  parent_id       = var.parent_id
-  tenant_id       = var.tenant_id
-  cluster_id      = nebius_mk8s_v1_cluster.k8s-cluster.id
-  cpu_nodes_count = var.cpu_nodes_count
-  gpu_nodes_count = var.gpu_nodes_count_per_group * var.gpu_node_groups
+  source     = "../modules/o11y"
+  parent_id  = var.parent_id
+  tenant_id  = var.tenant_id
+  cluster_id = nebius_mk8s_v1_cluster.k8s-cluster.id
+  k8s_node_group_sa_id      = var.enable_k8s_node_group_sa ? nebius_iam_v1_service_account.k8s_node_group_sa[0].id : null
+  k8s_node_group_sa_enabled = var.enable_k8s_node_group_sa
 
   o11y = {
+    nebius_o11y_agent = {
+      enabled                  = var.enable_nebius_o11y_agent
+      collectK8sClusterMetrics = var.collectK8sClusterMetrics
+    }
+    grafana = {
+      enabled = var.enable_grafana
+    }
     loki = {
-      enabled            = var.enable_loki
-      replication_factor = var.loki_custom_replication_factor
+      enabled            = var.loki.enabled
+      replication_factor = var.loki.replication_factor
       region             = var.region
     }
     prometheus = {
@@ -57,24 +74,4 @@ module "nccl-test" {
   ]
   source          = "../modules/nccl-test"
   number_of_hosts = nebius_mk8s_v1_node_group.gpu[0].fixed_node_count
-}
-
-# Nebius GPU Health Checker
-resource "helm_release" "nebius_gpu_health_checker" {
-  count = var.gpu_health_cheker ? 1 : 0
-
-  depends_on = [
-    nebius_mk8s_v1_node_group.gpu,
-  ]
-
-  name      = "nebius-gpu-health-checker"
-  chart     = "${path.module}/npd-helm/nebius-npd-0.2.0.tgz"
-  namespace = "default"
-
-  set = [
-    {
-      name  = "hardware.profile"
-      value = local.platform_preset_to_hardware_profile[local.hardware_profile_key]
-    }
-  ]
 }

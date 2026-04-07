@@ -125,19 +125,21 @@ resource "nebius_applications_v1alpha1_k8s_release" "this" {
   namespace        = "dstack"
   product_slug     = "nebius/dstack"
 
-  set = {
-    "env.DSTACK_SERVER_ADMIN_TOKEN" : random_password.dstack_app.result,
-    "env.DSTACK_DATABASE_URL" : "postgresql+asyncpg://${nebius_msp_postgresql_v1alpha1_cluster.dstack_pg.bootstrap.user_name}:${random_password.dstack_pg.result}@${nebius_msp_postgresql_v1alpha1_cluster.dstack_pg.status.connection_endpoints.private_read_write}/${nebius_msp_postgresql_v1alpha1_cluster.dstack_pg.bootstrap.db_name}"
-    "project_id" : var.parent_id,
-    "storage_size" : "200Gi",
-    "service_account" : nebius_iam_v1_service_account.dstack-sa.id,
-    "public_key_id" : nebius_iam_v1_auth_public_key.dstack-sa-public-key.id,
-    "private_key" : tls_private_key.dstack_sa_key.private_key_pem,
-    "replicaCount" : local.config.dstack.replicaCount
+  sensitive = {
+    set = {
+      "env.DSTACK_SERVER_ADMIN_TOKEN" = random_password.dstack_app.result
+      "env.DSTACK_DATABASE_URL"       = "postgresql+asyncpg://${nebius_msp_postgresql_v1alpha1_cluster.dstack_pg.bootstrap.user_name}:${random_password.dstack_pg.result}@${nebius_msp_postgresql_v1alpha1_cluster.dstack_pg.status.connection_endpoints.private_read_write}/${nebius_msp_postgresql_v1alpha1_cluster.dstack_pg.bootstrap.db_name}"
+      "project_id"                    = var.parent_id
+      "storage_size"                  = "200Gi"
+      "service_account"               = nebius_iam_v1_service_account.dstack-sa.id
+      "public_key_id"                 = nebius_iam_v1_auth_public_key.dstack-sa-public-key.id
+      "private_key"                   = tls_private_key.dstack_sa_key.private_key_pem
+      "replicaCount"                  = local.config.dstack.replicaCount
+    }
   }
 
   depends_on = [
     nebius_msp_postgresql_v1alpha1_cluster.dstack_pg,
-    module.k8s-training
+    module.k8s-training,
   ]
 }

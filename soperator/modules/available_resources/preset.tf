@@ -309,7 +309,15 @@ locals {
     }
   }
 
-  presets_by_platforms = tomap({
+  # Allow-list: "${region}/${platform}/${preset}"
+  local_nvme_supported_true_region_platform_preset = toset([
+    # gpu-b300-sxm
+    "${local.regions.uk-south1}/${local.platforms.gpu-b300-sxm}/${local.presets.p-8g-128c-1600g}",
+    "${local.regions.uk-south1}/${local.platforms.gpu-b300-sxm}/${local.presets.p-8g-160c-1792g}",
+    "${local.regions.uk-south1}/${local.platforms.gpu-b300-sxm}/${local.presets.p-8g-192c-2768g}",
+  ])
+
+  presets_by_platforms_raw = tomap({
     (local.platforms.cpu-e2) = tomap({
       (local.presets.p-2c-8g)    = local.presets_cpu.c-2vcpu-8gb
       (local.presets.p-4c-16g)   = local.presets_cpu.c-4vcpu-16gb
@@ -360,6 +368,27 @@ locals {
     (local.platforms.gpu-b300-sxm) = tomap({
       (local.presets.p-1g-24c-346g)   = local.presets_gpu.g-1gpu-24vcpu-346gb
       (local.presets.p-8g-192c-2768g) = local.presets_gpu.g-8gpu-192vcpu-2768gb
+    })
+  })
+
+  local_nvme_supported_by_region_platform_preset = tomap({
+    for region in [for _, region in local.regions : region] : region => tomap({
+      for platform, presets in local.presets_by_platforms_raw : platform => tomap({
+        for preset, _ in presets : preset => contains(local.local_nvme_supported_true_region_platform_preset, "${region}/${platform}/${preset}")
+      })
+    })
+  })
+
+  presets_by_platforms = tomap({
+    for platform, presets in local.presets_by_platforms_raw : platform => tomap({
+      for preset, resources in presets : preset => merge(resources, {
+        local_nvme_supported = anytrue([
+          for region in [for _, region in local.regions : region] : try(local.local_nvme_supported_by_region_platform_preset[region][platform][preset], false)
+        ])
+        local_nvme_supported_by_region = tomap({
+          for region in [for _, region in local.regions : region] : region => try(local.local_nvme_supported_by_region_platform_preset[region][platform][preset], false)
+        })
+      })
     })
   })
 }

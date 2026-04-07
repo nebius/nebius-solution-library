@@ -1,0 +1,627 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NIM Metadata Service",
+    "description": "Provides information about NVIDIA NIM deployments running in the cluster",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health Check",
+        "description": "Health check endpoint.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nims": {
+      "get": {
+        "tags": [
+          "nims"
+        ],
+        "summary": "List Nims",
+        "description": "List all NIM deployments with their status, resource allocation, and pod information.\n\nReturns information about:\n- Deployment name and image\n- Replica counts (desired, ready, available)\n- Resource requests/limits (CPU, memory, GPU)\n- Individual pod status and node placement",
+        "operationId": "list_nims_api_v1_nims_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NIMSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nims/{nim_name}": {
+      "get": {
+        "tags": [
+          "nims"
+        ],
+        "summary": "Get Nim",
+        "description": "Get detailed information about a specific NIM deployment.\n\nArgs:\n    nim_name: Name of the NIM deployment (e.g., 'openfold3', 'boltz2')",
+        "operationId": "get_nim_api_v1_nims__nim_name__get",
+        "parameters": [
+          {
+            "name": "nim_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Nim Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NIMInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/gpus": {
+      "get": {
+        "tags": [
+          "gpus"
+        ],
+        "summary": "List Gpus",
+        "description": "List all GPUs in the cluster with their current metrics.\n\nReturns real-time GPU metrics from DCGM Exporter via Prometheus:\n- GPU utilization percentage\n- Memory usage (used, free, total in bytes)\n- Temperature in Celsius\n- Power consumption in Watts",
+        "operationId": "list_gpus_api_v1_gpus_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GPUSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nims/{nim_name}/gpu-metrics": {
+      "get": {
+        "tags": [
+          "gpus"
+        ],
+        "summary": "Get Nim Gpu Metrics",
+        "description": "Get GPU metrics for a specific NIM deployment.\n\nReturns GPU metrics for each pod in the NIM deployment, correlating\nthe pod's node placement with the GPU metrics from that node.\n\nArgs:\n    nim_name: Name of the NIM deployment (e.g., 'openfold3', 'boltz2')",
+        "operationId": "get_nim_gpu_metrics_api_v1_nims__nim_name__gpu_metrics_get",
+        "parameters": [
+          {
+            "name": "nim_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Nim Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NIMGPUMetrics"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "GPUMetrics": {
+        "properties": {
+          "gpu_index": {
+            "type": "integer",
+            "title": "Gpu Index"
+          },
+          "node": {
+            "type": "string",
+            "title": "Node"
+          },
+          "gpu_uuid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu Uuid"
+          },
+          "gpu_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu Name"
+          },
+          "utilization_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utilization Percent"
+          },
+          "memory_used_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Used Bytes"
+          },
+          "memory_free_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Free Bytes"
+          },
+          "memory_total_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Total Bytes"
+          },
+          "peak_memory_used_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peak Memory Used Bytes"
+          },
+          "temperature_celsius": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature Celsius"
+          },
+          "power_usage_watts": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power Usage Watts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gpu_index",
+          "node"
+        ],
+        "title": "GPUMetrics"
+      },
+      "GPUSummary": {
+        "properties": {
+          "total_gpus": {
+            "type": "integer",
+            "title": "Total Gpus"
+          },
+          "gpus": {
+            "items": {
+              "$ref": "#/components/schemas/GPUMetrics"
+            },
+            "type": "array",
+            "title": "Gpus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_gpus",
+          "gpus"
+        ],
+        "title": "GPUSummary"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "namespace": {
+            "type": "string",
+            "title": "Namespace"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "namespace"
+        ],
+        "title": "HealthResponse"
+      },
+      "NIMGPUMetrics": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "namespace": {
+            "type": "string",
+            "title": "Namespace"
+          },
+          "pods": {
+            "items": {
+              "$ref": "#/components/schemas/PodGPUMetrics"
+            },
+            "type": "array",
+            "title": "Pods"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "namespace",
+          "pods"
+        ],
+        "title": "NIMGPUMetrics"
+      },
+      "NIMInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "image": {
+            "type": "string",
+            "title": "Image"
+          },
+          "replicas_desired": {
+            "type": "integer",
+            "title": "Replicas Desired"
+          },
+          "replicas_ready": {
+            "type": "integer",
+            "title": "Replicas Ready"
+          },
+          "replicas_available": {
+            "type": "integer",
+            "title": "Replicas Available"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port"
+          },
+          "resources": {
+            "$ref": "#/components/schemas/ResourceInfo"
+          },
+          "pods": {
+            "items": {
+              "$ref": "#/components/schemas/PodInfo"
+            },
+            "type": "array",
+            "title": "Pods"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "image",
+          "replicas_desired",
+          "replicas_ready",
+          "replicas_available",
+          "resources",
+          "pods"
+        ],
+        "title": "NIMInfo"
+      },
+      "NIMSummary": {
+        "properties": {
+          "total_nims": {
+            "type": "integer",
+            "title": "Total Nims"
+          },
+          "running_nims": {
+            "type": "integer",
+            "title": "Running Nims"
+          },
+          "total_gpus_requested": {
+            "type": "integer",
+            "title": "Total Gpus Requested"
+          },
+          "nims": {
+            "items": {
+              "$ref": "#/components/schemas/NIMInfo"
+            },
+            "type": "array",
+            "title": "Nims"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_nims",
+          "running_nims",
+          "total_gpus_requested",
+          "nims"
+        ],
+        "title": "NIMSummary"
+      },
+      "PodGPUMetrics": {
+        "properties": {
+          "pod_name": {
+            "type": "string",
+            "title": "Pod Name"
+          },
+          "node": {
+            "type": "string",
+            "title": "Node"
+          },
+          "gpu_metrics": {
+            "items": {
+              "$ref": "#/components/schemas/GPUMetrics"
+            },
+            "type": "array",
+            "title": "Gpu Metrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pod_name",
+          "node",
+          "gpu_metrics"
+        ],
+        "title": "PodGPUMetrics"
+      },
+      "PodInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "node": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node"
+          },
+          "gpu_index": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu Index"
+          },
+          "restart_count": {
+            "type": "integer",
+            "title": "Restart Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "status"
+        ],
+        "title": "PodInfo"
+      },
+      "ResourceInfo": {
+        "properties": {
+          "cpu_request": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpu Request"
+          },
+          "cpu_limit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpu Limit"
+          },
+          "memory_request": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Request"
+          },
+          "memory_limit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memory Limit"
+          },
+          "gpu_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu Count"
+          }
+        },
+        "type": "object",
+        "title": "ResourceInfo"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "nims",
+      "description": "NIM deployment information"
+    },
+    {
+      "name": "gpus",
+      "description": "GPU metrics and information"
+    },
+    {
+      "name": "health",
+      "description": "Service health checks"
+    }
+  ]
+}

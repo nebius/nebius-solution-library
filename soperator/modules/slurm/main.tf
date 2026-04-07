@@ -16,6 +16,7 @@ resource "terraform_data" "wait_for_slurm_cluster_hr" {
 resource "terraform_data" "wait_for_soperator_activechecks_hr" {
   depends_on = [
     helm_release.soperator_fluxcd_bootstrap,
+    terraform_data.wait_for_slurm_cluster_hr,
   ]
 
   provisioner "local-exec" {
@@ -68,8 +69,10 @@ resource "helm_release" "soperator_fluxcd_cm" {
     backups_enabled = var.backups_enabled
     backups_config  = var.backups_enabled ? var.backups_config : null
 
-    soperator_helm_repo  = local.helm.repository.slurm
-    soperator_image_repo = local.image.repository
+    soperator_helm_repo      = local.helm.repository.slurm
+    soperator_helm_repo_nfs  = var.nfs_in_k8s.use_stable_repo ? local.helm.repository.slurm_stable : local.helm.repository.slurm
+    soperator_image_repo     = local.image.repository
+    soperator_image_repo_nfs = var.nfs_in_k8s.use_stable_repo ? local.image.repository_stable : local.image.repository
 
     dcgm_job_mapping_enabled = var.dcgm_job_mapping_enabled
 
@@ -77,10 +80,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     apparmor_enabled        = var.use_default_apparmor_profile
     enable_soperator_checks = var.enable_soperator_checks
 
-    operator_version = var.operator_version
-    operator_feature_gates = join(",", distinct(compact([
-      var.slurm_nodesets_enabled ? "NodeSetWorkers=true" : null,
-    ])))
+    operator_version                   = var.operator_version
     cert_manager_version               = var.cert_manager_version
     k8up_version                       = var.k8up_version
     mariadb_operator_version           = var.mariadb_operator_version
@@ -97,6 +97,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     cluster_name        = var.cluster_name
     region              = var.region
     public_o11y_enabled = var.public_o11y_enabled
+    has_local_nvme      = anytrue([for nodeset in var.worker_nodesets : try(nodeset.local_nvme.enabled, false)])
     metrics_collector   = local.metrics_collector
     create_pvcs         = var.create_pvcs
 
@@ -134,9 +135,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
       }
 
       use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
-      cuda_major_version           = var.cuda_major_version
+      cuda_version                 = var.cuda_version
 
-      slurm_worker_features     = var.slurm_worker_features
       slurm_health_check_config = var.slurm_health_check_config
 
       k8s_node_filters               = local.node_filters
@@ -178,19 +178,45 @@ resource "helm_release" "soperator_fluxcd_cm" {
         controller = {
           size = var.node_count.controller
           resources = {
-            cpu               = floor(var.resources.controller.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
-            memory            = floor(var.resources.controller.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory)
-            ephemeral_storage = floor(var.resources.controller.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
+            cpu = floor(
+              var.resources.controller.cpu_cores
+              -local.resources.munge.cpu
+              -(var.sssd_enabled ? local.resources.sssd.cpu : 0)
+              -local.resources.kruise_daemon.cpu
+            )
+            memory = floor(
+              var.resources.controller.memory_gibibytes
+              -local.resources.munge.memory
+              -(var.sssd_enabled ? local.resources.sssd.memory : 0)
+              -local.resources.kruise_daemon.memory
+            )
+            ephemeral_storage = floor(
+              var.resources.controller.ephemeral_storage_gibibytes
+              -local.resources.munge.ephemeral_storage
+              -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
+            )
           }
         }
 
         worker = {
-          size = var.slurm_nodesets_enabled ? 0 : var.node_count.worker[0]
+          size = 0
           resources = {
-            cpu               = floor(var.resources.worker[0].cpu_cores - local.resources.munge.cpu) - local.resources.kruise_daemon.cpu
-            memory            = floor(var.resources.worker[0].memory_gibibytes - local.resources.munge.memory) - local.resources.kruise_daemon.memory
-            ephemeral_storage = floor(var.resources.worker[0].ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
-            gpus              = var.resources.worker[0].gpus
+            cpu = floor(
+              var.resources.worker[0].cpu_cores
+              -local.resources.munge.cpu
+              -(var.sssd_enabled ? local.resources.sssd.cpu : 0)
+            ) - local.resources.kruise_daemon.cpu
+            memory = floor(
+              var.resources.worker[0].memory_gibibytes
+              -local.resources.munge.memory
+              -(var.sssd_enabled ? local.resources.sssd.memory : 0)
+            ) - local.resources.kruise_daemon.memory
+            ephemeral_storage = floor(
+              var.resources.worker[0].ephemeral_storage_gibibytes
+              -local.resources.munge.ephemeral_storage
+              -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
+            )
+            gpus = var.resources.worker[0].gpus
           }
           shared_memory            = var.shared_memory_size_gibibytes
           slurm_node_extra         = local.slurm_node_extra
@@ -204,9 +230,23 @@ resource "helm_release" "soperator_fluxcd_cm" {
           root_public_keys         = var.login_ssh_root_public_keys
           public_ip                = var.login_public_ip
           resources = {
-            cpu               = floor(var.resources.login.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
-            memory            = floor(var.resources.login.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory)
-            ephemeral_storage = floor(var.resources.login.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
+            cpu = floor(
+              var.resources.login.cpu_cores
+              -local.resources.munge.cpu
+              -(var.sssd_enabled ? local.resources.sssd.cpu : 0)
+              -local.resources.kruise_daemon.cpu
+            )
+            memory = floor(
+              var.resources.login.memory_gibibytes
+              -local.resources.munge.memory
+              -(var.sssd_enabled ? local.resources.sssd.memory : 0)
+              -local.resources.kruise_daemon.memory
+            )
+            ephemeral_storage = floor(
+              var.resources.login.ephemeral_storage_gibibytes
+              -local.resources.munge.ephemeral_storage
+              -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
+            )
           }
         }
 
@@ -217,6 +257,13 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
         munge = {
           resources = local.resources.munge
+        }
+
+        sssd = {
+          enabled                     = var.sssd_enabled
+          conf_secret_ref_name        = var.sssd_conf_secret_ref_name
+          ldap_ca_config_map_ref_name = var.sssd_ldap_ca_config_map_ref_name
+          resources                   = local.resources.sssd
         }
 
         rest = {
@@ -258,7 +305,6 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
     vm_agent_queue_count = local.vm_agent_queue_count
 
-    slurm_nodesets_enabled    = var.slurm_nodesets_enabled
     slurm_nodesets_partitions = var.slurm_nodesets_partitions
     nodesets                  = var.worker_nodesets
 

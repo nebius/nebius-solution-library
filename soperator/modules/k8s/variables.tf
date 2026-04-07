@@ -46,6 +46,13 @@ variable "company_name" {
 
 #---
 
+variable "platform_driver_presets" {
+  description = "Per-platform presets for GPU driver. Keys are platform IDs (e.g., gpu-h100-sxm); values are driver presets (e.g., cuda13.0)."
+  type        = map(string)
+}
+
+#---
+
 variable "node_group_system" {
   description = "System node group specification."
   type = object({
@@ -143,7 +150,16 @@ variable "node_group_workers_v2" {
     gpu_cluster = optional(object({
       infiniband_fabric = string
     }))
-    preemptible   = optional(object({}))
+    preemptible = optional(object({}))
+    reservation_policy = optional(object({
+      policy          = optional(string)
+      reservation_ids = optional(list(string))
+    }))
+    local_nvme = optional(object({
+      enabled         = optional(bool, false)
+      mount_path      = optional(string, "/mnt/local-nvme")
+      filesystem_type = optional(string, "ext4")
+    }), {})
     nodeset_index = number
     subset_index  = number
   }))
@@ -226,20 +242,14 @@ variable "node_ssh_access_users" {
   default = []
 }
 
-variable "nvidia_admin_conf_lines" {
-  description = "Lines to write to /etc/modprobe.d/nvidia_admin.conf via cloud-init (GPU workers only)."
+variable "nvidia_config_lines" {
+  description = "Lines to write to /etc/modprobe.d/nvidia_config.conf via cloud-init (GPU workers only)."
   type        = list(string)
   default     = []
 }
 
 variable "use_preinstalled_gpu_drivers" {
   description = "Enable preinstalled mode for worker nodes."
-  type        = bool
-  default     = false
-}
-
-variable "slurm_nodesets_enabled" {
-  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
   type        = bool
   default     = false
 }

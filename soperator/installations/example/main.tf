@@ -38,17 +38,27 @@ locals {
   # V2 node_group_workers for new-style deployments (with nodesets)
   node_group_workers_v2 = flatten([for i, nodeset in var.slurm_nodeset_workers : [
     for subset in range(ceil(nodeset.size / 100.0)) : {
-      name          = nodeset.name
-      size          = min(100, nodeset.size - subset * 100)
-      min_size      = 0
-      max_size      = max(1, min(100, nodeset.size - subset * 100))
-      autoscaling   = true
-      resource      = nodeset.resource
-      boot_disk     = nodeset.boot_disk
-      gpu_cluster   = nodeset.gpu_cluster
-      nodeset_index = i
-      subset_index  = subset
-      preemptible   = nodeset.preemptible
+      name = nodeset.name
+      size = min(100, nodeset.size - subset * 100)
+      min_size = (
+        nodeset.autoscaling.enabled && nodeset.autoscaling.min_size != null
+        ? min(100, max(0, nodeset.autoscaling.min_size - subset * 100)) # fill-first distribution
+        : min(100, nodeset.size - subset * 100)                         # min=max
+      )
+      max_size           = max(1, min(100, nodeset.size - subset * 100))
+      autoscaling        = nodeset.autoscaling.enabled
+      resource           = nodeset.resource
+      boot_disk          = nodeset.boot_disk
+      gpu_cluster        = nodeset.gpu_cluster
+      nodeset_index      = i
+      subset_index       = subset
+      preemptible        = nodeset.preemptible
+      reservation_policy = nodeset.reservation_policy
+      local_nvme = {
+        enabled         = try(nodeset.local_nvme.enabled, false)
+        mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
+        filesystem_type = try(nodeset.local_nvme.filesystem_type, "ext4")
+      }
     }
   ]])
 }
@@ -58,6 +68,7 @@ resource "terraform_data" "check_variables" {
     terraform_data.check_slurm_nodeset,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_nfs,
+    terraform_data.check_local_nvme,
   ]
 }
 
@@ -156,6 +167,17 @@ module "cleanup" {
   iam_project_id = var.iam_project_id
 }
 
+module "k8s_cleanup" {
+  source = "../../modules/k8s_cleanup"
+
+  k8s_cluster_context = module.k8s.cluster_context
+  k8s_cluster_id      = module.k8s.cluster_id
+
+  depends_on = [
+    module.k8s,
+  ]
+}
+
 module "k8s" {
   depends_on = [
     module.filestore,
@@ -174,16 +196,16 @@ module "k8s" {
   k8s_version                  = var.k8s_version
   name                         = local.k8s_cluster_name
   company_name                 = var.company_name
+  platform_driver_presets      = var.platform_driver_presets
   use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
 
   etcd_cluster_size = var.etcd_cluster_size
 
-  node_group_system      = var.slurm_nodeset_system
-  node_group_controller  = var.slurm_nodeset_controller
-  node_group_workers     = local.node_group_workers
-  node_group_workers_v2  = local.node_group_workers_v2
-  node_group_login       = var.slurm_nodeset_login
-  slurm_nodesets_enabled = var.slurm_nodesets_enabled
+  node_group_system     = var.slurm_nodeset_system
+  node_group_controller = var.slurm_nodeset_controller
+  node_group_workers    = local.node_group_workers
+  node_group_workers_v2 = local.node_group_workers_v2
+  node_group_login      = var.slurm_nodeset_login
   node_group_accounting = {
     enabled = var.accounting_enabled
     spec    = var.slurm_nodeset_accounting
@@ -212,8 +234,8 @@ module "k8s" {
     } : null
   }
 
-  node_ssh_access_users   = var.k8s_cluster_node_ssh_access_users
-  nvidia_admin_conf_lines = var.nvidia_admin_conf_lines
+  node_ssh_access_users = var.k8s_cluster_node_ssh_access_users
+  nvidia_config_lines   = var.nvidia_config_lines
 
   providers = {
     nebius = nebius
@@ -303,7 +325,7 @@ module "slurm" {
   maintenance_ignore_node_groups = var.maintenance_ignore_node_groups
 
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
-  cuda_major_version            = var.slurm_nodeset_workers[0].resource.platform == "gpu-b300-sxm" ? 13 : 12
+  cuda_version                  = lookup(var.platform_cuda_versions, var.slurm_nodeset_workers[0].resource.platform)
   controller_state_on_filestore = var.controller_state_on_filestore
 
   node_count = {
@@ -398,7 +420,6 @@ module "slurm" {
       storage_class_name = replace("${local.storage_class_prefix}-${lower(var.node_local_image_disk.spec.disk_type)}-${lower(var.node_local_image_disk.spec.filesystem_type)}", "_", "-")
     } : null
   }
-
   nfs = {
     enabled    = var.nfs.enabled
     path       = var.nfs.enabled ? module.nfs-server[0].nfs_export_path : null
@@ -444,10 +465,8 @@ module "slurm" {
   shared_memory_size_gibibytes    = var.slurm_shared_memory_size_gibibytes
   slurm_partition_config_type     = var.slurm_partition_config_type
   slurm_partition_raw_config      = var.slurm_partition_raw_config
-  slurm_worker_features           = var.slurm_worker_features
   slurm_health_check_config       = var.slurm_health_check_config
 
-  slurm_nodesets_enabled    = var.slurm_nodesets_enabled
   slurm_nodesets_partitions = var.slurm_nodesets_partitions
   worker_nodesets = [for nodeset in var.slurm_nodeset_workers : {
     name            = nodeset.name
@@ -462,14 +481,24 @@ module "slurm" {
     )
     cpu_topology     = module.resources.cpu_topology_by_platform[nodeset.resource.platform][nodeset.resource.preset]
     gres_name        = lookup(module.resources.gres_name_by_platform, nodeset.resource.platform, null)
+    gres_config      = lookup(module.resources.gres_config_by_platform, nodeset.resource.platform, null)
     create_partition = nodeset.create_partition != null ? nodeset.create_partition : false
+    ephemeral_nodes  = nodeset.ephemeral_nodes
+    local_nvme = {
+      enabled         = try(nodeset.local_nvme.enabled, false)
+      mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
+      filesystem_type = try(nodeset.local_nvme.filesystem_type, "ext4")
+    }
   }]
 
-  login_allocation_id            = module.k8s.static_ip_allocation_id
-  login_public_ip                = var.slurm_login_public_ip
-  tailscale_enabled              = var.tailscale_enabled
-  login_sshd_config_map_ref_name = var.slurm_login_sshd_config_map_ref_name
-  login_ssh_root_public_keys     = var.slurm_login_ssh_root_public_keys
+  login_allocation_id              = module.k8s.static_ip_allocation_id
+  login_public_ip                  = var.slurm_login_public_ip
+  tailscale_enabled                = var.tailscale_enabled
+  login_sshd_config_map_ref_name   = var.slurm_login_sshd_config_map_ref_name
+  sssd_conf_secret_ref_name        = var.slurm_sssd_conf_secret_ref_name
+  sssd_ldap_ca_config_map_ref_name = var.slurm_sssd_ldap_ca_config_map_ref_name
+  sssd_enabled                     = var.slurm_sssd_enabled
+  login_ssh_root_public_keys       = var.slurm_login_ssh_root_public_keys
 
   flux_namespace = local.flux_namespace
 
@@ -516,6 +545,7 @@ module "backups" {
   source = "../../modules/backups"
 
   k8s_cluster_context = module.k8s.cluster_context
+  k8s_cluster_id      = module.k8s.cluster_id
 
   iam_project_id      = var.iam_project_id
   iam_tenant_id       = var.iam_tenant_id

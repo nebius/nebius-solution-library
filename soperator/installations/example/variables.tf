@@ -432,6 +432,7 @@ variable "nfs_in_k8s" {
   type = object({
     enabled         = bool
     version         = optional(string)
+    use_stable_repo = optional(bool, true)
     size_gibibytes  = optional(number)
     disk_type       = optional(string)
     filesystem_type = optional(string)
@@ -477,14 +478,50 @@ variable "k8s_version" {
   }
 }
 
+variable "platform_cuda_versions" {
+  description = "Per-platform CUDA versions consumed by Slurm/operator (e.g., 12.8.2). Keys are platform IDs (e.g., gpu-h100-sxm)."
+  type        = map(string)
+  default = {
+    cpu-e1         = "12.9.0"
+    cpu-e2         = "12.9.0"
+    cpu-d3         = "12.9.0"
+    gpu-l40s-a     = "13.0.2"
+    gpu-l40s-d     = "13.0.2"
+    gpu-h100-sxm   = "13.0.2"
+    gpu-h200-sxm   = "13.0.2"
+    gpu-b200-sxm   = "13.0.2"
+    gpu-b200-sxm-a = "13.0.2"
+    gpu-b300-sxm   = "13.0.2"
+    gpu-rtx6000    = "13.0.2"
+  }
+}
+
+variable "platform_driver_presets" {
+  description = "Per-platform GPU driver presets. Keys are platform IDs (e.g., gpu-h100-sxm); values are driver presets (e.g., cuda13.0)."
+  type        = map(string)
+  default = {
+    cpu-e1         = null
+    cpu-e2         = null
+    cpu-d3         = null
+    gpu-l40s-a     = "cuda13.0"
+    gpu-l40s-d     = "cuda13.0"
+    gpu-h100-sxm   = "cuda13.0"
+    gpu-h200-sxm   = "cuda13.0"
+    gpu-b200-sxm   = "cuda13.0"
+    gpu-b200-sxm-a = "cuda13.0"
+    gpu-b300-sxm   = "cuda13.0"
+    gpu-rtx6000    = "cuda13.0"
+  }
+}
+
 variable "use_preinstalled_gpu_drivers" {
   description = "Enable preinstalled mode for worker nodes."
   type        = bool
   default     = false
 }
 
-variable "nvidia_admin_conf_lines" {
-  description = "Lines to write to /etc/modprobe.d/nvidia_admin.conf via cloud-init (GPU workers only)."
+variable "nvidia_config_lines" {
+  description = "Lines to write to /etc/modprobe.d/nvidia_config.conf via cloud-init (GPU workers only)."
   type        = list(string)
   default     = []
 }
@@ -523,14 +560,11 @@ variable "slurm_operator_stable" {
   default     = true
 }
 
-variable "slurm_nodesets_enabled" {
-  description = "Enable nodesets feature for Slurm cluster. When enabled, creates separate nodesets for each worker configuration."
-  type        = bool
-  default     = false
-}
-
 variable "slurm_nodesets_partitions" {
-  description = "Partition configuration for nodesets. Used only when slurm_nodesets_enabled is true."
+  description = <<-EOT
+    Users must not remove the "hidden" partition.
+    Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
+  EOT
   type = list(object({
     name         = string
     is_all       = optional(bool, false)
@@ -538,6 +572,17 @@ variable "slurm_nodesets_partitions" {
     config       = string
   }))
   default = []
+
+  validation {
+    condition = length(setsubtract(
+      toset(flatten([
+        for p in var.slurm_nodesets_partitions : coalesce(p.nodeset_refs, [])
+      ])),
+      toset([for w in var.slurm_nodeset_workers : w.name])
+    )) == 0
+
+    error_message = "All slurm_nodesets_partitions[].nodeset_refs must reference existing slurm_nodeset_workers[].name values."
+  }
 }
 
 # region PartitionConfiguration
@@ -560,20 +605,6 @@ variable "slurm_partition_raw_config" {
 }
 
 # endregion PartitionConfiguration
-
-# region WorkerFeatures
-
-variable "slurm_worker_features" {
-  description = "List of features to be enabled on worker nodes."
-  type = list(object({
-    name          = string
-    hostlist_expr = string
-    nodeset_name  = optional(string)
-  }))
-  default = []
-}
-
-# endregion WorkerFeatures
 
 # region HealthCheckConfig
 
@@ -675,6 +706,10 @@ variable "slurm_nodeset_workers" {
   type = list(object({
     name = string
     size = number
+    autoscaling = optional(object({
+      enabled  = optional(bool, true)
+      min_size = optional(number)
+    }), {})
     resource = object({
       platform = string
       preset   = string
@@ -687,9 +722,19 @@ variable "slurm_nodeset_workers" {
     gpu_cluster = optional(object({
       infiniband_fabric = string
     }))
-    preemptible      = optional(object({}))
+    preemptible = optional(object({}))
+    reservation_policy = optional(object({
+      policy          = optional(string)
+      reservation_ids = optional(list(string))
+    }))
     features         = optional(list(string))
     create_partition = optional(bool)
+    ephemeral_nodes  = optional(bool, false)
+    local_nvme = optional(object({
+      enabled         = optional(bool, false)
+      mount_path      = optional(string, "/mnt/local-nvme")
+      filesystem_type = optional(string, "ext4")
+    }), {})
   }))
   nullable = false
   default = [{
@@ -730,6 +775,32 @@ variable "slurm_nodeset_workers" {
       (worker.boot_disk.size_gibibytes >= 512)
     ])
     error_message = "Boot disks for worker nodes must be at least 512 GiB."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.autoscaling.min_size == null || worker.autoscaling.min_size <= worker.size
+    ])
+    error_message = "Worker nodeset autoscaling.min_size must be less than or equal to size."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      !try(worker.local_nvme.enabled, false) || (
+        startswith(try(worker.local_nvme.mount_path, "/mnt/local-nvme"), "/")
+      )
+    ])
+    error_message = "When worker local NVMe is enabled, mount_path must be an absolute path."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      contains(["ext4", "xfs"], try(worker.local_nvme.filesystem_type, "ext4"))
+    ])
+    error_message = "When worker local NVMe filesystem_type is set, it must be `ext4` or `xfs`."
   }
 }
 
@@ -883,6 +954,26 @@ resource "terraform_data" "check_slurm_nodeset" {
   }
 }
 
+resource "terraform_data" "check_local_nvme" {
+  lifecycle {
+    precondition {
+      condition = (
+        !anytrue([
+          for worker in var.slurm_nodeset_workers :
+          try(worker.local_nvme.enabled, false)
+        ]) ||
+        alltrue([
+          for worker in var.slurm_nodeset_workers :
+          !try(worker.local_nvme.enabled, false) || (
+            try(module.resources.local_nvme_supported_by_region_platform_preset[var.region][worker.resource.platform][worker.resource.preset], false)
+          )
+        ])
+      )
+      error_message = "Local NVMe is enabled, but one or more worker nodesets use unsupported region/platform/preset."
+    }
+  }
+}
+
 # region Worker
 
 variable "slurm_worker_sshd_config_map_ref_name" {
@@ -899,6 +990,24 @@ variable "slurm_login_sshd_config_map_ref_name" {
   description = "Name of configmap with SSHD config, which runs in slurmd container."
   type        = string
   default     = ""
+}
+
+variable "slurm_sssd_conf_secret_ref_name" {
+  description = "Name of Secret containing sssd.conf propagated to controller, login, and worker sssd containers."
+  type        = string
+  default     = ""
+}
+
+variable "slurm_sssd_ldap_ca_config_map_ref_name" {
+  description = "Name of ConfigMap containing LDAP CA certificates propagated to controller, login, and worker sssd containers."
+  type        = string
+  default     = ""
+}
+
+variable "slurm_sssd_enabled" {
+  description = "Whether to enable the SSSD sidecar on Slurm controller, login, and worker nodes."
+  type        = bool
+  default     = false
 }
 
 variable "slurm_login_ssh_root_public_keys" {
@@ -1125,8 +1234,8 @@ variable "active_checks_scope" {
   description = "Scope of active checks. Defines what active checks should be checked during cluster bootstrap."
   default     = ""
   validation {
-    condition     = contains(["dev", "testing", "prod_quick", "prod_acceptance"], var.active_checks_scope)
-    error_message = "active_checks_scope should be one of: dev, testing, prod_quick, prod_acceptance."
+    condition     = contains(["dev", "testing", "prod_quick", "prod_acceptance", "essential"], var.active_checks_scope)
+    error_message = "active_checks_scope should be one of: dev, testing, prod_quick, prod_acceptance, essential."
   }
 }
 

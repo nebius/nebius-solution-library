@@ -19,24 +19,26 @@ variable "namespace" {
   default = "o11y"
 }
 
-variable "cpu_nodes_count" {
-  type = number
-}
-
-variable "gpu_nodes_count" {
-  type = number
-}
 
 variable "o11y" {
   type = object({
+    nebius_o11y_agent = optional(object({
+      enabled                  = optional(bool, true)
+      collectK8sClusterMetrics = optional(bool, false)
+    })),
     grafana = optional(object({
-      enabled = optional(bool, true)
-      pv_size = optional(string, "25Gi")
+      enabled       = optional(bool, true)
+      pv_size       = optional(string, "25Gi")
+      adminPassword = optional(string, "")
+      nebius = optional(object({
+        projectId   = optional(string, "")
+        accessToken = optional(string, "")
+      }), {})
     })),
     loki = optional(object({
       enabled            = optional(bool, true)
       region             = string
-      replication_factor = optional(number)
+      replication_factor = optional(number, 2)
     })),
     prometheus = optional(object({
       enabled       = optional(bool, true)
@@ -46,6 +48,18 @@ variable "o11y" {
   })
   description = "Configuration of observability stack."
   default     = {}
+}
+
+variable "k8s_node_group_sa_id" {
+  description = "ID of the existing k8s node group service account to use for Grafana"
+  type        = string
+  default     = null
+}
+
+variable "k8s_node_group_sa_enabled" {
+  description = "Whether k8s node group service account is enabled"
+  type        = bool
+  default     = false
 }
 
 variable "test_mode" {

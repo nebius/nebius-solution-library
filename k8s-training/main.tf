@@ -3,7 +3,7 @@ resource "nebius_mk8s_v1_cluster" "k8s-cluster" {
   name      = var.cluster_name
   control_plane = {
     endpoints = {
-      public_endpoint = {}
+      public_endpoint = var.mk8s_cluster_public_endpoint ? {} : null
     }
     etcd_cluster_size = var.etcd_cluster_size
     subnet_id         = var.subnet_id
@@ -48,9 +48,17 @@ resource "nebius_iam_v1_group_membership" "k8s_node_group_sa-admin" {
 # CPU NODE GROUP
 ################
 resource "nebius_mk8s_v1_node_group" "cpu-only" {
-  fixed_node_count = var.cpu_nodes_count
-  parent_id        = nebius_mk8s_v1_cluster.k8s-cluster.id
-  name             = "${var.cluster_name}-ng-cpu"
+
+  autoscaling = var.cpu_nodes_autoscaling.enabled ? {
+    min_node_count = var.cpu_nodes_autoscaling.min_size == null ? var.cpu_nodes_autoscaling.max_size : var.cpu_nodes_autoscaling.min_size
+    max_node_count = var.cpu_nodes_autoscaling.max_size
+  } : null
+
+  fixed_node_count = var.cpu_nodes_autoscaling.enabled ? null : var.cpu_nodes_fixed_count
+
+
+  parent_id = nebius_mk8s_v1_cluster.k8s-cluster.id
+  name      = "${var.cluster_name}-ng-cpu"
   labels = {
     "library-solution" : "k8s-training",
   }
@@ -65,7 +73,7 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
 
     network_interfaces = [
       {
-        public_ip_address = {}
+        public_ip_address = var.cpu_nodes_public_ips ? {} : null
         subnet_id         = var.subnet_id
       }
     ]
@@ -94,20 +102,28 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       priority      = 3
     } : null
     cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
-      enable_filestore = var.enable_filestore ? "true" : "false",
-      ssh_user_name    = var.ssh_user_name,
-      ssh_public_key   = local.ssh_public_key
+      enable_filestore     = var.enable_filestore ? "true" : "false",
+      filestore_mount_path = local.filestore.mount_path,
+      ssh_user_name        = var.ssh_user_name,
+      ssh_public_key       = local.ssh_public_key
     })
   }
 }
 #################
-# GPU nODE GROUPS
+# GPU NODE GROUPS
 #################
 resource "nebius_mk8s_v1_node_group" "gpu" {
-  count            = var.gpu_node_groups
-  fixed_node_count = var.gpu_nodes_count_per_group
-  parent_id        = nebius_mk8s_v1_cluster.k8s-cluster.id
-  name             = "${var.cluster_name}-ng-gpu-${count.index}"
+  count = var.gpu_node_groups
+
+  autoscaling = var.gpu_nodes_autoscaling.enabled ? {
+    min_node_count = var.gpu_nodes_autoscaling.min_size == null ? var.gpu_nodes_autoscaling.max_size : var.gpu_nodes_autoscaling.min_size
+    max_node_count = var.gpu_nodes_autoscaling.max_size
+  } : null
+
+  fixed_node_count = var.gpu_nodes_autoscaling.enabled ? null : var.gpu_nodes_fixed_count_per_group
+
+  parent_id = nebius_mk8s_v1_cluster.k8s-cluster.id
+  name      = "${var.cluster_name}-ng-gpu-${count.index}"
   labels = {
     "library-solution" : "k8s-training",
   }
@@ -129,7 +145,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     network_interfaces = [
       {
         subnet_id         = var.subnet_id
-        public_ip_address = var.gpu_nodes_assign_public_ip ? {} : null
+        public_ip_address = var.gpu_nodes_public_ips ? {} : null
       }
     ]
     resources = {
@@ -158,9 +174,10 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
 
     underlay_required = false
     cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
-      enable_filestore = var.enable_filestore ? "true" : "false",
-      ssh_user_name    = var.ssh_user_name,
-      ssh_public_key   = local.ssh_public_key
+      enable_filestore     = var.enable_filestore ? "true" : "false",
+      filestore_mount_path = local.filestore.mount_path,
+      ssh_user_name        = var.ssh_user_name,
+      ssh_public_key       = local.ssh_public_key
     })
   }
 }

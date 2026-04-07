@@ -8,7 +8,6 @@ resource "random_password" "grafana" {
   override_special = "@#$%"
 }
 
-
 resource "nebius_applications_v1alpha1_k8s_release" "prometheus" {
   count = var.o11y.prometheus.enabled ? 1 : 0
 
@@ -35,6 +34,7 @@ resource "nebius_applications_v1alpha1_k8s_release" "prometheus" {
 resource "time_static" "restarted_at" {}
 
 resource "kubernetes_annotations" "restart_grafana" {
+  count       = var.o11y.prometheus.enabled ? 1 : 0
   api_version = "apps/v1"
   kind        = "Deployment"
   metadata {
