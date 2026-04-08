@@ -2,18 +2,13 @@
 
 This Terraform configuration creates a Nebius Managed Kubernetes cluster configured for Saturn Cloud Enterprise, leveraging Nebius GPU infrastructure with support for NVIDIA H100, H200, and GB200 GPUs with InfiniBand networking.
 
-## Structure
-
-A single set of Terraform files at the module root handles all regions. The target region is set via the `region` variable. Example tfvars for each region are in the `examples/` directory.
-
 ## Prerequisites
 
 1. A Nebius account with appropriate permissions
 2. Terraform installed (>= 1.0)
-3. A configured Nebius VPC and subnet
-4. Viewers group ID for container registry access
+3. [Nebius CLI](https://docs.nebius.com/cli/install) installed and configured
+4. `jq` installed
 5. Saturn Cloud bootstrap token (valid for 4 hours)
-6. Nebius IAM token for Kubernetes/Helm provider authentication
 
 ## Setup Instructions
 
@@ -35,69 +30,54 @@ You'll receive an activation token via email.
 
 ### 2. Activate Your Account
 
-Visit the activation URL from your email: After activation, you'll receive a sample terraform.tfvars file which will also contain
-your bootstrap token
+Visit the activation URL from your email. After activation, you'll receive a sample `terraform.tfvars` pre-filled with your Saturn Cloud configuration (including your bootstrap token). Use it to replace the default `terraform.tfvars` in this directory.
 
-### 3. Configure Variables
+### 3. Set Environment Variables
 
-Copy one of the example tfvars files as a starting point:
+Set the required Nebius environment variables:
 
 ```bash
-# For European deployment
-cp examples/eu-north1.tfvars terraform.tfvars
-
-# For US deployment
-cp examples/us-central1.tfvars terraform.tfvars
+export NEBIUS_TENANT_ID='tenant-...'
+export NEBIUS_PROJECT_ID='project-...'
+export NEBIUS_REGION='eu-north1'  # or 'us-central1'
 ```
 
-Edit `terraform.tfvars` with your actual values:
+Then source `environment.sh` to auto-discover infrastructure and configure the Terraform backend:
+
+```bash
+source environment.sh
+```
+
+This will:
+- Get an IAM token via the Nebius CLI
+- Auto-discover your VPC subnet
+- Create (or reuse) an S3 bucket for remote Terraform state
+- Create a service account with a temporary access key
+- Generate `terraform_backend_override.tf` for S3 backend storage
+- Export all required `TF_VAR_*` variables
+
+### 4. Configure `terraform.tfvars`
+
+Replace the default `terraform.tfvars` with the one you received after activation. It comes pre-filled with your Saturn Cloud configuration (domain, admin email, customer name, bootstrap token, etc.).
+
+Nebius infrastructure variables (`project_id`, `region`, `subnet_id`, `viewers_group_id`, `iam_token`) are set automatically by `environment.sh` — do not add them to `terraform.tfvars`.
+
+You must also specify `node_pools` — without this, no compute nodes will be created:
 
 ```hcl
-# Nebius Infrastructure
-project_id       = "your-project-id"
-subnet_id        = "your-subnet-id"
-viewers_group_id = "your-viewers-group-id"
-iam_token        = "your-nebius-iam-token"
-region           = "eu-north1"  # or "us-central1"
-
-# Cluster
-cluster_name = "saturn-cluster"
-
-# Saturn Cloud Configuration
-saturn_domain          = "your-domain.com"
-saturn_admin_email     = "admin@yourcompany.com"
-saturn_customer_name   = "Your Company"
-saturn_bootstrap_token = "your-bootstrap-token"
-
-# Node pools (customize platforms/presets and add infiniband_fabric for multi-GPU)
 node_pools = [
-  { platform = "cpu-d3", preset = "4vcpu-16gb",  max_nodes = 100 },
-  { platform = "cpu-d3", preset = "16vcpu-64gb", max_nodes = 100 },
-  { platform = "gpu-h200-sxm", preset = "1gpu-16vcpu-200gb",   max_nodes = 100 },
-  { platform = "gpu-h200-sxm", preset = "8gpu-128vcpu-1600gb", max_nodes = 100, infiniband_fabric = "us-central1-a" },
+  { platform = "cpu-d3", preset = "4vcpu-16gb" },
+  { platform = "cpu-d3", preset = "16vcpu-64gb" },
+  { platform = "gpu-h200-sxm", preset = "1gpu-16vcpu-200gb" },
+  { platform = "gpu-h200-sxm", preset = "8gpu-128vcpu-1600gb", infiniband_fabric = "fabric-7" },
 ]
 ```
 
-The following values are derived automatically and do not need to be set:
-- `base_url` — set to `https://app.<saturn_domain>`
-- `ssh_domain` — set to `ssh.<saturn_domain>`
-- `saturn_cloud_provider` — hardcoded to `nebius`
-- `saturn_image_build_node_role` — hardcoded to `cpu-d3-4vcpu-16gb`
+### 5. Deploy Infrastructure
 
-### 4. Deploy Infrastructure
-
-Initialize Terraform:
 ```bash
 terraform init
-```
-
-Review the planned changes:
-```bash
 terraform plan
-```
-
-Apply the configuration:
-```bash
 terraform apply
 ```
 

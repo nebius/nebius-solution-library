@@ -1,14 +1,7 @@
-# Example configuration for Nebius Marketplace deployment
-# Copy this file to terraform.tfvars and fill in your values
-
-############################
-# Nebius infrastructure (provided by marketplace / Nebius console)
-############################
-
-project_id       = ""
-subnet_id        = ""
-viewers_group_id = ""
-region           = "eu-north1"
+# Saturn Cloud configuration for Nebius
+#
+# Before running terraform, source environment.sh to set Nebius infrastructure variables:
+#   source environment.sh
 
 ############################
 # Saturn Cloud configuration
