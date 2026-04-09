@@ -727,9 +727,10 @@ variable "slurm_nodeset_workers" {
       policy          = optional(string)
       reservation_ids = optional(list(string))
     }))
-    features         = optional(list(string))
-    create_partition = optional(bool)
-    ephemeral_nodes  = optional(bool, false)
+    features                       = optional(list(string))
+    create_partition               = optional(bool)
+    ephemeral_nodes                = optional(bool, false)
+    initial_number_ephemeral_nodes = optional(number, 0)
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")

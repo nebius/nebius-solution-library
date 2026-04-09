@@ -336,7 +336,8 @@ slurm_nodeset_workers = [
     # Whether to enable ephemeral nodes behavior for this worker nodeset.
     # When true, nodes will use dynamic topology injection and power management.
     # By default, false.
-    ephemeral_nodes = false
+    ephemeral_nodes                = false
+    initial_number_ephemeral_nodes = 1
     # Optional local NVMe passthrough for this nodeset only.
     # Uses local instance disks, creates a RAID0 array and mounts it on the host via cloud-init.
     # mount_path: path used for both host RAID mount and jail submount.

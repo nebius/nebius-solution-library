@@ -19,6 +19,7 @@ nodesets:
         maxUnavailable: ${nodeset.max_unavailable}
         %{~ if nodeset.ephemeral_nodes ~}
         ephemeralNodes: true
+        initialNumberEphemeralNodes: ${nodeset.initial_number_ephemeral_nodes}
         %{~ endif ~}
 
         gpu:

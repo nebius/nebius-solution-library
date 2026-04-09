@@ -762,15 +762,16 @@ variable "active_checks_scope" {
 
 variable "worker_nodesets" {
   type = list(object({
-    name             = string
-    replicas         = number
-    max_unavailable  = string
-    features         = list(string)
-    cpu_topology     = map(number)
-    gres_name        = optional(string)
-    gres_config      = list(string)
-    create_partition = bool
-    ephemeral_nodes  = optional(bool, false)
+    name                           = string
+    replicas                       = number
+    max_unavailable                = string
+    features                       = list(string)
+    cpu_topology                   = map(number)
+    gres_name                      = optional(string)
+    gres_config                    = list(string)
+    create_partition               = bool
+    ephemeral_nodes                = optional(bool, false)
+    initial_number_ephemeral_nodes = optional(number, 0)
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")

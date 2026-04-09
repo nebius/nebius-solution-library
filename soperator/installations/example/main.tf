@@ -479,11 +479,12 @@ module "slurm" {
       ],
       nodeset.features != null ? nodeset.features : []
     )
-    cpu_topology     = module.resources.cpu_topology_by_platform[nodeset.resource.platform][nodeset.resource.preset]
-    gres_name        = lookup(module.resources.gres_name_by_platform, nodeset.resource.platform, null)
-    gres_config      = lookup(module.resources.gres_config_by_platform, nodeset.resource.platform, null)
-    create_partition = nodeset.create_partition != null ? nodeset.create_partition : false
-    ephemeral_nodes  = nodeset.ephemeral_nodes
+    cpu_topology                   = module.resources.cpu_topology_by_platform[nodeset.resource.platform][nodeset.resource.preset]
+    gres_name                      = lookup(module.resources.gres_name_by_platform, nodeset.resource.platform, null)
+    gres_config                    = lookup(module.resources.gres_config_by_platform, nodeset.resource.platform, null)
+    create_partition               = nodeset.create_partition != null ? nodeset.create_partition : false
+    ephemeral_nodes                = nodeset.ephemeral_nodes
+    initial_number_ephemeral_nodes = nodeset.initial_number_ephemeral_nodes
     local_nvme = {
       enabled         = try(nodeset.local_nvme.enabled, false)
       mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
