@@ -8,29 +8,47 @@ This Terraform configuration creates a Nebius Managed Kubernetes cluster configu
 2. Terraform installed (>= 1.0)
 3. [Nebius CLI](https://docs.nebius.com/cli/install) installed and configured
 4. `jq` installed
-5. Saturn Cloud bootstrap token (valid for 4 hours)
 
 ## Setup Instructions
 
 ### 1. Register Your Saturn Cloud Tenancy
 
-Before deploying infrastructure, register your organization:
+Register your organization via the [Saturn Cloud Enterprise on Nebius](https://saturncloud.io/docs/enterprise/nebius/) guide, or directly:
 
 ```bash
 curl -X POST https://manager.saturnenterprise.io/api/v2/customers/register \
   -H "Content-Type: application/json" \
   -d '{
-    "organization_name": "Your Company",
-    "contact_email": "admin@yourcompany.com",
+    "name": "your-organization-name",
+    "email": "your-email@example.com",
     "cloud": "nebius"
   }'
 ```
 
-You'll receive an activation token via email.
+You'll receive an activation email.
 
 ### 2. Activate Your Account
 
-Visit the activation URL from your email. After activation, you'll receive a sample `terraform.tfvars` pre-filled with your Saturn Cloud configuration (including your bootstrap token). Use it to replace the default `terraform.tfvars` in this directory.
+Click the activation link in your email, or activate via the API:
+
+```bash
+curl -X POST https://manager.saturnenterprise.io/v2/activate \
+  -H "Content-Type: application/json" \
+  -d '{"token": "YOUR_ACTIVATION_TOKEN"}'
+```
+
+After activation, you'll receive a sample `terraform.tfvars` pre-filled with your Saturn Cloud configuration (including a bootstrap token). Use it to replace the default `terraform.tfvars` in this directory.
+
+The bootstrap token expires after 4 hours. To regenerate:
+
+```bash
+curl -X POST https://manager.saturnenterprise.io/v2/resend-setup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "your-organization-name",
+    "email": "your-email@example.com"
+  }'
+```
 
 ### 3. Set Environment Variables
 
@@ -57,8 +75,6 @@ This will:
 - Export all required `TF_VAR_*` variables
 
 ### 4. Configure `terraform.tfvars`
-
-Replace the default `terraform.tfvars` with the one you received after activation. It comes pre-filled with your Saturn Cloud configuration (domain, admin email, customer name, bootstrap token, etc.).
 
 Nebius infrastructure variables (`project_id`, `region`, `subnet_id`, `viewers_group_id`, `iam_token`) are set automatically by `environment.sh` — do not add them to `terraform.tfvars`.
 
