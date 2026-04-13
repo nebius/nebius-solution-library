@@ -3,7 +3,7 @@ workflow:
   name: isaac-sim-sdg
   resources:
     default:
-      platform: L40S # Set this to the OSMO GPU platform for your cluster, for example L40S or H100.
+      platform: H100 # Set this to the OSMO GPU platform for your cluster, for example L40S or H100.
       cpu: 4
       gpu: 1
       memory: 26Gi # Keep this below the current OSMO-advertised L40S platform limit; 28Gi is too high on the 1gpu-8vcpu-32gb preset.
