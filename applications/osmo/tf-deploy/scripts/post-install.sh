@@ -1151,6 +1151,28 @@ configure_gpu_platform() {
     fi
 }
 
+configure_default_platform_mounts() {
+    local current_config
+    local updated_config
+    local tmp_file
+
+    log "Adding /mnt/data to 'default' platform allowed_mounts..."
+
+    current_config="$(osmo_curl GET "${OSMO_API_URL}/api/configs/pool/default/platform/default" 2>/dev/null || echo '{}')"
+    updated_config="$(printf '%s' "${current_config}" | jq '
+        if .configs then
+            .configs.allowed_mounts = ([(.configs.allowed_mounts // []), ["/mnt/data"]] | add | unique)
+        else
+            {configs: {allowed_mounts: ["/mnt/data"]}}
+        end
+    ')"
+
+    tmp_file="$(make_temp_file "default-platform" ".json")"
+    printf '%s\n' "${updated_config}" > "${tmp_file}"
+    put_json_file "${OSMO_API_URL}/api/configs/pool/default/platform/default" "${tmp_file}"
+    rm -f "${tmp_file}"
+}
+
 configure_workflow_pod_templates() {
     local resolved_default_template
 
@@ -1227,6 +1249,13 @@ run_app_configuration() {
         log "Skipping GPU platform configuration"
     fi
 
+    if [[ "${CONFIGURE_FILESTORE_MOUNTS}" == "true" ]]; then
+        set_phase "Configuring default platform filestore mounts"
+        configure_default_platform_mounts
+    else
+        log "Skipping default platform filestore mounts configuration"
+    fi
+
     log "OSMO application configuration complete"
 }
 
@@ -1274,6 +1303,7 @@ if [[ "${RUN_APP_CONFIGURATION}" == "true" ]]; then
     : "${DATASET_BUCKET_NAME:?DATASET_BUCKET_NAME is required}"
     : "${CONFIGURE_BACKEND_SCHEDULER:?CONFIGURE_BACKEND_SCHEDULER is required}"
     : "${CONFIGURE_GPU_PLATFORM:?CONFIGURE_GPU_PLATFORM is required}"
+    : "${CONFIGURE_FILESTORE_MOUNTS:?CONFIGURE_FILESTORE_MOUNTS is required}"
     : "${GPU_PLATFORM_NAME:=}"
     : "${NEBIUS_REGION:?NEBIUS_REGION is required}"
     : "${DEFAULT_USER_POD_TEMPLATE:?DEFAULT_USER_POD_TEMPLATE is required}"
@@ -1285,6 +1315,7 @@ if [[ "${RUN_APP_CONFIGURATION}" == "true" ]]; then
     CONFIGURE_DATASET_BUCKET="$(normalize_bool "${CONFIGURE_DATASET_BUCKET}")"
     CONFIGURE_BACKEND_SCHEDULER="$(normalize_bool "${CONFIGURE_BACKEND_SCHEDULER}")"
     CONFIGURE_GPU_PLATFORM="$(normalize_bool "${CONFIGURE_GPU_PLATFORM}")"
+    CONFIGURE_FILESTORE_MOUNTS="$(normalize_bool "${CONFIGURE_FILESTORE_MOUNTS}")"
 fi
 
 if [[ "${RUN_POST_INSTALL}" == "true" ]]; then

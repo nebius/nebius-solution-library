@@ -85,6 +85,7 @@ resource "terraform_data" "app_config" {
     dataset_bucket                = tostring(var.configure_dataset_bucket)
     backend_scheduler             = tostring(local.configure_backend_scheduler_effective)
     gpu_platform                  = tostring(local.configure_gpu_platform_effective)
+    configure_filestore_mounts    = tostring(local.infra_filestore_enabled)
     deploy_backend_operator       = tostring(var.deploy_backend_operator)
     deploy_gpu_infrastructure     = tostring(local.deploy_gpu_infrastructure_effective)
     deploy_observability          = tostring(var.deploy_observability)
@@ -110,6 +111,7 @@ resource "terraform_data" "app_config" {
     dataset_bucket                = tostring(var.configure_dataset_bucket)
     backend_scheduler             = tostring(local.configure_backend_scheduler_effective)
     gpu_platform                  = tostring(local.configure_gpu_platform_effective)
+    configure_filestore_mounts    = tostring(local.infra_filestore_enabled)
     deploy_backend_operator       = tostring(var.deploy_backend_operator)
     deploy_gpu_infrastructure     = tostring(local.deploy_gpu_infrastructure_effective)
     deploy_observability          = tostring(var.deploy_observability)
@@ -174,6 +176,7 @@ resource "terraform_data" "app_config" {
       DATASET_BUCKET_NAME          = var.dataset_bucket_name
       CONFIGURE_BACKEND_SCHEDULER  = tostring(local.configure_backend_scheduler_effective)
       CONFIGURE_GPU_PLATFORM       = tostring(local.configure_gpu_platform_effective)
+      CONFIGURE_FILESTORE_MOUNTS   = tostring(local.infra_filestore_enabled)
       GPU_PLATFORM_NAME            = local.gpu_platform_name_value
       NEBIUS_REGION                = local.storage_region
       DEFAULT_USER_POD_TEMPLATE    = "${path.module}/../config/osmo/default_user_pod_template.json"

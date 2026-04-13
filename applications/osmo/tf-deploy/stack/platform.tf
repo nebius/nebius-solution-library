@@ -3,6 +3,7 @@ locals {
   infra_gpu_nodes_driverfull_image = try(local.infra_outputs.gpu_nodes_driverfull_image, false)
   infra_gpu_nodes_platform         = try(local.infra_outputs.gpu_nodes_platform, "")
   infra_storage_bucket_name        = try(local.infra_storage_bucket.name, "")
+  infra_filestore_enabled          = try(local.infra_outputs.filestore, null) != null
 
   deploy_gpu_infrastructure_effective = (
     var.deploy_gpu_infrastructure != null
