@@ -726,8 +726,14 @@ EOF
         die "OIDC client ${REGISTER_CLIENT_ID} is missing redirect URI ${REGISTER_REDIRECT_URI} after update"
 
     log "Force-replacing client secret..."
+    # GenerateClientSecret lacks content-based routing (unlike Get/Update/Create/List),
+    # so it hits the default IAM backend (MAN) and returns NotFound for clients in
+    # other regional backends (e.g. uk-south1). Force routing via the resource-ID
+    # prefix derived from the project id (e.g. project-e03... -> e03).
+    REGISTER_ROUTING_CODE="${REGISTER_PROJECT_ID#*-}"
+    REGISTER_ROUTING_CODE="${REGISTER_ROUTING_CODE:0:3}"
     secret_out=$(npc_run_json "Failed to rotate client secret for ${REGISTER_CLIENT_ID}" \
-        iam oidc-client generate-client-secret --client-id "${REGISTER_CLIENT_ID}" --force-replace)
+        iam oidc-client generate-client-secret --client-id "${REGISTER_CLIENT_ID}" --force-replace --force-routing-code "${REGISTER_ROUTING_CODE}")
     REGISTER_CLIENT_SECRET=$(json_find_client_secret "${secret_out}")
     [[ -n "${REGISTER_CLIENT_SECRET}" ]] || die "Failed to parse client secret. npc output: ${secret_out}"
 
