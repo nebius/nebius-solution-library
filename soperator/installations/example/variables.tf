@@ -1164,7 +1164,6 @@ variable "backups_password" {
   description = "Password for encrypting jail backups."
   type        = string
   nullable    = false
-  sensitive   = true
 }
 
 variable "backups_schedule" {

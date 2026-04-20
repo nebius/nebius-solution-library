@@ -329,10 +329,6 @@ resource "helm_release" "soperator_fluxcd_bootstrap" {
     name  = "helmRepository.url"
     value = var.operator_stable ? "oci://cr.eu-north1.nebius.cloud/soperator" : "oci://cr.eu-north1.nebius.cloud/soperator-unstable"
   }
-
-  lifecycle {
-    ignore_changes = all
-  }
 }
 
 resource "helm_release" "soperator_fluxcd_ad_hoc_cm" {
