@@ -1,7 +1,8 @@
 ###GLOBALVARIABLES OWERWITE BLOCK###
 variables {
-  gpu_nodes_platform = "gpu-h100-sxm"
+  gpu_nodes_platform = "gpu-l40s-a"
   gpu_nodes_preemptible = true
+  gpu_nodes_preset = "1gpu-16vcpu-64gb"
 }
 ######
 run "k8s_training_apply" {
