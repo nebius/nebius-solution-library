@@ -465,6 +465,7 @@ slurm_exporter_enabled = true
 # - "testing" - to be used for Soperator E2E tests.
 # - "dev" - to be used for Soperator development clusters.
 # - "essential" - skip most of checks and run only essential ones. Don't use in production.
+# - "cpu" - run only CPU-related checks during bootstrap (`ssh-check` and `mem-perf`).
 # ---
 active_checks_scope = ""
 
