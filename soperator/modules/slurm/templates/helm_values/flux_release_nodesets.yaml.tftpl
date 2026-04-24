@@ -51,6 +51,11 @@ nodesets:
           %{~ endif ~}
 
         slurmd:
+          %{~ if resources[i].gpus > 0 ~}
+          customEnv:
+            - name: "NVIDIA_DRIVER_CAPABILITIES"
+              value: "compute,graphics,utility,video"
+          %{~ endif ~}
           resources:
             cpu: ${floor(resources[i].cpu_cores * 1000)}m
             memory: ${floor(resources[i].memory_gibibytes)}Gi
