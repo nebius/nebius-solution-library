@@ -32,6 +32,15 @@ variable "k8s_version" {
   description = "Kubernetes version to be used in the cluster. Leave null to use backend default (recommended), or choose 1.31 or above."
   type        = string
   default     = null
+
+  validation {
+    condition = !(
+      var.k8s_version == null &&
+      var.gpu_nodes_driverfull_image &&
+      contains(["gpu-b200-sxm", "gpu-b200-sxm-a"], local.gpu_nodes_platform)
+    )
+    error_message = "Set 'k8s_version' explicitly when using driverfull B200 GPU nodes so Terraform can select a compatible CUDA driver preset."
+  }
 }
 
 variable "etcd_cluster_size" {
