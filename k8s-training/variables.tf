@@ -451,7 +451,7 @@ variable "filesystem_csi" {
   default = {}
 }
 
-variable "enable_opa_gatekeeper" {
+variable "opa_gatekeeper_enable" {
   description = "Enable OPA Gatekeeper"
   type        = bool
   default     = false
@@ -505,14 +505,20 @@ variable "k8s_rbac_bindings" {
   }
 }
 
-variable "enable_binpacking" {
-  description = "Enable using a Bin Packing Scheduler instead of round robin style scheduler"
+variable "binpacking_enable" {
+  description = "Enable binpacking (requires OPA Gatekeeper)"
   type        = bool
   default     = false
 }
 
-variable "force_binpacking_default" {
+variable "binpacking_kube_sched_ver" {
+  description = "kube-scheduler to use for binpacking should be <= API version"
+  type        = string
+  default     = null
+}
+
+variable "binpacking_forced_namespaces" {
   description = "If binpacking is enabled force it for the default namespace, instead of requiring each pod to opt-in"
-  type        = bool
-  default     = false
+  type        = list(string)
+  default     = ["default"]
 }

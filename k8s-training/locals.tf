@@ -159,6 +159,8 @@ locals {
     "gpu-b300-sxm"   = ["all-disabled", "all-enabled", "all-balanced", "all-1g.23gb", "all-1g.23gb.me", "all-1g.45gb", "all-2g.45gb", "all-3g.90gb", "all-4g.90gb", "all-7g.180gb"]
     "gpu-rtx6000"    = ["all-disabled", "all-enabled", "all-balanced", "all-1g.24gb", "all-1g.24gb.me", "all-1g.48gb", "all-2g.48gb", "all-4g.96gb"]
   }
+  binpacking_kube_sched_ver = coalesce(var.binpacking_kube_sched_ver, var.k8s_version, "1.31")
+  binpacking_enable_mutator = try(length(var.binpacking_forced_namespaces), 0) > 0 ? true : false
 }
 
 resource "random_string" "random" {

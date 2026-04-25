@@ -48,11 +48,13 @@ module "kuberay-service" {
 
 module "opa_gatekeeper" {
   source = "../modules/opa_gatekeeper"
-  count  = var.enable_opa_gatekeeper ? 1 : 0
+  count  = var.opa_gatekeeper_enable ? 1 : 0
 }
 
 module "binpacking_scheduler" {
-  source         = "../modules/binpacking"
-  count          = var.enable_binpacking ? 1 : 0
-  enable_mutator = var.force_binpacking_default
+  source             = "../modules/binpacking"
+  count              = var.binpacking_enable ? 1 : 0
+  enable_mutator     = local.binpacking_enable_mutator
+  kube_sched_ver     = local.binpacking_kube_sched_ver
+  mutated_namespaces = var.binpacking_forced_namespaces
 }

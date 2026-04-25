@@ -12,7 +12,7 @@ spec:
     kinds:
       - apiGroups: ["*"]
         kinds: ["Pod"]
-    namespaces: ${namespaces}
+    namespaces: ${jsonencode(namespaces)}
   location: "spec.schedulerName"
   parameters:
     assign:

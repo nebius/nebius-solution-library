@@ -128,11 +128,17 @@ enable_kuberay_service = false
 # }
 
 # enable OPA gatekeeper (default: false)
-# enable_opa_gatekeeper = true 
+# opa_gatekeeper_enable = true 
 
 # enable binpacking scheduler (default: false)
-# enable_binpacking = true
+# binpacking_enable = true
+
 # If binpacking is enabled force it for the default namespace, instead
 # of requiring each pod to opt-in using spec.schedulerName
-# default: false
-# force_binpacking_default = true
+# requires opa_gatekeeper_enable = true
+# default: ["default"]
+# binpacking_forced_namespaces = [ "default" ]
+
+# must be less than or equalt to API version defaults to cluster version 
+# if not defined and it is explicitly defined otherwise it defaults to 1.32.9 (in locals.tf)
+# binpacking_kube_sched_ver = "1.32.9"

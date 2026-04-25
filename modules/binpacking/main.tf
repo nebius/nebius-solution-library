@@ -1,5 +1,7 @@
 data "kubectl_file_documents" "binpacking_scheduler_manifests" {
-  content = file("${path.module}/files/bp-scheduler.yaml")
+  content = templatefile("${path.module}/files/bp-scheduler.yaml", {
+    kube_sched_ver = var.kube_sched_ver
+  })
 }
 
 # Use kubectl_file_documents to split multi-document into the kubectl_manifest resource

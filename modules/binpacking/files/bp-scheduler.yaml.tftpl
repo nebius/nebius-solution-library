@@ -97,7 +97,7 @@ spec:
         - command:
             - /usr/local/bin/kube-scheduler
             - --config=/etc/kubernetes/bp-scheduler/bp-scheduler-config.yaml
-          image: registry.k8s.io/kube-scheduler:v1.32.9
+          image: registry.k8s.io/kube-scheduler:v${kube_sched_ver}
           livenessProbe:
             httpGet:
               path: /healthz

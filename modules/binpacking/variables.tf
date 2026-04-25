@@ -5,7 +5,11 @@ variable "enable_mutator" {
 }
 
 variable "mutated_namespaces" {
-  description = "If using Gatekeeper to mutate, only do so for pods in these namespaces"
+  description = "If using Gatekeeper to mutate, only do so for pods in these namespaces (Recommended default: [\"default\"])"
   type        = list(string)
-  default     = ["default"]
+}
+
+variable "kube_sched_ver" {
+  description = "This is the version of kube-scheduler it must be <= API version"
+  type        = string
 }
