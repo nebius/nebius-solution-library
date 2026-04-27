@@ -48,7 +48,9 @@ if [ ${#result_ids[@]} -eq 0 ]; then
     exit 0
 fi
 
+retry_script="$(dirname "$0")/../../scripts/retry.sh"
+
 for id in "${result_ids[@]}"; do
   echo "Deleting leftover disk $id..."
-  nebius compute disk delete --id "$id"
+  "$retry_script" -- nebius compute disk delete --id "$id"
 done
