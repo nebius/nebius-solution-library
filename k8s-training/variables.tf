@@ -242,7 +242,7 @@ variable "mig_parted_config" {
   default     = null
 
   validation {
-    condition = var.mig_parted_config == null || contains(
+    condition = var.mig_parted_config == null ? true : contains(
       lookup(local.valid_mig_parted_configs, local.gpu_nodes_platform, []),
       var.mig_parted_config,
     )

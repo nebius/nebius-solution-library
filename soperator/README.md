@@ -65,7 +65,7 @@ This command loads environment variables and performs several important setup ta
 - Configures Object Storage access for the Terraform state
 - Exports environment variables with resource IDs 
 
-Check that NEBIUS_IAM_TOKEN is valid:
+Check that nebius CLI is authenticated:
 ```bash
 nebius iam whoami
 ```

@@ -14,13 +14,6 @@ resource "terraform_data" "check_region" {
   }
 }
 
-variable "iam_token" {
-  description = "IAM token used for communicating with Nebius services."
-  type        = string
-  nullable    = false
-  sensitive   = true
-}
-
 variable "iam_project_id" {
   description = "ID of the IAM project."
   type        = string
