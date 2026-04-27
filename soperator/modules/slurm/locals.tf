@@ -97,6 +97,11 @@ locals {
       memory            = 0.5
       ephemeral_storage = 5
     }
+    sssd = {
+      cpu               = 0.2
+      memory            = 0.5
+      ephemeral_storage = 5
+    }
     exporter = {
       cpu               = 0.25
       memory            = 0.25
@@ -158,7 +163,7 @@ locals {
     }
   }
 
-  slurm_node_extra = "\\\"{ \\\\\\\"ib_pod\\\\\\\": \\\\\\\"$TOPO_SWITCH_TIER2\\\\\\\" }\\\""
+  slurm_node_extra = "\\\"{ \\\\\\\"ib_pod\\\\\\\": \\\\\\\"$TOPO_SWITCH_TIER2\\\\\\\", \\\\\\\"ib_su\\\\\\\": \\\\\\\"$TOPO_SWITCH_TIER1\\\\\\\" }\\\""
 
   # Calculate vmagent remote write queue count based on cluster size
   # This sets metrics ingestion capacity for larger clusters properly

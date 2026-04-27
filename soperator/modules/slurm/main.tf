@@ -142,9 +142,6 @@ resource "helm_release" "soperator_fluxcd_cm" {
       k8s_node_filters               = local.node_filters
       maintenance_ignore_node_labels = local.maintenance_ignore_node_labels
 
-      node_local_jail_submounts = var.node_local_jail_submounts
-      node_local_image_storage  = var.node_local_image_storage
-
       jail_submounts = [for submount in var.filestores.jail_submounts : {
         name       = submount.name
         mount_path = submount.mount_path
@@ -178,19 +175,45 @@ resource "helm_release" "soperator_fluxcd_cm" {
         controller = {
           size = var.node_count.controller
           resources = {
-            cpu               = floor(var.resources.controller.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
-            memory            = floor(var.resources.controller.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory)
-            ephemeral_storage = floor(var.resources.controller.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
+            cpu = floor(
+              var.resources.controller.cpu_cores
+              -local.resources.munge.cpu
+              -(var.sssd_enabled ? local.resources.sssd.cpu : 0)
+              -local.resources.kruise_daemon.cpu
+            )
+            memory = floor(
+              var.resources.controller.memory_gibibytes
+              -local.resources.munge.memory
+              -(var.sssd_enabled ? local.resources.sssd.memory : 0)
+              -local.resources.kruise_daemon.memory
+            )
+            ephemeral_storage = floor(
+              var.resources.controller.ephemeral_storage_gibibytes
+              -local.resources.munge.ephemeral_storage
+              -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
+            )
           }
         }
 
         worker = {
           size = 0
           resources = {
-            cpu               = floor(var.resources.worker[0].cpu_cores - local.resources.munge.cpu) - local.resources.kruise_daemon.cpu
-            memory            = floor(var.resources.worker[0].memory_gibibytes - local.resources.munge.memory) - local.resources.kruise_daemon.memory
-            ephemeral_storage = floor(var.resources.worker[0].ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
-            gpus              = var.resources.worker[0].gpus
+            cpu = floor(
+              var.resources.worker[0].cpu_cores
+              -local.resources.munge.cpu
+              -(var.sssd_enabled ? local.resources.sssd.cpu : 0)
+            ) - local.resources.kruise_daemon.cpu
+            memory = floor(
+              var.resources.worker[0].memory_gibibytes
+              -local.resources.munge.memory
+              -(var.sssd_enabled ? local.resources.sssd.memory : 0)
+            ) - local.resources.kruise_daemon.memory
+            ephemeral_storage = floor(
+              var.resources.worker[0].ephemeral_storage_gibibytes
+              -local.resources.munge.ephemeral_storage
+              -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
+            )
+            gpus = var.resources.worker[0].gpus
           }
           shared_memory            = var.shared_memory_size_gibibytes
           slurm_node_extra         = local.slurm_node_extra
@@ -204,9 +227,23 @@ resource "helm_release" "soperator_fluxcd_cm" {
           root_public_keys         = var.login_ssh_root_public_keys
           public_ip                = var.login_public_ip
           resources = {
-            cpu               = floor(var.resources.login.cpu_cores - local.resources.munge.cpu - local.resources.kruise_daemon.cpu)
-            memory            = floor(var.resources.login.memory_gibibytes - local.resources.munge.memory - local.resources.kruise_daemon.memory)
-            ephemeral_storage = floor(var.resources.login.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage)
+            cpu = floor(
+              var.resources.login.cpu_cores
+              -local.resources.munge.cpu
+              -(var.sssd_enabled ? local.resources.sssd.cpu : 0)
+              -local.resources.kruise_daemon.cpu
+            )
+            memory = floor(
+              var.resources.login.memory_gibibytes
+              -local.resources.munge.memory
+              -(var.sssd_enabled ? local.resources.sssd.memory : 0)
+              -local.resources.kruise_daemon.memory
+            )
+            ephemeral_storage = floor(
+              var.resources.login.ephemeral_storage_gibibytes
+              -local.resources.munge.ephemeral_storage
+              -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
+            )
           }
         }
 
@@ -217,6 +254,13 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
         munge = {
           resources = local.resources.munge
+        }
+
+        sssd = {
+          enabled                     = var.sssd_enabled
+          conf_secret_ref_name        = var.sssd_conf_secret_ref_name
+          ldap_ca_config_map_ref_name = var.sssd_ldap_ca_config_map_ref_name
+          resources                   = local.resources.sssd
         }
 
         rest = {
@@ -281,10 +325,6 @@ resource "helm_release" "soperator_fluxcd_bootstrap" {
   set {
     name  = "helmRepository.url"
     value = var.operator_stable ? "oci://cr.eu-north1.nebius.cloud/soperator" : "oci://cr.eu-north1.nebius.cloud/soperator-unstable"
-  }
-
-  lifecycle {
-    ignore_changes = all
   }
 }
 

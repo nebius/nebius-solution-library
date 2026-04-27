@@ -70,8 +70,6 @@ resources:
               %{~ if opentelemetry_collector_version != "" ~}
               version: ${opentelemetry_collector_version}
               %{~ endif ~}
-              interval: 5m
-              timeout: 5m
               values:
                 resources:
                   requests:
@@ -426,13 +424,6 @@ resources:
                 name: nvidia-driver-root
               %{~ endif ~}
 
-              %{~ if slurm_cluster.node_local_image_storage.enabled ~}
-              - name: image-storage
-                configMap:
-                  name: image-storage
-                  defaultMode: 500
-              %{~ endif ~}
-
               %{~ if dcgm_job_mapping_enabled ~}
               - name: hpc-jobs-dir
                 hostPath:
@@ -449,6 +440,15 @@ resources:
                 k8sNodeFilterName: system
 
             slurmNodes:
+              sssd:
+                enabled: ${slurm_cluster.nodes.sssd.enabled}
+                resources:
+                  cpu: ${slurm_cluster.nodes.sssd.resources.cpu * 1000}m
+                  memory: ${slurm_cluster.nodes.sssd.resources.memory}Gi
+                  ephemeralStorage: ${slurm_cluster.nodes.sssd.resources.ephemeral_storage}Gi
+                sssdConfSecretRefName: "${slurm_cluster.nodes.sssd.conf_secret_ref_name}"
+                sssdLdapCAConfigMapRefName: "${slurm_cluster.nodes.sssd.ldap_ca_config_map_ref_name}"
+
               accounting:
                 enabled: ${accounting_enabled}
                 k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.accounting.name}

@@ -178,6 +178,24 @@ variable "login_sshd_config_map_ref_name" {
   default     = ""
 }
 
+variable "sssd_conf_secret_ref_name" {
+  description = "Name of Secret containing sssd.conf propagated to controller, login, and worker sssd containers."
+  type        = string
+  default     = ""
+}
+
+variable "sssd_ldap_ca_config_map_ref_name" {
+  description = "Name of ConfigMap containing LDAP CA certificates propagated to controller, login, and worker sssd containers."
+  type        = string
+  default     = ""
+}
+
+variable "sssd_enabled" {
+  description = "Whether to enable the SSSD sidecar on Slurm controller, login, and worker nodes."
+  type        = bool
+  default     = false
+}
+
 variable "login_ssh_root_public_keys" {
   description = "Authorized keys accepted for connecting to Slurm login nodes via SSH as 'root' user."
   type        = list(string)
@@ -250,36 +268,6 @@ variable "controller_state_on_filestore" {
   description = "Whether to use filestore for controller node storage (when true) or PVC (when false)."
   type        = bool
   default     = false
-}
-
-variable "node_local_jail_submounts" {
-  description = "Node-local disks to be mounted inside jail."
-  type = list(object({
-    name               = string
-    mount_path         = string
-    size_gibibytes     = number
-    disk_type          = string
-    filesystem_type    = string
-    storage_class_name = string
-  }))
-  nullable = false
-  default  = []
-}
-
-variable "node_local_image_storage" {
-  description = "Node-local disk to store Docker/Enroot data."
-  type = object({
-    enabled = bool
-    spec = optional(object({
-      size_gibibytes     = number
-      filesystem_type    = string
-      storage_class_name = string
-    }))
-  })
-  nullable = false
-  default = {
-    enabled = false
-  }
 }
 
 # endregion Disks
@@ -734,8 +722,8 @@ variable "active_checks_scope" {
   description = "Scope of active health-checks. Defines what checks should run after the cluster is provisioned."
   default     = ""
   validation {
-    condition     = contains(["dev", "testing", "prod_quick", "prod_acceptance"], var.active_checks_scope)
-    error_message = "active_checks_scope should be one of: dev, testing, prod_quick, prod_acceptance."
+    condition     = contains(["dev", "testing", "prod_quick", "prod_acceptance", "essential"], var.active_checks_scope)
+    error_message = "active_checks_scope should be one of: dev, testing, prod_quick, prod_acceptance, essential."
   }
 }
 # endregion ActiveChecks
@@ -744,20 +732,37 @@ variable "active_checks_scope" {
 
 variable "worker_nodesets" {
   type = list(object({
-    name             = string
-    replicas         = number
-    max_unavailable  = string
-    features         = list(string)
-    cpu_topology     = map(number)
-    gres_name        = optional(string)
-    gres_config      = list(string)
-    create_partition = bool
-    ephemeral_nodes  = optional(bool, false)
+    name                           = string
+    replicas                       = number
+    max_unavailable                = string
+    features                       = list(string)
+    cpu_topology                   = map(number)
+    gres_name                      = optional(string)
+    gres_config                    = list(string)
+    create_partition               = bool
+    ephemeral_nodes                = optional(bool, false)
+    initial_number_ephemeral_nodes = optional(number, 0)
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")
       filesystem_type = optional(string, "ext4")
     }), {})
+    node_local_image_storage = object({
+      enabled = bool
+      spec = optional(object({
+        size_gibibytes     = number
+        filesystem_type    = string
+        storage_class_name = string
+      }))
+    })
+    node_local_jail_submounts = list(object({
+      name               = string
+      mount_path         = string
+      size_gibibytes     = number
+      disk_type          = string
+      filesystem_type    = string
+      storage_class_name = string
+    }))
   }))
   default = []
 }
@@ -821,5 +826,5 @@ variable "slurm_nodesets_partitions" {
 variable "cuda_version" {
   description = "CUDA version used for populate-jail image selection and active checks."
   type        = string
-  default     = "12.9.0"
+  default     = "13.0.2"
 }

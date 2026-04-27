@@ -9,9 +9,27 @@ ssh_public_key = {
 }
 
 # K8s nodes
-cpu_nodes_count           = 2 # Number of CPU nodes
-gpu_nodes_count_per_group = 2 # Number of GPU nodes per group
-gpu_node_groups           = 1 # In case you need more then 100 nodes in cluster you have to put multiple node groups
+cpu_nodes_fixed_count = 2 # Used only when cpu_nodes_autoscaling.enabled = false
+cpu_nodes_autoscaling = {
+  enabled = false
+  # min_size options:
+  # - null: min=max, no scale-down (default, recommended - saves ~10 min on initial provisioning)
+  #   it can be changed to a number later if needed.
+  # - N: can scale down to N nodes
+  min_size = null
+  max_size = 4
+}
+gpu_nodes_fixed_count_per_group = 1 # Number of GPU nodes per group, used only when gpu_nodes_autoscaling.enabled = false
+gpu_nodes_autoscaling = {
+  enabled = false
+  # min_size options:
+  # - null: min=max, no scale-down (default, recommended - saves ~10 min on initial provisioning)
+  #   it can be changed to a number later if needed.
+  # - N: can scale down to N nodes
+  min_size = null
+  max_size = 1
+}
+gpu_node_groups = 1 # In case you need more then 100 nodes in cluster you have to put multiple node groups
 # CPU platform and presets: https://docs.nebius.com/compute/virtual-machines/types#cpu-configurations
 cpu_nodes_platform = "cpu-d3"     # CPU nodes platform
 cpu_nodes_preset   = "4vcpu-16gb" # CPU nodes preset
@@ -42,8 +60,10 @@ enable_grafana           = true # Enable or disable Grafana® solution by Nebius
 
 # Local Observability installation
 enable_prometheus = false # Enable or disable Prometheus and Grafana deployment with true or false
-enable_loki       = false # Enable or disable Loki deployment with true or false
-
+loki = {
+  enabled            = true # Enable or disable Loki deployment with true or false
+  replication_factor = 2    # Number of Loki replicas for each log chunk (higher = better availability, more storage/network cost)
+}
 # Storage
 enable_filestore               = false # Enable or disable Filestore integration with true or false
 existing_filestore             = ""    # If enable_filestore = true, with this variable we can add existing filestore. Require string, example existing_filestore = "computefilesystem-e00r7z9vfxmg1bk99s"
@@ -79,3 +99,5 @@ kuberay_max_gpu_replicas = 8
 # Enable to deploy KubeRay Operator with RayService CR 
 enable_kuberay_service = false
 
+# enable OPA gatekeeper (default: false)
+# enable_opa_gatekeeper = true 

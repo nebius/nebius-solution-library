@@ -66,6 +66,17 @@ resource "kubernetes_config_map_v1" "cosmos_tcp_proxy" {
           proxy_timeout 600s;
           proxy_connect_timeout 10s;
         }
+
+        # Port 8004 -> nemotron-nano-12b-v2-vl (Nano2 VL)
+        upstream nemotron_nano_12b_v2_vl {
+          server nemotron-nano-12b-v2-vl-svc.${var.namespace}.svc.cluster.local:8000;
+        }
+        server {
+          listen 8004;
+          proxy_pass nemotron_nano_12b_v2_vl;
+          proxy_timeout 600s;
+          proxy_connect_timeout 10s;
+        }
       }
     EOF
   }
@@ -121,6 +132,9 @@ resource "kubernetes_deployment_v1" "cosmos_tcp_proxy" {
           }
           port {
             container_port = 8003
+          }
+          port {
+            container_port = 8004
           }
 
           volume_mount {
@@ -181,6 +195,13 @@ resource "kubernetes_service_v1" "cosmos_lb" {
       name        = "cosmos-embed1"
       port        = 8003
       target_port = 8003
+      protocol    = "TCP"
+    }
+
+    port {
+      name        = "nemotron-nano-12b-v2-vl"
+      port        = 8004
+      target_port = 8004
       protocol    = "TCP"
     }
   }

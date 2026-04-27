@@ -31,3 +31,69 @@ locals {
     mount_tag = local.filestore.mount_tag
   } : null
 }
+
+resource "helm_release" "filesystem_csi" {
+  count = local.filesystem_csi_enabled ? 1 : 0
+
+  name             = local.filesystem_csi_chart_name
+  repository       = "oci://cr.eu-north1.nebius.cloud/mk8s/helm"
+  chart            = local.filesystem_csi_chart_name
+  version          = var.filesystem_csi.chart_version
+  namespace        = var.filesystem_csi.namespace
+  create_namespace = true
+  atomic           = true
+  wait             = true
+
+  set = [
+    {
+      name  = "dataDir"
+      value = local.filesystem_csi_data_dir
+    },
+  ]
+
+  depends_on = [
+    nebius_mk8s_v1_node_group.cpu-only,
+    nebius_mk8s_v1_node_group.gpu,
+  ]
+}
+
+resource "kubernetes_annotations" "filesystem_csi_demote_previous_default_storage_class" {
+  count = local.filesystem_csi_enabled && var.filesystem_csi.make_default_storage_class && local.filesystem_csi_previous_default_sc != null && local.filesystem_csi_previous_default_sc != "" && local.filesystem_csi_previous_default_sc != local.filesystem_csi_storage_class_name ? 1 : 0
+
+  api_version = "storage.k8s.io/v1"
+  kind        = "StorageClass"
+  force       = true
+
+  metadata {
+    name = local.filesystem_csi_previous_default_sc
+  }
+
+  annotations = {
+    "storageclass.kubernetes.io/is-default-class" = "false"
+  }
+
+  depends_on = [
+    helm_release.filesystem_csi,
+  ]
+}
+
+resource "kubernetes_annotations" "filesystem_csi_promote_default_storage_class" {
+  count = local.filesystem_csi_enabled && var.filesystem_csi.make_default_storage_class ? 1 : 0
+
+  api_version = "storage.k8s.io/v1"
+  kind        = "StorageClass"
+  force       = true
+
+  metadata {
+    name = local.filesystem_csi_storage_class_name
+  }
+
+  annotations = {
+    "storageclass.kubernetes.io/is-default-class" = "true"
+  }
+
+  depends_on = [
+    helm_release.filesystem_csi,
+    kubernetes_annotations.filesystem_csi_demote_previous_default_storage_class,
+  ]
+}
