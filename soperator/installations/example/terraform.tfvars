@@ -233,10 +233,10 @@ slurm_partition_config_type = "default"
 # ---
 slurm_nodeset_system = {
   min_size = 3
-  max_size = 9
+  max_size = 36
   resource = {
     platform = "cpu-d3"
-    preset   = "8vcpu-32gb"
+    preset   = "16vcpu-64gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
