@@ -589,7 +589,6 @@ cleanup_bucket_on_destroy = false
 # region k8s
 
 # Version of the k8s to be used.
-# Set to null or don't set to use Nebius default (recommended), or specify explicitly
 # ---
 k8s_version = 1.33
 
