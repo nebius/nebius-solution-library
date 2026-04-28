@@ -88,6 +88,7 @@ module "filestore" {
       disk_type            = "NETWORK_SSD"
       size_gibibytes       = var.filestore_controller_spool.spec.size_gibibytes
       block_size_kibibytes = var.filestore_controller_spool.spec.block_size_kibibytes
+      forbid_deletion      = var.filestore_controller_spool.spec.forbid_deletion
     } : null
     existing = var.filestore_controller_spool.existing != null ? {
       id = var.filestore_controller_spool.existing.id
@@ -99,6 +100,7 @@ module "filestore" {
       disk_type            = "NETWORK_SSD"
       size_gibibytes       = var.filestore_accounting.spec.size_gibibytes
       block_size_kibibytes = var.filestore_accounting.spec.block_size_kibibytes
+      forbid_deletion      = var.filestore_accounting.spec.forbid_deletion
     } : null
     existing = var.filestore_accounting.existing != null ? {
       id = var.filestore_accounting.existing.id
@@ -110,6 +112,7 @@ module "filestore" {
       disk_type            = "NETWORK_SSD"
       size_gibibytes       = var.filestore_jail.spec.size_gibibytes
       block_size_kibibytes = var.filestore_jail.spec.block_size_kibibytes
+      forbid_deletion      = var.filestore_jail.spec.forbid_deletion
     } : null
     existing = var.filestore_jail.existing != null ? {
       id = var.filestore_jail.existing.id
@@ -122,6 +125,7 @@ module "filestore" {
       disk_type            = "NETWORK_SSD"
       size_gibibytes       = submount.spec.size_gibibytes
       block_size_kibibytes = submount.spec.block_size_kibibytes
+      forbid_deletion      = submount.spec.forbid_deletion
     } : null
     existing = submount.existing != null ? {
       id = submount.existing.id

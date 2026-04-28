@@ -20,6 +20,7 @@ variable "controller_spool" {
       disk_type            = string
       size_gibibytes       = number
       block_size_kibibytes = number
+      forbid_deletion      = optional(bool, false)
     }))
   })
   nullable = false
@@ -42,6 +43,7 @@ variable "jail" {
       disk_type            = string
       size_gibibytes       = number
       block_size_kibibytes = number
+      forbid_deletion      = optional(bool, false)
     }))
   })
   nullable = false
@@ -65,6 +67,7 @@ variable "jail_submounts" {
       disk_type            = string
       size_gibibytes       = number
       block_size_kibibytes = number
+      forbid_deletion      = optional(bool, false)
     }))
   }))
   default = []
@@ -88,6 +91,7 @@ variable "accounting" {
       disk_type            = string
       size_gibibytes       = number
       block_size_kibibytes = number
+      forbid_deletion      = optional(bool, false)
     }))
   })
   nullable = true
