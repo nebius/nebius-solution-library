@@ -66,17 +66,7 @@ locals {
   gpu_nodes_platform = coalesce(var.gpu_nodes_platform, local.current_region_defaults.gpu_nodes_platform)
   gpu_nodes_preset   = coalesce(var.gpu_nodes_preset, local.current_region_defaults.gpu_nodes_preset)
   infiniband_fabric  = coalesce(var.infiniband_fabric, local.current_region_defaults.infiniband_fabric)
-  k8s_minor_version  = var.k8s_version == null ? null : join(".", slice(split(".", var.k8s_version), 0, 2))
-  b200_platforms     = ["gpu-b200-sxm", "gpu-b200-sxm-a"]
-  b200_device_preset_by_k8s_minor = {
-    "1.32" = "cuda12.8"
-    "1.33" = "cuda13.0"
-  }
-  device_preset = contains(local.b200_platforms, local.gpu_nodes_platform) ? lookup(
-    local.b200_device_preset_by_k8s_minor,
-    local.k8s_minor_version,
-    "cuda12.8",
-  ) : "cuda13.0"
+  device_preset      = "cuda13.0"
   gpu_operator_cdi_enabled = (
     !var.gpu_nodes_driverfull_image &&
     var.mig_strategy != null &&
