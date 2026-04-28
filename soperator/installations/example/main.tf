@@ -68,6 +68,7 @@ resource "terraform_data" "check_variables" {
     terraform_data.check_slurm_nodeset,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_nfs,
+    terraform_data.check_nfs_exclusivity,
     terraform_data.check_local_nvme,
   ]
 }

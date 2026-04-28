@@ -299,6 +299,15 @@ variable "nfs" {
     error_message = "NFS size must be a multiple of 93 GiB and maximum value is 262074 GiB"
   }
 }
+resource "terraform_data" "check_nfs_exclusivity" {
+  lifecycle {
+    precondition {
+      condition     = !(var.nfs.enabled && var.nfs_in_k8s.enabled)
+      error_message = "nfs.enabled and nfs_in_k8s.enabled cannot both be true. Choose one NFS backend: either an external NFS server (nfs.enabled) or the in-cluster NFS provisioner (nfs_in_k8s.enabled)."
+    }
+  }
+}
+
 resource "terraform_data" "check_nfs" {
   depends_on = [
     terraform_data.check_region,
@@ -363,6 +372,24 @@ variable "nfs_in_k8s" {
 If NFS in K8s is enabled, filesystem_type, disk_type, and size_gibibytes must be set.
 Additionally, if disk_type is NETWORK_SSD_IO_M3 or NETWORK_SSD_NON_REPLICATED, size_gibibytes must be a multiple of 93.
 EOT
+  }
+
+  validation {
+    condition = (
+      !var.nfs_in_k8s.enabled
+      || var.nfs_in_k8s.disk_type == null
+      || contains(["NETWORK_SSD", "NETWORK_SSD_NON_REPLICATED", "NETWORK_SSD_IO_M3"], var.nfs_in_k8s.disk_type)
+    )
+    error_message = "nfs_in_k8s.disk_type must be one of: NETWORK_SSD, NETWORK_SSD_NON_REPLICATED, NETWORK_SSD_IO_M3."
+  }
+
+  validation {
+    condition = (
+      !var.nfs_in_k8s.enabled
+      || var.nfs_in_k8s.filesystem_type == null
+      || contains(["ext4", "xfs"], var.nfs_in_k8s.filesystem_type)
+    )
+    error_message = "nfs_in_k8s.filesystem_type must be one of: ext4, xfs."
   }
 }
 
@@ -437,12 +464,33 @@ variable "k8s_cluster_node_ssh_access_users" {
   }))
   nullable = false
   default  = []
+
+  validation {
+    condition = alltrue([
+      for u in var.k8s_cluster_node_ssh_access_users : length(u.public_keys) >= 1
+    ])
+    error_message = "Each entry in k8s_cluster_node_ssh_access_users must have at least one public key."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for u in var.k8s_cluster_node_ssh_access_users : [
+        for k in u.public_keys : length(k) > 0
+      ]
+    ]))
+    error_message = "Public keys in k8s_cluster_node_ssh_access_users must not be empty strings."
+  }
 }
 
 variable "etcd_cluster_size" {
-  description = "Size of the etcd cluster."
+  description = "Size of the etcd cluster. Must be a positive odd number (1, 3, 5…) to maintain quorum."
   type        = number
   default     = 3
+
+  validation {
+    condition     = var.etcd_cluster_size >= 1 && var.etcd_cluster_size % 2 == 1
+    error_message = "etcd_cluster_size must be a positive odd number (1, 3, 5…) to maintain quorum."
+  }
 }
 
 # endregion k8s
@@ -564,6 +612,10 @@ variable "slurm_nodeset_system" {
   validation {
     condition     = var.slurm_nodeset_system.min_size >= 3
     error_message = "Minimum size of the system node group must be at least 3."
+  }
+  validation {
+    condition     = var.slurm_nodeset_system.max_size >= var.slurm_nodeset_system.min_size
+    error_message = "System nodeset max_size must be greater than or equal to min_size."
   }
 }
 
@@ -1051,6 +1103,11 @@ variable "slurm_shared_memory_size_gibibytes" {
   description = "Shared memory size for Slurm controller and worker nodes in GiB."
   type        = number
   default     = 64
+
+  validation {
+    condition     = var.slurm_shared_memory_size_gibibytes > 0
+    error_message = "slurm_shared_memory_size_gibibytes must be greater than 0."
+  }
 }
 
 # endregion Config
@@ -1228,8 +1285,8 @@ variable "active_checks_scope" {
   description = "Scope of active checks. Defines what active checks should be checked during cluster bootstrap."
   default     = ""
   validation {
-    condition     = contains(["dev", "testing", "prod_quick", "prod_acceptance", "essential"], var.active_checks_scope)
-    error_message = "active_checks_scope should be one of: dev, testing, prod_quick, prod_acceptance, essential."
+    condition     = contains(["", "dev", "testing", "prod_quick", "prod_acceptance", "essential"], var.active_checks_scope)
+    error_message = "active_checks_scope must be one of: dev, testing, prod_quick, prod_acceptance, essential (or empty string to skip active checks)."
   }
 }
 
