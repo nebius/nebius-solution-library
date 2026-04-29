@@ -567,6 +567,62 @@ variable "slurm_nodeset_system" {
   }
 }
 
+variable "system_resources" {
+  description = "Resources of system components."
+  type = object({
+    rest = optional(object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    }))
+    exporter = optional(object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    }))
+    mariadb = optional(object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    }))
+    node_configurator = optional(object({
+      requests = object({
+        cpu_cores        = number
+        memory_gibibytes = number
+      })
+      limits = object({
+        memory_gibibytes = number
+      })
+    }))
+    slurm_operator = optional(object({
+      requests = object({
+        cpu_cores        = number
+        memory_gibibytes = number
+      })
+      limits = object({
+        memory_gibibytes = number
+      })
+    }))
+    slurm_checks = optional(object({
+      requests = object({
+        cpu_cores        = number
+        memory_gibibytes = number
+      })
+      limits = object({
+        memory_gibibytes = number
+      })
+    }))
+    kruise_daemon = optional(object({
+      cpu_cores        = number
+      memory_gibibytes = number
+    }))
+    dcgm_exporter = optional(object({
+      cpu_cores        = number
+      memory_gibibytes = number
+    }))
+  })
+}
+
 variable "slurm_nodeset_controller" {
   description = "Configuration of Slurm Controller node set. Only a single controller node is supported."
   type = object({

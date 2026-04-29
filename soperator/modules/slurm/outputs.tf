@@ -6,3 +6,9 @@ output "monitoring" {
     namespace = null
   }
 }
+
+output "debug_resources" {
+  description = "resources"
+
+  value = local.resources
+}

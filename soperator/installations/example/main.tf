@@ -384,6 +384,14 @@ module "slurm" {
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     } : null
+    rest              = try(var.system_resources.rest, null)
+    exporter          = try(var.system_resources.exporter, null)
+    mariadb           = try(var.system_resources.mariadb, null)
+    node_configurator = try(var.system_resources.node_configurator, null)
+    slurm_operator    = try(var.system_resources.slurm_operator, null)
+    slurm_checks      = try(var.system_resources.slurm_checks, null)
+    kruise_daemon     = try(var.system_resources.kruise_daemon, null)
+    dcgm_exporter     = try(var.system_resources.dcgm_exporter, null)
     nfs = var.slurm_nodeset_nfs != null ? {
       cpu_cores        = local.resources.nfs.cpu_cores
       memory_gibibytes = floor(local.resources.nfs.memory_gibibytes)
