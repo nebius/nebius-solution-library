@@ -3,6 +3,9 @@ variables {
   gpu_nodes_platform = "gpu-h200-sxm"
   gpu_nodes_preemptible = false
   gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
+  loki = {
+    enabled = false
+  }
 }
 ######
 run "k8s_training_kuberay_apply" {
