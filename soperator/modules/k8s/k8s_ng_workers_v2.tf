@@ -178,6 +178,10 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
       ]
     )
 
+    nvlink = {
+      nvl_instance_group_id = var.nvl_instance_group_id
+    }
+
     network_interfaces = [{
       public_ip_address = local.node_ssh_access.enabled ? {} : null
       subnet_id         = var.vpc_subnet_id

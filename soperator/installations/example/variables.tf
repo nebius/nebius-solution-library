@@ -423,6 +423,7 @@ variable "platform_cuda_versions" {
     gpu-b200-sxm-a = "13.0.2"
     gpu-b300-sxm   = "13.0.2"
     gpu-rtx6000    = "13.0.2"
+    gpu-gb300      = "13.0.2"
   }
 }
 
@@ -441,6 +442,7 @@ variable "platform_driver_presets" {
     gpu-b200-sxm-a = "cuda13.0"
     gpu-b300-sxm   = "cuda13.0"
     gpu-rtx6000    = "cuda13.0"
+    gpu-gb300      = "cuda13.0"
   }
 }
 
@@ -1025,6 +1027,17 @@ resource "terraform_data" "check_local_nvme" {
 
 variable "slurm_worker_sshd_config_map_ref_name" {
   description = "Name of configmap with SSHD config, which runs in slurmd container."
+  type        = string
+  default     = ""
+}
+
+variable "nvl_instance_group_id" {
+  description = "NVLink Instance Group ID, in which instances will be created"
+  type        = string
+}
+
+variable "placement_policy_nodes" {
+  description = "Placement policy nodes for worker node group"
   type        = string
   default     = ""
 }

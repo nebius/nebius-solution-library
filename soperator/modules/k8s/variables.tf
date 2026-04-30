@@ -166,6 +166,18 @@ variable "node_group_workers_v2" {
   default = []
 }
 
+variable "nvl_instance_group_id" {
+  description = "NVLink Instance Group ID, in which instances will be created"
+  type        = string
+  default     = ""
+}
+
+variable "placement_policy_nodes" {
+  description = "Placement policy nodes for worker node group"
+  type        = string
+  default     = ""
+}
+
 variable "node_group_login" {
   description = "Controller node group specification."
   type = object({
