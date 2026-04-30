@@ -19,6 +19,7 @@ resource "nebius_mk8s_v1_cluster" "this" {
   lifecycle {
     ignore_changes = [
       labels,
+      hidden_labels,
     ]
   }
 }

@@ -185,6 +185,13 @@ module "k8s_cleanup" {
   ]
 }
 
+resource "nebius_compute_v1_nvl_instance_group" "nvlgroup" {
+  parent_id = var.iam_project_id
+  size      = 1
+  name      = local.k8s_cluster_name
+  type      = "GB300"
+}
+
 module "k8s" {
   depends_on = [
     module.filestore,
@@ -207,6 +214,9 @@ module "k8s" {
   use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
 
   etcd_cluster_size = var.etcd_cluster_size
+
+  nvl_instance_group_id  = nebius_compute_v1_nvl_instance_group.nvlgroup.id
+  placement_policy_nodes = var.placement_policy_nodes
 
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller

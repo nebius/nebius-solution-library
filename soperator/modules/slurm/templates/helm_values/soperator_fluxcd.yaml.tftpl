@@ -9,4 +9,102 @@ resources:
         "helm.sh/resource-policy": keep
     data:
       values.yaml: |
-        # Empty config map for ad-hoc values overrides
+        soperator:
+          kruise:
+            overrideValues:
+              manager:
+                image:
+                  tag: v1.8.3
+        slurmCluster:
+          overrideValues:
+            # maintenance: downscaleAndOverwritePopulateJail
+            populateJail:
+              k8sNodeFilterName: worker
+            slurmConfig:
+              topologyPlugin: none
+            slurmNodes:
+              login:
+                k8sNodeFilterName: worker
+                sshd:
+                  resources:
+                    cpu: 1
+                    memory: 2Gi
+                    ephemeralStorage: 10Gi
+            k8sNodeFilters:
+              - name: system
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: slurm.nebius.ai/nodeset
+                              operator: In
+                              values:
+                                - system
+
+              - name: accounting
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: slurm.nebius.ai/nodeset
+                              operator: In
+                              values:
+                                - accounting
+                tolerations:
+                  - key: slurm.nebius.ai/nodeset
+                    operator: Equal
+                    value: accounting
+                    effect: NoSchedule
+
+              - name: controller
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: slurm.nebius.ai/nodeset
+                              operator: In
+                              values:
+                                - controller
+                tolerations:
+                  - key: slurm.nebius.ai/nodeset
+                    operator: Equal
+                    value: controller
+                    effect: NoSchedule
+
+              - name: login
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: slurm.nebius.ai/nodeset
+                              operator: In
+                              values:
+                                - worker
+                tolerations:
+                  - key: slurm.nebius.ai/nodeset
+                    operator: Equal
+                    value: login
+                    effect: NoSchedule
+
+              - name: worker
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: slurm.nebius.ai/nodeset
+                              operator: In
+                              values:
+                                - worker
+                tolerations:
+                  - key: slurm.nebius.ai/nodeset
+                    operator: Equal
+                    value: worker
+                    effect: NoSchedule
+                  - key: nvidia.com/gpu
+                    operator: Exists
+                    effect: NoSchedule
