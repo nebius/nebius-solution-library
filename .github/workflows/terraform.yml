@@ -17,6 +17,7 @@ permissions:
 env:
   TF_VAR_parent_id: project-e02s5a0dpr00nk11bgb0p9
   TF_VAR_tenant_id: tenant-e00tem0x4n0edc3hv2
+  TF_VAR_region: eu-north2
 
 jobs:
   detect-changes:
@@ -130,8 +131,8 @@ jobs:
         s3cmd --configure --dump-config \
         --access_key="${{ secrets.SA_ACCESS_KEY_ID }}" \
         --secret_key="${{ secrets.SA_SECRET_KEY }}" \
-        --host="storage.eu-north1.nebius.cloud:443" \
-        --host-bucket="%(bucket)s.storage.eu-north1.nebius.cloud" \
+        --host="storage.${TF_VAR_region}.nebius.cloud:443" \
+        --host-bucket="%(bucket)s.storage.${TF_VAR_region}.nebius.cloud" \
         > ~/.s3cfg
         mkdir -p tests/reports
 
@@ -257,8 +258,8 @@ jobs:
         s3cmd --configure --dump-config \
         --access_key="${{ secrets.SA_ACCESS_KEY_ID }}" \
         --secret_key="${{ secrets.SA_SECRET_KEY }}" \
-        --host="storage.eu-north1.nebius.cloud:443" \
-        --host-bucket="%(bucket)s.storage.eu-north1.nebius.cloud" \
+        --host="storage.${TF_VAR_region}.nebius.cloud:443" \
+        --host-bucket="%(bucket)s.storage.${TF_VAR_region}.nebius.cloud" \
         > ~/.s3cfg
     
     - name: Cleanup buckets
