@@ -134,7 +134,7 @@ nfs_in_k8s = {
   size_gibibytes  = 3720
   disk_type       = "NETWORK_SSD_IO_M3"
   filesystem_type = "ext4"
-  threads         = 32 # to match preset in slurm_nodeset_nfs
+  threads         = 128 # to match preset in slurm_nodeset_nfs
 }
 
 # endregion nfs-server
@@ -233,15 +233,71 @@ slurm_partition_config_type = "default"
 # ---
 slurm_nodeset_system = {
   min_size = 3
-  max_size = 9
+  max_size = 24
   resource = {
     platform = "cpu-d3"
-    preset   = "8vcpu-32gb"
+    preset   = "32vcpu-128gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
     size_gibibytes       = 192
     block_size_kibibytes = 4
+  }
+}
+
+# Components that will be deployed on system node groups.
+# Their resources should fit the slurm_nodeset_system.
+# Defaults are for big clusters.
+system_resources = {
+  rest = {
+    cpu_cores                   = 20
+    memory_gibibytes            = 120
+    ephemeral_storage_gibibytes = 5
+  }
+  exporter = {
+    cpu_cores                   = 4
+    memory_gibibytes            = 4
+    ephemeral_storage_gibibytes = 2
+  }
+  mariadb = {
+    cpu_cores                   = 8
+    memory_gibibytes            = 48
+    ephemeral_storage_gibibytes = 32
+  }
+  node_configurator = {
+    requests = {
+      cpu_cores        = 0.5
+      memory_gibibytes = 0.25
+    }
+    limits = {
+      memory_gibibytes = 0.25
+    }
+  }
+  slurm_operator = {
+    requests = {
+      cpu_cores        = 1
+      memory_gibibytes = 4
+    }
+    limits = {
+      memory_gibibytes = 4
+    }
+  }
+  slurm_checks = {
+    requests = {
+      cpu_cores        = 1
+      memory_gibibytes = 4
+    }
+    limits = {
+      memory_gibibytes = 4
+    }
+  }
+  kruise_daemon = {
+    cpu_cores        = 1
+    memory_gibibytes = 4
+  }
+  dcgm_exporter = {
+    cpu_cores        = 0.05
+    memory_gibibytes = 0.5
   }
 }
 
@@ -251,7 +307,7 @@ slurm_nodeset_controller = {
   size = 1
   resource = {
     platform = "cpu-d3"
-    preset   = "16vcpu-64gb"
+    preset   = "64vcpu-256gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -379,7 +435,7 @@ slurm_nodeset_login = {
 slurm_nodeset_accounting = {
   resource = {
     platform = "cpu-d3"
-    preset   = "8vcpu-32gb"
+    preset   = "32vcpu-128gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -394,7 +450,7 @@ slurm_nodeset_nfs = {
   size = 1
   resource = {
     platform = "cpu-d3"
-    preset   = "32vcpu-128gb"
+    preset   = "128vcpu-512gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"

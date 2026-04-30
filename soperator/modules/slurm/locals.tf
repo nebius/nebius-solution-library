@@ -103,54 +103,54 @@ locals {
       ephemeral_storage = 5
     }
     exporter = {
-      cpu               = 0.25
-      memory            = 0.25
-      ephemeral_storage = 0.5
+      cpu               = var.resources.exporter != null ? var.resources.exporter.cpu_cores : 0.25
+      memory            = var.resources.exporter != null ? var.resources.exporter.memory_gibibytes : 0.25
+      ephemeral_storage = var.resources.exporter != null ? var.resources.exporter.ephemeral_storage_gibibytes : 0.5
     }
     rest = {
-      cpu               = 2
-      memory            = 8
-      ephemeral_storage = 0.5
+      cpu               = var.resources.rest != null ? var.resources.rest.cpu_cores : 2
+      memory            = var.resources.rest != null ? var.resources.rest.memory_gibibytes : 8
+      ephemeral_storage = var.resources.rest != null ? var.resources.rest.ephemeral_storage_gibibytes : 0.5
     }
     mariadb = {
-      cpu               = 2
-      memory            = 12
-      ephemeral_storage = 16
+      cpu               = var.resources.mariadb != null ? var.resources.mariadb.cpu_cores : 2
+      memory            = var.resources.mariadb != null ? var.resources.mariadb.memory_gibibytes : 12
+      ephemeral_storage = var.resources.mariadb != null ? var.resources.mariadb.ephemeral_storage_gibibytes : 16
     }
     node_configurator = {
       limits = {
-        memory = 0.25
+        memory = var.resources.node_configurator != null ? var.resources.node_configurator.limits.memory_gibibytes : 0.25
       }
       requests = {
-        memory = 0.25
-        cpu    = 0.5
+        memory = var.resources.node_configurator != null ? var.resources.node_configurator.requests.memory_gibibytes : 0.25
+        cpu    = var.resources.node_configurator != null ? var.resources.node_configurator.requests.cpu_cores : 0.5
       }
     }
     slurm_operator = {
       limits = {
-        memory = 2
+        memory = var.resources.slurm_operator != null ? var.resources.slurm_operator.limits.memory_gibibytes : 2
       }
       requests = {
-        memory = 2
-        cpu    = 1
+        memory = var.resources.slurm_operator != null ? var.resources.slurm_operator.requests.memory_gibibytes : 2
+        cpu    = var.resources.slurm_operator != null ? var.resources.slurm_operator.requests.cpu_cores : 1
       }
     }
     slurm_checks = {
       limits = {
-        memory = 2
+        memory = var.resources.slurm_checks != null ? var.resources.slurm_checks.limits.memory_gibibytes : 2
       }
       requests = {
-        memory = 2
-        cpu    = 0.5
+        memory = var.resources.slurm_checks != null ? var.resources.slurm_checks.requests.memory_gibibytes : 2
+        cpu    = var.resources.slurm_checks != null ? var.resources.slurm_checks.requests.cpu_cores : 0.5
       }
     }
     kruise_daemon = {
-      cpu    = 0.05
-      memory = 0.128
+      cpu    = var.resources.kruise_daemon != null ? var.resources.kruise_daemon.cpu_cores : 0.05
+      memory = var.resources.kruise_daemon != null ? var.resources.kruise_daemon.memory_gibibytes : 0.128
     }
     dcgm_exporter = {
-      cpu    = 0.05
-      memory = 0.5
+      cpu    = var.resources.dcgm_exporter != null ? var.resources.dcgm_exporter.cpu_cores : 0.05
+      memory = var.resources.dcgm_exporter != null ? var.resources.dcgm_exporter.memory_gibibytes : 0.5
     }
     nfs_server = {
       limits = {
