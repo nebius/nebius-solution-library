@@ -742,6 +742,8 @@ resources:
             checks:
               ensure-dir-snccld-logs:
                 enabled: true
+              soperator-outputs-logs-cleaner:
+                schedule: "*/5 * * * *"
               ${soperator_active_checks_override_block}
             cudaVersion: ${slurm_cluster.cuda_version}
 
