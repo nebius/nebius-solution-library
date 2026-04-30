@@ -52,10 +52,13 @@ locals {
   cleaned_instance_config = {
     default_cpu = local.instance_config.default_cpu
     default_gpu = local.instance_config.default_gpu
-    sizes = [
-      for size in local.instance_config.sizes : {
+    sizes = concat(
+      [for size in local.instance_config.sizes : {
         for k, v in size : k => v if v != null
-      }
-    ]
+      }],
+      [for size in var.extra_instance_sizes : {
+        for k, v in size : k => v if v != null
+      }]
+    )
   }
 }

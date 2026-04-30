@@ -20,6 +20,8 @@ if [ -z "${NEBIUS_REGION}" ]; then
   return 1
 fi
 
+export SATURN_DEPLOYMENT_NAME="${SATURN_DEPLOYMENT_NAME:-saturn-cloud}"
+
 # IAM token
 unset NEBIUS_IAM_TOKEN
 export NEBIUS_IAM_TOKEN=$(nebius iam get-access-token)
@@ -48,7 +50,7 @@ else
 fi
 
 # Nebius service account
-NEBIUS_SA_NAME="saturn-cloud-sa"
+NEBIUS_SA_NAME="${SATURN_DEPLOYMENT_NAME}-sa"
 NEBIUS_SA_ID=$(nebius iam service-account get-by-name \
   --parent-id "${NEBIUS_PROJECT_ID}" \
   --name "${NEBIUS_SA_NAME}" \
@@ -119,7 +121,7 @@ cat > terraform_backend_override.tf << EOF
 terraform {
   backend "s3" {
     bucket = "${NEBIUS_BUCKET_NAME}"
-    key    = "saturn-cloud.tfstate"
+    key    = "${SATURN_DEPLOYMENT_NAME}.tfstate"
 
     endpoints = {
       s3 = "https://storage.${NEBIUS_REGION}.nebius.cloud:443"

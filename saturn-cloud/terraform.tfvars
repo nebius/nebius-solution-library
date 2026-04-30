@@ -14,7 +14,7 @@ saturn_customer_name   = "my-org"
 saturn_bootstrap_token = ""
 
 # Uncomment to pin a specific chart version (default: latest)
-helm_chart_version = "2026.02.01-75"
+helm_chart_version = "2026.02.01-85"
 
 ############################
 # Node pools

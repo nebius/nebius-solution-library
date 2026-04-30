@@ -74,6 +74,22 @@ variable "k8s_version" {
 # Node pool configuration
 ############################
 
+variable "extra_instance_sizes" {
+  description = "Additional instance sizes to show in Saturn UI that don't correspond to real node pools (e.g. coming-soon entries)."
+  type = list(object({
+    name            = string
+    display_name    = string
+    cores           = number
+    memory          = string
+    gpu             = number
+    gpu_type        = optional(string)
+    hardware_type   = optional(string)
+    disabled        = optional(bool, false)
+    disabled_reason = optional(string)
+  }))
+  default = []
+}
+
 variable "node_pools" {
   description = "List of node pools to create. Each pool becomes a node group and an instance config entry."
   type = list(object({
@@ -81,7 +97,7 @@ variable "node_pools" {
     preset            = string
     min_nodes         = optional(number, 0)
     max_nodes         = optional(number, 10)
-    boot_disk_gb      = optional(number, 93)
+    boot_disk_gb      = optional(number, 372)
     infiniband_fabric = optional(string)
   }))
 
