@@ -312,6 +312,18 @@ resource "terraform_data" "check_nfs_exclusivity" {
   }
 }
 
+resource "terraform_data" "check_jail_submount_paths" {
+  lifecycle {
+    precondition {
+      condition = alltrue([
+        for sm in var.filestore_jail_submounts :
+        sm.mount_path != "/home"
+      ])
+      error_message = "filestore_jail_submounts must not use \"/home\" as mount_path. That path is reserved for home directories, and backing /home with shared filestore causes severe performance degradation."
+    }
+  }
+}
+
 resource "terraform_data" "check_nfs" {
   depends_on = [
     terraform_data.check_region,
