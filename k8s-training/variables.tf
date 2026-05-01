@@ -201,19 +201,8 @@ variable "gpu_disk_size" {
   default     = "1023"
 }
 
-variable "enable_gpu_cluster" {
-  description = "Enable GPU clustering and InfiniBand for the GPU node group."
-  type        = bool
-  default     = true
-
-  validation {
-    condition     = !var.enable_gpu_cluster || startswith(local.gpu_nodes_preset, "8gpu-")
-    error_message = "GPU clustering requires an 8-GPU preset. Set 'enable_gpu_cluster = false' for single-GPU presets such as '${local.gpu_nodes_preset}'."
-  }
-}
-
 variable "infiniband_fabric" {
-  description = "Infiniband's fabric name."
+  description = "InfiniBand fabric name. Leave null or empty to disable GPU clustering."
   type        = string
   default     = null
 }

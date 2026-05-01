@@ -115,6 +115,13 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
 resource "nebius_mk8s_v1_node_group" "gpu" {
   count = var.gpu_node_groups
 
+  lifecycle {
+    precondition {
+      condition     = !local.enable_gpu_cluster || startswith(local.gpu_nodes_preset, "8gpu-")
+      error_message = "GPU clustering requires an 8-GPU preset. Leave 'infiniband_fabric' empty for single-GPU presets such as '${local.gpu_nodes_preset}'."
+    }
+  }
+
   autoscaling = var.gpu_nodes_autoscaling.enabled ? {
     min_node_count = var.gpu_nodes_autoscaling.min_size == null ? var.gpu_nodes_autoscaling.max_size : var.gpu_nodes_autoscaling.min_size
     max_node_count = var.gpu_nodes_autoscaling.max_size
@@ -165,7 +172,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
         }
       }
     ] : null
-    gpu_cluster  = var.enable_gpu_cluster ? nebius_compute_v1_gpu_cluster.fabric_2[0] : null
+    gpu_cluster  = local.enable_gpu_cluster ? nebius_compute_v1_gpu_cluster.fabric_2[0] : null
     gpu_settings = var.gpu_nodes_driverfull_image ? { drivers_preset = local.device_preset } : null
     preemptible = var.gpu_nodes_preemptible ? {
       on_preemption = "STOP"

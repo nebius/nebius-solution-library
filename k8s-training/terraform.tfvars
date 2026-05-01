@@ -37,8 +37,7 @@ cpu_nodes_preset   = "4vcpu-16gb" # CPU nodes preset
 gpu_nodes_platform = "gpu-h200-sxm"        # GPU nodes platform: gpu-h100-sxm, gpu-h200-sxm, gpu-b200-sxm
 gpu_nodes_preset   = "8gpu-128vcpu-1600gb" # GPU nodes preset: 8gpu-128vcpu-1600gb, 8gpu-128vcpu-1600gb, 8gpu-160vcpu-1792gb
 # Infiniband fabrics: https://docs.nebius.com/compute/clusters/gpu#fabrics
-infiniband_fabric  = ""   # Infiniband fabric name
-enable_gpu_cluster = true # Disable for RTX6000 deployments or single-node deployments.
+infiniband_fabric = "" # Leave empty to disable GPU clustering for RTX6000 deployments or single-node deployments.
 
 gpu_nodes_driverfull_image = true
 enable_k8s_node_group_sa   = true

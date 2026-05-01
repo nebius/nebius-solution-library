@@ -20,42 +20,36 @@ locals {
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-h200-sxm"
       gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
-      infiniband_fabric  = "fabric-5"
     }
     eu-north1 = {
       cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-h100-sxm"
       gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
-      infiniband_fabric  = "fabric-3"
     }
     eu-north2 = {
       cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-h200-sxm"
       gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
-      infiniband_fabric  = "eu-north2-a"
     }
     us-central1 = {
       cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-h200-sxm"
       gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
-      infiniband_fabric  = "us-central1-a"
     }
     me-west1 = {
       cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-b200-sxm-a"
       gpu_nodes_preset   = "8gpu-160vcpu-1792gb"
-      infiniband_fabric  = "ramon"
     }
     uk-south1 = {
       cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-b300-sxm"
       gpu_nodes_preset   = "8gpu-192vcpu-2768gb"
-      infiniband_fabric  = "uk-south1-a"
     }
   }
 
@@ -65,7 +59,8 @@ locals {
   cpu_nodes_platform = coalesce(var.cpu_nodes_platform, local.current_region_defaults.cpu_nodes_platform)
   gpu_nodes_platform = coalesce(var.gpu_nodes_platform, local.current_region_defaults.gpu_nodes_platform)
   gpu_nodes_preset   = coalesce(var.gpu_nodes_preset, local.current_region_defaults.gpu_nodes_preset)
-  infiniband_fabric  = coalesce(var.infiniband_fabric, local.current_region_defaults.infiniband_fabric)
+  infiniband_fabric  = var.infiniband_fabric
+  enable_gpu_cluster = local.infiniband_fabric != null ? trimspace(local.infiniband_fabric) != "" : false
   device_preset      = "cuda13.0"
   gpu_operator_cdi_enabled = (
     !var.gpu_nodes_driverfull_image &&
