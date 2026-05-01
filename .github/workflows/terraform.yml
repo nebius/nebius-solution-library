@@ -193,7 +193,7 @@ jobs:
         tests/reports/TEST-result-${{ github.run_id }}.xml
 
     - name: Upload test results
-      run: s3cmd sync tests/reports s3://terraform-test-reports/${{ matrix.solution.name }}/
+      run: s3cmd sync tests/reports s3://terraform-test-reports/${{ matrix.solution }}/
       if: always()
 
     - name: Load test report history
