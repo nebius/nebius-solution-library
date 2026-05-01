@@ -32,3 +32,13 @@ helm_chart_version = "2026.02.01-85"
 #   # GPU - H200 8-GPU (requires InfiniBand fabric from Nebius support)
 #   { platform = "gpu-h200-sxm", preset = "8gpu-128vcpu-1600gb", infiniband_fabric = "fabric-7" },
 # ]
+
+############################
+# Shared Filesystem (filestore)
+############################
+# A Nebius shared filesystem (ReadWriteMany) is created by default.
+# Set enable_filestore = false to opt out.
+
+# enable_filestore              = true   # Set to false to skip creating a shared filesystem
+# existing_filestore            = ""     # Use an existing filestore ID, or leave empty to create a new one
+# filestore_disk_size_gibibytes = 100    # Size of the shared filesystem in GiB (fixed, does not auto-expand)

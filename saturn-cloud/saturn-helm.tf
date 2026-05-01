@@ -23,9 +23,16 @@ locals {
     saturnComponents = {
       atlas = {
         values = {
-          env = {
-            USE_AWS_SHIM = "false"
-          }
+          env = merge(
+            {
+              USE_AWS_SHIM = "false"
+            },
+            var.enable_filestore ? {
+              NETWORK_FILESYSTEM_ENABLED           = "true"
+              NETWORK_FILESYSTEM_DEFAULT           = "fss"
+              NETWORK_FILESYSTEM_FSS_STORAGE_CLASS = "csi-mounted-fs-path-sc"
+            } : {}
+          )
         }
       }
       clusterSetup = {
@@ -44,6 +51,8 @@ locals {
 }
 
 resource "helm_release" "saturn_operator" {
+  count = var.manage_helm ? 1 : 0
+
   name             = "saturn-helm-operator"
   repository       = "oci://ghcr.io/saturncloud/charts"
   chart            = "saturn-helm-operator"

@@ -1,4 +1,30 @@
 locals {
+  # Filestore
+  filestore = {
+    mount_tag  = "data"
+    mount_path = var.filestore_mount_path
+  }
+
+  filesystem_csi_chart_name = "csi-mounted-fs-path"
+  filesystem_csi_enabled    = local.shared_filesystem != null
+  filesystem_csi_data_dir   = "${trimsuffix(local.filestore.mount_path, "/")}/csi-mounted-fs-path-data/"
+
+  shared_filesystem = var.enable_filestore ? {
+    id = try(
+      one(nebius_compute_v1_filesystem.shared_filesystem).id,
+      one(data.nebius_compute_v1_filesystem.shared_filesystem).id,
+    )
+    size_gibibytes = floor(provider::units::to_gib(try(
+      one(nebius_compute_v1_filesystem.shared_filesystem).status.size_bytes,
+      one(data.nebius_compute_v1_filesystem.shared_filesystem).status.size_bytes,
+    )))
+    mount_tag = local.filestore.mount_tag
+  } : null
+
+  ssh_public_key = var.ssh_public_key.key != null ? var.ssh_public_key.key : (
+    try(fileexists(var.ssh_public_key.path), false) ? file(var.ssh_public_key.path) : null
+  )
+
   # Derived URLs from saturn_domain
   saturn_base_url   = "https://app.${var.saturn_domain}"
   saturn_ssh_domain = "ssh.${var.saturn_domain}"

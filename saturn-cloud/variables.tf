@@ -58,6 +58,12 @@ variable "saturn_bootstrap_token" {
   sensitive   = true
 }
 
+variable "manage_helm" {
+  description = "Whether Terraform manages the Saturn Helm release. Set to false to manage Helm externally."
+  type        = bool
+  default     = true
+}
+
 variable "helm_chart_version" {
   description = "Version of the saturn-helm-operator chart"
   type        = string
@@ -68,6 +74,64 @@ variable "k8s_version" {
   description = "Kubernetes version for the cluster"
   type        = string
   default     = "1.30"
+}
+
+############################
+# Shared filesystem (filestore)
+############################
+
+variable "enable_filestore" {
+  description = "Enable Nebius shared filesystem (filestore) for ReadWriteMany storage."
+  type        = bool
+  default     = true
+}
+
+variable "existing_filestore" {
+  description = "ID of an existing filestore to use. If empty, a new one is created when enable_filestore=true."
+  type        = string
+  default     = ""
+}
+
+variable "filestore_disk_type" {
+  description = "Filestore disk type."
+  type        = string
+  default     = "NETWORK_SSD"
+}
+
+variable "filestore_disk_size_gibibytes" {
+  description = "Filestore disk size in GiB."
+  type        = number
+  default     = 100
+}
+
+variable "filestore_block_size_kibibytes" {
+  description = "Filestore block size in KiB."
+  type        = number
+  default     = 4
+}
+
+variable "filestore_mount_path" {
+  description = "Mount path for the shared filesystem on Kubernetes nodes."
+  type        = string
+  default     = "/mnt/data"
+}
+
+variable "filesystem_csi" {
+  description = "Configuration for the Nebius Shared Filesystem CSI driver."
+  type = object({
+    chart_version = optional(string, "0.1.5")
+    namespace     = optional(string, "kube-system")
+  })
+  default = {}
+}
+
+variable "ssh_public_key" {
+  description = "SSH public key for node access (needed for cloud-init when filestore is enabled)."
+  type = object({
+    key  = optional(string)
+    path = optional(string, "~/.ssh/id_rsa.pub")
+  })
+  default = {}
 }
 
 ############################

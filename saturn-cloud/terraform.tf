@@ -8,5 +8,12 @@ terraform {
       source  = "hashicorp/helm"
       version = ">= 2.12.0"
     }
+    kubernetes = {
+      source = "hashicorp/kubernetes"
+    }
+    units = {
+      source  = "dstaroff/units"
+      version = ">= 1.1.1"
+    }
   }
 }
