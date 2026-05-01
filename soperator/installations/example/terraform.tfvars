@@ -76,6 +76,7 @@ filestore_jail = {
 # Additional shared filesystems to be mounted inside jail.
 # If a big filesystem is needed it's better to deploy this additional storage because jails bigger than 12 TiB
 # ARE NOT BACKED UP by default.
+# Do not use "/home" here. That path is reserved for the home-directory NFS mount.
 # ---
 # filestore_jail_submounts = [{
 #   name       = "data"
