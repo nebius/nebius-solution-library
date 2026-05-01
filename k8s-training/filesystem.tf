@@ -5,6 +5,7 @@ resource "nebius_compute_v1_filesystem" "shared-filesystem" {
   type             = var.filestore_disk_type
   size_bytes       = provider::units::from_gib(var.filestore_disk_size_gibibytes)
   block_size_bytes = provider::units::from_kib(var.filestore_block_size_kibibytes)
+  forbid_deletion  = var.filestore_forbid_deletion
 
   lifecycle {
     ignore_changes = [

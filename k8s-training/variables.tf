@@ -77,6 +77,12 @@ variable "filestore_block_size_kibibytes" {
   default     = 4 # 4kb
 }
 
+variable "filestore_forbid_deletion" {
+  description = "Protect Terraform-created Filestore from deletion."
+  type        = bool
+  default     = false
+}
+
 variable "filestore_mount_path" {
   description = "Mount path for the shared filesystem on Kubernetes nodes."
   type        = string
