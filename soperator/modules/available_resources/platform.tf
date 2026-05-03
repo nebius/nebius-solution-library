@@ -4,6 +4,8 @@ locals {
     cpu-d3         = "cpu-d3"
     gpu-h100-sxm   = "gpu-h100-sxm"
     gpu-h200-sxm   = "gpu-h200-sxm"
+    gpu-l40s-a     = "gpu-l40s-a"
+    gpu-l40s-d     = "gpu-l40s-d"
     gpu-b200-sxm   = "gpu-b200-sxm"
     gpu-b200-sxm-a = "gpu-b200-sxm-a"
     gpu-b300-sxm   = "gpu-b300-sxm"
@@ -29,6 +31,12 @@ locals {
       local.regions.eu-north2,
       local.regions.eu-west1,
       local.regions.us-central1,
+    ]
+    (local.platforms.gpu-l40s-a) = [
+      local.regions.eu-north1,
+    ]
+    (local.platforms.gpu-l40s-d) = [
+      local.regions.eu-north1,
     ]
     (local.platforms.gpu-b200-sxm) = [
       local.regions.us-central1,
