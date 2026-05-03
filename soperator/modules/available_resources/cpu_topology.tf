@@ -113,6 +113,62 @@ locals {
       cpus              = 256
     }
 
+    g-1gpu-8vcpu-32gb = {
+      boards            = 1
+      sockets_per_board = 1
+      cores_per_socket  = 4
+      threads_per_core  = 2
+      cpus              = 8
+    }
+    g-1gpu-16vcpu-64gb = {
+      boards            = 1
+      sockets_per_board = 1
+      cores_per_socket  = 8
+      threads_per_core  = 2
+      cpus              = 16
+    }
+    g-1gpu-24vcpu-96gb = {
+      boards            = 1
+      sockets_per_board = 1
+      cores_per_socket  = 12
+      threads_per_core  = 2
+      cpus              = 24
+    }
+    g-1gpu-32vcpu-128gb = {
+      boards            = 1
+      sockets_per_board = 1
+      cores_per_socket  = 16
+      threads_per_core  = 2
+      cpus              = 32
+    }
+    g-1gpu-40vcpu-160gb = {
+      boards            = 1
+      sockets_per_board = 1
+      cores_per_socket  = 20
+      threads_per_core  = 2
+      cpus              = 40
+    }
+    g-1gpu-16vcpu-96gb = {
+      boards            = 1
+      sockets_per_board = 1
+      cores_per_socket  = 8
+      threads_per_core  = 2
+      cpus              = 16
+    }
+    g-1gpu-32vcpu-192gb = {
+      boards            = 1
+      sockets_per_board = 1
+      cores_per_socket  = 16
+      threads_per_core  = 2
+      cpus              = 32
+    }
+    g-1gpu-48vcpu-288gb = {
+      boards            = 1
+      sockets_per_board = 1
+      cores_per_socket  = 24
+      threads_per_core  = 2
+      cpus              = 48
+    }
     g-1gpu-16vcpu-200gb = {
       boards            = 1
       sockets_per_board = 1
@@ -193,6 +249,20 @@ locals {
     (local.platforms.gpu-h200-sxm) = tomap({
       (local.presets.p-1g-16c-200g)   = local.cpu_topologies.g-1gpu-16vcpu-200gb
       (local.presets.p-8g-128c-1600g) = local.cpu_topologies.g-8gpu-128vcpu-1600gb
+    })
+
+    (local.platforms.gpu-l40s-a) = tomap({
+      (local.presets.p-1g-8c-32g)   = local.cpu_topologies.g-1gpu-8vcpu-32gb
+      (local.presets.p-1g-16c-64g)  = local.cpu_topologies.g-1gpu-16vcpu-64gb
+      (local.presets.p-1g-24c-96g)  = local.cpu_topologies.g-1gpu-24vcpu-96gb
+      (local.presets.p-1g-32c-128g) = local.cpu_topologies.g-1gpu-32vcpu-128gb
+      (local.presets.p-1g-40c-160g) = local.cpu_topologies.g-1gpu-40vcpu-160gb
+    })
+
+    (local.platforms.gpu-l40s-d) = tomap({
+      (local.presets.p-1g-16c-96g)  = local.cpu_topologies.g-1gpu-16vcpu-96gb
+      (local.presets.p-1g-32c-192g) = local.cpu_topologies.g-1gpu-32vcpu-192gb
+      (local.presets.p-1g-48c-288g) = local.cpu_topologies.g-1gpu-48vcpu-288gb
     })
 
     (local.platforms.gpu-b200-sxm) = tomap({
