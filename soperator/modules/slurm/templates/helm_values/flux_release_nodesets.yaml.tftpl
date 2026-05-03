@@ -24,7 +24,7 @@ nodesets:
         gpu:
           enabled: ${resources[i].gpus > 0}
           nvidia:
-            gdrCopyEnabled: true
+            gdrCopyEnabled: ${resources[i].gpus > 0 && nodeset.gpu_cluster_compatible}
 
         nodeConfig:
           %{~ if length(nodeset.features) > 0 ~}

@@ -98,6 +98,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     region              = var.region
     public_o11y_enabled = var.public_o11y_enabled
     has_local_nvme      = anytrue([for nodeset in var.worker_nodesets : try(nodeset.local_nvme.enabled, false)])
+    has_ib_gpu_cluster  = anytrue([for nodeset in var.worker_nodesets : nodeset.gpu_cluster_compatible])
     metrics_collector   = local.metrics_collector
     create_pvcs         = var.create_pvcs
 
