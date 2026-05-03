@@ -750,9 +750,10 @@ variable "worker_nodesets" {
     features         = list(string)
     cpu_topology     = map(number)
     gres_name        = optional(string)
-    gres_config      = list(string)
-    create_partition = bool
-    ephemeral_nodes  = optional(bool, false)
+    gres_config            = list(string)
+    create_partition       = bool
+    gpu_cluster_compatible = optional(bool, true)
+    ephemeral_nodes        = optional(bool, false)
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")
