@@ -181,6 +181,9 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
     nvlink = {
       nvl_instance_group_id = var.nvl_instance_group_id
     }
+    placement_policy = {
+      nodes = [var.placement_policy_nodes]
+    }
 
     network_interfaces = [{
       public_ip_address = local.node_ssh_access.enabled ? {} : null

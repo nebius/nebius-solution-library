@@ -173,7 +173,7 @@ variable "nvl_instance_group_id" {
 }
 
 variable "placement_policy_nodes" {
-  description = "Placement policy nodes for worker node group"
+  description = "Placement policy for nodes in the node group (private api)"
   type        = string
   default     = ""
 }
