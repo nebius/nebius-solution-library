@@ -569,6 +569,11 @@ telemetry_enabled = true
 # ---
 dcgm_job_mapping_enabled = true
 
+# Optional kube-state-metrics scrape size override in bytes.
+# By default, it is raised automatically for large clusters.
+# ---
+# kube_state_metrics_max_scrape_size = 150554432
+
 # Configuration of the Soperator Notifier (https://github.com/nebius/soperator/tree/main/helm/soperator-notifier).
 # ---
 # soperator_notifier = {

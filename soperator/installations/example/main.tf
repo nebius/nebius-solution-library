@@ -336,6 +336,8 @@ module "slurm" {
   maintenance                    = var.maintenance
   maintenance_ignore_node_groups = var.maintenance_ignore_node_groups
 
+  kube_state_metrics_max_scrape_size = var.kube_state_metrics_max_scrape_size
+
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
   cuda_version                  = lookup(var.platform_cuda_versions, var.slurm_nodeset_workers[0].resource.platform)
   controller_state_on_filestore = var.controller_state_on_filestore

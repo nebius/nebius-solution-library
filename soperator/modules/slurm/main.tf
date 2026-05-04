@@ -302,6 +302,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
     vm_agent_queue_count = local.vm_agent_queue_count
 
+    kube_state_metrics_max_scrape_size = local.kube_state_metrics_max_scrape_size
+
     slurm_nodesets_partitions = var.slurm_nodesets_partitions
     nodesets                  = var.worker_nodesets
 

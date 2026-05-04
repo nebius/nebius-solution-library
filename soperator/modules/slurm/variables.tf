@@ -419,6 +419,18 @@ variable "dcgm_job_mapping_enabled" {
   default     = true
 }
 
+variable "kube_state_metrics_max_scrape_size" {
+  description = "Maximum kube-state-metrics HTTP scrape size in bytes. Leave null to raise it automatically for large clusters."
+  type        = number
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.kube_state_metrics_max_scrape_size == null || var.kube_state_metrics_max_scrape_size > 0
+    error_message = "kube_state_metrics_max_scrape_size must be greater than 0 when set."
+  }
+}
+
 variable "dcgm_job_map_dir" {
   description = "Directory where HPC job mapping files are located"
   type        = string
