@@ -182,6 +182,16 @@ locals {
     )
   )
 
+  opentelemetry_batch_enabled = (
+    var.opentelemetry_batch != null
+    ? anytrue([
+      var.opentelemetry_batch.timeout != null,
+      var.opentelemetry_batch.send_batch_size != null,
+      var.opentelemetry_batch.send_batch_max_size != null,
+    ])
+    : false
+  )
+
   namespace = {
     logs       = "logs-system"
     monitoring = "monitoring-system"

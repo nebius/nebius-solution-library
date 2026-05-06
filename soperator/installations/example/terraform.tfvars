@@ -576,6 +576,15 @@ dcgm_job_mapping_enabled = true
 # ---
 # kube_state_metrics_max_scrape_size = 150554432
 
+# Optional OpenTelemetry batch processor overrides for logs, jail logs, and events collectors.
+# By default, chart values are used.
+# ---
+# opentelemetry_batch = {
+#   timeout             = "1s"
+#   send_batch_size     = 2000
+#   send_batch_max_size = 5000
+# }
+
 # Configuration of the Soperator Notifier (https://github.com/nebius/soperator/tree/main/helm/soperator-notifier).
 # ---
 # soperator_notifier = {
