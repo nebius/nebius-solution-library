@@ -763,6 +763,7 @@ variable "slurm_nodeset_workers" {
       mount_path      = optional(string, "/mnt/local-nvme")
       filesystem_type = optional(string, "ext4")
     }), {})
+    max_pods = optional(number, 32)
     node_local_image_disk = object({
       enabled = bool
       spec = optional(object({
@@ -830,6 +831,14 @@ variable "slurm_nodeset_workers" {
       worker.autoscaling.min_size == null || worker.autoscaling.min_size <= worker.size
     ])
     error_message = "Worker nodeset autoscaling.min_size must be less than or equal to size."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.max_pods > 0
+    ])
+    error_message = "Worker nodeset max_pods must be greater than 0."
   }
 
   validation {

@@ -54,6 +54,7 @@ locals {
       subset_index       = subset
       preemptible        = nodeset.preemptible
       reservation_policy = nodeset.reservation_policy
+      max_pods           = nodeset.max_pods
       local_nvme = {
         enabled         = try(nodeset.local_nvme.enabled, false)
         mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
