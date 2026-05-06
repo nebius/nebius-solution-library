@@ -120,6 +120,10 @@ resources:
             version: ${vmstack_version}
             %{~ endif ~}
             values:
+              %{~ if kube_state_metrics_max_scrape_size != null ~}
+              kubeStateMetrics:
+                maxScrapeSize: "${kube_state_metrics_max_scrape_size}"
+              %{~ endif ~}
               vmagent:
                 spec:
                   extraArgs:
