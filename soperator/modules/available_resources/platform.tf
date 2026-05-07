@@ -17,6 +17,7 @@ locals {
       local.regions.eu-north1,
       local.regions.eu-north2,
       local.regions.eu-west1,
+      local.regions.eu-west2,
       local.regions.me-west1,
       local.regions.uk-south1,
       local.regions.us-central1,
@@ -37,6 +38,7 @@ locals {
       local.regions.me-west1,
     ]
     (local.platforms.gpu-b300-sxm) = [
+      local.regions.eu-west2,
       local.regions.uk-south1,
     ]
   })
