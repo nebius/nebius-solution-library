@@ -312,8 +312,6 @@ locals {
   # Allow-list: "${region}/${platform}/${preset}"
   local_nvme_supported_true_region_platform_preset = toset([
     # gpu-b300-sxm
-    "${local.regions.uk-south1}/${local.platforms.gpu-b300-sxm}/${local.presets.p-8g-128c-1600g}",
-    "${local.regions.uk-south1}/${local.platforms.gpu-b300-sxm}/${local.presets.p-8g-160c-1792g}",
     "${local.regions.uk-south1}/${local.platforms.gpu-b300-sxm}/${local.presets.p-8g-192c-2768g}",
   ])
 
