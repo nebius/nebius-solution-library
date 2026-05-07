@@ -498,6 +498,13 @@ variable "k8s_cluster_node_ssh_access_users" {
   }
 }
 
+variable "k8s_cluster_node_ssh_access_public_ip" {
+  description = "Assign public IP addresses to k8s nodes when k8s_cluster_node_ssh_access_users is configured."
+  type        = bool
+  nullable    = false
+  default     = false
+}
+
 variable "etcd_cluster_size" {
   description = "Size of the etcd cluster. Must be a positive odd number (1, 3, 5…) to maintain quorum."
   type        = number

@@ -251,6 +251,12 @@ variable "node_ssh_access_users" {
   default = []
 }
 
+variable "node_ssh_access_public_ip" {
+  description = "Assign public IP addresses to k8s nodes when node_ssh_access_users is configured."
+  type        = bool
+  default     = false
+}
+
 variable "nvidia_config_lines" {
   description = "Lines to write to /etc/modprobe.d/nvidia_config.conf via cloud-init (GPU workers only)."
   type        = list(string)
