@@ -192,6 +192,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.SA_SECRET_KEY }}
         AWS_REGION: ${{ env.TF_VAR_region }}
         AWS_DEFAULT_REGION: ${{ env.TF_VAR_region }}
+      continue-on-error: true
       run: s5cmd --endpoint-url "https://storage.${TF_VAR_region}.nebius.cloud" sync tests/reports/ s3://terraform-test-reports/${{ matrix.solution }}/
       if: always()
 
