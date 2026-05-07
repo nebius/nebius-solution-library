@@ -125,15 +125,9 @@ jobs:
         echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> $GITHUB_ENV
         ssh-add
 
-    - name: Setup s3cmd
+    - name: Setup s5cmd
       run: |
-        pip3 install s3cmd --no-cache --quiet
-        s3cmd --configure --dump-config \
-        --access_key="${{ secrets.SA_ACCESS_KEY_ID }}" \
-        --secret_key="${{ secrets.SA_SECRET_KEY }}" \
-        --host="storage.${TF_VAR_region}.nebius.cloud:443" \
-        --host-bucket="%(bucket)s.storage.${TF_VAR_region}.nebius.cloud" \
-        > ~/.s3cfg
+        pip3 install s5cmd --no-cache --quiet
         mkdir -p tests/reports
 
     - name: Install XMLStarlet
@@ -193,7 +187,12 @@ jobs:
         tests/reports/TEST-result-${{ github.run_id }}.xml
 
     - name: Upload test results
-      run: s3cmd --no-check-md5 sync tests/reports s3://terraform-test-reports/${{ matrix.solution }}/
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.SA_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.SA_SECRET_KEY }}
+        AWS_REGION: ${{ env.TF_VAR_region }}
+        AWS_DEFAULT_REGION: ${{ env.TF_VAR_region }}
+      run: s5cmd --endpoint-url "https://storage.${TF_VAR_region}.nebius.cloud" sync tests/reports/ s3://terraform-test-reports/${{ matrix.solution }}/
       if: always()
 
     - name: Load test report history
@@ -252,18 +251,17 @@ jobs:
           --parent-id ${{ env.TF_VAR_parent_id }} \
           --private-key-file /tmp/sa.pem
     
-    - name: Setup s3cmd
+    - name: Setup s5cmd
       run: |
-        pip3 install s3cmd --no-cache --quiet
-        s3cmd --configure --dump-config \
-        --access_key="${{ secrets.SA_ACCESS_KEY_ID }}" \
-        --secret_key="${{ secrets.SA_SECRET_KEY }}" \
-        --host="storage.${TF_VAR_region}.nebius.cloud:443" \
-        --host-bucket="%(bucket)s.storage.${TF_VAR_region}.nebius.cloud" \
-        > ~/.s3cfg
+        pip3 install s5cmd --no-cache --quiet
     
     - name: Cleanup buckets
       continue-on-error: true
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.SA_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.SA_SECRET_KEY }}
+        AWS_REGION: ${{ env.TF_VAR_region }}
+        AWS_DEFAULT_REGION: ${{ env.TF_VAR_region }}
       run: |
         for resource in \
           "storage bucket" \
@@ -271,7 +269,8 @@ jobs:
         echo Cleaning up buckets $resource 
         eval nebius --format json $resource list \
           | jq -r 'try .items[] | select(.metadata.name!="terraform-test-reports") | .metadata.name' \
-          | eval xargs -r -t -n 1 -I {} s3cmd del --force --recursive s3://{}
+          | xargs -r -t -n 1 -I {} \
+            s5cmd --endpoint-url "https://storage.${TF_VAR_region}.nebius.cloud" rm "s3://{}/*"
         done
 
     - name: Perform forced cleanup
