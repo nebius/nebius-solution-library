@@ -1,5 +1,5 @@
 data "kubectl_file_documents" "binpacking_scheduler_manifests" {
-  content = templatefile("${path.module}/files/bp-scheduler.yaml", {
+  content = templatefile("${path.module}/files/bp-scheduler.yaml.tftpl", {
     kube_sched_ver = var.kube_sched_ver
   })
 }
