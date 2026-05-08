@@ -670,7 +670,6 @@ cleanup_bucket_on_destroy = false
 k8s_version = 1.33
 
 # SSH user credentials for accessing k8s nodes.
-# That option add public ip address to every node.
 # By default, empty list.
 # ---
 # k8s_cluster_node_ssh_access_users = [{
@@ -680,6 +679,11 @@ k8s_version = 1.33
 #     "<ENCRYPTION-METHOD2 HASH2 USER1>",
 #   ]
 # }]
+
+# By default, SSH keys are added without public IP addresses.
+# Set to true to assign public IP addresses to k8s nodes.
+# ---
+# k8s_cluster_node_ssh_access_public_ip = false
 
 # Lines to write to /etc/modprobe.d/nvidia_config.conf via cloud-init (GPU workers only).
 # One option per line.
