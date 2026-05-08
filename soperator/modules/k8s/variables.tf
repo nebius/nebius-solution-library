@@ -155,6 +155,7 @@ variable "node_group_workers_v2" {
       policy          = optional(string)
       reservation_ids = optional(list(string))
     }))
+    max_pods = optional(number, 32)
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")
@@ -164,6 +165,14 @@ variable "node_group_workers_v2" {
     subset_index  = number
   }))
   default = []
+
+  validation {
+    condition = alltrue([
+      for worker in var.node_group_workers_v2 :
+      worker.max_pods > 0
+    ])
+    error_message = "Worker node group max_pods must be greater than 0."
+  }
 }
 
 variable "node_group_login" {
@@ -240,6 +249,12 @@ variable "node_ssh_access_users" {
     public_keys = list(string)
   }))
   default = []
+}
+
+variable "node_ssh_access_public_ip" {
+  description = "Assign public IP addresses to k8s nodes when node_ssh_access_users is configured."
+  type        = bool
+  default     = false
 }
 
 variable "nvidia_config_lines" {

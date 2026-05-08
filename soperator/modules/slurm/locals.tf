@@ -169,6 +169,29 @@ locals {
   # This sets metrics ingestion capacity for larger clusters properly
   vm_agent_queue_count = 2 + floor(sum(var.node_count.worker) / 60)
 
+  # kube-state-metrics starts exceeding the default 32MiB scrape limit around 1.1k workers.
+  kube_state_metrics_large_cluster_worker_threshold = 1000
+  kube_state_metrics_large_cluster_max_scrape_size  = 150554432
+  kube_state_metrics_max_scrape_size = (
+    var.kube_state_metrics_max_scrape_size != null
+    ? var.kube_state_metrics_max_scrape_size
+    : (
+      sum(var.node_count.worker) >= local.kube_state_metrics_large_cluster_worker_threshold
+      ? local.kube_state_metrics_large_cluster_max_scrape_size
+      : null
+    )
+  )
+
+  opentelemetry_batch_enabled = (
+    var.opentelemetry_batch != null
+    ? anytrue([
+      var.opentelemetry_batch.timeout != null,
+      var.opentelemetry_batch.send_batch_size != null,
+      var.opentelemetry_batch.send_batch_max_size != null,
+    ])
+    : false
+  )
+
   namespace = {
     logs       = "logs-system"
     monitoring = "monitoring-system"

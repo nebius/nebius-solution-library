@@ -367,6 +367,8 @@ slurm_nodeset_workers = [
     # By default, false.
     ephemeral_nodes                = false
     initial_number_ephemeral_nodes = 1
+    # Maximum number of pods per worker node. Default is 32 to reduce per-node Pod CIDR usage.
+    max_pods = 32
     # Optional local NVMe passthrough for this nodeset only.
     # Uses local instance disks, creates a RAID0 array and mounts it on the host via cloud-init.
     # mount_path: path used for both host RAID mount and jail submount.
@@ -569,6 +571,20 @@ telemetry_enabled = true
 # ---
 dcgm_job_mapping_enabled = true
 
+# Optional kube-state-metrics scrape size override in bytes.
+# By default, it is raised automatically for large clusters.
+# ---
+# kube_state_metrics_max_scrape_size = 150554432
+
+# Optional OpenTelemetry batch processor overrides for logs, jail logs, and events collectors.
+# By default, chart values are used.
+# ---
+# opentelemetry_batch = {
+#   timeout             = "1s"
+#   send_batch_size     = 2000
+#   send_batch_max_size = 5000
+# }
+
 # Configuration of the Soperator Notifier (https://github.com/nebius/soperator/tree/main/helm/soperator-notifier).
 # ---
 # soperator_notifier = {
@@ -580,6 +596,10 @@ soperator_notifier = {
 }
 
 public_o11y_enabled = true
+
+# Existing public o11y logs projects are not moved between regions unless this is explicitly enabled.
+# ---
+# allow_o11y_region_migration = true
 
 # endregion Telemetry
 
@@ -654,7 +674,6 @@ cleanup_bucket_on_destroy = false
 k8s_version = 1.33
 
 # SSH user credentials for accessing k8s nodes.
-# That option add public ip address to every node.
 # By default, empty list.
 # ---
 # k8s_cluster_node_ssh_access_users = [{
@@ -664,6 +683,11 @@ k8s_version = 1.33
 #     "<ENCRYPTION-METHOD2 HASH2 USER1>",
 #   ]
 # }]
+
+# By default, SSH keys are added without public IP addresses.
+# Set to true to assign public IP addresses to k8s nodes.
+# ---
+# k8s_cluster_node_ssh_access_public_ip = false
 
 # Lines to write to /etc/modprobe.d/nvidia_config.conf via cloud-init (GPU workers only).
 # One option per line.

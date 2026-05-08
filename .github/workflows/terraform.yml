@@ -15,8 +15,9 @@ permissions:
   contents: write
 
 env:
-  TF_VAR_parent_id: project-e00pjzzrtk1fs3yavy
-  TF_VAR_tenant_id: tenant-e00f3wdfzwfjgbcyfv
+  TF_VAR_parent_id: project-e02s5a0dpr00nk11bgb0p9
+  TF_VAR_tenant_id: tenant-e00tem0x4n0edc3hv2
+  TF_VAR_region: eu-north2
 
 jobs:
   detect-changes:
@@ -78,9 +79,9 @@ jobs:
     needs: terraform-format
     name: 'Terraform ${{ matrix.solution }}'
     environment:
-      name: project-e00pjzzrtk1fs3yavy
+      name: project-e02s5a0dpr00nk11bgb0p9
     concurrency:
-      group: project-e00pjzzrtk1fs3yavy
+      group: project-e02s5a0dpr00nk11bgb0p9
     runs-on: ubuntu-latest
 
     steps:
@@ -92,7 +93,7 @@ jobs:
     needs: [approve_terraform, detect-changes]
     name: 'Terraform ${{ matrix.solution }}'
     environment:
-      name: project-e00pjzzrtk1fs3yavy
+      name: project-e02s5a0dpr00nk11bgb0p9
     runs-on: ubuntu-latest
     continue-on-error: true
     strategy:
@@ -106,8 +107,8 @@ jobs:
         working-directory: ${{ matrix.solution }}
 
     env:
-      TF_VAR_subnet_id: vpcsubnet-e00dgdntmhgkeej1z3
-      TF_VAR_region: eu-north1
+      TF_VAR_subnet_id: vpcsubnet-e02xm3ng0e6e1yvvyk
+      TF_VAR_region: eu-north2
       TF_VAR_loki_access_key_id: ${{ secrets.SA_ACCESS_KEY_ID }}
       TF_VAR_loki_secret_key: ${{ secrets.SA_SECRET_KEY }}
 
@@ -124,15 +125,9 @@ jobs:
         echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> $GITHUB_ENV
         ssh-add
 
-    - name: Setup s3cmd
+    - name: Setup s5cmd
       run: |
-        pip3 install s3cmd --no-cache --quiet
-        s3cmd --configure --dump-config \
-        --access_key="${{ secrets.SA_ACCESS_KEY_ID }}" \
-        --secret_key="${{ secrets.SA_SECRET_KEY }}" \
-        --host="storage.eu-north1.nebius.cloud:443" \
-        --host-bucket="%(bucket)s.storage.eu-north1.nebius.cloud" \
-        > ~/.s3cfg
+        pip3 install s5cmd --no-cache --quiet
         mkdir -p tests/reports
 
     - name: Install XMLStarlet
@@ -263,7 +258,13 @@ jobs:
         tests/reports/TEST-result-${{ github.run_id }}.xml
 
     - name: Upload test results
-      run: s3cmd sync tests/reports s3://terraform-test-reports/${{ matrix.solution }}/
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.SA_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.SA_SECRET_KEY }}
+        AWS_REGION: ${{ env.TF_VAR_region }}
+        AWS_DEFAULT_REGION: ${{ env.TF_VAR_region }}
+      continue-on-error: true
+      run: s5cmd --endpoint-url "https://storage.${TF_VAR_region}.nebius.cloud" sync tests/reports/ s3://terraform-test-reports/${{ matrix.solution }}/
       if: always()
 
     - name: Load test report history
@@ -295,9 +296,9 @@ jobs:
   cleanup-infra:
     name: 'Cleanup Infra'
     environment:
-      name: project-e00pjzzrtk1fs3yavy
+      name: project-e02s5a0dpr00nk11bgb0p9
     concurrency:
-      group: project-e00pjzzrtk1fs3yavy
+      group: project-e02s5a0dpr00nk11bgb0p9
     runs-on: ubuntu-latest
     needs: terraform
     if: always() && needs.terraform.result
@@ -321,7 +322,29 @@ jobs:
           --public-key-id ${{ secrets.TERRAFORM_SA_PUBLIC_KEY_ID }} \
           --parent-id ${{ env.TF_VAR_parent_id }} \
           --private-key-file /tmp/sa.pem
-    
+
+    - name: Setup s5cmd
+      run: |
+        pip3 install s5cmd --no-cache --quiet
+
+    - name: Cleanup buckets
+      continue-on-error: true
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.SA_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.SA_SECRET_KEY }}
+        AWS_REGION: ${{ env.TF_VAR_region }}
+        AWS_DEFAULT_REGION: ${{ env.TF_VAR_region }}
+      run: |
+        for resource in \
+          "storage bucket" \
+        ; do
+        echo Cleaning up buckets $resource
+        eval nebius --format json $resource list \
+          | jq -r 'try .items[] | select(.metadata.name!="terraform-test-reports") | .metadata.name' \
+          | xargs -r -t -n 1 -I {} \
+            s5cmd --endpoint-url "https://storage.${TF_VAR_region}.nebius.cloud" rm "s3://{}/*"
+        done
+
     - name: Perform forced cleanup
       run: |
         for resource in \

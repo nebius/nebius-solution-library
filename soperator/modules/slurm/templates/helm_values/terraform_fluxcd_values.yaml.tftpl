@@ -66,6 +66,18 @@ resources:
           region: ${region}
           opentelemetry:
             enabled: ${telemetry_enabled}
+            %{~ if opentelemetry_batch_enabled ~}
+            batch:
+              %{~ if opentelemetry_batch.timeout != null ~}
+              timeout: ${opentelemetry_batch.timeout}
+              %{~ endif ~}
+              %{~ if opentelemetry_batch.send_batch_size != null ~}
+              sendBatchSize: ${opentelemetry_batch.send_batch_size}
+              %{~ endif ~}
+              %{~ if opentelemetry_batch.send_batch_max_size != null ~}
+              sendBatchMaxSize: ${opentelemetry_batch.send_batch_max_size}
+              %{~ endif ~}
+            %{~ endif ~}
             logs:
               %{~ if opentelemetry_collector_version != "" ~}
               version: ${opentelemetry_collector_version}
@@ -120,6 +132,10 @@ resources:
             version: ${vmstack_version}
             %{~ endif ~}
             values:
+              %{~ if kube_state_metrics_max_scrape_size != null ~}
+              kubeStateMetrics:
+                maxScrapeSize: "${kube_state_metrics_max_scrape_size}"
+              %{~ endif ~}
               vmagent:
                 spec:
                   extraArgs:

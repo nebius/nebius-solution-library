@@ -498,6 +498,13 @@ variable "k8s_cluster_node_ssh_access_users" {
   }
 }
 
+variable "k8s_cluster_node_ssh_access_public_ip" {
+  description = "Assign public IP addresses to k8s nodes when k8s_cluster_node_ssh_access_users is configured."
+  type        = bool
+  nullable    = false
+  default     = false
+}
+
 variable "etcd_cluster_size" {
   description = "Size of the etcd cluster. Must be a positive odd number (1, 3, 5…) to maintain quorum."
   type        = number
@@ -763,6 +770,7 @@ variable "slurm_nodeset_workers" {
       mount_path      = optional(string, "/mnt/local-nvme")
       filesystem_type = optional(string, "ext4")
     }), {})
+    max_pods = optional(number, 32)
     node_local_image_disk = object({
       enabled = bool
       spec = optional(object({
@@ -830,6 +838,14 @@ variable "slurm_nodeset_workers" {
       worker.autoscaling.min_size == null || worker.autoscaling.min_size <= worker.size
     ])
     error_message = "Worker nodeset autoscaling.min_size must be less than or equal to size."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.max_pods > 0
+    ])
+    error_message = "Worker nodeset max_pods must be greater than 0."
   }
 
   validation {
@@ -1198,10 +1214,76 @@ variable "public_o11y_enabled" {
   default     = true
 }
 
+variable "allow_o11y_region_migration" {
+  description = "Whether to update an existing o11y logs project when its region differs from var.region."
+  type        = bool
+  default     = false
+}
+
 variable "dcgm_job_mapping_enabled" {
   description = "Whether to enable HPC job mapping by installing a separate dcgm-exporter"
   type        = bool
   default     = true
+}
+
+variable "kube_state_metrics_max_scrape_size" {
+  description = "Maximum kube-state-metrics HTTP scrape size in bytes. Leave null to let the Slurm module raise it automatically for large clusters."
+  type        = number
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.kube_state_metrics_max_scrape_size == null || var.kube_state_metrics_max_scrape_size > 0
+    error_message = "kube_state_metrics_max_scrape_size must be greater than 0 when set."
+  }
+}
+
+variable "opentelemetry_batch" {
+  description = "OpenTelemetry batch processor overrides for logs, jail logs, and events collectors. Leave null to use chart defaults."
+  type = object({
+    timeout             = optional(string)
+    send_batch_size     = optional(number)
+    send_batch_max_size = optional(number)
+  })
+  default  = null
+  nullable = true
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.timeout == null ||
+      trimspace(var.opentelemetry_batch.timeout) != ""
+    )
+    error_message = "opentelemetry_batch.timeout must be non-empty when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_size == null ||
+      var.opentelemetry_batch.send_batch_size > 0
+    )
+    error_message = "opentelemetry_batch.send_batch_size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_max_size == null ||
+      var.opentelemetry_batch.send_batch_max_size > 0
+    )
+    error_message = "opentelemetry_batch.send_batch_max_size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_size == null ||
+      var.opentelemetry_batch.send_batch_max_size == null ||
+      var.opentelemetry_batch.send_batch_max_size >= var.opentelemetry_batch.send_batch_size
+    )
+    error_message = "opentelemetry_batch.send_batch_max_size must be greater than or equal to send_batch_size when both are set."
+  }
 }
 
 variable "soperator_notifier" {

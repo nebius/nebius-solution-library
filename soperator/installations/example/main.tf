@@ -54,6 +54,7 @@ locals {
       subset_index       = subset
       preemptible        = nodeset.preemptible
       reservation_policy = nodeset.reservation_policy
+      max_pods           = nodeset.max_pods
       local_nvme = {
         enabled         = try(nodeset.local_nvme.enabled, false)
         mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
@@ -240,8 +241,9 @@ module "k8s" {
     } : null
   }
 
-  node_ssh_access_users = var.k8s_cluster_node_ssh_access_users
-  nvidia_config_lines   = var.nvidia_config_lines
+  node_ssh_access_users     = var.k8s_cluster_node_ssh_access_users
+  node_ssh_access_public_ip = var.k8s_cluster_node_ssh_access_public_ip
+  nvidia_config_lines       = var.nvidia_config_lines
 
   providers = {
     nebius = nebius
@@ -297,11 +299,13 @@ module "o11y" {
 
   source = "../../modules/o11y"
 
-  iam_project_id      = var.iam_project_id
-  o11y_iam_tenant_id  = var.o11y_iam_tenant_id
-  o11y_profile        = var.o11y_profile
-  k8s_cluster_context = module.k8s.cluster_context
-  company_name        = var.company_name
+  iam_project_id              = var.iam_project_id
+  o11y_iam_tenant_id          = var.o11y_iam_tenant_id
+  o11y_profile                = var.o11y_profile
+  region                      = var.region
+  allow_o11y_region_migration = var.allow_o11y_region_migration
+  k8s_cluster_context         = module.k8s.cluster_context
+  company_name                = var.company_name
 }
 
 module "slurm" {
@@ -335,6 +339,9 @@ module "slurm" {
 
   maintenance                    = var.maintenance
   maintenance_ignore_node_groups = var.maintenance_ignore_node_groups
+
+  kube_state_metrics_max_scrape_size = var.kube_state_metrics_max_scrape_size
+  opentelemetry_batch                = var.opentelemetry_batch
 
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
   cuda_version                  = lookup(var.platform_cuda_versions, var.slurm_nodeset_workers[0].resource.platform)

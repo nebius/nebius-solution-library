@@ -137,6 +137,8 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
     reservation_policy = var.node_group_workers_v2[count.index].reservation_policy
 
+    max_pods = var.node_group_workers_v2[count.index].max_pods
+
     gpu_settings = (var.use_preinstalled_gpu_drivers && local.node_group_gpu_present_v2.worker[count.index]) ? {
       drivers_preset = lookup(var.platform_driver_presets, var.node_group_workers_v2[count.index].resource.platform)
     } : null
@@ -179,7 +181,7 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
     )
 
     network_interfaces = [{
-      public_ip_address = local.node_ssh_access.enabled ? {} : null
+      public_ip_address = local.node_ssh_access_public_ip.enabled ? {} : null
       subnet_id         = var.vpc_subnet_id
     }]
 

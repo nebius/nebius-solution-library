@@ -419,6 +419,66 @@ variable "dcgm_job_mapping_enabled" {
   default     = true
 }
 
+variable "kube_state_metrics_max_scrape_size" {
+  description = "Maximum kube-state-metrics HTTP scrape size in bytes. Leave null to raise it automatically for large clusters."
+  type        = number
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.kube_state_metrics_max_scrape_size == null || var.kube_state_metrics_max_scrape_size > 0
+    error_message = "kube_state_metrics_max_scrape_size must be greater than 0 when set."
+  }
+}
+
+variable "opentelemetry_batch" {
+  description = "OpenTelemetry batch processor overrides for logs, jail logs, and events collectors. Leave null to use chart defaults."
+  type = object({
+    timeout             = optional(string)
+    send_batch_size     = optional(number)
+    send_batch_max_size = optional(number)
+  })
+  default  = null
+  nullable = true
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.timeout == null ||
+      trimspace(var.opentelemetry_batch.timeout) != ""
+    )
+    error_message = "opentelemetry_batch.timeout must be non-empty when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_size == null ||
+      var.opentelemetry_batch.send_batch_size > 0
+    )
+    error_message = "opentelemetry_batch.send_batch_size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_max_size == null ||
+      var.opentelemetry_batch.send_batch_max_size > 0
+    )
+    error_message = "opentelemetry_batch.send_batch_max_size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_size == null ||
+      var.opentelemetry_batch.send_batch_max_size == null ||
+      var.opentelemetry_batch.send_batch_max_size >= var.opentelemetry_batch.send_batch_size
+    )
+    error_message = "opentelemetry_batch.send_batch_max_size must be greater than or equal to send_batch_size when both are set."
+  }
+}
+
 variable "dcgm_job_map_dir" {
   description = "Directory where HPC job mapping files are located"
   type        = string

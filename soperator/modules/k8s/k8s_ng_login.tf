@@ -66,7 +66,7 @@ resource "nebius_mk8s_v1_node_group" "login" {
 
     network_interfaces = [
       {
-        public_ip_address = local.node_ssh_access.enabled ? {} : null
+        public_ip_address = local.node_ssh_access_public_ip.enabled ? {} : null
         subnet_id         = var.vpc_subnet_id
       }
     ]
