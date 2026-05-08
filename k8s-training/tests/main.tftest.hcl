@@ -1,8 +1,8 @@
 ###GLOBALVARIABLES OWERWITE BLOCK###
 variables {
-  gpu_nodes_platform = "gpu-h200-sxm"
+  gpu_nodes_platform    = "gpu-h200-sxm"
   gpu_nodes_preemptible = false
-  gpu_nodes_preset   = "8gpu-128vcpu-1600gb"
+  gpu_nodes_preset      = "8gpu-128vcpu-1600gb"
   loki = {
     enabled = false
   }

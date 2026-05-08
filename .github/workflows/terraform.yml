@@ -175,7 +175,78 @@ jobs:
 
     # Run Terraform Tests
     - name: Terraform Test
-      run: terraform test -junit-xml=tests/reports/TEST-result-${{ github.run_id }}.xml
+      timeout-minutes: 150
+      run: |
+        report_path="tests/reports/TEST-result-${{ github.run_id }}.xml"
+
+        if [ "${{ matrix.solution }}" != "k8s-training" ]; then
+          terraform test -junit-xml="${report_path}"
+          exit $?
+        fi
+
+        cluster_name="${TF_VAR_cluster_name:-k8s-training}"
+        gpu_node_group_name="${cluster_name}-ng-gpu-0"
+        poll_seconds=60
+
+        terraform test -junit-xml="${report_path}" &
+        test_pid=$!
+
+        stop_test() {
+          if kill -0 "${test_pid}" 2>/dev/null; then
+            kill "${test_pid}" || true
+            wait "${test_pid}" || true
+          fi
+        }
+
+        # Fail early when the GPU node group reaches a terminal provisioning state.
+        while kill -0 "${test_pid}" 2>/dev/null; do
+          cluster_id="$(
+            { nebius mk8s v1 cluster list --parent-id "${TF_VAR_parent_id}" --format json 2>/dev/null || true; } \
+              | jq -r --arg name "${cluster_name}" '
+                  [(.items // [])[] | select(.metadata.name == $name)]
+                  | sort_by(.metadata.created_at)
+                  | last
+                  | .metadata.id // empty
+                '
+          )"
+
+          if [ -n "${cluster_id}" ]; then
+            node_group_json="$(
+              { nebius mk8s v1 node-group list --parent-id "${cluster_id}" --format json 2>/dev/null || true; } \
+                | jq -c --arg name "${gpu_node_group_name}" '
+                    [(.items // [])[] | select(.metadata.name == $name)]
+                    | sort_by(.metadata.created_at)
+                    | last // empty
+                  '
+            )"
+
+            if [ -n "${node_group_json}" ] && printf '%s\n' "${node_group_json}" | jq -e '
+              (.status.events // [])
+              | map(.last_occurrence)
+              | any(
+                  (.code == "ComputeInstanceCreationFailed") or
+                  (.code == "NodeNotFound" and ((.message // "") | contains("STOPPED for longer than")))
+                )
+            ' >/dev/null; then
+              echo "Detected fatal GPU node provisioning event for ${gpu_node_group_name}"
+              printf '%s\n' "${node_group_json}" | jq -r '
+                (.status.events // [])
+                | map(.last_occurrence)
+                | map(select(
+                    (.code == "ComputeInstanceCreationFailed") or
+                    (.code == "NodeNotFound" and ((.message // "") | contains("STOPPED for longer than")))
+                  ))
+                | .[]
+              '
+              stop_test
+              exit 1
+            fi
+          fi
+
+          sleep "${poll_seconds}"
+        done
+
+        wait "${test_pid}"
 
     - name: Set date in report
       run: |
@@ -251,11 +322,11 @@ jobs:
           --public-key-id ${{ secrets.TERRAFORM_SA_PUBLIC_KEY_ID }} \
           --parent-id ${{ env.TF_VAR_parent_id }} \
           --private-key-file /tmp/sa.pem
-    
+
     - name: Setup s5cmd
       run: |
         pip3 install s5cmd --no-cache --quiet
-    
+
     - name: Cleanup buckets
       continue-on-error: true
       env:
@@ -267,7 +338,7 @@ jobs:
         for resource in \
           "storage bucket" \
         ; do
-        echo Cleaning up buckets $resource 
+        echo Cleaning up buckets $resource
         eval nebius --format json $resource list \
           | jq -r 'try .items[] | select(.metadata.name!="terraform-test-reports") | .metadata.name' \
           | xargs -r -t -n 1 -I {} \
@@ -283,10 +354,30 @@ jobs:
           "compute v1 disk" \
           "compute v1 gpu-cluster" \
           "vpc v1alpha1 allocation" \
-          "storage bucket" \
         ; do
           echo Deleting all $resource
           eval nebius --format json $resource list \
           | jq -r 'try .items[] | select(.metadata.name!="terraform-test-reports") | .metadata.id' \
           | eval xargs -r -n 1 nebius $resource delete --id
         done
+
+    - name: Force delete storage buckets (ttl=0)
+      run: |
+        nebius --format json storage bucket list --parent-id "${TF_VAR_parent_id}" \
+          | jq -r '(.items // [])[] | select(.metadata.name!="terraform-test-reports") | .metadata.id' \
+          | while read -r bucket_id; do
+              [ -z "${bucket_id}" ] && continue
+              echo "Deleting bucket ${bucket_id} with --ttl 0"
+              nebius storage bucket delete --id "${bucket_id}" --ttl 0 || true
+            done
+
+    - name: Purge scheduled storage buckets
+      continue-on-error: true
+      run: |
+        nebius --format json storage bucket list --parent-id "${TF_VAR_parent_id}" \
+          | jq -r '(.items // [])[] | select(.metadata.name!="terraform-test-reports") | select((.status.purge_at // null) != null) | .metadata.id' \
+          | while read -r bucket_id; do
+              [ -z "${bucket_id}" ] && continue
+              echo "Purging bucket ${bucket_id}"
+              nebius storage bucket purge --id "${bucket_id}" || true
+            done
