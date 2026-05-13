@@ -110,7 +110,7 @@ This step allows you to retain the IP address even if the VM is deleted. If you 
    --parent-id <project-id> --name wireguard_allocation_pub \
    --format json | jq -r '.metadata.id'
    ```
-2. Assign the value from the previous step to the `public_ip_allocation_id` variable in [variables.tf](./variables.tf):
+2. Assign the value from the previous step to the `public_ip_allocation_id` variable in `terraform.tfvars`:
 
 ```bash
 public_ip_allocation_id = <public_ip_allocation_id>
