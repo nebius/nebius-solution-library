@@ -769,6 +769,17 @@ variable "worker_nodesets" {
     }))
   }))
   default = []
+
+  validation {
+    condition = alltrue([
+      for worker in var.worker_nodesets :
+      worker.persistent_volume_claim_retention_policy == null || (
+        contains(["Retain", "Delete"], worker.persistent_volume_claim_retention_policy.when_deleted) &&
+        contains(["Retain", "Delete"], worker.persistent_volume_claim_retention_policy.when_scaled)
+      )
+    ])
+    error_message = "When worker persistent_volume_claim_retention_policy is set, when_deleted and when_scaled must be `Retain` or `Delete`."
+  }
 }
 
 variable "slurm_nodesets_partitions" {

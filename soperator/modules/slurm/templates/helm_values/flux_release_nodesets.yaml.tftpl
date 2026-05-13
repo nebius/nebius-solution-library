@@ -17,11 +17,6 @@ nodesets:
 
         replicas: ${nodeset.replicas}
         maxUnavailable: ${nodeset.max_unavailable}
-        %{~ if nodeset.persistent_volume_claim_retention_policy != null ~}
-        persistentVolumeClaimRetentionPolicy:
-          whenDeleted: ${nodeset.persistent_volume_claim_retention_policy.when_deleted}
-          whenScaled: ${nodeset.persistent_volume_claim_retention_policy.when_scaled}
-        %{~ endif ~}
         %{~ if nodeset.ephemeral_nodes ~}
         ephemeralNodes: true
         initialNumberEphemeralNodes: ${nodeset.initial_number_ephemeral_nodes}
@@ -110,9 +105,6 @@ nodesets:
               - name: ${sub_mount.name}
                 mountPath: ${sub_mount.mount_path}
                 volumeClaimTemplateSpec:
-                  %{~ if nodeset.ephemeral_nodes && sub_mount.name == "local-data" ~}
-                  retainPolicy: Delete
-                  %{~ endif ~}
                   accessModes:
                     - ReadWriteOnce
                   storageClassName: ${sub_mount.storage_class_name}
@@ -134,9 +126,6 @@ nodesets:
               - name: image-storage
                 mountPath: /mnt/image-storage
                 volumeClaimTemplateSpec:
-                  %{~ if nodeset.ephemeral_nodes ~}
-                  retainPolicy: Delete
-                  %{~ endif ~}
                   accessModes:
                     - ReadWriteOnce
                   storageClassName: ${nodeset.node_local_image_storage.spec.storage_class_name}
@@ -144,6 +133,12 @@ nodesets:
                     requests:
                       storage: ${nodeset.node_local_image_storage.spec.size_gibibytes}Gi
               %{~ endif ~}
+
+            %{~ if nodeset.persistent_volume_claim_retention_policy != null ~}
+            persistentVolumeClaimRetentionPolicy:
+              whenDeleted: ${nodeset.persistent_volume_claim_retention_policy.when_deleted}
+              whenScaled: ${nodeset.persistent_volume_claim_retention_policy.when_scaled}
+            %{~ endif ~}
 
             customVolumeMounts:
               - name: slurm-scripts
