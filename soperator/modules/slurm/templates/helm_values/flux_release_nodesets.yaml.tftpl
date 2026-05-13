@@ -134,6 +134,12 @@ nodesets:
                       storage: ${nodeset.node_local_image_storage.spec.size_gibibytes}Gi
               %{~ endif ~}
 
+            %{~ if nodeset.persistent_volume_claim_retention_policy != null ~}
+            persistentVolumeClaimRetentionPolicy:
+              whenDeleted: ${nodeset.persistent_volume_claim_retention_policy.when_deleted}
+              whenScaled: ${nodeset.persistent_volume_claim_retention_policy.when_scaled}
+            %{~ endif ~}
+
             customVolumeMounts:
               - name: slurm-scripts
                 mountPath: /opt/slurm_scripts/

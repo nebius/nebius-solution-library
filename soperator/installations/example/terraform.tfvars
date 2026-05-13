@@ -306,6 +306,12 @@ slurm_nodeset_workers = [
     # By default, false.
     ephemeral_nodes                = false
     initial_number_ephemeral_nodes = 1
+    # Optional PersistentVolumeClaim retention policy for PVCs created by the worker nodeset StatefulSet.
+    # Supported values: `Retain` or `Delete`.
+    persistent_volume_claim_retention_policy = {
+      when_deleted = "Delete"
+      when_scaled  = "Delete"
+    }
     # Optional local NVMe passthrough for this nodeset only.
     # Uses local instance disks, creates a RAID0 array and mounts it on the host via cloud-init.
     # mount_path: path used for both host RAID mount and jail submount.
