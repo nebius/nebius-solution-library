@@ -234,8 +234,8 @@ module "k8s" {
     } : null
   }
 
-  node_ssh_access_users   = var.k8s_cluster_node_ssh_access_users
-  nvidia_admin_conf_lines = var.nvidia_admin_conf_lines
+  node_ssh_access_users = var.k8s_cluster_node_ssh_access_users
+  nvidia_config_lines   = var.nvidia_config_lines
 
   providers = {
     nebius = nebius
@@ -410,22 +410,6 @@ module "slurm" {
       device         = module.filestore.accounting.mount_tag
     } : null
   }
-  node_local_jail_submounts = [for sm in var.node_local_jail_submounts : {
-    name               = sm.name
-    mount_path         = sm.mount_path
-    size_gibibytes     = sm.size_gibibytes
-    disk_type          = sm.disk_type
-    filesystem_type    = sm.filesystem_type
-    storage_class_name = replace("${local.storage_class_prefix}-${lower(sm.disk_type)}-${lower(sm.filesystem_type)}", "_", "-")
-  }]
-  node_local_image_storage = {
-    enabled = var.node_local_image_disk.enabled
-    spec = var.node_local_image_disk.enabled ? {
-      size_gibibytes     = var.node_local_image_disk.spec.size_gibibytes
-      filesystem_type    = var.node_local_image_disk.spec.filesystem_type
-      storage_class_name = replace("${local.storage_class_prefix}-${lower(var.node_local_image_disk.spec.disk_type)}-${lower(var.node_local_image_disk.spec.filesystem_type)}", "_", "-")
-    } : null
-  }
   nfs = {
     enabled    = var.nfs.enabled
     path       = var.nfs.enabled ? module.nfs-server[0].nfs_export_path : null
@@ -485,24 +469,44 @@ module "slurm" {
       ],
       nodeset.features != null ? nodeset.features : []
     )
-    cpu_topology                             = module.resources.cpu_topology_by_platform[nodeset.resource.platform][nodeset.resource.preset]
-    gres_name                                = lookup(module.resources.gres_name_by_platform, nodeset.resource.platform, null)
-    gres_config                              = lookup(module.resources.gres_config_by_platform, nodeset.resource.platform, null)
-    create_partition                         = nodeset.create_partition != null ? nodeset.create_partition : false
-    ephemeral_nodes                          = nodeset.ephemeral_nodes
+    cpu_topology                   = module.resources.cpu_topology_by_platform[nodeset.resource.platform][nodeset.resource.preset]
+    gres_name                      = lookup(module.resources.gres_name_by_platform, nodeset.resource.platform, null)
+    gres_config                    = lookup(module.resources.gres_config_by_platform, nodeset.resource.platform, null)
+    create_partition               = nodeset.create_partition != null ? nodeset.create_partition : false
+    ephemeral_nodes                = nodeset.ephemeral_nodes
     persistent_volume_claim_retention_policy = nodeset.persistent_volume_claim_retention_policy
+    initial_number_ephemeral_nodes = nodeset.initial_number_ephemeral_nodes
     local_nvme = {
       enabled         = try(nodeset.local_nvme.enabled, false)
       mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
       filesystem_type = try(nodeset.local_nvme.filesystem_type, "ext4")
     }
+    node_local_jail_submounts = [for sm in nodeset.node_local_jail_submounts : {
+      name               = sm.name
+      mount_path         = sm.mount_path
+      size_gibibytes     = sm.size_gibibytes
+      disk_type          = sm.disk_type
+      filesystem_type    = sm.filesystem_type
+      storage_class_name = replace("${local.storage_class_prefix}-${lower(sm.disk_type)}-${lower(sm.filesystem_type)}", "_", "-")
+    }]
+    node_local_image_storage = {
+      enabled = nodeset.node_local_image_disk.enabled
+      spec = nodeset.node_local_image_disk.enabled ? {
+        size_gibibytes     = nodeset.node_local_image_disk.spec.size_gibibytes
+        filesystem_type    = nodeset.node_local_image_disk.spec.filesystem_type
+        storage_class_name = replace("${local.storage_class_prefix}-${lower(nodeset.node_local_image_disk.spec.disk_type)}-${lower(nodeset.node_local_image_disk.spec.filesystem_type)}", "_", "-")
+      } : null
+    }
   }]
 
-  login_allocation_id            = module.k8s.static_ip_allocation_id
-  login_public_ip                = var.slurm_login_public_ip
-  tailscale_enabled              = var.tailscale_enabled
-  login_sshd_config_map_ref_name = var.slurm_login_sshd_config_map_ref_name
-  login_ssh_root_public_keys     = var.slurm_login_ssh_root_public_keys
+  login_allocation_id              = module.k8s.static_ip_allocation_id
+  login_public_ip                  = var.slurm_login_public_ip
+  tailscale_enabled                = var.tailscale_enabled
+  login_sshd_config_map_ref_name   = var.slurm_login_sshd_config_map_ref_name
+  sssd_conf_secret_ref_name        = var.slurm_sssd_conf_secret_ref_name
+  sssd_ldap_ca_config_map_ref_name = var.slurm_sssd_ldap_ca_config_map_ref_name
+  sssd_enabled                     = var.slurm_sssd_enabled
+  login_ssh_root_public_keys       = var.slurm_login_ssh_root_public_keys
 
   flux_namespace = local.flux_namespace
 

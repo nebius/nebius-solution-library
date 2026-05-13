@@ -27,3 +27,14 @@ output "shared-filesystem" {
   description = "Shared-filesystem."
   value       = local.shared-filesystem
 }
+
+output "filesystem_csi" {
+  description = "Nebius Shared Filesystem CSI installation details."
+  value = local.filesystem_csi_enabled ? {
+    release_name                = nonsensitive(one(helm_release.filesystem_csi).name)
+    namespace                   = nonsensitive(one(helm_release.filesystem_csi).namespace)
+    status                      = nonsensitive(one(helm_release.filesystem_csi).status)
+    storage_class_name          = local.filesystem_csi_storage_class_name
+    default_storage_class_patch = var.filesystem_csi.make_default_storage_class
+  } : null
+}

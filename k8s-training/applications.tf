@@ -45,3 +45,8 @@ module "kuberay-service" {
   max_gpu_replicas = var.kuberay_max_gpu_replicas
   serve_config_v2  = var.kuberay_serve_config_v2
 }
+
+module "opa_gatekeeper" {
+  source = "../modules/opa_gatekeeper"
+  count  = var.enable_opa_gatekeeper ? 1 : 0
+}

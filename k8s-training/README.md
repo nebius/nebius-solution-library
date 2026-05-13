@@ -127,6 +127,24 @@ You can use Filestore to add external storage to K8s clusters, this allows you t
 
 For more information on how to access storage in K8s, refer [here](#accessing-storage).
 
+### Shared filesystem CSI automation
+
+When a shared filesystem is present, either because this stack created it or because `existing_filestore` was provided, Terraform can also install the Nebius Shared Filesystem CSI driver and promote its StorageClass to the cluster default.
+
+```hcl
+enable_filestore                                  = true
+existing_filestore                                = "" # or an existing filesystem ID
+filestore_mount_path                              = "/mnt/data"
+filesystem_csi = {
+  chart_version                       = "0.1.5"
+  namespace                           = "kube-system"
+  make_default_storage_class          = true
+  previous_default_storage_class_name = "compute-csi-default-sc"
+}
+```
+
+This Terraform automation installs the CSI driver and configures the StorageClass only. Verification, pod-level validation, and cleanup remain in `filesystem-csi-validation/` as an explicit opt-in workflow.
+
 ## Connecting to the cluster
 
 ### Preparing the environment

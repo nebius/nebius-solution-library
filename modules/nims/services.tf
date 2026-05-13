@@ -269,3 +269,21 @@ resource "kubernetes_service_v1" "cosmos_embed1" {
     type = "ClusterIP"
   }
 }
+
+resource "kubernetes_service_v1" "nemotron_nano_12b_v2_vl" {
+  depends_on = [kubernetes_namespace_v1.nims]
+  metadata {
+    name      = "nemotron-nano-12b-v2-vl-svc"
+    namespace = var.namespace
+  }
+  spec {
+    selector = {
+      app = "nemotron-nano-12b-v2-vl"
+    }
+    port {
+      port        = 8000
+      target_port = 8000
+    }
+    type = "ClusterIP"
+  }
+}

@@ -43,6 +43,11 @@ while true; do
 done
 
 
+# Skip deletion if there are no disks to delete
+if [ ${#result_ids[@]} -eq 0 ]; then
+    exit 0
+fi
+
 retry_script="$(dirname "$0")/../../scripts/retry.sh"
 
 for id in "${result_ids[@]}"; do

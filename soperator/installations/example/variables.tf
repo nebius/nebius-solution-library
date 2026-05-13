@@ -244,96 +244,6 @@ variable "filestore_jail_submounts" {
   }
 }
 
-variable "node_local_jail_submounts" {
-  description = "Node-local disks to be mounted inside jail on worker nodes."
-  type = list(object({
-    name            = string
-    mount_path      = string
-    size_gibibytes  = number
-    disk_type       = string
-    filesystem_type = string
-  }))
-  nullable = false
-  default  = []
-
-  validation {
-    condition = alltrue([
-      for sm in var.node_local_jail_submounts : (
-        contains(
-          [
-            module.resources.disk_types.network_ssd,
-            module.resources.disk_types.network_ssd_non_replicated,
-            module.resources.disk_types.network_ssd_io_m3,
-          ],
-          sm.disk_type
-        )
-    )])
-    error_message = "Disk type must be one of `NETWORK_SSD`, `NETWORK_SSD_NON_REPLICATED` or `NETWORK_SSD_IO_M3`. See https://docs.nebius.com/compute/storage/types#disks-types"
-  }
-  validation {
-    condition = alltrue([
-      for sm in var.node_local_jail_submounts : (
-        contains(
-          [
-            module.resources.filesystem_types.ext4,
-            module.resources.filesystem_types.xfs,
-          ],
-          sm.filesystem_type
-        )
-    )])
-    error_message = "Filesystem type must be one of `ext4` or `xfs`."
-  }
-}
-
-variable "node_local_image_disk" {
-  description = "Whether to create extra NRD/IO M3 disks for storing Docker/Enroot images and container filesystems on each worker node."
-  type = object({
-    enabled = bool
-    spec = optional(object({
-      size_gibibytes  = number
-      filesystem_type = string
-      disk_type       = string
-    }))
-  })
-  default = {
-    enabled = false
-  }
-
-  validation {
-    condition = (var.node_local_image_disk.enabled
-      ? var.node_local_image_disk.spec != null
-      : true
-    )
-    error_message = "Spec must be provided if enabled."
-  }
-  validation {
-    condition = (var.node_local_image_disk.spec == null
-      ? true
-      : (contains(
-        [
-          module.resources.filesystem_types.ext4,
-          module.resources.filesystem_types.xfs,
-        ],
-        var.node_local_image_disk.spec.filesystem_type
-      ))
-    )
-    error_message = "Filesystem type must be one of `ext4` or `xfs`."
-  }
-  validation {
-    condition = (var.node_local_image_disk.spec == null
-      ? true
-      : (contains(
-        [
-          module.resources.disk_types.network_ssd_non_replicated,
-          module.resources.disk_types.network_ssd_io_m3,
-        ],
-        var.node_local_image_disk.spec.disk_type
-      ))
-    )
-    error_message = "Local image disk type must be one of `NETWORK_SSD_NON_REPLICATED` or `NETWORK_SSD_IO_M3`. See https://docs.nebius.com/compute/storage/types#disks-types"
-  }
-}
-
 variable "filestore_accounting" {
   description = "Shared filesystem to be used for accounting DB"
   type = object({
@@ -482,13 +392,17 @@ variable "platform_cuda_versions" {
   description = "Per-platform CUDA versions consumed by Slurm/operator (e.g., 12.8.2). Keys are platform IDs (e.g., gpu-h100-sxm)."
   type        = map(string)
   default = {
+    cpu-e1         = "12.9.0"
     cpu-e2         = "12.9.0"
     cpu-d3         = "12.9.0"
-    gpu-h100-sxm   = "12.9.0"
-    gpu-h200-sxm   = "12.9.0"
-    gpu-b200-sxm   = "12.9.0"
-    gpu-b200-sxm-a = "12.9.0"
+    gpu-l40s-a     = "13.0.2"
+    gpu-l40s-d     = "13.0.2"
+    gpu-h100-sxm   = "13.0.2"
+    gpu-h200-sxm   = "13.0.2"
+    gpu-b200-sxm   = "13.0.2"
+    gpu-b200-sxm-a = "13.0.2"
     gpu-b300-sxm   = "13.0.2"
+    gpu-rtx6000    = "13.0.2"
   }
 }
 
@@ -496,13 +410,17 @@ variable "platform_driver_presets" {
   description = "Per-platform GPU driver presets. Keys are platform IDs (e.g., gpu-h100-sxm); values are driver presets (e.g., cuda13.0)."
   type        = map(string)
   default = {
-    cpu-e2         = "cuda12.8"
-    cpu-d3         = "cuda12.8"
-    gpu-h100-sxm   = "cuda12.8"
-    gpu-h200-sxm   = "cuda12.8"
-    gpu-b200-sxm   = "cuda12.8"
-    gpu-b200-sxm-a = "cuda12.8"
+    cpu-e1         = null
+    cpu-e2         = null
+    cpu-d3         = null
+    gpu-l40s-a     = "cuda13.0"
+    gpu-l40s-d     = "cuda13.0"
+    gpu-h100-sxm   = "cuda13.0"
+    gpu-h200-sxm   = "cuda13.0"
+    gpu-b200-sxm   = "cuda13.0"
+    gpu-b200-sxm-a = "cuda13.0"
     gpu-b300-sxm   = "cuda13.0"
+    gpu-rtx6000    = "cuda13.0"
   }
 }
 
@@ -512,8 +430,8 @@ variable "use_preinstalled_gpu_drivers" {
   default     = false
 }
 
-variable "nvidia_admin_conf_lines" {
-  description = "Lines to write to /etc/modprobe.d/nvidia_admin.conf via cloud-init (GPU workers only)."
+variable "nvidia_config_lines" {
+  description = "Lines to write to /etc/modprobe.d/nvidia_config.conf via cloud-init (GPU workers only)."
   type        = list(string)
   default     = []
 }
@@ -719,9 +637,10 @@ variable "slurm_nodeset_workers" {
       policy          = optional(string)
       reservation_ids = optional(list(string))
     }))
-    features         = optional(list(string))
-    create_partition = optional(bool)
-    ephemeral_nodes  = optional(bool, false)
+    features                       = optional(list(string))
+    create_partition               = optional(bool)
+    ephemeral_nodes                = optional(bool, false)
+    initial_number_ephemeral_nodes = optional(number, 0)
     persistent_volume_claim_retention_policy = optional(object({
       when_deleted = string
       when_scaled  = string
@@ -731,6 +650,21 @@ variable "slurm_nodeset_workers" {
       mount_path      = optional(string, "/mnt/local-nvme")
       filesystem_type = optional(string, "ext4")
     }), {})
+    node_local_image_disk = object({
+      enabled = bool
+      spec = optional(object({
+        size_gibibytes  = number
+        filesystem_type = string
+        disk_type       = string
+      }))
+    })
+    node_local_jail_submounts = list(object({
+      name            = string
+      mount_path      = string
+      size_gibibytes  = number
+      disk_type       = string
+      filesystem_type = string
+    }))
   }))
   nullable = false
   default = [{
@@ -745,6 +679,10 @@ variable "slurm_nodeset_workers" {
       size_gibibytes       = 512
       block_size_kibibytes = 4
     }
+    node_local_image_disk = {
+      enabled = false
+    }
+    node_local_jail_submounts = []
   }]
 
   validation {
@@ -789,6 +727,78 @@ variable "slurm_nodeset_workers" {
       contains(["ext4", "xfs"], try(worker.local_nvme.filesystem_type, "ext4"))
     ])
     error_message = "When worker local NVMe filesystem_type is set, it must be `ext4` or `xfs`."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.node_local_image_disk.enabled ?
+      worker.node_local_image_disk.spec != null : true
+    ])
+    error_message = "slurm_nodeset_workers.node_local_image_disk.spec must be provided if enabled."
+  }
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.node_local_image_disk.spec == null
+      ? true
+      : (contains(
+        [
+          module.resources.filesystem_types.ext4,
+          module.resources.filesystem_types.xfs,
+        ],
+        worker.node_local_image_disk.spec.filesystem_type
+      ))
+    ])
+    error_message = "slurm_nodeset_workers.node_local_image_disk.spec.filesystem_type must be one of `ext4` or `xfs`."
+  }
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.node_local_image_disk.spec == null
+      ? true
+      : (contains(
+        [
+          module.resources.disk_types.network_ssd_non_replicated,
+          module.resources.disk_types.network_ssd_io_m3,
+        ],
+        worker.node_local_image_disk.spec.disk_type
+      ))
+    ])
+    error_message = "Local image disk type must be one of `NETWORK_SSD_NON_REPLICATED` or `NETWORK_SSD_IO_M3`. See https://docs.nebius.com/compute/storage/types#disks-types"
+  }
+  validation {
+    condition = alltrue(flatten([
+      for worker in var.slurm_nodeset_workers : [
+        for sm in worker.node_local_jail_submounts : (
+          contains(
+            [
+              module.resources.disk_types.network_ssd,
+              module.resources.disk_types.network_ssd_non_replicated,
+              module.resources.disk_types.network_ssd_io_m3,
+            ],
+            sm.disk_type
+          )
+        )
+      ]
+    ]))
+    error_message = "Disk type must be one of `NETWORK_SSD`, `NETWORK_SSD_NON_REPLICATED` or `NETWORK_SSD_IO_M3`. See https://docs.nebius.com/compute/storage/types#disks-types"
+  }
+  validation {
+    condition = alltrue(flatten([
+      for worker in var.slurm_nodeset_workers : [
+        for sm in worker.node_local_jail_submounts : (
+          contains(
+            [
+              module.resources.filesystem_types.ext4,
+              module.resources.filesystem_types.xfs,
+            ],
+            sm.filesystem_type
+          )
+        )
+      ]
+    ]))
+    error_message = "Filesystem type must be one of `ext4` or `xfs`."
   }
 
   validation {
@@ -991,6 +1001,24 @@ variable "slurm_login_sshd_config_map_ref_name" {
   default     = ""
 }
 
+variable "slurm_sssd_conf_secret_ref_name" {
+  description = "Name of Secret containing sssd.conf propagated to controller, login, and worker sssd containers."
+  type        = string
+  default     = ""
+}
+
+variable "slurm_sssd_ldap_ca_config_map_ref_name" {
+  description = "Name of ConfigMap containing LDAP CA certificates propagated to controller, login, and worker sssd containers."
+  type        = string
+  default     = ""
+}
+
+variable "slurm_sssd_enabled" {
+  description = "Whether to enable the SSSD sidecar on Slurm controller, login, and worker nodes."
+  type        = bool
+  default     = false
+}
+
 variable "slurm_login_ssh_root_public_keys" {
   description = "Authorized keys accepted for connecting to Slurm login nodes via SSH as 'root' user."
   type        = list(string)
@@ -1151,7 +1179,6 @@ variable "backups_password" {
   description = "Password for encrypting jail backups."
   type        = string
   nullable    = false
-  sensitive   = true
 }
 
 variable "backups_schedule" {
@@ -1215,8 +1242,8 @@ variable "active_checks_scope" {
   description = "Scope of active checks. Defines what active checks should be checked during cluster bootstrap."
   default     = ""
   validation {
-    condition     = contains(["dev", "testing", "prod_quick", "prod_acceptance"], var.active_checks_scope)
-    error_message = "active_checks_scope should be one of: dev, testing, prod_quick, prod_acceptance."
+    condition     = contains(["dev", "testing", "prod_quick", "prod_acceptance", "essential"], var.active_checks_scope)
+    error_message = "active_checks_scope should be one of: dev, testing, prod_quick, prod_acceptance, essential."
   }
 }
 

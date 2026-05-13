@@ -3,11 +3,11 @@ package_upgrade: false
 
 %{ if enable_filestore != "false" }
 mounts:
-- [ data, /mnt/data, virtiofs, "defaults", 0, 2 ]
+- [ data, ${filestore_mount_path}, virtiofs, "defaults", 0, 2 ]
 
 runcmd:
  - [ modprobe, fuse ]
- - [ mkdir, '-p', /mnt/data ]
+ - [ mkdir, '-p', ${filestore_mount_path} ]
  - [ mount, '-a' ]
  
 %{ endif }

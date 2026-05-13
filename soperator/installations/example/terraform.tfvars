@@ -93,38 +93,6 @@ filestore_jail_submounts = [{
   }
 }]
 
-# Additional (Optional) node-local Network-SSD disks to be mounted inside jail on worker nodes.
-# It will create compute disks with provided spec for each node via CSI.
-# NOTE: in case of `NETWORK_SSD_NON_REPLICATED` disk type, `size` must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
-# ---
-# node_local_jail_submounts = []
-# ---
-node_local_jail_submounts = [{
-  name            = "local-data"
-  mount_path      = "/mnt/local-data"
-  size_gibibytes  = 1024
-  disk_type       = "NETWORK_SSD"
-  filesystem_type = "ext4"
-}]
-
-# Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node.
-# It will create compute disks with provided spec for each node via CSI.
-# NOTE: In case you're not going to use Docker/Enroot in your workloads, it's worth disabling this feature.
-# NOTE: `size` must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
-# ---
-# node_local_image_disk = {
-#   enabled = false
-# }
-# ---
-node_local_image_disk = {
-  enabled = true
-  spec = {
-    size_gibibytes  = 930
-    filesystem_type = "ext4"
-    # Could be changed to `NETWORK_SSD_NON_REPLICATED`
-    disk_type = "NETWORK_SSD_IO_M3"
-  }
-}
 
 # Shared filesystem to be used for accounting DB.
 # By default, null.
@@ -182,7 +150,7 @@ nfs_in_k8s = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "3.0.4"
+slurm_operator_version = "4.0.0"
 
 # Is the version of soperator stable or not.
 # ---
@@ -197,7 +165,7 @@ slurm_nodesets_partitions = [
     name         = "main"
     is_all       = true
     nodeset_refs = [] # e.g. ["worker"], but is_all must be false in this case
-    config       = "Default=YES PriorityTier=10 MaxTime=INFINITE State=UP OverSubscribe=YES"
+    config       = "Default=YES PriorityTier=10 PreemptMode=OFF MaxTime=INFINITE State=UP OverSubscribe=YES"
   },
   {
     name         = "hidden"
@@ -283,11 +251,11 @@ slurm_nodeset_controller = {
   size = 1
   resource = {
     platform = "cpu-d3"
-    preset   = "4vcpu-16gb"
+    preset   = "16vcpu-64gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
-    size_gibibytes       = 128
+    size_gibibytes       = 256
     block_size_kibibytes = 4
   }
 }
@@ -336,7 +304,8 @@ slurm_nodeset_workers = [
     # Whether to enable ephemeral nodes behavior for this worker nodeset.
     # When true, nodes will use dynamic topology injection and power management.
     # By default, false.
-    ephemeral_nodes = false
+    ephemeral_nodes                = false
+    initial_number_ephemeral_nodes = 1
     # Optional PersistentVolumeClaim retention policy for PVCs created by the worker nodeset StatefulSet.
     # Supported values: `Retain` or `Delete`.
     persistent_volume_claim_retention_policy = {
@@ -351,6 +320,37 @@ slurm_nodeset_workers = [
     #   mount_path      = "/mnt/local-nvme"
     #   filesystem_type = "ext4"
     # }
+    # Additional (Optional) node-local Network-SSD disks to be mounted inside jail on worker nodes.
+    # It will create compute disks with provided spec for each node via CSI.
+    # NOTE: in case of `NETWORK_SSD_NON_REPLICATED` disk type, `size` must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
+    # ---
+    # node_local_jail_submounts = []
+    # ---
+    node_local_jail_submounts = [{
+      name            = "local-data"
+      mount_path      = "/mnt/local-data"
+      size_gibibytes  = 1024
+      disk_type       = "NETWORK_SSD"
+      filesystem_type = "ext4"
+    }]
+    # Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node.
+    # It will create compute disks with provided spec for each node via CSI.
+    # NOTE: In case you're not going to use Docker/Enroot in your workloads, it's worth disabling this feature.
+    # NOTE: `size` must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
+    # ---
+    # node_local_image_disk = {
+    #   enabled = false
+    # }
+    # ---
+    node_local_image_disk = {
+      enabled = true
+      spec = {
+        size_gibibytes  = 930
+        filesystem_type = "ext4"
+        # Could be changed to `NETWORK_SSD_NON_REPLICATED`
+        disk_type = "NETWORK_SSD_IO_M3"
+      }
+    }
   },
 ]
 
@@ -424,6 +424,21 @@ slurm_login_public_ip = true
 # ---
 tailscale_enabled = false
 
+# Whether to enable the SSSD sidecar on Slurm controller, login, and worker nodes.
+# By default, false
+# ---
+slurm_sssd_enabled = false
+
+# Name of Secret containing sssd.conf for controller, login, and worker sssd containers.
+# By default, empty
+# ---
+slurm_sssd_conf_secret_ref_name = ""
+
+# Name of ConfigMap containing LDAP CA certificates for controller, login, and worker sssd containers.
+# By default, empty
+# ---
+slurm_sssd_ldap_ca_config_map_ref_name = ""
+
 # Authorized keys accepted for connecting to Slurm login nodes via SSH as 'root' user.
 # ---
 slurm_login_ssh_root_public_keys = [
@@ -455,6 +470,7 @@ slurm_exporter_enabled = true
 # - "prod_quick" - run all health-checks except those that take long. Takes additional 10 minutes (H100) - 30 minutes (B300).
 # - "testing" - to be used for Soperator E2E tests.
 # - "dev" - to be used for Soperator development clusters.
+# - "essential" - skip most of checks and run only essential ones. Don't use in production.
 # ---
 active_checks_scope = ""
 
@@ -581,7 +597,7 @@ cleanup_bucket_on_destroy = false
 # Version of the k8s to be used.
 # Set to null or don't set to use Nebius default (recommended), or specify explicitly
 # ---
-k8s_version = 1.32
+k8s_version = 1.33
 
 # SSH user credentials for accessing k8s nodes.
 # That option add public ip address to every node.
@@ -595,9 +611,10 @@ k8s_version = 1.32
 #   ]
 # }]
 
-# Lines to write to /etc/modprobe.d/nvidia_admin.conf via cloud-init (GPU workers only).
+# Lines to write to /etc/modprobe.d/nvidia_config.conf via cloud-init (GPU workers only).
+# One option per line.
 # ---
-nvidia_admin_conf_lines = [
+nvidia_config_lines = [
   "options nvidia NVreg_RestrictProfilingToAdminUsers=0", # Allow access to GPU counters in nsys profiler for non-root users
   "options nvidia NVreg_EnableStreamMemOPs=1",
   "options nvidia NVreg_RegistryDwords=\"PeerMappingOverride=1;\"",

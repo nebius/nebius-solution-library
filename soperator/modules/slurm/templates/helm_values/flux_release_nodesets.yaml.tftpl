@@ -24,6 +24,7 @@ nodesets:
         %{~ endif ~}
         %{~ if nodeset.ephemeral_nodes ~}
         ephemeralNodes: true
+        initialNumberEphemeralNodes: ${nodeset.initial_number_ephemeral_nodes}
         %{~ endif ~}
 
         gpu:
@@ -55,6 +56,11 @@ nodesets:
           %{~ endif ~}
 
         slurmd:
+          %{~ if resources[i].gpus > 0 ~}
+          customEnv:
+            - name: "NVIDIA_DRIVER_CAPABILITIES"
+              value: "compute,graphics,utility,video"
+          %{~ endif ~}
           resources:
             cpu: ${floor(resources[i].cpu_cores * 1000)}m
             memory: ${floor(resources[i].memory_gibibytes)}Gi
@@ -100,7 +106,7 @@ nodesets:
                     readOnly: false
               %{~ endfor ~}
 
-              %{~ for sub_mount in jail_submounts.local ~}
+              %{~ for sub_mount in nodeset.node_local_jail_submounts ~}
               - name: ${sub_mount.name}
                 mountPath: ${sub_mount.mount_path}
                 volumeClaimTemplateSpec:
@@ -124,7 +130,7 @@ nodesets:
                     type: Directory
               %{~ endif ~}
 
-              %{~ if jail_submounts.image_storage.enabled ~}
+              %{~ if nodeset.node_local_image_storage.enabled ~}
               - name: image-storage
                 mountPath: /mnt/image-storage
                 volumeClaimTemplateSpec:
@@ -133,10 +139,10 @@ nodesets:
                   %{~ endif ~}
                   accessModes:
                     - ReadWriteOnce
-                  storageClassName: ${jail_submounts.image_storage.spec.storage_class_name}
+                  storageClassName: ${nodeset.node_local_image_storage.spec.storage_class_name}
                   resources:
                     requests:
-                      storage: ${jail_submounts.image_storage.spec.size_gibibytes}Gi
+                      storage: ${nodeset.node_local_image_storage.spec.size_gibibytes}Gi
               %{~ endif ~}
 
             customVolumeMounts:
@@ -145,14 +151,14 @@ nodesets:
                 volumeSource:
                   configMap:
                     name: slurm-scripts
-                    defaultMode: 500
+                    defaultMode: 0755
 
               - name: slurm-scripts-jail
                 mountPath: /mnt/jail.upper/opt/slurm_scripts/
                 volumeSource:
                   configMap:
                     name: slurm-scripts
-                    defaultMode: 500
+                    defaultMode: 0755
 
               - name: sys-host
                 mountPath: /mnt/jail.upper/sys-host
@@ -162,7 +168,7 @@ nodesets:
                     path: /sys
                     type: Directory
 
-              %{~ if jail_submounts.image_storage.enabled ~}
+              %{~ if nodeset.node_local_image_storage.enabled ~}
               - name: enroot-on-image-storage
                 mountPath: /etc/enroot/enroot.conf.d/custom-dirs.conf
                 subPath: enroot.conf
@@ -215,6 +221,16 @@ nodesets:
           security:
             appArmorProfile: unconfined
 
+        sssd:
+          enabled: ${sssd.enabled}
+          resources:
+            cpu: ${sssd.resources.cpu * 1000}m
+            memory: ${sssd.resources.memory}Gi
+            ephemeralStorage: ${sssd.resources.ephemeral_storage}Gi
+
+        sssdConfSecretRefName: ${jsonencode(sssd.conf_secret_ref_name)}
+        sssdLdapCAConfigMapRefName: ${jsonencode(sssd.ldap_ca_config_map_ref_name)}
+
         configMapRefSupervisord: custom-supervisord-config
         configMapRefSshd: ${sshd.config_map_ref}
 
@@ -243,7 +259,7 @@ nodesets:
             command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
           %{~ endfor ~}
 
-          %{~ for sub_mount in jail_submounts.local ~}
+          %{~ for sub_mount in nodeset.node_local_jail_submounts ~}
           - name: ensure-node-local-jail-submount-${sub_mount.name}-${sub_mount.filesystem_type}
             image: cr.eu-north1.nebius.cloud/soperator/busybox
             volumeMounts: [{ name: '${sub_mount.name}', mountPath: /volume-mount }]
@@ -257,11 +273,11 @@ nodesets:
             command: ["grep", ' /volume-mount ${try(nodeset.local_nvme.filesystem_type, "ext4")} ', "/proc/mounts"]
           %{~ endif ~}
 
-          %{~ if jail_submounts.image_storage.enabled ~}
-          - name: ensure-node-local-image-storage-${jail_submounts.image_storage.spec.filesystem_type}
+          %{~ if nodeset.node_local_image_storage.enabled ~}
+          - name: ensure-node-local-image-storage-${nodeset.node_local_image_storage.spec.filesystem_type}
             image: cr.eu-north1.nebius.cloud/soperator/busybox
             volumeMounts: [{ name: 'image-storage', mountPath: /volume-mount }]
-            command: ["grep", ' /volume-mount ${jail_submounts.image_storage.spec.filesystem_type} ', "/proc/mounts"]
+            command: ["grep", ' /volume-mount ${nodeset.node_local_image_storage.spec.filesystem_type} ', "/proc/mounts"]
 
           - name: prepare-node-local-image-storage
             image: cr.eu-north1.nebius.cloud/soperator/busybox
