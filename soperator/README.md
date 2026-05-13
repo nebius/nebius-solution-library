@@ -122,8 +122,7 @@ filestore_jail = {
 
 # Configuration of Slurm Worker node sets.
 slurm_nodeset_workers = [{
-  size                    = <TOTAL_NODES_NUMBER> # Must be divisible by nodes_per_nodegroup. Recommended value for soperator development is 2.   
-  nodes_per_nodegroup     = <NUMBER_OF_NODES_PER_NODEGROUP> # Recommended value for soperator development is 1.
+  size                    = <TOTAL_NODES_NUMBER> # Recommended value for soperator development is 2.
   max_unavailable_percent = 50
   resource = {
     platform = "gpu-h100-sxm" # For a CPU-only cluster, see https://docs.nebius.com/compute/virtual-machines/types.

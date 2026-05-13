@@ -64,6 +64,29 @@ locals {
     ]
   }
 
+  node_group_nvl_instance_group_id_v2 = {
+    worker = [
+      for worker in var.node_group_workers_v2 :
+      try(trimspace(worker.nvl_instance_group_id), "") != "" ? trimspace(worker.nvl_instance_group_id) : try(trimspace(var.nvl_instance_group_id), "")
+    ]
+  }
+
+  node_group_nvl_instance_group_label_v2 = {
+    worker = [
+      for nvl_instance_group_id in local.node_group_nvl_instance_group_id_v2.worker :
+      nvl_instance_group_id != "" ? tomap({
+        (module.labels.key_nebius_nvlink_instance_group) = nvl_instance_group_id
+      }) : tomap({})
+    ]
+  }
+
+  node_group_placement_policy_nodes_v2 = {
+    worker = [
+      for worker in var.node_group_workers_v2 :
+      try(trimspace(worker.placement_policy_nodes), "") != "" ? trimspace(worker.placement_policy_nodes) : try(trimspace(var.placement_policy_nodes), "")
+    ]
+  }
+
   context_name = join(
     "-",
     [

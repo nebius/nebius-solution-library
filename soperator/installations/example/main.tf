@@ -2,7 +2,7 @@ locals {
   resources = {
     system     = module.resources.by_platform[var.slurm_nodeset_system.resource.platform][var.slurm_nodeset_system.resource.preset]
     controller = module.resources.by_platform[var.slurm_nodeset_controller.resource.platform][var.slurm_nodeset_controller.resource.preset]
-    workers    = [for worker in var.slurm_nodeset_workers : module.resources.by_platform[worker.resource.platform][worker.resource.preset]]
+    workers    = [for worker in local.slurm_nodeset_workers : module.resources.by_platform[worker.resource.platform][worker.resource.preset]]
     login      = module.resources.by_platform[var.slurm_nodeset_login.resource.platform][var.slurm_nodeset_login.resource.preset]
     accounting = var.slurm_nodeset_accounting != null ? module.resources.by_platform[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset] : null
     nfs        = var.slurm_nodeset_nfs != null ? module.resources.by_platform[var.slurm_nodeset_nfs.resource.platform][var.slurm_nodeset_nfs.resource.preset] : null
@@ -16,13 +16,33 @@ locals {
   flux_namespace     = "flux-system"
   k8s_cluster_name   = format("soperator-%s", var.company_name)
 
+  gb300_platform              = "gpu-gb300"
+  gb300_nodes_per_nodegroup   = 18
+  default_nodes_per_nodegroup = 100
+  slurm_nodeset_workers = flatten([
+    for nodeset in var.slurm_nodeset_workers :
+    nodeset.resource.platform == local.gb300_platform ? [
+      for rack in range(ceil(nodeset.size / local.gb300_nodes_per_nodegroup)) : merge(nodeset, {
+        name = format(
+          "rack-%d-%s",
+          rack,
+          nodeset.name,
+        )
+        size                = min(local.gb300_nodes_per_nodegroup, nodeset.size - rack * local.gb300_nodes_per_nodegroup)
+        nodes_per_nodegroup = local.gb300_nodes_per_nodegroup
+      })
+      ] : [merge(nodeset, {
+        nodes_per_nodegroup = coalesce(nodeset.nodes_per_nodegroup, local.default_nodes_per_nodegroup)
+    })]
+  ])
+
   backups_enabled = (var.backups_enabled == "force_enable" ||
   (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
 
   # Legacy node_group_workers for old-style deployments (without nodesets)
-  node_group_workers = flatten([for i, nodeset in var.slurm_nodeset_workers : [
-    for subset in range(ceil(nodeset.size / 100.0)) : {
-      size                    = min(100, nodeset.size - subset * 100)
+  node_group_workers = flatten([for i, nodeset in local.slurm_nodeset_workers : [
+    for subset in range(ceil(nodeset.size / nodeset.nodes_per_nodegroup)) : {
+      size                    = min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup)
       max_unavailable_percent = 50
       max_surge_percent       = null
       drain_timeout           = null
@@ -36,25 +56,28 @@ locals {
   ]])
 
   # V2 node_group_workers for new-style deployments (with nodesets)
-  node_group_workers_v2 = flatten([for i, nodeset in var.slurm_nodeset_workers : [
-    for subset in range(ceil(nodeset.size / 100.0)) : {
-      name = nodeset.name
-      size = min(100, nodeset.size - subset * 100)
-      min_size = (
+  node_group_workers_v2 = flatten([for i, nodeset in local.slurm_nodeset_workers : [
+    for subset in range(ceil(nodeset.size / nodeset.nodes_per_nodegroup)) : {
+      name            = nodeset.name
+      node_group_name = nodeset.resource.platform == local.gb300_platform ? nodeset.name : join("-", [nodeset.name, subset])
+      size            = nodeset.resource.platform == local.gb300_platform ? local.gb300_nodes_per_nodegroup : min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup)
+      min_size = nodeset.resource.platform == local.gb300_platform ? local.gb300_nodes_per_nodegroup : (
         nodeset.autoscaling.enabled && nodeset.autoscaling.min_size != null
-        ? min(100, max(0, nodeset.autoscaling.min_size - subset * 100)) # fill-first distribution
-        : min(100, nodeset.size - subset * 100)                         # min=max
+        ? min(nodeset.nodes_per_nodegroup, max(0, nodeset.autoscaling.min_size - subset * nodeset.nodes_per_nodegroup)) # fill-first distribution
+        : min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup)                         # min=max
       )
-      max_size           = max(1, min(100, nodeset.size - subset * 100))
-      autoscaling        = nodeset.autoscaling.enabled
-      resource           = nodeset.resource
-      boot_disk          = nodeset.boot_disk
-      gpu_cluster        = nodeset.gpu_cluster
-      nodeset_index      = i
-      subset_index       = subset
-      preemptible        = nodeset.preemptible
-      reservation_policy = nodeset.reservation_policy
-      max_pods           = nodeset.max_pods
+      max_size               = nodeset.resource.platform == local.gb300_platform ? local.gb300_nodes_per_nodegroup : max(1, min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup))
+      autoscaling            = nodeset.resource.platform == local.gb300_platform ? false : nodeset.autoscaling.enabled
+      resource               = nodeset.resource
+      boot_disk              = nodeset.boot_disk
+      gpu_cluster            = nodeset.gpu_cluster
+      nodeset_index          = i
+      subset_index           = subset
+      preemptible            = nodeset.preemptible
+      reservation_policy     = nodeset.reservation_policy
+      nvlink                 = nodeset.nvlink
+      placement_policy_nodes = nodeset.placement_policy_nodes
+      max_pods               = nodeset.max_pods
       local_nvme = {
         enabled         = try(nodeset.local_nvme.enabled, false)
         mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
@@ -62,6 +85,11 @@ locals {
       }
     }
   ]])
+
+  node_group_workers_v2_by_key = {
+    for worker in local.node_group_workers_v2 :
+    worker.node_group_name => worker
+  }
 }
 
 resource "terraform_data" "check_variables" {
@@ -185,11 +213,17 @@ module "k8s_cleanup" {
   ]
 }
 
-resource "nebius_compute_v1_nvl_instance_group" "nvlgroup" {
+resource "nebius_compute_v1_nvl_instance_group" "worker" {
+  for_each = {
+    for key, worker in local.node_group_workers_v2_by_key :
+    key => worker
+    if try(worker.nvlink.enabled == true, false)
+  }
+
   parent_id = var.iam_project_id
-  size      = 1
-  name      = local.k8s_cluster_name
-  type      = "GB300"
+  size      = local.gb300_nodes_per_nodegroup
+  name      = "${local.k8s_cluster_name}-${each.value.node_group_name}"
+  type      = each.value.nvlink.type
 }
 
 module "k8s" {
@@ -215,14 +249,17 @@ module "k8s" {
 
   etcd_cluster_size = var.etcd_cluster_size
 
-  nvl_instance_group_id  = nebius_compute_v1_nvl_instance_group.nvlgroup.id
   placement_policy_nodes = var.placement_policy_nodes
 
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller
   node_group_workers    = local.node_group_workers
-  node_group_workers_v2 = local.node_group_workers_v2
-  node_group_login      = var.slurm_nodeset_login
+  node_group_workers_v2 = [
+    for worker in local.node_group_workers_v2 : merge(worker, {
+      nvl_instance_group_id = try(nebius_compute_v1_nvl_instance_group.worker[worker.node_group_name].id, try(worker.nvlink.enabled == true, false) ? var.nvl_instance_group_id : "")
+    })
+  ]
+  node_group_login = var.slurm_nodeset_login
   node_group_accounting = {
     enabled = var.accounting_enabled
     spec    = var.slurm_nodeset_accounting
@@ -354,12 +391,12 @@ module "slurm" {
   opentelemetry_batch                = var.opentelemetry_batch
 
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
-  cuda_version                  = lookup(var.platform_cuda_versions, var.slurm_nodeset_workers[0].resource.platform)
+  cuda_version                  = lookup(var.platform_cuda_versions, local.slurm_nodeset_workers[0].resource.platform)
   controller_state_on_filestore = var.controller_state_on_filestore
 
   node_count = {
     controller = var.slurm_nodeset_controller.size
-    worker     = [for workers in var.slurm_nodeset_workers : workers.size]
+    worker     = [for workers in local.slurm_nodeset_workers : workers.size]
     login      = var.slurm_nodeset_login.size
   }
 
@@ -380,7 +417,7 @@ module "slurm" {
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     }
-    worker = [for i, worker in var.slurm_nodeset_workers :
+    worker = [for i, worker in local.slurm_nodeset_workers :
       {
         cpu_cores        = local.resources.workers[i].cpu_cores
         memory_gibibytes = floor(local.resources.workers[i].memory_gibibytes)
@@ -489,7 +526,7 @@ module "slurm" {
   slurm_health_check_config       = var.slurm_health_check_config
 
   slurm_nodesets_partitions = var.slurm_nodesets_partitions
-  worker_nodesets = [for nodeset in var.slurm_nodeset_workers : {
+  worker_nodesets = [for nodeset in local.slurm_nodeset_workers : {
     name            = nodeset.name
     replicas        = nodeset.size
     max_unavailable = "20%"

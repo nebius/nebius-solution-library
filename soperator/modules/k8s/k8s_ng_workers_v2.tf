@@ -53,15 +53,19 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
   version = var.k8s_version
 
-  name = join("-", [
-    var.node_group_workers_v2[count.index].name,
-    var.node_group_workers_v2[count.index].subset_index,
-  ])
+  name = coalesce(
+    try(var.node_group_workers_v2[count.index].node_group_name, null),
+    join("-", [
+      var.node_group_workers_v2[count.index].name,
+      var.node_group_workers_v2[count.index].subset_index,
+    ])
+  )
   labels = merge(
     tomap({
       (module.labels.key_slurm_nodeset_name) = var.node_group_workers_v2[count.index].name
     }),
     local.node_group_workload_label_v2.worker[count.index],
+    local.node_group_nvl_instance_group_label_v2.worker[count.index],
     module.labels.label_jail,
   )
 
@@ -112,6 +116,7 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
         }),
         local.node_group_workload_label_v2.worker[count.index],
         (local.node_group_gpu_present_v2.worker[count.index] ? module.labels.label_nebius_gpu : {}),
+        local.node_group_nvl_instance_group_label_v2.worker[count.index],
         module.labels.label_exclude_from_external_lb,
       )
     }
@@ -180,12 +185,12 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
       ]
     )
 
-    nvlink = {
-      nvl_instance_group_id = var.nvl_instance_group_id
-    }
-    placement_policy = {
-      nodes = [var.placement_policy_nodes]
-    }
+    nvlink = local.node_group_nvl_instance_group_id_v2.worker[count.index] != "" ? {
+      nvl_instance_group_id = local.node_group_nvl_instance_group_id_v2.worker[count.index]
+    } : null
+    placement_policy = local.node_group_placement_policy_nodes_v2.worker[count.index] != "" ? {
+      nodes = [local.node_group_placement_policy_nodes_v2.worker[count.index]]
+    } : null
 
     network_interfaces = [{
       public_ip_address = local.node_ssh_access_public_ip.enabled ? {} : null
