@@ -189,7 +189,7 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
       nvl_instance_group_id = local.node_group_nvl_instance_group_id_v2.worker[count.index]
     } : null
     placement_policy = local.node_group_placement_policy_nodes_v2.worker[count.index] != "" ? {
-      nodes = [local.node_group_placement_policy_nodes_v2.worker[count.index]]
+      nodes = local.node_group_placement_policy_nodes_v2.worker[count.index]
     } : null
 
     network_interfaces = [{

@@ -157,8 +157,8 @@ variable "node_group_workers_v2" {
       reservation_ids = optional(list(string))
     }))
     nvl_instance_group_id  = optional(string)
-    placement_policy_nodes = optional(string)
     max_pods               = optional(number, 32)
+    placement_policy_nodes = optional(list(string))
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")

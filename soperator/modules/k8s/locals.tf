@@ -83,7 +83,7 @@ locals {
   node_group_placement_policy_nodes_v2 = {
     worker = [
       for worker in var.node_group_workers_v2 :
-      try(trimspace(worker.placement_policy_nodes), "")
+      try(worker.placement_policy_nodes, [])
     ]
   }
 

@@ -249,8 +249,6 @@ module "k8s" {
 
   etcd_cluster_size = var.etcd_cluster_size
 
-  placement_policy_nodes = var.placement_policy_nodes
-
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller
   node_group_workers    = local.node_group_workers

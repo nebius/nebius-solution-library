@@ -778,7 +778,7 @@ variable "slurm_nodeset_workers" {
       enabled = optional(bool, false)
       type    = optional(string, "GB300")
     }), {})
-    placement_policy_nodes         = optional(string)
+    placement_policy_nodes         = optional(list(string))
     features                       = optional(list(string))
     create_partition               = optional(bool)
     ephemeral_nodes                = optional(bool, false)
