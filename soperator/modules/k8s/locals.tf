@@ -67,7 +67,7 @@ locals {
   node_group_nvl_instance_group_id_v2 = {
     worker = [
       for worker in var.node_group_workers_v2 :
-      try(trimspace(worker.nvl_instance_group_id), "") != "" ? trimspace(worker.nvl_instance_group_id) : try(trimspace(var.nvl_instance_group_id), "")
+      try(trimspace(worker.nvl_instance_group_id), "")
     ]
   }
 
@@ -83,7 +83,7 @@ locals {
   node_group_placement_policy_nodes_v2 = {
     worker = [
       for worker in var.node_group_workers_v2 :
-      try(trimspace(worker.placement_policy_nodes), "") != "" ? trimspace(worker.placement_policy_nodes) : try(trimspace(var.placement_policy_nodes), "")
+      try(trimspace(worker.placement_policy_nodes), "")
     ]
   }
 
