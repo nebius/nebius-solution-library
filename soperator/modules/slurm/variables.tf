@@ -753,6 +753,10 @@ variable "worker_nodesets" {
     gres_config      = list(string)
     create_partition = bool
     ephemeral_nodes  = optional(bool, false)
+    persistent_volume_claim_retention_policy = optional(object({
+      when_deleted = string
+      when_scaled  = string
+    }))
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")
