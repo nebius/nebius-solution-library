@@ -66,12 +66,12 @@ locals {
   gpu_nodes_platform = coalesce(var.gpu_nodes_platform, local.current_region_defaults.gpu_nodes_platform)
   gpu_nodes_preset   = coalesce(var.gpu_nodes_preset, local.current_region_defaults.gpu_nodes_preset)
   infiniband_fabric  = coalesce(var.infiniband_fabric, local.current_region_defaults.infiniband_fabric)
-
-  platform_to_cuda = {
-    gpu-b200-sxm-a = "cuda12.8"
-    gpu-b200-sxm   = "cuda12.8"
-  }
-  device_preset = lookup(local.platform_to_cuda, local.gpu_nodes_platform, "cuda13.0")
+  device_preset      = "cuda13.0"
+  gpu_operator_cdi_enabled = (
+    !var.gpu_nodes_driverfull_image &&
+    var.mig_strategy != null &&
+    var.mig_strategy != "none"
+  ) ? true : null
   #List of official MIG configs https://docs.nvidia.com/datacenter/tesla/mig-user-guide/supported-mig-profiles.html
   valid_mig_parted_configs = {
     "gpu-h100-sxm"   = ["all-disabled", "all-enabled", "all-balanced", "all-1g.10gb", "all-1g.10gb.me", "all-1g.20gb", "all-2g.20gb", "all-3g.40gb", "all-4g.40gb", "all-7g.80gb"]

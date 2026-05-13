@@ -43,6 +43,7 @@ filestore_controller_spool = {
   spec = {
     size_gibibytes       = 128
     block_size_kibibytes = 4
+    forbid_deletion      = false
   }
 }
 # Or use existing filestore.
@@ -61,6 +62,7 @@ filestore_controller_spool = {
 #   spec = {
 #     size_gibibytes       = 2048
 #     block_size_kibibytes = 4
+#     forbid_deletion      = false
 #   }
 # }
 # Or use existing filestore.
@@ -74,6 +76,7 @@ filestore_jail = {
 # Additional shared filesystems to be mounted inside jail.
 # If a big filesystem is needed it's better to deploy this additional storage because jails bigger than 12 TiB
 # ARE NOT BACKED UP by default.
+# Do not use "/home" here. That path is reserved for the home-directory NFS mount.
 # ---
 # filestore_jail_submounts = [{
 #   name       = "data"
@@ -81,6 +84,7 @@ filestore_jail = {
 #   spec = {
 #     size_gibibytes       = 2048
 #     block_size_kibibytes = 4
+#     forbid_deletion      = false
 #   }
 # }]
 # Or use existing filestores.
@@ -102,6 +106,7 @@ filestore_accounting = {
   spec = {
     size_gibibytes       = 512
     block_size_kibibytes = 4
+    forbid_deletion      = false
   }
 }
 # Or use existing filestore.
@@ -134,7 +139,7 @@ nfs_in_k8s = {
   size_gibibytes  = 3720
   disk_type       = "NETWORK_SSD_IO_M3"
   filesystem_type = "ext4"
-  threads         = 32 # to match preset in slurm_nodeset_nfs
+  threads         = 128 # to match preset in slurm_nodeset_nfs
 }
 
 # endregion nfs-server
@@ -233,15 +238,71 @@ slurm_partition_config_type = "default"
 # ---
 slurm_nodeset_system = {
   min_size = 3
-  max_size = 9
+  max_size = 24
   resource = {
     platform = "cpu-d3"
-    preset   = "8vcpu-32gb"
+    preset   = "32vcpu-128gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
     size_gibibytes       = 192
     block_size_kibibytes = 4
+  }
+}
+
+# Components that will be deployed on system node groups.
+# Their resources should fit the slurm_nodeset_system.
+# Defaults are for big clusters.
+system_resources = {
+  rest = {
+    cpu_cores                   = 20
+    memory_gibibytes            = 120
+    ephemeral_storage_gibibytes = 5
+  }
+  exporter = {
+    cpu_cores                   = 4
+    memory_gibibytes            = 4
+    ephemeral_storage_gibibytes = 2
+  }
+  mariadb = {
+    cpu_cores                   = 8
+    memory_gibibytes            = 48
+    ephemeral_storage_gibibytes = 32
+  }
+  node_configurator = {
+    requests = {
+      cpu_cores        = 0.5
+      memory_gibibytes = 0.25
+    }
+    limits = {
+      memory_gibibytes = 0.25
+    }
+  }
+  slurm_operator = {
+    requests = {
+      cpu_cores        = 1
+      memory_gibibytes = 4
+    }
+    limits = {
+      memory_gibibytes = 4
+    }
+  }
+  slurm_checks = {
+    requests = {
+      cpu_cores        = 1
+      memory_gibibytes = 4
+    }
+    limits = {
+      memory_gibibytes = 4
+    }
+  }
+  kruise_daemon = {
+    cpu_cores        = 1
+    memory_gibibytes = 4
+  }
+  dcgm_exporter = {
+    cpu_cores        = 0.05
+    memory_gibibytes = 0.5
   }
 }
 
@@ -251,7 +312,7 @@ slurm_nodeset_controller = {
   size = 1
   resource = {
     platform = "cpu-d3"
-    preset   = "16vcpu-64gb"
+    preset   = "64vcpu-256gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -312,6 +373,8 @@ slurm_nodeset_workers = [
       when_deleted = "Delete"
       when_scaled  = "Delete"
     }
+    # Maximum number of pods per worker node. Default is 32 to reduce per-node Pod CIDR usage.
+    max_pods = 32
     # Optional local NVMe passthrough for this nodeset only.
     # Uses local instance disks, creates a RAID0 array and mounts it on the host via cloud-init.
     # mount_path: path used for both host RAID mount and jail submount.
@@ -385,7 +448,7 @@ slurm_nodeset_login = {
 slurm_nodeset_accounting = {
   resource = {
     platform = "cpu-d3"
-    preset   = "8vcpu-32gb"
+    preset   = "32vcpu-128gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -400,7 +463,7 @@ slurm_nodeset_nfs = {
   size = 1
   resource = {
     platform = "cpu-d3"
-    preset   = "32vcpu-128gb"
+    preset   = "128vcpu-512gb"
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -514,6 +577,20 @@ telemetry_enabled = true
 # ---
 dcgm_job_mapping_enabled = true
 
+# Optional kube-state-metrics scrape size override in bytes.
+# By default, it is raised automatically for large clusters.
+# ---
+# kube_state_metrics_max_scrape_size = 150554432
+
+# Optional OpenTelemetry batch processor overrides for logs, jail logs, and events collectors.
+# By default, chart values are used.
+# ---
+# opentelemetry_batch = {
+#   timeout             = "1s"
+#   send_batch_size     = 2000
+#   send_batch_max_size = 5000
+# }
+
 # Configuration of the Soperator Notifier (https://github.com/nebius/soperator/tree/main/helm/soperator-notifier).
 # ---
 # soperator_notifier = {
@@ -525,6 +602,10 @@ soperator_notifier = {
 }
 
 public_o11y_enabled = true
+
+# Existing public o11y logs projects are not moved between regions unless this is explicitly enabled.
+# ---
+# allow_o11y_region_migration = true
 
 # endregion Telemetry
 
@@ -595,12 +676,10 @@ cleanup_bucket_on_destroy = false
 # region k8s
 
 # Version of the k8s to be used.
-# Set to null or don't set to use Nebius default (recommended), or specify explicitly
 # ---
 k8s_version = 1.33
 
 # SSH user credentials for accessing k8s nodes.
-# That option add public ip address to every node.
 # By default, empty list.
 # ---
 # k8s_cluster_node_ssh_access_users = [{
@@ -610,6 +689,11 @@ k8s_version = 1.33
 #     "<ENCRYPTION-METHOD2 HASH2 USER1>",
 #   ]
 # }]
+
+# By default, SSH keys are added without public IP addresses.
+# Set to true to assign public IP addresses to k8s nodes.
+# ---
+# k8s_cluster_node_ssh_access_public_ip = false
 
 # Lines to write to /etc/modprobe.d/nvidia_config.conf via cloud-init (GPU workers only).
 # One option per line.

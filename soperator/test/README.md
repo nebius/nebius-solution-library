@@ -67,6 +67,7 @@ filestore_jail_submounts = [{
   spec = {
     size_gibibytes       = 4096
     block_size_kibibytes = 32
+    forbid_deletion      = true
   }
 }]
 ```

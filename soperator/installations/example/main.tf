@@ -54,6 +54,7 @@ locals {
       subset_index       = subset
       preemptible        = nodeset.preemptible
       reservation_policy = nodeset.reservation_policy
+      max_pods           = nodeset.max_pods
       local_nvme = {
         enabled         = try(nodeset.local_nvme.enabled, false)
         mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
@@ -68,6 +69,8 @@ resource "terraform_data" "check_variables" {
     terraform_data.check_slurm_nodeset,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_nfs,
+    terraform_data.check_nfs_exclusivity,
+    terraform_data.check_jail_submount_paths,
     terraform_data.check_local_nvme,
   ]
 }
@@ -88,6 +91,7 @@ module "filestore" {
       disk_type            = "NETWORK_SSD"
       size_gibibytes       = var.filestore_controller_spool.spec.size_gibibytes
       block_size_kibibytes = var.filestore_controller_spool.spec.block_size_kibibytes
+      forbid_deletion      = var.filestore_controller_spool.spec.forbid_deletion
     } : null
     existing = var.filestore_controller_spool.existing != null ? {
       id = var.filestore_controller_spool.existing.id
@@ -99,6 +103,7 @@ module "filestore" {
       disk_type            = "NETWORK_SSD"
       size_gibibytes       = var.filestore_accounting.spec.size_gibibytes
       block_size_kibibytes = var.filestore_accounting.spec.block_size_kibibytes
+      forbid_deletion      = var.filestore_accounting.spec.forbid_deletion
     } : null
     existing = var.filestore_accounting.existing != null ? {
       id = var.filestore_accounting.existing.id
@@ -110,6 +115,7 @@ module "filestore" {
       disk_type            = "NETWORK_SSD"
       size_gibibytes       = var.filestore_jail.spec.size_gibibytes
       block_size_kibibytes = var.filestore_jail.spec.block_size_kibibytes
+      forbid_deletion      = var.filestore_jail.spec.forbid_deletion
     } : null
     existing = var.filestore_jail.existing != null ? {
       id = var.filestore_jail.existing.id
@@ -122,6 +128,7 @@ module "filestore" {
       disk_type            = "NETWORK_SSD"
       size_gibibytes       = submount.spec.size_gibibytes
       block_size_kibibytes = submount.spec.block_size_kibibytes
+      forbid_deletion      = submount.spec.forbid_deletion
     } : null
     existing = submount.existing != null ? {
       id = submount.existing.id
@@ -234,8 +241,9 @@ module "k8s" {
     } : null
   }
 
-  node_ssh_access_users = var.k8s_cluster_node_ssh_access_users
-  nvidia_config_lines   = var.nvidia_config_lines
+  node_ssh_access_users     = var.k8s_cluster_node_ssh_access_users
+  node_ssh_access_public_ip = var.k8s_cluster_node_ssh_access_public_ip
+  nvidia_config_lines       = var.nvidia_config_lines
 
   providers = {
     nebius = nebius
@@ -291,11 +299,13 @@ module "o11y" {
 
   source = "../../modules/o11y"
 
-  iam_project_id      = var.iam_project_id
-  o11y_iam_tenant_id  = var.o11y_iam_tenant_id
-  o11y_profile        = var.o11y_profile
-  k8s_cluster_context = module.k8s.cluster_context
-  company_name        = var.company_name
+  iam_project_id              = var.iam_project_id
+  o11y_iam_tenant_id          = var.o11y_iam_tenant_id
+  o11y_profile                = var.o11y_profile
+  region                      = var.region
+  allow_o11y_region_migration = var.allow_o11y_region_migration
+  k8s_cluster_context         = module.k8s.cluster_context
+  company_name                = var.company_name
 }
 
 module "slurm" {
@@ -329,6 +339,9 @@ module "slurm" {
 
   maintenance                    = var.maintenance
   maintenance_ignore_node_groups = var.maintenance_ignore_node_groups
+
+  kube_state_metrics_max_scrape_size = var.kube_state_metrics_max_scrape_size
+  opentelemetry_batch                = var.opentelemetry_batch
 
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
   cuda_version                  = lookup(var.platform_cuda_versions, var.slurm_nodeset_workers[0].resource.platform)
@@ -384,6 +397,14 @@ module "slurm" {
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     } : null
+    rest              = try(var.system_resources.rest, null)
+    exporter          = try(var.system_resources.exporter, null)
+    mariadb           = try(var.system_resources.mariadb, null)
+    node_configurator = try(var.system_resources.node_configurator, null)
+    slurm_operator    = try(var.system_resources.slurm_operator, null)
+    slurm_checks      = try(var.system_resources.slurm_checks, null)
+    kruise_daemon     = try(var.system_resources.kruise_daemon, null)
+    dcgm_exporter     = try(var.system_resources.dcgm_exporter, null)
     nfs = var.slurm_nodeset_nfs != null ? {
       cpu_cores        = local.resources.nfs.cpu_cores
       memory_gibibytes = floor(local.resources.nfs.memory_gibibytes)
