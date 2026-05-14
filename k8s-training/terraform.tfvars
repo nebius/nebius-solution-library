@@ -4,7 +4,7 @@ cluster_name = "k8s-training"
 # SSH config
 ssh_user_name = "ubuntu" # Username you want to use to connect to the nodes
 ssh_public_key = {
-  key = "put customers public ssh key here"
+  key = "put Nebius Cloud user's public SSH key here"
   # path = "put path to public ssh key here"
 }
 
@@ -70,6 +70,14 @@ existing_filestore             = ""    # If enable_filestore = true, with this v
 filestore_disk_size_gibibytes  = 100   # Set Filestore disk size in Gbytes.
 filestore_block_size_kibibytes = 4     # Set Filestore block size in bytes
 
+# Shared filesystem CSI driver. Enable only when using Shared Filesystem.
+# filesystem_csi = {
+#   chart_version                       = "0.1.5"
+#   namespace                           = "kube-system"
+#   make_default_storage_class          = true
+#   previous_default_storage_class_name = "compute-csi-default-sc"
+# }
+
 # KubeRay Cluster
 # for GPU isolation to work with kuberay, gpu_nodes_driverfull_image must be set 
 # to false.  This is because we enable acess to infiniband via securityContext.privileged
@@ -98,6 +106,25 @@ kuberay_max_gpu_replicas = 8
 # KubeRay Service
 # Enable to deploy KubeRay Operator with RayService CR 
 enable_kuberay_service = false
+
+# Optional Kubernetes RBAC bindings for mk8s cluster access.
+# Keep disabled until the access model is approved.
+# mk8s_rbac_bindings = {
+#   enabled = true
+#   cluster_role_bindings = {
+#     nebius_viewer_cluster_admin = {
+#       name      = "nebius-cluster-admin"
+#       role_name = "cluster-admin"
+#       subjects = [
+#         {
+#           kind      = "Group"
+#           name      = "nebius:viewer"
+#           api_group = "rbac.authorization.k8s.io"
+#         }
+#       ]
+#     }
+#   }
+# }
 
 # enable OPA gatekeeper (default: false)
 # enable_opa_gatekeeper = true 
