@@ -430,8 +430,8 @@ variable "enable_opa_gatekeeper" {
   default     = false
 }
 
-variable "mk8s_rbac_bindings" {
-  description = "Optional Kubernetes RBAC bindings for mk8s cluster access. Disabled by default; set enabled = true only after the access model is approved."
+variable "k8s_rbac_bindings" {
+  description = "Optional Kubernetes RBAC bindings for Kubernetes cluster access. Disabled by default; set enabled = true only after the access model is approved."
   type = object({
     enabled = optional(bool, false)
     namespaces = optional(map(object({
@@ -470,10 +470,10 @@ variable "mk8s_rbac_bindings" {
 
   validation {
     condition = (
-      !var.mk8s_rbac_bindings.enabled ||
-      length(var.mk8s_rbac_bindings.cluster_role_bindings) +
-      length(var.mk8s_rbac_bindings.namespace_role_bindings) > 0
+      !var.k8s_rbac_bindings.enabled ||
+      length(var.k8s_rbac_bindings.cluster_role_bindings) +
+      length(var.k8s_rbac_bindings.namespace_role_bindings) > 0
     )
-    error_message = "When mk8s_rbac_bindings.enabled is true, set at least one cluster_role_bindings or namespace_role_bindings entry."
+    error_message = "When k8s_rbac_bindings.enabled is true, set at least one cluster_role_bindings or namespace_role_bindings entry."
   }
 }

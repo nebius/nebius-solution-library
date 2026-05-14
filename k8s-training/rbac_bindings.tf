@@ -1,11 +1,11 @@
-module "mk8s_rbac_bindings" {
-  count = var.mk8s_rbac_bindings.enabled ? 1 : 0
+module "k8s_rbac_bindings" {
+  count = var.k8s_rbac_bindings.enabled ? 1 : 0
 
   source = "../modules/k8s-rbac-bindings"
 
-  namespaces              = var.mk8s_rbac_bindings.namespaces
-  cluster_role_bindings   = var.mk8s_rbac_bindings.cluster_role_bindings
-  namespace_role_bindings = var.mk8s_rbac_bindings.namespace_role_bindings
+  namespaces              = var.k8s_rbac_bindings.namespaces
+  cluster_role_bindings   = var.k8s_rbac_bindings.cluster_role_bindings
+  namespace_role_bindings = var.k8s_rbac_bindings.namespace_role_bindings
   default_labels = {
     "app.kubernetes.io/managed-by" = "terraform"
     "library-solution"             = "k8s-training"

@@ -107,9 +107,9 @@ kuberay_max_gpu_replicas = 8
 # Enable to deploy KubeRay Operator with RayService CR 
 enable_kuberay_service = false
 
-# Optional Kubernetes RBAC bindings for mk8s cluster access.
+# Optional Kubernetes RBAC bindings for Kubernetes cluster access.
 # Keep disabled until the access model is approved.
-# mk8s_rbac_bindings = {
+# k8s_rbac_bindings = {
 #   enabled = true
 #   cluster_role_bindings = {
 #     nebius_viewer_cluster_admin = {

@@ -153,7 +153,7 @@ approved. It is disabled by default.
 An approved Nebius Cloud group cluster-admin binding can be declared like this:
 
 ```hcl
-mk8s_rbac_bindings = {
+k8s_rbac_bindings = {
   enabled = true
   cluster_role_bindings = {
     nebius_viewer_cluster_admin = {
@@ -175,7 +175,7 @@ For namespace-only access, create the namespace and bind one of the built-in
 ClusterRoles such as `view`, `edit`, or `admin`:
 
 ```hcl
-mk8s_rbac_bindings = {
+k8s_rbac_bindings = {
   enabled = true
   namespaces = {
     workload = {
