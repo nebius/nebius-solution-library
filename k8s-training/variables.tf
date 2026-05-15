@@ -429,3 +429,51 @@ variable "enable_opa_gatekeeper" {
   type        = bool
   default     = false
 }
+
+variable "k8s_rbac_bindings" {
+  description = "Optional Kubernetes RBAC bindings for Kubernetes cluster access. Disabled by default; set enabled = true only after the access model is approved."
+  type = object({
+    enabled = optional(bool, false)
+    namespaces = optional(map(object({
+      name        = optional(string)
+      labels      = optional(map(string), {})
+      annotations = optional(map(string), {})
+    })), {})
+    cluster_role_bindings = optional(map(object({
+      name      = optional(string)
+      role_name = string
+      subjects = list(object({
+        kind      = string
+        name      = string
+        api_group = optional(string)
+        namespace = optional(string)
+      }))
+      labels      = optional(map(string), {})
+      annotations = optional(map(string), {})
+    })), {})
+    namespace_role_bindings = optional(map(object({
+      name      = optional(string)
+      namespace = string
+      role_kind = optional(string, "ClusterRole")
+      role_name = string
+      subjects = list(object({
+        kind      = string
+        name      = string
+        api_group = optional(string)
+        namespace = optional(string)
+      }))
+      labels      = optional(map(string), {})
+      annotations = optional(map(string), {})
+    })), {})
+  })
+  default = {}
+
+  validation {
+    condition = (
+      !var.k8s_rbac_bindings.enabled ||
+      length(var.k8s_rbac_bindings.cluster_role_bindings) +
+      length(var.k8s_rbac_bindings.namespace_role_bindings) > 0
+    )
+    error_message = "When k8s_rbac_bindings.enabled is true, set at least one cluster_role_bindings or namespace_role_bindings entry."
+  }
+}
