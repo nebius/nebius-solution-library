@@ -373,8 +373,8 @@ slurm_nodeset_workers = [
     #   enabled = true
     #   type    = "GB300"
     # }
-    # Optional mk8s placement policy node selector for this nodeset. Non-production only.
-    # placement_policy_nodes = ""
+    # Optional mk8s placement policy node list for this nodeset. Non-production only.
+    # placement_policy_nodes = []
     # Provide a list of strings to set Slurm Node features
     features = null
     # Set to `true` to create partition for the NodeSet by default
