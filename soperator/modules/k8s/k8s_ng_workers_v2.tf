@@ -53,6 +53,8 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
   version = var.k8s_version
 
+  # Prefer the generated node_group_name from the installation layer. Fall back
+  # to the historical <nodeset>-<subset> name for callers that do not provide it.
   name = coalesce(
     try(var.node_group_workers_v2[count.index].node_group_name, null),
     join("-", [
@@ -185,10 +187,13 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
       ]
     )
 
+    # Omit optional provider blocks when the normalized sentinels are empty.
+    # Example: nvl_instance_group_id = "" gives nvlink = null; placement nodes
+    # ["node-a", "node-b"] gives placement_policy.nodes = ["node-a", "node-b"].
     nvlink = local.node_group_nvl_instance_group_id_v2.worker[count.index] != "" ? {
       nvl_instance_group_id = local.node_group_nvl_instance_group_id_v2.worker[count.index]
     } : null
-    placement_policy = local.node_group_placement_policy_nodes_v2.worker[count.index] != "" ? {
+    placement_policy = length(local.node_group_placement_policy_nodes_v2.worker[count.index]) > 0 ? {
       nodes = local.node_group_placement_policy_nodes_v2.worker[count.index]
     } : null
 

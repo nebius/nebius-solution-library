@@ -19,6 +19,12 @@ locals {
   gb300_platform              = "gpu-gb300"
   gb300_nodes_per_nodegroup   = 18
   default_nodes_per_nodegroup = 100
+
+  # Normalize user-facing worker nodesets into the internal nodeset list used
+  # by both mk8s node groups and Slurm NodeSets. GB300 is rack-addressed, so one
+  # input nodeset expands into 18-node rack chunks named rack-<rack>-<name>.
+  # Example: { name = "worker", platform = "gpu-gb300", size = 36 } becomes
+  # [{ name = "rack-0-worker", size = 18 }, { name = "rack-1-worker", size = 18 }].
   slurm_nodeset_workers = flatten([
     for nodeset in var.slurm_nodeset_workers :
     nodeset.resource.platform == local.gb300_platform ? [
@@ -32,14 +38,16 @@ locals {
         nodes_per_nodegroup = local.gb300_nodes_per_nodegroup
       })
       ] : [merge(nodeset, {
-        nodes_per_nodegroup = coalesce(nodeset.nodes_per_nodegroup, local.default_nodes_per_nodegroup)
+        nodes_per_nodegroup = coalesce(try(nodeset.nodes_per_nodegroup, null), local.default_nodes_per_nodegroup)
     })]
   ])
 
   backups_enabled = (var.backups_enabled == "force_enable" ||
   (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
 
-  # Legacy node_group_workers for old-style deployments (without nodesets)
+  # Legacy node_group_workers for old-style deployments (without nodesets).
+  # Splits each normalized nodeset into mk8s node group chunks.
+  # Example: size = 250 and nodes_per_nodegroup = 100 produces sizes [100, 100, 50].
   node_group_workers = flatten([for i, nodeset in local.slurm_nodeset_workers : [
     for subset in range(ceil(nodeset.size / nodeset.nodes_per_nodegroup)) : {
       size                    = min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup)
@@ -56,6 +64,10 @@ locals {
   ]])
 
   # V2 node_group_workers for new-style deployments (with nodesets)
+  # Non-GB300 workers keep autoscaling and split into nodes_per_nodegroup chunks.
+  # GB300 workers are fixed rack-sized groups because NVLink instance groups are
+  # rack-scoped. Example: non-GB300 size = 128 becomes worker-0 size 100 and
+  # worker-1 size 28; GB300 rack-0-worker stays size/min/max 18 with autoscaling off.
   node_group_workers_v2 = flatten([for i, nodeset in local.slurm_nodeset_workers : [
     for subset in range(ceil(nodeset.size / nodeset.nodes_per_nodegroup)) : {
       name            = nodeset.name
@@ -63,8 +75,10 @@ locals {
       size            = nodeset.resource.platform == local.gb300_platform ? local.gb300_nodes_per_nodegroup : min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup)
       min_size = nodeset.resource.platform == local.gb300_platform ? local.gb300_nodes_per_nodegroup : (
         nodeset.autoscaling.enabled && nodeset.autoscaling.min_size != null
-        ? min(nodeset.nodes_per_nodegroup, max(0, nodeset.autoscaling.min_size - subset * nodeset.nodes_per_nodegroup)) # fill-first distribution
-        : min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup)                         # min=max
+        # Fill autoscaling min_size left to right. Example: min_size = 120 over
+        # 100-node chunks gives per-node-group min sizes [100, 20, 0].
+        ? min(nodeset.nodes_per_nodegroup, max(0, nodeset.autoscaling.min_size - subset * nodeset.nodes_per_nodegroup))
+        : min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup) # min=max
       )
       max_size               = nodeset.resource.platform == local.gb300_platform ? local.gb300_nodes_per_nodegroup : max(1, min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup))
       autoscaling            = nodeset.resource.platform == local.gb300_platform ? false : nodeset.autoscaling.enabled
@@ -86,6 +100,8 @@ locals {
     }
   ]])
 
+  # Key by final mk8s node group name so NVLink resources can be created and
+  # looked up with the same identifier.
   node_group_workers_v2_by_key = {
     for worker in local.node_group_workers_v2 :
     worker.node_group_name => worker
@@ -254,7 +270,7 @@ module "k8s" {
   node_group_workers    = local.node_group_workers
   node_group_workers_v2 = [
     for worker in local.node_group_workers_v2 : merge(worker, {
-      nvl_instance_group_id = try(nebius_compute_v1_nvl_instance_group.worker[worker.node_group_name].id, try(worker.nvlink.enabled == true, false) ? var.nvl_instance_group_id : "")
+      nvl_instance_group_id = try(nebius_compute_v1_nvl_instance_group.worker[worker.node_group_name].id, try(worker.nvlink.enabled == true, false))
     })
   ]
   node_group_login = var.slurm_nodeset_login

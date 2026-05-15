@@ -550,6 +550,10 @@ variable "slurm_nodesets_partitions" {
   default = []
 
   validation {
+    # Validate partition nodeset_refs against the generated worker NodeSet
+    # names, not the raw input names. Example: gpu-gb300 worker "worker"
+    # size = 36 generates ["rack-0-worker", "rack-1-worker"]; non-GB worker
+    # "worker" size = 101 generates ["worker-0", "worker-1"].
     condition = length(setsubtract(
       toset(flatten([
         for p in var.slurm_nodesets_partitions : coalesce(p.nodeset_refs, [])
@@ -837,6 +841,8 @@ variable "slurm_nodeset_workers" {
   }
 
   validation {
+    # GB platforms are rack-scoped below and keyed by generated node group name,
+    # so each GB platform can appear only once in the input list.
     condition = length(distinct([
       for worker in var.slurm_nodeset_workers : worker.resource.platform
       if startswith(worker.resource.platform, "gpu-gb")
@@ -848,6 +854,10 @@ variable "slurm_nodeset_workers" {
   }
 
   validation {
+    # GB300 racks contain 18 nodes. Production requests must use whole racks;
+    # non-production can request a single partial rack for small test clusters.
+    # Examples: production size = 36 passes, production size = 10 fails,
+    # non-production size = 10 passes, non-production size = 20 fails.
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? (
@@ -860,6 +870,8 @@ variable "slurm_nodeset_workers" {
   }
 
   validation {
+    # NVLink is modeled only for GB300 here: GB300 must enable it and all other
+    # platforms must leave it disabled.
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? try(worker.nvlink.enabled == true, false) : !try(worker.nvlink.enabled == true, false)
@@ -868,6 +880,8 @@ variable "slurm_nodeset_workers" {
   }
 
   validation {
+    # The provider requires a type value for NVLink instance groups. This
+    # installation path supports only GB300 groups.
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? try(coalesce(worker.nvlink.type, "GB300") == "GB300", false) : true
@@ -876,6 +890,8 @@ variable "slurm_nodeset_workers" {
   }
 
   validation {
+    # Keep the rack-size rule next to the NVLink-specific settings too, so a
+    # future non-GB NVLink platform must update this validation deliberately.
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
       try(worker.nvlink.enabled == true, false) && worker.resource.platform == "gpu-gb300" ? (
@@ -888,9 +904,11 @@ variable "slurm_nodeset_workers" {
   }
 
   validation {
+    # placement_policy_nodes is a per-worker list. In production it must be
+    # absent or empty; non-production may pin node groups to provider nodes.
     condition = !var.production || alltrue([
       for worker in var.slurm_nodeset_workers :
-      try(trimspace(worker.placement_policy_nodes), "") == ""
+      length(coalesce(worker.placement_policy_nodes, [])) == 0
     ])
     error_message = "Worker placement_policy_nodes can only be set when production = false."
   }
@@ -901,6 +919,10 @@ variable "slurm_nodeset_workers" {
   }
 
   validation {
+    # Compare the set of generated worker NodeSet names with the full generated
+    # name list; a shorter distinct list means two inputs collide after
+    # expansion. Example collision: two non-GB workers named "worker" with
+    # size = 1 both generate "worker-0".
     condition = length(distinct(flatten([
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? [
@@ -1229,31 +1251,6 @@ variable "slurm_worker_sshd_config_map_ref_name" {
   description = "Name of configmap with SSHD config, which runs in slurmd container."
   type        = string
   default     = ""
-}
-
-variable "nvl_instance_group_id" {
-  description = "NVLink Instance Group ID, in which instances will be created"
-  type        = string
-  default     = ""
-
-  validation {
-    condition = trimspace(var.nvl_instance_group_id) == "" || anytrue([
-      for worker in var.slurm_nodeset_workers :
-      worker.resource.platform == "gpu-gb300"
-    ])
-    error_message = "nvl_instance_group_id can only be set when at least one gpu-gb300 worker nodeset exists."
-  }
-}
-
-variable "placement_policy_nodes" {
-  description = "Placement policy nodes for worker node group"
-  type        = string
-  default     = ""
-
-  validation {
-    condition     = !var.production || trimspace(var.placement_policy_nodes) == ""
-    error_message = "placement_policy_nodes can only be set when production = false."
-  }
 }
 
 # endregion Worker
