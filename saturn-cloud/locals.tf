@@ -33,6 +33,8 @@ locals {
   saturn_cloud_provider        = "nebius"
   saturn_image_build_node_role = "cpu-d3-4vcpu-16gb"
 
+  default_cuda_preset = "cuda13.0"
+
   # Build a node group key for each pool (used as for_each keys and node_role names)
   node_pool_keys = {
     for i, pool in var.node_pools : "${pool.platform}-${pool.preset}${pool.infiniband_fabric != null ? "-${pool.infiniband_fabric}" : ""}" => pool

@@ -152,7 +152,7 @@ resource "nebius_mk8s_v1_node_group" "pool" {
     }
 
     gpu_settings = local.valid_presets["${each.value.platform}/${each.value.preset}"].gpus > 0 ? {
-      drivers_preset = "cuda12"
+      drivers_preset = coalesce(each.value.drivers_preset, local.default_cuda_preset)
     } : null
 
     gpu_cluster = each.value.infiniband_fabric != null ? {
