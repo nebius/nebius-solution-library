@@ -9,10 +9,12 @@ resource "nebius_compute_v1_instance" "bastion_instance" {
 
   network_interfaces = [
     {
-      name              = "eth0"
-      subnet_id         = var.subnet_id
-      ip_address        = {}
-      public_ip_address = {}
+      name       = "eth0"
+      subnet_id  = var.subnet_id
+      ip_address = {}
+      public_ip_address = {
+        allocation_id = var.public_ip_allocation_id
+      }
     }
   ]
 
