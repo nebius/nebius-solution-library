@@ -24,6 +24,12 @@ For those who prefer containerized environments, our Kubernetes solution include
 
 Our SLURM solutions offer a streamlined approach for users who prefer traditional HPC environments. These solutions include ready-to-use images pre-configured with NVIDIA drivers and are ideal for those looking to take advantage of SLURM’s robust job scheduling capabilities.  Similar to our Kubernetes offerings, the SLURM solutions are optimized for InfiniBand connectivity, ensuring peak performance and efficiency in data transfer and communication between nodes.
 
+### Serverless
+
+[Serverless AI](./serverless-ai/README.md)
+
+Run containerized AI workloads without managing long-lived VM fleets or clusters. The examples include a small Qwen LoRA fine-tuning Job with Axolotl, a vLLM support-ticket triage Endpoint, and minimal quick checks for validating quota, networking, logs, and token auth.
+
 ### Network
 
 [Wireguard](./wireguard/README.md)

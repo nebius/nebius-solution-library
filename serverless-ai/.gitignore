@@ -1,0 +1,6 @@
+.env.serverless-ai
+__pycache__/
+*.pyc
+endpoints/vllm-openai/.endpoint.env
+endpoints/vllm-openai/output/
+jobs/qwen-lora-finetune/download/

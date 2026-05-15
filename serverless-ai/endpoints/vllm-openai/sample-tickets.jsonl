@@ -1,0 +1,3 @@
+{"id":"ticket-001","customer":"Acme Bio","subject":"GPU job fails during model evaluation","body":"The evaluation run starts, downloads the model, then exits after CUDA out of memory. We are using a single L40S and a 7B model with batch size 16."}
+{"id":"ticket-002","customer":"Northwind Robotics","subject":"Need endpoint for demo tomorrow","body":"We need a small OpenAI-compatible endpoint to demo ticket summarization. It does not need high throughput, but it must be reachable over HTTPS or public IP with token auth."}
+{"id":"ticket-003","customer":"Contoso Research","subject":"Fine-tuning output disappeared","body":"A test fine-tuning job completed successfully, but the team cannot find the adapter files. They expected files to stay on the job disk after completion."}
