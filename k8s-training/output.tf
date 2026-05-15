@@ -38,12 +38,3 @@ output "filesystem_csi" {
     default_storage_class_patch = var.filesystem_csi.make_default_storage_class
   } : null
 }
-
-output "k8s_rbac_bindings" {
-  description = "Kubernetes RBAC resources created for Kubernetes cluster access."
-  value = var.k8s_rbac_bindings.enabled ? {
-    namespaces              = module.k8s_rbac_bindings[0].namespaces
-    cluster_role_bindings   = module.k8s_rbac_bindings[0].cluster_role_bindings
-    namespace_role_bindings = module.k8s_rbac_bindings[0].namespace_role_bindings
-  } : null
-}
