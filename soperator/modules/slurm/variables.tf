@@ -852,6 +852,10 @@ variable "worker_nodesets" {
     create_partition               = bool
     ephemeral_nodes                = optional(bool, false)
     initial_number_ephemeral_nodes = optional(number, 0)
+    persistent_volume_claim_retention_policy = optional(object({
+      when_deleted = string
+      when_scaled  = string
+    }))
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")
@@ -875,6 +879,17 @@ variable "worker_nodesets" {
     }))
   }))
   default = []
+
+  validation {
+    condition = alltrue([
+      for worker in var.worker_nodesets :
+      worker.persistent_volume_claim_retention_policy == null || (
+        contains(["Retain", "Delete"], worker.persistent_volume_claim_retention_policy.when_deleted) &&
+        contains(["Retain", "Delete"], worker.persistent_volume_claim_retention_policy.when_scaled)
+      )
+    ])
+    error_message = "When worker persistent_volume_claim_retention_policy is set, when_deleted and when_scaled must be `Retain` or `Delete`."
+  }
 }
 
 variable "slurm_nodesets_partitions" {

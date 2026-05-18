@@ -765,6 +765,10 @@ variable "slurm_nodeset_workers" {
     create_partition               = optional(bool)
     ephemeral_nodes                = optional(bool, false)
     initial_number_ephemeral_nodes = optional(number, 0)
+    persistent_volume_claim_retention_policy = optional(object({
+      when_deleted = string
+      when_scaled  = string
+    }))
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")
@@ -805,14 +809,6 @@ variable "slurm_nodeset_workers" {
     }
     node_local_jail_submounts = []
   }]
-
-  validation {
-    condition = alltrue([
-      for worker in var.slurm_nodeset_workers :
-      (worker.size > 0)
-    ])
-    error_message = "Worker nodeset size must be greater than 0."
-  }
 
   validation {
     condition     = length(var.slurm_nodeset_workers) > 0
@@ -936,6 +932,17 @@ variable "slurm_nodeset_workers" {
       ]
     ]))
     error_message = "Filesystem type must be one of `ext4` or `xfs`."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.persistent_volume_claim_retention_policy == null || (
+        contains(["Retain", "Delete"], worker.persistent_volume_claim_retention_policy.when_deleted) &&
+        contains(["Retain", "Delete"], worker.persistent_volume_claim_retention_policy.when_scaled)
+      )
+    ])
+    error_message = "When worker persistent_volume_claim_retention_policy is set, when_deleted and when_scaled must be `Retain` or `Delete`."
   }
 }
 

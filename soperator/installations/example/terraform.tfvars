@@ -367,6 +367,12 @@ slurm_nodeset_workers = [
     # By default, false.
     ephemeral_nodes                = false
     initial_number_ephemeral_nodes = 1
+    # Optional PersistentVolumeClaim retention policy for PVCs created by the worker nodeset StatefulSet.
+    # Supported values: `Retain` or `Delete`.
+    persistent_volume_claim_retention_policy = {
+      when_deleted = "Delete"
+      when_scaled  = "Delete"
+    }
     # Maximum number of pods per worker node. Default is 32 to reduce per-node Pod CIDR usage.
     max_pods = 32
     # Optional local NVMe passthrough for this nodeset only.
