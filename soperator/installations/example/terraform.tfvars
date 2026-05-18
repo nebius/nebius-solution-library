@@ -169,7 +169,7 @@ slurm_nodesets_partitions = [
   {
     name         = "main"
     is_all       = true
-    nodeset_refs = [] # e.g. ["worker-0"], but is_all must be false in this case
+    nodeset_refs = [] # e.g. ["worker"] or ["primtrain-rack-0-worker"], but is_all must be false in this case
     config       = "Default=YES PriorityTier=10 PreemptMode=OFF MaxTime=INFINITE State=UP OverSubscribe=YES"
   },
   {
@@ -327,12 +327,11 @@ slurm_nodeset_controller = {
 # GB300 workers must use size divisible by 18 in production.
 # Non-production GB300 clusters may use one partial rack with size less than 18.
 # Generated GB300 mk8s node groups are rack-sized, with 18 nodes except for the non-production partial-rack case.
-# Only one worker nodeset may be configured per GB platform.
-# Their effective nodeset prefixes are generated as rack-<rack>-<name>.
-# For example, a GB300 worker named "worker" creates rack-0-worker-0..rack-0-worker-17
-# for the first rack and rack-1-worker-0..rack-1-worker-17 for the second rack.
-# Non-GB300 workers use fixed-size node groups of 100 nodes, have effective nodeset
-# prefixes generated as <name>-<group>, and must not enable NVLink.
+# Their effective nodeset prefixes are generated as <name>-rack-<rack>-worker.
+# For example, a GB300 worker named "primtrain" creates primtrain-rack-0-worker-0..primtrain-rack-0-worker-17
+# for the first rack and primtrain-rack-1-worker-0..primtrain-rack-1-worker-17 for the second rack.
+# Non-GB300 workers use the configured name as the node prefix, producing <name>-# nodes,
+# and must not enable NVLink.
 # infiniband_fabric is required field for GPU clusters
 # ---
 slurm_nodeset_workers = [

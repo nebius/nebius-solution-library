@@ -551,9 +551,9 @@ variable "slurm_nodesets_partitions" {
 
   validation {
     # Validate partition nodeset_refs against the generated worker NodeSet
-    # names, not the raw input names. Example: gpu-gb300 worker "worker"
-    # size = 36 generates ["rack-0-worker", "rack-1-worker"]; non-GB worker
-    # "worker" size = 101 generates ["worker-0", "worker-1"].
+    # names, not the raw input names. Example: gpu-gb300 worker "primtrain"
+    # size = 36 generates ["primtrain-rack-0-worker", "primtrain-rack-1-worker"];
+    # non-GB worker "worker" stays "worker".
     condition = length(setsubtract(
       toset(flatten([
         for p in var.slurm_nodesets_partitions : coalesce(p.nodeset_refs, [])
@@ -562,17 +562,15 @@ variable "slurm_nodesets_partitions" {
         for w in var.slurm_nodeset_workers :
         w.resource.platform == "gpu-gb300" ? [
           for rack in range(try(ceil(w.size / 18), 0)) : format(
-            "rack-%d-%s",
-            rack,
+            "%s-rack-%d-worker",
             w.name,
+            rack,
           )
-          ] : [
-          for group in range(try(ceil(w.size / 100), 0)) : format("%s-%d", w.name, group)
-        ]
+        ] : [w.name]
       ]))
     )) == 0
 
-    error_message = "All slurm_nodesets_partitions[].nodeset_refs must reference effective worker nodeset names. GB300 worker nodesets are named rack-<rack>-<name>; other worker nodesets are named <name>-<group>."
+    error_message = "All slurm_nodesets_partitions[].nodeset_refs must reference effective worker nodeset names. GB300 worker nodesets are named <name>-rack-<rack>-worker; other worker nodesets use <name>."
   }
 }
 
@@ -841,19 +839,6 @@ variable "slurm_nodeset_workers" {
   }
 
   validation {
-    # GB platforms are rack-scoped below and keyed by generated node group name,
-    # so each GB platform can appear only once in the input list.
-    condition = length(distinct([
-      for worker in var.slurm_nodeset_workers : worker.resource.platform
-      if startswith(worker.resource.platform, "gpu-gb")
-      ])) == length([
-      for worker in var.slurm_nodeset_workers : worker.resource.platform
-      if startswith(worker.resource.platform, "gpu-gb")
-    ])
-    error_message = "Only one worker nodeset may be configured per GB platform."
-  }
-
-  validation {
     # GB300 racks contain 18 nodes. Production requests must use whole racks;
     # non-production can request a single partial rack for small test clusters.
     # Examples: production size = 36 passes, production size = 10 fails,
@@ -921,32 +906,28 @@ variable "slurm_nodeset_workers" {
   validation {
     # Compare the set of generated worker NodeSet names with the full generated
     # name list; a shorter distinct list means two inputs collide after
-    # expansion. Example collision: two non-GB workers named "worker" with
-    # size = 1 both generate "worker-0".
+    # expansion. Example collision: two non-GB workers named "worker" both
+    # generate "worker".
     condition = length(distinct(flatten([
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? [
         for rack in range(try(ceil(worker.size / 18), 0)) : format(
-          "rack-%d-%s",
-          rack,
+          "%s-rack-%d-worker",
           worker.name,
+          rack,
         )
-        ] : [
-        for group in range(try(ceil(worker.size / 100), 0)) : format("%s-%d", worker.name, group)
-      ]
+      ] : [worker.name]
       ]))) == length(flatten([
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? [
         for rack in range(try(ceil(worker.size / 18), 0)) : format(
-          "rack-%d-%s",
-          rack,
+          "%s-rack-%d-worker",
           worker.name,
+          rack,
         )
-        ] : [
-        for group in range(try(ceil(worker.size / 100), 0)) : format("%s-%d", worker.name, group)
-      ]
+      ] : [worker.name]
     ]))
-    error_message = "All effective worker nodeset names must be unique. GB300 worker nodesets are named rack-<rack>-<name>; other worker nodesets are named <name>-<group>."
+    error_message = "All effective worker nodeset names must be unique. GB300 worker nodesets are named <name>-rack-<rack>-worker; other worker nodesets use <name>."
   }
 
   validation {

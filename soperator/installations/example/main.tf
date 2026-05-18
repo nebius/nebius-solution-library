@@ -22,23 +22,23 @@ locals {
 
   # Normalize user-facing worker nodesets into the internal nodeset list used
   # by both mk8s node groups and Slurm NodeSets. GB300 is rack-addressed, so one
-  # input nodeset expands into 18-node rack chunks named rack-<rack>-<name>.
+  # input nodeset expands into 18-node rack chunks named <name>-rack-<rack>-worker.
   # Example: { name = "worker", platform = "gpu-gb300", size = 36 } becomes
-  # [{ name = "rack-0-worker", size = 18 }, { name = "rack-1-worker", size = 18 }].
+  # [{ name = "worker-rack-0-worker", size = 18 }, { name = "worker-rack-1-worker", size = 18 }].
   slurm_nodeset_workers = flatten([
     for nodeset in var.slurm_nodeset_workers :
     nodeset.resource.platform == local.gb300_platform ? [
       for rack in range(ceil(nodeset.size / local.gb300_nodes_per_nodegroup)) : merge(nodeset, {
         name = format(
-          "rack-%d-%s",
-          rack,
+          "%s-rack-%d-worker",
           nodeset.name,
+          rack,
         )
         size                = min(local.gb300_nodes_per_nodegroup, nodeset.size - rack * local.gb300_nodes_per_nodegroup)
         nodes_per_nodegroup = local.gb300_nodes_per_nodegroup
       })
       ] : [merge(nodeset, {
-        nodes_per_nodegroup = coalesce(try(nodeset.nodes_per_nodegroup, null), local.default_nodes_per_nodegroup)
+        nodes_per_nodegroup = local.default_nodes_per_nodegroup
     })]
   ])
 
@@ -67,7 +67,7 @@ locals {
   # Non-GB300 workers keep autoscaling and split into nodes_per_nodegroup chunks.
   # GB300 workers are fixed rack-sized groups because NVLink instance groups are
   # rack-scoped. Example: non-GB300 size = 128 becomes worker-0 size 100 and
-  # worker-1 size 28; GB300 rack-0-worker stays size/min/max 18 with autoscaling off.
+  # worker-1 size 28; GB300 worker-rack-0-worker stays size/min/max 18 with autoscaling off.
   node_group_workers_v2 = flatten([for i, nodeset in local.slurm_nodeset_workers : [
     for subset in range(ceil(nodeset.size / nodeset.nodes_per_nodegroup)) : {
       name            = nodeset.name
@@ -270,7 +270,7 @@ module "k8s" {
   node_group_workers    = local.node_group_workers
   node_group_workers_v2 = [
     for worker in local.node_group_workers_v2 : merge(worker, {
-      nvl_instance_group_id = try(nebius_compute_v1_nvl_instance_group.worker[worker.node_group_name].id, try(worker.nvlink.enabled == true, false))
+      nvl_instance_group_id = try(nebius_compute_v1_nvl_instance_group.worker[worker.node_group_name].id, "")
     })
   ]
   node_group_login = var.slurm_nodeset_login
