@@ -80,8 +80,8 @@ By default, `soperator-telemetry` is used as a profile for public o11y setup. Yo
 Create a "jail" filesystem in the Nebius Console. Jail is a shared filesystem for all Slurm nodes.
 It is called "jail" because it resembles [FreeBSD jail mechanism](https://en.wikipedia.org/wiki/FreeBSD_jail).
 
-This step is required for those who wants to persist their jail data after the cluster deletion.
-You can offload storage creation to the Terraform script instead, but it will be deleted with the cluster in this case.
+This step is required for those who want to persist their jail data after the cluster deletion.
+You can offload storage creation to the Terraform script instead, but it will be deleted with the cluster unless you set `forbid_deletion = true` in the filesystem `spec`.
 
 ![Create Filesystem 1](imgs/create_fs_1.png)
 ![Create Filesystem 2](imgs/create_fs_2.png)
@@ -108,6 +108,15 @@ filestore_jail = {
     id = "computefilesystem-<YOUR-FILESYSTEM-ID>"
   }
 }
+
+# Or create the jail filesystem with Terraform and protect it from deletion
+# filestore_jail = {
+#   spec = {
+#     size_gibibytes       = 2048
+#     block_size_kibibytes = 4
+#     forbid_deletion      = true
+#   }
+# }
 
 # ...
 
@@ -203,6 +212,103 @@ or connect using the login script:
 ```bash
 ./login.sh -k ~/.ssh/<private_key>
 ```
+
+### 9. (Optional) Destroy the Cluster and Retain Terraform-Created Shared Filesystems
+
+If Terraform created the shared filesystems from `spec` blocks and you want to delete the cluster while keeping the data, first protect the filesystems and then remove only those retained filesystems from Terraform state before running `terraform destroy`.
+
+1. Enable deletion protection on each Terraform-created shared filesystem that must be retained.
+
+```hcl
+filestore_jail = {
+  spec = {
+    size_gibibytes       = 2048
+    block_size_kibibytes = 4
+    forbid_deletion      = true
+  }
+}
+
+filestore_jail_submounts = [{
+  name       = "data"
+  mount_path = "/mnt/data"
+  spec = {
+    size_gibibytes       = 4096
+    block_size_kibibytes = 32
+    forbid_deletion      = true
+  }
+}]
+```
+
+2. Apply the deletion-protection change before removing anything from state.
+
+```bash
+terraform plan
+terraform apply
+```
+
+Confirm the plan only updates deletion protection on the filesystems you intend to retain.
+
+3. Record the retained filesystem IDs and the exact Terraform resource addresses.
+
+```bash
+terraform state list | grep 'module.filestore.nebius_compute_v1_filesystem'
+terraform state show 'module.filestore.nebius_compute_v1_filesystem.jail[0]'
+terraform state show 'module.filestore.nebius_compute_v1_filesystem.jail_submount["data"]'
+```
+
+4. Back up the Terraform state according to your team's state-management process. For a local backup, store the state file securely because it may contain sensitive values.
+
+```bash
+terraform state pull > terraform-state-before-retaining-filesystems.tfstate
+```
+
+5. Remove only the retained filesystems from Terraform state. This makes Terraform forget those filesystems so the cluster destroy does not try to delete them.
+
+```bash
+terraform state rm 'module.filestore.nebius_compute_v1_filesystem.jail[0]'
+terraform state rm 'module.filestore.nebius_compute_v1_filesystem.jail_submount["data"]'
+```
+
+If you also created and want to retain controller spool or accounting filesystems, remove their resource addresses as well:
+
+```bash
+terraform state rm 'module.filestore.nebius_compute_v1_filesystem.controller_spool[0]'
+terraform state rm 'module.filestore.nebius_compute_v1_filesystem.accounting[0]'
+```
+
+6. Verify the destroy plan before applying it.
+
+```bash
+terraform plan -destroy
+```
+
+Confirm that the retained `nebius_compute_v1_filesystem` resources are not listed for deletion. If a retained filesystem still appears in the destroy plan, stop and check the state addresses before continuing.
+
+7. Destroy the remaining cluster resources.
+
+```bash
+terraform destroy
+```
+
+8. To reuse the retained filesystems in a future cluster, configure them as `existing` filesystems with the IDs recorded earlier.
+
+```hcl
+filestore_jail = {
+  existing = {
+    id = "computefilesystem-<RETAINED-JAIL-ID>"
+  }
+}
+
+filestore_jail_submounts = [{
+  name       = "data"
+  mount_path = "/mnt/data"
+  existing = {
+    id = "computefilesystem-<RETAINED-DATA-ID>"
+  }
+}]
+```
+
+`forbid_deletion = true` prevents accidental provider-side deletion, but removing the retained filesystems from Terraform state is what allows `terraform destroy` to complete without trying to delete them.
 
 ## (Optional) Test Your Installation
 

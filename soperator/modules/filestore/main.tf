@@ -8,6 +8,7 @@ resource "nebius_compute_v1_filesystem" "controller_spool" {
   type             = var.controller_spool.spec.disk_type
   size_bytes       = provider::units::from_gib(var.controller_spool.spec.size_gibibytes)
   block_size_bytes = provider::units::from_kib(var.controller_spool.spec.block_size_kibibytes)
+  forbid_deletion  = var.controller_spool.spec.forbid_deletion
 
   lifecycle {
     ignore_changes = [
@@ -44,6 +45,7 @@ resource "nebius_compute_v1_filesystem" "jail" {
   type             = var.jail.spec.disk_type
   size_bytes       = provider::units::from_gib(var.jail.spec.size_gibibytes)
   block_size_bytes = provider::units::from_kib(var.jail.spec.block_size_kibibytes)
+  forbid_deletion  = var.jail.spec.forbid_deletion
 
   lifecycle {
     ignore_changes = [
@@ -73,10 +75,11 @@ locals {
 resource "nebius_compute_v1_filesystem" "jail_submount" {
   for_each = tomap({ for submount in var.jail_submounts :
     submount.name => {
-      name    = local.name.jail_submount[submount.name]
-      type    = submount.spec.disk_type
-      storage = provider::units::from_gib(submount.spec.size_gibibytes)
-      block   = provider::units::from_kib(submount.spec.block_size_kibibytes)
+      name            = local.name.jail_submount[submount.name]
+      type            = submount.spec.disk_type
+      storage         = provider::units::from_gib(submount.spec.size_gibibytes)
+      block           = provider::units::from_kib(submount.spec.block_size_kibibytes)
+      forbid_deletion = submount.spec.forbid_deletion
     }
     if submount.spec != null
   })
@@ -88,6 +91,7 @@ resource "nebius_compute_v1_filesystem" "jail_submount" {
   type             = each.value.type
   size_bytes       = each.value.storage
   block_size_bytes = each.value.block
+  forbid_deletion  = each.value.forbid_deletion
 
   lifecycle {
     ignore_changes = [
@@ -137,6 +141,7 @@ resource "nebius_compute_v1_filesystem" "accounting" {
   type             = var.accounting.spec.disk_type
   size_bytes       = provider::units::from_gib(var.accounting.spec.size_gibibytes)
   block_size_bytes = provider::units::from_kib(var.accounting.spec.block_size_kibibytes)
+  forbid_deletion  = var.accounting.spec.forbid_deletion
 }
 data "nebius_compute_v1_filesystem" "accounting" {
   count = local.accounting_needed ? (var.accounting.existing != null ? 1 : 0) : 0
