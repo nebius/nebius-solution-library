@@ -67,7 +67,7 @@ variable "manage_helm" {
 variable "helm_chart_version" {
   description = "Version of the saturn-helm-operator chart"
   type        = string
-  default     = "2026.2.1-96"
+  default     = "2026.2.1-97"
 }
 
 variable "k8s_version" {
