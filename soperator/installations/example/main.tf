@@ -25,6 +25,8 @@ locals {
   # input nodeset expands into 18-node rack chunks named <name>-rack-<rack>-worker.
   # Example: { name = "worker", platform = "gpu-gb300", size = 36 } becomes
   # [{ name = "worker-rack-0-worker", size = 18 }, { name = "worker-rack-1-worker", size = 18 }].
+  # Non-production partial racks keep their requested size, for example size = 10
+  # becomes [{ name = "worker-rack-0-worker", size = 10 }].
   slurm_nodeset_workers = flatten([
     for nodeset in var.slurm_nodeset_workers :
     nodeset.resource.platform == local.gb300_platform ? [
@@ -34,6 +36,7 @@ locals {
           nodeset.name,
           rack,
         )
+        size                = min(local.gb300_nodes_per_nodegroup, nodeset.size - rack * local.gb300_nodes_per_nodegroup)
         nodes_per_nodegroup = local.gb300_nodes_per_nodegroup
       })
       ] : [merge(nodeset, {
@@ -64,22 +67,23 @@ locals {
 
   # V2 node_group_workers for new-style deployments (with nodesets)
   # Non-GB300 workers keep autoscaling and split into nodes_per_nodegroup chunks.
-  # GB300 workers are fixed rack-sized groups because NVLink instance groups are
-  # rack-scoped. Example: non-GB300 size = 128 becomes worker-0 size 100 and
-  # worker-1 size 28; GB300 worker-rack-0-worker stays size/min/max 18 with autoscaling off.
+  # GB300 workers are fixed generated rack-sized groups because NVLink instance
+  # groups are rack-scoped. Example: non-GB300 size = 128 becomes worker-0 size
+  # 100 and worker-1 size 28; GB300 worker-rack-0-worker stays size/min/max
+  # equal to its normalized rack size with autoscaling off.
   node_group_workers_v2 = flatten([for i, nodeset in local.slurm_nodeset_workers : [
     for subset in range(ceil(nodeset.size / nodeset.nodes_per_nodegroup)) : {
       name            = nodeset.name
       node_group_name = nodeset.resource.platform == local.gb300_platform ? nodeset.name : join("-", [nodeset.name, subset])
-      size            = nodeset.resource.platform == local.gb300_platform ? local.gb300_nodes_per_nodegroup : min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup)
-      min_size = nodeset.resource.platform == local.gb300_platform ? local.gb300_nodes_per_nodegroup : (
+      size            = nodeset.resource.platform == local.gb300_platform ? nodeset.size : min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup)
+      min_size = nodeset.resource.platform == local.gb300_platform ? nodeset.size : (
         nodeset.autoscaling.enabled && nodeset.autoscaling.min_size != null
         # Fill autoscaling min_size left to right. Example: min_size = 120 over
         # 100-node chunks gives per-node-group min sizes [100, 20, 0].
         ? min(nodeset.nodes_per_nodegroup, max(0, nodeset.autoscaling.min_size - subset * nodeset.nodes_per_nodegroup))
         : min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup) # min=max
       )
-      max_size               = nodeset.resource.platform == local.gb300_platform ? local.gb300_nodes_per_nodegroup : max(1, min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup))
+      max_size               = nodeset.resource.platform == local.gb300_platform ? nodeset.size : max(1, min(nodeset.nodes_per_nodegroup, nodeset.size - subset * nodeset.nodes_per_nodegroup))
       autoscaling            = nodeset.resource.platform == local.gb300_platform ? false : nodeset.autoscaling.enabled
       resource               = nodeset.resource
       boot_disk              = nodeset.boot_disk
@@ -236,7 +240,7 @@ resource "nebius_compute_v1_nvl_instance_group" "worker" {
   }
 
   parent_id = var.iam_project_id
-  size      = local.gb300_nodes_per_nodegroup
+  size      = each.value.size
   name      = "${local.k8s_cluster_name}-${each.value.node_group_name}"
   type      = each.value.nvlink.type
 }

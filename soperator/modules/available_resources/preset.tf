@@ -320,6 +320,7 @@ locals {
         (module.labels.name_nodeset_worker)     = true
         (module.labels.name_nodeset_login)      = true
         (module.labels.name_nodeset_accounting) = false
+        (module.labels.name_nodeset_nfs)        = false
       }
     }
   }
