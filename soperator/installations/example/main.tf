@@ -34,7 +34,6 @@ locals {
           nodeset.name,
           rack,
         )
-        size                = min(local.gb300_nodes_per_nodegroup, nodeset.size - rack * local.gb300_nodes_per_nodegroup)
         nodes_per_nodegroup = local.gb300_nodes_per_nodegroup
       })
       ] : [merge(nodeset, {

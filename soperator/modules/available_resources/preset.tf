@@ -15,12 +15,13 @@ locals {
     p-224c-896g  = "224vcpu-896gb"
     p-256c-1024g = "256vcpu-1024gb"
 
-    p-1g-16c-200g       = "1gpu-16vcpu-200gb"
-    p-1g-20c-224g       = "1gpu-20vcpu-224gb"
-    p-1g-24c-346g       = "1gpu-24vcpu-346gb"
-    p-8g-128c-1600g     = "8gpu-128vcpu-1600gb"
-    p-8g-160c-1792g     = "8gpu-160vcpu-1792gb"
-    p-8g-192c-2768g     = "8gpu-192vcpu-2768gb"
+    p-1g-16c-200g   = "1gpu-16vcpu-200gb"
+    p-1g-20c-224g   = "1gpu-20vcpu-224gb"
+    p-1g-24c-346g   = "1gpu-24vcpu-346gb"
+    p-8g-128c-1600g = "8gpu-128vcpu-1600gb"
+    p-8g-160c-1792g = "8gpu-160vcpu-1792gb"
+    p-8g-192c-2768g = "8gpu-192vcpu-2768gb"
+
     p-4gpu-112vcpu-800g = "4gpu-112vcpu-800gb"
   }
 
