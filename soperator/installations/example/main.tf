@@ -240,9 +240,11 @@ resource "nebius_compute_v1_nvl_instance_group" "worker" {
   }
 
   parent_id = var.iam_project_id
-  size      = each.value.size
-  name      = "${local.k8s_cluster_name}-${each.value.node_group_name}"
-  type      = each.value.nvlink.type
+  # `size` is a private-provider field for non-production partial-rack usage.
+  # Uncomment to use with private provider.
+  # size = each.value.size
+  name = "${local.k8s_cluster_name}-${each.value.node_group_name}"
+  type = each.value.nvlink.type
 }
 
 module "k8s" {
