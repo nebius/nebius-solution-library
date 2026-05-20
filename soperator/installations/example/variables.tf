@@ -561,7 +561,7 @@ variable "slurm_nodesets_partitions" {
       toset(flatten([
         for w in var.slurm_nodeset_workers :
         w.resource.platform == "gpu-gb300" ? [
-          for rack in range(try(ceil(w.size / 18), 0)) : format(
+          for rack in range(max(1, try(ceil(w.size / 18), 0))) : format(
             "%s-rack-%d-worker",
             w.name,
             rack,
@@ -831,14 +831,6 @@ variable "slurm_nodeset_workers" {
   }]
 
   validation {
-    condition = alltrue([
-      for worker in var.slurm_nodeset_workers :
-      worker.size > 0 && floor(worker.size) == worker.size
-    ])
-    error_message = "Worker nodeset size must be a whole number greater than 0."
-  }
-
-  validation {
     # GB300 racks contain 18 nodes. Production requests must use whole racks;
     # non-production can request a single partial rack for small test clusters.
     # Examples: production size = 36 passes, production size = 10 fails,
@@ -911,7 +903,7 @@ variable "slurm_nodeset_workers" {
     condition = length(distinct(flatten([
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? [
-        for rack in range(try(ceil(worker.size / 18), 0)) : format(
+        for rack in range(max(1, try(ceil(worker.size / 18), 0))) : format(
           "%s-rack-%d-worker",
           worker.name,
           rack,
@@ -920,7 +912,7 @@ variable "slurm_nodeset_workers" {
       ]))) == length(flatten([
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? [
-        for rack in range(try(ceil(worker.size / 18), 0)) : format(
+        for rack in range(max(1, try(ceil(worker.size / 18), 0))) : format(
           "%s-rack-%d-worker",
           worker.name,
           rack,
@@ -1181,10 +1173,21 @@ resource "terraform_data" "check_slurm_nodeset" {
   lifecycle {
     precondition {
       condition = (
-        try(each.value.size, 0) > 0 ||
-        try(each.value.min_size, 0) > 0
+        startswith(each.key, "worker_")
+        ? (
+          try(each.value.size >= 0 && floor(each.value.size) == each.value.size, false) &&
+          (
+            try(each.value.autoscaling.min_size, null) == null
+            ? true
+            : try(each.value.autoscaling.min_size >= 0 && floor(each.value.autoscaling.min_size) == each.value.autoscaling.min_size, false)
+          )
+        )
+        : (
+          try(each.value.size > 0 && floor(each.value.size) == each.value.size, false) ||
+          try(each.value.min_size > 0 && floor(each.value.min_size) == each.value.min_size, false)
+        )
       )
-      error_message = "Either size or min_size must be greater than zero in node set ${each.key}."
+      error_message = "Node set ${each.key} must have whole-number size/min_size values. Worker node sets may use size = 0 and validate autoscaling.min_size when set; other node sets must have size or min_size greater than 0."
     }
 
     precondition {

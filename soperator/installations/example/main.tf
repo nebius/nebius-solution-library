@@ -26,11 +26,13 @@ locals {
   # Example: { name = "worker", platform = "gpu-gb300", size = 36 } becomes
   # [{ name = "worker-rack-0-worker", size = 18 }, { name = "worker-rack-1-worker", size = 18 }].
   # Non-production partial racks keep their requested size, for example size = 10
-  # becomes [{ name = "worker-rack-0-worker", size = 10 }].
+  # becomes [{ name = "worker-rack-0-worker", size = 10 }]. Size = 0 keeps a
+  # zero-replica rack nodeset so Terraform can downscale the generated node
+  # groups while the Slurm NodeSet remains addressable.
   slurm_nodeset_workers = flatten([
     for nodeset in var.slurm_nodeset_workers :
     nodeset.resource.platform == local.gb300_platform ? [
-      for rack in range(ceil(nodeset.size / local.gb300_nodes_per_nodegroup)) : merge(nodeset, {
+      for rack in range(max(1, ceil(nodeset.size / local.gb300_nodes_per_nodegroup))) : merge(nodeset, {
         name = format(
           "%s-rack-%d-worker",
           nodeset.name,
