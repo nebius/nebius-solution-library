@@ -546,7 +546,12 @@ module "slurm" {
   slurm_partition_raw_config      = var.slurm_partition_raw_config
   slurm_health_check_config       = var.slurm_health_check_config
 
-  slurm_nodesets_partitions = var.slurm_nodesets_partitions
+  slurm_nodesets_partitions = [for partition in var.slurm_nodesets_partitions : {
+    name         = partition.name
+    is_all       = partition.is_all
+    nodeset_refs = partition.slurm_nodeset_refs
+    config       = partition.config
+  }]
   worker_nodesets = [for nodeset in local.slurm_nodeset_workers : {
     name            = nodeset.name
     replicas        = nodeset.size

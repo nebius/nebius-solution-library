@@ -538,25 +538,44 @@ variable "slurm_operator_stable" {
 
 variable "slurm_nodesets_partitions" {
   description = <<-EOT
+    Partition configuration for generated Slurm NodeSets.
+    slurm_nodeset_refs must reference generated Slurm NodeSet names. A non-GB worker keeps its Terraform worker nodeset name.
+    A GB300 worker nodeset expands into rack-scoped Slurm NodeSets named <name>-rack-<rack>-worker.
     Users must not remove the "hidden" partition.
     Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
   EOT
   type = list(object({
-    name         = string
-    is_all       = optional(bool, false)
-    nodeset_refs = optional(list(string), [])
-    config       = string
+    name               = string
+    is_all             = optional(bool, false)
+    slurm_nodeset_refs = optional(list(string), [])
+    config             = string
   }))
   default = []
 
   validation {
-    # Validate partition nodeset_refs against the generated worker NodeSet
-    # names, not the raw input names. Example: gpu-gb300 worker "primtrain"
+    condition = alltrue([
+      for p in var.slurm_nodesets_partitions :
+      p.is_all || length(p.slurm_nodeset_refs) > 0
+    ])
+    error_message = "Each partition must have either is_all = true or non-empty slurm_nodeset_refs."
+  }
+
+  validation {
+    condition = alltrue([
+      for p in var.slurm_nodesets_partitions :
+      !(p.is_all && length(p.slurm_nodeset_refs) > 0)
+    ])
+    error_message = "A partition cannot have both is_all = true and non-empty slurm_nodeset_refs."
+  }
+
+  validation {
+    # Validate partition refs against generated Slurm NodeSet names, not raw
+    # Terraform worker nodeset names. Example: gpu-gb300 worker "primtrain" with
     # size = 36 generates ["primtrain-rack-0-worker", "primtrain-rack-1-worker"];
     # non-GB worker "worker" stays "worker".
     condition = length(setsubtract(
       toset(flatten([
-        for p in var.slurm_nodesets_partitions : coalesce(p.nodeset_refs, [])
+        for p in var.slurm_nodesets_partitions : coalesce(p.slurm_nodeset_refs, [])
       ])),
       toset(flatten([
         for w in var.slurm_nodeset_workers :
@@ -570,7 +589,7 @@ variable "slurm_nodesets_partitions" {
       ]))
     )) == 0
 
-    error_message = "All slurm_nodesets_partitions[].nodeset_refs must reference effective worker nodeset names. GB300 worker nodesets are named <name>-rack-<rack>-worker; other worker nodesets use <name>."
+    error_message = "All slurm_nodesets_partitions[].slurm_nodeset_refs must reference generated Slurm NodeSet names. GB300 worker nodesets generate <name>-rack-<rack>-worker names; other worker nodesets use <name>."
   }
 }
 

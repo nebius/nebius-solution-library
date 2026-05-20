@@ -161,22 +161,27 @@ slurm_operator_version = "4.0.0"
 # ---
 slurm_operator_stable = true
 
-# Each partition must have either is_all = true (includes all nodesets) or nodeset_refs (list of specific nodesets).
+# Each partition must have either is_all = true (includes all generated Slurm NodeSets)
+# or slurm_nodeset_refs (list of specific generated Slurm NodeSet names).
+# For GB300, one Terraform worker nodeset can produce multiple Slurm NodeSets:
+# Terraform worker `primtrain` with size 36 generates `primtrain-rack-0-worker`
+# and `primtrain-rack-1-worker`.
 # Users must not remove the "hidden" partition.
 # Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
 # ---
 slurm_nodesets_partitions = [
   {
-    name         = "main"
-    is_all       = true
-    nodeset_refs = [] # e.g. ["worker"] or ["primtrain-rack-0-worker"], but is_all must be false in this case
-    config       = "Default=YES PriorityTier=10 PreemptMode=OFF MaxTime=INFINITE State=UP OverSubscribe=YES"
+    name   = "main"
+    is_all = true
+    # e.g. ["worker"] or ["primtrain-rack-0-worker"]; set is_all = false when using refs.
+    slurm_nodeset_refs = []
+    config             = "Default=YES PriorityTier=10 PreemptMode=OFF MaxTime=INFINITE State=UP OverSubscribe=YES"
   },
   {
-    name         = "hidden"
-    is_all       = true
-    nodeset_refs = []
-    config       = "Default=NO PriorityTier=10 PreemptMode=OFF Hidden=YES MaxTime=INFINITE State=UP OverSubscribe=YES"
+    name               = "hidden"
+    is_all             = true
+    slurm_nodeset_refs = []
+    config             = "Default=NO PriorityTier=10 PreemptMode=OFF Hidden=YES MaxTime=INFINITE State=UP OverSubscribe=YES"
   },
 ]
 
@@ -192,7 +197,7 @@ slurm_partition_config_type = "default"
 #   "PartitionName=low_priority Nodes=low_priority Default=YES MaxTime=INFINITE State=UP PriorityTier=1",
 #   "PartitionName=high_priority Nodes=low_priority Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
 # ]
-# If Nodes present, they must not contain node names: use only nodeset values, "ALL" or "".
+# If Nodes present, they must not contain node names: use only Slurm NodeSet values, "ALL" or "".
 # If nodesets are used in the partition config, slurm_worker_features with non-empty nodeset_name
 # must be declared (see below).
 # Specifying specific nodes is not supported since Dynamic Nodes are used.
