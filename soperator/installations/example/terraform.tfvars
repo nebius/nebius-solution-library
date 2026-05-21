@@ -43,7 +43,6 @@ filestore_controller_spool = {
   spec = {
     size_gibibytes       = 128
     block_size_kibibytes = 4
-    forbid_deletion      = false
   }
 }
 # Or use existing filestore.
@@ -62,7 +61,6 @@ filestore_controller_spool = {
 #   spec = {
 #     size_gibibytes       = 2048
 #     block_size_kibibytes = 4
-#     forbid_deletion      = false
 #   }
 # }
 # Or use existing filestore.
@@ -83,7 +81,6 @@ filestore_jail = {
 #   spec = {
 #     size_gibibytes       = 2048
 #     block_size_kibibytes = 4
-#     forbid_deletion      = false
 #   }
 # }]
 # Or use existing filestores.
@@ -105,7 +102,6 @@ filestore_accounting = {
   spec = {
     size_gibibytes       = 512
     block_size_kibibytes = 4
-    forbid_deletion      = false
   }
 }
 # Or use existing filestore.

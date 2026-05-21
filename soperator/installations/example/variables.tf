@@ -161,7 +161,6 @@ variable "filestore_controller_spool" {
     spec = optional(object({
       size_gibibytes       = number
       block_size_kibibytes = number
-      forbid_deletion      = optional(bool, false)
     }))
   })
   nullable = false
@@ -184,7 +183,6 @@ variable "filestore_jail" {
     spec = optional(object({
       size_gibibytes       = number
       block_size_kibibytes = number
-      forbid_deletion      = optional(bool, false)
     }))
   })
   nullable = false
@@ -227,7 +225,6 @@ variable "filestore_jail_submounts" {
     spec = optional(object({
       size_gibibytes       = number
       block_size_kibibytes = number
-      forbid_deletion      = optional(bool, false)
     }))
   }))
   default = []
@@ -256,7 +253,6 @@ variable "filestore_accounting" {
     spec = optional(object({
       size_gibibytes       = number
       block_size_kibibytes = number
-      forbid_deletion      = optional(bool, false)
     }))
   })
   default  = null
