@@ -22,11 +22,11 @@ locals {
 
   # Normalize user-facing worker nodesets into the internal nodeset list used
   # by both mk8s node groups and Slurm NodeSets. GB300 is rack-addressed, so one
-  # input nodeset expands into 18-node rack chunks named <name>-rack-<rack>-worker.
+  # input nodeset expands into 18-node rack chunks named <name>-rack<rack>.
   # Example: { name = "worker", platform = "gpu-gb300", size = 36 } becomes
-  # [{ name = "worker-rack-0-worker", size = 18 }, { name = "worker-rack-1-worker", size = 18 }].
+  # [{ name = "worker-rack0", size = 18 }, { name = "worker-rack1", size = 18 }].
   # Non-production partial racks keep their requested size, for example size = 10
-  # becomes [{ name = "worker-rack-0-worker", size = 10 }]. Size = 0 keeps a
+  # becomes [{ name = "worker-rack0", size = 10 }]. Size = 0 keeps a
   # zero-replica rack nodeset so Terraform can downscale the generated node
   # groups while the Slurm NodeSet remains addressable.
   slurm_nodeset_workers = flatten([
@@ -34,7 +34,7 @@ locals {
     nodeset.resource.platform == local.gb300_platform ? [
       for rack in range(max(1, ceil(nodeset.size / local.gb300_nodes_per_nodegroup))) : merge(nodeset, {
         name = format(
-          "%s-rack-%d-worker",
+          "%s-rack%d",
           nodeset.name,
           rack,
         )
@@ -71,7 +71,7 @@ locals {
   # Non-GB300 workers keep autoscaling and split into nodes_per_nodegroup chunks.
   # GB300 workers are fixed generated rack-sized groups because NVLink instance
   # groups are rack-scoped. Example: non-GB300 size = 128 becomes worker-0 size
-  # 100 and worker-1 size 28; GB300 worker-rack-0-worker stays size/min/max
+  # 100 and worker-1 size 28; GB300 worker-rack0 stays size/min/max
   # equal to its normalized rack size with autoscaling off.
   node_group_workers_v2 = flatten([for i, nodeset in local.slurm_nodeset_workers : [
     for subset in range(ceil(nodeset.size / nodeset.nodes_per_nodegroup)) : {

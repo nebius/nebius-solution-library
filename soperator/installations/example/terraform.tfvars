@@ -164,8 +164,8 @@ slurm_operator_stable = true
 # Each partition must have either is_all = true (includes all generated Slurm NodeSets)
 # or slurm_nodeset_refs (list of specific generated Slurm NodeSet names).
 # For GB300, one Terraform worker nodeset can produce multiple Slurm NodeSets:
-# Terraform worker `primtrain` with size 36 generates `primtrain-rack-0-worker`
-# and `primtrain-rack-1-worker`.
+# Terraform worker `primtrain` with size 36 generates `primtrain-rack0`
+# and `primtrain-rack1`.
 # Users must not remove the "hidden" partition.
 # Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
 # ---
@@ -173,7 +173,7 @@ slurm_nodesets_partitions = [
   {
     name   = "main"
     is_all = true
-    # e.g. ["worker"] or ["primtrain-rack-0-worker"]; set is_all = false when using refs.
+    # e.g. ["worker"] or ["primtrain-rack0"]; set is_all = false when using refs.
     slurm_nodeset_refs = []
     config             = "Default=YES PriorityTier=10 PreemptMode=OFF MaxTime=INFINITE State=UP OverSubscribe=YES"
   },
@@ -332,9 +332,9 @@ slurm_nodeset_controller = {
 # GB300 workers must use size divisible by 18 in production.
 # Non-production GB300 clusters may use one partial rack with size less than 18.
 # Generated GB300 mk8s node groups are rack-sized, with 18 nodes except for the non-production partial-rack case.
-# Their effective nodeset prefixes are generated as <name>-rack-<rack>-worker.
-# For example, a GB300 worker named "primtrain" creates primtrain-rack-0-worker-0..primtrain-rack-0-worker-17
-# for the first rack and primtrain-rack-1-worker-0..primtrain-rack-1-worker-17 for the second rack.
+# Their effective nodeset prefixes are generated as <name>-rack<rack>.
+# For example, a GB300 worker named "primtrain" creates primtrain-rack0-0..primtrain-rack0-17
+# for the first rack and primtrain-rack1-0..primtrain-rack1-17 for the second rack.
 # Non-GB300 workers use the configured name as the node prefix, producing <name>-# nodes,
 # and must not enable NVLink.
 # infiniband_fabric is required field for GPU clusters

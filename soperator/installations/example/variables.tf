@@ -540,7 +540,7 @@ variable "slurm_nodesets_partitions" {
   description = <<-EOT
     Partition configuration for generated Slurm NodeSets.
     slurm_nodeset_refs must reference generated Slurm NodeSet names. A non-GB worker keeps its Terraform worker nodeset name.
-    A GB300 worker nodeset expands into rack-scoped Slurm NodeSets named <name>-rack-<rack>-worker.
+    A GB300 worker nodeset expands into rack-scoped Slurm NodeSets named <name>-rack<rack>.
     Users must not remove the "hidden" partition.
     Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
   EOT
@@ -571,7 +571,7 @@ variable "slurm_nodesets_partitions" {
   validation {
     # Validate partition refs against generated Slurm NodeSet names, not raw
     # Terraform worker nodeset names. Example: gpu-gb300 worker "primtrain" with
-    # size = 36 generates ["primtrain-rack-0-worker", "primtrain-rack-1-worker"];
+    # size = 36 generates ["primtrain-rack0", "primtrain-rack1"];
     # non-GB worker "worker" stays "worker".
     condition = length(setsubtract(
       toset(flatten([
@@ -581,7 +581,7 @@ variable "slurm_nodesets_partitions" {
         for w in var.slurm_nodeset_workers :
         w.resource.platform == "gpu-gb300" ? [
           for rack in range(max(1, try(ceil(w.size / 18), 0))) : format(
-            "%s-rack-%d-worker",
+            "%s-rack%d",
             w.name,
             rack,
           )
@@ -589,7 +589,7 @@ variable "slurm_nodesets_partitions" {
       ]))
     )) == 0
 
-    error_message = "All slurm_nodesets_partitions[].slurm_nodeset_refs must reference generated Slurm NodeSet names. GB300 worker nodesets generate <name>-rack-<rack>-worker names; other worker nodesets use <name>."
+    error_message = "All slurm_nodesets_partitions[].slurm_nodeset_refs must reference generated Slurm NodeSet names. GB300 worker nodesets generate <name>-rack<rack> names; other worker nodesets use <name>."
   }
 }
 
@@ -923,7 +923,7 @@ variable "slurm_nodeset_workers" {
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? [
         for rack in range(max(1, try(ceil(worker.size / 18), 0))) : format(
-          "%s-rack-%d-worker",
+          "%s-rack%d",
           worker.name,
           rack,
         )
@@ -932,13 +932,13 @@ variable "slurm_nodeset_workers" {
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? [
         for rack in range(max(1, try(ceil(worker.size / 18), 0))) : format(
-          "%s-rack-%d-worker",
+          "%s-rack%d",
           worker.name,
           rack,
         )
       ] : [worker.name]
     ]))
-    error_message = "All effective worker nodeset names must be unique. GB300 worker nodesets are named <name>-rack-<rack>-worker; other worker nodesets use <name>."
+    error_message = "All effective worker nodeset names must be unique. GB300 worker nodesets are named <name>-rack<rack>; other worker nodesets use <name>."
   }
 
   validation {
