@@ -9,8 +9,6 @@ There are two different execution models in this directory. Pick one before you 
 | [Jobs](./jobs/README.md) | A finite run that should finish and release compute | Starts, runs to completion or timeout, then stops | Fine-tune Qwen with Axolotl |
 | [Endpoints](./endpoints/README.md) | A service that accepts HTTP requests | Stays up until you delete it | Serve Qwen through vLLM and triage sample tickets |
 
-Nebius' product page also describes **DevPods** as interactive development environments with Jupyter and VS Code. DevPods are tracked separately under [devpods](./devpods/README.md) because the public docs do not yet provide a runnable DevPods workflow.
-
 ## Directory Layout
 
 | Path | Purpose |
@@ -18,7 +16,6 @@ Nebius' product page also describes **DevPods** as interactive development envir
 | [jobs/qwen-lora-finetune](./jobs/qwen-lora-finetune/README.md) | Real Serverless AI Job: fine-tunes `Qwen/Qwen2.5-0.5B` with Axolotl and writes LoRA output to Object Storage |
 | [endpoints/vllm-openai](./endpoints/vllm-openai/README.md) | Real Serverless AI Endpoint: serves `Qwen/Qwen3-0.6B` through vLLM and runs a support-ticket triage client |
 | [quickchecks](./quickchecks/README.md) | Small checks for CLI auth, subnet selection, GPU scheduling, logs, public networking, and token auth |
-| [devpods](./devpods/README.md) | Placeholder for DevPods until public deployment docs are available |
 
 ## Prerequisites
 
@@ -111,4 +108,3 @@ Each script prints the delete command for the resource it created.
 - vLLM Endpoint tutorial: https://docs.nebius.com/serverless/tutorials/deploy-model
 - Fine-tuning with Axolotl tutorial: https://docs.nebius.com/serverless/tutorials/fine-tuning
 - Pricing and quotas: https://docs.nebius.com/serverless/pricing-quotas
-- Product positioning, including DevPods: https://nebius.com/services/serverless

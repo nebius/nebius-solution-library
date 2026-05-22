@@ -8,14 +8,13 @@ Serverless AI introduces Jobs and Endpoints as a lower-friction path for AI work
 
 Add a new `serverless-ai/` directory with:
 
-- a root README explaining Jobs, Endpoints, DevPods status, prerequisites, costs, and cleanup;
+- a root README explaining Jobs, Endpoints, prerequisites, costs, and cleanup;
 - separate `jobs/` and `endpoints/` README files that explain the lifecycle differences;
 - a `ROOT_README_SNIPPET.md` entry that can be added to the solution library root README;
 - shared environment defaults in `environment.sh`;
 - a real Qwen LoRA fine-tuning Job under `jobs/qwen-lora-finetune/` with platform-sized profiles;
 - an OpenAI-compatible vLLM Endpoint plus support-ticket triage client under `endpoints/vllm-openai/`;
-- optional quick checks using the GPU `nvidia-smi` Job and authenticated nginx Endpoint;
-- a DevPods follow-up note that avoids publishing unsupported instructions before public docs exist.
+- optional quick checks using the GPU `nvidia-smi` Job and authenticated nginx Endpoint.
 
 ## Why CLI-first
 
@@ -60,10 +59,9 @@ Then confirm:
 - vLLM startup depends on Hugging Face model download availability and regional GPU quota.
 - The Axolotl fine-tuning example depends on the public Axolotl image and Hugging Face dataset/model availability.
 - Endpoints bill until stopped or deleted.
-- DevPods should remain a placeholder until public docs are available.
 
 ## Expected KPI impact
 
 - Enhancing out-of-the-box solutions: gives users a first-run path for new Serverless AI services.
 - Customer satisfaction: reduces repeated explanation for "how do I try Jobs or Endpoints?"
-- Product offering feedback: creates a concrete place to capture gaps such as Terraform support and DevPods public docs.
+- Product offering feedback: creates a concrete place to capture gaps such as Terraform support.
