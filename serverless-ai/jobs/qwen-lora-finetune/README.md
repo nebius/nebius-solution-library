@@ -66,9 +66,9 @@ List all profiles:
 | Profile | Platform | Preset | Notes |
 | --- | --- | --- | --- |
 | `l40s-a` | `gpu-l40s-a` | `1gpu-8vcpu-32gb` | Default low-cost profile |
-| `l40s-d` | `gpu-l40s-d` | `4gpu-192vcpu-1152gb` | Largest documented L40S profile |
+| `l40s-d` | `gpu-l40s-d` | `4gpu-192vcpu-1152gb` | L40S platform backed by AMD EPYC Genoa; largest documented L40S shape |
 | `b200` | `gpu-b200-sxm` | `8gpu-160vcpu-1792gb` | 8-GPU B200 profile |
-| `b200-a` | `gpu-b200-sxm-a` | `8gpu-160vcpu-1792gb` | 8-GPU B200 profile for the alternate B200 platform |
+| `b200-a` | `gpu-b200-sxm-a` | `8gpu-160vcpu-1792gb` | 8-GPU B200 profile for the ME West B200 platform |
 | `b300` | `gpu-b300-sxm` | `8gpu-192vcpu-2768gb` | 8-GPU B300 profile |
 | `h100` | `gpu-h100-sxm` | `8gpu-128vcpu-1600gb` | 8-GPU H100 profile |
 | `h200` | `gpu-h200-sxm` | `8gpu-128vcpu-1600gb` | 8-GPU H200 profile |

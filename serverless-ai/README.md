@@ -38,7 +38,7 @@ $EDITOR .env.serverless-ai
 source .env.serverless-ai
 ```
 
-The examples default to `default-subnet`, `gpu-l40s-a`, and `1gpu-8vcpu-32gb` because those match the public quickstarts. Override them when your region or quota differs.
+The examples default to `default-subnet`, `gpu-l40s-a`, and `1gpu-8vcpu-32gb`. Override them when your region or quota differs.
 
 ## Real Examples
 
