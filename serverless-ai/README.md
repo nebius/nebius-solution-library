@@ -15,7 +15,6 @@ There are two different execution models in this directory. Pick one before you 
 | --- | --- |
 | [jobs/qwen-lora-finetune](./jobs/qwen-lora-finetune/README.md) | Real Serverless AI Job: fine-tunes `Qwen/Qwen2.5-0.5B` with Axolotl and writes LoRA output to Object Storage |
 | [endpoints/vllm-openai](./endpoints/vllm-openai/README.md) | Real Serverless AI Endpoint: serves `Qwen/Qwen3-0.6B` through vLLM and runs a support-ticket triage client |
-| [quickchecks](./quickchecks/README.md) | Small checks for CLI auth, subnet selection, GPU scheduling, logs, public networking, and token auth |
 
 ## Prerequisites
 
