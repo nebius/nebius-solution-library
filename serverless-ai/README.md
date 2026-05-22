@@ -49,7 +49,17 @@ The examples default to `default-subnet`, `gpu-l40s-a`, and `1gpu-8vcpu-32gb` be
 ./jobs/qwen-lora-finetune/run.sh
 ```
 
-This example runs a real Axolotl fine-tuning workload against `Qwen/Qwen2.5-0.5B`, saves LoRA adapter output to Object Storage, and keeps the run bounded at 30 steps.
+This example runs a real Axolotl fine-tuning workload against `Qwen/Qwen2.5-0.5B`, saves LoRA adapter output to Object Storage, and keeps the run bounded at 30 steps. The same job can be launched on platform-sized profiles:
+
+```bash
+./jobs/qwen-lora-finetune/run.sh h100
+./jobs/qwen-lora-finetune/run.sh h200
+./jobs/qwen-lora-finetune/run.sh b200
+./jobs/qwen-lora-finetune/run.sh rtx6000
+./jobs/qwen-lora-finetune/run.sh l40s-d
+```
+
+The `h100`, `h200`, `b200`, `b200-a`, `b300`, and `rtx6000` profiles use 8-GPU presets. L40S does not have a documented 8-GPU preset, so `l40s-d` uses the largest documented L40S shape.
 
 ### Deploy a vLLM Endpoint and triage support tickets
 

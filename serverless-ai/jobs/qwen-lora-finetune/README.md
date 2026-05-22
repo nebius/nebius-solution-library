@@ -16,7 +16,7 @@ Use this when you want to show more than a GPU smoke test while keeping the runt
 
 - Nebius AI Cloud CLI configured for the target project.
 - AWS CLI configured for Nebius Object Storage.
-- Quota for one `gpu-l40s-a` VM with the `1gpu-8vcpu-32gb` preset.
+- Quota for the selected GPU platform and preset.
 - A subnet available in the target region.
 
 ## Configure
@@ -39,10 +39,47 @@ Prepare the bucket and upload the Axolotl config:
 ./jobs/qwen-lora-finetune/prepare.sh
 ```
 
-Start the fine-tuning job:
+Start the default low-cost L40S fine-tuning job:
 
 ```bash
 ./jobs/qwen-lora-finetune/run.sh
+```
+
+Start the same job on a larger platform profile:
+
+```bash
+./jobs/qwen-lora-finetune/run.sh h100
+./jobs/qwen-lora-finetune/run.sh h200
+./jobs/qwen-lora-finetune/run.sh b200
+./jobs/qwen-lora-finetune/run.sh b200-a
+./jobs/qwen-lora-finetune/run.sh rtx6000
+```
+
+List all profiles:
+
+```bash
+./jobs/qwen-lora-finetune/run.sh list
+```
+
+## Profiles
+
+| Profile | Platform | Preset | Notes |
+| --- | --- | --- | --- |
+| `l40s-a` | `gpu-l40s-a` | `1gpu-8vcpu-32gb` | Default low-cost profile |
+| `l40s-d` | `gpu-l40s-d` | `4gpu-192vcpu-1152gb` | Largest documented L40S profile |
+| `b200` | `gpu-b200-sxm` | `8gpu-160vcpu-1792gb` | 8-GPU B200 profile |
+| `b200-a` | `gpu-b200-sxm-a` | `8gpu-160vcpu-1792gb` | 8-GPU B200 profile for the alternate B200 platform |
+| `b300` | `gpu-b300-sxm` | `8gpu-192vcpu-2768gb` | 8-GPU B300 profile |
+| `h100` | `gpu-h100-sxm` | `8gpu-128vcpu-1600gb` | 8-GPU H100 profile |
+| `h200` | `gpu-h200-sxm` | `8gpu-128vcpu-1600gb` | 8-GPU H200 profile |
+| `rtx6000` | `gpu-rtx6000` | `8gpu-192vcpu-1744gb` | 8-GPU RTX PRO 6000 profile |
+
+Public docs do not list an 8-GPU L40S preset; the largest L40S profile here uses `gpu-l40s-d` with `4gpu-192vcpu-1152gb`. Public docs also do not list a B100 platform ID. If your project exposes B100, use the custom profile:
+
+```bash
+SERVERLESS_FINE_TUNE_PLATFORM=<b100-platform-id> \
+SERVERLESS_FINE_TUNE_PRESET=<b100-preset> \
+./jobs/qwen-lora-finetune/run.sh custom
 ```
 
 Watch job status and logs:

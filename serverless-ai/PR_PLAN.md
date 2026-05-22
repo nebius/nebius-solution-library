@@ -11,7 +11,7 @@ Add a new `serverless-ai/` directory with:
 - a root README explaining Jobs, Endpoints, DevPods status, prerequisites, costs, and cleanup;
 - a `ROOT_README_SNIPPET.md` entry that can be added to the solution library root README;
 - shared environment defaults in `environment.sh`;
-- a real Qwen LoRA fine-tuning Job under `jobs/qwen-lora-finetune/`;
+- a real Qwen LoRA fine-tuning Job under `jobs/qwen-lora-finetune/` with platform-sized profiles;
 - an OpenAI-compatible vLLM Endpoint plus support-ticket triage client under `endpoints/vllm-openai/`;
 - optional quick checks using the GPU `nvidia-smi` Job and authenticated nginx Endpoint;
 - a DevPods follow-up note that avoids publishing unsupported instructions before public docs exist.
