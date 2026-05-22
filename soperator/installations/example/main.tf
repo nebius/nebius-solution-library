@@ -27,20 +27,18 @@ locals {
   login_pod_count = var.slurm_nodeset_login.size
 
   # GB300 keeps slurm_nodeset_login.size non-zero in tfvars so Soperator still
-  # creates login pods. Only after deriving login_pod_count do we zero the mk8s
-  # login node group size, preventing Terraform from creating a separate unused
-  # CPU login nodeset for GB300 clusters. Non-GB300 platforms keep the login
-  # node group unchanged and continue to schedule login pods there.
-  login_node_group = local.gb300_enabled ? merge(var.slurm_nodeset_login, {
-    size = 0
-  }) : var.slurm_nodeset_login
+  # creates login pods, while Terraform skips the separate unused CPU login node
+  # group. Non-GB300 platforms keep the configured login node group behavior.
+  login_node_group = merge(var.slurm_nodeset_login, {
+    node_group_enabled = local.gb300_enabled ? false : var.slurm_nodeset_login.node_group_enabled
+  })
 
-  # GB300 is the only platform where login pods share worker nodes. Reserve the
-  # login pod resource budget from every GB300 worker so Slurm jobs cannot
-  # consume the capacity needed to start login pods.
+  # RFC 031: GB300 login pods share worker nodes, so reserve an 8vcpu-32gb
+  # login CPU/RAM budget from every GB300 worker instead of the full login node
+  # preset. Keep ephemeral storage tied to the login boot disk configuration.
   gb300_login_pod_worker_reserve = {
-    cpu_cores                   = local.resources.login.cpu_cores
-    memory_gibibytes            = local.resources.login.memory_gibibytes
+    cpu_cores                   = 8
+    memory_gibibytes            = 32
     ephemeral_storage_gibibytes = floor(var.slurm_nodeset_login.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient - module.resources.k8s_ephemeral_storage_reserve.gibibytes)
   }
 
@@ -478,7 +476,7 @@ module "slurm" {
         gpus = local.resources.workers[i].gpus
       }
     ]
-    login = {
+    login = local.gb300_enabled ? local.gb300_login_pod_worker_reserve : {
       cpu_cores        = local.resources.login.cpu_cores
       memory_gibibytes = floor(local.resources.login.memory_gibibytes)
       ephemeral_storage_gibibytes = floor(

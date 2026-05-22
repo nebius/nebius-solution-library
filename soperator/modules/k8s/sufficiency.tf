@@ -10,13 +10,15 @@ locals {
         key       = module.labels.name_nodeset_controller
         resource  = var.node_group_controller.resource
         boot_disk = var.node_group_controller.boot_disk
-      },
+      }
+    ],
+    var.node_group_login.node_group_enabled ? [
       {
         key       = module.labels.name_nodeset_login
         resource  = var.node_group_login.resource
         boot_disk = var.node_group_login.boot_disk
       }
-    ],
+    ] : [],
     [
       for worker in var.node_group_workers :
       {

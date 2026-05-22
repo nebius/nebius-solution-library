@@ -1,4 +1,6 @@
 resource "nebius_mk8s_v1_node_group" "login" {
+  count = var.node_group_login.node_group_enabled ? 1 : 0
+
   depends_on = [
     nebius_mk8s_v1_cluster.this,
     terraform_data.check_resource_preset_sufficiency,
