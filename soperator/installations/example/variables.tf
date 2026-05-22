@@ -407,6 +407,7 @@ variable "platform_cuda_versions" {
     gpu-b200-sxm-a = "13.0.2"
     gpu-b300-sxm   = "13.0.2"
     gpu-rtx6000    = "13.0.2"
+    gpu-gb300      = "13.0.2"
   }
 }
 
@@ -425,6 +426,7 @@ variable "platform_driver_presets" {
     gpu-b200-sxm-a = "cuda13.0"
     gpu-b300-sxm   = "cuda13.0"
     gpu-rtx6000    = "cuda13.0"
+    gpu-gb300      = "cuda13.0"
   }
 }
 
@@ -476,26 +478,58 @@ variable "slurm_operator_stable" {
 
 variable "slurm_nodesets_partitions" {
   description = <<-EOT
+    Partition configuration for generated Slurm NodeSets.
+    slurm_nodeset_refs must reference generated Slurm NodeSet names. A non-GB worker keeps its Terraform worker nodeset name.
+    A GB300 worker nodeset expands into rack-scoped Slurm NodeSets named <name>-rack<rack>.
     Users must not remove the "hidden" partition.
     Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
   EOT
   type = list(object({
-    name         = string
-    is_all       = optional(bool, false)
-    nodeset_refs = optional(list(string), [])
-    config       = string
+    name               = string
+    is_all             = optional(bool, false)
+    slurm_nodeset_refs = optional(list(string), [])
+    config             = string
   }))
   default = []
 
   validation {
+    condition = alltrue([
+      for p in var.slurm_nodesets_partitions :
+      p.is_all || length(p.slurm_nodeset_refs) > 0
+    ])
+    error_message = "Each partition must have either is_all = true or non-empty slurm_nodeset_refs."
+  }
+
+  validation {
+    condition = alltrue([
+      for p in var.slurm_nodesets_partitions :
+      !(p.is_all && length(p.slurm_nodeset_refs) > 0)
+    ])
+    error_message = "A partition cannot have both is_all = true and non-empty slurm_nodeset_refs."
+  }
+
+  validation {
+    # Validate partition refs against generated Slurm NodeSet names, not raw
+    # Terraform worker nodeset names. Example: gpu-gb300 worker "primtrain" with
+    # size = 36 generates ["primtrain-rack0", "primtrain-rack1"];
+    # non-GB worker "worker" stays "worker".
     condition = length(setsubtract(
       toset(flatten([
-        for p in var.slurm_nodesets_partitions : coalesce(p.nodeset_refs, [])
+        for p in var.slurm_nodesets_partitions : coalesce(p.slurm_nodeset_refs, [])
       ])),
-      toset([for w in var.slurm_nodeset_workers : w.name])
+      toset(flatten([
+        for w in var.slurm_nodeset_workers :
+        w.resource.platform == "gpu-gb300" ? [
+          for rack in range(max(1, try(ceil(w.size / 18), 0))) : format(
+            "%s-rack%d",
+            w.name,
+            rack,
+          )
+        ] : [w.name]
+      ]))
     )) == 0
 
-    error_message = "All slurm_nodesets_partitions[].nodeset_refs must reference existing slurm_nodeset_workers[].name values."
+    error_message = "All slurm_nodesets_partitions[].slurm_nodeset_refs must reference generated Slurm NodeSet names. GB300 worker nodesets generate <name>-rack<rack> names; other worker nodesets use <name>."
   }
 }
 
@@ -641,6 +675,11 @@ variable "slurm_nodeset_workers" {
       policy          = optional(string)
       reservation_ids = optional(list(string))
     }))
+    nvlink = optional(object({
+      enabled = optional(bool, false)
+      type    = optional(string, "GB300")
+    }), {})
+    placement_policy_nodes         = optional(list(string))
     features                       = optional(list(string))
     create_partition               = optional(bool)
     ephemeral_nodes                = optional(bool, false)
@@ -690,13 +729,95 @@ variable "slurm_nodeset_workers" {
   }]
 
   validation {
+    # GB300 racks contain 18 nodes. Production requests must use whole racks;
+    # non-production can request a single partial rack for small test clusters.
+    # Examples: production size = 36 passes, production size = 10 fails,
+    # non-production size = 10 passes, non-production size = 20 fails.
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.resource.platform == "gpu-gb300" ? (
+        var.production
+        ? try(worker.size % 18 == 0, false)
+        : try(worker.size < 18 || worker.size % 18 == 0, false)
+      ) : true
+    ])
+    error_message = "GB300 worker nodesets must have size divisible by 18 in production. Non-production GB300 nodesets may use one partial rack with size less than 18."
+  }
+
+  validation {
+    # NVLink is modeled only for GB300 here: GB300 must enable it and all other
+    # platforms must leave it disabled.
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.resource.platform == "gpu-gb300" ? try(worker.nvlink.enabled == true, false) : !try(worker.nvlink.enabled == true, false)
+    ])
+    error_message = "NVLink must be enabled for gpu-gb300 worker nodesets and disabled for all other platforms."
+  }
+
+  validation {
+    # The provider requires a type value for NVLink instance groups. This
+    # installation path supports only GB300 groups.
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.resource.platform == "gpu-gb300" ? try(coalesce(worker.nvlink.type, "GB300") == "GB300", false) : true
+    ])
+    error_message = "GB300 worker nodesets must use nvlink.type = \"GB300\"."
+  }
+
+  validation {
+    # Keep the rack-size rule next to the NVLink-specific settings too, so a
+    # future non-GB NVLink platform must update this validation deliberately.
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      try(worker.nvlink.enabled == true, false) && worker.resource.platform == "gpu-gb300" ? (
+        var.production
+        ? try(worker.size % 18 == 0, false)
+        : try(worker.size < 18 || worker.size % 18 == 0, false)
+      ) : true
+    ])
+    error_message = "NVLink-enabled GB300 worker nodesets must have size divisible by 18 in production. Non-production GB300 nodesets may use one partial rack with size less than 18."
+  }
+
+  validation {
+    # placement_policy_nodes is a per-worker list. In production it must be
+    # absent or empty; non-production may pin node groups to provider nodes.
+    condition = !var.production || alltrue([
+      for worker in var.slurm_nodeset_workers :
+      length(coalesce(worker.placement_policy_nodes, [])) == 0
+    ])
+    error_message = "Worker placement_policy_nodes can only be set when production = false."
+  }
+
+  validation {
     condition     = length(var.slurm_nodeset_workers) > 0
     error_message = "At least one worker nodeset must be provided."
   }
 
   validation {
-    condition     = length(distinct([for worker in var.slurm_nodeset_workers : worker.name])) == length(var.slurm_nodeset_workers)
-    error_message = "All worker nodeset names must be unique."
+    # Compare the set of generated worker NodeSet names with the full generated
+    # name list; a shorter distinct list means two inputs collide after
+    # expansion. Example collision: two non-GB workers named "worker" both
+    # generate "worker".
+    condition = length(distinct(flatten([
+      for worker in var.slurm_nodeset_workers :
+      worker.resource.platform == "gpu-gb300" ? [
+        for rack in range(max(1, try(ceil(worker.size / 18), 0))) : format(
+          "%s-rack%d",
+          worker.name,
+          rack,
+        )
+      ] : [worker.name]
+      ]))) == length(flatten([
+      for worker in var.slurm_nodeset_workers :
+      worker.resource.platform == "gpu-gb300" ? [
+        for rack in range(max(1, try(ceil(worker.size / 18), 0))) : format(
+          "%s-rack%d",
+          worker.name,
+          rack,
+        )
+      ] : [worker.name]
+    ]))
+    error_message = "All effective worker nodeset names must be unique. GB300 worker nodesets are named <name>-rack<rack>; other worker nodesets use <name>."
   }
 
   validation {
@@ -942,10 +1063,21 @@ resource "terraform_data" "check_slurm_nodeset" {
   lifecycle {
     precondition {
       condition = (
-        try(each.value.size, 0) > 0 ||
-        try(each.value.min_size, 0) > 0
+        startswith(each.key, "worker_")
+        ? (
+          try(each.value.size >= 0 && floor(each.value.size) == each.value.size, false) &&
+          (
+            try(each.value.autoscaling.min_size, null) == null
+            ? true
+            : try(each.value.autoscaling.min_size >= 0 && floor(each.value.autoscaling.min_size) == each.value.autoscaling.min_size, false)
+          )
+        )
+        : (
+          try(each.value.size > 0 && floor(each.value.size) == each.value.size, false) ||
+          try(each.value.min_size > 0 && floor(each.value.min_size) == each.value.min_size, false)
+        )
       )
-      error_message = "Either size or min_size must be greater than zero in node set ${each.key}."
+      error_message = "Node set ${each.key} must have whole-number size/min_size values. Worker node sets may use size = 0 and validate autoscaling.min_size when set; other node sets must have size or min_size greater than 0."
     }
 
     precondition {
