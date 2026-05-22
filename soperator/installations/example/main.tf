@@ -21,11 +21,6 @@ locals {
   default_nodes_per_nodegroup = 100
   gb300_enabled               = anytrue([for nodeset in var.slurm_nodeset_workers : nodeset.resource.platform == local.gb300_platform])
 
-  # slurm_nodeset_login.size always means the desired number of Soperator login
-  # pods, including on GB300. For GB300, those pods run on GB300 worker nodes
-  # instead of a dedicated CPU login node group.
-  login_pod_count = var.slurm_nodeset_login.size
-
   # GB300 keeps slurm_nodeset_login.size non-zero in tfvars so Soperator still
   # creates login pods, while Terraform skips the separate unused CPU login node
   # group. Non-GB300 platforms keep the configured login node group behavior.
@@ -440,7 +435,7 @@ module "slurm" {
   node_count = {
     controller = var.slurm_nodeset_controller.size
     worker     = [for workers in local.slurm_nodeset_workers : workers.size]
-    login      = local.login_pod_count
+    login      = var.slurm_nodeset_login.size
   }
 
   resources = {
