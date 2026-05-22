@@ -448,6 +448,9 @@ slurm_nodeset_workers = [
 use_preinstalled_gpu_drivers = true
 
 # Configuration of Slurm Login node set.
+# Keep size as the desired login pod replica count. For GB300, Terraform uses
+# this value for Soperator login pods, then internally sets only the dedicated
+# mk8s login node group to size = 0 so login pods run on worker nodes instead.
 # ---
 slurm_nodeset_login = {
   size = 2

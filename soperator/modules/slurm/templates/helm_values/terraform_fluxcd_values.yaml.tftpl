@@ -447,7 +447,7 @@ resources:
               %{~ endif ~}
 
             populateJail:
-              k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.system.name}
+              k8sNodeFilterName: ${slurm_cluster.populate_jail.k8s_node_filter_name}
 
             periodicChecks:
               ncclBenchmark:
@@ -550,7 +550,7 @@ resources:
                     %{~ endif ~}
               login:
                 size: ${slurm_cluster.nodes.login.size}
-                k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.login.name}
+                k8sNodeFilterName: ${slurm_cluster.nodes.login.k8s_node_filter_name}
                 sshdServiceType: "LoadBalancer"
                 %{~ if slurm_cluster.nodes.login.allocation_id != null ~}
                 sshdServiceAnnotations:

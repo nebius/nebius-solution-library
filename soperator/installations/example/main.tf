@@ -19,6 +19,30 @@ locals {
   gb300_platform              = "gpu-gb300"
   gb300_nodes_per_nodegroup   = 18
   default_nodes_per_nodegroup = 100
+  gb300_enabled               = anytrue([for nodeset in var.slurm_nodeset_workers : nodeset.resource.platform == local.gb300_platform])
+
+  # slurm_nodeset_login.size always means the desired number of Soperator login
+  # pods, including on GB300. For GB300, those pods run on GB300 worker nodes
+  # instead of a dedicated CPU login node group.
+  login_pod_count = var.slurm_nodeset_login.size
+
+  # GB300 keeps slurm_nodeset_login.size non-zero in tfvars so Soperator still
+  # creates login pods. Only after deriving login_pod_count do we zero the mk8s
+  # login node group size, preventing Terraform from creating a separate unused
+  # CPU login nodeset for GB300 clusters. Non-GB300 platforms keep the login
+  # node group unchanged and continue to schedule login pods there.
+  login_node_group = local.gb300_enabled ? merge(var.slurm_nodeset_login, {
+    size = 0
+  }) : var.slurm_nodeset_login
+
+  # GB300 is the only platform where login pods share worker nodes. Reserve the
+  # login pod resource budget from every GB300 worker so Slurm jobs cannot
+  # consume the capacity needed to start login pods.
+  gb300_login_pod_worker_reserve = {
+    cpu_cores                   = local.resources.login.cpu_cores
+    memory_gibibytes            = local.resources.login.memory_gibibytes
+    ephemeral_storage_gibibytes = floor(var.slurm_nodeset_login.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient - module.resources.k8s_ephemeral_storage_reserve.gibibytes)
+  }
 
   # Normalize user-facing worker nodesets into the internal nodeset list used
   # by both mk8s node groups and Slurm NodeSets. GB300 is rack-addressed, so one
@@ -280,7 +304,7 @@ module "k8s" {
       nvl_instance_group_id = try(nebius_compute_v1_nvl_instance_group.worker[worker.node_group_name].id, "")
     })
   ]
-  node_group_login = var.slurm_nodeset_login
+  node_group_login = local.login_node_group
   node_group_accounting = {
     enabled = var.accounting_enabled
     spec    = var.slurm_nodeset_accounting
@@ -418,7 +442,7 @@ module "slurm" {
   node_count = {
     controller = var.slurm_nodeset_controller.size
     worker     = [for workers in local.slurm_nodeset_workers : workers.size]
-    login      = var.slurm_nodeset_login.size
+    login      = local.login_pod_count
   }
 
   resources = {
@@ -440,11 +464,16 @@ module "slurm" {
     }
     worker = [for i, worker in local.slurm_nodeset_workers :
       {
-        cpu_cores        = local.resources.workers[i].cpu_cores
-        memory_gibibytes = floor(local.resources.workers[i].memory_gibibytes)
+        cpu_cores = local.resources.workers[i].cpu_cores - (
+          worker.resource.platform == local.gb300_platform ? local.gb300_login_pod_worker_reserve.cpu_cores : 0
+        )
+        memory_gibibytes = floor(local.resources.workers[i].memory_gibibytes) - (
+          worker.resource.platform == local.gb300_platform ? local.gb300_login_pod_worker_reserve.memory_gibibytes : 0
+        )
         ephemeral_storage_gibibytes = floor(
           worker.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
           -module.resources.k8s_ephemeral_storage_reserve.gibibytes
+          -(worker.resource.platform == local.gb300_platform ? local.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
         )
         gpus = local.resources.workers[i].gpus
       }
@@ -541,6 +570,7 @@ module "slurm" {
 
   use_default_apparmor_profile    = var.use_default_apparmor_profile
   worker_sshd_config_map_ref_name = var.slurm_worker_sshd_config_map_ref_name
+  login_on_worker_nodes           = local.gb300_enabled
   shared_memory_size_gibibytes    = var.slurm_shared_memory_size_gibibytes
   slurm_partition_config_type     = var.slurm_partition_config_type
   slurm_partition_raw_config      = var.slurm_partition_raw_config

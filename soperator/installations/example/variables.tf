@@ -1099,8 +1099,20 @@ variable "slurm_nodeset_login" {
     error_message = "Boot disks for login nodes must be at least 256 GiB."
   }
   validation {
-    condition     = var.slurm_nodeset_login.size >= 1
-    error_message = "Size of the login node group must be at least 1."
+    # slurm_nodeset_login.size is the login pod replica count on every platform.
+    # GB300 normally keeps this non-zero, then main.tf zeroes only the dedicated
+    # mk8s login node group after the pod count is derived. We still allow
+    # size = 0 for GB300 to support an intentional "no login pods" deployment.
+    # Other platforms keep the historical requirement for at least one login pod
+    # and one dedicated login node.
+    condition = (
+      var.slurm_nodeset_login.size >= 1 ||
+      (
+        var.slurm_nodeset_login.size == 0 &&
+        anytrue([for worker in var.slurm_nodeset_workers : worker.resource.platform == "gpu-gb300"])
+      )
+    )
+    error_message = "Size of the login node group must be at least 1, except GB300 worker clusters may use size = 0."
   }
 }
 
@@ -1202,11 +1214,15 @@ resource "terraform_data" "check_slurm_nodeset" {
           )
         )
         : (
-          try(each.value.size > 0 && floor(each.value.size) == each.value.size, false) ||
-          try(each.value.min_size > 0 && floor(each.value.min_size) == each.value.min_size, false)
+          each.key == "login" && anytrue([for worker in var.slurm_nodeset_workers : worker.resource.platform == "gpu-gb300"])
+          ? try(each.value.size >= 0 && floor(each.value.size) == each.value.size, false)
+          : (
+            try(each.value.size > 0 && floor(each.value.size) == each.value.size, false) ||
+            try(each.value.min_size > 0 && floor(each.value.min_size) == each.value.min_size, false)
+          )
         )
       )
-      error_message = "Node set ${each.key} must have whole-number size/min_size values. Worker node sets may use size = 0 and validate autoscaling.min_size when set; other node sets must have size or min_size greater than 0."
+      error_message = "Node set ${each.key} must have whole-number size/min_size values. Worker node sets may use size = 0 and validate autoscaling.min_size when set; GB300 login node sets may use size = 0; other node sets must have size or min_size greater than 0."
     }
 
     precondition {
