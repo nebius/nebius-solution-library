@@ -74,11 +74,11 @@ List all profiles:
 | `h200` | `gpu-h200-sxm` | `8gpu-128vcpu-1600gb` | 8-GPU H200 profile |
 | `rtx6000` | `gpu-rtx6000` | `8gpu-192vcpu-1744gb` | 8-GPU RTX PRO 6000 profile |
 
-Public docs do not list an 8-GPU L40S preset; the largest L40S profile here uses `gpu-l40s-d` with `4gpu-192vcpu-1152gb`. Public docs also do not list a B100 platform ID. If your project exposes B100, use the custom profile:
+Public docs do not list an 8-GPU L40S preset; the largest L40S profile here uses `gpu-l40s-d` with `4gpu-192vcpu-1152gb`. If your project exposes another platform or preset that is not listed here, use the custom profile:
 
 ```bash
-SERVERLESS_FINE_TUNE_PLATFORM=<b100-platform-id> \
-SERVERLESS_FINE_TUNE_PRESET=<b100-preset> \
+SERVERLESS_FINE_TUNE_PLATFORM=<platform-id> \
+SERVERLESS_FINE_TUNE_PRESET=<preset> \
 ./jobs/qwen-lora-finetune/run.sh custom
 ```
 

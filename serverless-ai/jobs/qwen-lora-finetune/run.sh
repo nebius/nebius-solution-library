@@ -27,9 +27,6 @@ Fine-tuning job profiles:
 
 Custom:
   SERVERLESS_FINE_TUNE_PLATFORM=<platform> SERVERLESS_FINE_TUNE_PRESET=<preset> ./jobs/qwen-lora-finetune/run.sh custom
-
-B100:
-  Public Nebius docs do not currently list a B100 platform ID. If your project exposes one, use the custom profile.
 EOF
 }
 
@@ -77,10 +74,6 @@ case "$PROFILE" in
     PROFILE_PLATFORM="gpu-rtx6000"
     PROFILE_PRESET="8gpu-192vcpu-1744gb"
     PROFILE_LABEL="rtx6000"
-    ;;
-  b100)
-    echo "B100 is not listed in the public Nebius platform docs. Use custom with SERVERLESS_FINE_TUNE_PLATFORM and SERVERLESS_FINE_TUNE_PRESET if your project exposes B100." >&2
-    exit 2
     ;;
   custom)
     PROFILE_PLATFORM="${SERVERLESS_FINE_TUNE_PLATFORM:?Set SERVERLESS_FINE_TUNE_PLATFORM for custom profile}"
