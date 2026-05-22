@@ -21,6 +21,8 @@ locals {
     p-8g-128c-1600g = "8gpu-128vcpu-1600gb"
     p-8g-160c-1792g = "8gpu-160vcpu-1792gb"
     p-8g-192c-2768g = "8gpu-192vcpu-2768gb"
+
+    p-4gpu-112vcpu-800g = "4gpu-112vcpu-800gb"
   }
 
   presets_cpu = {
@@ -307,6 +309,20 @@ locals {
         (module.labels.name_nodeset_nfs)        = true
       }
     }
+    g-4gpu-112vcpu-800gb = {
+      cpu_cores              = 112 * local.reserve.cpu.coefficient - local.reserve.cpu.count
+      memory_gibibytes       = 800 * local.reserve.ram.coefficient - local.reserve.ram.count
+      gpus                   = 4
+      gpu_cluster_compatible = true
+      sufficient = {
+        (module.labels.name_nodeset_system)     = false
+        (module.labels.name_nodeset_controller) = false
+        (module.labels.name_nodeset_worker)     = true
+        (module.labels.name_nodeset_login)      = true
+        (module.labels.name_nodeset_accounting) = false
+        (module.labels.name_nodeset_nfs)        = false
+      }
+    }
   }
 
   # Allow-list: "${region}/${platform}/${preset}"
@@ -366,6 +382,10 @@ locals {
     (local.platforms.gpu-b300-sxm) = tomap({
       (local.presets.p-1g-24c-346g)   = local.presets_gpu.g-1gpu-24vcpu-346gb
       (local.presets.p-8g-192c-2768g) = local.presets_gpu.g-8gpu-192vcpu-2768gb
+    })
+
+    (local.platforms.gpu-gb300) = tomap({
+      (local.presets.p-4gpu-112vcpu-800g) = local.presets_gpu.g-4gpu-112vcpu-800gb
     })
   })
 
