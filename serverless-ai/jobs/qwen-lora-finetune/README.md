@@ -2,7 +2,7 @@
 
 This example runs a small but real fine-tuning workload with Serverless AI Jobs. It uses the public Axolotl container image from the Nebius tutorial, fine-tunes `Qwen/Qwen2.5-0.5B` for 30 steps with QLoRA, and writes adapter output to Object Storage.
 
-Use this when you want to show more than a GPU smoke test while keeping the runtime and cost bounded.
+Use this when you need a real Job example. It is not an Endpoint: there is no HTTP service to call after launch. The container runs, writes output to Object Storage, and exits.
 
 ## What it does
 
