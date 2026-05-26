@@ -144,6 +144,14 @@ resource "helm_release" "soperator_fluxcd_cm" {
       k8s_node_filters               = local.node_filters
       maintenance_ignore_node_labels = local.maintenance_ignore_node_labels
 
+      # GB300 worker nodes are ARM. The populate-jail job must run on an ARM
+      # node so Kubernetes pulls the ARM image variant and writes ARM binaries
+      # into the jail during first cluster creation. Other platforms keep the
+      # historical system-node placement.
+      populate_jail = {
+        k8s_node_filter_name = var.login_on_worker_nodes ? local.node_filters.worker.name : local.node_filters.system.name
+      }
+
       jail_submounts = [for submount in var.filestores.jail_submounts : {
         name       = submount.name
         mount_path = submount.mount_path
@@ -224,6 +232,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
         login = {
           size                     = var.node_count.login
+          k8s_node_filter_name     = var.login_on_worker_nodes ? local.node_filters.worker.name : local.node_filters.login.name
           allocation_id            = var.login_allocation_id
           sshd_config_map_ref_name = var.login_sshd_config_map_ref_name
           root_public_keys         = var.login_ssh_root_public_keys
