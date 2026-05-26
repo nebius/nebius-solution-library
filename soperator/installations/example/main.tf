@@ -28,15 +28,6 @@ locals {
     node_group_enabled = local.gb300_enabled ? false : var.slurm_nodeset_login.node_group_enabled
   })
 
-  # RFC 031: GB300 login pods share worker nodes, so reserve an 8vcpu-32gb
-  # login CPU/RAM budget from every GB300 worker instead of the full login node
-  # preset. Keep ephemeral storage tied to the login boot disk configuration.
-  gb300_login_pod_worker_reserve = {
-    cpu_cores                   = 8
-    memory_gibibytes            = 32
-    ephemeral_storage_gibibytes = floor(var.slurm_nodeset_login.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient - module.resources.k8s_ephemeral_storage_reserve.gibibytes)
-  }
-
   # Normalize user-facing worker nodesets into the internal nodeset list used
   # by both mk8s node groups and Slurm NodeSets. GB300 is rack-addressed, so one
   # input nodeset expands into 18-node rack chunks named <name>-rack<rack>.
@@ -458,20 +449,20 @@ module "slurm" {
     worker = [for i, worker in local.slurm_nodeset_workers :
       {
         cpu_cores = local.resources.workers[i].cpu_cores - (
-          worker.resource.platform == local.gb300_platform ? local.gb300_login_pod_worker_reserve.cpu_cores : 0
+          worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.cpu_cores : 0
         )
         memory_gibibytes = floor(local.resources.workers[i].memory_gibibytes) - (
-          worker.resource.platform == local.gb300_platform ? local.gb300_login_pod_worker_reserve.memory_gibibytes : 0
+          worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.memory_gibibytes : 0
         )
         ephemeral_storage_gibibytes = floor(
           worker.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
           -module.resources.k8s_ephemeral_storage_reserve.gibibytes
-          -(worker.resource.platform == local.gb300_platform ? local.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
+          -(worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
         )
         gpus = local.resources.workers[i].gpus
       }
     ]
-    login = local.gb300_enabled ? local.gb300_login_pod_worker_reserve : {
+    login = local.gb300_enabled ? var.gb300_login_pod_worker_reserve : {
       cpu_cores        = local.resources.login.cpu_cores
       memory_gibibytes = floor(local.resources.login.memory_gibibytes)
       ephemeral_storage_gibibytes = floor(

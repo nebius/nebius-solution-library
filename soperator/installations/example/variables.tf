@@ -1101,7 +1101,34 @@ variable "slurm_nodeset_login" {
   }
   validation {
     condition     = var.slurm_nodeset_login.size >= 1
-    error_message = "Login pod count must be at least 1."
+    error_message = "Login replica count (slurm_nodeset_login.size) must be at least 1."
+  }
+}
+
+variable "gb300_login_pod_worker_reserve" {
+  description = "Resources requested by each GB300 login pod and reserved from GB300 worker node capacity when login pods run on worker nodes instead of a dedicated CPU login node group."
+  type = object({
+    cpu_cores                   = number
+    memory_gibibytes            = number
+    ephemeral_storage_gibibytes = number
+  })
+  nullable = false
+  default = {
+    cpu_cores                   = 8
+    memory_gibibytes            = 32
+    ephemeral_storage_gibibytes = 128
+  }
+
+  validation {
+    condition = (
+      !anytrue([for worker in var.slurm_nodeset_workers : worker.resource.platform == "gpu-gb300"]) ||
+      (
+        var.gb300_login_pod_worker_reserve.cpu_cores > 0 &&
+        var.gb300_login_pod_worker_reserve.memory_gibibytes > 0 &&
+        var.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes > 0
+      )
+    )
+    error_message = "GB300 login pod worker reserve values must be greater than zero when GB300 workers are configured."
   }
 }
 
