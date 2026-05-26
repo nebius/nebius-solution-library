@@ -64,7 +64,7 @@ locals {
     }
     worker = {
       name        = module.labels.name_nodeset_worker
-      matches     = [for i in range(length(var.node_count.worker)) : join("-", [module.labels.name_nodeset_worker, i])]
+      matches     = [module.labels.name_nodeset_worker]
       gpu_present = length([for i in range(length(var.node_count.worker)) : var.resources.worker[i].gpus]) > 0
     }
     login = {

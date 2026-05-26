@@ -172,6 +172,12 @@ variable "tailscale_enabled" {
   default     = false
 }
 
+variable "login_on_worker_nodes" {
+  description = "Whether login pods and populate-jail should use the worker k8sNodeFilterName instead of dedicated CPU node filters. Used by GB300 installations that do not create dedicated CPU login nodes and need ARM populate-jail."
+  type        = bool
+  default     = false
+}
+
 variable "login_sshd_config_map_ref_name" {
   description = "Name of configmap with SSHD config, which runs in slurmd container."
   type        = string
