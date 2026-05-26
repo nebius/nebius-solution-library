@@ -171,9 +171,10 @@ variable "node_group_workers_v2" {
 }
 
 variable "node_group_login" {
-  description = "Controller node group specification."
+  description = "Login node group specification."
   type = object({
-    size = number
+    size               = number
+    node_group_enabled = optional(bool, true)
     resource = object({
       platform = string
       preset   = string
