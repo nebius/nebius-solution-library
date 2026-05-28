@@ -21,11 +21,11 @@ resource "terraform_data" "wait_for_soperator_activechecks_hr" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
+    command = var.active_checks_platform_supported ? templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
       k8s_cluster_context = var.k8s_cluster_context
       helmrelease_name    = "flux-system-soperator-fluxcd-soperator-activechecks"
       timeout_minutes     = 240
-    })
+    }) : "echo 'Skipping soperator active checks HelmRelease wait because active checks are not supported by the selected worker platform.'"
   }
 }
 
@@ -58,6 +58,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
   namespace  = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/helm_values/terraform_fluxcd_values.yaml.tftpl", {
+    soperator_active_checks_enabled        = var.active_checks_platform_supported
     soperator_active_checks_override_block = indent(14, local.soperator_activechecks_override_yaml)
 
     telemetry_enabled  = var.telemetry_enabled
