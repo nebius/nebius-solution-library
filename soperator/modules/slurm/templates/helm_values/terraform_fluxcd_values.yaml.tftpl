@@ -730,7 +730,7 @@ resources:
                   %{~ endif ~}
 
         soperatorActiveChecks:
-          enabled: true
+          enabled: ${soperator_active_checks_enabled}
           interval: 5m
           timeout: 120m
           version: ${operator_version}
@@ -765,9 +765,11 @@ resources:
               manager:
                 image:
                   repository: cr.eu-north1.nebius.cloud/soperator/kruise-manager
+                  tag: v1.8.3
               helmHooks:
                 image:
                   repository: cr.eu-north1.nebius.cloud/soperator/kruise-helm-hook
+                  tag: v0.1.0
           soperatorChecks:
             enabled: true
             interval: 5m

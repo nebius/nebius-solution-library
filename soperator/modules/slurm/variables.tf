@@ -723,10 +723,16 @@ variable "use_preinstalled_gpu_drivers" {
 }
 
 # region ActiveChecks
+variable "active_checks_platform_supported" {
+  type        = bool
+  description = "Whether active checks are supported by the selected worker platform."
+  default     = true
+}
+
 variable "active_checks_scope" {
   type        = string
   description = "Scope of active health-checks. Defines what checks should run after the cluster is provisioned."
-  default     = ""
+  default     = "prod_quick"
   validation {
     condition     = contains(["dev", "testing", "prod_quick", "prod_acceptance", "essential"], var.active_checks_scope)
     error_message = "active_checks_scope should be one of: dev, testing, prod_quick, prod_acceptance, essential."
