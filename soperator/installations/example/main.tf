@@ -400,7 +400,8 @@ module "slurm" {
 
   source = "../../modules/slurm"
 
-  active_checks_scope = var.active_checks_scope
+  active_checks_platform_supported = !local.gb300_enabled
+  active_checks_scope              = var.active_checks_scope
 
   region              = var.region
   iam_tenant_id       = var.iam_tenant_id

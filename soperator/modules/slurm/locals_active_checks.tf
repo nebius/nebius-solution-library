@@ -127,5 +127,5 @@ locals {
     }
   }
 
-  soperator_activechecks_override_yaml = yamlencode(local.active_checks_scopes[var.active_checks_scope])
+  soperator_activechecks_override_yaml = var.active_checks_platform_supported ? yamlencode(local.active_checks_scopes[var.active_checks_scope]) : ""
 }

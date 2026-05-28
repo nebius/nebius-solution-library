@@ -1604,10 +1604,10 @@ variable "maintenance_ignore_node_groups" {
 variable "active_checks_scope" {
   type        = string
   description = "Scope of active checks. Defines what active checks should be checked during cluster bootstrap."
-  default     = ""
+  default     = "prod_quick"
   validation {
-    condition     = contains(["", "dev", "testing", "prod_quick", "prod_acceptance", "essential"], var.active_checks_scope)
-    error_message = "active_checks_scope must be one of: dev, testing, prod_quick, prod_acceptance, essential (or empty string to skip active checks)."
+    condition     = contains(["dev", "testing", "prod_quick", "prod_acceptance", "essential"], var.active_checks_scope)
+    error_message = "active_checks_scope must be one of: dev, testing, prod_quick, prod_acceptance, essential."
   }
 }
 
