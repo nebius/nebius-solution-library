@@ -182,7 +182,7 @@ nfs_in_k8s = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "3.0.5"
+slurm_operator_version = "3.0.4"
 
 # Is the version of soperator stable or not.
 # ---
