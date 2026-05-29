@@ -32,4 +32,8 @@ resource "nebius_compute_v1_instance" "bastion_instance" {
     parent_id          = var.parent_id
     service_account_id = local.service_account_id
   })
+
+  depends_on = [
+    module.bastion_security_group,
+  ]
 }
