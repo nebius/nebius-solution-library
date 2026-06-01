@@ -617,10 +617,6 @@ module "slurm" {
   login_ssh_root_public_keys       = var.slurm_login_ssh_root_public_keys
 
   flux_namespace = local.flux_namespace
-
-  providers = {
-    helm = helm
-  }
 }
 
 module "login_script" {

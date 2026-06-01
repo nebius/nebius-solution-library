@@ -7,11 +7,6 @@ terraform {
       version = ">= 0.5.196"
     }
 
-    flux = {
-      source  = "fluxcd/flux"
-      version = ">= 1.5"
-    }
-
     units = {
       source  = "dstaroff/units"
       version = ">=1.1.1"
@@ -24,11 +19,6 @@ terraform {
 
     kubernetes = {
       source = "hashicorp/kubernetes"
-    }
-
-    helm = {
-      source  = "hashicorp/helm"
-      version = "<3.0.0"
     }
   }
 }
@@ -60,26 +50,6 @@ provider "kubernetes" {
     api_version = local.kubernetes_exec.api_version
     command     = local.kubernetes_exec.command
     args        = local.kubernetes_exec.args
-  }
-}
-
-provider "flux" {
-  kubernetes = {
-    host                   = module.k8s.control_plane.public_endpoint
-    cluster_ca_certificate = module.k8s.control_plane.cluster_ca_certificate
-    exec                   = local.kubernetes_exec
-  }
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = module.k8s.control_plane.public_endpoint
-    cluster_ca_certificate = module.k8s.control_plane.cluster_ca_certificate
-    exec {
-      api_version = local.kubernetes_exec.api_version
-      command     = local.kubernetes_exec.command
-      args        = local.kubernetes_exec.args
-    }
   }
 }
 

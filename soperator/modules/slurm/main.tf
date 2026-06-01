@@ -1,6 +1,6 @@
 resource "terraform_data" "wait_for_slurm_cluster_hr" {
   depends_on = [
-    helm_release.soperator_fluxcd_bootstrap,
+    terraform_data.soperator_fluxcd_bootstrap,
   ]
 
   provisioner "local-exec" {
@@ -15,7 +15,7 @@ resource "terraform_data" "wait_for_slurm_cluster_hr" {
 
 resource "terraform_data" "wait_for_soperator_activechecks_hr" {
   depends_on = [
-    helm_release.soperator_fluxcd_bootstrap,
+    terraform_data.soperator_fluxcd_bootstrap,
     terraform_data.wait_for_slurm_cluster_hr,
   ]
 
@@ -50,14 +50,10 @@ resource "terraform_data" "wait_for_slurm_cluster_available" {
   }
 }
 
-resource "helm_release" "soperator_fluxcd_cm" {
-  name       = "terraform-fluxcd-values"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-  namespace  = var.flux_namespace
+resource "local_file" "soperator_fluxcd_cm_values" {
+  filename = "${path.root}/assets/render/terraform_fluxcd_values.yaml"
 
-  values = [templatefile("${path.module}/templates/helm_values/terraform_fluxcd_values.yaml.tftpl", {
+  content = templatefile("${path.module}/templates/helm_values/terraform_fluxcd_values.yaml.tftpl", {
     soperator_active_checks_override_block    = indent(14, local.soperator_activechecks_override_yaml)
     soperator_active_checks_on_worker_nodes   = local.active_checks_on_worker_nodes
     soperator_checks_extensive_check_enabled  = !local.gb300_enabled
@@ -331,36 +327,97 @@ resource "helm_release" "soperator_fluxcd_cm" {
     releases = [
       local_file.flux_release_rendered_nodesets.content,
     ]
-  })]
+  })
 }
 
-resource "helm_release" "soperator_fluxcd_bootstrap" {
-  depends_on = [
-    helm_release.soperator_fluxcd_cm,
-  ]
+# Render+apply the flux-cluster values ConfigMap via the helm CLI (bedag "raw" chart) instead of the helm provider.
+# Removing the provider avoids its empty-host-on-destroy wedge and the retry.sh wrap covers transient mk8s LB resets on apply.
+# No when=destroy uninstall: these releases are in-cluster objects only, so cluster deletion removes them (the login
+# LoadBalancer Service, the one cloud-backed resource, is cleaned up separately by module.k8s_cleanup). Omitting the
+# uninstall also keeps triggers_replace changes as in-place `helm upgrade` instead of an uninstall+reinstall flap.
+resource "terraform_data" "soperator_fluxcd_cm" {
+  triggers_replace = {
+    k8s_cluster_context = var.k8s_cluster_context
+    namespace           = var.flux_namespace
+    release_name        = "terraform-fluxcd-values"
+    version             = local.helm.version.raw
+    values_sha          = sha256(local_file.soperator_fluxcd_cm_values.content)
+  }
 
-  name       = "soperator-fluxcd-bootstrap"
-  repository = var.operator_stable ? "oci://cr.eu-north1.nebius.cloud/soperator" : "oci://cr.eu-north1.nebius.cloud/soperator-unstable"
-  chart      = "helm-soperator-fluxcd-bootstrap"
-  version    = var.operator_version
-  namespace  = var.flux_namespace
-
-  set {
-    name  = "helmRepository.url"
-    value = var.operator_stable ? "oci://cr.eu-north1.nebius.cloud/soperator" : "oci://cr.eu-north1.nebius.cloud/soperator-unstable"
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command = join(" ", [
+      "${path.module}/../scripts/retry.sh -n 5 -i 10 --",
+      "helm upgrade --install terraform-fluxcd-values ${local.helm.chart.raw}",
+      "--repo ${local.helm.repository.raw}",
+      "--version ${local.helm.version.raw}",
+      "--namespace ${var.flux_namespace} --create-namespace",
+      "--kube-context ${var.k8s_cluster_context}",
+      "-f ${local_file.soperator_fluxcd_cm_values.filename}",
+      "--wait --timeout 10m",
+    ])
   }
 }
 
-resource "helm_release" "soperator_fluxcd_ad_hoc_cm" {
-  name       = "soperator-fluxcd-values"
-  repository = local.helm.repository.raw
-  chart      = local.helm.chart.raw
-  version    = local.helm.version.raw
-  namespace  = var.flux_namespace
+locals {
+  soperator_fluxcd_oci_base = var.operator_stable ? "oci://cr.eu-north1.nebius.cloud/soperator" : "oci://cr.eu-north1.nebius.cloud/soperator-unstable"
+}
 
-  values = [templatefile("${path.module}/templates/helm_values/soperator_fluxcd.yaml.tftpl", {})]
+# Install the flux bootstrap HelmRelease via the helm CLI (OCI chart) instead of the helm provider.
+# See the soperator_fluxcd_cm comment for why.
+resource "terraform_data" "soperator_fluxcd_bootstrap" {
+  depends_on = [
+    terraform_data.soperator_fluxcd_cm,
+  ]
 
-  lifecycle {
-    ignore_changes = all
+  triggers_replace = {
+    k8s_cluster_context = var.k8s_cluster_context
+    namespace           = var.flux_namespace
+    release_name        = "soperator-fluxcd-bootstrap"
+    version             = var.operator_version
+    oci_base            = local.soperator_fluxcd_oci_base
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command = join(" ", [
+      "${path.module}/../scripts/retry.sh -n 5 -i 10 --",
+      "helm upgrade --install soperator-fluxcd-bootstrap",
+      "${local.soperator_fluxcd_oci_base}/helm-soperator-fluxcd-bootstrap",
+      "--version ${var.operator_version}",
+      "--namespace ${var.flux_namespace} --create-namespace",
+      "--kube-context ${var.k8s_cluster_context}",
+      "--set helmRepository.url=${local.soperator_fluxcd_oci_base}",
+      "--wait --timeout 10m",
+    ])
+  }
+}
+
+resource "local_file" "soperator_fluxcd_ad_hoc_cm_values" {
+  filename = "${path.root}/assets/render/soperator_fluxcd_values.yaml"
+  content  = templatefile("${path.module}/templates/helm_values/soperator_fluxcd.yaml.tftpl", {})
+}
+
+# Ad-hoc values ConfigMap. triggers_replace is intentionally STATIC (no values_sha / version) to replicate
+# the old `lifecycle { ignore_changes = all }`: install once on create, never re-apply.
+resource "terraform_data" "soperator_fluxcd_ad_hoc_cm" {
+  triggers_replace = {
+    k8s_cluster_context = var.k8s_cluster_context
+    namespace           = var.flux_namespace
+    release_name        = "soperator-fluxcd-values"
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command = join(" ", [
+      "${path.module}/../scripts/retry.sh -n 5 -i 10 --",
+      "helm upgrade --install soperator-fluxcd-values ${local.helm.chart.raw}",
+      "--repo ${local.helm.repository.raw}",
+      "--version ${local.helm.version.raw}",
+      "--namespace ${var.flux_namespace} --create-namespace",
+      "--kube-context ${var.k8s_cluster_context}",
+      "-f ${local_file.soperator_fluxcd_ad_hoc_cm_values.filename}",
+      "--wait --timeout 10m",
+    ])
   }
 }
