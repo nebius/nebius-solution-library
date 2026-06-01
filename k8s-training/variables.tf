@@ -218,6 +218,38 @@ variable "gpu_nodes_public_ips" {
   default     = false
 }
 
+variable "enable_gpu_kubelet_numa" {
+  description = "Enable platform-aware kubelet NUMA/topology configuration for supported GPU nodes."
+  type        = bool
+  default     = false
+}
+
+variable "gpu_kubelet_numa_config" {
+  description = "Optional custom kubelet NUMA/topology configuration applied to GPU nodes via cloud-init. Overrides gpu_kubelet_numa_preset when set."
+  type = object({
+    cpu_manager_policy      = string
+    topology_manager_policy = string
+    memory_manager_policy   = string
+    kube_reserved_memory    = optional(string)
+    reserved_memory = list(object({
+      numa_node = number
+      memory    = string
+    }))
+  })
+  default = null
+}
+
+variable "gpu_kubelet_numa_preset" {
+  description = "Optional predefined kubelet NUMA/topology configuration for GPU nodes. Supported values: h200-standard, b200-standard, b300-standard. When null and enable_gpu_kubelet_numa is true, Terraform selects a preset from gpu_nodes_platform."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.gpu_kubelet_numa_preset == null || contains(["h200-standard", "b200-standard", "b300-standard"], var.gpu_kubelet_numa_preset)
+    error_message = "gpu_kubelet_numa_preset must be null, \"h200-standard\", \"b200-standard\", or \"b300-standard\"."
+  }
+}
+
 variable "cpu_nodes_public_ips" {
   description = "Assign public IP address to CPU nodes to make them directly accessible from the external internet."
   type        = bool
