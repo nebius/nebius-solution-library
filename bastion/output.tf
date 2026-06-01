@@ -17,3 +17,10 @@ output "bastion_security_group_rules" {
     egress  = module.bastion_security_group[0].egress_rule_ids
   } : null
 }
+
+output "bastion_security_group_access_note" {
+  description = "Access note for the managed bastion security group."
+  value = var.enable_bastion_security_group && length(local.bastion_ssh_source_cidrs) == 0 ? (
+    "No default SSH ingress rule was created from bastion_allowed_ssh_cidrs. Set bastion_allowed_ssh_cidrs, bastion_extra_ingress_rules, bastion_extra_security_group_ids, or disable the managed security group if SSH access is required."
+  ) : null
+}

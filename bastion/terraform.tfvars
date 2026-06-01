@@ -4,7 +4,8 @@
 #   path = "put path to public ssh key here"
 # }
 
-# Required when enable_bastion_security_group = true.
+# Set this to allow SSH ingress through the managed security group.
+# When unset or empty, no managed SSH ingress rule is created.
 # bastion_allowed_ssh_cidrs = ["203.0.113.10/32"]
 
 # Optional. Defaults to bastion_allowed_ssh_cidrs when unset.

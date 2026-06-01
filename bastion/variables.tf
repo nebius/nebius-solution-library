@@ -53,15 +53,16 @@ variable "enable_bastion_security_group" {
 }
 
 variable "bastion_allowed_ssh_cidrs" {
-  description = "CIDR blocks allowed to connect to the bastion over SSH. Required when enable_bastion_security_group is true."
+  description = "CIDR blocks allowed to connect to the bastion over SSH. When null or empty, no managed SSH ingress rule is created."
   type        = list(string)
   default     = null
 
   validation {
-    condition = var.bastion_allowed_ssh_cidrs == null || alltrue([
-      for cidr in var.bastion_allowed_ssh_cidrs : can(cidrhost(cidr, 0))
+    condition = alltrue([
+      for cidr in(var.bastion_allowed_ssh_cidrs != null ? var.bastion_allowed_ssh_cidrs : []) :
+      can(cidrhost(cidr, 0)) && can(regex("^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/([0-9]|[12][0-9]|3[0-2])$", cidr))
     ])
-    error_message = "bastion_allowed_ssh_cidrs must contain valid CIDR blocks."
+    error_message = "bastion_allowed_ssh_cidrs must contain valid IPv4 CIDR blocks."
   }
 }
 
@@ -71,10 +72,11 @@ variable "bastion_allowed_wireguard_cidrs" {
   default     = null
 
   validation {
-    condition = var.bastion_allowed_wireguard_cidrs == null || alltrue([
-      for cidr in var.bastion_allowed_wireguard_cidrs : can(cidrhost(cidr, 0))
+    condition = alltrue([
+      for cidr in(var.bastion_allowed_wireguard_cidrs != null ? var.bastion_allowed_wireguard_cidrs : []) :
+      can(cidrhost(cidr, 0)) && can(regex("^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/([0-9]|[12][0-9]|3[0-2])$", cidr))
     ])
-    error_message = "bastion_allowed_wireguard_cidrs must contain valid CIDR blocks."
+    error_message = "bastion_allowed_wireguard_cidrs must contain valid IPv4 CIDR blocks."
   }
 }
 
@@ -84,10 +86,11 @@ variable "bastion_allowed_wireguard_ui_cidrs" {
   default     = null
 
   validation {
-    condition = var.bastion_allowed_wireguard_ui_cidrs == null || alltrue([
-      for cidr in var.bastion_allowed_wireguard_ui_cidrs : can(cidrhost(cidr, 0))
+    condition = alltrue([
+      for cidr in(var.bastion_allowed_wireguard_ui_cidrs != null ? var.bastion_allowed_wireguard_ui_cidrs : []) :
+      can(cidrhost(cidr, 0)) && can(regex("^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/([0-9]|[12][0-9]|3[0-2])$", cidr))
     ])
-    error_message = "bastion_allowed_wireguard_ui_cidrs must contain valid CIDR blocks."
+    error_message = "bastion_allowed_wireguard_ui_cidrs must contain valid IPv4 CIDR blocks."
   }
 }
 
@@ -115,9 +118,10 @@ variable "bastion_egress_cidrs" {
 
   validation {
     condition = alltrue([
-      for cidr in var.bastion_egress_cidrs : can(cidrhost(cidr, 0))
+      for cidr in var.bastion_egress_cidrs :
+      can(cidrhost(cidr, 0)) && can(regex("^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/([0-9]|[12][0-9]|3[0-2])$", cidr))
     ])
-    error_message = "bastion_egress_cidrs must contain valid CIDR blocks."
+    error_message = "bastion_egress_cidrs must contain valid IPv4 CIDR blocks."
   }
 }
 

@@ -4,19 +4,6 @@ data "nebius_vpc_v1_subnet" "bastion" {
   id = var.subnet_id
 }
 
-resource "terraform_data" "validate_bastion_security_group_inputs" {
-  count = var.enable_bastion_security_group ? 1 : 0
-
-  input = local.bastion_ssh_source_cidrs
-
-  lifecycle {
-    precondition {
-      condition     = length(local.bastion_ssh_source_cidrs) > 0
-      error_message = "bastion_allowed_ssh_cidrs must contain at least one CIDR when enable_bastion_security_group is true."
-    }
-  }
-}
-
 module "bastion_security_group" {
   count = var.enable_bastion_security_group ? 1 : 0
 
@@ -33,8 +20,14 @@ module "bastion_security_group" {
   allow_unrestricted_ingress_rules = var.bastion_allow_unrestricted_ingress_rules
   ingress_rules                    = merge(local.bastion_default_ingress_rules, var.bastion_extra_ingress_rules)
   egress_rules                     = merge(local.bastion_default_egress_rules, var.bastion_extra_egress_rules)
+}
 
-  depends_on = [
-    terraform_data.validate_bastion_security_group_inputs
-  ]
+check "bastion_default_ssh_ingress" {
+  assert {
+    condition = (
+      !var.enable_bastion_security_group ||
+      length(local.bastion_ssh_source_cidrs) > 0
+    )
+    error_message = "No default SSH ingress rule was created from bastion_allowed_ssh_cidrs. Set bastion_allowed_ssh_cidrs, bastion_extra_ingress_rules, bastion_extra_security_group_ids, or disable the managed security group if SSH access is required."
+  }
 }

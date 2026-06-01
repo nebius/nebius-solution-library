@@ -126,10 +126,11 @@ variable "ingress_rules" {
   validation {
     condition = alltrue(flatten([
       for _, rule in var.ingress_rules : [
-        for cidr in rule.source_cidrs : can(cidrhost(cidr, 0))
+        for cidr in rule.source_cidrs :
+        can(cidrhost(cidr, 0)) && can(regex("^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/([0-9]|[12][0-9]|3[0-2])$", cidr))
       ]
     ]))
-    error_message = "Ingress source_cidrs must contain valid CIDR blocks."
+    error_message = "Ingress source_cidrs must contain valid IPv4 CIDR blocks."
   }
 }
 
@@ -223,9 +224,10 @@ variable "egress_rules" {
   validation {
     condition = alltrue(flatten([
       for _, rule in var.egress_rules : [
-        for cidr in rule.destination_cidrs : can(cidrhost(cidr, 0))
+        for cidr in rule.destination_cidrs :
+        can(cidrhost(cidr, 0)) && can(regex("^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/([0-9]|[12][0-9]|3[0-2])$", cidr))
       ]
     ]))
-    error_message = "Egress destination_cidrs must contain valid CIDR blocks."
+    error_message = "Egress destination_cidrs must contain valid IPv4 CIDR blocks."
   }
 }
