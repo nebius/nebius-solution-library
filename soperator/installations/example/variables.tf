@@ -1532,7 +1532,7 @@ variable "slurmdbd_config" {
 }
 
 variable "slurm_accounting_config" {
-  description = "Slurm.conf accounting configuration. See https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
+  description = "Slurm accounting settings rendered into Soperator-generated autogen_slurm.conf, which is included by slurm.conf. See upstream Slurm slurm.conf documentation: https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
   type        = map(any)
   default = {
     # accountingStorageTRES: "gres/gpu,license/iop1"
