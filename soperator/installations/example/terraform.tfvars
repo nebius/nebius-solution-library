@@ -579,6 +579,21 @@ active_checks_scope = "prod_quick"
 # ---
 slurm_shared_memory_size_gibibytes = 1024
 
+# Block size for Slurm topology/block topology plugin in number of nodes.
+# This affects how Slurm groups nodes into blocks for scheduling purposes.
+# A smaller block size allows for more flexible scheduling but may increase overhead,
+# while a larger block size may improve scheduling efficiency but reduce flexibility.
+# The optimal value depends on the cluster size and workload characteristics.
+#
+# By default, null (no block topology plugin configuration applied).
+#
+# For GB300,
+# it is recommended to set block size to the rack size (18) or its multiple to optimize for rack-level scheduling.
+# ---
+# slurm_topology_block_size = 9
+# ---
+slurm_topology_block_size = null
+
 # Node groups that Soperator should ignore during maintenance events.
 # These ignored maintenance events will be handled by mk8s control plane instead.
 # Supported values: controller, nfs, system, login, accounting.

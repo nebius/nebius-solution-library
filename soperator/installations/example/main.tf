@@ -610,7 +610,7 @@ module "slurm" {
 
   topology = {
     plugin     = local.gb300_enabled ? "topology/block" : "topology/tree"
-    block_size = local.gb300_enabled ? 9 : null
+    block_size = local.gb300_enabled ? try(var.slurm_topology_block_size, 9) : null
   }
 
   login_allocation_id              = module.k8s.static_ip_allocation_id
