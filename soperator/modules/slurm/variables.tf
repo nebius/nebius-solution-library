@@ -49,6 +49,28 @@ variable "slurm_partition_raw_config" {
   default     = []
 }
 
+variable "topology" {
+  description = "Slurm topology configuration. topology/tree leaves the chart default unset; topology/block renders BlockAsNodeRank and requires block_size."
+  type = object({
+    plugin     = string
+    block_size = optional(number)
+  })
+  default = {
+    plugin = "topology/tree"
+  }
+  nullable = false
+
+  validation {
+    condition     = contains(["topology/tree", "topology/block"], var.topology.plugin)
+    error_message = "topology.plugin must be one of 'topology/tree' or 'topology/block'."
+  }
+
+  validation {
+    condition     = var.topology.plugin == "topology/block" ? try(var.topology.block_size > 0, false) : true
+    error_message = "topology.block_size must be a positive number when topology.plugin is 'topology/block'."
+  }
+}
+
 # endregion PartitionConfiguration
 
 # region HealthCheckConfig

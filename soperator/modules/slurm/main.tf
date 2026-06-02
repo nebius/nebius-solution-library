@@ -137,6 +137,10 @@ resource "helm_release" "soperator_fluxcd_cm" {
         slurm_raw_config  = var.slurm_partition_raw_config
       }
 
+      topology = {
+        block_size = var.topology.plugin == "topology/block" ? var.topology.block_size : null
+      }
+
       use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
       cuda_version                 = var.cuda_version
 
