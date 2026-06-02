@@ -449,6 +449,15 @@ resources:
             populateJail:
               k8sNodeFilterName: ${slurm_cluster.populate_jail.k8s_node_filter_name}
 
+            %{~ if slurm_cluster.topology.block_size != null ~}
+            slurmConfig:
+              topologyPlugin: "topology/block"
+              topologyParam: "BlockAsNodeRank"
+
+            topology:
+              blockSize: ${slurm_cluster.topology.block_size}
+            %{~ endif ~}
+
             periodicChecks:
               ncclBenchmark:
                 enabled: false

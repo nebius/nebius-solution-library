@@ -608,6 +608,11 @@ module "slurm" {
     }
   }]
 
+  topology = {
+    plugin     = local.gb300_enabled ? "topology/block" : "topology/tree"
+    block_size = local.gb300_enabled ? try(var.slurm_topology_block_size, local.gb300_nodes_per_nodegroup) : null
+  }
+
   login_allocation_id              = module.k8s.static_ip_allocation_id
   login_public_ip                  = var.slurm_login_public_ip
   tailscale_enabled                = var.tailscale_enabled
