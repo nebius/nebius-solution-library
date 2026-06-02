@@ -590,7 +590,7 @@ slurm_shared_memory_size_gibibytes = 1024
 # For GB300,
 # it is recommended to set block size to the rack size (18) or its multiple to optimize for rack-level scheduling.
 # ---
-# slurm_topology_block_size = 9
+# slurm_topology_block_size = 18
 # ---
 slurm_topology_block_size = null
 

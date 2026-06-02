@@ -1374,7 +1374,7 @@ variable "slurm_topology_block_size" {
     The optimal value depends on the cluster size and workload characteristics.
   EOL
   type        = number
-  default     = 9
+  default     = 18
   nullable    = true
 
   validation {
