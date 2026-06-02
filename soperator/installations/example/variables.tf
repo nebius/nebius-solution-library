@@ -1231,6 +1231,24 @@ variable "slurm_shared_memory_size_gibibytes" {
   default     = 64
 }
 
+variable "slurm_topology_block_size" {
+  description = <<EOL
+    Block size for Slurm topology/block topology plugin in number of nodes.
+    This affects how Slurm groups nodes into blocks for scheduling purposes.
+    A smaller block size allows for more flexible scheduling but may increase overhead,
+    while a larger block size may improve scheduling efficiency but reduce flexibility.
+    The optimal value depends on the cluster size and workload characteristics.
+  EOL
+  type        = number
+  default     = 18
+  nullable    = true
+
+  validation {
+    condition     = try(var.slurm_topology_block_size > 0, true)
+    error_message = "slurm_topology_block_size must be greater than 0 if set."
+  }
+}
+
 # endregion Config
 
 # region Telemetry
