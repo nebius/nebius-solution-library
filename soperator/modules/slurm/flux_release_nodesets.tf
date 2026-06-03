@@ -5,6 +5,7 @@ resource "local_file" "flux_release_rendered_nodesets" {
     version      = var.operator_version
     namespace    = "soperator"
     release_name = "soperator-nodesets"
+    cluster_name = var.cluster_name
 
     nodesets = var.worker_nodesets
     resources = [for res in var.resources.worker : {

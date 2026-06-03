@@ -145,14 +145,14 @@ nodesets:
                 mountPath: /opt/slurm_scripts/
                 volumeSource:
                   configMap:
-                    name: slurm-scripts
+                    name: ${cluster_name}-slurm-scripts
                     defaultMode: 0755
 
               - name: slurm-scripts-jail
                 mountPath: /mnt/jail.upper/opt/slurm_scripts/
                 volumeSource:
                   configMap:
-                    name: slurm-scripts
+                    name: ${cluster_name}-slurm-scripts
                     defaultMode: 0755
 
               - name: sys-host
