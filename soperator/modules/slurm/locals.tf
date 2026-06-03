@@ -41,9 +41,11 @@ locals {
     tag               = var.operator_version
   }
 
-  active_checks_on_worker_nodes = anytrue([
+  gb300_enabled = anytrue([
     for nodeset in var.worker_nodesets : nodeset.gres_name == "nvidia_gb300"
   ])
+
+  active_checks_on_worker_nodes = local.gb300_enabled
 
   node_filters = {
     label = {
