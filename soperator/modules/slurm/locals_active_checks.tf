@@ -166,7 +166,7 @@ locals {
       {
         for check_name, check_config in local.gb300_active_checks_overrides :
         check_name => check_config
-        if local.active_checks_on_worker_nodes
+        if local.gb300_enabled
       }
     )
   )
