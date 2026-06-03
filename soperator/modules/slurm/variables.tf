@@ -855,12 +855,6 @@ variable "use_preinstalled_gpu_drivers" {
 }
 
 # region ActiveChecks
-variable "active_checks_platform_supported" {
-  type        = bool
-  description = "Whether active checks are supported by the selected worker platform."
-  default     = true
-}
-
 variable "active_checks_scope" {
   type        = string
   description = "Scope of active health-checks. Defines what checks should run after the cluster is provisioned."
