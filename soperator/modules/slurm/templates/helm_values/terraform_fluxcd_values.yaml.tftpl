@@ -739,7 +739,7 @@ resources:
                   %{~ endif ~}
 
         soperatorActiveChecks:
-          enabled: ${soperator_active_checks_enabled}
+          enabled: true
           interval: 5m
           timeout: 120m
           version: ${operator_version}
@@ -747,6 +747,29 @@ resources:
           namespace: soperator
           overrideValues:
             slurmClusterRefName: ${name}
+%{ if soperator_active_checks_on_worker_nodes ~}
+            affinity:
+              nodeAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  nodeSelectorTerms:
+                    - matchExpressions:
+                        - key: ${slurm_cluster.k8s_node_filters.label.nodeset}
+                          operator: In
+                          values:
+%{ for worker in slurm_cluster.k8s_node_filters.worker.matches ~}
+                            - "${worker}"
+%{ endfor ~}
+            tolerations:
+              - key: ${slurm_cluster.k8s_node_filters.label.nodeset}
+                operator: Equal
+                value: ${slurm_cluster.k8s_node_filters.label.worker}
+                effect: NoSchedule
+%{ if slurm_cluster.nodes.worker.resources.gpus > 0 ~}
+              - key: ${slurm_cluster.k8s_node_filters.label.gpu}
+                operator: Exists
+                effect: NoSchedule
+%{ endif ~}
+%{ endif ~}
             checks:
               ensure-dir-snccld-logs:
                 enabled: true
