@@ -561,7 +561,7 @@ slurm_exporter_enabled = true
 # - "dev" - to be used for Soperator development clusters.
 # - "essential" - skip most of checks and run only essential ones. Don't use in production.
 # ---
-active_checks_scope = "prod_quick"
+active_checks_scope = ""
 
 # endregion ActiveChecks
 
