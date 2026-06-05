@@ -104,7 +104,6 @@ locals {
       reservation_policy     = nodeset.reservation_policy
       nvlink                 = nodeset.nvlink
       placement_policy_nodes = nodeset.placement_policy_nodes
-      max_pods               = nodeset.max_pods
       local_nvme = {
         enabled         = try(nodeset.local_nvme.enabled, false)
         mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
