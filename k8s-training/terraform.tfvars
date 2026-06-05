@@ -37,7 +37,7 @@ cpu_nodes_preset   = "4vcpu-16gb" # CPU nodes preset
 gpu_nodes_platform = "gpu-h200-sxm"        # GPU nodes platform: gpu-h100-sxm, gpu-h200-sxm, gpu-b200-sxm
 gpu_nodes_preset   = "8gpu-128vcpu-1600gb" # GPU nodes preset: 8gpu-128vcpu-1600gb, 8gpu-128vcpu-1600gb, 8gpu-160vcpu-1792gb
 # Infiniband fabrics: https://docs.nebius.com/compute/clusters/gpu#fabrics
-infiniband_fabric = "" # Infiniband fabric name
+infiniband_fabric = "" # Leave empty to disable GPU clustering for RTX6000 deployments or single-node deployments.
 
 gpu_nodes_driverfull_image = true
 enable_k8s_node_group_sa   = true
@@ -69,6 +69,7 @@ enable_filestore               = false # Enable or disable Filestore integration
 existing_filestore             = ""    # If enable_filestore = true, with this variable we can add existing filestore. Require string, example existing_filestore = "computefilesystem-e00r7z9vfxmg1bk99s"
 filestore_disk_size_gibibytes  = 100   # Set Filestore disk size in Gbytes.
 filestore_block_size_kibibytes = 4     # Set Filestore block size in bytes
+filestore_forbid_deletion      = false # Set to true to protect Terraform-created Filestore from deletion.
 
 # Shared filesystem CSI driver. Enable only when using Shared Filesystem.
 # filesystem_csi = {
