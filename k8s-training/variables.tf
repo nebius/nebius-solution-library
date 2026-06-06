@@ -245,7 +245,7 @@ variable "gpu_kubelet_numa_preset" {
   default     = null
 
   validation {
-    condition     = var.gpu_kubelet_numa_preset == null || contains(["h200-standard", "b200-standard", "b300-standard"], var.gpu_kubelet_numa_preset)
+    condition     = var.gpu_kubelet_numa_preset == null ? true : contains(["h200-standard", "b200-standard", "b300-standard"], var.gpu_kubelet_numa_preset)
     error_message = "gpu_kubelet_numa_preset must be null, \"h200-standard\", \"b200-standard\", or \"b300-standard\"."
   }
 }
