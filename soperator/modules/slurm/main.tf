@@ -77,7 +77,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
     soperator_image_repo     = local.image.repository
     soperator_image_repo_nfs = var.nfs_in_k8s.use_stable_repo ? local.image.repository_stable : local.image.repository
 
-    dcgm_job_mapping_enabled = var.dcgm_job_mapping_enabled
+    dcgm_job_mapping_enabled       = var.dcgm_job_mapping_enabled
+    enroot_direct_squashfs_enabled = var.enroot_direct_squashfs_enabled
 
     tailscale_enabled       = var.tailscale_enabled
     apparmor_enabled        = var.use_default_apparmor_profile

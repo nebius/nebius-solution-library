@@ -97,7 +97,6 @@ filestore_jail_submounts = [{
   }
 }]
 
-
 # Shared filesystem to be used for accounting DB.
 # By default, null.
 # Required if accounting_enabled is true.
@@ -417,24 +416,23 @@ slurm_nodeset_workers = [
       disk_type       = "NETWORK_SSD"
       filesystem_type = "ext4"
     }]
-    # Whether to create extra NRD disks for storing Docker/Enroot images and container filesystems on each worker node.
-    # It will create compute disks with provided spec for each node via CSI.
-    # NOTE: In case you're not going to use Docker/Enroot in your workloads, it's worth disabling this feature.
+    # Whether to create extra node-local disks for storing Docker/Enroot images and container filesystems on each worker node.
+    # Disabled by default. Enable this only when you want dedicated image-storage disks instead of direct SquashFS startup.
     # NOTE: `size` must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
     # ---
-    # node_local_image_disk = {
-    #   enabled = false
-    # }
-    # ---
     node_local_image_disk = {
-      enabled = true
-      spec = {
-        size_gibibytes  = 930
-        filesystem_type = "ext4"
-        # Could be changed to `NETWORK_SSD_NON_REPLICATED`
-        disk_type = "NETWORK_SSD_IO_M3"
-      }
+      enabled = false
     }
+    # ---
+    # node_local_image_disk = {
+    #   enabled = true
+    #   spec = {
+    #     size_gibibytes  = 930
+    #     filesystem_type = "ext4"
+    #     # Could be changed to `NETWORK_SSD_NON_REPLICATED`
+    #     disk_type = "NETWORK_SSD_IO_M3"
+    #   }
+    # }
   },
 ]
 
