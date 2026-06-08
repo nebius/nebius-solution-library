@@ -560,6 +560,8 @@ module "slurm" {
   slurm_partition_raw_config      = var.slurm_partition_raw_config
   slurm_health_check_config       = var.slurm_health_check_config
 
+  enroot_direct_squashfs_enabled = var.enroot_direct_squashfs_enabled
+
   slurm_nodesets_partitions = [for partition in var.slurm_nodesets_partitions : {
     name         = partition.name
     is_all       = partition.is_all

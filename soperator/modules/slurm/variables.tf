@@ -348,6 +348,12 @@ variable "controller_state_on_filestore" {
   default     = false
 }
 
+variable "enroot_direct_squashfs_enabled" {
+  description = "Enable Pyxis/Enroot direct SquashFS startup through squashfuse. Node-local image-storage disk creation remains controlled by node_local_image_disk.enabled."
+  type        = bool
+  default     = true
+}
+
 # endregion Disks
 
 # region nfs-server

@@ -240,6 +240,12 @@ variable "filestore_jail_submounts" {
   }
 }
 
+variable "enroot_direct_squashfs_enabled" {
+  description = "Enable Pyxis/Enroot direct SquashFS startup through squashfuse. Node-local image-storage disk creation remains controlled by node_local_image_disk.enabled."
+  type        = bool
+  default     = true
+}
+
 variable "filestore_accounting" {
   description = "Shared filesystem to be used for accounting DB"
   type = object({
