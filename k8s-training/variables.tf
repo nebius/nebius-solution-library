@@ -245,6 +245,34 @@ variable "mig_parted_config" {
   }
 }
 
+variable "gpu_enable_local_disks" {
+  description = "Whether to request local NVMe passthrough disks"
+  type        = bool
+  default     = false
+
+  validation {
+    condition = (
+      !var.gpu_enable_local_disks ||
+      (
+        local.gpu_nodes_platform == "gpu-b300-sxm" &&
+        local.gpu_nodes_preset == "8gpu-192vcpu-2768gb"
+      )
+    )
+    error_message = "Local disks are supported only on B300 platform with preset 8gpu-192vcpu-2768gb."
+  }
+}
+
+variable "local_nvme_drives_path" {
+  description = "Mount path for local NVMe drives"
+  type        = string
+  default     = "/scratch"
+
+  validation {
+    condition     = startswith(var.local_nvme_drives_path, "/")
+    error_message = "Local NVMe drives path must be an absolute path."
+  }
+}
+
 # Observability
 
 variable "enable_nebius_o11y_agent" {
