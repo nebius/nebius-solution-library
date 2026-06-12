@@ -220,9 +220,6 @@ module "nfs-server" {
 
   public_ip = var.nfs.public_ip
 
-  providers = {
-    nebius = nebius
-  }
 }
 
 module "cleanup" {
@@ -339,9 +336,6 @@ module "nvidia_operator_network" {
   cluster_id = module.k8s.cluster_id
   parent_id  = data.nebius_iam_v1_project.this.id
 
-  providers = {
-    nebius = nebius
-  }
 }
 
 module "nvidia_operator_gpu" {
@@ -360,9 +354,6 @@ module "nvidia_operator_gpu" {
   enable_dcgm_service_monitor = var.dcgm_job_mapping_enabled == false && var.telemetry_enabled
   relabel_dcgm_exporter       = var.telemetry_enabled
 
-  providers = {
-    nebius = nebius
-  }
 }
 
 module "o11y" {
