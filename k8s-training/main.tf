@@ -102,10 +102,12 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       priority      = 3
     } : null
     cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
-      enable_filestore     = var.enable_filestore ? "true" : "false",
-      filestore_mount_path = local.filestore.mount_path,
-      ssh_user_name        = var.ssh_user_name,
-      ssh_public_key       = local.ssh_public_key
+      enable_filestore         = var.enable_filestore ? "true" : "false",
+      filestore_mount_path     = local.filestore.mount_path,
+      ssh_user_name            = var.ssh_user_name,
+      ssh_public_key           = local.ssh_public_key,
+      kubelet_numa_config      = null,
+      kubelet_numa_config_yaml = ""
     })
   }
 }
@@ -181,10 +183,12 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
 
     underlay_required = false
     cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
-      enable_filestore     = var.enable_filestore ? "true" : "false",
-      filestore_mount_path = local.filestore.mount_path,
-      ssh_user_name        = var.ssh_user_name,
-      ssh_public_key       = local.ssh_public_key
+      enable_filestore         = var.enable_filestore ? "true" : "false",
+      filestore_mount_path     = local.filestore.mount_path,
+      ssh_user_name            = var.ssh_user_name,
+      ssh_public_key           = local.ssh_public_key,
+      kubelet_numa_config      = local.effective_gpu_kubelet_numa_config,
+      kubelet_numa_config_yaml = local.gpu_kubelet_numa_config_yaml
     })
   }
 }

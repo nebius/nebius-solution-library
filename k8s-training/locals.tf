@@ -67,6 +67,89 @@ locals {
     var.mig_strategy != null &&
     var.mig_strategy != "none"
   ) ? true : null
+
+  # Known-good kubelet NUMA/topology configs validated during GPU node testing.
+  gpu_kubelet_numa_presets = {
+    "h200-standard" = {
+      cpu_manager_policy      = "static"
+      topology_manager_policy = "restricted"
+      memory_manager_policy   = "Static"
+      kube_reserved_memory    = "1229Mi"
+      reserved_memory = [
+        {
+          numa_node = 0
+          memory    = "1329Mi"
+        }
+      ]
+    }
+    "b200-standard" = {
+      cpu_manager_policy      = "static"
+      topology_manager_policy = "restricted"
+      memory_manager_policy   = "Static"
+      kube_reserved_memory    = "1229Mi"
+      reserved_memory = [
+        {
+          numa_node = 0
+          memory    = "1329Mi"
+        }
+      ]
+    }
+    "b300-standard" = {
+      cpu_manager_policy      = "static"
+      topology_manager_policy = "restricted"
+      memory_manager_policy   = "Static"
+      kube_reserved_memory    = "1229Mi"
+      reserved_memory = [
+        {
+          numa_node = 0
+          memory    = "1329Mi"
+        }
+      ]
+    }
+  }
+
+  gpu_kubelet_numa_platform_presets = {
+    "gpu-h200-sxm"   = "h200-standard"
+    "gpu-b200-sxm"   = "b200-standard"
+    "gpu-b200-sxm-a" = "b200-standard"
+    "gpu-b300-sxm"   = "b300-standard"
+  }
+
+  resolved_gpu_kubelet_numa_preset = var.gpu_kubelet_numa_preset != null ? var.gpu_kubelet_numa_preset : (
+    var.enable_gpu_kubelet_numa ? lookup(
+      local.gpu_kubelet_numa_platform_presets,
+      local.gpu_nodes_platform,
+      null
+    ) : null
+  )
+
+  effective_gpu_kubelet_numa_config = var.gpu_kubelet_numa_config != null ? var.gpu_kubelet_numa_config : (
+    local.resolved_gpu_kubelet_numa_preset == null ? null : local.gpu_kubelet_numa_presets[local.resolved_gpu_kubelet_numa_preset]
+  )
+
+  gpu_kubelet_numa_config_yaml = local.effective_gpu_kubelet_numa_config == null ? "" : yamlencode(
+    merge(
+      {
+        cpuManagerPolicy      = local.effective_gpu_kubelet_numa_config.cpu_manager_policy
+        topologyManagerPolicy = local.effective_gpu_kubelet_numa_config.topology_manager_policy
+        memoryManagerPolicy   = local.effective_gpu_kubelet_numa_config.memory_manager_policy
+        reservedMemory = [
+          for item in local.effective_gpu_kubelet_numa_config.reserved_memory : {
+            numaNode = item.numa_node
+            limits = {
+              memory = item.memory
+            }
+          }
+        ]
+      },
+      local.effective_gpu_kubelet_numa_config.kube_reserved_memory == null ? {} : {
+        kubeReserved = {
+          memory = local.effective_gpu_kubelet_numa_config.kube_reserved_memory
+        }
+      }
+    )
+  )
+
   #List of official MIG configs https://docs.nvidia.com/datacenter/tesla/mig-user-guide/supported-mig-profiles.html
   valid_mig_parted_configs = {
     "gpu-h100-sxm"   = ["all-disabled", "all-enabled", "all-balanced", "all-1g.10gb", "all-1g.10gb.me", "all-1g.20gb", "all-2g.20gb", "all-3g.40gb", "all-4g.40gb", "all-7g.80gb"]
