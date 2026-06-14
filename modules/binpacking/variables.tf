@@ -10,6 +10,6 @@ variable "mutated_namespaces" {
 }
 
 variable "kube_sched_ver" {
-  description = "This is the version of kube-scheduler it must be <= API version"
+  description = "Full kube-scheduler patch version. It should not be newer than the Kubernetes API server version."
   type        = string
 }

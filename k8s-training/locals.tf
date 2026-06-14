@@ -159,7 +159,15 @@ locals {
     "gpu-b300-sxm"   = ["all-disabled", "all-enabled", "all-balanced", "all-1g.23gb", "all-1g.23gb.me", "all-1g.45gb", "all-2g.45gb", "all-3g.90gb", "all-4g.90gb", "all-7g.180gb"]
     "gpu-rtx6000"    = ["all-disabled", "all-enabled", "all-balanced", "all-1g.24gb", "all-1g.24gb.me", "all-1g.48gb", "all-2g.48gb", "all-4g.96gb"]
   }
-  binpacking_kube_sched_ver = coalesce(var.binpacking_kube_sched_ver, var.k8s_version, "1.31")
+  binpacking_kube_sched_ver_by_k8s_minor = {
+    "1.30" = "1.30.14"
+    "1.31" = "1.31.14"
+    "1.32" = "1.32.13"
+    "1.33" = "1.33.13"
+    "1.34" = "1.34.9"
+  }
+  binpacking_k8s_minor      = var.k8s_version == null ? null : replace(tostring(var.k8s_version), "/^v?([0-9]+\\.[0-9]+)(?:\\.[0-9]+)?$/", "$1")
+  binpacking_kube_sched_ver = var.binpacking_kube_sched_ver != null ? var.binpacking_kube_sched_ver : try(local.binpacking_kube_sched_ver_by_k8s_minor[local.binpacking_k8s_minor], null)
   binpacking_enable_mutator = try(length(var.binpacking_forced_namespaces), 0) > 0 ? true : false
 }
 

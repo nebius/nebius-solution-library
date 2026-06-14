@@ -512,9 +512,14 @@ variable "binpacking_enable" {
 }
 
 variable "binpacking_kube_sched_ver" {
-  description = "kube-scheduler to use for binpacking should be <= API version"
+  description = "Full kube-scheduler patch version to use for binpacking. If unset, it is inferred from k8s_version."
   type        = string
   default     = null
+
+  validation {
+    condition     = var.binpacking_kube_sched_ver == null || can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+$", var.binpacking_kube_sched_ver))
+    error_message = "binpacking_kube_sched_ver must be a full patch version like 1.34.9."
+  }
 }
 
 variable "binpacking_forced_namespaces" {

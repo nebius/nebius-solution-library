@@ -128,7 +128,7 @@ enable_kuberay_service = false
 # }
 
 # enable OPA gatekeeper (default: false)
-# opa_gatekeeper_enable = true 
+# opa_gatekeeper_enable = true
 
 # enable binpacking scheduler (default: false)
 # binpacking_enable = true
@@ -139,6 +139,6 @@ enable_kuberay_service = false
 # default: ["default"]
 # binpacking_forced_namespaces = [ "default" ]
 
-# must be less than or equalt to API version defaults to cluster version 
-# if not defined and it is explicitly defined otherwise it defaults to 1.32.9 (in locals.tf)
-# binpacking_kube_sched_ver = "1.32.9"
+# Full kube-scheduler patch version. If unset, inferred from k8s_version.
+# Required when binpacking_enable = true and k8s_version = null.
+# binpacking_kube_sched_ver = "1.34.9"

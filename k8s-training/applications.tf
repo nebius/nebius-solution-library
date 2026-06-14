@@ -51,10 +51,25 @@ module "opa_gatekeeper" {
   count  = var.opa_gatekeeper_enable ? 1 : 0
 }
 
+resource "terraform_data" "binpacking_scheduler_version" {
+  count = var.binpacking_enable ? 1 : 0
+
+  lifecycle {
+    precondition {
+      condition     = local.binpacking_kube_sched_ver != null
+      error_message = "When binpacking_enable is true, set k8s_version to a supported minor version or set binpacking_kube_sched_ver to a full kube-scheduler patch version."
+    }
+  }
+}
+
 module "binpacking_scheduler" {
   source             = "../modules/binpacking"
   count              = var.binpacking_enable ? 1 : 0
   enable_mutator     = local.binpacking_enable_mutator
   kube_sched_ver     = local.binpacking_kube_sched_ver
   mutated_namespaces = var.binpacking_forced_namespaces
+
+  depends_on = [
+    terraform_data.binpacking_scheduler_version
+  ]
 }
