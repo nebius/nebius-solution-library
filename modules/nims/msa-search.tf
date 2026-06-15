@@ -5,7 +5,7 @@ resource "kubernetes_deployment_v1" "msa_search" {
   }
 
   spec {
-    replicas = var.msa_search ? var.msa_search_replicas : 0
+    replicas = local.enable_msa_search ? var.msa_search_replicas : 0
 
     selector {
       match_labels = {
@@ -58,15 +58,15 @@ resource "kubernetes_deployment_v1" "msa_search" {
 
           resources {
             limits = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.msa_search.cpu_limit
+              memory           = local.nim_resources.msa_search.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.msa_search.gpu
             }
 
             requests = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.msa_search.cpu_request
+              memory           = local.nim_resources.msa_search.memory_request
+              "nvidia.com/gpu" = local.nim_resources.msa_search.gpu
             }
           }
 
@@ -76,7 +76,7 @@ resource "kubernetes_deployment_v1" "msa_search" {
           }
           volume_mount {
             name       = "mnt-data"
-            mount_path = "opt/nim/.cache"
+            mount_path = "/opt/nim/.cache"
           }
         }
 
@@ -87,14 +87,14 @@ resource "kubernetes_deployment_v1" "msa_search" {
 
           empty_dir {
             medium     = "Memory"
-            size_limit = "16Gi"
+            size_limit = local.nim_resources.msa_search.shm
           }
         }
         volume {
           name = "mnt-data"
 
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }

@@ -5,5 +5,5 @@ output "nims_lb_ip" {
 
 output "cosmos_lb_ip" {
   description = "LoadBalancer IP for Cosmos World Foundation Models"
-  value       = kubernetes_service_v1.cosmos_lb.status[0].load_balancer[0].ingress[0].ip
+  value       = try(kubernetes_service_v1.cosmos_lb[0].status[0].load_balancer[0].ingress[0].ip, null)
 }

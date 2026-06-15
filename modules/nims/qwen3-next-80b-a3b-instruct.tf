@@ -6,7 +6,7 @@ resource "kubernetes_deployment_v1" "qwen3-next-80b-a3b-instruct" {
   }
 
   spec {
-    replicas = var.qwen3-next-80b-a3b-instruct ? var.qwen3-next-80b-a3b-instruct_replicas : 0
+    replicas = local.enable_qwen3_next_80b_a3b_instruct ? local.qwen3_next_80b_a3b_instruct_replicas : 0
 
     selector {
       match_labels = {
@@ -46,7 +46,7 @@ resource "kubernetes_deployment_v1" "qwen3-next-80b-a3b-instruct" {
         container {
 
           name  = "qwen3-next-80b-a3b-instruct"
-          image = "nvcr.io/nim/qwen/qwen3-next-80b-a3b-instruct:${var.qwen3-next-80b-a3b-instruct_version}"
+          image = "nvcr.io/nim/qwen/qwen3-next-80b-a3b-instruct:${local.qwen3_next_80b_a3b_instruct_version}"
 
           command = ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
           security_context {
@@ -71,15 +71,15 @@ resource "kubernetes_deployment_v1" "qwen3-next-80b-a3b-instruct" {
 
           resources {
             limits = {
-              cpu              = "32"
-              memory           = "256Gi"
-              "nvidia.com/gpu" = "2"
+              cpu              = local.nim_resources.qwen3_next_80b_a3b_instruct.cpu_limit
+              memory           = local.nim_resources.qwen3_next_80b_a3b_instruct.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.qwen3_next_80b_a3b_instruct.gpu
             }
 
             requests = {
-              cpu              = "32"
-              memory           = "256Gi"
-              "nvidia.com/gpu" = "2"
+              cpu              = local.nim_resources.qwen3_next_80b_a3b_instruct.cpu_request
+              memory           = local.nim_resources.qwen3_next_80b_a3b_instruct.memory_request
+              "nvidia.com/gpu" = local.nim_resources.qwen3_next_80b_a3b_instruct.gpu
             }
           }
 
@@ -101,14 +101,14 @@ resource "kubernetes_deployment_v1" "qwen3-next-80b-a3b-instruct" {
 
           empty_dir {
             medium     = "Memory"
-            size_limit = "16Gi"
+            size_limit = local.nim_resources.qwen3_next_80b_a3b_instruct.shm
           }
         }
         volume {
           name = "mnt-data"
 
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }

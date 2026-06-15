@@ -2,6 +2,7 @@
 # Separate LoadBalancer for Cosmos models with port-based routing
 
 resource "kubernetes_config_map_v1" "cosmos_tcp_proxy" {
+  count      = local.enable_cosmos_gateway ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "cosmos-tcp-proxy-config"
@@ -83,6 +84,7 @@ resource "kubernetes_config_map_v1" "cosmos_tcp_proxy" {
 }
 
 resource "kubernetes_deployment_v1" "cosmos_tcp_proxy" {
+  count      = local.enable_cosmos_gateway ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "cosmos-proxy"
@@ -147,7 +149,7 @@ resource "kubernetes_deployment_v1" "cosmos_tcp_proxy" {
         volume {
           name = "nginx-config"
           config_map {
-            name = kubernetes_config_map_v1.cosmos_tcp_proxy.metadata[0].name
+            name = kubernetes_config_map_v1.cosmos_tcp_proxy[0].metadata[0].name
           }
         }
       }
@@ -157,6 +159,7 @@ resource "kubernetes_deployment_v1" "cosmos_tcp_proxy" {
 
 # LoadBalancer for Cosmos World Foundation Models
 resource "kubernetes_service_v1" "cosmos_lb" {
+  count      = local.enable_cosmos_gateway ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "cosmos-gateway"

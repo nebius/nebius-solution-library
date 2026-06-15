@@ -56,14 +56,14 @@ resource "kubernetes_deployment_v1" "cosmos_embed1" {
 
           resources {
             limits = {
-              cpu              = "8"
-              memory           = "64Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.cosmos_embed1.cpu_limit
+              memory           = local.nim_resources.cosmos_embed1.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.cosmos_embed1.gpu
             }
             requests = {
-              cpu              = "8"
-              memory           = "64Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.cosmos_embed1.cpu_request
+              memory           = local.nim_resources.cosmos_embed1.memory_request
+              "nvidia.com/gpu" = local.nim_resources.cosmos_embed1.gpu
             }
           }
 
@@ -81,13 +81,13 @@ resource "kubernetes_deployment_v1" "cosmos_embed1" {
           name = "dshm"
           empty_dir {
             medium     = "Memory"
-            size_limit = "16Gi"
+            size_limit = local.nim_resources.cosmos_embed1.shm
           }
         }
         volume {
           name = "mnt-data"
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }

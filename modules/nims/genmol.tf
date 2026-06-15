@@ -5,7 +5,7 @@ resource "kubernetes_deployment_v1" "genmol" {
   }
 
   spec {
-    replicas = var.genmol ? var.genmol_replicas : 0
+    replicas = local.enable_genmol ? var.genmol_replicas : 0
 
     selector {
       match_labels = {
@@ -56,15 +56,15 @@ resource "kubernetes_deployment_v1" "genmol" {
 
           resources {
             limits = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.genmol.cpu_limit
+              memory           = local.nim_resources.genmol.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.genmol.gpu
             }
 
             requests = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.genmol.cpu_request
+              memory           = local.nim_resources.genmol.memory_request
+              "nvidia.com/gpu" = local.nim_resources.genmol.gpu
             }
           }
 
@@ -74,7 +74,7 @@ resource "kubernetes_deployment_v1" "genmol" {
           }
           volume_mount {
             name       = "mnt-data"
-            mount_path = "opt/nim/.cache"
+            mount_path = "/opt/nim/.cache"
           }
 
 
@@ -84,14 +84,14 @@ resource "kubernetes_deployment_v1" "genmol" {
 
           empty_dir {
             medium     = "Memory"
-            size_limit = "16Gi"
+            size_limit = local.nim_resources.genmol.shm
           }
         }
         volume {
           name = "mnt-data"
 
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }

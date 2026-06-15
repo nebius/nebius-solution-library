@@ -5,7 +5,7 @@ resource "kubernetes_deployment_v1" "evo2_40b" {
   }
 
   spec {
-    replicas = var.evo2_40b ? var.evo2_40b_replicas : 0
+    replicas = local.enable_evo2_40b ? var.evo2_40b_replicas : 0
 
     selector {
       match_labels = {
@@ -70,15 +70,15 @@ resource "kubernetes_deployment_v1" "evo2_40b" {
 
           resources {
             limits = {
-              cpu              = "32"
-              memory           = "256Gi"
-              "nvidia.com/gpu" = "2"
+              cpu              = local.nim_resources.evo2_40b.cpu_limit
+              memory           = local.nim_resources.evo2_40b.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.evo2_40b.gpu
             }
 
             requests = {
-              cpu              = "32"
-              memory           = "256Gi"
-              "nvidia.com/gpu" = "2"
+              cpu              = local.nim_resources.evo2_40b.cpu_request
+              memory           = local.nim_resources.evo2_40b.memory_request
+              "nvidia.com/gpu" = local.nim_resources.evo2_40b.gpu
             }
           }
 
@@ -100,14 +100,14 @@ resource "kubernetes_deployment_v1" "evo2_40b" {
 
           empty_dir {
             medium     = "Memory"
-            size_limit = "16Gi"
+            size_limit = local.nim_resources.evo2_40b.shm
           }
         }
         volume {
           name = "mnt-data"
 
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }

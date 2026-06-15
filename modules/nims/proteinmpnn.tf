@@ -5,7 +5,7 @@ resource "kubernetes_deployment_v1" "proteinmpnn" {
   }
 
   spec {
-    replicas = var.proteinmpnn ? var.proteinmpnn_replicas : 0
+    replicas = local.enable_proteinmpnn ? var.proteinmpnn_replicas : 0
 
     selector {
       match_labels = {
@@ -51,14 +51,14 @@ resource "kubernetes_deployment_v1" "proteinmpnn" {
 
           resources {
             limits = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.proteinmpnn.cpu_limit
+              memory           = local.nim_resources.proteinmpnn.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.proteinmpnn.gpu
             }
             requests = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.proteinmpnn.cpu_request
+              memory           = local.nim_resources.proteinmpnn.memory_request
+              "nvidia.com/gpu" = local.nim_resources.proteinmpnn.gpu
             }
           }
 
@@ -76,14 +76,14 @@ resource "kubernetes_deployment_v1" "proteinmpnn" {
           name = "dshm"
           empty_dir {
             medium     = "Memory"
-            size_limit = "16Gi"
+            size_limit = local.nim_resources.proteinmpnn.shm
           }
         }
 
         volume {
           name = "mnt-data"
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }

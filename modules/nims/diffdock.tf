@@ -5,7 +5,7 @@ resource "kubernetes_deployment_v1" "diffdock" {
   }
 
   spec {
-    replicas = var.diffdock ? var.diffdock_replicas : 0
+    replicas = local.enable_diffdock ? var.diffdock_replicas : 0
 
     selector {
       match_labels = {
@@ -55,15 +55,15 @@ resource "kubernetes_deployment_v1" "diffdock" {
 
           resources {
             limits = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.diffdock.cpu_limit
+              memory           = local.nim_resources.diffdock.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.diffdock.gpu
             }
 
             requests = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.diffdock.cpu_request
+              memory           = local.nim_resources.diffdock.memory_request
+              "nvidia.com/gpu" = local.nim_resources.diffdock.gpu
             }
           }
 
@@ -82,14 +82,14 @@ resource "kubernetes_deployment_v1" "diffdock" {
 
           empty_dir {
             medium     = "Memory"
-            size_limit = "16Gi"
+            size_limit = local.nim_resources.diffdock.shm
           }
         }
         volume {
           name = "mnt-data"
 
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }

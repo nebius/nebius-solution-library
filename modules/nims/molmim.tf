@@ -5,7 +5,7 @@ resource "kubernetes_deployment_v1" "molmim" {
   }
 
   spec {
-    replicas = var.molmim ? var.molmim_replicas : 0
+    replicas = local.enable_molmim ? var.molmim_replicas : 0
 
     selector {
       match_labels = {
@@ -51,15 +51,15 @@ resource "kubernetes_deployment_v1" "molmim" {
 
           resources {
             limits = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.molmim.cpu_limit
+              memory           = local.nim_resources.molmim.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.molmim.gpu
             }
 
             requests = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.molmim.cpu_request
+              memory           = local.nim_resources.molmim.memory_request
+              "nvidia.com/gpu" = local.nim_resources.molmim.gpu
             }
           }
 
@@ -78,14 +78,14 @@ resource "kubernetes_deployment_v1" "molmim" {
 
           empty_dir {
             medium     = "Memory"
-            size_limit = "16Gi"
+            size_limit = local.nim_resources.molmim.shm
           }
         }
         volume {
           name = "mnt-data"
 
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }

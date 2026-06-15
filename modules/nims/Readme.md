@@ -133,6 +133,9 @@ See `applications/nims-drug-discovery-demo/README.md` for the demo workflow.
 - Ensure GPU nodes and runtime class are available before applying.
 - Update resource limits/requests as needed for your cluster size.
 - Secrets are required for pulling NGC images and using NIM services.
+- For the project-specific healthcare server root, see `applications/nims-healthcare-server/`.
+- Set `enable_all_healthcare_nims = true` to enable every healthcare/life-science NIM workload in this module. BioNeMo notebooks and Cosmos/Nemotron physical-AI models stay separately controlled.
+- Use `nim_resource_overrides` when your GPU nodes expose less allocatable CPU or memory than the default NIM requests.
 
 ---
 
@@ -147,27 +150,16 @@ module "nims" {
   ngc_key   = "REPLACE_WITH_YOUR_NGC_KEY"
   parent_id = var.parent_id
 
-  # Protein structure prediction
-  openfold2  = true
-  openfold3  = true
-  boltz2     = true
-  msa_search = true
+  # Healthcare/life-science NIMs
+  enable_all_healthcare_nims = true
 
-  # Molecule generation & docking
-  genmol      = true
-  molmim      = true
-  diffdock    = true
-  diffdock_replicas = 3
-
-  # Protein design
-  proteinmpnn = true
-  rfdiffusion = true
-
-  # Sequence models
-  evo2_40b = true
-
-  # LLM copilot
-  qwen3-next-80b-a3b-instruct = true
+  # Optional target-cluster tuning.
+  nim_cache_host_path = "/mnt/data/nim"
+  nim_resource_overrides = {
+    openfold3 = {
+      cpu_request = "15000m"
+    }
+  }
 
   # Cosmos World Foundation Models
   cosmos_reason1_7b = true

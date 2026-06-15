@@ -5,7 +5,7 @@ resource "kubernetes_deployment_v1" "openfold3" {
   }
 
   spec {
-    replicas = var.openfold3 ? var.openfold3_replicas : 0
+    replicas = local.enable_openfold3 ? var.openfold3_replicas : 0
 
 
     selector {
@@ -57,15 +57,15 @@ resource "kubernetes_deployment_v1" "openfold3" {
 
           resources {
             limits = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.openfold3.cpu_limit
+              memory           = local.nim_resources.openfold3.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.openfold3.gpu
             }
 
             requests = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.openfold3.cpu_request
+              memory           = local.nim_resources.openfold3.memory_request
+              "nvidia.com/gpu" = local.nim_resources.openfold3.gpu
             }
           }
 
@@ -86,14 +86,14 @@ resource "kubernetes_deployment_v1" "openfold3" {
 
           empty_dir {
             medium     = "Memory"
-            size_limit = "64Gi"
+            size_limit = local.nim_resources.openfold3.shm
           }
         }
         volume {
           name = "mnt-data"
 
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }

@@ -5,7 +5,7 @@ resource "kubernetes_deployment_v1" "rfdiffusion" {
   }
 
   spec {
-    replicas = var.rfdiffusion ? var.rfdiffusion_replicas : 0
+    replicas = local.enable_rfdiffusion ? var.rfdiffusion_replicas : 0
 
     selector {
       match_labels = {
@@ -51,14 +51,14 @@ resource "kubernetes_deployment_v1" "rfdiffusion" {
 
           resources {
             limits = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.rfdiffusion.cpu_limit
+              memory           = local.nim_resources.rfdiffusion.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.rfdiffusion.gpu
             }
             requests = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.rfdiffusion.cpu_request
+              memory           = local.nim_resources.rfdiffusion.memory_request
+              "nvidia.com/gpu" = local.nim_resources.rfdiffusion.gpu
             }
           }
 
@@ -76,14 +76,14 @@ resource "kubernetes_deployment_v1" "rfdiffusion" {
           name = "dshm"
           empty_dir {
             medium     = "Memory"
-            size_limit = "16Gi"
+            size_limit = local.nim_resources.rfdiffusion.shm
           }
         }
 
         volume {
           name = "mnt-data"
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }

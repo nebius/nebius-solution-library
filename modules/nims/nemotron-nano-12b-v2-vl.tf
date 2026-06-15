@@ -56,14 +56,14 @@ resource "kubernetes_deployment_v1" "nemotron_nano_12b_v2_vl" {
 
           resources {
             limits = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.nemotron_nano_12b_v2_vl.cpu_limit
+              memory           = local.nim_resources.nemotron_nano_12b_v2_vl.memory_limit
+              "nvidia.com/gpu" = local.nim_resources.nemotron_nano_12b_v2_vl.gpu
             }
             requests = {
-              cpu              = "16"
-              memory           = "128Gi"
-              "nvidia.com/gpu" = "1"
+              cpu              = local.nim_resources.nemotron_nano_12b_v2_vl.cpu_request
+              memory           = local.nim_resources.nemotron_nano_12b_v2_vl.memory_request
+              "nvidia.com/gpu" = local.nim_resources.nemotron_nano_12b_v2_vl.gpu
             }
           }
 
@@ -81,13 +81,13 @@ resource "kubernetes_deployment_v1" "nemotron_nano_12b_v2_vl" {
           name = "dshm"
           empty_dir {
             medium     = "Memory"
-            size_limit = "32Gi"
+            size_limit = local.nim_resources.nemotron_nano_12b_v2_vl.shm
           }
         }
         volume {
           name = "mnt-data"
           host_path {
-            path = "/mnt/data/nim"
+            path = var.nim_cache_host_path
             type = "DirectoryOrCreate"
           }
         }
