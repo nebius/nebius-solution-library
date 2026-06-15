@@ -542,7 +542,7 @@ variable "slurmdbd_config" {
 }
 
 variable "slurm_accounting_config" {
-  description = "Slurm.conf accounting configuration. See https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
+  description = "Slurm accounting settings rendered into Soperator-generated slurm_base.conf.noedit, which is included by slurm.conf. See upstream Slurm slurm.conf documentation: https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
   type        = map(any)
   default     = {}
 }
