@@ -74,6 +74,7 @@ module "nims" {
 
   evo2_40b                    = var.enable_two_gpu_nims
   qwen3_next_80b_a3b_instruct = var.enable_two_gpu_nims
+  nemotron_nano_12b_v2_vl     = true
 
   depends_on = [
     module.cluster,

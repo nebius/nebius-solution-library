@@ -19,11 +19,11 @@ Default target:
 - Shared model cache: 5 TiB mounted at `/mnt/data/nim`
 
 The root enables OpenFold3, Boltz2, MSA Search, OpenFold2, GenMol, MolMIM,
-DiffDock, ProteinMPNN, RFdiffusion, Evo2-40B, and Qwen3 Next 80B. BioNeMo
-notebooks and Cosmos/Nemotron physical-AI models are intentionally excluded
-from this healthcare server preset.
+DiffDock, ProteinMPNN, RFdiffusion, Evo2-40B, Qwen3 Next 80B, and Nemotron
+Nano 12B v2 VL. BioNeMo notebooks and Cosmos physical-AI models are
+intentionally excluded from this healthcare server preset.
 
-The default two 8-GPU nodes provide 16 GPUs. The enabled NIM set requests 13
+The default two 8-GPU nodes provide 16 GPUs. The enabled NIM set requests 14
 GPUs by default, leaving headroom for scheduling and cluster add-ons.
 The default omits CPU-only workers because the tenant non-GPU vCPU quota is
 currently exhausted; Kubernetes system workloads run on the GPU workers.

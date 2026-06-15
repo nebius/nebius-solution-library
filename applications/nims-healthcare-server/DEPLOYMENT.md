@@ -20,7 +20,7 @@ Deployment completed from the isolated task worktree on branch
 - CPU workers: `0`
 - GPU workers: `2 x gpu-h200-sxm 8gpu-128vcpu-1600gb`
 - Total GPU capacity: `16 x H200`
-- Enabled NIM GPU requests: `13`
+- Enabled NIM GPU requests: `14`
 - Shared NIM cache path: `/mnt/data/nim`
 
 The deployment uses GPU workers for Kubernetes system workloads because the
@@ -37,6 +37,11 @@ Validated on 2026-06-15:
   `Running`
 - `curl http://89.169.100.192:8080/health`: returned
   `{"status":"healthy","namespace":"nims-healthcare"}`
+- Nemotron Nano 12B v2 VL is exposed through `89.169.100.192:8011`;
+  `/v1/health/ready` returned `{"object":"health.response","message":"Service is ready."}`.
+- MSA Search is exposed through `89.169.100.192:8003`. Its first startup
+  materializes the ColabFold database cache under `/mnt/data/nim`; the pod was
+  running and actively writing cache data during validation.
 
 The NGC key was supplied through environment/stdin during apply and is not
 stored in this repository.

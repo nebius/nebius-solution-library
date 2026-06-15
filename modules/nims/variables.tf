@@ -393,8 +393,7 @@ locals {
     var.cosmos_reason1_7b ||
     var.cosmos_reason2_8b ||
     var.cosmos_reason2_2b ||
-    var.cosmos_embed1 ||
-    var.nemotron_nano_12b_v2_vl
+    var.cosmos_embed1
   )
 
   qwen3_next_80b_a3b_instruct_version  = coalesce(var.qwen3_next_80b_a3b_instruct_version, var.qwen3-next-80b-a3b-instruct_version)

@@ -118,6 +118,9 @@ resource "kubernetes_deployment_v1" "metadata_service" {
         labels = {
           app = "nims-metadata-service"
         }
+        annotations = {
+          "checksum/app-code" = md5(file("${path.module}/metadata-service/app.py"))
+        }
       }
 
       spec {

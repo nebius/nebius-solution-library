@@ -40,7 +40,7 @@ NIM_PORTS = {
     "qwen3-next-80b-a3b-instruct": 8008,
     "proteinmpnn": 8009,
     "rfdiffusion": 8010,
-    "cosmos-reason1-7b": 8011,
+    "nemotron-nano-12b-v2-vl": 8011,
 }
 
 class ResourceInfo(BaseModel):
