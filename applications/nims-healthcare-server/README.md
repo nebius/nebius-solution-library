@@ -1,49 +1,71 @@
 # Healthcare NIM Server
 
-This root deploys the healthcare/life-science NIM workloads from `modules/nims`
-into Nebius project `project-e00z6b02t8ddk96c49`.
+This Terraform root provisions a dedicated Nebius Managed Kubernetes cluster in
+project `project-e00z6b02t8ddk96c49` and deploys the healthcare/life-science
+NIM workloads from `modules/nims` into that new cluster.
+
+It does not reuse Forge clusters or any pre-existing kube context.
 
 Default target:
 
 - Project: `project-e00z6b02t8ddk96c49`
+- Tenant: `tenant-e00f3wdfzwfjgbcyfv`
 - Region: `eu-north1`
-- Cluster context: `nebius-mk8s-forge-eu-e00tjerrz0axkghmbm`
+- Subnet: `vpcsubnet-e00p701fa30cj5f7wq`
+- Cluster name: `nims-healthcare`
 - Namespace: `nims-healthcare`
+- CPU nodes: 0 x `cpu-d3` `16vcpu-64gb`
+- GPU nodes: 2 x `gpu-h200-sxm` `8gpu-128vcpu-1600gb`
+- Shared model cache: 5 TiB mounted at `/mnt/data/nim`
 
 The root enables OpenFold3, Boltz2, MSA Search, OpenFold2, GenMol, MolMIM,
 DiffDock, ProteinMPNN, RFdiffusion, Evo2-40B, and Qwen3 Next 80B. BioNeMo
 notebooks and Cosmos/Nemotron physical-AI models are intentionally excluded
 from this healthcare server preset.
 
+The default two 8-GPU nodes provide 16 GPUs. The enabled NIM set requests 13
+GPUs by default, leaving headroom for scheduling and cluster add-ons.
+The default omits CPU-only workers because the tenant non-GPU vCPU quota is
+currently exhausted; Kubernetes system workloads run on the GPU workers.
+
 ## Deploy
 
-Set the NGC key outside source control:
+Set sensitive values outside source control:
 
 ```bash
-export TF_VAR_ngc_key="..."
+export TF_VAR_iam_token="$(nebius iam get-access-token)"
+export TF_VAR_ngc_key="REPLACE_WITH_NGC_API_KEY"
 ```
+
+The NGC Kubernetes secrets use write-only Terraform attributes so the key is
+not retained in state. Increment `ngc_key_revision` when rotating the key.
 
 Preview from the repository root:
 
 ```bash
 terraform -chdir=applications/nims-healthcare-server init
+terraform -chdir=applications/nims-healthcare-server validate
 terraform -chdir=applications/nims-healthcare-server plan
 ```
 
-Apply only after checking the target context and capacity:
+Apply only after reviewing the plan and the GPU/storage cost exposure:
 
 ```bash
-kubectl --context nebius-mk8s-forge-eu-e00tjerrz0axkghmbm get nodes
 terraform -chdir=applications/nims-healthcare-server apply
 ```
 
-## Current Target Capacity Note
+After apply, inspect the new cluster and NIM service:
 
-Read-only discovery on 2026-06-15 found the target project has running
-`forge-eu` and `forge-control` clusters. The `forge-eu` cluster has many
-ready GPU nodes, but each GPU node reports one allocatable GPU. Evo2-40B and
-Qwen3 Next 80B request two GPUs by default, so they need either two-GPU nodes
-or `enable_two_gpu_nims = false`.
+```bash
+terraform -chdir=applications/nims-healthcare-server output cluster_id
+terraform -chdir=applications/nims-healthcare-server output nims_lb_ip
+```
 
-The module defaults now request `15000m` CPU for one-GPU NIMs so they fit on
-16-vCPU nodes that expose about `15900m` allocatable CPU.
+## Sizing Notes
+
+`enable_two_gpu_nims` controls Evo2-40B and Qwen3 Next 80B. Keep it enabled
+with the default two 8-GPU H200 nodes. Set it to `false` only when using smaller
+GPU capacity.
+
+Use `nim_resource_overrides` to tune individual NIM CPU, memory, GPU, and
+shared-memory requests without editing `modules/nims`.

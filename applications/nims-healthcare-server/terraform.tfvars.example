@@ -1,11 +1,29 @@
+tenant_id    = "tenant-e00f3wdfzwfjgbcyfv"
 parent_id    = "project-e00z6b02t8ddk96c49"
-kube_context = "nebius-mk8s-forge-eu-e00tjerrz0axkghmbm"
+region       = "eu-north1"
+subnet_id    = "vpcsubnet-e00p701fa30cj5f7wq"
+cluster_name = "nims-healthcare"
 namespace    = "nims-healthcare"
 
-# Keep the real value out of source. Prefer TF_VAR_ngc_key or a local, ignored
-# terraform.tfvars file.
-ngc_key = "REPLACE_WITH_NGC_API_KEY"
+# Keep real values out of source. Prefer:
+#   export TF_VAR_iam_token="$(nebius iam get-access-token)"
+#   export TF_VAR_ngc_key="..."
+iam_token = "REPLACE_WITH_NEBIUS_IAM_TOKEN"
+ngc_key   = "REPLACE_WITH_NGC_API_KEY"
 
-# The current forge-eu cluster has one allocatable GPU per GPU node. Keep this
-# false there unless two-GPU nodes are added.
-enable_two_gpu_nims = false
+# Increment when rotating TF_VAR_ngc_key.
+ngc_key_revision = 1
+
+cpu_nodes_fixed_count           = 0
+cpu_nodes_platform              = "cpu-d3"
+cpu_nodes_preset                = "16vcpu-64gb"
+gpu_node_groups                 = 1
+gpu_nodes_fixed_count_per_group = 2
+gpu_nodes_platform              = "gpu-h200-sxm"
+gpu_nodes_preset                = "8gpu-128vcpu-1600gb"
+gpu_disk_size                   = "1023"
+
+filestore_disk_size_gibibytes = 5120
+filestore_mount_path          = "/mnt/data"
+
+enable_two_gpu_nims = true

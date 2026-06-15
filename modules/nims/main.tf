@@ -20,7 +20,8 @@ resource "kubernetes_secret_v1" "nvcrio-cred" {
 
   type = "kubernetes.io/dockerconfigjson"
 
-  data = {
+  data_wo_revision = var.ngc_key_revision
+  data_wo = {
     ".dockerconfigjson" = jsonencode({
       auths = {
         "nvcr.io" = {
@@ -40,7 +41,8 @@ resource "kubernetes_secret_v1" "ngc_api_key" {
     name      = "ngc-api-key"
     namespace = var.namespace
   }
-  data = {
+  data_wo_revision = var.ngc_key_revision
+  data_wo = {
     NGC_API_KEY = var.ngc_key
   }
   type = "Opaque"

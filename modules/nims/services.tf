@@ -1,6 +1,7 @@
 # Individual ClusterIP services for each NIM with app-specific selectors
 
 resource "kubernetes_service_v1" "openfold3" {
+  count      = local.enable_openfold3 ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "openfold3-svc"
@@ -19,6 +20,7 @@ resource "kubernetes_service_v1" "openfold3" {
 }
 
 resource "kubernetes_service_v1" "boltz2" {
+  count      = local.enable_boltz2 ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "boltz2-svc"
@@ -37,6 +39,7 @@ resource "kubernetes_service_v1" "boltz2" {
 }
 
 resource "kubernetes_service_v1" "evo2_40b" {
+  count      = local.enable_evo2_40b ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "evo2-40b-svc"
@@ -55,6 +58,7 @@ resource "kubernetes_service_v1" "evo2_40b" {
 }
 
 resource "kubernetes_service_v1" "msa_search" {
+  count      = local.enable_msa_search ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "msa-search-svc"
@@ -73,6 +77,7 @@ resource "kubernetes_service_v1" "msa_search" {
 }
 
 resource "kubernetes_service_v1" "openfold2" {
+  count      = local.enable_openfold2 ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "openfold2-svc"
@@ -91,6 +96,7 @@ resource "kubernetes_service_v1" "openfold2" {
 }
 
 resource "kubernetes_service_v1" "genmol" {
+  count      = local.enable_genmol ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "genmol-svc"
@@ -109,6 +115,7 @@ resource "kubernetes_service_v1" "genmol" {
 }
 
 resource "kubernetes_service_v1" "molmim" {
+  count      = local.enable_molmim ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "molmim-svc"
@@ -127,6 +134,7 @@ resource "kubernetes_service_v1" "molmim" {
 }
 
 resource "kubernetes_service_v1" "diffdock" {
+  count      = local.enable_diffdock ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "diffdock-svc"
@@ -145,6 +153,7 @@ resource "kubernetes_service_v1" "diffdock" {
 }
 
 resource "kubernetes_service_v1" "qwen3" {
+  count      = local.enable_qwen3_next_80b_a3b_instruct ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "qwen3-svc"
@@ -163,6 +172,7 @@ resource "kubernetes_service_v1" "qwen3" {
 }
 
 resource "kubernetes_service_v1" "proteinmpnn" {
+  count      = local.enable_proteinmpnn ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "proteinmpnn-svc"
@@ -181,6 +191,7 @@ resource "kubernetes_service_v1" "proteinmpnn" {
 }
 
 resource "kubernetes_service_v1" "rfdiffusion" {
+  count      = local.enable_rfdiffusion ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "rfdiffusion-svc"
@@ -199,6 +210,7 @@ resource "kubernetes_service_v1" "rfdiffusion" {
 }
 
 resource "kubernetes_service_v1" "cosmos_reason1_7b" {
+  count      = var.cosmos_reason1_7b ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "cosmos-reason1-7b-svc"
@@ -217,6 +229,7 @@ resource "kubernetes_service_v1" "cosmos_reason1_7b" {
 }
 
 resource "kubernetes_service_v1" "cosmos_reason2_8b" {
+  count      = var.cosmos_reason2_8b ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "cosmos-reason2-8b-svc"
@@ -235,6 +248,7 @@ resource "kubernetes_service_v1" "cosmos_reason2_8b" {
 }
 
 resource "kubernetes_service_v1" "cosmos_reason2_2b" {
+  count      = var.cosmos_reason2_2b ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "cosmos-reason2-2b-svc"
@@ -253,6 +267,7 @@ resource "kubernetes_service_v1" "cosmos_reason2_2b" {
 }
 
 resource "kubernetes_service_v1" "cosmos_embed1" {
+  count      = var.cosmos_embed1 ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "cosmos-embed1-svc"
@@ -271,6 +286,7 @@ resource "kubernetes_service_v1" "cosmos_embed1" {
 }
 
 resource "kubernetes_service_v1" "nemotron_nano_12b_v2_vl" {
+  count      = var.nemotron_nano_12b_v2_vl ? 1 : 0
   depends_on = [kubernetes_namespace_v1.nims]
   metadata {
     name      = "nemotron-nano-12b-v2-vl-svc"

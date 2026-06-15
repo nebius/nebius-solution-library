@@ -11,6 +11,12 @@ variable "ngc_key" {
   sensitive   = true
 }
 
+variable "ngc_key_revision" {
+  description = "Revision counter for the write-only NGC Kubernetes secrets. Increment this when rotating ngc_key."
+  type        = number
+  default     = 1
+}
+
 variable "enable_all_healthcare_nims" {
   description = "Enable every healthcare/life-science NIM workload defined by this module. This excludes BioNeMo notebooks and Cosmos/Nemotron physical-AI models."
   type        = bool
