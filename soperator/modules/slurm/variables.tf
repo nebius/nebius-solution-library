@@ -911,6 +911,9 @@ variable "worker_nodesets" {
       filesystem_type    = string
       storage_class_name = string
     }))
+    topology = optional(object({
+      fabric = string
+    }))
   }))
   default = []
 
