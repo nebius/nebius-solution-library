@@ -27,6 +27,11 @@ nodesets:
           nvidia:
             gdrCopyEnabled: true
 
+        %{~ if nodeset.topology != null ~}
+        topology:
+          fabric: ${nodeset.topology.fabric}
+        %{~ endif ~}
+
         nodeConfig:
           %{~ if length(nodeset.features) > 0 ~}
           features:
