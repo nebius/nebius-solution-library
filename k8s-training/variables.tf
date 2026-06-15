@@ -506,7 +506,7 @@ variable "k8s_rbac_bindings" {
 }
 
 variable "binpacking_enable" {
-  description = "Enable binpacking (requires OPA Gatekeeper)"
+  description = "Enable binpacking scheduler. Forced namespace mutation also requires OPA Gatekeeper."
   type        = bool
   default     = false
 }
@@ -523,7 +523,7 @@ variable "binpacking_kube_sched_ver" {
 }
 
 variable "binpacking_forced_namespaces" {
-  description = "If binpacking is enabled force it for the default namespace, instead of requiring each pod to opt-in"
+  description = "If binpacking is enabled, force it for these namespaces instead of requiring each pod to opt in. Requires opa_gatekeeper_enable = true unless set to []."
   type        = list(string)
   default     = ["default"]
 }

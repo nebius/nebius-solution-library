@@ -59,17 +59,34 @@ resource "terraform_data" "binpacking_scheduler_version" {
       condition     = local.binpacking_kube_sched_ver != null
       error_message = "When binpacking_enable is true, set k8s_version to a supported minor version or set binpacking_kube_sched_ver to a full kube-scheduler patch version."
     }
+
+    precondition {
+      condition     = !local.binpacking_enable_mutator || var.opa_gatekeeper_enable
+      error_message = "binpacking_forced_namespaces requires opa_gatekeeper_enable = true. Set opa_gatekeeper_enable = true, or set binpacking_forced_namespaces = [] and opt pods in with spec.schedulerName."
+    }
   }
 }
 
 module "binpacking_scheduler" {
-  source             = "../modules/binpacking"
-  count              = var.binpacking_enable ? 1 : 0
-  enable_mutator     = local.binpacking_enable_mutator
-  kube_sched_ver     = local.binpacking_kube_sched_ver
-  mutated_namespaces = var.binpacking_forced_namespaces
+  source         = "../modules/binpacking"
+  count          = var.binpacking_enable && local.binpacking_kube_sched_ver != null ? 1 : 0
+  kube_sched_ver = local.binpacking_kube_sched_ver
+}
+
+resource "kubectl_manifest" "binpacking_mutator" {
+  count = (
+    var.binpacking_enable &&
+    local.binpacking_enable_mutator &&
+    local.binpacking_kube_sched_ver != null &&
+    var.opa_gatekeeper_enable
+  ) ? 1 : 0
+
+  yaml_body = templatefile("../modules/binpacking/files/opa_gatekeeper_mutator.yaml.tftpl", {
+    namespaces = var.binpacking_forced_namespaces
+  })
 
   depends_on = [
-    terraform_data.binpacking_scheduler_version
+    module.opa_gatekeeper,
+    module.binpacking_scheduler,
   ]
 }
