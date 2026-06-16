@@ -39,9 +39,10 @@ Validated on 2026-06-15:
   `{"status":"healthy","namespace":"nims-healthcare"}`
 - Nemotron Nano 12B v2 VL is exposed through `89.169.100.192:8011`;
   `/v1/health/ready` returned `{"object":"health.response","message":"Service is ready."}`.
-- MSA Search is exposed through `89.169.100.192:8003`. Its first startup
-  materializes the ColabFold database cache under `/mnt/data/nim`; the pod was
-  running and actively writing cache data during validation.
+- MSA Search is exposed through `89.169.100.192:8003`; after first-start
+  ColabFold cache materialization completed, `/v1/health/ready` returned
+  `{"object":"health.response","message":"ready","status":"ready"}` on
+  2026-06-16.
 
 The NGC key was supplied through environment/stdin during apply and is not
 stored in this repository.
