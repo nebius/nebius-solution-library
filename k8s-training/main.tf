@@ -175,6 +175,9 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     } : null
 
     local_disks = var.gpu_enable_local_disks ? {
+      config = { 
+        none = true 
+      }
       passthrough_group = {
         requested = true
       }
