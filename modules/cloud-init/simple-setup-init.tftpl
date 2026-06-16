@@ -1,4 +1,12 @@
 #cloud-config
+package_update: true
+package_upgrade: true
+%{if enable_local_disks}
+packages:
+  - mdadm
+  - nvme-cli
+
+%{endif}
 users:
 %{ for user in users}
   - name: ${user.user_name}
@@ -9,12 +17,8 @@ users:
       - ${user.ssh_public_key}
 %{ endfor}
 
-
+%{ if extra_disk_id != "" || shared_filesystem_id != "" || aws_access_key_id != "" || enable_local_disks }
 runcmd:
-- apt-get update
-- apt-get upgrade
-
-
 # mount disk if provided
 %{ if extra_disk_id != "" }
 # Prepare partition on secondary disk
@@ -76,8 +80,6 @@ runcmd:
 %{endif}
 
 %{if enable_local_disks}
-# install nvme
-- apt install -y nvme-cli
 # Create RAID 0 array
 - mdadm --create --force --verbose /dev/md0 --level=0 --raid-devices=6 /dev/nvme[0-5]n1
 - mkfs.ext4 /dev/md0
@@ -91,3 +93,4 @@ runcmd:
 - mdadm --detail --scan >> /etc/mdadm/mdadm.conf
 - update-initramfs -u
 %{endif}
+%{ endif }
