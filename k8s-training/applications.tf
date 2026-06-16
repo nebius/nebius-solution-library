@@ -77,7 +77,6 @@ resource "kubectl_manifest" "binpacking_mutator" {
   count = (
     var.binpacking_enable &&
     local.binpacking_enable_mutator &&
-    local.binpacking_kube_sched_ver != null &&
     var.opa_gatekeeper_enable
   ) ? 1 : 0
 

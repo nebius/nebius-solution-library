@@ -159,15 +159,30 @@ locals {
     "gpu-b300-sxm"   = ["all-disabled", "all-enabled", "all-balanced", "all-1g.23gb", "all-1g.23gb.me", "all-1g.45gb", "all-2g.45gb", "all-3g.90gb", "all-4g.90gb", "all-7g.180gb"]
     "gpu-rtx6000"    = ["all-disabled", "all-enabled", "all-balanced", "all-1g.24gb", "all-1g.24gb.me", "all-1g.48gb", "all-2g.48gb", "all-4g.96gb"]
   }
+
+  # Updated: 2026/06/15 should be updated regularly
   binpacking_kube_sched_ver_by_k8s_minor = {
-    "1.30" = "1.30.14"
-    "1.31" = "1.31.14"
-    "1.32" = "1.32.13"
-    "1.33" = "1.33.13"
-    "1.34" = "1.34.9"
+    "30" = "1.30.14"
+    "31" = "1.31.14"
+    "32" = "1.32.13"
+    "33" = "1.33.13"
+    "34" = "1.34.9"
   }
-  binpacking_k8s_minor      = var.k8s_version == null ? null : replace(tostring(var.k8s_version), "/^v?([0-9]+\\.[0-9]+)(?:\\.[0-9]+)?$/", "$1")
-  binpacking_kube_sched_ver = var.binpacking_kube_sched_ver != null ? var.binpacking_kube_sched_ver : try(local.binpacking_kube_sched_ver_by_k8s_minor[local.binpacking_k8s_minor], null)
+
+  # Logic here:
+  # if we define a kube scheduler version it overrides all (must include patch version)
+  # else if k8s_version is defined and it include a patch version we use it
+  # else we use the minor version to lookup a reasonable patch version
+  # if none are defined we are in an error state picked up by the lifecycle precondition
+  binpacking_k8s_semver = var.k8s_version == null ? null : split(".", replace(tostring(var.k8s_version), "/^v?([0-9]+\\.[0-9]+(?:\\.[0-9]+)?$)/", "$1"))
+  binpacking_k8s_minor  = try(local.binpacking_k8s_semver[1], null)
+  binpacking_k8s_patch  = try(local.binpacking_k8s_semver[2], null)
+
+  binpacking_kube_sched_ver = try(coalesce(
+    var.binpacking_kube_sched_ver,
+    local.binpacking_k8s_patch == null ? null : join(".", local.binpacking_k8s_semver),
+    try(lookup(local.binpacking_kube_sched_ver_by_k8s_minor, local.binpacking_k8s_minor, null), null)
+  ), null)
   binpacking_enable_mutator = try(length(var.binpacking_forced_namespaces), 0) > 0 ? true : false
 }
 
