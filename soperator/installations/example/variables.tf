@@ -1498,6 +1498,19 @@ variable "soperator_notifier" {
   }
 }
 
+variable "nccl_inspector_profiling" {
+  description = "Configuration of the NCCL Inspector profiling."
+  type = object({
+    enabled  = bool
+    dump_dir = optional(string)
+    verbose  = optional(bool)
+  })
+  default = {
+    enabled = false
+  }
+  nullable = false
+}
+
 # endregion Telemetry
 
 # region Accounting
