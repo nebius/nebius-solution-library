@@ -818,6 +818,13 @@ resources:
                 enabled: true
               soperator-outputs-logs-cleaner:
                 schedule: "*/5 * * * *"
+                %{~ if nccl_inspector_profiling.enabled ~}
+                k8sJobSpec:
+                  jobContainer:
+                    env:
+                      - name: "SNCCLPRECON_DUMP_DIR"
+                        value: "${nccl_inspector_profiling.dump_dir}"
+                %{~ endif ~}
               ${soperator_active_checks_override_block}
             cudaVersion: ${slurm_cluster.cuda_version}
 
