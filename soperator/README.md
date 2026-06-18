@@ -231,7 +231,7 @@ filestore_jail = {
 
 filestore_jail_submounts = [{
   name       = "data"
-  mount_path = "/mnt/data"
+  mount_path = "/data"
   spec = {
     size_gibibytes       = 4096
     block_size_kibibytes = 32
@@ -302,7 +302,7 @@ filestore_jail = {
 
 filestore_jail_submounts = [{
   name       = "data"
-  mount_path = "/mnt/data"
+  mount_path = "/data"
   existing = {
     id = "computefilesystem-<RETAINED-DATA-ID>"
   }
