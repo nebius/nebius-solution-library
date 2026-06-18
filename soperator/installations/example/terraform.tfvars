@@ -80,7 +80,7 @@ filestore_jail = {
 # ---
 # filestore_jail_submounts = [{
 #   name       = "data"
-#   mount_path = "/mnt/data"
+#   mount_path = "/data"
 #   spec = {
 #     size_gibibytes       = 2048
 #     block_size_kibibytes = 4
@@ -91,7 +91,7 @@ filestore_jail = {
 # ---
 filestore_jail_submounts = [{
   name       = "data"
-  mount_path = "/mnt/data"
+  mount_path = "/data"
   existing = {
     id = "computefilesystem-<YOUR-FILESTORE-ID>"
   }
@@ -411,7 +411,7 @@ slurm_nodeset_workers = [
     # ---
     node_local_jail_submounts = [{
       name            = "local-data"
-      mount_path      = "/mnt/local-data"
+      mount_path      = "/scratch"
       size_gibibytes  = 1024
       disk_type       = "NETWORK_SSD"
       filesystem_type = "ext4"
