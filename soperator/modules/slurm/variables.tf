@@ -636,6 +636,19 @@ variable "soperator_notifier" {
   nullable = false
 }
 
+variable "nccl_inspector_profiling" {
+  description = "Whether to enable NCCL Inspector profiling."
+  type = object({
+    enabled  = bool
+    verbose  = optional(bool, false)
+    dump_dir = optional(string, "/opt/soperator-outputs/nccl_profiles")
+  })
+  default = {
+    enabled = false
+  }
+  nullable = false
+}
+
 variable "create_pvcs" {
   description = "Whether to create PVCs. Uses emptyDir if false."
   type        = bool
@@ -724,6 +737,17 @@ variable "resources_jail_logs_collector" {
   default = {
     memory = "1Gi"
     cpu    = "1000m"
+  }
+}
+
+variable "resources_nccl_profiles_collector" {
+  type = object({
+    memory = string
+    cpu    = string
+  })
+  default = {
+    memory = "200Mi"
+    cpu    = "500m"
   }
 }
 

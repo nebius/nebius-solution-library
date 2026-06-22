@@ -640,6 +640,17 @@ soperator_notifier = {
   enabled = false
 }
 
+# Configuration of the NCCL Inspector profiling.
+# ---
+# nccl_inspector_profiling = {
+#   enabled  = true
+#   dump_dir = "/opt/soperator-outputs/nccl_profiles"
+#   verbose  = false
+# }
+nccl_inspector_profiling = {
+  enabled = false
+}
+
 public_o11y_enabled = true
 
 # Existing public o11y logs projects are not moved between regions unless this is explicitly enabled.

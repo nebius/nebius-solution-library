@@ -228,6 +228,20 @@ resources:
                 limits:
                   memory: ${resources.dcgm_exporter.memory}Gi
 
+          ncclProfiles:
+            enabled: ${nccl_inspector_profiling.enabled}
+            values:
+              mode: shared
+              resources:
+                requests:
+                  memory: ${resources.nccl_profiles_collector.memory}
+                  cpu: ${resources.nccl_profiles_collector.cpu}
+                limits:
+                  memory: ${resources.nccl_profiles_collector.memory}
+              dumpDir: /mnt/jail${nccl_inspector_profiling.dump_dir}
+              deleteAfterRead:
+                enabled: false
+
         securityProfilesOperator:
           enabled: ${apparmor_enabled}
           interval: 5m
@@ -265,6 +279,10 @@ resources:
             plugStackConfig:
               pyxis:
                 useSquashfuse: ${enroot_direct_squashfs_enabled}
+              ncclInspectorPreConf:
+                enabled: ${nccl_inspector_profiling.enabled}
+                dumpDir: "${nccl_inspector_profiling.dump_dir}/%j/%s"
+                dumpVerbose: ${nccl_inspector_profiling.verbose}
 
             %{~ if has_local_nvme ~}
             slurmScripts:
@@ -800,6 +818,13 @@ resources:
                 enabled: true
               soperator-outputs-logs-cleaner:
                 schedule: "*/5 * * * *"
+                %{~ if nccl_inspector_profiling.enabled ~}
+                k8sJobSpec:
+                  jobContainer:
+                    env:
+                      - name: "SNCCLPRECON_DUMP_DIR"
+                        value: "${nccl_inspector_profiling.dump_dir}"
+                %{~ endif ~}
               ${soperator_active_checks_override_block}
             cudaVersion: ${slurm_cluster.cuda_version}
 
