@@ -80,16 +80,42 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
   auto_repair = {
     conditions = [
+      # Don't recreate the node if it's not ready for 5 minutes
+      # to avoid races with Soperator, since it does the same
       {
-        type     = "NebiusBootDiskIOError"
-        status   = "TRUE"
+        type     = "NodeReady"
+        status   = "FALSE"
         disabled = true
       },
+      # Don't restart nodes with not responding kubelet
+      # to avoid races with Soperator, since it does the same
       {
         type     = "NodeReady"
         status   = "UNKNOWN"
         disabled = true
       },
+      # Don't recreate nodes with broken boot disks
+      # since it's covered by NodeReady=Unknown
+      {
+        type     = "NebiusBootDiskIOError"
+        status   = "TRUE"
+        disabled = true
+      },
+      # Don't set-unhealthy and restart nodes with failed Mk8s health checks
+      # to avoid races with Soperator, since it has its own health checks
+      {
+        type     = "NebiusGPUError"
+        status   = "TRUE"
+        disabled = true
+      },
+      # Don't restart nodes with broken containerd
+      # since it's covered by NodeReady=False
+      {
+        type     = "NebiusContainerRuntimeError"
+        status   = "TRUE"
+        disabled = true
+      },
+      # Set-unhealthy and recreate nodes marked as unhealthy by Soperator
       {
         type    = "HardwareIssuesSuspected"
         status  = "TRUE"
