@@ -18,6 +18,16 @@ resource "nebius_mk8s_v1_node_group" "nfs" {
 
   fixed_node_count = var.node_group_nfs.spec.size
 
+  auto_repair = {
+    conditions = [
+      {
+        type     = "NebiusMaintenanceScheduled"
+        status   = "TRUE"
+        disabled = true
+      },
+    ]
+  }
+
   template = {
     metadata = {
       labels = merge(
