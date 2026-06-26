@@ -466,7 +466,7 @@ variable "kube_state_metrics_max_scrape_size" {
 }
 
 variable "opentelemetry_batch" {
-  description = "OpenTelemetry batch processor overrides for logs, jail logs, and events collectors. Leave null to use chart defaults."
+  description = "OpenTelemetry sending_queue batch overrides for logs, jail logs, events, and nccl-profiles collectors. Leave null to use chart defaults."
   type = object({
     timeout             = optional(string)
     send_batch_size     = optional(number)
@@ -511,6 +511,40 @@ variable "opentelemetry_batch" {
     )
     error_message = "opentelemetry_batch.send_batch_max_size must be greater than or equal to send_batch_size when both are set."
   }
+}
+
+variable "opentelemetry_sending_queue" {
+  description = "OpenTelemetry sending_queue overrides for logs, jail logs, events, and nccl-profiles collectors. Leave null to use chart defaults."
+  type = object({
+    size          = optional(number)
+    num_consumers = optional(number)
+  })
+  default  = null
+  nullable = true
+
+  validation {
+    condition = (
+      var.opentelemetry_sending_queue == null ||
+      var.opentelemetry_sending_queue.size == null ||
+      var.opentelemetry_sending_queue.size > 0
+    )
+    error_message = "opentelemetry_sending_queue.size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_sending_queue == null ||
+      var.opentelemetry_sending_queue.num_consumers == null ||
+      var.opentelemetry_sending_queue.num_consumers > 0
+    )
+    error_message = "opentelemetry_sending_queue.num_consumers must be greater than 0 when set."
+  }
+}
+
+variable "opentelemetry_delete_jail_logs_after_read" {
+  description = "Whether to delete jail stored logs after they have been read by the OpenTelemetry collector."
+  type        = bool
+  default     = false
 }
 
 variable "dcgm_job_map_dir" {

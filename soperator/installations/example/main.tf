@@ -405,8 +405,10 @@ module "slurm" {
   maintenance                    = var.maintenance
   maintenance_ignore_node_groups = var.maintenance_ignore_node_groups
 
-  kube_state_metrics_max_scrape_size = var.kube_state_metrics_max_scrape_size
-  opentelemetry_batch                = var.opentelemetry_batch
+  kube_state_metrics_max_scrape_size        = var.kube_state_metrics_max_scrape_size
+  opentelemetry_batch                       = var.opentelemetry_batch
+  opentelemetry_sending_queue               = var.opentelemetry_sending_queue
+  opentelemetry_delete_jail_logs_after_read = var.opentelemetry_delete_jail_logs_after_read
 
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
   cuda_version                  = lookup(var.platform_cuda_versions, local.slurm_nodeset_workers[0].resource.platform)
