@@ -3,6 +3,10 @@ locals {
     enabled = length(var.node_ssh_access_users) > 0
   }
 
+  node_ssh_access_public_ip = {
+    enabled = local.node_ssh_access.enabled && var.node_ssh_access_public_ip
+  }
+
   node_cloud_init = {
     enabled = length(var.node_ssh_access_users) > 0 || length(var.nvidia_config_lines) > 0
     cloud_init_data = templatefile("${path.module}/templates/cloud_init.yaml.tftpl", {

@@ -14,13 +14,6 @@ resource "terraform_data" "check_region" {
   }
 }
 
-variable "iam_token" {
-  description = "IAM token used for communicating with Nebius services."
-  type        = string
-  nullable    = false
-  sensitive   = true
-}
-
 variable "iam_project_id" {
   description = "ID of the IAM project."
   type        = string
@@ -247,6 +240,12 @@ variable "filestore_jail_submounts" {
   }
 }
 
+variable "enroot_direct_squashfs_enabled" {
+  description = "Enable Pyxis/Enroot direct SquashFS startup through squashfuse. Node-local image-storage disk creation remains controlled by node_local_image_disk.enabled."
+  type        = bool
+  default     = true
+}
+
 variable "filestore_accounting" {
   description = "Shared filesystem to be used for accounting DB"
   type = object({
@@ -310,6 +309,27 @@ variable "nfs" {
     error_message = "NFS size must be a multiple of 93 GiB and maximum value is 262074 GiB"
   }
 }
+resource "terraform_data" "check_nfs_exclusivity" {
+  lifecycle {
+    precondition {
+      condition     = !(var.nfs.enabled && var.nfs_in_k8s.enabled)
+      error_message = "nfs.enabled and nfs_in_k8s.enabled cannot both be true. Choose one NFS backend: either an external NFS server (nfs.enabled) or the in-cluster NFS provisioner (nfs_in_k8s.enabled)."
+    }
+  }
+}
+
+resource "terraform_data" "check_jail_submount_paths" {
+  lifecycle {
+    precondition {
+      condition = alltrue([
+        for sm in var.filestore_jail_submounts :
+        sm.mount_path != "/home"
+      ])
+      error_message = "filestore_jail_submounts must not use \"/home\" as mount_path. That path is reserved for home directories, and backing /home with shared filestore causes severe performance degradation."
+    }
+  }
+}
+
 resource "terraform_data" "check_nfs" {
   depends_on = [
     terraform_data.check_region,
@@ -374,6 +394,24 @@ variable "nfs_in_k8s" {
 If NFS in K8s is enabled, filesystem_type, disk_type, and size_gibibytes must be set.
 Additionally, if disk_type is NETWORK_SSD_IO_M3 or NETWORK_SSD_NON_REPLICATED, size_gibibytes must be a multiple of 93.
 EOT
+  }
+
+  validation {
+    condition = (
+      !var.nfs_in_k8s.enabled
+      || var.nfs_in_k8s.disk_type == null
+      || contains(["NETWORK_SSD", "NETWORK_SSD_NON_REPLICATED", "NETWORK_SSD_IO_M3"], var.nfs_in_k8s.disk_type)
+    )
+    error_message = "nfs_in_k8s.disk_type must be one of: NETWORK_SSD, NETWORK_SSD_NON_REPLICATED, NETWORK_SSD_IO_M3."
+  }
+
+  validation {
+    condition = (
+      !var.nfs_in_k8s.enabled
+      || var.nfs_in_k8s.filesystem_type == null
+      || contains(["ext4", "xfs"], var.nfs_in_k8s.filesystem_type)
+    )
+    error_message = "nfs_in_k8s.filesystem_type must be one of: ext4, xfs."
   }
 }
 
@@ -450,12 +488,40 @@ variable "k8s_cluster_node_ssh_access_users" {
   }))
   nullable = false
   default  = []
+
+  validation {
+    condition = alltrue([
+      for u in var.k8s_cluster_node_ssh_access_users : length(u.public_keys) >= 1
+    ])
+    error_message = "Each entry in k8s_cluster_node_ssh_access_users must have at least one public key."
+  }
+
+  validation {
+    condition = alltrue(flatten([
+      for u in var.k8s_cluster_node_ssh_access_users : [
+        for k in u.public_keys : length(k) > 0
+      ]
+    ]))
+    error_message = "Public keys in k8s_cluster_node_ssh_access_users must not be empty strings."
+  }
+}
+
+variable "k8s_cluster_node_ssh_access_public_ip" {
+  description = "Assign public IP addresses to k8s nodes when k8s_cluster_node_ssh_access_users is configured."
+  type        = bool
+  nullable    = false
+  default     = false
 }
 
 variable "etcd_cluster_size" {
-  description = "Size of the etcd cluster."
+  description = "Size of the etcd cluster. Must be a positive odd number (1, 3, 5…) to maintain quorum."
   type        = number
   default     = 3
+
+  validation {
+    condition     = var.etcd_cluster_size >= 1 && var.etcd_cluster_size % 2 == 1
+    error_message = "etcd_cluster_size must be a positive odd number (1, 3, 5…) to maintain quorum."
+  }
 }
 
 # endregion k8s
@@ -610,6 +676,66 @@ variable "slurm_nodeset_system" {
     condition     = var.slurm_nodeset_system.min_size >= 3
     error_message = "Minimum size of the system node group must be at least 3."
   }
+  validation {
+    condition     = var.slurm_nodeset_system.max_size >= var.slurm_nodeset_system.min_size
+    error_message = "System nodeset max_size must be greater than or equal to min_size."
+  }
+}
+
+variable "system_resources" {
+  description = "Resources of system components."
+  type = object({
+    rest = optional(object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    }))
+    exporter = optional(object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    }))
+    mariadb = optional(object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    }))
+    node_configurator = optional(object({
+      requests = object({
+        cpu_cores        = number
+        memory_gibibytes = number
+      })
+      limits = object({
+        memory_gibibytes = number
+      })
+    }))
+    slurm_operator = optional(object({
+      requests = object({
+        cpu_cores        = number
+        memory_gibibytes = number
+      })
+      limits = object({
+        memory_gibibytes = number
+      })
+    }))
+    slurm_checks = optional(object({
+      requests = object({
+        cpu_cores        = number
+        memory_gibibytes = number
+      })
+      limits = object({
+        memory_gibibytes = number
+      })
+    }))
+    kruise_daemon = optional(object({
+      cpu_cores        = number
+      memory_gibibytes = number
+    }))
+    dcgm_exporter = optional(object({
+      cpu_cores        = number
+      memory_gibibytes = number
+    }))
+  })
 }
 
 variable "slurm_nodeset_controller" {
@@ -693,6 +819,7 @@ variable "slurm_nodeset_workers" {
       mount_path      = optional(string, "/mnt/local-nvme")
       filesystem_type = optional(string, "ext4")
     }), {})
+    max_pods = optional(number, 32)
     node_local_image_disk = object({
       enabled = bool
       spec = optional(object({
@@ -834,6 +961,14 @@ variable "slurm_nodeset_workers" {
       worker.autoscaling.min_size == null || worker.autoscaling.min_size <= worker.size
     ])
     error_message = "Worker nodeset autoscaling.min_size must be less than or equal to size."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.max_pods > 0
+    ])
+    error_message = "Worker nodeset max_pods must be greater than 0."
   }
 
   validation {
@@ -1229,6 +1364,29 @@ variable "slurm_shared_memory_size_gibibytes" {
   description = "Shared memory size for Slurm controller and worker nodes in GiB."
   type        = number
   default     = 64
+
+  validation {
+    condition     = var.slurm_shared_memory_size_gibibytes > 0
+    error_message = "slurm_shared_memory_size_gibibytes must be greater than 0."
+  }
+}
+
+variable "slurm_topology_block_size" {
+  description = <<EOL
+    Block size for Slurm topology/block topology plugin in number of nodes.
+    This affects how Slurm groups nodes into blocks for scheduling purposes.
+    A smaller block size allows for more flexible scheduling but may increase overhead,
+    while a larger block size may improve scheduling efficiency but reduce flexibility.
+    The optimal value depends on the cluster size and workload characteristics.
+  EOL
+  type        = number
+  default     = 18
+  nullable    = true
+
+  validation {
+    condition     = try(var.slurm_topology_block_size > 0, true)
+    error_message = "slurm_topology_block_size must be greater than 0 if set."
+  }
 }
 
 variable "slurm_topology_block_size" {
@@ -1265,10 +1423,76 @@ variable "public_o11y_enabled" {
   default     = true
 }
 
+variable "allow_o11y_region_migration" {
+  description = "Whether to update an existing o11y logs project when its region differs from var.region."
+  type        = bool
+  default     = false
+}
+
 variable "dcgm_job_mapping_enabled" {
   description = "Whether to enable HPC job mapping by installing a separate dcgm-exporter"
   type        = bool
   default     = true
+}
+
+variable "kube_state_metrics_max_scrape_size" {
+  description = "Maximum kube-state-metrics HTTP scrape size in bytes. Leave null to let the Slurm module raise it automatically for large clusters."
+  type        = number
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.kube_state_metrics_max_scrape_size == null || var.kube_state_metrics_max_scrape_size > 0
+    error_message = "kube_state_metrics_max_scrape_size must be greater than 0 when set."
+  }
+}
+
+variable "opentelemetry_batch" {
+  description = "OpenTelemetry batch processor overrides for logs, jail logs, and events collectors. Leave null to use chart defaults."
+  type = object({
+    timeout             = optional(string)
+    send_batch_size     = optional(number)
+    send_batch_max_size = optional(number)
+  })
+  default  = null
+  nullable = true
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.timeout == null ||
+      trimspace(var.opentelemetry_batch.timeout) != ""
+    )
+    error_message = "opentelemetry_batch.timeout must be non-empty when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_size == null ||
+      var.opentelemetry_batch.send_batch_size > 0
+    )
+    error_message = "opentelemetry_batch.send_batch_size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_max_size == null ||
+      var.opentelemetry_batch.send_batch_max_size > 0
+    )
+    error_message = "opentelemetry_batch.send_batch_max_size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_size == null ||
+      var.opentelemetry_batch.send_batch_max_size == null ||
+      var.opentelemetry_batch.send_batch_max_size >= var.opentelemetry_batch.send_batch_size
+    )
+    error_message = "opentelemetry_batch.send_batch_max_size must be greater than or equal to send_batch_size when both are set."
+  }
 }
 
 variable "soperator_notifier" {
@@ -1290,6 +1514,19 @@ variable "soperator_notifier" {
     )
     error_message = "Slack webhook URL must be provided if Soperator Notifier is enabled."
   }
+}
+
+variable "nccl_inspector_profiling" {
+  description = "Configuration of the NCCL Inspector profiling."
+  type = object({
+    enabled  = bool
+    dump_dir = optional(string)
+    verbose  = optional(bool)
+  })
+  default = {
+    enabled = false
+  }
+  nullable = false
 }
 
 # endregion Telemetry
@@ -1326,7 +1563,7 @@ variable "slurmdbd_config" {
 }
 
 variable "slurm_accounting_config" {
-  description = "Slurm.conf accounting configuration. See https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
+  description = "Slurm accounting settings rendered into Soperator-generated slurm_base.conf.noedit, which is included by slurm.conf. See upstream Slurm slurm.conf documentation: https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
   type        = map(any)
   default = {
     # accountingStorageTRES: "gres/gpu,license/iop1"
