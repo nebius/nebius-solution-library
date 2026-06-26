@@ -104,6 +104,7 @@ locals {
       reservation_policy     = nodeset.reservation_policy
       nvlink                 = nodeset.nvlink
       placement_policy_nodes = nodeset.placement_policy_nodes
+      max_pods               = nodeset.max_pods
       local_nvme = {
         enabled         = try(nodeset.local_nvme.enabled, false)
         mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
@@ -125,6 +126,8 @@ resource "terraform_data" "check_variables" {
     terraform_data.check_slurm_nodeset,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_nfs,
+    terraform_data.check_nfs_exclusivity,
+    terraform_data.check_jail_submount_paths,
     terraform_data.check_local_nvme,
   ]
 }
@@ -217,9 +220,6 @@ module "nfs-server" {
 
   public_ip = var.nfs.public_ip
 
-  providers = {
-    nebius = nebius
-  }
 }
 
 module "cleanup" {
@@ -312,8 +312,9 @@ module "k8s" {
     } : null
   }
 
-  node_ssh_access_users = var.k8s_cluster_node_ssh_access_users
-  nvidia_config_lines   = var.nvidia_config_lines
+  node_ssh_access_users     = var.k8s_cluster_node_ssh_access_users
+  node_ssh_access_public_ip = var.k8s_cluster_node_ssh_access_public_ip
+  nvidia_config_lines       = var.nvidia_config_lines
 
   providers = {
     nebius = nebius
@@ -333,9 +334,6 @@ module "nvidia_operator_network" {
   cluster_id = module.k8s.cluster_id
   parent_id  = data.nebius_iam_v1_project.this.id
 
-  providers = {
-    nebius = nebius
-  }
 }
 
 module "nvidia_operator_gpu" {
@@ -354,9 +352,6 @@ module "nvidia_operator_gpu" {
   enable_dcgm_service_monitor = var.dcgm_job_mapping_enabled == false && var.telemetry_enabled
   relabel_dcgm_exporter       = var.telemetry_enabled
 
-  providers = {
-    nebius = nebius
-  }
 }
 
 module "o11y" {
@@ -369,11 +364,13 @@ module "o11y" {
 
   source = "../../modules/o11y"
 
-  iam_project_id      = var.iam_project_id
-  o11y_iam_tenant_id  = var.o11y_iam_tenant_id
-  o11y_profile        = var.o11y_profile
-  k8s_cluster_context = module.k8s.cluster_context
-  company_name        = var.company_name
+  iam_project_id              = var.iam_project_id
+  o11y_iam_tenant_id          = var.o11y_iam_tenant_id
+  o11y_profile                = var.o11y_profile
+  region                      = var.region
+  allow_o11y_region_migration = var.allow_o11y_region_migration
+  k8s_cluster_context         = module.k8s.cluster_context
+  company_name                = var.company_name
 }
 
 module "slurm" {
@@ -407,6 +404,9 @@ module "slurm" {
 
   maintenance                    = var.maintenance
   maintenance_ignore_node_groups = var.maintenance_ignore_node_groups
+
+  kube_state_metrics_max_scrape_size = var.kube_state_metrics_max_scrape_size
+  opentelemetry_batch                = var.opentelemetry_batch
 
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
   cuda_version                  = lookup(var.platform_cuda_versions, local.slurm_nodeset_workers[0].resource.platform)
@@ -467,6 +467,14 @@ module "slurm" {
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     } : null
+    rest              = try(var.system_resources.rest, null)
+    exporter          = try(var.system_resources.exporter, null)
+    mariadb           = try(var.system_resources.mariadb, null)
+    node_configurator = try(var.system_resources.node_configurator, null)
+    slurm_operator    = try(var.system_resources.slurm_operator, null)
+    slurm_checks      = try(var.system_resources.slurm_checks, null)
+    kruise_daemon     = try(var.system_resources.kruise_daemon, null)
+    dcgm_exporter     = try(var.system_resources.dcgm_exporter, null)
     nfs = var.slurm_nodeset_nfs != null ? {
       cpu_cores        = local.resources.nfs.cpu_cores
       memory_gibibytes = floor(local.resources.nfs.memory_gibibytes)
@@ -509,12 +517,13 @@ module "slurm" {
   }
   nfs_node_group_enabled = var.slurm_nodeset_nfs != null
 
-  exporter_enabled    = var.slurm_exporter_enabled
-  rest_enabled        = var.slurm_rest_enabled
-  accounting_enabled  = var.accounting_enabled
-  telemetry_enabled   = var.telemetry_enabled
-  public_o11y_enabled = var.public_o11y_enabled
-  soperator_notifier  = var.soperator_notifier
+  exporter_enabled         = var.slurm_exporter_enabled
+  rest_enabled             = var.slurm_rest_enabled
+  accounting_enabled       = var.accounting_enabled
+  telemetry_enabled        = var.telemetry_enabled
+  public_o11y_enabled      = var.public_o11y_enabled
+  soperator_notifier       = var.soperator_notifier
+  nccl_inspector_profiling = var.nccl_inspector_profiling
 
   backups_enabled = local.backups_enabled
   backups_config = {
@@ -540,6 +549,8 @@ module "slurm" {
   slurm_partition_config_type     = var.slurm_partition_config_type
   slurm_partition_raw_config      = var.slurm_partition_raw_config
   slurm_health_check_config       = var.slurm_health_check_config
+
+  enroot_direct_squashfs_enabled = var.enroot_direct_squashfs_enabled
 
   slurm_nodesets_partitions = [for partition in var.slurm_nodesets_partitions : {
     name         = partition.name
@@ -585,6 +596,9 @@ module "slurm" {
         filesystem_type    = nodeset.node_local_image_disk.spec.filesystem_type
         storage_class_name = replace("${local.storage_class_prefix}-${lower(nodeset.node_local_image_disk.spec.disk_type)}-${lower(nodeset.node_local_image_disk.spec.filesystem_type)}", "_", "-")
       } : null
+    }
+    topology = {
+      fabric = nodeset.gpu_cluster != null ? module.k8s.gpu_cluster_id_by_fabric[nodeset.gpu_cluster.infiniband_fabric] : "root"
     }
   }]
 

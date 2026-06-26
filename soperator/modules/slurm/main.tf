@@ -77,7 +77,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
     soperator_image_repo     = local.image.repository
     soperator_image_repo_nfs = var.nfs_in_k8s.use_stable_repo ? local.image.repository_stable : local.image.repository
 
-    dcgm_job_mapping_enabled = var.dcgm_job_mapping_enabled
+    dcgm_job_mapping_enabled       = var.dcgm_job_mapping_enabled
+    enroot_direct_squashfs_enabled = var.enroot_direct_squashfs_enabled
 
     tailscale_enabled       = var.tailscale_enabled
     apparmor_enabled        = var.use_default_apparmor_profile
@@ -88,6 +89,8 @@ resource "helm_release" "soperator_fluxcd_cm" {
     k8up_version                       = var.k8up_version
     mariadb_operator_version           = var.mariadb_operator_version
     opentelemetry_collector_version    = var.opentelemetry_collector_version
+    opentelemetry_batch                = var.opentelemetry_batch
+    opentelemetry_batch_enabled        = local.opentelemetry_batch_enabled
     prometheus_crds_version            = var.prometheus_crds_version
     security_profiles_operator_version = var.security_profiles_operator_version
     vmstack_version                    = var.vmstack_version
@@ -95,6 +98,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     vmlogs_version                     = var.vmlogs_version
     dcgm_job_map_dir                   = var.dcgm_job_map_dir
     notifier                           = var.soperator_notifier
+    nccl_inspector_profiling           = var.nccl_inspector_profiling
 
     name                = var.name
     cluster_name        = var.cluster_name
@@ -303,20 +307,23 @@ resource "helm_release" "soperator_fluxcd_cm" {
     }
 
     resources = {
-      vm_single           = var.resources_vm_single
-      vm_agent            = var.resources_vm_agent
-      vm_logs             = var.resources_vm_logs_server
-      logs_collector      = var.resources_logs_collector
-      jail_logs_collector = var.resources_jail_logs_collector
-      events_collector    = var.resources_events_collector
-      node_configurator   = local.resources.node_configurator
-      slurm_operator      = local.resources.slurm_operator
-      slurm_checks        = local.resources.slurm_checks
-      dcgm_exporter       = local.resources.dcgm_exporter
-      nfs_server          = local.resources.nfs_server
+      vm_single               = var.resources_vm_single
+      vm_agent                = var.resources_vm_agent
+      vm_logs                 = var.resources_vm_logs_server
+      logs_collector          = var.resources_logs_collector
+      jail_logs_collector     = var.resources_jail_logs_collector
+      events_collector        = var.resources_events_collector
+      nccl_profiles_collector = var.resources_nccl_profiles_collector
+      node_configurator       = local.resources.node_configurator
+      slurm_operator          = local.resources.slurm_operator
+      slurm_checks            = local.resources.slurm_checks
+      dcgm_exporter           = local.resources.dcgm_exporter
+      nfs_server              = local.resources.nfs_server
     }
 
     vm_agent_queue_count = local.vm_agent_queue_count
+
+    kube_state_metrics_max_scrape_size = local.kube_state_metrics_max_scrape_size
 
     slurm_nodesets_partitions = var.slurm_nodesets_partitions
     nodesets                  = var.worker_nodesets
