@@ -61,6 +61,11 @@ locals {
     "gpu-b300-sxm/8gpu-192vcpu-2768gb" = { cores = 192, memory = "2768Gi", gpus = 8, gpu_type = "B300", hardware_type = "NVIDIA" }
 
     ############################
+    # gpu-rtx6000 (RTX PRO 6000)
+    ############################
+    "gpu-rtx6000/1gpu-24vcpu-218gb" = { cores = 24, memory = "218Gi", gpus = 1, gpu_type = "RTX6000", hardware_type = "NVIDIA" }
+
+    ############################
     # gpu-l40s-a
     ############################
     "gpu-l40s-a/1gpu-8vcpu-32gb"   = { cores = 8, memory = "32Gi", gpus = 1, gpu_type = "L40S", hardware_type = "NVIDIA" }
@@ -89,9 +94,19 @@ locals {
 # Validation checks
 ############################
 
+# 0. When node_pools is not overridden, region must be one with a known pool set
+resource "terraform_data" "validate_region" {
+  lifecycle {
+    precondition {
+      condition     = var.node_pools != null || contains(keys(local.region_node_pools), var.region)
+      error_message = "Region '${var.region}' has no default node pools. Supported: ${join(", ", keys(local.region_node_pools))}. Override var.node_pools to use another region."
+    }
+  }
+}
+
 # 1. Each node pool's platform must be valid
 resource "terraform_data" "validate_platforms" {
-  for_each = { for i, pool in var.node_pools : i => pool }
+  for_each = { for i, pool in local.effective_node_pools : i => pool }
 
   lifecycle {
     precondition {
@@ -103,7 +118,7 @@ resource "terraform_data" "validate_platforms" {
 
 # 2. 8-GPU presets require infiniband_fabric
 resource "terraform_data" "validate_infiniband" {
-  for_each = { for i, pool in var.node_pools : i => pool }
+  for_each = { for i, pool in local.effective_node_pools : i => pool }
 
   lifecycle {
     precondition {
@@ -117,8 +132,8 @@ resource "terraform_data" "validate_infiniband" {
 resource "terraform_data" "validate_no_duplicates" {
   lifecycle {
     precondition {
-      condition = length(var.node_pools) == length(toset([
-        for pool in var.node_pools : "${pool.platform}-${pool.preset}${pool.infiniband_fabric != null ? "-${pool.infiniband_fabric}" : ""}"
+      condition = length(local.effective_node_pools) == length(toset([
+        for pool in local.effective_node_pools : "${pool.platform}-${pool.preset}${pool.infiniband_fabric != null ? "-${pool.infiniband_fabric}" : ""}"
       ]))
       error_message = "Duplicate node pool detected. Each platform+preset+fabric combination must be unique."
     }

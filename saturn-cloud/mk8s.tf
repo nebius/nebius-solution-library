@@ -125,20 +125,24 @@ resource "nebius_mk8s_v1_node_group" "pool" {
   parent_id = nebius_mk8s_v1_cluster.saturn_cluster.id
   name      = each.key
 
+  # Scale-from-zero hints for the cluster autoscaler. Saturn schedules workloads against
+  # Nebius-native labels (node.kubernetes.io/instance-type + nebius.com/resource-preset),
+  # so the autoscaler must know a not-yet-created node of this group will carry them, or
+  # pending pods won't trigger a scale-up.
   labels = {
-    "k8s.io/cluster-autoscaler/node-template/label/node.saturncloud.io/role" = each.key
+    "k8s.io/cluster-autoscaler/node-template/label/node.kubernetes.io/instance-type" = each.value.platform
+    "k8s.io/cluster-autoscaler/node-template/label/nebius.com/resource-preset"        = each.value.preset
   }
 
   template = {
     service_account_id = nebius_iam_v1_service_account.ncr_nodes.id
 
     metadata = {
-      labels = merge(
-        { "node.saturncloud.io/role" = each.key },
-        local.valid_presets["${each.value.platform}/${each.value.preset}"].gpus > 0 ? {
-          "nvidia.com/gpu" = tostring(local.valid_presets["${each.value.platform}/${each.value.preset}"].gpus)
-        } : {}
-      )
+      # node.kubernetes.io/instance-type and nebius.com/resource-preset are stamped by
+      # Nebius natively; we only add the GPU count label Saturn relies on.
+      labels = local.valid_presets["${each.value.platform}/${each.value.preset}"].gpus > 0 ? {
+        "nvidia.com/gpu" = tostring(local.valid_presets["${each.value.platform}/${each.value.preset}"].gpus)
+      } : {}
     }
 
     boot_disk = {

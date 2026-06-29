@@ -64,10 +64,25 @@ variable "manage_helm" {
   default     = true
 }
 
-variable "helm_chart_version" {
-  description = "Version of the saturn-helm-operator chart"
+variable "image_overrides" {
+  description = "Optional map of chart image overrides (e.g. {saturnEnterprise = \"...:2026.02.01-74\"}). For development; production images are injected at chart-build time."
+  type        = map(string)
+  default     = {}
+}
+
+variable "helm_chart_local_path" {
+  description = "If set, install the saturn-helm-operator-nebius chart from this local directory instead of the OCI registry (run `helm dependency build` on it first). For development/iteration."
   type        = string
-  default     = "2026.2.1-97"
+  default     = ""
+}
+
+variable "helm_chart_version" {
+  description = "Version of the saturn-helm-operator-nebius chart"
+  type        = string
+  # TODO: bump to the saturn-helm-operator-nebius build that includes regionInstanceConfigs
+  # (saturn-k8s #990) once release-images #506 publishes it to OCI. 2026.02.01-66 is the
+  # latest currently published tag.
+  default = "2026.02.01-66"
 }
 
 variable "k8s_version" {
@@ -119,7 +134,7 @@ variable "filestore_mount_path" {
 variable "filesystem_csi" {
   description = "Configuration for the Nebius Shared Filesystem CSI driver."
   type = object({
-    chart_version = optional(string, "0.1.5")
+    chart_version = optional(string, "0.1.6")
     namespace     = optional(string, "kube-system")
   })
   default = {}
@@ -138,24 +153,14 @@ variable "ssh_public_key" {
 # Node pool configuration
 ############################
 
-variable "extra_instance_sizes" {
-  description = "Additional instance sizes to show in Saturn UI that don't correspond to real node pools (e.g. coming-soon entries)."
-  type = list(object({
-    name            = string
-    display_name    = string
-    cores           = number
-    memory          = string
-    gpu             = number
-    gpu_type        = optional(string)
-    hardware_type   = optional(string)
-    disabled        = optional(bool, false)
-    disabled_reason = optional(string)
-  }))
-  default = []
-}
-
 variable "node_pools" {
-  description = "List of node pools to create. Each pool becomes a node group and an instance config entry."
+  description = <<-EOT
+    Optional override for the node groups to create. Leave null (default) to derive a
+    sensible set from var.region (see region_node_pools in locals.tf), which is kept in
+    lock-step with the saturn-helm-operator-nebius chart's per-region instance sizes.
+    Set this only to deviate from the region defaults; each pool then becomes a node
+    group whose native labels back a chart instance size.
+  EOT
   type = list(object({
     platform          = string
     preset            = string
@@ -165,13 +170,5 @@ variable "node_pools" {
     infiniband_fabric = optional(string)
     drivers_preset    = optional(string)
   }))
-
-  default = [
-    # CPU sizes
-    { platform = "cpu-d3", preset = "4vcpu-16gb" },
-    { platform = "cpu-d3", preset = "16vcpu-64gb" },
-    { platform = "cpu-d3", preset = "64vcpu-256gb" },
-    # GPU - H200 1-GPU
-    { platform = "gpu-h200-sxm", preset = "1gpu-16vcpu-200gb" },
-  ]
+  default = null
 }

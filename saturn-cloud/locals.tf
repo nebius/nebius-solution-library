@@ -30,14 +30,88 @@ locals {
   saturn_ssh_domain = "ssh.${var.saturn_domain}"
 
   # Hardcoded constants
-  saturn_cloud_provider        = "nebius"
-  saturn_image_build_node_role = "cpu-d3-4vcpu-16gb"
+  saturn_cloud_provider = "nebius"
+  # Image builds schedule via node.saturncloud.io/role (atlas s2d/build.py), NOT the
+  # chart's instanceConfig affinity. Workload pools no longer carry that label, but the
+  # system pool does and is the same cpu-d3/4vcpu-16gb size builds used before.
+  saturn_image_build_node_role = "system"
 
   default_cuda_preset = "cuda13.0"
 
-  # Build a node group key for each pool (used as for_each keys and node_role names)
+  # ---------------------------------------------------------------------------
+  # Region -> node pools
+  # ---------------------------------------------------------------------------
+  # Each Nebius region exposes a different set of GPU platforms. These pools MUST stay
+  # in lock-step with the saturn-helm-operator-nebius chart's regionInstanceConfigs:
+  # the chart surfaces an instance size per (platform, preset) here, scheduling on the
+  # native labels node.kubernetes.io/instance-type + nebius.com/resource-preset, so a
+  # missing node group means that size's pods pend forever. CPU (cpu-d3) is identical
+  # everywhere; only the GPU platforms differ. 1-GPU presets only (8-GPU needs an
+  # InfiniBand fabric, unsupported in the marketplace); L40S excluded (sold out).
+  region_node_pools = {
+    eu-north1 = [
+      { platform = "cpu-d3", preset = "4vcpu-16gb" },
+      { platform = "cpu-d3", preset = "16vcpu-64gb" },
+      { platform = "cpu-d3", preset = "64vcpu-256gb" },
+      { platform = "gpu-h200-sxm", preset = "1gpu-16vcpu-200gb" },
+      { platform = "gpu-h100-sxm", preset = "1gpu-16vcpu-200gb" },
+    ]
+    eu-west1 = [
+      { platform = "cpu-d3", preset = "4vcpu-16gb" },
+      { platform = "cpu-d3", preset = "16vcpu-64gb" },
+      { platform = "cpu-d3", preset = "64vcpu-256gb" },
+      { platform = "gpu-h200-sxm", preset = "1gpu-16vcpu-200gb" },
+    ]
+    me-west1 = [
+      { platform = "cpu-d3", preset = "4vcpu-16gb" },
+      { platform = "cpu-d3", preset = "16vcpu-64gb" },
+      { platform = "cpu-d3", preset = "64vcpu-256gb" },
+      { platform = "gpu-b200-sxm-a", preset = "1gpu-20vcpu-224gb" },
+    ]
+    us-central1 = [
+      { platform = "cpu-d3", preset = "4vcpu-16gb" },
+      { platform = "cpu-d3", preset = "16vcpu-64gb" },
+      { platform = "cpu-d3", preset = "64vcpu-256gb" },
+      { platform = "gpu-b200-sxm", preset = "1gpu-20vcpu-224gb" },
+      { platform = "gpu-h200-sxm", preset = "1gpu-16vcpu-200gb" },
+      { platform = "gpu-rtx6000", preset = "1gpu-24vcpu-218gb" },
+    ]
+  }
+
+  # Node pools come from the region table unless explicitly overridden via var.node_pools.
+  # Each source is normalised to the SAME explicit object type by its own comprehension,
+  # then selected — so the conditional's arms unify cleanly (no "inconsistent conditional
+  # result types"). var.node_pools already carries optional-attr defaults; region-table
+  # entries only set platform/preset, so the rest take module defaults here.
+  override_node_pools = var.node_pools == null ? [] : [
+    for pool in var.node_pools : {
+      platform          = pool.platform
+      preset            = pool.preset
+      min_nodes         = pool.min_nodes
+      max_nodes         = pool.max_nodes
+      boot_disk_gb      = pool.boot_disk_gb
+      infiniband_fabric = pool.infiniband_fabric
+      drivers_preset    = pool.drivers_preset
+    }
+  ]
+
+  region_default_node_pools = [
+    for pool in lookup(local.region_node_pools, var.region, []) : {
+      platform          = pool.platform
+      preset            = pool.preset
+      min_nodes         = 0
+      max_nodes         = 10
+      boot_disk_gb      = 372
+      infiniband_fabric = null
+      drivers_preset    = null
+    }
+  ]
+
+  effective_node_pools = var.node_pools != null ? local.override_node_pools : local.region_default_node_pools
+
+  # Build a node group key for each pool (used as for_each keys and node group names)
   node_pool_keys = {
-    for i, pool in var.node_pools : "${pool.platform}-${pool.preset}${pool.infiniband_fabric != null ? "-${pool.infiniband_fabric}" : ""}" => pool
+    for i, pool in local.effective_node_pools : "${pool.platform}-${pool.preset}${pool.infiniband_fabric != null ? "-${pool.infiniband_fabric}" : ""}" => pool
   }
 
   # Derive unique infiniband fabrics from node pools that have fabric set
@@ -47,46 +121,7 @@ locals {
     if pool.infiniband_fabric != null
   }
 
-  # Identify first CPU and first GPU pools for defaults
-  cpu_pools = [for pool in var.node_pools : pool if !startswith(pool.platform, "gpu-")]
-  gpu_pools = [for pool in var.node_pools : pool if startswith(pool.platform, "gpu-")]
-
-  default_cpu_name = length(local.cpu_pools) > 0 ? "nebius-${local.cpu_pools[0].platform}-${local.cpu_pools[0].preset}" : null
-  default_gpu_name = length(local.gpu_pools) > 0 ? (
-    local.gpu_pools[0].infiniband_fabric != null
-    ? "nebius-${local.gpu_pools[0].platform}-${local.gpu_pools[0].preset}-${local.gpu_pools[0].infiniband_fabric}"
-    : "nebius-${local.gpu_pools[0].platform}-${local.gpu_pools[0].preset}"
-  ) : null
-
-  # Build saturn_instance_config dynamically from node_pools + validation map
-  instance_config = {
-    default_cpu = local.default_cpu_name
-    default_gpu = local.default_gpu_name
-    sizes = [
-      for key, pool in local.node_pool_keys : {
-        name          = "nebius-${key}"
-        cores         = local.valid_presets["${pool.platform}/${pool.preset}"].cores
-        memory        = local.valid_presets["${pool.platform}/${pool.preset}"].memory
-        gpu           = local.valid_presets["${pool.platform}/${pool.preset}"].gpus
-        gpu_type      = local.valid_presets["${pool.platform}/${pool.preset}"].gpu_type
-        hardware_type = local.valid_presets["${pool.platform}/${pool.preset}"].hardware_type
-        display_name  = key
-        node_role     = key
-      }
-    ]
-  }
-
-  # Clean instance config by removing null values from each size object
-  cleaned_instance_config = {
-    default_cpu = local.instance_config.default_cpu
-    default_gpu = local.instance_config.default_gpu
-    sizes = concat(
-      [for size in local.instance_config.sizes : {
-        for k, v in size : k => v if v != null
-      }],
-      [for size in var.extra_instance_sizes : {
-        for k, v in size : k => v if v != null
-      }]
-    )
-  }
+  # NOTE: instanceConfig is no longer built here. The saturn-helm-operator-nebius chart
+  # owns it (regionInstanceConfigs[region]); this module only provisions the matching
+  # node groups. The region_node_pools table above is the shared contract.
 }
