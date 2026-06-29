@@ -79,10 +79,9 @@ variable "helm_chart_local_path" {
 variable "helm_chart_version" {
   description = "Version of the saturn-helm-operator-nebius chart"
   type        = string
-  # TODO: bump to the saturn-helm-operator-nebius build that includes regionInstanceConfigs
-  # (saturn-k8s #990) once release-images #506 publishes it to OCI. 2026.02.01-66 is the
-  # latest currently published tag.
-  default = "2026.02.01-66"
+  # Region-aware instanceConfig (saturn-k8s #990) + scale-from-zero node affinity on
+  # nebius.com labels (#991), published to OCI by release-images #507.
+  default = "2026.02.01-122"
 }
 
 variable "k8s_version" {
