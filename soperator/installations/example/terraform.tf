@@ -4,7 +4,7 @@ terraform {
   required_providers {
     nebius = {
       source  = "nebius/nebius"
-      version = "= 0.5.230"
+      version = ">= 0.6.21"
     }
 
     flux = {
