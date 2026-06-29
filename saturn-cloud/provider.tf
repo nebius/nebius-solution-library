@@ -1,5 +1,21 @@
+locals {
+  # The Nebius API endpoint is keyed by region GROUP (api.eu / api.us / ...), not the
+  # full region: api.us-central1.nebius.cloud has no DNS, and IAM (a global control
+  # plane) is only reachable via the group endpoint. Map each region to its group.
+  nebius_region_groups = {
+    eu-north1   = "eu"
+    eu-north2   = "eu"
+    eu-west1    = "eu"
+    me-west1    = "eu" # Middle East regions are served by the eu API group
+    uk-south1   = "eu"
+    us-central1 = "us"
+  }
+  nebius_region_group = lookup(local.nebius_region_groups, var.region, "eu")
+  nebius_api_domain   = "api.${local.nebius_region_group}.nebius.cloud:443"
+}
+
 provider "nebius" {
-  domain = "api.${var.region}.nebius.cloud:443"
+  domain = local.nebius_api_domain
 }
 
 provider "helm" {
