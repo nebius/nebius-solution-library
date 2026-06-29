@@ -198,6 +198,15 @@ locals {
     : false
   )
 
+  opentelemetry_sending_queue_enabled = (
+    var.opentelemetry_sending_queue != null
+    ? anytrue([
+      var.opentelemetry_sending_queue.size != null,
+      var.opentelemetry_sending_queue.num_consumers != null,
+    ])
+    : false
+  )
+
   namespace = {
     logs       = "logs-system"
     monitoring = "monitoring-system"

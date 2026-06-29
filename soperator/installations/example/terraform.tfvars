@@ -621,7 +621,7 @@ dcgm_job_mapping_enabled = true
 # ---
 # kube_state_metrics_max_scrape_size = 150554432
 
-# Optional OpenTelemetry batch processor overrides for logs, jail logs, and events collectors.
+# Optional OpenTelemetry sending_queue batch overrides for logs, jail logs, events, and nccl-profiles collectors.
 # By default, chart values are used.
 # ---
 # opentelemetry_batch = {
@@ -629,6 +629,20 @@ dcgm_job_mapping_enabled = true
 #   send_batch_size     = 2000
 #   send_batch_max_size = 5000
 # }
+
+# Optional OpenTelemetry sending_queue overrides for logs, jail logs, events, and nccl-profiles collectors.
+# By default, chart values are used.
+# ---
+# opentelemetry_sending_queue = {
+#   size          = 30000
+#   num_consumers = 10
+# }
+
+# Whether to delete jail stored logs after they have been read by the OpenTelemetry collector.
+# By default, false.
+# ---
+# opentelemetry_delete_jail_logs_after_read = true
+opentelemetry_delete_jail_logs_after_read = false
 
 # Configuration of the Soperator Notifier (https://github.com/nebius/soperator/tree/main/helm/soperator-notifier).
 # ---
