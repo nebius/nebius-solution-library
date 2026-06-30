@@ -1,8 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-parent_id=$PARENT_ID
-page_size=100
+parent_id="${PARENT_ID:?PARENT_ID is required}"
 page_token=""
 result_ids=()
 allowed_cleanup_namespaces=("logs-system" "monitoring-system" "soperator" "nfs-system")
@@ -49,8 +48,34 @@ if [ ${#result_ids[@]} -eq 0 ]; then
 fi
 
 retry_script="$(dirname "$0")/../../scripts/retry.sh"
+max_delete_jobs="${MAX_DELETE_JOBS:-10}"
+delete_pids=()
+delete_status=0
+
+if ! [[ "$max_delete_jobs" =~ ^[1-9][0-9]*$ ]]; then
+  echo "MAX_DELETE_JOBS must be a positive integer, got: $max_delete_jobs" >&2
+  exit 1
+fi
+
+wait_for_delete_batch() {
+  local pid
+  for pid in "${delete_pids[@]}"; do
+    if ! wait "$pid"; then
+      delete_status=1
+    fi
+  done
+  delete_pids=()
+}
 
 for id in "${result_ids[@]}"; do
   echo "Deleting leftover disk $id..."
-  "$retry_script" -- nebius compute disk delete --id "$id"
+  "$retry_script" -- nebius compute disk delete --id "$id" &
+  delete_pids+=("$!")
+
+  if [ "${#delete_pids[@]}" -ge "$max_delete_jobs" ]; then
+    wait_for_delete_batch
+  fi
 done
+
+wait_for_delete_batch
+exit "$delete_status"
