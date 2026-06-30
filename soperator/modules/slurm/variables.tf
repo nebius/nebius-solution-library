@@ -139,6 +139,56 @@ variable "resources" {
       memory_gibibytes            = number
       ephemeral_storage_gibibytes = number
     }))
+    rest = optional(object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    }))
+    exporter = optional(object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    }))
+    mariadb = optional(object({
+      cpu_cores                   = number
+      memory_gibibytes            = number
+      ephemeral_storage_gibibytes = number
+    }))
+    node_configurator = optional(object({
+      requests = object({
+        cpu_cores        = number
+        memory_gibibytes = number
+      })
+      limits = object({
+        memory_gibibytes = number
+      })
+    }))
+    slurm_operator = optional(object({
+      requests = object({
+        cpu_cores        = number
+        memory_gibibytes = number
+      })
+      limits = object({
+        memory_gibibytes = number
+      })
+    }))
+    slurm_checks = optional(object({
+      requests = object({
+        cpu_cores        = number
+        memory_gibibytes = number
+      })
+      limits = object({
+        memory_gibibytes = number
+      })
+    }))
+    kruise_daemon = optional(object({
+      cpu_cores        = number
+      memory_gibibytes = number
+    }))
+    dcgm_exporter = optional(object({
+      cpu_cores        = number
+      memory_gibibytes = number
+    }))
     nfs = optional(object({
       cpu_cores        = number
       memory_gibibytes = number
@@ -298,6 +348,12 @@ variable "controller_state_on_filestore" {
   default     = false
 }
 
+variable "enroot_direct_squashfs_enabled" {
+  description = "Enable Pyxis/Enroot direct SquashFS startup through squashfuse. Node-local image-storage disk creation remains controlled by node_local_image_disk.enabled."
+  type        = bool
+  default     = true
+}
+
 # endregion Disks
 
 # region nfs-server
@@ -397,6 +453,100 @@ variable "dcgm_job_mapping_enabled" {
   default     = true
 }
 
+variable "kube_state_metrics_max_scrape_size" {
+  description = "Maximum kube-state-metrics HTTP scrape size in bytes. Leave null to raise it automatically for large clusters."
+  type        = number
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.kube_state_metrics_max_scrape_size == null || var.kube_state_metrics_max_scrape_size > 0
+    error_message = "kube_state_metrics_max_scrape_size must be greater than 0 when set."
+  }
+}
+
+variable "opentelemetry_batch" {
+  description = "OpenTelemetry sending_queue batch overrides for logs, jail logs, events, and nccl-profiles collectors. Leave null to use chart defaults."
+  type = object({
+    timeout             = optional(string)
+    send_batch_size     = optional(number)
+    send_batch_max_size = optional(number)
+  })
+  default  = null
+  nullable = true
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.timeout == null ||
+      trimspace(var.opentelemetry_batch.timeout) != ""
+    )
+    error_message = "opentelemetry_batch.timeout must be non-empty when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_size == null ||
+      var.opentelemetry_batch.send_batch_size > 0
+    )
+    error_message = "opentelemetry_batch.send_batch_size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_max_size == null ||
+      var.opentelemetry_batch.send_batch_max_size > 0
+    )
+    error_message = "opentelemetry_batch.send_batch_max_size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_size == null ||
+      var.opentelemetry_batch.send_batch_max_size == null ||
+      var.opentelemetry_batch.send_batch_max_size >= var.opentelemetry_batch.send_batch_size
+    )
+    error_message = "opentelemetry_batch.send_batch_max_size must be greater than or equal to send_batch_size when both are set."
+  }
+}
+
+variable "opentelemetry_sending_queue" {
+  description = "OpenTelemetry sending_queue overrides for logs, jail logs, events, and nccl-profiles collectors. Leave null to use chart defaults."
+  type = object({
+    size          = optional(number)
+    num_consumers = optional(number)
+  })
+  default  = null
+  nullable = true
+
+  validation {
+    condition = (
+      var.opentelemetry_sending_queue == null ||
+      var.opentelemetry_sending_queue.size == null ||
+      var.opentelemetry_sending_queue.size > 0
+    )
+    error_message = "opentelemetry_sending_queue.size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_sending_queue == null ||
+      var.opentelemetry_sending_queue.num_consumers == null ||
+      var.opentelemetry_sending_queue.num_consumers > 0
+    )
+    error_message = "opentelemetry_sending_queue.num_consumers must be greater than 0 when set."
+  }
+}
+
+variable "opentelemetry_delete_jail_logs_after_read" {
+  description = "Whether to delete jail stored logs after they have been read by the OpenTelemetry collector."
+  type        = bool
+  default     = false
+}
+
 variable "dcgm_job_map_dir" {
   description = "Directory where HPC job mapping files are located"
   type        = string
@@ -426,7 +576,7 @@ variable "slurmdbd_config" {
 }
 
 variable "slurm_accounting_config" {
-  description = "Slurm.conf accounting configuration. See https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
+  description = "Slurm accounting settings rendered into Soperator-generated slurm_base.conf.noedit, which is included by slurm.conf. See upstream Slurm slurm.conf documentation: https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
   type        = map(any)
   default     = {}
 }
@@ -513,6 +663,19 @@ variable "soperator_notifier" {
   type = object({
     enabled           = bool
     slack_webhook_url = optional(string)
+  })
+  default = {
+    enabled = false
+  }
+  nullable = false
+}
+
+variable "nccl_inspector_profiling" {
+  description = "Whether to enable NCCL Inspector profiling."
+  type = object({
+    enabled  = bool
+    verbose  = optional(bool, false)
+    dump_dir = optional(string, "/opt/soperator-outputs/nccl_profiles")
   })
   default = {
     enabled = false
@@ -608,6 +771,17 @@ variable "resources_jail_logs_collector" {
   default = {
     memory = "1Gi"
     cpu    = "1000m"
+  }
+}
+
+variable "resources_nccl_profiles_collector" {
+  type = object({
+    memory = string
+    cpu    = string
+  })
+  default = {
+    memory = "200Mi"
+    cpu    = "500m"
   }
 }
 
@@ -794,6 +968,9 @@ variable "worker_nodesets" {
       disk_type          = string
       filesystem_type    = string
       storage_class_name = string
+    }))
+    topology = optional(object({
+      fabric = string
     }))
   }))
   default = []
