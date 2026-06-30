@@ -8,13 +8,19 @@ locals {
       # Optional image overrides (dev/iteration; production gets images injected at
       # chart-build time). e.g. {saturnEnterprise = "...:2026.02.01-74"}.
       length(var.image_overrides) > 0 ? { images = var.image_overrides } : {},
+      # Only pass domain/baseUrl/sshDomain when saturn_domain is set explicitly;
+      # otherwise the chart derives all three from customerName.
+      var.saturn_domain != "" ? {
+        domain    = var.saturn_domain
+        baseUrl   = local.saturn_base_url
+        sshDomain = local.saturn_ssh_domain
+      } : {},
       {
       # Create dependent namespaces (saturn, ingress, cert-manager, logging, monitoring)
       createNamespaces = true
 
       # Core Saturn configuration
       clusterName      = var.cluster_name
-      domain           = var.saturn_domain
       cloudProvider    = local.saturn_cloud_provider
       region           = var.region
       availabilityZone = var.region
@@ -22,13 +28,26 @@ locals {
       # Additional Saturn configuration
       adminEmail         = var.saturn_admin_email
       customerName       = var.saturn_customer_name
-      baseUrl            = local.saturn_base_url
-      sshDomain          = local.saturn_ssh_domain
       imageBuildNodeRole = local.saturn_image_build_node_role
       bootstrapToken     = var.saturn_bootstrap_token
 
       # Saturn components configuration
       saturnComponents = {
+        # The base saturn-helm-operator chart templates reference jobset, phoebe and
+        # spegel, but its default saturnComponents values omit all three — so they
+        # nil-deref unless set explicitly. (Chart bug: base chart should default these
+        # three / guard the derefs.) jobset+phoebe off; spegel is enabled by the Nebius
+        # wrapper but ships no values block, so supply an empty one.
+        jobset = {
+          enabled = false
+        }
+        phoebe = {
+          enabled = false
+        }
+        spegel = {
+          enabled = true
+          values  = {}
+        }
         atlas = {
           values = {
             env = merge(

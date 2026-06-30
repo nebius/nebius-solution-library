@@ -38,8 +38,9 @@ variable "cluster_name" {
 }
 
 variable "saturn_domain" {
-  description = "Saturn Cloud domain (base_url and ssh_domain are derived from this)"
+  description = "Saturn Cloud domain. Leave empty to let the chart derive it from saturn_customer_name as <customer>.saturnenterprise.io (base_url/ssh_domain follow). Set only for customers on their own domain."
   type        = string
+  default     = ""
 }
 
 variable "saturn_admin_email" {
@@ -79,9 +80,10 @@ variable "helm_chart_local_path" {
 variable "helm_chart_version" {
   description = "Version of the saturn-helm-operator-nebius chart"
   type        = string
-  # Region-aware instanceConfig (saturn-k8s #990) + scale-from-zero node affinity on
-  # nebius.com labels (#991), published to OCI by release-images #507.
-  default = "2026.02.01-122"
+  # Region-aware instanceConfig (saturn-k8s #990), scale-from-zero node affinity on
+  # nebius.com labels (#991), and customerName-derived domain + main-namespace
+  # creation (#992); published to OCI by release-images #508.
+  default = "2026.02.01-123"
 }
 
 variable "k8s_version" {
