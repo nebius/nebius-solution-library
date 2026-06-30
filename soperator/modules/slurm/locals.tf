@@ -47,6 +47,8 @@ locals {
 
   active_checks_on_worker_nodes = local.gb300_enabled
 
+  public_o11y_tsa_token_writer_source = var.region == "eu-west2" ? "imds" : "file"
+
   node_filters = {
     label = {
       gpu = module.labels.key_nvidia_gpu
