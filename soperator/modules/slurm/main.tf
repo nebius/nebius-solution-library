@@ -102,13 +102,14 @@ resource "helm_release" "soperator_fluxcd_cm" {
     notifier                                  = var.soperator_notifier
     nccl_inspector_profiling                  = var.nccl_inspector_profiling
 
-    name                = var.name
-    cluster_name        = var.cluster_name
-    region              = var.region
-    public_o11y_enabled = var.public_o11y_enabled
-    has_local_nvme      = anytrue([for nodeset in var.worker_nodesets : try(nodeset.local_nvme.enabled, false)])
-    metrics_collector   = local.metrics_collector
-    create_pvcs         = var.create_pvcs
+    name                    = var.name
+    cluster_name            = var.cluster_name
+    region                  = var.region
+    public_o11y_enabled     = var.public_o11y_enabled
+    tsa_token_writer_source = local.public_o11y_tsa_token_writer_source
+    has_local_nvme          = anytrue([for nodeset in var.worker_nodesets : try(nodeset.local_nvme.enabled, false)])
+    metrics_collector       = local.metrics_collector
+    create_pvcs             = var.create_pvcs
 
     slurm_cluster_storage = {
       scheduling = local.node_filters

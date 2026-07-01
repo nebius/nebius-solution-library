@@ -156,6 +156,9 @@ resources:
             %{~ if vmstack_version != "" ~}
             version: ${vmstack_version}
             %{~ endif ~}
+            tsaToken:
+              writer:
+                source: ${tsa_token_writer_source}
             values:
               %{~ if kube_state_metrics_max_scrape_size != null ~}
               kubeStateMetrics:
