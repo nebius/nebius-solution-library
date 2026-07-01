@@ -434,7 +434,16 @@ resources:
               %{~ endif ~}
 
             populateJail:
-              k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.system.name}
+              k8sNodeFilterName: ${slurm_cluster.populate_jail.k8s_node_filter_name}
+
+            %{~ if slurm_cluster.topology.block_size != null ~}
+            slurmConfig:
+              topologyPlugin: "topology/block"
+              topologyParam: "BlockAsNodeRank"
+
+            topology:
+              blockSize: ${slurm_cluster.topology.block_size}
+            %{~ endif ~}
 
             periodicChecks:
               ncclBenchmark:
@@ -537,7 +546,7 @@ resources:
                     %{~ endif ~}
               login:
                 size: ${slurm_cluster.nodes.login.size}
-                k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.login.name}
+                k8sNodeFilterName: ${slurm_cluster.nodes.login.k8s_node_filter_name}
                 sshdServiceType: "LoadBalancer"
                 %{~ if slurm_cluster.nodes.login.allocation_id != null ~}
                 sshdServiceAnnotations:
@@ -741,6 +750,29 @@ resources:
           namespace: soperator
           overrideValues:
             slurmClusterRefName: ${name}
+%{ if soperator_active_checks_on_worker_nodes ~}
+            affinity:
+              nodeAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  nodeSelectorTerms:
+                    - matchExpressions:
+                        - key: ${slurm_cluster.k8s_node_filters.label.nodeset}
+                          operator: In
+                          values:
+%{ for worker in slurm_cluster.k8s_node_filters.worker.matches ~}
+                            - "${worker}"
+%{ endfor ~}
+            tolerations:
+              - key: ${slurm_cluster.k8s_node_filters.label.nodeset}
+                operator: Equal
+                value: ${slurm_cluster.k8s_node_filters.label.worker}
+                effect: NoSchedule
+%{ if slurm_cluster.nodes.worker.resources.gpus > 0 ~}
+              - key: ${slurm_cluster.k8s_node_filters.label.gpu}
+                operator: Exists
+                effect: NoSchedule
+%{ endif ~}
+%{ endif ~}
             checks:
               ensure-dir-snccld-logs:
                 enabled: true
@@ -768,9 +800,11 @@ resources:
               manager:
                 image:
                   repository: cr.eu-north1.nebius.cloud/soperator/kruise-manager
+                  tag: v1.8.3
               helmHooks:
                 image:
                   repository: cr.eu-north1.nebius.cloud/soperator/kruise-helm-hook
+                  tag: v0.1.0
           soperatorChecks:
             enabled: true
             interval: 5m
@@ -778,8 +812,8 @@ resources:
             values:
               checks:
                 manager:
-                  enableNodeReplacement: true
-                  enableExtensiveCheck: true
+                  enabledNodeReplacement: ${soperator_checks_node_replacement_enabled}
+                  enableExtensiveCheck: ${soperator_checks_extensive_check_enabled}
                   env:
                     maintenanceIgnoreNodeLabels: "${join(",", slurm_cluster.maintenance_ignore_node_labels)}"
                   resources:

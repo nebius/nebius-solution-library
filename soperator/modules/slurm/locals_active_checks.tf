@@ -1,4 +1,37 @@
 locals {
+  gb300_disabled_active_checks = toset([
+    "all-reduce-perf-nccl-in-docker",
+    "all-reduce-perf-nccl-with-ib",
+    "all-reduce-perf-nccl-without-ib",
+    "cuda-samples",
+    "docker-memory-limit-oomkilled",
+    "dcgmi-diag-r2",
+    "dcgmi-diag-r3",
+    "extensive-check",
+    "gpu-fryer",
+    "ib-gpu-perf",
+    "mem-perf",
+    "prepull-container-image",
+  ])
+
+  gb300_active_checks_overrides = merge(
+    {
+      for check_name in local.gb300_disabled_active_checks :
+      check_name => {
+        enabled = false
+      }
+    },
+    {
+      ensure-healthy-nodes = {
+        dependsOn = [
+          "manage-jail-state",
+          "wait-for-soperatorchecks-srun-ready",
+          "wait-for-topology",
+        ]
+      }
+    }
+  )
+
   active_checks_scopes = {
     # Scope for dev clusters
     dev = {
@@ -127,5 +160,14 @@ locals {
     }
   }
 
-  soperator_activechecks_override_yaml = yamlencode(local.active_checks_scopes[var.active_checks_scope])
+  soperator_activechecks_override_yaml = yamlencode(
+    merge(
+      local.active_checks_scopes[var.active_checks_scope],
+      {
+        for check_name, check_config in local.gb300_active_checks_overrides :
+        check_name => check_config
+        if local.gb300_enabled
+      }
+    )
+  )
 }

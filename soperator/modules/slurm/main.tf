@@ -58,7 +58,10 @@ resource "helm_release" "soperator_fluxcd_cm" {
   namespace  = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/helm_values/terraform_fluxcd_values.yaml.tftpl", {
-    soperator_active_checks_override_block = indent(14, local.soperator_activechecks_override_yaml)
+    soperator_active_checks_override_block    = indent(14, local.soperator_activechecks_override_yaml)
+    soperator_active_checks_on_worker_nodes   = local.active_checks_on_worker_nodes
+    soperator_checks_extensive_check_enabled  = !local.gb300_enabled
+    soperator_checks_node_replacement_enabled = !local.gb300_enabled
 
     telemetry_enabled  = var.telemetry_enabled
     accounting_enabled = var.accounting_enabled
@@ -135,6 +138,10 @@ resource "helm_release" "soperator_fluxcd_cm" {
         slurm_raw_config  = var.slurm_partition_raw_config
       }
 
+      topology = {
+        block_size = var.topology.plugin == "topology/block" ? var.topology.block_size : null
+      }
+
       use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
       cuda_version                 = var.cuda_version
 
@@ -142,6 +149,14 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
       k8s_node_filters               = local.node_filters
       maintenance_ignore_node_labels = local.maintenance_ignore_node_labels
+
+      # GB300 worker nodes are ARM. The populate-jail job must run on an ARM
+      # node so Kubernetes pulls the ARM image variant and writes ARM binaries
+      # into the jail during first cluster creation. Other platforms keep the
+      # historical system-node placement.
+      populate_jail = {
+        k8s_node_filter_name = var.login_on_worker_nodes ? local.node_filters.worker.name : local.node_filters.system.name
+      }
 
       jail_submounts = [for submount in var.filestores.jail_submounts : {
         name       = submount.name
@@ -223,6 +238,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
 
         login = {
           size                     = var.node_count.login
+          k8s_node_filter_name     = var.login_on_worker_nodes ? local.node_filters.worker.name : local.node_filters.login.name
           allocation_id            = var.login_allocation_id
           sshd_config_map_ref_name = var.login_sshd_config_map_ref_name
           root_public_keys         = var.login_ssh_root_public_keys
