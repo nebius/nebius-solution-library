@@ -7,7 +7,6 @@ locals {
     "docker-memory-limit-oomkilled",
     "dcgmi-diag-r2",
     "dcgmi-diag-r3",
-    "extensive-check",
     "gpu-fryer",
     "ib-gpu-perf",
     "mem-perf",

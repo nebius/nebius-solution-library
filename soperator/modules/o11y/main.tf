@@ -228,15 +228,6 @@ data:
       region: ${self.triggers_replace.region}
       opentelemetry:
         publicEndpoint: ${self.triggers_replace.logs_public_endpoint}
-    soperatorActiveChecks:
-      overrideValues:
-        checks:
-          extensive-check:
-            slurmJobSpec:
-              jobContainer:
-                extraEnv:
-                  - name: "SLURM_EXTRA_COMMENT_JSON"
-                    value: "{\"o11y_workspace\": \"$O11YWORKSPACE_ID\"}"
 EOF
 EOT
   }
