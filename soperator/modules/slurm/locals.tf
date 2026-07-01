@@ -42,7 +42,7 @@ locals {
   }
 
   public_o11y_tsa_token_writer_source = "imds"
-  
+
   gb300_enabled = anytrue([
     for nodeset in var.worker_nodesets : nodeset.gres_name == "nvidia_gb300"
   ])
