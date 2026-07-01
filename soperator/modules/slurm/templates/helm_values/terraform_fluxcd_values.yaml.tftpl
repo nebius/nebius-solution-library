@@ -119,6 +119,9 @@ resources:
             %{~ if vmstack_version != "" ~}
             version: ${vmstack_version}
             %{~ endif ~}
+            tsaToken:
+              writer:
+                source: ${tsa_token_writer_source}
             values:
               vmagent:
                 spec:

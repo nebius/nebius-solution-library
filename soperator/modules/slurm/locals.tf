@@ -41,6 +41,8 @@ locals {
     tag               = var.operator_version
   }
 
+  public_o11y_tsa_token_writer_source = "imds"
+
   node_filters = {
     label = {
       gpu = module.labels.key_nvidia_gpu
