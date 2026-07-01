@@ -526,17 +526,6 @@ variable "etcd_cluster_size" {
 
 # endregion k8s
 
-variable "cleanup_parallelism" {
-  description = "Number of operations to run in parallel during cleanup."
-  type        = number
-  default     = 10
-
-  validation {
-    condition     = var.cleanup_parallelism >= 1 && var.cleanup_parallelism == floor(var.cleanup_parallelism)
-    error_message = "cleanup_parallelism must be a positive integer."
-  }
-}
-
 # endregion Infrastructure
 
 # region Slurm

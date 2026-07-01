@@ -226,7 +226,6 @@ module "cleanup" {
   source = "../../modules/cleanup"
 
   iam_project_id = var.iam_project_id
-  parallelism    = var.cleanup_parallelism
 }
 
 module "k8s_cleanup" {
