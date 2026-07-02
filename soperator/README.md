@@ -65,7 +65,7 @@ This command loads environment variables and performs several important setup ta
 - Configures Object Storage access for the Terraform state
 - Exports environment variables with resource IDs 
 
-Check that NEBIUS_IAM_TOKEN is valid:
+Check that nebius CLI is authenticated:
 ```bash
 nebius iam whoami
 ```
@@ -146,6 +146,8 @@ slurm_login_ssh_root_public_keys = [
 
 `k8s_cluster_node_ssh_access_users` is for connecting to the K8S cluster itself.
 You probably don't need this unless you want to manage the K8S cluster manually.
+By default, SSH keys are added without public IP addresses. Set `k8s_cluster_node_ssh_access_public_ip = true` to assign public IP addresses to K8S nodes.
+If you previously relied on public IPs being created automatically when `k8s_cluster_node_ssh_access_users` was set, add `k8s_cluster_node_ssh_access_public_ip = true` explicitly before the next apply.
 
 > [!NOTE] 
 > - For large clusters: Use larger presets for CPU-only nodes
@@ -229,7 +231,7 @@ filestore_jail = {
 
 filestore_jail_submounts = [{
   name       = "data"
-  mount_path = "/mnt/data"
+  mount_path = "/data"
   spec = {
     size_gibibytes       = 4096
     block_size_kibibytes = 32
@@ -300,7 +302,7 @@ filestore_jail = {
 
 filestore_jail_submounts = [{
   name       = "data"
-  mount_path = "/mnt/data"
+  mount_path = "/data"
   existing = {
     id = "computefilesystem-<RETAINED-DATA-ID>"
   }

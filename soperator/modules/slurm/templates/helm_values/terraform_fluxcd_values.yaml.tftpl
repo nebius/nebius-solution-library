@@ -15,6 +15,12 @@ resources:
             url: ${soperator_helm_repo_nfs}
           soperator:
             url: ${soperator_helm_repo}
+        %{~ if enroot_direct_squashfs_enabled ~}
+        customConfigmaps:
+          overrideValues:
+            enroot:
+              useDedicatedImageStorage: false
+        %{~ endif ~}
         certManager:
           enabled: true
           interval: 5m
@@ -59,6 +65,7 @@ resources:
           version: ${mariadb_operator_version}
           %{~ endif ~}
           values: null
+
         observability:
           enabled: ${telemetry_enabled}
           clusterName: ${cluster_name}
@@ -66,6 +73,30 @@ resources:
           region: ${region}
           opentelemetry:
             enabled: ${telemetry_enabled}
+
+            %{~ if opentelemetry_batch_enabled ~}
+            batch:
+              %{~ if opentelemetry_batch.timeout != null ~}
+              timeout: ${opentelemetry_batch.timeout}
+              %{~ endif ~}
+              %{~ if opentelemetry_batch.send_batch_size != null ~}
+              sendBatchSize: ${opentelemetry_batch.send_batch_size}
+              %{~ endif ~}
+              %{~ if opentelemetry_batch.send_batch_max_size != null ~}
+              sendBatchMaxSize: ${opentelemetry_batch.send_batch_max_size}
+              %{~ endif ~}
+            %{~ endif ~}
+
+            %{~ if opentelemetry_sending_queue_enabled ~}
+            sendingQueue:
+              %{~ if opentelemetry_sending_queue.size != null ~}
+              queueSize: ${opentelemetry_sending_queue.size}
+              %{~ endif ~}
+              %{~ if opentelemetry_sending_queue.num_consumers != null ~}
+              numConsumers: ${opentelemetry_sending_queue.num_consumers}
+              %{~ endif ~}
+            %{~ endif ~}
+
             logs:
               %{~ if opentelemetry_collector_version != "" ~}
               version: ${opentelemetry_collector_version}
@@ -77,8 +108,12 @@ resources:
                     cpu: ${resources.logs_collector.cpu}
                   limits:
                     memory: ${resources.logs_collector.memory}
+
                 jailLogs:
                   enabled: true
+                  deleteAfterRead:
+                    enabled: ${ opentelemetry_delete_jail_logs_after_read }
+                    minAge: 5m
                   resources:
                     requests:
                       memory: ${resources.jail_logs_collector.memory}
@@ -99,6 +134,7 @@ resources:
                     cpu: ${resources.events_collector.cpu}
                   limits:
                     memory: ${resources.events_collector.memory}
+
           prometheusOperator:
             enabled: ${telemetry_enabled}
             interval: 5m
@@ -106,6 +142,7 @@ resources:
             %{~ if prometheus_crds_version != "" ~}
             version: ${prometheus_crds_version}
             %{~ endif ~}
+
           vmStack:
             enabled: ${telemetry_enabled}
             crds:
@@ -123,6 +160,11 @@ resources:
               writer:
                 source: ${tsa_token_writer_source}
             values:
+              %{~ if kube_state_metrics_max_scrape_size != null ~}
+              kubeStateMetrics:
+                maxScrapeSize: "${kube_state_metrics_max_scrape_size}"
+              %{~ endif ~}
+
               vmagent:
                 spec:
                   extraArgs:
@@ -141,6 +183,7 @@ resources:
                   remoteWriteSettings:
                     queues: ${vm_agent_queue_count}
                   %{~ endif ~}
+
               vmsingle:
                 spec:
                   extraArgs:
@@ -166,6 +209,7 @@ resources:
                       cpu: ${resources.vm_single.cpu}
                     limits:
                       memory: ${resources.vm_single.memory}
+
               prometheusNodeExporter:
                 enabled: true
                 %{~ if slurm_cluster.use_preinstalled_gpu_drivers ~}
@@ -173,6 +217,7 @@ resources:
                   - '--collector.ethtool.device-exclude=ibp.*'
                   - '--no-collector.infiniband'
                 %{~ endif ~}
+
           vmLogs:
             enabled: ${telemetry_enabled}
             interval: 5m
@@ -195,6 +240,7 @@ resources:
                   cpu: ${resources.vm_logs.cpu}
                 limits:
                   memory: ${resources.vm_logs.memory}
+
           dcgmExporter:
             enabled: ${dcgm_job_mapping_enabled}
             version: ${operator_version}
@@ -208,6 +254,46 @@ resources:
                   cpu: ${resources.dcgm_exporter.cpu}m
                 limits:
                   memory: ${resources.dcgm_exporter.memory}Gi
+
+          ncclProfiles:
+            enabled: ${nccl_inspector_profiling.enabled}
+            values:
+              mode: shared
+              dumpDir: /mnt/jail${nccl_inspector_profiling.dump_dir}
+
+              %{~ if opentelemetry_batch_enabled ~}
+              batch:
+                %{~ if opentelemetry_batch.timeout != null ~}
+                timeout: ${opentelemetry_batch.timeout}
+                %{~ endif ~}
+                %{~ if opentelemetry_batch.send_batch_size != null ~}
+                sendBatchSize: ${opentelemetry_batch.send_batch_size}
+                %{~ endif ~}
+                %{~ if opentelemetry_batch.send_batch_max_size != null ~}
+                sendBatchMaxSize: ${opentelemetry_batch.send_batch_max_size}
+                %{~ endif ~}
+              %{~ endif ~}
+
+              %{~ if opentelemetry_sending_queue_enabled ~}
+              sendingQueue:
+                %{~ if opentelemetry_sending_queue.size != null ~}
+                queueSize: ${opentelemetry_sending_queue.size}
+                %{~ endif ~}
+                %{~ if opentelemetry_sending_queue.num_consumers != null ~}
+                numConsumers: ${opentelemetry_sending_queue.num_consumers}
+                %{~ endif ~}
+              %{~ endif ~}
+
+              deleteAfterRead:
+                enabled: ${ opentelemetry_delete_jail_logs_after_read }
+                minAge: 10m
+
+              resources:
+                requests:
+                  memory: ${resources.nccl_profiles_collector.memory}
+                  cpu: ${resources.nccl_profiles_collector.cpu}
+                limits:
+                  memory: ${resources.nccl_profiles_collector.memory}
 
         securityProfilesOperator:
           enabled: ${apparmor_enabled}
@@ -243,6 +329,13 @@ resources:
             cudaVersion: ${slurm_cluster.cuda_version}
             useDefaultAppArmorProfile: ${apparmor_enabled}
             maintenance: ${slurm_cluster.maintenance}
+            plugStackConfig:
+              pyxis:
+                useSquashfuse: ${enroot_direct_squashfs_enabled}
+              ncclInspectorPreConf:
+                enabled: ${nccl_inspector_profiling.enabled}
+                dumpDir: "${nccl_inspector_profiling.dump_dir}/%j/%s"
+                dumpVerbose: ${nccl_inspector_profiling.verbose}
 
             %{~ if has_local_nvme ~}
             slurmScripts:
@@ -780,6 +873,15 @@ resources:
             checks:
               ensure-dir-snccld-logs:
                 enabled: true
+              soperator-outputs-logs-cleaner:
+                schedule: "*/5 * * * *"
+                %{~ if nccl_inspector_profiling.enabled ~}
+                k8sJobSpec:
+                  jobContainer:
+                    env:
+                      - name: "SNCCLPRECON_DUMP_DIR"
+                        value: "${nccl_inspector_profiling.dump_dir}"
+                %{~ endif ~}
               ${soperator_active_checks_override_block}
             cudaVersion: ${slurm_cluster.cuda_version}
 
@@ -817,7 +919,6 @@ resources:
               checks:
                 manager:
                   enabledNodeReplacement: ${soperator_checks_node_replacement_enabled}
-                  enableExtensiveCheck: ${soperator_checks_extensive_check_enabled}
                   env:
                     maintenanceIgnoreNodeLabels: "${join(",", slurm_cluster.maintenance_ignore_node_labels)}"
                   resources:

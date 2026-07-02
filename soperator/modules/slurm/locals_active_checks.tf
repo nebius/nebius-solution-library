@@ -76,6 +76,12 @@ locals {
         commentPrefix     = "[node_problem]"
         drainReasonPrefix = null
       }
+      dcgmi-diag-r2 = {
+        runAfterCreation = false
+      }
+      dcgmi-diag-r3 = {
+        runAfterCreation = false
+      }
     }
 
     # Run all available health-checks

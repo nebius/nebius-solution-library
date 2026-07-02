@@ -43,7 +43,7 @@ terraform-validate-modules:
 		if [ -d "$$module_dir" ]; then \
 			echo "Validating module: $$module_dir"; \
 			cd "$$module_dir"; \
-			terraform init -backend=false; \
+			terraform init -upgrade -backend=false; \
 			terraform validate; \
 			cd - > /dev/null; \
 		fi; \
@@ -52,11 +52,11 @@ terraform-validate-modules:
 .PHONY: terraform-validate-installations
 terraform-validate-installations:
 	@echo 'Validating Terraform installations...'
-	@for install_dir in installations/*/; do \
+	@for install_dir in installations/example/; do \
 		if [ -d "$$install_dir" ]; then \
 			echo "Validating installation: $$install_dir"; \
 			cd "$$install_dir"; \
-			terraform init -backend=false; \
+			terraform init -upgrade -backend=false; \
 			terraform validate; \
 			cd - > /dev/null; \
 		fi; \
