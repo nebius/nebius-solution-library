@@ -843,6 +843,10 @@ resources:
           namespace: soperator
           overrideValues:
             slurmClusterRefName: ${name}
+%{ if soperator_active_checks_gpus_per_node != null ~}
+            slurmJob:
+              gpusPerNode: "${soperator_active_checks_gpus_per_node}"
+%{ endif ~}
 %{ if soperator_active_checks_on_worker_nodes ~}
             affinity:
               nodeAffinity:
