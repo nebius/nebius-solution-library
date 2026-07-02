@@ -639,10 +639,10 @@ dcgm_job_mapping_enabled = true
 # }
 
 # Whether to delete jail stored logs after they have been read by the OpenTelemetry collector.
-# By default, false.
+# By default, true.
 # ---
-# opentelemetry_delete_jail_logs_after_read = true
-opentelemetry_delete_jail_logs_after_read = false
+# opentelemetry_delete_jail_logs_after_read = false
+opentelemetry_delete_jail_logs_after_read = true
 
 # Configuration of the Soperator Notifier (https://github.com/nebius/soperator/tree/main/helm/soperator-notifier).
 # ---

@@ -1508,7 +1508,7 @@ variable "opentelemetry_sending_queue" {
 variable "opentelemetry_delete_jail_logs_after_read" {
   description = "Whether to delete jail stored logs after they have been read by the OpenTelemetry collector."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "soperator_notifier" {
