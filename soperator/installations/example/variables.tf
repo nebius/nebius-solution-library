@@ -513,17 +513,6 @@ variable "k8s_cluster_node_ssh_access_public_ip" {
   default     = false
 }
 
-variable "etcd_cluster_size" {
-  description = "Size of the etcd cluster. Must be a positive odd number (1, 3, 5…) to maintain quorum."
-  type        = number
-  default     = 3
-
-  validation {
-    condition     = var.etcd_cluster_size >= 1 && var.etcd_cluster_size % 2 == 1
-    error_message = "etcd_cluster_size must be a positive odd number (1, 3, 5…) to maintain quorum."
-  }
-}
-
 # endregion k8s
 
 # endregion Infrastructure

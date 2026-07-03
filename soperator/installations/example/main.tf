@@ -273,8 +273,6 @@ module "k8s" {
   platform_driver_presets      = var.platform_driver_presets
   use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
 
-  etcd_cluster_size = var.etcd_cluster_size
-
   node_group_system     = var.slurm_nodeset_system
   node_group_controller = var.slurm_nodeset_controller
   node_group_workers    = local.node_group_workers

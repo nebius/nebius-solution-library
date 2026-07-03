@@ -28,12 +28,6 @@ variable "name" {
   type        = string
 }
 
-variable "etcd_cluster_size" {
-  description = "Size of the etcd cluster."
-  type        = number
-  default     = 3
-}
-
 variable "company_name" {
   description = "Name of the company. It is used for context name of the cluster in .kubeconfig file."
   type        = string
