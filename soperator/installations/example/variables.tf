@@ -835,7 +835,7 @@ variable "slurm_nodeset_workers" {
     }
     boot_disk = {
       type                 = "NETWORK_SSD"
-      size_gibibytes       = 512
+      size_gibibytes       = 128
       block_size_kibibytes = 4
     }
     node_local_image_disk = {
@@ -939,9 +939,9 @@ variable "slurm_nodeset_workers" {
   validation {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
-      (worker.boot_disk.size_gibibytes >= 512)
+      (worker.boot_disk.size_gibibytes >= 128)
     ])
-    error_message = "Boot disks for worker nodes must be at least 512 GiB."
+    error_message = "Boot disks for worker nodes must be at least 128 GiB."
   }
 
   validation {
