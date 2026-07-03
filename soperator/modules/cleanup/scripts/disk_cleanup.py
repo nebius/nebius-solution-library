@@ -417,11 +417,6 @@ async def run_start_delete_task(
 ) -> TaskResult | WaitDeleteTask:
     disk = task.disk
 
-    exists = await disk_exists(disk, config)
-    if not exists:
-        logger.info("Disk %s is already absent; task complete", disk.id)
-        return TaskResult(TaskStatus.COMPLETE)
-
     logger.info(
         "Starting deletion of leftover disk %s (%s/%s)",
         disk.id,
