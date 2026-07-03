@@ -513,17 +513,6 @@ variable "k8s_cluster_node_ssh_access_public_ip" {
   default     = false
 }
 
-variable "etcd_cluster_size" {
-  description = "Size of the etcd cluster. Must be a positive odd number (1, 3, 5…) to maintain quorum."
-  type        = number
-  default     = 3
-
-  validation {
-    condition     = var.etcd_cluster_size >= 1 && var.etcd_cluster_size % 2 == 1
-    error_message = "etcd_cluster_size must be a positive odd number (1, 3, 5…) to maintain quorum."
-  }
-}
-
 # endregion k8s
 
 # endregion Infrastructure
@@ -846,7 +835,7 @@ variable "slurm_nodeset_workers" {
     }
     boot_disk = {
       type                 = "NETWORK_SSD"
-      size_gibibytes       = 512
+      size_gibibytes       = 128
       block_size_kibibytes = 4
     }
     node_local_image_disk = {
@@ -950,9 +939,9 @@ variable "slurm_nodeset_workers" {
   validation {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
-      (worker.boot_disk.size_gibibytes >= 512)
+      (worker.boot_disk.size_gibibytes >= 128)
     ])
-    error_message = "Boot disks for worker nodes must be at least 512 GiB."
+    error_message = "Boot disks for worker nodes must be at least 128 GiB."
   }
 
   validation {
