@@ -27,6 +27,10 @@ nodesets:
           nvidia:
             gdrCopyEnabled: true
 
+        # Docker needs node-local image-storage disks for storing OCI data.
+        docker:
+          enabled: ${nodeset.node_local_image_storage.enabled}
+
         %{~ if nodeset.topology != null ~}
         topology:
           fabric: ${nodeset.topology.fabric}

@@ -15,12 +15,14 @@ resources:
             url: ${soperator_helm_repo_nfs}
           soperator:
             url: ${soperator_helm_repo}
-        %{~ if enroot_direct_squashfs_enabled ~}
         customConfigmaps:
           overrideValues:
+            %{~ if enroot_direct_squashfs_enabled ~}
             enroot:
               useDedicatedImageStorage: false
-        %{~ endif ~}
+            %{~ endif ~}
+            docker:
+              enabled: ${docker_enabled}
         certManager:
           enabled: true
           interval: 5m
