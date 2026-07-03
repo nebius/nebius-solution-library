@@ -634,8 +634,8 @@ resources:
                         - ReadWriteOnce
                       resources:
                         requests:
-                          storage: 50Gi
-                      storageClassName: "compute-csi-network-ssd-ext4"
+                          storage: ${93*3}Gi
+                      storageClassName: "compute-csi-network-ssd-io-m3-ext4"
                     %{~ endif ~}
               login:
                 size: ${slurm_cluster.nodes.login.size}
