@@ -608,6 +608,10 @@ async def cleanup_disks(config: Config, disks: list[Disk]) -> int:
         worker_task.cancel()
     await asyncio.gather(*workers, return_exceptions=True)
 
+    deleted_count = len(disks) - len(failures)
+    if deleted_count > 0:
+        logger.info("Deleted %d leftover disks", deleted_count)
+
     if failures:
         logger.error("Failed disk deletions:")
         for disk_id, error in sorted(failures.items()):
