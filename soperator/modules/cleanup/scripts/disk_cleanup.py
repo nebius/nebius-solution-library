@@ -22,7 +22,7 @@ NOT_FOUND_PATTERNS: tuple[str, ...] = (
     "disk not found",
 )
 
-DEFAULT_PARALLELISM: Final[int] = 200
+DEFAULT_START_DELETE_PARALLELISM: Final[int] = 100
 DEFAULT_PAGE_SIZE: Final[int] = 999
 DEFAULT_CLI_RETRIES: Final[int] = 5
 DEFAULT_MAX_REQUEUE: Final[int] = 3
@@ -69,7 +69,7 @@ class TaskStatus(StrEnum):
 @dataclass(frozen=True)
 class Config:
     parent_id: str
-    parallelism: int
+    start_delete_parallelism: int
     page_size: int
     cli_retries: int
     max_requeue: int
@@ -87,8 +87,15 @@ class Disk:
 
 
 @dataclass(frozen=True)
-class DeleteTask:
+class StartDeleteTask:
     disk: Disk
+    requeues: int = 0
+
+
+@dataclass(frozen=True)
+class WaitDeleteTask:
+    disk: Disk
+    operation_id: str
     requeues: int = 0
 
 
@@ -96,6 +103,27 @@ class DeleteTask:
 class TaskResult:
     status: TaskStatus
     reason: str = ""
+
+
+class CleanupTracker:
+    def __init__(self, disk_count: int):
+        self._remaining: int = disk_count
+        self._done = asyncio.Event()
+
+        if disk_count == 0:
+            self._done.set()
+
+    def complete_disk(self) -> None:
+        self._remaining -= 1
+
+        if self._remaining < 0:
+            raise CleanupError("cleanup tracker completed more disks than scheduled")
+
+        if self._remaining == 0:
+            self._done.set()
+
+    async def wait_done(self) -> None:
+        await self._done.wait()
 
 
 class StartRateLimiter:
@@ -139,7 +167,10 @@ def load_config() -> Config:
 
     return Config(
         parent_id=parent_id,
-        parallelism=env_int("DISK_CLEANUP_PARALLELISM", DEFAULT_PARALLELISM),
+        start_delete_parallelism=env_int(
+            "DISK_CLEANUP_PARALLELISM",
+            DEFAULT_START_DELETE_PARALLELISM,
+        ),
         page_size=DEFAULT_PAGE_SIZE,
         cli_retries=DEFAULT_CLI_RETRIES,
         max_requeue=DEFAULT_MAX_REQUEUE,
@@ -379,11 +410,11 @@ async def recheck_after_not_found(disk: Disk, config: Config) -> TaskResult:
     return TaskResult(TaskStatus.REQUEUE, "disk still exists after not-found response")
 
 
-async def run_delete_task(
-    task: DeleteTask,
+async def run_start_delete_task(
+    task: StartDeleteTask,
     config: Config,
     start_limiter: StartRateLimiter,
-) -> TaskResult:
+) -> TaskResult | WaitDeleteTask:
     disk = task.disk
 
     exists = await disk_exists(disk, config)
@@ -401,8 +432,22 @@ async def run_delete_task(
     if operation_id is None:
         return await recheck_after_not_found(disk, config)
 
-    logger.info("Waiting for disk %s delete operation %s", disk.id, operation_id)
-    operation_wait_completed = await wait_delete_operation(operation_id, config)
+    logger.info("Started disk %s delete operation %s", disk.id, operation_id)
+    return WaitDeleteTask(
+        disk=disk,
+        operation_id=operation_id,
+        requeues=task.requeues,
+    )
+
+
+async def run_wait_delete_task(
+    task: WaitDeleteTask,
+    config: Config,
+) -> TaskResult:
+    disk = task.disk
+
+    logger.info("Waiting for disk %s delete operation %s", disk.id, task.operation_id)
+    operation_wait_completed = await wait_delete_operation(task.operation_id, config)
     if not operation_wait_completed:
         return await recheck_after_not_found(disk, config)
 
@@ -410,66 +455,157 @@ async def run_delete_task(
     return TaskResult(TaskStatus.COMPLETE)
 
 
-async def worker(
+async def complete_or_requeue_start(
     name: str,
-    queue: asyncio.Queue[DeleteTask],
+    disk: Disk,
+    requeues: int,
+    result: TaskResult,
+    config: Config,
+    start_queue: asyncio.Queue[StartDeleteTask],
+    failures: dict[str, str],
+    tracker: CleanupTracker,
+) -> None:
+    if result.status == TaskStatus.COMPLETE:
+        tracker.complete_disk()
+        return
+
+    if requeues >= config.max_requeue:
+        failures[disk.id] = result.reason
+        logger.error(
+            "%s: disk %s exceeded max requeue (%d): %s",
+            name,
+            disk.id,
+            config.max_requeue,
+            result.reason,
+        )
+        tracker.complete_disk()
+        return
+
+    delay = requeue_delay(config, requeues)
+    logger.warning(
+        "%s: requeue disk %s in %.2fs (%d/%d): %s",
+        name,
+        disk.id,
+        delay,
+        requeues + 1,
+        config.max_requeue,
+        result.reason,
+    )
+    await asyncio.sleep(delay)
+    start_queue.put_nowait(StartDeleteTask(disk=disk, requeues=requeues + 1))
+
+
+async def start_worker(
+    name: str,
+    start_queue: asyncio.Queue[StartDeleteTask],
+    wait_queue: asyncio.Queue[WaitDeleteTask],
     config: Config,
     start_limiter: StartRateLimiter,
     failures: dict[str, str],
+    tracker: CleanupTracker,
 ) -> None:
     while True:
-        task = await queue.get()
+        task = await start_queue.get()
         disk = task.disk
         try:
-            result = await run_delete_task(task, config, start_limiter)
+            result = await run_start_delete_task(task, config, start_limiter)
         except Exception as exc:
             result = TaskResult(TaskStatus.REQUEUE, str(exc))
 
-        if result.status == TaskStatus.REQUEUE:
-            if task.requeues >= config.max_requeue:
-                failures[disk.id] = result.reason
-                logger.error(
-                    "%s: disk %s exceeded max requeue (%d): %d",
-                    name,
-                    disk.id,
-                    config.max_requeue,
-                    result.reason,
-                )
-            else:
-                delay = requeue_delay(config, task.requeues)
-                logger.warning(
-                    "%s: requeue disk %s in %.2fs (%d/%d): %s",
-                    name,
-                    disk.id,
-                    delay,
-                    task.requeues + 1,
-                    config.max_requeue,
-                    result.reason,
-                )
-                await asyncio.sleep(delay)
-                queue.put_nowait(DeleteTask(disk=disk, requeues=task.requeues + 1))
+        if isinstance(result, WaitDeleteTask):
+            wait_queue.put_nowait(result)
+        else:
+            await complete_or_requeue_start(
+                name,
+                disk,
+                task.requeues,
+                result,
+                config,
+                start_queue,
+                failures,
+                tracker,
+            )
 
-        queue.task_done()
+        start_queue.task_done()
+
+
+async def wait_worker(
+    name: str,
+    start_queue: asyncio.Queue[StartDeleteTask],
+    wait_queue: asyncio.Queue[WaitDeleteTask],
+    config: Config,
+    failures: dict[str, str],
+    tracker: CleanupTracker,
+) -> None:
+    while True:
+        task = await wait_queue.get()
+        try:
+            result = await run_wait_delete_task(task, config)
+        except Exception as exc:
+            result = TaskResult(TaskStatus.REQUEUE, str(exc))
+
+        await complete_or_requeue_start(
+            name,
+            task.disk,
+            task.requeues,
+            result,
+            config,
+            start_queue,
+            failures,
+            tracker,
+        )
+        wait_queue.task_done()
 
 
 async def cleanup_disks(config: Config, disks: list[Disk]) -> int:
-    queue: asyncio.Queue[DeleteTask] = asyncio.Queue()
+    start_queue: asyncio.Queue[StartDeleteTask] = asyncio.Queue()
+    wait_queue: asyncio.Queue[WaitDeleteTask] = asyncio.Queue()
     for disk in disks:
-        queue.put_nowait(DeleteTask(disk=disk))
+        start_queue.put_nowait(StartDeleteTask(disk=disk))
 
     failures: dict[str, str] = {}
-    worker_count = min(config.parallelism, len(disks))
+    start_worker_count = min(config.start_delete_parallelism, len(disks))
+    wait_worker_count = len(disks)
     start_limiter = StartRateLimiter(config.start_rate_per_second)
+    tracker = CleanupTracker(len(disks))
+
+    logger.info(
+        "Disk cleanup workers: start_delete=%d, wait_delete=%d",
+        start_worker_count,
+        wait_worker_count,
+    )
+
     workers = [
         asyncio.create_task(
-            worker(f"worker-{index + 1}", queue, config, start_limiter, failures)
+            start_worker(
+                f"start-worker-{index + 1}",
+                start_queue,
+                wait_queue,
+                config,
+                start_limiter,
+                failures,
+                tracker,
+            )
         )
-        for index in range(worker_count)
+        for index in range(start_worker_count)
     ]
+    workers.extend(
+        asyncio.create_task(
+            wait_worker(
+                f"wait-worker-{index + 1}",
+                start_queue,
+                wait_queue,
+                config,
+                failures,
+                tracker,
+            )
+        )
+        for index in range(wait_worker_count)
+    )
 
-    await queue.join()
-    for task in workers:
-        task.cancel()
+    await tracker.wait_done()
+    for worker_task in workers:
+        worker_task.cancel()
     await asyncio.gather(*workers, return_exceptions=True)
 
     if failures:
@@ -483,9 +619,9 @@ async def cleanup_disks(config: Config, disks: list[Disk]) -> int:
 async def async_main() -> int:
     config = load_config()
     logger.info(
-        "Disk cleanup config: parallelism=%d, page_size=%d, cli_retries=%d, "
+        "Disk cleanup config: start_delete_parallelism=%d, page_size=%d, cli_retries=%d, "
         "max_requeue=%d, start_rate_per_second=%.2f",
-        config.parallelism,
+        config.start_delete_parallelism,
         config.page_size,
         config.cli_retries,
         config.max_requeue,
