@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import json
+import logging
 import os
 import random
 import sys
@@ -29,6 +30,18 @@ DEFAULT_INITIAL_REQUEUE_BACKOFF_SECONDS: Final[float] = 1.0
 DEFAULT_MAX_REQUEUE_BACKOFF_SECONDS: Final[float] = 60.0
 DEFAULT_START_RATE_PER_SECOND: Final[float] = 100.0
 DEFAULT_OPERATION_WAIT_TIMEOUT: Final[str] = "5m"
+
+logger = logging.getLogger("disk_cleanup")
+
+
+def configure_logging() -> None:
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+
+    logger.handlers.clear()
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
 
 
 class CleanupError(Exception):
@@ -268,10 +281,11 @@ async def list_disks(config: Config) -> list[Disk]:
                 result.append(disk)
 
         page_token = payload.get("next_page_token") or ""
-        print(
-            f"Scanned disk page {page_number}: {len(items)} items, "
-            f"{len(result)} cleanup candidates so far",
-            flush=True,
+        logger.info(
+            "Scanned disk page %d: %d items, %d cleanup candidates so far",
+            page_number,
+            len(items),
+            len(result),
         )
         if not page_token:
             return result
@@ -360,7 +374,7 @@ async def wait_delete_operation(
 async def recheck_after_not_found(disk: Disk, config: Config) -> TaskResult:
     exists = await disk_exists(disk, config)
     if not exists:
-        print(f"Disk {disk.id} is absent; task complete", flush=True)
+        logger.info("Disk %s is absent; task complete", disk.id)
         return TaskResult(TaskStatus.COMPLETE)
     return TaskResult(TaskStatus.REQUEUE, "disk still exists after not-found response")
 
@@ -374,24 +388,25 @@ async def run_delete_task(
 
     exists = await disk_exists(disk, config)
     if not exists:
-        print(f"Disk {disk.id} is already absent; task complete", flush=True)
+        logger.info("Disk %s is already absent; task complete", disk.id)
         return TaskResult(TaskStatus.COMPLETE)
 
-    print(
-        f"Starting deletion of leftover disk {disk.id} "
-        f"({disk.namespace}/{disk.name})",
-        flush=True,
+    logger.info(
+        "Starting deletion of leftover disk %s (%s/%s)",
+        disk.id,
+        disk.namespace,
+        disk.name,
     )
     operation_id = await start_delete_operation(disk, config, start_limiter)
     if operation_id is None:
         return await recheck_after_not_found(disk, config)
 
-    print(f"Waiting for disk {disk.id} delete operation {operation_id}", flush=True)
+    logger.info("Waiting for disk %s delete operation %s", disk.id, operation_id)
     operation_wait_completed = await wait_delete_operation(operation_id, config)
     if not operation_wait_completed:
         return await recheck_after_not_found(disk, config)
 
-    print(f"Deleted leftover disk {disk.id}", flush=True)
+    logger.info("Deleted leftover disk %s", disk.id)
     return TaskResult(TaskStatus.COMPLETE)
 
 
@@ -413,18 +428,23 @@ async def worker(
         if result.status == TaskStatus.REQUEUE:
             if task.requeues >= config.max_requeue:
                 failures[disk.id] = result.reason
-                print(
-                    f"{name}: disk {disk.id} exceeded max requeue "
-                    f"({config.max_requeue}): {result.reason}",
-                    file=sys.stderr,
-                    flush=True,
+                logger.error(
+                    "%s: disk %s exceeded max requeue (%d): %d",
+                    name,
+                    disk.id,
+                    config.max_requeue,
+                    result.reason,
                 )
             else:
                 delay = requeue_delay(config, task.requeues)
-                print(
-                    f"{name}: requeue disk {disk.id} in {delay:.1f}s "
-                    f"({task.requeues + 1}/{config.max_requeue}): {result.reason}",
-                    flush=True,
+                logger.warning(
+                    "%s: requeue disk %s in %.2fs (%d/%d): %s",
+                    name,
+                    disk.id,
+                    delay,
+                    task.requeues + 1,
+                    config.max_requeue,
+                    result.reason,
                 )
                 await asyncio.sleep(delay)
                 queue.put_nowait(DeleteTask(disk=disk, requeues=task.requeues + 1))
@@ -453,42 +473,44 @@ async def cleanup_disks(config: Config, disks: list[Disk]) -> int:
     await asyncio.gather(*workers, return_exceptions=True)
 
     if failures:
-        print("Failed disk deletions:", file=sys.stderr)
+        logger.error("Failed disk deletions:")
         for disk_id, error in sorted(failures.items()):
-            print(f"- {disk_id}: {error}", file=sys.stderr)
+            logger.error("- %s: %s", disk_id, error)
         return 1
     return 0
 
 
 async def async_main() -> int:
     config = load_config()
-    print(
-        "Disk cleanup config: "
-        f"parallelism={config.parallelism}, "
-        f"page_size={config.page_size}, "
-        f"cli_retries={config.cli_retries}, "
-        f"max_requeue={config.max_requeue}, "
-        f"start_rate_per_second={config.start_rate_per_second}",
-        flush=True,
+    logger.info(
+        "Disk cleanup config: parallelism=%d, page_size=%d, cli_retries=%d, "
+        "max_requeue=%d, start_rate_per_second=%.2f",
+        config.parallelism,
+        config.page_size,
+        config.cli_retries,
+        config.max_requeue,
+        config.start_rate_per_second,
     )
 
     disks = await list_disks(config)
     if not disks:
-        print("No leftover disks to delete", flush=True)
+        logger.info("No leftover disks to delete")
         return 0
 
-    print(f"Found {len(disks)} leftover disks to delete", flush=True)
+    logger.info("Found %d leftover disks to delete", len(disks))
     return await cleanup_disks(config, disks)
 
 
 def main() -> int:
+    configure_logging()
+
     try:
         return asyncio.run(async_main())
     except CleanupError as error:
-        print(str(error), file=sys.stderr)
+        logger.error("%s", error)
         return 1
     except KeyboardInterrupt:
-        print("Interrupted", file=sys.stderr)
+        logger.error("Interrupted")
         return 130
 
 
