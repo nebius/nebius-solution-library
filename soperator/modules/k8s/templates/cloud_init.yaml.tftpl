@@ -302,6 +302,7 @@ write_files:
       mdadm --create "$${MD_DEV}" \
         --level=0 \
         --raid-devices="$${DISK_COUNT}" \
+        --force \
         "$${NVME_DISKS[@]}"
 
       udevadm settle
