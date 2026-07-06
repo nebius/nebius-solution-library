@@ -416,8 +416,8 @@ slurm_nodeset_workers = [
       disk_type       = "NETWORK_SSD"
       filesystem_type = "ext4"
     }]
-    # Whether to create extra node-local disks for storing Docker/Enroot images and container filesystems on each worker node.
-    # Disabled by default. Enable this only when you want dedicated image-storage disks instead of direct SquashFS startup.
+    # Whether to create node-local disks for storing images and container filesystems on each worker node, which are required for Docker container runtime to work.
+    # If disabled, only Enroot containers will work.
     # NOTE: `size` must be divisible by 93Gi - https://docs.nebius.com/compute/storage/types#disks-types.
     # ---
     node_local_image_disk = {
