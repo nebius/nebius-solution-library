@@ -1,6 +1,7 @@
 locals {
   gb300_disabled_active_checks = toset([
     "extensive-check",
+    "mem-perf",
   ])
 
   gb300_active_checks_overrides = merge(
