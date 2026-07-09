@@ -268,6 +268,7 @@ module "k8s" {
   login_public_ip = var.slurm_login_public_ip
 
   k8s_version                  = var.k8s_version
+  node_group_version           = var.node_group_version
   name                         = local.k8s_cluster_name
   company_name                 = var.company_name
   platform_driver_presets      = var.platform_driver_presets

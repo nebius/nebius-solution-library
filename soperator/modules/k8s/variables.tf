@@ -23,6 +23,11 @@ variable "k8s_version" {
   default     = null
 }
 
+variable "node_group_version" {
+  description = "Nebius version of node group. Contains bundle of different component versions, e.g. driver, linux_kernel, doca, etc."
+  type        = string
+}
+
 variable "name" {
   description = "Name of the k8s cluster."
   type        = string
