@@ -299,13 +299,28 @@ write_files:
         mdadm --stop "$${MD_DEV}" || true
       fi
 
+      for d in "$${NVME_DISKS[@]}"; do
+        echo "Preparing $${d}"
+      
+        if lsblk -nr -o MOUNTPOINT "$${d}" | grep -q .; then
+          echo "Refusing to wipe mounted device: $${d}"
+          lsblk "$${d}"
+          exit 1
+        fi
+      
+        mdadm --zero-superblock --force "$${d}" 2>/dev/null || true
+        wipefs --all --force "$${d}"
+        blockdev --rereadpt "$${d}" 2>/dev/null || true
+      done
+      
+      udevadm settle
+      
       mdadm --create "$${MD_DEV}" \
         --level=0 \
         --raid-devices="$${DISK_COUNT}" \
+        --run \
         --force \
         "$${NVME_DISKS[@]}"
-
-      udevadm settle
 
       "$${MKFS_CMD[@]}" "$${MD_DEV}"
 
