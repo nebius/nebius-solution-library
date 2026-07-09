@@ -49,7 +49,7 @@ locals {
 
   active_checks_on_worker_nodes = local.gb300_enabled
 
-  soperator_active_checks_gpu_counts = distinct([for worker in var.resources.worker : worker.gpus if worker.gpus > 0])
+  soperator_active_checks_gpu_counts = distinct([for worker in var.node_capacity.worker : worker.gpus if worker.gpus > 0])
   // We don't support heterogenous clusters with mixed number of GPUs (or basically GB series mixed with the rest) yet.
   // So taking the first GPU count is fine for now.
   soperator_active_checks_gpus_per_node = length(local.soperator_active_checks_gpu_counts) == 1 ? tostring(local.soperator_active_checks_gpu_counts[0]) : null
@@ -78,7 +78,7 @@ locals {
     worker = {
       name        = module.labels.name_nodeset_worker
       matches     = [module.labels.name_nodeset_worker]
-      gpu_present = length([for i in range(length(var.node_count.worker)) : var.resources.worker[i].gpus]) > 0
+      gpu_present = length([for i in range(length(var.node_count.worker)) : var.node_capacity.worker[i].gpus]) > 0
     }
     login = {
       name  = module.labels.name_nodeset_login
@@ -115,63 +115,27 @@ locals {
       memory            = 0.5
       ephemeral_storage = 5
     }
-    exporter = {
-      cpu               = var.resources.exporter != null ? var.resources.exporter.cpu_cores : 0.25
-      memory            = var.resources.exporter != null ? var.resources.exporter.memory_gibibytes : 0.25
-      ephemeral_storage = var.resources.exporter != null ? var.resources.exporter.ephemeral_storage_gibibytes : 0.5
-    }
-    rest = {
-      cpu               = var.resources.rest != null ? var.resources.rest.cpu_cores : 2
-      memory            = var.resources.rest != null ? var.resources.rest.memory_gibibytes : 8
-      ephemeral_storage = var.resources.rest != null ? var.resources.rest.ephemeral_storage_gibibytes : 0.5
-    }
-    mariadb = {
-      cpu               = var.resources.mariadb != null ? var.resources.mariadb.cpu_cores : 2
-      memory            = var.resources.mariadb != null ? var.resources.mariadb.memory_gibibytes : 12
-      ephemeral_storage = var.resources.mariadb != null ? var.resources.mariadb.ephemeral_storage_gibibytes : 16
-    }
-    node_configurator = {
-      limits = {
-        memory = var.resources.node_configurator != null ? var.resources.node_configurator.limits.memory_gibibytes : 0.25
-      }
-      requests = {
-        memory = var.resources.node_configurator != null ? var.resources.node_configurator.requests.memory_gibibytes : 0.25
-        cpu    = var.resources.node_configurator != null ? var.resources.node_configurator.requests.cpu_cores : 0.5
-      }
-    }
-    slurm_operator = {
-      limits = {
-        memory = var.resources.slurm_operator != null ? var.resources.slurm_operator.limits.memory_gibibytes : 2
-      }
-      requests = {
-        memory = var.resources.slurm_operator != null ? var.resources.slurm_operator.requests.memory_gibibytes : 2
-        cpu    = var.resources.slurm_operator != null ? var.resources.slurm_operator.requests.cpu_cores : 1
-      }
-    }
-    slurm_checks = {
-      limits = {
-        memory = var.resources.slurm_checks != null ? var.resources.slurm_checks.limits.memory_gibibytes : 2
-      }
-      requests = {
-        memory = var.resources.slurm_checks != null ? var.resources.slurm_checks.requests.memory_gibibytes : 2
-        cpu    = var.resources.slurm_checks != null ? var.resources.slurm_checks.requests.cpu_cores : 0.5
-      }
-    }
-    kruise_daemon = {
-      cpu    = var.resources.kruise_daemon != null ? var.resources.kruise_daemon.cpu_cores : 0.05
-      memory = var.resources.kruise_daemon != null ? var.resources.kruise_daemon.memory_gibibytes : 0.128
-    }
-    dcgm_exporter = {
-      cpu    = var.resources.dcgm_exporter != null ? var.resources.dcgm_exporter.cpu_cores : 0.05
-      memory = var.resources.dcgm_exporter != null ? var.resources.dcgm_exporter.memory_gibibytes : 0.5
-    }
+    # System/observability components are sized by the sizing tier,
+    # with per-component overrides merged inside ../sizing_tier (see var.component_overrides).
+    # local.selected_preset is the post-merge result.
+    exporter          = local.selected_preset.exporter
+    rest              = local.selected_preset.rest
+    mariadb           = local.selected_preset.mariadb
+    node_configurator = local.selected_preset.node_configurator
+    slurm_operator    = local.selected_preset.slurm_operator
+    slurm_checks      = local.selected_preset.slurm_checks
+    kruise_daemon     = local.selected_preset.kruise_daemon
+    dcgm_exporter     = local.selected_preset.dcgm_exporter
+    spo               = local.selected_preset.spo
+    # The NFS server pod fills its dedicated node, so when an NFS nodeset exists
+    # its node capacity (var.node_capacity.nfs) wins over the tier value.
     nfs_server = {
       limits = {
-        memory = var.resources.nfs != null ? var.resources.nfs.memory_gibibytes : 1
+        memory = var.node_capacity.nfs != null ? var.node_capacity.nfs.memory_gibibytes : local.selected_preset.nfs_server.memory
       }
       requests = {
-        memory = var.resources.nfs != null ? var.resources.nfs.memory_gibibytes : 1
-        cpu    = var.resources.nfs != null ? var.resources.nfs.cpu_cores : 1
+        memory = var.node_capacity.nfs != null ? var.node_capacity.nfs.memory_gibibytes : local.selected_preset.nfs_server.memory
+        cpu    = var.node_capacity.nfs != null ? var.node_capacity.nfs.cpu_cores : local.selected_preset.nfs_server.cpu
       }
     }
   }
@@ -194,6 +158,13 @@ locals {
       : null
     )
   )
+
+  # Total declared worker nodes across all worker nodesets. Drives the sizing tier.
+  worker_count = length(var.node_count.worker) > 0 ? sum(var.node_count.worker) : 0
+
+  # Sizing tier + effective per-component preset (tier column with var.component_overrides already merged).
+  sizing_tier     = module.sizing.sizing_tier
+  selected_preset = module.sizing.preset
 
   opentelemetry_batch_enabled = (
     var.opentelemetry_batch != null

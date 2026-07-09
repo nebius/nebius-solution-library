@@ -245,7 +245,7 @@ slurm_nodeset_system = {
   max_size = 24
   resource = {
     platform = "cpu-d3"
-    preset   = "32vcpu-128gb"
+    # preset omitted -> driven by sizing_tier. Set a preset to override.
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -254,61 +254,20 @@ slurm_nodeset_system = {
   }
 }
 
-# Components that will be deployed on system node groups.
-# Their resources should fit the slurm_nodeset_system.
-# Defaults are for big clusters.
-system_resources = {
-  rest = {
-    cpu_cores                   = 20
-    memory_gibibytes            = 120
-    ephemeral_storage_gibibytes = 5
-  }
-  exporter = {
-    cpu_cores                   = 4
-    memory_gibibytes            = 4
-    ephemeral_storage_gibibytes = 2
-  }
-  mariadb = {
-    cpu_cores                   = 8
-    memory_gibibytes            = 48
-    ephemeral_storage_gibibytes = 32
-  }
-  node_configurator = {
-    requests = {
-      cpu_cores        = 0.5
-      memory_gibibytes = 0.25
-    }
-    limits = {
-      memory_gibibytes = 0.25
-    }
-  }
-  slurm_operator = {
-    requests = {
-      cpu_cores        = 1
-      memory_gibibytes = 4
-    }
-    limits = {
-      memory_gibibytes = 4
-    }
-  }
-  slurm_checks = {
-    requests = {
-      cpu_cores        = 1
-      memory_gibibytes = 4
-    }
-    limits = {
-      memory_gibibytes = 4
-    }
-  }
-  kruise_daemon = {
-    cpu_cores        = 1
-    memory_gibibytes = 4
-  }
-  dcgm_exporter = {
-    cpu_cores        = 0.05
-    memory_gibibytes = 0.5
-  }
-}
+# Sizing tier override. The sizing tier is a single knob that scales all system/observability
+# component resources (kruise, VM stack, SPO, collectors, REST, mariadb, ...) and CPU node
+# presets by cluster size. null (default) auto-derives the tier from the worker node count;
+# set "XS".."XL" to force it.
+# Tier boundaries and per-tier values: soperator/modules/sizing_tier/main.tf.
+sizing_tier_override = null
+
+# Optional per-component overrides ON TOP of the sizing tier (an entry replaces that
+# component's tier value wholesale; unset components keep their tier values). Same shape
+# as the component_presets table referenced above. Example:
+# component_overrides = {
+#   rest      = { cpu = 20, memory = 120, ephemeral_storage = 5 }
+#   vm_single = { cpu = "25000m", memory = "24Gi", size = "512Gi", gomaxprocs = 25 }
+# }
 
 # Configuration of Slurm Controller node set.
 # ---
@@ -316,7 +275,7 @@ slurm_nodeset_controller = {
   size = 1
   resource = {
     platform = "cpu-d3"
-    preset   = "16vcpu-64gb"
+    # preset omitted -> driven by sizing_tier. Set a preset to override.
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -472,7 +431,7 @@ slurm_nodeset_login = {
 slurm_nodeset_accounting = {
   resource = {
     platform = "cpu-d3"
-    preset   = "32vcpu-128gb"
+    # preset omitted -> driven by sizing_tier. Set a preset to override.
   }
   boot_disk = {
     type                 = "NETWORK_SSD"
@@ -487,7 +446,7 @@ slurm_nodeset_nfs = {
   size = 1
   resource = {
     platform = "cpu-d3"
-    preset   = "128vcpu-512gb"
+    # preset omitted -> driven by sizing_tier. Set a preset to override.
   }
   boot_disk = {
     type                 = "NETWORK_SSD"

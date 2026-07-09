@@ -200,9 +200,9 @@ resource "helm_release" "soperator_fluxcd_cm" {
           slurmdbd_config = var.slurmdbd_config
           slurm_config    = var.slurm_accounting_config
           resources = var.accounting_enabled ? {
-            cpu               = var.resources.accounting.cpu_cores - local.resources.munge.cpu - local.resources.mariadb.cpu
-            memory            = var.resources.accounting.memory_gibibytes - local.resources.munge.memory - local.resources.mariadb.memory
-            ephemeral_storage = var.resources.accounting.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage - local.resources.mariadb.ephemeral_storage
+            cpu               = var.node_capacity.accounting.cpu_cores - local.resources.munge.cpu - local.resources.mariadb.cpu
+            memory            = var.node_capacity.accounting.memory_gibibytes - local.resources.munge.memory - local.resources.mariadb.memory
+            ephemeral_storage = var.node_capacity.accounting.ephemeral_storage_gibibytes - local.resources.munge.ephemeral_storage - local.resources.mariadb.ephemeral_storage
           } : null
         }
 
@@ -210,19 +210,19 @@ resource "helm_release" "soperator_fluxcd_cm" {
           size = var.node_count.controller
           resources = {
             cpu = floor(
-              var.resources.controller.cpu_cores
+              var.node_capacity.controller.cpu_cores
               -local.resources.munge.cpu
               -(var.sssd_enabled ? local.resources.sssd.cpu : 0)
               -local.resources.kruise_daemon.cpu
             )
             memory = floor(
-              var.resources.controller.memory_gibibytes
+              var.node_capacity.controller.memory_gibibytes
               -local.resources.munge.memory
               -(var.sssd_enabled ? local.resources.sssd.memory : 0)
               -local.resources.kruise_daemon.memory
             )
             ephemeral_storage = floor(
-              var.resources.controller.ephemeral_storage_gibibytes
+              var.node_capacity.controller.ephemeral_storage_gibibytes
               -local.resources.munge.ephemeral_storage
               -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
             )
@@ -233,21 +233,21 @@ resource "helm_release" "soperator_fluxcd_cm" {
           size = 0
           resources = {
             cpu = floor(
-              var.resources.worker[0].cpu_cores
+              var.node_capacity.worker[0].cpu_cores
               -local.resources.munge.cpu
               -(var.sssd_enabled ? local.resources.sssd.cpu : 0)
             ) - local.resources.kruise_daemon.cpu
             memory = floor(
-              var.resources.worker[0].memory_gibibytes
+              var.node_capacity.worker[0].memory_gibibytes
               -local.resources.munge.memory
               -(var.sssd_enabled ? local.resources.sssd.memory : 0)
             ) - local.resources.kruise_daemon.memory
             ephemeral_storage = floor(
-              var.resources.worker[0].ephemeral_storage_gibibytes
+              var.node_capacity.worker[0].ephemeral_storage_gibibytes
               -local.resources.munge.ephemeral_storage
               -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
             )
-            gpus = var.resources.worker[0].gpus
+            gpus = var.node_capacity.worker[0].gpus
           }
           shared_memory            = var.shared_memory_size_gibibytes
           slurm_node_extra         = local.slurm_node_extra
@@ -263,19 +263,19 @@ resource "helm_release" "soperator_fluxcd_cm" {
           public_ip                = var.login_public_ip
           resources = {
             cpu = floor(
-              var.resources.login.cpu_cores
+              var.node_capacity.login.cpu_cores
               -local.resources.munge.cpu
               -(var.sssd_enabled ? local.resources.sssd.cpu : 0)
               -local.resources.kruise_daemon.cpu
             )
             memory = floor(
-              var.resources.login.memory_gibibytes
+              var.node_capacity.login.memory_gibibytes
               -local.resources.munge.memory
               -(var.sssd_enabled ? local.resources.sssd.memory : 0)
               -local.resources.kruise_daemon.memory
             )
             ephemeral_storage = floor(
-              var.resources.login.ephemeral_storage_gibibytes
+              var.node_capacity.login.ephemeral_storage_gibibytes
               -local.resources.munge.ephemeral_storage
               -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
             )
@@ -322,18 +322,20 @@ resource "helm_release" "soperator_fluxcd_cm" {
     }
 
     resources = {
-      vm_single               = var.resources_vm_single
-      vm_agent                = var.resources_vm_agent
-      vm_logs                 = var.resources_vm_logs_server
-      logs_collector          = var.resources_logs_collector
-      jail_logs_collector     = var.resources_jail_logs_collector
-      events_collector        = var.resources_events_collector
-      nccl_profiles_collector = var.resources_nccl_profiles_collector
+      vm_single               = local.selected_preset.vm_single
+      vm_agent                = local.selected_preset.vm_agent
+      vm_logs                 = local.selected_preset.vm_logs
+      logs_collector          = local.selected_preset.logs_collector
+      jail_logs_collector     = local.selected_preset.jail_logs_collector
+      events_collector        = local.selected_preset.events_collector
+      nccl_profiles_collector = local.selected_preset.nccl_profiles_collector
       node_configurator       = local.resources.node_configurator
       slurm_operator          = local.resources.slurm_operator
       slurm_checks            = local.resources.slurm_checks
       dcgm_exporter           = local.resources.dcgm_exporter
       nfs_server              = local.resources.nfs_server
+      spo                     = local.resources.spo
+      kruise_manager          = local.selected_preset.kruise_manager
     }
 
     vm_agent_queue_count = local.vm_agent_queue_count
