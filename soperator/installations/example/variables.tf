@@ -430,6 +430,12 @@ variable "k8s_version" {
   }
 }
 
+variable "node_group_version" {
+  description = "Version of the node group to be used. Contains bundle of different component versions, e.g. driver, linux_kernel, doca, etc."
+  type        = string
+}
+
+
 variable "platform_cuda_versions" {
   description = "Per-platform CUDA versions consumed by Slurm/operator (e.g., 12.8.2). Keys are platform IDs (e.g., gpu-h100-sxm)."
   type        = map(string)

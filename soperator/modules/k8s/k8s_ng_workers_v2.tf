@@ -51,7 +51,7 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
   parent_id = nebius_mk8s_v1_cluster.this.id
 
-  version = var.k8s_version
+  version = "${var.k8s_version}-nebius-node.${var.node_group_version}"
 
   # Prefer the generated node_group_name from the installation layer. Fall back
   # to the historical <nodeset>-<subset> name for callers that do not provide it.
