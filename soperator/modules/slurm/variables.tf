@@ -110,8 +110,58 @@ variable "node_count" {
 
 # region Resources
 
-variable "resources" {
-  description = "Resources of Slurm nodes."
+variable "sizing_tier_override" {
+  description = <<-EOT
+    Force the sizing tier that dispatches system/observability component resources.
+    One of XS, S, M, L, XL; null (default) auto-derives the tier from the total worker node count.
+    Tier boundaries and per-tier values: ../sizing_tier/main.tf.
+  EOT
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.sizing_tier_override == null ? true : contains(["XS", "S", "M", "L", "XL"], var.sizing_tier_override)
+    error_message = "sizing_tier_override must be one of: XS, S, M, L, XL."
+  }
+}
+
+variable "component_overrides" {
+  description = <<-EOT
+    Optional per-component resource overrides applied on top of the sizing tier
+    (an entry replaces that component's tier value wholesale). Same shape as the
+    component_presets table in ../sizing_tier/main.tf. Leave empty to let
+    the sizing tier drive everything.
+  EOT
+  type = object({
+    exporter                = optional(object({ cpu = number, memory = number, ephemeral_storage = number }))
+    rest                    = optional(object({ cpu = number, memory = number, ephemeral_storage = number }))
+    mariadb                 = optional(object({ cpu = number, memory = number, ephemeral_storage = number }))
+    node_configurator       = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
+    slurm_operator          = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
+    slurm_checks            = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
+    kruise_daemon           = optional(object({ cpu = number, memory = number }))
+    dcgm_exporter           = optional(object({ cpu = number, memory = number }))
+    nfs_server              = optional(object({ cpu = number, memory = number }))
+    spo                     = optional(object({ daemon = object({ cpu = string, memory = string }), controller = object({ cpu = string, memory = string }) }))
+    kruise_manager          = optional(object({ cpu = string, memory = string }))
+    vm_single               = optional(object({ memory = string, cpu = string, size = string, gomaxprocs = number }))
+    vm_agent                = optional(object({ memory = string, cpu = string }))
+    vm_logs                 = optional(object({ memory = string, cpu = string, size = string }))
+    events_collector        = optional(object({ memory = string, cpu = string }))
+    logs_collector          = optional(object({ memory = string, cpu = string }))
+    jail_logs_collector     = optional(object({ memory = string, cpu = string }))
+    nccl_profiles_collector = optional(object({ memory = string, cpu = string }))
+  })
+  default  = {}
+  nullable = false
+}
+
+variable "node_capacity" {
+  description = <<-EOT
+    Available capacity of the node VMs backing each Slurm nodeset (computed by the caller from the chosen VM presets,
+    minus k8s reserves). Not an override surface: Slurm node pods are sized to fill these nodes (capacity minus sidecars).
+    For per-component pod sizing on top of the sizing tier, use component_overrides.
+  EOT
   type = object({
     system = object({
       cpu_cores                   = number
@@ -139,56 +189,6 @@ variable "resources" {
       memory_gibibytes            = number
       ephemeral_storage_gibibytes = number
     }))
-    rest = optional(object({
-      cpu_cores                   = number
-      memory_gibibytes            = number
-      ephemeral_storage_gibibytes = number
-    }))
-    exporter = optional(object({
-      cpu_cores                   = number
-      memory_gibibytes            = number
-      ephemeral_storage_gibibytes = number
-    }))
-    mariadb = optional(object({
-      cpu_cores                   = number
-      memory_gibibytes            = number
-      ephemeral_storage_gibibytes = number
-    }))
-    node_configurator = optional(object({
-      requests = object({
-        cpu_cores        = number
-        memory_gibibytes = number
-      })
-      limits = object({
-        memory_gibibytes = number
-      })
-    }))
-    slurm_operator = optional(object({
-      requests = object({
-        cpu_cores        = number
-        memory_gibibytes = number
-      })
-      limits = object({
-        memory_gibibytes = number
-      })
-    }))
-    slurm_checks = optional(object({
-      requests = object({
-        cpu_cores        = number
-        memory_gibibytes = number
-      })
-      limits = object({
-        memory_gibibytes = number
-      })
-    }))
-    kruise_daemon = optional(object({
-      cpu_cores        = number
-      memory_gibibytes = number
-    }))
-    dcgm_exporter = optional(object({
-      cpu_cores        = number
-      memory_gibibytes = number
-    }))
     nfs = optional(object({
       cpu_cores        = number
       memory_gibibytes = number
@@ -196,7 +196,7 @@ variable "resources" {
   })
 
   validation {
-    condition     = length(var.resources.worker) > 0
+    condition     = length(var.node_capacity.worker) > 0
     error_message = "At least one worker node must be provided."
   }
 
@@ -205,7 +205,7 @@ variable "resources" {
 resource "terraform_data" "check_worker_nodesets" {
   lifecycle {
     precondition {
-      condition     = length(var.node_count.worker) == length(var.resources.worker)
+      condition     = length(var.node_count.worker) == length(var.node_capacity.worker)
       error_message = "Worker node set resources must accord to the worker node count."
     }
   }
@@ -701,89 +701,8 @@ variable "resources_vm_operator" {
   }
 }
 
-variable "resources_vm_logs_server" {
-  type = object({
-    memory = string
-    cpu    = string
-    size   = string
-  })
-  default = {
-    memory = "2Gi"
-    cpu    = "1000m"
-    size   = "256Gi"
-  }
-}
-
-variable "resources_vm_single" {
-  type = object({
-    memory     = string
-    cpu        = string
-    size       = string
-    gomaxprocs = number
-  })
-  default = {
-    memory     = "24Gi"
-    cpu        = "6000m"
-    size       = "512Gi"
-    gomaxprocs = 6
-  }
-}
-
-variable "resources_vm_agent" {
-  type = object({
-    memory = string
-    cpu    = string
-  })
-  default = {
-    memory = "10Gi"
-    cpu    = "5000m"
-  }
-}
-
-variable "resources_events_collector" {
-  type = object({
-    memory = string
-    cpu    = string
-  })
-  default = {
-    memory = "128Mi"
-    cpu    = "100m"
-  }
-}
-
-
-variable "resources_logs_collector" {
-  type = object({
-    memory = string
-    cpu    = string
-  })
-  default = {
-    memory = "200Mi"
-    cpu    = "200m"
-  }
-}
-
-variable "resources_jail_logs_collector" {
-  type = object({
-    memory = string
-    cpu    = string
-  })
-  default = {
-    memory = "1Gi"
-    cpu    = "1000m"
-  }
-}
-
-variable "resources_nccl_profiles_collector" {
-  type = object({
-    memory = string
-    cpu    = string
-  })
-  default = {
-    memory = "200Mi"
-    cpu    = "500m"
-  }
-}
+# VM stack / collector resources are driven by the sizing tier
+# (../sizing_tier/main.tf); override via var.component_overrides.
 
 # endregion Monitoring
 

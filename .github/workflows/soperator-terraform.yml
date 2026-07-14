@@ -34,20 +34,6 @@ jobs:
         with:
           terraform_version: "v1.12.2"
 
-      # Check that all Terraform configuration files adhere to a canonical format
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive .
-
-      # Initialize Terraform working directory (without backend for validation)
-      - name: Terraform Init
-        run: terraform init -backend=false
-        working-directory: soperator/installations/example
-
-      # Validate terraform code in example installation
-      - name: Terraform Validate - Example Installation
-        run: terraform validate
-        working-directory: soperator/installations/example
-
-      # Validate terraform modules
+      # fmt check + init/validate of all modules and installations + module tests
       - name: Terraform Check - Modules and Installations
         run: make terraform-check

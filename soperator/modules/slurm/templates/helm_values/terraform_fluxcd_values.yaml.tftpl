@@ -170,6 +170,8 @@ resources:
               vmagent:
                 spec:
                   extraArgs:
+                    # TODO(SCHED-2105): scale with cluster size; 32MiB is too small
+                    # for kube-state-metrics past ~3.5k workers.
                     promscrape.maxScrapeSize: "33554432"
                   externalLabels:
                     iam_tenant_id: ${iam_tenant_id}
@@ -305,20 +307,22 @@ resources:
           version: ${security_profiles_operator_version}
           %{~ endif ~}
           values:
+            # SecurityProfilesOperator resources scale with cluster size; it OOM-ed on big clusters.
+            # Driven by local.resources.spo.
             daemon:
               resources:
                 limits:
-                  memory: 128Mi
+                  memory: ${resources.spo.daemon.memory}
                 requests:
-                  cpu: 100m
-                  memory: 128Mi
+                  cpu: ${resources.spo.daemon.cpu}
+                  memory: ${resources.spo.daemon.memory}
             resources:
               limits:
-                cpu: 500m
-                memory: 3Gi
+                cpu: ${resources.spo.controller.cpu}
+                memory: ${resources.spo.controller.memory}
               requests:
-                cpu: 500m
-                memory: 3Gi
+                cpu: ${resources.spo.controller.cpu}
+                memory: ${resources.spo.controller.memory}
         slurmCluster:
           enabled: true
           interval: 5m
@@ -737,10 +741,11 @@ resources:
                 enabled: ${slurm_cluster.nodes.exporter.enabled}
                 k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.system.name}
                 exporterContainer:
+                  # Rendered into the CR verbatim: k8s resource names (ephemeral-storage).
                   resources:
                     cpu: ${slurm_cluster.nodes.exporter.resources.cpu * 1000}m
                     memory: ${slurm_cluster.nodes.exporter.resources.memory}Gi
-                    ephemeralStorage: ${slurm_cluster.nodes.exporter.resources.ephemeral_storage}Gi
+                    ephemeral-storage: ${slurm_cluster.nodes.exporter.resources.ephemeral_storage}Gi
 
               rest:
                 enabled: ${slurm_cluster.nodes.rest.enabled}
@@ -909,6 +914,15 @@ resources:
                 image:
                   repository: cr.eu-north1.nebius.cloud/soperator/kruise-manager
                   tag: v1.8.3
+                # Scales with the sizing tier; the kruise manager OOM-ed on big
+                # clusters with the chart-default 1 cpu / 2Gi.
+                resources:
+                  requests:
+                    cpu: ${resources.kruise_manager.cpu}
+                    memory: ${resources.kruise_manager.memory}
+                  limits:
+                    cpu: ${resources.kruise_manager.cpu}
+                    memory: ${resources.kruise_manager.memory}
               helmHooks:
                 image:
                   repository: cr.eu-north1.nebius.cloud/soperator/kruise-helm-hook

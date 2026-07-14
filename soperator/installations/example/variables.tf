@@ -641,7 +641,7 @@ variable "slurm_nodeset_system" {
     max_size = number
     resource = object({
       platform = string
-      preset   = string
+      preset   = optional(string)
     })
     boot_disk = object({
       type                 = string
@@ -655,7 +655,7 @@ variable "slurm_nodeset_system" {
     max_size = 9
     resource = {
       platform = "cpu-d3"
-      preset   = "16vcpu-64gb"
+      # preset defaults to the sizing tier's node preset (see local.slurm_nodeset_system).
     }
     boot_disk = {
       type                 = "NETWORK_SSD"
@@ -677,60 +677,51 @@ variable "slurm_nodeset_system" {
   }
 }
 
-variable "system_resources" {
-  description = "Resources of system components."
+variable "sizing_tier_override" {
+  description = <<-EOT
+    Force the sizing tier that dispatches system/observability component resources and CPU node presets by scale.
+    One of XS, S, M, L, XL; null (default) auto-derives the tier from the total worker node count.
+    Tier boundaries and per-tier values: soperator/modules/sizing_tier/main.tf.
+  EOT
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.sizing_tier_override == null ? true : contains(["XS", "S", "M", "L", "XL"], var.sizing_tier_override)
+    error_message = "sizing_tier_override must be one of: XS, S, M, L, XL."
+  }
+}
+
+variable "component_overrides" {
+  description = <<-EOT
+    Optional per-component resource overrides applied on top of the sizing tier
+    (an entry replaces that component's tier value wholesale; unset components
+    keep their tier values). Same shape as the component_presets table in
+    soperator/modules/sizing_tier/main.tf. Leave empty to let
+    the sizing tier drive everything.
+  EOT
   type = object({
-    rest = optional(object({
-      cpu_cores                   = number
-      memory_gibibytes            = number
-      ephemeral_storage_gibibytes = number
-    }))
-    exporter = optional(object({
-      cpu_cores                   = number
-      memory_gibibytes            = number
-      ephemeral_storage_gibibytes = number
-    }))
-    mariadb = optional(object({
-      cpu_cores                   = number
-      memory_gibibytes            = number
-      ephemeral_storage_gibibytes = number
-    }))
-    node_configurator = optional(object({
-      requests = object({
-        cpu_cores        = number
-        memory_gibibytes = number
-      })
-      limits = object({
-        memory_gibibytes = number
-      })
-    }))
-    slurm_operator = optional(object({
-      requests = object({
-        cpu_cores        = number
-        memory_gibibytes = number
-      })
-      limits = object({
-        memory_gibibytes = number
-      })
-    }))
-    slurm_checks = optional(object({
-      requests = object({
-        cpu_cores        = number
-        memory_gibibytes = number
-      })
-      limits = object({
-        memory_gibibytes = number
-      })
-    }))
-    kruise_daemon = optional(object({
-      cpu_cores        = number
-      memory_gibibytes = number
-    }))
-    dcgm_exporter = optional(object({
-      cpu_cores        = number
-      memory_gibibytes = number
-    }))
+    exporter                = optional(object({ cpu = number, memory = number, ephemeral_storage = number }))
+    rest                    = optional(object({ cpu = number, memory = number, ephemeral_storage = number }))
+    mariadb                 = optional(object({ cpu = number, memory = number, ephemeral_storage = number }))
+    node_configurator       = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
+    slurm_operator          = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
+    slurm_checks            = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
+    kruise_daemon           = optional(object({ cpu = number, memory = number }))
+    dcgm_exporter           = optional(object({ cpu = number, memory = number }))
+    nfs_server              = optional(object({ cpu = number, memory = number }))
+    spo                     = optional(object({ daemon = object({ cpu = string, memory = string }), controller = object({ cpu = string, memory = string }) }))
+    kruise_manager          = optional(object({ cpu = string, memory = string }))
+    vm_single               = optional(object({ memory = string, cpu = string, size = string, gomaxprocs = number }))
+    vm_agent                = optional(object({ memory = string, cpu = string }))
+    vm_logs                 = optional(object({ memory = string, cpu = string, size = string }))
+    events_collector        = optional(object({ memory = string, cpu = string }))
+    logs_collector          = optional(object({ memory = string, cpu = string }))
+    jail_logs_collector     = optional(object({ memory = string, cpu = string }))
+    nccl_profiles_collector = optional(object({ memory = string, cpu = string }))
   })
+  default  = {}
+  nullable = false
 }
 
 variable "slurm_nodeset_controller" {
@@ -739,7 +730,7 @@ variable "slurm_nodeset_controller" {
     size = number
     resource = object({
       platform = string
-      preset   = string
+      preset   = optional(string)
     })
     boot_disk = object({
       type                 = string
@@ -752,7 +743,7 @@ variable "slurm_nodeset_controller" {
     size = 1
     resource = {
       platform = "cpu-d3"
-      preset   = "16vcpu-64gb"
+      # preset defaults to the sizing tier's node preset (see local.slurm_nodeset_controller).
     }
     boot_disk = {
       type                 = "NETWORK_SSD"
@@ -1138,7 +1129,7 @@ variable "slurm_nodeset_accounting" {
   type = object({
     resource = object({
       platform = string
-      preset   = string
+      preset   = optional(string)
     })
     boot_disk = object({
       type                 = string
@@ -1149,7 +1140,7 @@ variable "slurm_nodeset_accounting" {
   default = {
     resource = {
       platform = "cpu-d3"
-      preset   = "8vcpu-32gb"
+      # preset defaults to the sizing tier's node preset (see local.slurm_nodeset_accounting).
     }
     boot_disk = {
       type                 = "NETWORK_SSD"
@@ -1181,7 +1172,7 @@ variable "slurm_nodeset_nfs" {
     size = number
     resource = object({
       platform = string
-      preset   = string
+      preset   = optional(string)
     })
     boot_disk = object({
       type                 = string
@@ -1203,14 +1194,14 @@ variable "slurm_nodeset_nfs" {
 
 resource "terraform_data" "check_slurm_nodeset" {
   for_each = merge({
-    "system"     = var.slurm_nodeset_system
-    "controller" = var.slurm_nodeset_controller
+    "system"     = local.slurm_nodeset_system
+    "controller" = local.slurm_nodeset_controller
     "login"      = var.slurm_nodeset_login
     }, { for i, worker in var.slurm_nodeset_workers :
     "worker_${i}" => worker
     },
-    var.slurm_nodeset_nfs != null ? {
-      "nfs" = var.slurm_nodeset_nfs
+    local.slurm_nodeset_nfs != null ? {
+      "nfs" = local.slurm_nodeset_nfs
     } : {}
   )
 
