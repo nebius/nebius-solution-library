@@ -741,11 +741,10 @@ resources:
                 enabled: ${slurm_cluster.nodes.exporter.enabled}
                 k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.system.name}
                 exporterContainer:
-                  # Rendered into the CR verbatim: k8s resource names (ephemeral-storage).
                   resources:
                     cpu: ${slurm_cluster.nodes.exporter.resources.cpu * 1000}m
                     memory: ${slurm_cluster.nodes.exporter.resources.memory}Gi
-                    ephemeral-storage: ${slurm_cluster.nodes.exporter.resources.ephemeral_storage}Gi
+                    ephemeralStorage: ${slurm_cluster.nodes.exporter.resources.ephemeral_storage}Gi
 
               rest:
                 enabled: ${slurm_cluster.nodes.rest.enabled}
