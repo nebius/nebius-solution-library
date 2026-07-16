@@ -503,6 +503,11 @@ slurm_login_ssh_root_public_keys = [
 # ---
 slurm_exporter_enabled = true
 
+# Maximum number of concurrent collections per collector in Slurm exporter.
+# By default, 1.
+# ---
+# slurm_exporter_max_collector_inflight = 1
+
 # endregion Exporter
 
 #----------------------------------------------------------------------------------------------------------------------#

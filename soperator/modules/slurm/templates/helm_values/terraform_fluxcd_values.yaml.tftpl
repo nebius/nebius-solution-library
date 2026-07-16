@@ -740,6 +740,7 @@ resources:
               exporter:
                 enabled: ${slurm_cluster.nodes.exporter.enabled}
                 k8sNodeFilterName: ${slurm_cluster.k8s_node_filters.system.name}
+                maxCollectorInflight: ${slurm_cluster.nodes.exporter.max_collector_inflight}
                 exporterContainer:
                   resources:
                     cpu: ${slurm_cluster.nodes.exporter.resources.cpu * 1000}m

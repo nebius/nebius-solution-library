@@ -549,13 +549,14 @@ module "slurm" {
   }
   nfs_node_group_enabled = local.slurm_nodeset_nfs != null
 
-  exporter_enabled         = var.slurm_exporter_enabled
-  rest_enabled             = var.slurm_rest_enabled
-  accounting_enabled       = var.accounting_enabled
-  telemetry_enabled        = var.telemetry_enabled
-  public_o11y_enabled      = var.public_o11y_enabled
-  soperator_notifier       = var.soperator_notifier
-  nccl_inspector_profiling = var.nccl_inspector_profiling
+  exporter_enabled                = var.slurm_exporter_enabled
+  exporter_max_collector_inflight = var.slurm_exporter_max_collector_inflight
+  rest_enabled                    = var.slurm_rest_enabled
+  accounting_enabled              = var.accounting_enabled
+  telemetry_enabled               = var.telemetry_enabled
+  public_o11y_enabled             = var.public_o11y_enabled
+  soperator_notifier              = var.soperator_notifier
+  nccl_inspector_profiling        = var.nccl_inspector_profiling
 
   backups_enabled = local.backups_enabled
   backups_config = {

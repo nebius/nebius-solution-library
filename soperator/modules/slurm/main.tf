@@ -283,8 +283,9 @@ resource "helm_release" "soperator_fluxcd_cm" {
         }
 
         exporter = {
-          enabled   = var.exporter_enabled
-          resources = local.resources.exporter
+          enabled                = var.exporter_enabled
+          resources              = local.resources.exporter
+          max_collector_inflight = var.exporter_max_collector_inflight
         }
 
         munge = {
