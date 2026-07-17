@@ -25,9 +25,10 @@ variable "sizing_tier_override" {
 
 variable "component_overrides" {
   description = <<-EOT
-    Optional per-component resource overrides. Each entry replaces the resolved tier's value
-    for that component wholesale and uses exactly the same shape as the component_presets table in main.tf.
-    Components left unset keep their tier values.
+    Optional per-component resource overrides. Each entry replaces the component's effective value
+    wholesale (the resolved tier's column, or the constant for non-tier-driven components) and uses
+    exactly the same shape as the component_presets / constant_presets tables in main.tf.
+    Components left unset keep their default values.
   EOT
   type = object({
     exporter                = optional(object({ cpu = number, memory = number, ephemeral_storage = number }))
@@ -36,10 +37,11 @@ variable "component_overrides" {
     node_configurator       = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
     slurm_operator          = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
     slurm_checks            = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
-    kruise_daemon           = optional(object({ cpu = number, memory = number }))
     dcgm_exporter           = optional(object({ cpu = number, memory = number }))
+    kruise_daemon           = optional(object({ cpu = number, memory = number }))
     nfs_server              = optional(object({ cpu = number, memory = number }))
-    spo                     = optional(object({ daemon = object({ cpu = string, memory = string }), controller = object({ cpu = string, memory = string }) }))
+    spo_controller          = optional(object({ cpu = string, memory = string }))
+    spo_daemon              = optional(object({ cpu = string, memory = string }))
     kruise_manager          = optional(object({ cpu = string, memory = string }))
     vm_single               = optional(object({ memory = string, cpu = string, size = string, gomaxprocs = number }))
     vm_agent                = optional(object({ memory = string, cpu = string }))
