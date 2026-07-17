@@ -1331,6 +1331,17 @@ variable "slurm_exporter_enabled" {
   default     = true
 }
 
+variable "slurm_exporter_max_collector_inflight" {
+  description = "Maximum number of concurrent collections per collector in Slurm exporter."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.slurm_exporter_max_collector_inflight >= 1
+    error_message = "slurm_exporter_max_collector_inflight must be greater than or equal to 1."
+  }
+}
+
 # endregion Exporter
 
 # region REST API
