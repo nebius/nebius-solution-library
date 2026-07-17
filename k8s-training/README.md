@@ -94,6 +94,47 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 
 
 ```
 
+### Node group roll-out strategy and capacity reservation
+
+These two optional variables control **how node groups are updated** and **where their nodes are placed against reserved capacity**. Both apply to the CPU and GPU node groups. Leave either unset (`null`, the default) to inherit the provider default.
+
+```hcl
+# How nodes are re-created when a node group's template changes (image, preset, disk, etc.)
+node_group_strategy = {
+  max_unavailable = { count = 1 } # delete-first: take up to N nodes offline, then re-create
+  max_surge       = { count = 0 } # create-first: add up to N extra nodes before removing old ones
+  drain_timeout   = "10m"         # grace period to evict pods before forced deletion
+}
+
+# Where new nodes are placed relative to reserved capacity blocks
+node_group_reservation_policy = {
+  policy          = "STRICT"                          # AUTO | STRICT | FORBID
+  reservation_ids = ["capacityblockgroup-REPLACE_ME"] # capacity block group IDs, order matters
+}
+```
+
+#### `node_group_strategy`
+
+When you change a node group's `template`, the provider re-creates its nodes. This variable sets the pace of that roll-out. Set **`count` or `percent`** within each block (not both); `max_surge` and `max_unavailable` cannot both be `0`.
+
+| Field | Meaning | Behavior |
+|---|---|---|
+| `max_surge` | Max nodes allowed **above** the desired count during the update | **create-first** — a new node is provisioned before an old one is removed. Minimizes workload disruption, but needs spare capacity/quota. |
+| `max_unavailable` | Max nodes allowed **offline at once** during the update | **delete-first** — an old node is removed before its replacement is created. Stays within existing capacity, but reduces available nodes during the roll-out. |
+| `drain_timeout` | Max time to gracefully drain (evict pods) before forced deletion | `0` or omitted = no time limit; a PodDisruptionBudget that blocks eviction can stall the roll-out. |
+
+#### `node_group_reservation_policy`
+
+Controls how nodes are placed and billed relative to your reserved **capacity block groups**.
+
+| `policy` | Behavior |
+|---|---|
+| `STRICT` | Use reserved blocks only; **fail** if none are available. Guarantees you never leave reservation billing. |
+| `AUTO` | Try reservations first, then any capacity block, then fall back to **pay-as-you-go (PAYG)**. Use for urgent scale-out beyond your reservation. |
+| `FORBID` | On-demand (PAYG) only; ignore reservations. |
+
+`reservation_ids` is an ordered list of capacity block group IDs (e.g. `["capacityblockgroup-e00..."]`).
+
 ### Nvidia Multi Instance GPU (MIG) configuration
 
 ```hcl
@@ -112,6 +153,7 @@ enable_nebius_o11y_agent = true  # Enable or disable Nebius Observability Agent 
 enable_grafana           = true  # Enable or disable Grafana® solution by Nebius used together with Nebius Observability Agent
 enable_prometheus        = false # Enable or disable Prometheus and Grafana deployment for local metric storage (not using Nebius observability stack)
 enable_loki              = false # Enable or disable Loki deployment for local logs storage (not using Nebius observability stack)
+```
 
 ### Storage configuration
 

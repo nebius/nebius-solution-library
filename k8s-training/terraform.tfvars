@@ -30,6 +30,26 @@ gpu_nodes_autoscaling = {
   max_size = 1
 }
 gpu_node_groups = 1 # In case you need more then 100 nodes in cluster you have to put multiple node groups
+
+# Node group roll-out strategy
+node_group_strategy = {
+  max_unavailable = { count = 1 } # nodes offline at once -> "delete-first": old node leaves first.
+  max_surge       = { count = 0 } # extra nodes ABOVE desired count -> "create-first": new node up before old leaves.
+  drain_timeout   = "10m"
+}
+
+# Capacity reservation policy.
+#   STRICT = reserved blocks only (never leaves reservation billing; fails if unavailable).
+#   AUTO   = reservations first, then any block, then PAYG fallback -> use for urgent scale-out.
+#   FORBID = on-demand (PAYG) only.
+node_group_reservation_policy = {
+  policy          = "STRICT"
+  reservation_ids = ["capacityblockgroup-REPLACE_ME"] # Capacity block groups, order matters
+}
+# Urgent scale-out that may exceed the reservation:
+# node_group_reservation_policy = { policy = "AUTO" }
+
+
 # CPU platform and presets: https://docs.nebius.com/compute/virtual-machines/types#cpu-configurations
 cpu_nodes_platform = "cpu-d3"     # CPU nodes platform
 cpu_nodes_preset   = "4vcpu-16gb" # CPU nodes preset
