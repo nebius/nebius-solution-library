@@ -506,6 +506,9 @@ slurm_exporter_enabled = true
 # Maximum number of concurrent collections per collector in Slurm exporter.
 # By default, 1.
 # ---
+# WARNING: Increasing this value may cause OOM issues on the REST component.
+# It is recommended to increase REST node resources if you increase this value.
+# ---
 # slurm_exporter_max_collector_inflight = 1
 
 # endregion Exporter
