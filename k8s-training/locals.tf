@@ -51,7 +51,7 @@ locals {
       gpu_nodes_platform = "gpu-b300-sxm"
       gpu_nodes_preset   = "8gpu-192vcpu-2768gb"
     }
-    eu-west1 = {
+    eu-west2 = {
       cpu_nodes_platform = "cpu-d3"
       cpu_nodes_preset   = "16vcpu-64gb"
       gpu_nodes_platform = "gpu-b300-sxm"
