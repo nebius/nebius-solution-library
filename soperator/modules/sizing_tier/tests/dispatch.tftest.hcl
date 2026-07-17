@@ -134,8 +134,9 @@ run "component_override_wins_over_tier" {
   variables {
     worker_count = 5 # derives XS
     component_overrides = {
-      rest      = { cpu = 20, memory = 120, ephemeral_storage = 5 }
-      vm_single = { cpu = "25000m", memory = "24Gi", size = "512Gi", gomaxprocs = 25 }
+      rest           = { cpu = 20, memory = 120, ephemeral_storage = 5 }
+      vm_single      = { cpu = "25000m", memory = "24Gi", size = "512Gi", gomaxprocs = 25 }
+      logs_collector = { memory = "1Gi", cpu = "500m" }
     }
   }
   assert {
@@ -149,6 +150,31 @@ run "component_override_wins_over_tier" {
   assert {
     condition     = output.preset.mariadb.memory == 12
     error_message = "components without an override must keep their tier (XS) values"
+  }
+  assert {
+    condition     = output.preset.logs_collector.memory == "1Gi"
+    error_message = "component_overrides.logs_collector must replace the constant"
+  }
+  assert {
+    condition     = output.preset.kruise_daemon.memory == 0.128
+    error_message = "constant components without an override must keep their constant values"
+  }
+}
+
+run "constants_do_not_scale_with_tier" {
+  command = apply
+  variables { worker_count = 6000 } # XL
+  assert {
+    condition     = output.preset.kruise_daemon.cpu == 0.05 && output.preset.kruise_daemon.memory == 0.128
+    error_message = "kruise_daemon must stay constant at XL"
+  }
+  assert {
+    condition     = output.preset.logs_collector.memory == "200Mi" && output.preset.logs_collector.cpu == "200m"
+    error_message = "logs_collector must stay constant at XL"
+  }
+  assert {
+    condition     = output.preset.spo_daemon.memory == "128Mi" && output.preset.spo_daemon.cpu == "100m"
+    error_message = "spo_daemon must stay constant at XL"
   }
 }
 
@@ -182,7 +208,7 @@ run "xs_matches_legacy_defaults" {
     error_message = "XS events_collector must equal the legacy default 128Mi"
   }
   assert {
-    condition     = output.preset.spo.controller.memory == "3Gi" && output.preset.spo.daemon.memory == "128Mi"
+    condition     = output.preset.spo_controller.memory == "3Gi" && output.preset.spo_daemon.memory == "128Mi"
     error_message = "XS SPO must equal the legacy default 3Gi controller / 128Mi daemon"
   }
   assert {

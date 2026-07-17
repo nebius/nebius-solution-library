@@ -67,14 +67,6 @@ locals {
       L  = { requests = { cpu = 1, memory = 3 }, limits = { memory = 3 } }
       XL = { requests = { cpu = 1, memory = 4 }, limits = { memory = 4 } }
     }
-    # Runs on: every node (DaemonSet); subtracted from the worker/login pod sizing in modules/slurm.
-    kruise_daemon = {
-      XS = { cpu = 0.05, memory = 0.128 }
-      S  = { cpu = 0.1, memory = 0.25 }
-      M  = { cpu = 0.25, memory = 0.5 }
-      L  = { cpu = 0.5, memory = 1 }
-      XL = { cpu = 1, memory = 4 }
-    }
     # Runs on: GPU worker nodes (DaemonSet).
     dcgm_exporter = {
       XS = { cpu = 0.05, memory = 0.5 }
@@ -92,13 +84,14 @@ locals {
       L  = { cpu = 2, memory = 4 }
       XL = { cpu = 2, memory = 4 }
     }
-    # Runs on: daemon on every node (DaemonSet), controller on system nodes.
-    spo = {
-      XS = { daemon = { cpu = "100m", memory = "128Mi" }, controller = { cpu = "500m", memory = "3Gi" } }
-      S  = { daemon = { cpu = "100m", memory = "128Mi" }, controller = { cpu = "500m", memory = "3Gi" } }
-      M  = { daemon = { cpu = "100m", memory = "128Mi" }, controller = { cpu = "500m", memory = "3Gi" } }
-      L  = { daemon = { cpu = "150m", memory = "256Mi" }, controller = { cpu = "750m", memory = "4Gi" } }
-      XL = { daemon = { cpu = "200m", memory = "512Mi" }, controller = { cpu = "1000m", memory = "6Gi" } }
+    # Runs on: system nodes. The SecurityProfilesOperator singleton; watches cluster-wide
+    # objects, so it grows with the cluster (its DaemonSet half is constant, see constant_presets).
+    spo_controller = {
+      XS = { cpu = "500m", memory = "3Gi" }
+      S  = { cpu = "500m", memory = "3Gi" }
+      M  = { cpu = "500m", memory = "3Gi" }
+      L  = { cpu = "750m", memory = "4Gi" }
+      XL = { cpu = "1000m", memory = "6Gi" }
     }
     # Runs on: system nodes.
     kruise_manager = {
@@ -139,14 +132,6 @@ locals {
       M  = { memory = "256Mi", cpu = "150m" }
       L  = { memory = "256Mi", cpu = "250m" }
       XL = { memory = "512Mi", cpu = "500m" }
-    }
-    # Runs on: every node (DaemonSet).
-    logs_collector = {
-      XS = { memory = "200Mi", cpu = "200m" }
-      S  = { memory = "200Mi", cpu = "200m" }
-      M  = { memory = "256Mi", cpu = "250m" }
-      L  = { memory = "384Mi", cpu = "400m" }
-      XL = { memory = "512Mi", cpu = "750m" }
     }
     # Runs on: system nodes.
     jail_logs_collector = {
@@ -199,8 +184,25 @@ locals {
     }
   }
 
-  # Effective per-component resources: an explicit component_overrides entry replaces the tier value wholesale;
-  # everything else takes the resolved tier's column.
+  # Per-node agents whose footprint does NOT depend on the cluster size: constant at every
+  # tier, still replaceable via component_overrides.
+  constant_presets = {
+    # Its per-node work is bounded by its own node and it holds no cluster-sized state;
+    # production shows up to ~64Mi usage at every cluster size. Only used to carve out room
+    # for the daemon when sizing worker/login pods; the DaemonSet itself keeps the kruise
+    # chart defaults.
+    kruise_daemon = { cpu = 0.05, memory = 0.128 }
+    # The per-node log agent only processes logs written on its own node (its k8s metadata
+    # watch is node-scoped); the size-correlated part of the pipeline is the central
+    # vm_logs sink, which is tier-scaled above.
+    logs_collector = { memory = "200Mi", cpu = "200m" }
+    # Installs the security profiles onto its own node; the profile count is defined by the
+    # workload (soperator ships essentially one static profile), not by the cluster size.
+    spo_daemon = { cpu = "100m", memory = "128Mi" }
+  }
+
+  # Effective per-component resources: an explicit component_overrides entry replaces the
+  # tier value (or the constant) wholesale; everything else takes the resolved tier's column.
   preset = {
     exporter                = coalesce(var.component_overrides.exporter, local.component_presets.exporter[local.sizing_tier])
     rest                    = coalesce(var.component_overrides.rest, local.component_presets.rest[local.sizing_tier])
@@ -208,16 +210,17 @@ locals {
     node_configurator       = coalesce(var.component_overrides.node_configurator, local.component_presets.node_configurator[local.sizing_tier])
     slurm_operator          = coalesce(var.component_overrides.slurm_operator, local.component_presets.slurm_operator[local.sizing_tier])
     slurm_checks            = coalesce(var.component_overrides.slurm_checks, local.component_presets.slurm_checks[local.sizing_tier])
-    kruise_daemon           = coalesce(var.component_overrides.kruise_daemon, local.component_presets.kruise_daemon[local.sizing_tier])
     dcgm_exporter           = coalesce(var.component_overrides.dcgm_exporter, local.component_presets.dcgm_exporter[local.sizing_tier])
+    kruise_daemon           = coalesce(var.component_overrides.kruise_daemon, local.constant_presets.kruise_daemon)
     nfs_server              = coalesce(var.component_overrides.nfs_server, local.component_presets.nfs_server[local.sizing_tier])
-    spo                     = coalesce(var.component_overrides.spo, local.component_presets.spo[local.sizing_tier])
+    spo_controller          = coalesce(var.component_overrides.spo_controller, local.component_presets.spo_controller[local.sizing_tier])
+    spo_daemon              = coalesce(var.component_overrides.spo_daemon, local.constant_presets.spo_daemon)
     kruise_manager          = coalesce(var.component_overrides.kruise_manager, local.component_presets.kruise_manager[local.sizing_tier])
     vm_single               = coalesce(var.component_overrides.vm_single, local.component_presets.vm_single[local.sizing_tier])
     vm_agent                = coalesce(var.component_overrides.vm_agent, local.component_presets.vm_agent[local.sizing_tier])
     vm_logs                 = coalesce(var.component_overrides.vm_logs, local.component_presets.vm_logs[local.sizing_tier])
     events_collector        = coalesce(var.component_overrides.events_collector, local.component_presets.events_collector[local.sizing_tier])
-    logs_collector          = coalesce(var.component_overrides.logs_collector, local.component_presets.logs_collector[local.sizing_tier])
+    logs_collector          = coalesce(var.component_overrides.logs_collector, local.constant_presets.logs_collector)
     jail_logs_collector     = coalesce(var.component_overrides.jail_logs_collector, local.component_presets.jail_logs_collector[local.sizing_tier])
     nccl_profiles_collector = coalesce(var.component_overrides.nccl_profiles_collector, local.component_presets.nccl_profiles_collector[local.sizing_tier])
   }
@@ -283,8 +286,8 @@ locals {
         memory = local.component_presets.nfs_server[tier].memory
       }
       spo_controller = {
-        cpu    = tonumber(trimsuffix(local.component_presets.spo[tier].controller.cpu, "m")) / 1000
-        memory = tonumber(trimsuffix(local.component_presets.spo[tier].controller.memory, "Gi"))
+        cpu    = tonumber(trimsuffix(local.component_presets.spo_controller[tier].cpu, "m")) / 1000
+        memory = tonumber(trimsuffix(local.component_presets.spo_controller[tier].memory, "Gi"))
       }
       kruise_manager = {
         cpu    = tonumber(local.component_presets.kruise_manager[tier].cpu)
@@ -318,20 +321,11 @@ locals {
   }
 
   # Per-node DaemonSet agents: they occupy every node, including each system node.
+  # Constant (non-tier-driven) agents (kruise daemon, logs agent, spo daemon) are small and not modeled here.
   daemonset_requests = {
     for tier in local.tiers : tier => {
-      cpu = (
-        local.component_presets.node_configurator[tier].requests.cpu
-        + local.component_presets.kruise_daemon[tier].cpu
-        + tonumber(trimsuffix(local.component_presets.spo[tier].daemon.cpu, "m")) / 1000
-        + tonumber(trimsuffix(local.component_presets.logs_collector[tier].cpu, "m")) / 1000
-      )
-      memory = (
-        local.component_presets.node_configurator[tier].requests.memory
-        + local.component_presets.kruise_daemon[tier].memory
-        + tonumber(trimsuffix(local.component_presets.spo[tier].daemon.memory, "Mi")) / 1024
-        + tonumber(trimsuffix(local.component_presets.logs_collector[tier].memory, "Mi")) / 1024
-      )
+      cpu    = local.component_presets.node_configurator[tier].requests.cpu
+      memory = local.component_presets.node_configurator[tier].requests.memory
     }
   }
 

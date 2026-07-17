@@ -126,7 +126,10 @@ locals {
     slurm_checks      = local.selected_preset.slurm_checks
     kruise_daemon     = local.selected_preset.kruise_daemon
     dcgm_exporter     = local.selected_preset.dcgm_exporter
-    spo               = local.selected_preset.spo
+    spo = {
+      daemon     = local.selected_preset.spo_daemon
+      controller = local.selected_preset.spo_controller
+    }
     # The NFS server pod fills its dedicated node, so when an NFS nodeset exists
     # its node capacity (var.node_capacity.nfs) wins over the tier value.
     nfs_server = {
