@@ -19,6 +19,9 @@ cpu_nodes_autoscaling = {
   min_size = null
   max_size = 4
 }
+cpu_disk_size = "128" # Disk size (in GB) for nodes in the CPU-only node group
+
+enable_gpu_cluster = false # FALSE for CPU-Only clusters. Set it TRUE if you want GPU nodes
 gpu_nodes_fixed_count_per_group = 1 # Number of GPU nodes per group, used only when gpu_nodes_autoscaling.enabled = false
 gpu_nodes_autoscaling = {
   enabled = false
@@ -30,6 +33,7 @@ gpu_nodes_autoscaling = {
   max_size = 1
 }
 gpu_node_groups = 1 # In case you need more then 100 nodes in cluster you have to put multiple node groups
+gpu_disk_size = "1023" # Disk size (in GB) for nodes in the GPU node group
 
 # Node group roll-out strategy
 node_group_strategy = {
@@ -43,14 +47,14 @@ node_group_strategy = {
 #   AUTO   = reservations first, then any block, then PAYG fallback -> use for urgent scale-out.
 #   FORBID = on-demand (PAYG) only.
 node_group_reservation_policy = {
-  policy          = "STRICT"
+  policy          = "AUTO"
   reservation_ids = ["capacityblockgroup-REPLACE_ME"] # Capacity block groups, order matters
 }
 # Urgent scale-out that may exceed the reservation:
 # node_group_reservation_policy = { policy = "AUTO" }
 
 
-# CPU platform and presets: https://docs.nebius.com/compute/virtual-machines/types#cpu-configurations
+# CPU platform and presets: https://docs.nebius.com/compute/virtual-machines/types#presets-for-non-gpu-platforms
 cpu_nodes_platform = "cpu-d3"     # CPU nodes platform
 cpu_nodes_preset   = "4vcpu-16gb" # CPU nodes preset
 # GPU platform and preset: https://docs.nebius.com/compute/virtual-machines/types#gpu-configurations
