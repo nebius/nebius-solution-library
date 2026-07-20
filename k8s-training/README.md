@@ -108,8 +108,8 @@ node_group_strategy = {
 
 # Where new nodes are placed relative to reserved capacity blocks
 node_group_reservation_policy = {
-  policy          = "STRICT"                          # AUTO | STRICT | FORBID
-  reservation_ids = ["capacityblockgroup-REPLACE_ME"] # capacity block group IDs, order matters
+  policy          = "AUTO"                          # AUTO | STRICT | FORBID
+  reservation_ids = [] # e.g. ["capacityblockgroup-e00..."] - required when policy = STRICT, (List of String) Capacity block groups, order matters
 }
 ```
 
@@ -127,13 +127,13 @@ When you change a node group's `template`, the provider re-creates its nodes. Th
 
 Controls how nodes are placed and billed relative to your reserved **capacity block groups**.
 
-| `policy` | Behavior |
-|---|---|
-| `STRICT` | Use reserved blocks only; **fail** if none are available. Guarantees you never leave reservation billing. |
-| `AUTO` | Try reservations first, then any capacity block, then fall back to **pay-as-you-go (PAYG)**. Use for urgent scale-out beyond your reservation. |
-| `FORBID` | On-demand (PAYG) only; ignore reservations. |
+| `policy` | Behavior | `reservation_ids` |
+|---|---|---|
+| `STRICT` | Use reserved blocks only; **fail** if none are available. Guarantees you never leave reservation billing. | **Required** — must list at least one block group. |
+| `AUTO` | Try reservations first, then any capacity block, then fall back to **pay-as-you-go (PAYG)**. Use for urgent scale-out beyond your reservation. | Optional. |
+| `FORBID` | On-demand (PAYG) only; ignore reservations. | **Must be empty** (`[]`). |
 
-`reservation_ids` is an ordered list of capacity block group IDs (e.g. `["capacityblockgroup-e00..."]`).
+`reservation_ids` is an ordered list of capacity block group IDs (e.g. `["capacityblockgroup-e00..."]`); use `[]` for no reservations.
 
 ### Nvidia Multi Instance GPU (MIG) configuration
 
