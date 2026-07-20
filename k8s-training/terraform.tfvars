@@ -21,7 +21,6 @@ cpu_nodes_autoscaling = {
 }
 cpu_disk_size = "128" # Disk size (in GB) for nodes in the CPU-only node group
 
-enable_gpu_cluster = false # FALSE for CPU-Only clusters. Set it TRUE if you want GPU nodes
 gpu_nodes_fixed_count_per_group = 1 # Number of GPU nodes per group, used only when gpu_nodes_autoscaling.enabled = false
 gpu_nodes_autoscaling = {
   enabled = false
@@ -48,7 +47,7 @@ node_group_strategy = {
 #   FORBID = on-demand (PAYG) only.
 node_group_reservation_policy = {
   policy          = "AUTO"
-  reservation_ids = ["capacityblockgroup-REPLACE_ME"] # Capacity block groups, order matters
+  reservation_ids = [] # e.g. ["capacityblockgroup-e00..."] - required when policy = STRICT, (List of String) Capacity block groups, order matters
 }
 # Urgent scale-out that may exceed the reservation:
 # node_group_reservation_policy = { policy = "AUTO" }
@@ -85,7 +84,7 @@ enable_grafana           = true # Enable or disable Grafana® solution by Nebius
 # Local Observability installation
 enable_prometheus = false # Enable or disable Prometheus and Grafana deployment with true or false
 loki = {
-  enabled            = true # Enable or disable Loki deployment with true or false
+  enabled            = false # Enable or disable Loki deployment with true or false
   replication_factor = 2    # Number of Loki replicas for each log chunk (higher = better availability, more storage/network cost)
 }
 # Storage

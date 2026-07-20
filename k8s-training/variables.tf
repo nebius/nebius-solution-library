@@ -142,6 +142,26 @@ variable "node_group_reservation_policy" {
     )
     error_message = "policy must be one of: AUTO, STRICT, FORBID."
   }
+
+  # STRICT must name at least one capacity block group.
+  validation {
+    condition = var.node_group_reservation_policy == null || coalesce(var.node_group_reservation_policy.policy, "AUTO") != "STRICT" || length(coalesce(var.node_group_reservation_policy.reservation_ids, [])) > 0
+    error_message = "reservation_ids must contain at least one capacity block group ID when policy = STRICT."
+  }
+
+  # FORBID must not name any reservation (on-demand/PAYG only).
+  validation {
+    condition = var.node_group_reservation_policy == null || coalesce(var.node_group_reservation_policy.policy, "AUTO") != "FORBID" || length(coalesce(var.node_group_reservation_policy.reservation_ids, [])) == 0
+    error_message = "reservation_ids must be empty when policy = FORBID."
+  }
+
+  # No empty-string IDs; use [] for no reservations.
+  validation {
+    condition = var.node_group_reservation_policy == null || alltrue([
+      for id in coalesce(var.node_group_reservation_policy.reservation_ids, []) : trimspace(id) != ""
+    ])
+    error_message = "reservation_ids must not contain empty strings; use [] for no reservations."
+  }
 }
 
 # K8s CPU node group
