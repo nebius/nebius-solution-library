@@ -128,4 +128,19 @@ enable_kuberay_service = false
 # }
 
 # enable OPA gatekeeper (default: false)
-# enable_opa_gatekeeper = true 
+# Required when binpacking_forced_namespaces is non-empty.
+# opa_gatekeeper_enable = true
+
+# enable binpacking scheduler (default: false)
+# With the default binpacking_forced_namespaces, also enable opa_gatekeeper_enable.
+# binpacking_enable = true
+
+# If binpacking is enabled force it for the default namespace, instead
+# of requiring each pod to opt-in using spec.schedulerName
+# Requires opa_gatekeeper_enable = true. Set to [] to use opt-in scheduling only.
+# default: ["default"]
+# binpacking_forced_namespaces = [ "default" ]
+
+# Full kube-scheduler patch version. If unset, inferred from k8s_version.
+# Required when binpacking_enable = true and k8s_version = null.
+# binpacking_kube_sched_ver = "1.34.9"

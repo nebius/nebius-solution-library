@@ -451,7 +451,7 @@ variable "filesystem_csi" {
   default = {}
 }
 
-variable "enable_opa_gatekeeper" {
+variable "opa_gatekeeper_enable" {
   description = "Enable OPA Gatekeeper"
   type        = bool
   default     = false
@@ -503,4 +503,27 @@ variable "k8s_rbac_bindings" {
     )
     error_message = "When k8s_rbac_bindings.enabled is true, set at least one cluster_role_bindings or namespace_role_bindings entry."
   }
+}
+
+variable "binpacking_enable" {
+  description = "Enable binpacking scheduler. Forced namespace mutation also requires OPA Gatekeeper."
+  type        = bool
+  default     = false
+}
+
+variable "binpacking_kube_sched_ver" {
+  description = "Full kube-scheduler patch version to use for binpacking. If unset, it is inferred from k8s_version."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.binpacking_kube_sched_ver == null || can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+$", var.binpacking_kube_sched_ver))
+    error_message = "binpacking_kube_sched_ver must be a full patch version like 1.34.9."
+  }
+}
+
+variable "binpacking_forced_namespaces" {
+  description = "If binpacking is enabled, force it for these namespaces instead of requiring each pod to opt in. Requires opa_gatekeeper_enable = true unless set to []."
+  type        = list(string)
+  default     = ["default"]
 }
