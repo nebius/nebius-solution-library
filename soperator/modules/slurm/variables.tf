@@ -466,7 +466,7 @@ variable "dcgm_job_mapping_enabled" {
 }
 
 variable "kube_state_metrics_max_scrape_size" {
-  description = "Maximum kube-state-metrics HTTP scrape size in bytes. Leave null to raise it automatically for large clusters."
+  description = "Maximum kube-state-metrics HTTP scrape size in bytes. Leave null to let the sizing tier decide (raised automatically on M and larger clusters)."
   type        = number
   default     = null
   nullable    = true

@@ -217,6 +217,47 @@ run "xs_matches_legacy_defaults" {
   }
 }
 
+# Scrape-size caps follow the tier.
+
+run "small_tiers_keep_global_scrape_guard" {
+  command = apply
+  variables { worker_count = 99 } # S
+  assert {
+    condition     = output.kube_state_metrics_max_scrape_size == null
+    error_message = "S must keep the global 32MiB scrape guard (null cap)"
+  }
+}
+
+run "m_raises_ksm_scrape_cap" {
+  command = apply
+  variables { worker_count = 100 } # M
+  assert {
+    condition     = output.kube_state_metrics_max_scrape_size == 134217728
+    error_message = "M must raise the kube-state-metrics scrape cap to 128MiB"
+  }
+}
+
+run "l_raises_ksm_scrape_cap" {
+  command = apply
+  variables { worker_count = 500 } # L
+  assert {
+    condition     = output.kube_state_metrics_max_scrape_size == 268435456
+    error_message = "L must raise the kube-state-metrics scrape cap to 256MiB"
+  }
+}
+
+run "forced_xl_raises_ksm_scrape_cap" {
+  command = apply
+  variables {
+    worker_count         = 6 # would derive XS
+    sizing_tier_override = "XL"
+  }
+  assert {
+    condition     = output.kube_state_metrics_max_scrape_size == 536870912
+    error_message = "forced XL must expose the 512MiB XL kube-state-metrics scrape cap"
+  }
+}
+
 # Capacity: presets must fit the nodes they are placed on, in every tier.
 
 run "capacity_fits_all_tiers" {

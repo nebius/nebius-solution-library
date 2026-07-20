@@ -170,8 +170,9 @@ resources:
               vmagent:
                 spec:
                   extraArgs:
-                    # TODO(SCHED-2105): scale with cluster size; 32MiB is too small
-                    # for kube-state-metrics past ~3.5k workers.
+                    # Default cap for scrape jobs without their own max_scrape_size.
+                    # kube-state-metrics overrides it per-job via kubeStateMetrics.maxScrapeSize
+                    # on large clusters, so this stays at 32MiB as a guard for everything else.
                     promscrape.maxScrapeSize: "33554432"
                   externalLabels:
                     iam_tenant_id: ${iam_tenant_id}

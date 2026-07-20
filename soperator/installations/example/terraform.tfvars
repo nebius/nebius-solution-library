@@ -586,7 +586,7 @@ dcgm_job_mapping_enabled = true
 # Optional kube-state-metrics scrape size override in bytes.
 # By default, it is raised automatically for large clusters.
 # ---
-# kube_state_metrics_max_scrape_size = 150554432
+# kube_state_metrics_max_scrape_size = 268435456
 
 # Optional OpenTelemetry sending_queue batch overrides for logs, jail logs, events, and nccl-profiles collectors.
 # By default, chart values are used.
