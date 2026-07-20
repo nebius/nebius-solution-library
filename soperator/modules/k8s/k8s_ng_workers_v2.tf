@@ -51,7 +51,7 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
   parent_id = nebius_mk8s_v1_cluster.this.id
 
-  version = var.k8s_version
+  version = "${var.k8s_version}-nebius-node.${var.node_group_version}"
 
   # Prefer the generated node_group_name from the installation layer. Fall back
   # to the historical <nodeset>-<subset> name for callers that do not provide it.
@@ -80,16 +80,42 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
   auto_repair = {
     conditions = [
+      # Don't recreate the node if it's not ready for 5 minutes
+      # to avoid races with Soperator, since it does the same
       {
-        type     = "NebiusBootDiskIOError"
-        status   = "TRUE"
+        type     = "NodeReady"
+        status   = "FALSE"
         disabled = true
       },
+      # Don't restart nodes with not responding kubelet
+      # to avoid races with Soperator, since it does the same
       {
         type     = "NodeReady"
         status   = "UNKNOWN"
         disabled = true
       },
+      # Don't recreate nodes with broken boot disks
+      # since it's covered by NodeReady=Unknown
+      {
+        type     = "NebiusBootDiskIOError"
+        status   = "TRUE"
+        disabled = true
+      },
+      # Don't set-unhealthy and restart nodes with failed Mk8s health checks
+      # to avoid races with Soperator, since it has its own health checks
+      {
+        type     = "NebiusGPUError"
+        status   = "TRUE"
+        disabled = true
+      },
+      # Don't restart nodes with broken containerd
+      # since it's covered by NodeReady=False
+      {
+        type     = "NebiusContainerRuntimeError"
+        status   = "TRUE"
+        disabled = true
+      },
+      # Set-unhealthy and recreate nodes marked as unhealthy by Soperator
       {
         type    = "HardwareIssuesSuspected"
         status  = "TRUE"
@@ -144,6 +170,8 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
 
     reservation_policy = var.node_group_workers_v2[count.index].reservation_policy
 
+    max_pods = var.node_group_workers_v2[count.index].max_pods
+
     gpu_settings = (var.use_preinstalled_gpu_drivers && local.node_group_gpu_present_v2.worker[count.index]) ? {
       drivers_preset = lookup(var.platform_driver_presets, var.node_group_workers_v2[count.index].resource.platform)
     } : null
@@ -196,7 +224,7 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
     } : null
 
     network_interfaces = [{
-      public_ip_address = local.node_ssh_access.enabled ? {} : null
+      public_ip_address = local.node_ssh_access_public_ip.enabled ? {} : null
       subnet_id         = var.vpc_subnet_id
     }]
 

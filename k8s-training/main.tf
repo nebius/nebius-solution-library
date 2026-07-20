@@ -104,10 +104,12 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       priority      = 3
     } : null
     cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
-      enable_filestore     = var.enable_filestore ? "true" : "false",
-      filestore_mount_path = local.filestore.mount_path,
-      ssh_user_name        = var.ssh_user_name,
-      ssh_public_key       = local.ssh_public_key
+      enable_filestore         = var.enable_filestore ? "true" : "false",
+      filestore_mount_path     = local.filestore.mount_path,
+      ssh_user_name            = var.ssh_user_name,
+      ssh_public_key           = local.ssh_public_key,
+      kubelet_numa_config      = null,
+      kubelet_numa_config_yaml = ""
     })
   }
 }
@@ -116,6 +118,13 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
 #################
 resource "nebius_mk8s_v1_node_group" "gpu" {
   count = var.gpu_node_groups
+
+  lifecycle {
+    precondition {
+      condition     = !local.enable_gpu_cluster || startswith(local.gpu_nodes_preset, "8gpu-")
+      error_message = "GPU clustering requires an 8-GPU preset. Leave 'infiniband_fabric' empty for single-GPU presets such as '${local.gpu_nodes_preset}'."
+    }
+  }
 
   autoscaling = var.gpu_nodes_autoscaling.enabled ? {
     min_node_count = var.gpu_nodes_autoscaling.min_size == null ? var.gpu_nodes_autoscaling.max_size : var.gpu_nodes_autoscaling.min_size
@@ -168,7 +177,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
         }
       }
     ] : null
-    gpu_cluster  = var.enable_gpu_cluster ? nebius_compute_v1_gpu_cluster.fabric_2[0] : null
+    gpu_cluster  = local.enable_gpu_cluster ? nebius_compute_v1_gpu_cluster.fabric_2[0] : null
     gpu_settings = var.gpu_nodes_driverfull_image ? { drivers_preset = local.device_preset } : null
     preemptible = var.gpu_nodes_preemptible ? {
       on_preemption = "STOP"
@@ -178,10 +187,12 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     underlay_required = false
     reservation_policy = var.node_group_reservation_policy
     cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
-      enable_filestore     = var.enable_filestore ? "true" : "false",
-      filestore_mount_path = local.filestore.mount_path,
-      ssh_user_name        = var.ssh_user_name,
-      ssh_public_key       = local.ssh_public_key
+      enable_filestore         = var.enable_filestore ? "true" : "false",
+      filestore_mount_path     = local.filestore.mount_path,
+      ssh_user_name            = var.ssh_user_name,
+      ssh_public_key           = local.ssh_public_key,
+      kubelet_numa_config      = local.effective_gpu_kubelet_numa_config,
+      kubelet_numa_config_yaml = local.gpu_kubelet_numa_config_yaml
     })
   }
 }

@@ -1,6 +1,11 @@
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+# Provider downloads flake on slow networks: the registry client gives up after
+# 10s / 2 attempts by default and `terraform init` fails on the checksum fetch.
+export TF_REGISTRY_DISCOVERY_RETRY ?= 5
+export TF_REGISTRY_CLIENT_TIMEOUT ?= 60
+
 SOPERATOR_VERSION		= $(shell cat VERSION)
 SUBVERSION				= $(shell cat SUBVERSION)
 VERSION					= $(SOPERATOR_VERSION)-$(SUBVERSION)
@@ -43,7 +48,7 @@ terraform-validate-modules:
 		if [ -d "$$module_dir" ]; then \
 			echo "Validating module: $$module_dir"; \
 			cd "$$module_dir"; \
-			terraform init -backend=false; \
+			terraform init -upgrade -backend=false; \
 			terraform validate; \
 			cd - > /dev/null; \
 		fi; \
@@ -52,16 +57,29 @@ terraform-validate-modules:
 .PHONY: terraform-validate-installations
 terraform-validate-installations:
 	@echo 'Validating Terraform installations...'
-	@for install_dir in installations/*/; do \
+	@for install_dir in installations/example/; do \
 		if [ -d "$$install_dir" ]; then \
 			echo "Validating installation: $$install_dir"; \
 			cd "$$install_dir"; \
-			terraform init -backend=false; \
+			terraform init -upgrade -backend=false; \
 			terraform validate; \
 			cd - > /dev/null; \
 		fi; \
 	done
 
+.PHONY: terraform-test-modules
+terraform-test-modules:
+	@echo 'Running Terraform module tests...'
+	@for module_dir in modules/*/; do \
+		if [ -d "$$module_dir/tests" ]; then \
+			echo "Testing module: $$module_dir"; \
+			cd "$$module_dir"; \
+			terraform init -upgrade -backend=false; \
+			terraform test; \
+			cd - > /dev/null; \
+		fi; \
+	done
+
 .PHONY: terraform-check
-terraform-check: terraform-fmt-check terraform-validate-modules terraform-validate-installations
+terraform-check: terraform-fmt-check terraform-validate-modules terraform-validate-installations terraform-test-modules
 	@echo 'All Terraform checks passed successfully!'

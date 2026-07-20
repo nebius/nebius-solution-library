@@ -187,6 +187,66 @@ filesystem_csi = {
 
 This Terraform automation installs the CSI driver and configures the StorageClass only. Verification, pod-level validation, and cleanup remain in `filesystem-csi-validation/` as an explicit opt-in workflow.
 
+### Kubernetes RBAC access bindings
+
+Kubernetes RBAC can be managed by Terraform after the access model has been
+approved. It is disabled by default.
+
+An approved Nebius Cloud group cluster-admin binding can be declared like this:
+
+```hcl
+k8s_rbac_bindings = {
+  enabled = true
+  cluster_role_bindings = {
+    nebius_viewer_cluster_admin = {
+      name      = "nebius-cluster-admin"
+      role_name = "cluster-admin"
+      subjects = [
+        {
+          kind      = "Group"
+          name      = "nebius:viewer"
+          api_group = "rbac.authorization.k8s.io"
+        }
+      ]
+    }
+  }
+}
+```
+
+For namespace-only access, create the namespace and bind one of the built-in
+ClusterRoles such as `view`, `edit`, or `admin`:
+
+```hcl
+k8s_rbac_bindings = {
+  enabled = true
+  namespaces = {
+    workload = {
+      name = "workload"
+    }
+  }
+  namespace_role_bindings = {
+    workload_admin = {
+      name      = "workload-admin"
+      namespace = "workload"
+      role_kind = "ClusterRole"
+      role_name = "admin"
+      subjects = [
+        {
+          kind      = "Group"
+          name      = "nebius:viewer"
+          api_group = "rbac.authorization.k8s.io"
+        }
+      ]
+    }
+  }
+}
+```
+
+Temporary elevated access should be kept as an explicit Terraform change and
+removed after validation so Terraform destroys the binding on the next apply.
+This module does not manage Nebius IAM group membership, kubeconfig sharing, or
+private endpoint/bastion access.
+
 ## Connecting to the cluster
 
 ### Preparing the environment

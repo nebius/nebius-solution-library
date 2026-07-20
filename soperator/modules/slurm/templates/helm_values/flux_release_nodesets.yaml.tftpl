@@ -27,6 +27,15 @@ nodesets:
           nvidia:
             gdrCopyEnabled: true
 
+        # Docker needs node-local image-storage disks for storing OCI data.
+        docker:
+          enabled: ${nodeset.node_local_image_storage.enabled}
+
+        %{~ if nodeset.topology != null ~}
+        topology:
+          fabric: ${nodeset.topology.fabric}
+        %{~ endif ~}
+
         nodeConfig:
           %{~ if length(nodeset.features) > 0 ~}
           features:
@@ -145,14 +154,14 @@ nodesets:
                 mountPath: /opt/slurm_scripts/
                 volumeSource:
                   configMap:
-                    name: slurm-scripts
+                    name: ${cluster_name}-slurm-scripts
                     defaultMode: 0755
 
               - name: slurm-scripts-jail
                 mountPath: /mnt/jail.upper/opt/slurm_scripts/
                 volumeSource:
                   configMap:
-                    name: slurm-scripts
+                    name: ${cluster_name}-slurm-scripts
                     defaultMode: 0755
 
               - name: sys-host

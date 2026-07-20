@@ -5,9 +5,10 @@ resource "local_file" "flux_release_rendered_nodesets" {
     version      = var.operator_version
     namespace    = "soperator"
     release_name = "soperator-nodesets"
+    cluster_name = var.name
 
     nodesets = var.worker_nodesets
-    resources = [for res in var.resources.worker : {
+    resources = [for res in var.node_capacity.worker : {
       cpu_cores = floor(
         res.cpu_cores
         -local.resources.munge.cpu

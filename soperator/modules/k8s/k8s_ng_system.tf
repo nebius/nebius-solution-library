@@ -26,7 +26,6 @@ resource "nebius_mk8s_v1_node_group" "system" {
         module.labels.label_nodeset_system,
         module.labels.label_workload_cpu,
         module.labels.label_jail,
-        module.labels.label_exclude_from_external_lb,
       )
     }
 
@@ -64,7 +63,7 @@ resource "nebius_mk8s_v1_node_group" "system" {
     )
 
     network_interfaces = [{
-      public_ip_address = local.node_ssh_access.enabled ? {} : null
+      public_ip_address = local.node_ssh_access_public_ip.enabled ? {} : null
       subnet_id         = var.vpc_subnet_id
     }]
 

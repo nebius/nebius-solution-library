@@ -110,8 +110,59 @@ variable "node_count" {
 
 # region Resources
 
-variable "resources" {
-  description = "Resources of Slurm nodes."
+variable "sizing_tier_override" {
+  description = <<-EOT
+    Force the sizing tier that dispatches system/observability component resources.
+    One of XS, S, M, L, XL; null (default) auto-derives the tier from the total worker node count.
+    Tier boundaries and per-tier values: ../sizing_tier/main.tf.
+  EOT
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.sizing_tier_override == null ? true : contains(["XS", "S", "M", "L", "XL"], var.sizing_tier_override)
+    error_message = "sizing_tier_override must be one of: XS, S, M, L, XL."
+  }
+}
+
+variable "component_overrides" {
+  description = <<-EOT
+    Optional per-component resource overrides applied on top of the sizing tier
+    (an entry replaces that component's tier value wholesale). Same shape as the
+    component_presets table in ../sizing_tier/main.tf. Leave empty to let
+    the sizing tier drive everything.
+  EOT
+  type = object({
+    exporter                = optional(object({ cpu = number, memory = number, ephemeral_storage = number }))
+    rest                    = optional(object({ cpu = number, memory = number, ephemeral_storage = number }))
+    mariadb                 = optional(object({ cpu = number, memory = number, ephemeral_storage = number }))
+    node_configurator       = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
+    slurm_operator          = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
+    slurm_checks            = optional(object({ requests = object({ cpu = number, memory = number }), limits = object({ memory = number }) }))
+    dcgm_exporter           = optional(object({ cpu = number, memory = number }))
+    kruise_daemon           = optional(object({ cpu = number, memory = number }))
+    nfs_server              = optional(object({ cpu = number, memory = number }))
+    spo_controller          = optional(object({ cpu = string, memory = string }))
+    spo_daemon              = optional(object({ cpu = string, memory = string }))
+    kruise_manager          = optional(object({ cpu = string, memory = string }))
+    vm_single               = optional(object({ memory = string, cpu = string, size = string, gomaxprocs = number }))
+    vm_agent                = optional(object({ memory = string, cpu = string }))
+    vm_logs                 = optional(object({ memory = string, cpu = string, size = string }))
+    events_collector        = optional(object({ memory = string, cpu = string }))
+    logs_collector          = optional(object({ memory = string, cpu = string }))
+    jail_logs_collector     = optional(object({ memory = string, cpu = string }))
+    nccl_profiles_collector = optional(object({ memory = string, cpu = string }))
+  })
+  default  = {}
+  nullable = false
+}
+
+variable "node_capacity" {
+  description = <<-EOT
+    Available capacity of the node VMs backing each Slurm nodeset (computed by the caller from the chosen VM presets,
+    minus k8s reserves). Not an override surface: Slurm node pods are sized to fill these nodes (capacity minus sidecars).
+    For per-component pod sizing on top of the sizing tier, use component_overrides.
+  EOT
   type = object({
     system = object({
       cpu_cores                   = number
@@ -146,7 +197,7 @@ variable "resources" {
   })
 
   validation {
-    condition     = length(var.resources.worker) > 0
+    condition     = length(var.node_capacity.worker) > 0
     error_message = "At least one worker node must be provided."
   }
 
@@ -155,7 +206,7 @@ variable "resources" {
 resource "terraform_data" "check_worker_nodesets" {
   lifecycle {
     precondition {
-      condition     = length(var.node_count.worker) == length(var.resources.worker)
+      condition     = length(var.node_count.worker) == length(var.node_capacity.worker)
       error_message = "Worker node set resources must accord to the worker node count."
     }
   }
@@ -249,6 +300,17 @@ variable "exporter_enabled" {
   default     = false
 }
 
+variable "exporter_max_collector_inflight" {
+  description = "Maximum number of concurrent collections per collector in Slurm exporter."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.exporter_max_collector_inflight >= 1
+    error_message = "exporter_max_collector_inflight must be greater than or equal to 1."
+  }
+}
+
 # endregion Exporter
 
 # region REST API
@@ -296,6 +358,12 @@ variable "controller_state_on_filestore" {
   description = "Whether to use filestore for controller node storage (when true) or PVC (when false)."
   type        = bool
   default     = false
+}
+
+variable "enroot_direct_squashfs_enabled" {
+  description = "Enable Pyxis/Enroot direct SquashFS startup through squashfuse. Node-local image-storage disk creation remains controlled by node_local_image_disk.enabled."
+  type        = bool
+  default     = true
 }
 
 # endregion Disks
@@ -397,6 +465,100 @@ variable "dcgm_job_mapping_enabled" {
   default     = true
 }
 
+variable "kube_state_metrics_max_scrape_size" {
+  description = "Maximum kube-state-metrics HTTP scrape size in bytes. Leave null to raise it automatically for large clusters."
+  type        = number
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.kube_state_metrics_max_scrape_size == null || var.kube_state_metrics_max_scrape_size > 0
+    error_message = "kube_state_metrics_max_scrape_size must be greater than 0 when set."
+  }
+}
+
+variable "opentelemetry_batch" {
+  description = "OpenTelemetry sending_queue batch overrides for logs, jail logs, events, and nccl-profiles collectors. Leave null to use chart defaults."
+  type = object({
+    timeout             = optional(string)
+    send_batch_size     = optional(number)
+    send_batch_max_size = optional(number)
+  })
+  default  = null
+  nullable = true
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.timeout == null ||
+      trimspace(var.opentelemetry_batch.timeout) != ""
+    )
+    error_message = "opentelemetry_batch.timeout must be non-empty when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_size == null ||
+      var.opentelemetry_batch.send_batch_size > 0
+    )
+    error_message = "opentelemetry_batch.send_batch_size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_max_size == null ||
+      var.opentelemetry_batch.send_batch_max_size > 0
+    )
+    error_message = "opentelemetry_batch.send_batch_max_size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_batch == null ||
+      var.opentelemetry_batch.send_batch_size == null ||
+      var.opentelemetry_batch.send_batch_max_size == null ||
+      var.opentelemetry_batch.send_batch_max_size >= var.opentelemetry_batch.send_batch_size
+    )
+    error_message = "opentelemetry_batch.send_batch_max_size must be greater than or equal to send_batch_size when both are set."
+  }
+}
+
+variable "opentelemetry_sending_queue" {
+  description = "OpenTelemetry sending_queue overrides for logs, jail logs, events, and nccl-profiles collectors. Leave null to use chart defaults."
+  type = object({
+    size          = optional(number)
+    num_consumers = optional(number)
+  })
+  default  = null
+  nullable = true
+
+  validation {
+    condition = (
+      var.opentelemetry_sending_queue == null ||
+      var.opentelemetry_sending_queue.size == null ||
+      var.opentelemetry_sending_queue.size > 0
+    )
+    error_message = "opentelemetry_sending_queue.size must be greater than 0 when set."
+  }
+
+  validation {
+    condition = (
+      var.opentelemetry_sending_queue == null ||
+      var.opentelemetry_sending_queue.num_consumers == null ||
+      var.opentelemetry_sending_queue.num_consumers > 0
+    )
+    error_message = "opentelemetry_sending_queue.num_consumers must be greater than 0 when set."
+  }
+}
+
+variable "opentelemetry_delete_jail_logs_after_read" {
+  description = "Whether to delete jail stored logs after they have been read by the OpenTelemetry collector."
+  type        = bool
+  default     = false
+}
+
 variable "dcgm_job_map_dir" {
   description = "Directory where HPC job mapping files are located"
   type        = string
@@ -426,7 +588,7 @@ variable "slurmdbd_config" {
 }
 
 variable "slurm_accounting_config" {
-  description = "Slurm.conf accounting configuration. See https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
+  description = "Slurm accounting settings rendered into Soperator-generated slurm_base.conf.noedit, which is included by slurm.conf. See upstream Slurm slurm.conf documentation: https://slurm.schedmd.com/slurm.conf.html. Not all options are supported."
   type        = map(any)
   default     = {}
 }
@@ -520,6 +682,19 @@ variable "soperator_notifier" {
   nullable = false
 }
 
+variable "nccl_inspector_profiling" {
+  description = "Whether to enable NCCL Inspector profiling."
+  type = object({
+    enabled  = bool
+    verbose  = optional(bool, false)
+    dump_dir = optional(string, "/opt/soperator-outputs/nccl_profiles")
+  })
+  default = {
+    enabled = false
+  }
+  nullable = false
+}
+
 variable "create_pvcs" {
   description = "Whether to create PVCs. Uses emptyDir if false."
   type        = bool
@@ -538,78 +713,8 @@ variable "resources_vm_operator" {
   }
 }
 
-variable "resources_vm_logs_server" {
-  type = object({
-    memory = string
-    cpu    = string
-    size   = string
-  })
-  default = {
-    memory = "2Gi"
-    cpu    = "1000m"
-    size   = "256Gi"
-  }
-}
-
-variable "resources_vm_single" {
-  type = object({
-    memory     = string
-    cpu        = string
-    size       = string
-    gomaxprocs = number
-  })
-  default = {
-    memory     = "24Gi"
-    cpu        = "6000m"
-    size       = "512Gi"
-    gomaxprocs = 6
-  }
-}
-
-variable "resources_vm_agent" {
-  type = object({
-    memory = string
-    cpu    = string
-  })
-  default = {
-    memory = "10Gi"
-    cpu    = "5000m"
-  }
-}
-
-variable "resources_events_collector" {
-  type = object({
-    memory = string
-    cpu    = string
-  })
-  default = {
-    memory = "128Mi"
-    cpu    = "100m"
-  }
-}
-
-
-variable "resources_logs_collector" {
-  type = object({
-    memory = string
-    cpu    = string
-  })
-  default = {
-    memory = "200Mi"
-    cpu    = "200m"
-  }
-}
-
-variable "resources_jail_logs_collector" {
-  type = object({
-    memory = string
-    cpu    = string
-  })
-  default = {
-    memory = "1Gi"
-    cpu    = "1000m"
-  }
-}
+# VM stack / collector resources are driven by the sizing tier
+# (../sizing_tier/main.tf); override via var.component_overrides.
 
 # endregion Monitoring
 
@@ -794,6 +899,9 @@ variable "worker_nodesets" {
       disk_type          = string
       filesystem_type    = string
       storage_class_name = string
+    }))
+    topology = optional(object({
+      fabric = string
     }))
   }))
   default = []
