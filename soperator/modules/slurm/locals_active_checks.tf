@@ -29,9 +29,6 @@ locals {
     }
     # Check the provisioned cluster, but don't run health-checks that take long
     prod_quick = {
-      all-reduce-perf-nccl-in-docker = {
-        runAfterCreation = false
-      }
       ssh-check = {
         k8sJobSpec = {
           jobContainer = {
@@ -49,9 +46,6 @@ locals {
 
     # Run all available health-checks
     prod_acceptance = {
-      all-reduce-perf-nccl-in-docker = {
-        runAfterCreation = false
-      }
       ssh-check = {
         k8sJobSpec = {
           jobContainer = {
@@ -66,13 +60,7 @@ locals {
 
     # Skip most of checks and run only essential ones
     essential = {
-      all-reduce-perf-nccl-in-docker = {
-        runAfterCreation = false
-      }
       dcgmi-diag-r3 = {
-        runAfterCreation = false
-      }
-      prepull-container-image = {
         runAfterCreation = false
       }
       manage-jail-state = {
