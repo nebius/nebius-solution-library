@@ -122,7 +122,6 @@ variable "node_group_strategy" {
       count   = optional(number)
       percent = optional(number)
     }))
-    drain_timeout = optional(string)
   })
   default = null
 }
@@ -141,12 +140,6 @@ variable "node_group_reservation_policy" {
       ["AUTO", "STRICT", "FORBID"], coalesce(var.node_group_reservation_policy.policy, "AUTO")
     )
     error_message = "policy must be one of: AUTO, STRICT, FORBID."
-  }
-
-  # STRICT must name at least one capacity block group.
-  validation {
-    condition = var.node_group_reservation_policy == null || coalesce(var.node_group_reservation_policy.policy, "AUTO") != "STRICT" || length(coalesce(var.node_group_reservation_policy.reservation_ids, [])) > 0
-    error_message = "reservation_ids must contain at least one capacity block group ID when policy = STRICT."
   }
 
   # FORBID must not name any reservation (on-demand/PAYG only).

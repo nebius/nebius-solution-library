@@ -96,14 +96,13 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 
 
 ### Node group roll-out strategy and capacity reservation
 
-These two optional variables control **how node groups are updated** and **where their nodes are placed against reserved capacity**. Both apply to the CPU and GPU node groups. Leave either unset (`null`, the default) to inherit the provider default.
+These two optional variables control **how node groups are updated** and **where their nodes are placed against reserved capacity**. `node_group_strategy` applies to both node groups; `node_group_reservation_policy` applies to the **GPU node group only**. Leave either unset (`null`, the default) to inherit the provider default.
 
 ```hcl
 # How nodes are re-created when a node group's template changes (image, preset, disk, etc.)
 node_group_strategy = {
   max_unavailable = { count = 1 } # delete-first: take up to N nodes offline, then re-create
   max_surge       = { count = 0 } # create-first: add up to N extra nodes before removing old ones
-  drain_timeout   = "10m"         # grace period to evict pods before forced deletion
 }
 
 # Where new nodes are placed relative to reserved capacity blocks
@@ -121,7 +120,6 @@ When you change a node group's `template`, the provider re-creates its nodes. Th
 |---|---|---|
 | `max_surge` | Max nodes allowed **above** the desired count during the update | **create-first** — a new node is provisioned before an old one is removed. Minimizes workload disruption, but needs spare capacity/quota. |
 | `max_unavailable` | Max nodes allowed **offline at once** during the update | **delete-first** — an old node is removed before its replacement is created. Stays within existing capacity, but reduces available nodes during the roll-out. |
-| `drain_timeout` | Max time to gracefully drain (evict pods) before forced deletion | `0` or omitted = no time limit; a PodDisruptionBudget that blocks eviction can stall the roll-out. |
 
 #### `node_group_reservation_policy`
 
@@ -129,7 +127,7 @@ Controls how nodes are placed and billed relative to your reserved **capacity bl
 
 | `policy` | Behavior | `reservation_ids` |
 |---|---|---|
-| `STRICT` | Use reserved blocks only; **fail** if none are available. Guarantees you never leave reservation billing. | **Required** — must list at least one block group. |
+| `STRICT` | Use reserved blocks only; **fail** if none are available. Guarantees you never leave reservation billing. | Optional — uses a suitable available block if none are listed. |
 | `AUTO` | Try reservations first, then any capacity block, then fall back to **pay-as-you-go (PAYG)**. Use for urgent scale-out beyond your reservation. | Optional. |
 | `FORBID` | On-demand (PAYG) only; ignore reservations. | **Must be empty** (`[]`). |
 

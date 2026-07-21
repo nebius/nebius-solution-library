@@ -98,7 +98,6 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       }
     ] : null
     underlay_required = false
-    reservation_policy = var.node_group_reservation_policy
     preemptible = var.cpu_nodes_preemptible ? {
       on_preemption = "STOP"
       priority      = 3

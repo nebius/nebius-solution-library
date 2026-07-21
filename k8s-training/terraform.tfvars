@@ -38,7 +38,6 @@ gpu_disk_size = "1023" # Disk size (in GB) for nodes in the GPU node group
 node_group_strategy = {
   max_unavailable = { count = 1 } # nodes offline at once -> "delete-first": old node leaves first.
   max_surge       = { count = 0 } # extra nodes ABOVE desired count -> "create-first": new node up before old leaves.
-  drain_timeout   = "10m"
 }
 
 # Capacity reservation policy.
@@ -84,7 +83,7 @@ enable_grafana           = true # Enable or disable Grafana® solution by Nebius
 # Local Observability installation
 enable_prometheus = false # Enable or disable Prometheus and Grafana deployment with true or false
 loki = {
-  enabled            = false # Enable or disable Loki deployment with true or false
+  enabled            = true # Enable or disable Loki deployment with true or false
   replication_factor = 2    # Number of Loki replicas for each log chunk (higher = better availability, more storage/network cost)
 }
 # Storage
