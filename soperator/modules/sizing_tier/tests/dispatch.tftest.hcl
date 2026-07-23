@@ -134,9 +134,10 @@ run "component_override_wins_over_tier" {
   variables {
     worker_count = 5 # derives XS
     component_overrides = {
-      rest           = { cpu = 20, memory = 120, ephemeral_storage = 5 }
-      vm_single      = { cpu = "25000m", memory = "24Gi", size = "512Gi", gomaxprocs = 25 }
-      logs_collector = { memory = "1Gi", cpu = "500m" }
+      rest               = { cpu = 20, memory = 120, ephemeral_storage = 5 }
+      vm_single          = { cpu = "25000m", memory = "24Gi", size = "512Gi", gomaxprocs = 25 }
+      logs_collector     = { memory = "1Gi", cpu = "500m" }
+      kube_state_metrics = { requests = { cpu = "300m", memory = "2048Mi" }, limits = { memory = "4096Mi" } }
     }
   }
   assert {
@@ -154,6 +155,10 @@ run "component_override_wins_over_tier" {
   assert {
     condition     = output.preset.logs_collector.memory == "1Gi"
     error_message = "component_overrides.logs_collector must replace the constant"
+  }
+  assert {
+    condition     = output.preset.kube_state_metrics.requests.memory == "2048Mi" && output.preset.kube_state_metrics.limits.memory == "4096Mi"
+    error_message = "component_overrides.kube_state_metrics must replace the XS tier value"
   }
   assert {
     condition     = output.preset.kruise_daemon.memory == 0.128
@@ -214,6 +219,55 @@ run "xs_matches_legacy_defaults" {
   assert {
     condition     = output.node_preset.controller == "16vcpu-64gb" && output.node_preset.accounting == "8vcpu-32gb"
     error_message = "XS node presets must be the small-cluster presets"
+  }
+}
+
+# Scrape-size caps follow the tier.
+
+run "small_tiers_keep_global_scrape_guard" {
+  command = apply
+  variables { worker_count = 99 } # S
+  assert {
+    condition     = output.kube_state_metrics_max_scrape_size == null
+    error_message = "S must keep the global 32MiB scrape guard (null cap)"
+  }
+}
+
+run "m_raises_ksm_scrape_cap" {
+  command = apply
+  variables { worker_count = 100 } # M
+  assert {
+    condition     = output.kube_state_metrics_max_scrape_size == 134217728
+    error_message = "M must raise the kube-state-metrics scrape cap to 128MiB"
+  }
+  assert {
+    condition     = output.preset.kube_state_metrics.requests.memory == "1024Mi" && output.preset.kube_state_metrics.requests.cpu == "200m"
+    error_message = "M must expose the 1Gi/200m kube-state-metrics preset"
+  }
+}
+
+run "l_raises_ksm_scrape_cap" {
+  command = apply
+  variables { worker_count = 500 } # L
+  assert {
+    condition     = output.kube_state_metrics_max_scrape_size == 268435456
+    error_message = "L must raise the kube-state-metrics scrape cap to 256MiB"
+  }
+}
+
+run "forced_xl_raises_ksm_scrape_cap" {
+  command = apply
+  variables {
+    worker_count         = 6 # would derive XS
+    sizing_tier_override = "XL"
+  }
+  assert {
+    condition     = output.kube_state_metrics_max_scrape_size == 536870912
+    error_message = "forced XL must expose the 512MiB XL kube-state-metrics scrape cap"
+  }
+  assert {
+    condition     = output.preset.kube_state_metrics.requests.memory == "6144Mi" && output.preset.kube_state_metrics.limits.memory == "12288Mi"
+    error_message = "forced XL must expose the 6Gi/12Gi kube-state-metrics preset"
   }
 }
 

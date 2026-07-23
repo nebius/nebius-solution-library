@@ -149,17 +149,12 @@ locals {
   # This sets metrics ingestion capacity for larger clusters properly
   vm_agent_queue_count = 2 + floor(sum(var.node_count.worker) / 60)
 
-  # kube-state-metrics starts exceeding the default 32MiB scrape limit around 1.1k workers.
-  kube_state_metrics_large_cluster_worker_threshold = 1000
-  kube_state_metrics_large_cluster_max_scrape_size  = 150554432
+  # Cap on the kube-state-metrics scrape response: an explicit var wins, otherwise the sizing
+  # tier decides (null below M keeps vmagent's global 32MiB guard).
   kube_state_metrics_max_scrape_size = (
     var.kube_state_metrics_max_scrape_size != null
     ? var.kube_state_metrics_max_scrape_size
-    : (
-      sum(var.node_count.worker) >= local.kube_state_metrics_large_cluster_worker_threshold
-      ? local.kube_state_metrics_large_cluster_max_scrape_size
-      : null
-    )
+    : module.sizing.kube_state_metrics_max_scrape_size
   )
 
   # Total declared worker nodes across all worker nodesets. Drives the sizing tier.

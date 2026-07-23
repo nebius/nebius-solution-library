@@ -337,6 +337,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
       nfs_server              = local.resources.nfs_server
       spo                     = local.resources.spo
       kruise_manager          = local.selected_preset.kruise_manager
+      kube_state_metrics      = local.selected_preset.kube_state_metrics
     }
 
     vm_agent_queue_count = local.vm_agent_queue_count

@@ -101,6 +101,17 @@ locals {
       L  = { cpu = "3", memory = "8Gi" }
       XL = { cpu = "8", memory = "16Gi" }
     }
+    # Runs on: system nodes (the vm-stack chart's kube-state-metrics Deployment).
+    # Memory scales with the cluster's object count.
+    # Requests cover the worst-case envelope (~100Mi + 70KB/pod at ~20 pods/worker) at
+    # each tier's worker ceiling.
+    kube_state_metrics = {
+      XS = { requests = { cpu = "100m", memory = "256Mi" }, limits = { memory = "512Mi" } }
+      S  = { requests = { cpu = "100m", memory = "512Mi" }, limits = { memory = "1024Mi" } }
+      M  = { requests = { cpu = "200m", memory = "1024Mi" }, limits = { memory = "2048Mi" } }
+      L  = { requests = { cpu = "500m", memory = "3072Mi" }, limits = { memory = "6144Mi" } }
+      XL = { requests = { cpu = "1000m", memory = "6144Mi" }, limits = { memory = "12288Mi" } }
+    }
     # Runs on: system nodes.
     vm_single = {
       XS = { memory = "24Gi", cpu = "6000m", size = "512Gi", gomaxprocs = 6 }
@@ -184,6 +195,21 @@ locals {
     }
   }
 
+  # Cap (bytes) on the kube-state-metrics scrape response accepted by vmagent, per tier.
+  # Fleet measurements: the response is ~4KB per pod on top of a ~1MB infra base
+  # Per-worker cost is therefore 4KB x pods-per-node: 55-75KB/worker observed,
+  # so vmagent's global 32MiB guard (-promscrape.maxScrapeSize) is reached around 450-580 workers and
+  # dense M-tier clusters get close to it too.
+  # Tiers M and up therefore set a per-job limit sized ~2-3x above the tier ceiling's worst-case legitimate response.
+  # null keeps the global guard, under which an oversized response fails its scrape loudly.
+  kube_state_metrics_max_scrape_size_presets = {
+    XS = null
+    S  = null
+    M  = 134217728 # 128MiB vs ~45MB worst-case legit at 500 workers
+    L  = 268435456 # 256MiB vs ~155MB worst-case legit at 2000 workers
+    XL = 536870912 # 512MiB, covers ~7k workers even at dense-cluster rates
+  }
+
   # Per-node agents whose footprint does NOT depend on the cluster size: constant at every
   # tier, still replaceable via component_overrides.
   constant_presets = {
@@ -216,6 +242,7 @@ locals {
     spo_controller          = coalesce(var.component_overrides.spo_controller, local.component_presets.spo_controller[local.sizing_tier])
     spo_daemon              = coalesce(var.component_overrides.spo_daemon, local.constant_presets.spo_daemon)
     kruise_manager          = coalesce(var.component_overrides.kruise_manager, local.component_presets.kruise_manager[local.sizing_tier])
+    kube_state_metrics      = coalesce(var.component_overrides.kube_state_metrics, local.component_presets.kube_state_metrics[local.sizing_tier])
     vm_single               = coalesce(var.component_overrides.vm_single, local.component_presets.vm_single[local.sizing_tier])
     vm_agent                = coalesce(var.component_overrides.vm_agent, local.component_presets.vm_agent[local.sizing_tier])
     vm_logs                 = coalesce(var.component_overrides.vm_logs, local.component_presets.vm_logs[local.sizing_tier])
@@ -292,6 +319,10 @@ locals {
       kruise_manager = {
         cpu    = tonumber(local.component_presets.kruise_manager[tier].cpu)
         memory = tonumber(trimsuffix(local.component_presets.kruise_manager[tier].memory, "Gi"))
+      }
+      kube_state_metrics = {
+        cpu    = tonumber(trimsuffix(local.component_presets.kube_state_metrics[tier].requests.cpu, "m")) / 1000
+        memory = tonumber(trimsuffix(local.component_presets.kube_state_metrics[tier].requests.memory, "Mi")) / 1024
       }
       vm_single = {
         cpu    = tonumber(trimsuffix(local.component_presets.vm_single[tier].cpu, "m")) / 1000
