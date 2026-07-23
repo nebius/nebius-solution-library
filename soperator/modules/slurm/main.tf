@@ -323,21 +323,21 @@ resource "helm_release" "soperator_fluxcd_cm" {
     }
 
     resources = {
-      vm_single               = local.selected_preset.vm_single
-      vm_agent                = local.selected_preset.vm_agent
-      vm_logs                 = local.selected_preset.vm_logs
-      logs_collector          = local.selected_preset.logs_collector
-      jail_logs_collector     = local.selected_preset.jail_logs_collector
-      events_collector        = local.selected_preset.events_collector
-      nccl_profiles_collector = local.selected_preset.nccl_profiles_collector
-      node_configurator       = local.resources.node_configurator
-      slurm_operator          = local.resources.slurm_operator
-      slurm_checks            = local.resources.slurm_checks
-      dcgm_exporter           = local.resources.dcgm_exporter
-      nfs_server              = local.resources.nfs_server
-      spo                     = local.resources.spo
-      kruise_manager          = local.selected_preset.kruise_manager
-      kube_state_metrics      = local.selected_preset.kube_state_metrics
+      vm_single                   = local.selected_preset.vm_single
+      vm_agent                    = local.selected_preset.vm_agent
+      vm_logs                     = local.selected_preset.vm_logs
+      logs_collector              = local.selected_preset.logs_collector
+      jail_logs_collector         = local.selected_preset.jail_logs_collector
+      events_collector            = local.selected_preset.events_collector
+      nccl_profiles_collector     = local.selected_preset.nccl_profiles_collector
+      node_configurator           = local.resources.node_configurator
+      soperator_main_controller   = local.resources.soperator_main_controller
+      soperator_checks_controller = local.resources.soperator_checks_controller
+      dcgm_exporter               = local.resources.dcgm_exporter
+      nfs_server                  = local.resources.nfs_server
+      spo                         = local.resources.spo
+      kruise_manager              = local.selected_preset.kruise_manager
+      kube_state_metrics          = local.selected_preset.kube_state_metrics
     }
 
     vm_agent_queue_count = local.vm_agent_queue_count

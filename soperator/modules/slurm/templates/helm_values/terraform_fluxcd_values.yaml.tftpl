@@ -908,10 +908,10 @@ resources:
             manager:
               resources:
                 requests:
-                  memory: ${resources.slurm_operator.requests.memory}Gi
-                  cpu: ${resources.slurm_operator.requests.cpu * 1000}m
+                  memory: ${resources.soperator_main_controller.requests.memory}Gi
+                  cpu: ${resources.soperator_main_controller.requests.cpu * 1000}m
                 limits:
-                  memory: ${resources.slurm_operator.limits.memory}Gi
+                  memory: ${resources.soperator_main_controller.limits.memory}Gi
           kruise:
             enabled: true
             interval: 5m
@@ -946,10 +946,10 @@ resources:
                     maintenanceIgnoreNodeLabels: "${join(",", slurm_cluster.maintenance_ignore_node_labels)}"
                   resources:
                     requests:
-                      memory: ${resources.slurm_operator.requests.memory}Gi
-                      cpu: ${resources.slurm_operator.requests.cpu * 1000}m
+                      memory: ${resources.soperator_checks_controller.requests.memory}Gi
+                      cpu: ${resources.soperator_checks_controller.requests.cpu * 1000}m
                     limits:
-                      memory: ${resources.slurm_operator.limits.memory}Gi
+                      memory: ${resources.soperator_checks_controller.limits.memory}Gi
           nodeConfigurator:
             enabled: true
             interval: 5m

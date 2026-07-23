@@ -118,14 +118,14 @@ locals {
     # System/observability components are sized by the sizing tier,
     # with per-component overrides merged inside ../sizing_tier (see var.component_overrides).
     # local.selected_preset is the post-merge result.
-    exporter          = local.selected_preset.exporter
-    rest              = local.selected_preset.rest
-    mariadb           = local.selected_preset.mariadb
-    node_configurator = local.selected_preset.node_configurator
-    slurm_operator    = local.selected_preset.slurm_operator
-    slurm_checks      = local.selected_preset.slurm_checks
-    kruise_daemon     = local.selected_preset.kruise_daemon
-    dcgm_exporter     = local.selected_preset.dcgm_exporter
+    exporter                    = local.selected_preset.exporter
+    rest                        = local.selected_preset.rest
+    mariadb                     = local.selected_preset.mariadb
+    node_configurator           = local.selected_preset.node_configurator
+    soperator_main_controller   = local.selected_preset.soperator_main_controller
+    soperator_checks_controller = local.selected_preset.soperator_checks_controller
+    kruise_daemon               = local.selected_preset.kruise_daemon
+    dcgm_exporter               = local.selected_preset.dcgm_exporter
     spo = {
       daemon     = local.selected_preset.spo_daemon
       controller = local.selected_preset.spo_controller
