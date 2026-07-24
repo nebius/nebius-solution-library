@@ -78,6 +78,10 @@ run "five_hundred_workers_is_l" {
     condition     = output.sizing_tier == "L"
     error_message = "500 workers must derive L, got ${output.sizing_tier}"
   }
+  assert {
+    condition     = output.preset.soperator_main_controller.limits.memory == 3 && output.preset.soperator_checks_controller.limits.memory == 4
+    error_message = "L must expose 3Gi main / 4Gi checks controller memory"
+  }
 }
 
 run "nineteen_ninety_nine_workers_is_l" {
@@ -127,6 +131,10 @@ run "override_forces_tier" {
     condition     = output.node_preset.system == "64vcpu-256gb" && output.node_preset.nfs == "128vcpu-512gb"
     error_message = "forced XL must expose the XL node presets"
   }
+  assert {
+    condition     = output.preset.soperator_main_controller.limits.memory == 8 && output.preset.soperator_checks_controller.limits.memory == 10
+    error_message = "forced XL must expose 8Gi main / 10Gi checks controller memory (the previous 4Gi OOM-ed on big clusters)"
+  }
 }
 
 run "component_override_wins_over_tier" {
@@ -134,10 +142,11 @@ run "component_override_wins_over_tier" {
   variables {
     worker_count = 5 # derives XS
     component_overrides = {
-      rest               = { cpu = 20, memory = 120, ephemeral_storage = 5 }
-      vm_single          = { cpu = "25000m", memory = "24Gi", size = "512Gi", gomaxprocs = 25 }
-      logs_collector     = { memory = "1Gi", cpu = "500m" }
-      kube_state_metrics = { requests = { cpu = "300m", memory = "2048Mi" }, limits = { memory = "4096Mi" } }
+      rest                        = { cpu = 20, memory = 120, ephemeral_storage = 5 }
+      vm_single                   = { cpu = "25000m", memory = "24Gi", size = "512Gi", gomaxprocs = 25 }
+      logs_collector              = { memory = "1Gi", cpu = "500m" }
+      kube_state_metrics          = { requests = { cpu = "300m", memory = "2048Mi" }, limits = { memory = "4096Mi" } }
+      soperator_checks_controller = { requests = { cpu = 2, memory = 6 }, limits = { memory = 6 } }
     }
   }
   assert {
@@ -163,6 +172,14 @@ run "component_override_wins_over_tier" {
   assert {
     condition     = output.preset.kruise_daemon.memory == 0.128
     error_message = "constant components without an override must keep their constant values"
+  }
+  assert {
+    condition     = output.preset.soperator_checks_controller.requests.cpu == 2 && output.preset.soperator_checks_controller.limits.memory == 6
+    error_message = "component_overrides.soperator_checks_controller must replace the XS tier value"
+  }
+  assert {
+    condition     = output.preset.soperator_main_controller.limits.memory == 1
+    error_message = "soperator_main_controller without an override must keep its tier (XS) value"
   }
 }
 

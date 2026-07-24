@@ -51,21 +51,25 @@ locals {
       L  = { requests = { cpu = 0.5, memory = 0.5 }, limits = { memory = 0.5 } }
       XL = { requests = { cpu = 0.5, memory = 0.5 }, limits = { memory = 0.5 } }
     }
-    # Runs on: system nodes.
-    slurm_operator = {
-      XS = { requests = { cpu = 1, memory = 2 }, limits = { memory = 2 } }
-      S  = { requests = { cpu = 1, memory = 2 }, limits = { memory = 2 } }
+    # Runs on: system nodes (the soperator-controller-manager pod).
+    # Memory sized ~2x a linear fit of peak usage observed across the fleet (~170MiB base + ~0.65MiB/worker)
+    # at each tier's worker ceiling, with XL covering ~5-7k workers.
+    soperator_main_controller = {
+      XS = { requests = { cpu = 1, memory = 1 }, limits = { memory = 1 } }
+      S  = { requests = { cpu = 1, memory = 1 }, limits = { memory = 1 } }
       M  = { requests = { cpu = 1, memory = 2 }, limits = { memory = 2 } }
       L  = { requests = { cpu = 1, memory = 3 }, limits = { memory = 3 } }
-      XL = { requests = { cpu = 1, memory = 4 }, limits = { memory = 4 } }
+      XL = { requests = { cpu = 1, memory = 8 }, limits = { memory = 8 } }
     }
-    # Runs on: system nodes.
-    slurm_checks = {
-      XS = { requests = { cpu = 0.5, memory = 2 }, limits = { memory = 2 } }
-      S  = { requests = { cpu = 0.5, memory = 2 }, limits = { memory = 2 } }
+    # Runs on: system nodes (the soperator-checks-checks pod).
+    # Memory sized ~2x a linear fit of peak usage observed across the fleet (~130MiB base + ~0.89MiB/worker)
+    # at each tier's worker ceiling, with XL covering ~5-7k workers.
+    soperator_checks_controller = {
+      XS = { requests = { cpu = 1, memory = 1 }, limits = { memory = 1 } }
+      S  = { requests = { cpu = 1, memory = 1 }, limits = { memory = 1 } }
       M  = { requests = { cpu = 1, memory = 2 }, limits = { memory = 2 } }
-      L  = { requests = { cpu = 1, memory = 3 }, limits = { memory = 3 } }
-      XL = { requests = { cpu = 1, memory = 4 }, limits = { memory = 4 } }
+      L  = { requests = { cpu = 1, memory = 4 }, limits = { memory = 4 } }
+      XL = { requests = { cpu = 1, memory = 10 }, limits = { memory = 10 } }
     }
     # Runs on: GPU worker nodes (DaemonSet).
     dcgm_exporter = {
@@ -230,26 +234,26 @@ locals {
   # Effective per-component resources: an explicit component_overrides entry replaces the
   # tier value (or the constant) wholesale; everything else takes the resolved tier's column.
   preset = {
-    exporter                = coalesce(var.component_overrides.exporter, local.component_presets.exporter[local.sizing_tier])
-    rest                    = coalesce(var.component_overrides.rest, local.component_presets.rest[local.sizing_tier])
-    mariadb                 = coalesce(var.component_overrides.mariadb, local.component_presets.mariadb[local.sizing_tier])
-    node_configurator       = coalesce(var.component_overrides.node_configurator, local.component_presets.node_configurator[local.sizing_tier])
-    slurm_operator          = coalesce(var.component_overrides.slurm_operator, local.component_presets.slurm_operator[local.sizing_tier])
-    slurm_checks            = coalesce(var.component_overrides.slurm_checks, local.component_presets.slurm_checks[local.sizing_tier])
-    dcgm_exporter           = coalesce(var.component_overrides.dcgm_exporter, local.component_presets.dcgm_exporter[local.sizing_tier])
-    kruise_daemon           = coalesce(var.component_overrides.kruise_daemon, local.constant_presets.kruise_daemon)
-    nfs_server              = coalesce(var.component_overrides.nfs_server, local.component_presets.nfs_server[local.sizing_tier])
-    spo_controller          = coalesce(var.component_overrides.spo_controller, local.component_presets.spo_controller[local.sizing_tier])
-    spo_daemon              = coalesce(var.component_overrides.spo_daemon, local.constant_presets.spo_daemon)
-    kruise_manager          = coalesce(var.component_overrides.kruise_manager, local.component_presets.kruise_manager[local.sizing_tier])
-    kube_state_metrics      = coalesce(var.component_overrides.kube_state_metrics, local.component_presets.kube_state_metrics[local.sizing_tier])
-    vm_single               = coalesce(var.component_overrides.vm_single, local.component_presets.vm_single[local.sizing_tier])
-    vm_agent                = coalesce(var.component_overrides.vm_agent, local.component_presets.vm_agent[local.sizing_tier])
-    vm_logs                 = coalesce(var.component_overrides.vm_logs, local.component_presets.vm_logs[local.sizing_tier])
-    events_collector        = coalesce(var.component_overrides.events_collector, local.component_presets.events_collector[local.sizing_tier])
-    logs_collector          = coalesce(var.component_overrides.logs_collector, local.constant_presets.logs_collector)
-    jail_logs_collector     = coalesce(var.component_overrides.jail_logs_collector, local.component_presets.jail_logs_collector[local.sizing_tier])
-    nccl_profiles_collector = coalesce(var.component_overrides.nccl_profiles_collector, local.component_presets.nccl_profiles_collector[local.sizing_tier])
+    exporter                    = coalesce(var.component_overrides.exporter, local.component_presets.exporter[local.sizing_tier])
+    rest                        = coalesce(var.component_overrides.rest, local.component_presets.rest[local.sizing_tier])
+    mariadb                     = coalesce(var.component_overrides.mariadb, local.component_presets.mariadb[local.sizing_tier])
+    node_configurator           = coalesce(var.component_overrides.node_configurator, local.component_presets.node_configurator[local.sizing_tier])
+    soperator_main_controller   = coalesce(var.component_overrides.soperator_main_controller, local.component_presets.soperator_main_controller[local.sizing_tier])
+    soperator_checks_controller = coalesce(var.component_overrides.soperator_checks_controller, local.component_presets.soperator_checks_controller[local.sizing_tier])
+    dcgm_exporter               = coalesce(var.component_overrides.dcgm_exporter, local.component_presets.dcgm_exporter[local.sizing_tier])
+    kruise_daemon               = coalesce(var.component_overrides.kruise_daemon, local.constant_presets.kruise_daemon)
+    nfs_server                  = coalesce(var.component_overrides.nfs_server, local.component_presets.nfs_server[local.sizing_tier])
+    spo_controller              = coalesce(var.component_overrides.spo_controller, local.component_presets.spo_controller[local.sizing_tier])
+    spo_daemon                  = coalesce(var.component_overrides.spo_daemon, local.constant_presets.spo_daemon)
+    kruise_manager              = coalesce(var.component_overrides.kruise_manager, local.component_presets.kruise_manager[local.sizing_tier])
+    kube_state_metrics          = coalesce(var.component_overrides.kube_state_metrics, local.component_presets.kube_state_metrics[local.sizing_tier])
+    vm_single                   = coalesce(var.component_overrides.vm_single, local.component_presets.vm_single[local.sizing_tier])
+    vm_agent                    = coalesce(var.component_overrides.vm_agent, local.component_presets.vm_agent[local.sizing_tier])
+    vm_logs                     = coalesce(var.component_overrides.vm_logs, local.component_presets.vm_logs[local.sizing_tier])
+    events_collector            = coalesce(var.component_overrides.events_collector, local.component_presets.events_collector[local.sizing_tier])
+    logs_collector              = coalesce(var.component_overrides.logs_collector, local.constant_presets.logs_collector)
+    jail_logs_collector         = coalesce(var.component_overrides.jail_logs_collector, local.component_presets.jail_logs_collector[local.sizing_tier])
+    nccl_profiles_collector     = coalesce(var.component_overrides.nccl_profiles_collector, local.component_presets.nccl_profiles_collector[local.sizing_tier])
   }
 
   # Node VM preset per CPU nodeset for the resolved tier
@@ -300,13 +304,13 @@ locals {
         cpu    = local.component_presets.rest[tier].cpu
         memory = local.component_presets.rest[tier].memory
       }
-      slurm_operator = {
-        cpu    = local.component_presets.slurm_operator[tier].requests.cpu
-        memory = local.component_presets.slurm_operator[tier].requests.memory
+      soperator_main_controller = {
+        cpu    = local.component_presets.soperator_main_controller[tier].requests.cpu
+        memory = local.component_presets.soperator_main_controller[tier].requests.memory
       }
-      slurm_checks = {
-        cpu    = local.component_presets.slurm_checks[tier].requests.cpu
-        memory = local.component_presets.slurm_checks[tier].requests.memory
+      soperator_checks_controller = {
+        cpu    = local.component_presets.soperator_checks_controller[tier].requests.cpu
+        memory = local.component_presets.soperator_checks_controller[tier].requests.memory
       }
       nfs_server = {
         cpu    = local.component_presets.nfs_server[tier].cpu
