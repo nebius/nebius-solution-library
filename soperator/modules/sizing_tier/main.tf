@@ -43,14 +43,6 @@ locals {
       L  = { cpu = 4, memory = 24, ephemeral_storage = 32 }
       XL = { cpu = 8, memory = 48, ephemeral_storage = 32 }
     }
-    # Runs on: every node (DaemonSet).
-    node_configurator = {
-      XS = { requests = { cpu = 0.5, memory = 0.25 }, limits = { memory = 0.25 } }
-      S  = { requests = { cpu = 0.5, memory = 0.25 }, limits = { memory = 0.25 } }
-      M  = { requests = { cpu = 0.5, memory = 0.25 }, limits = { memory = 0.25 } }
-      L  = { requests = { cpu = 0.5, memory = 0.5 }, limits = { memory = 0.5 } }
-      XL = { requests = { cpu = 0.5, memory = 0.5 }, limits = { memory = 0.5 } }
-    }
     # Runs on: system nodes (the soperator-controller-manager pod).
     # Memory sized ~2x a linear fit of peak usage observed across the fleet (~170MiB base + ~0.65MiB/worker)
     # at each tier's worker ceiling, with XL covering ~5-7k workers.
@@ -229,6 +221,10 @@ locals {
     # Installs the security profiles onto its own node; the profile count is defined by the
     # workload (soperator ships essentially one static profile), not by the cluster size.
     spo_daemon = { cpu = "100m", memory = "128Mi" }
+    # Runs on: every node (DaemonSet). The rebooter no longer holds cluster-sized state
+    # (its cache is restricted to the pod's own node with a server-side field selector),
+    # so its footprint does not depend on the cluster size.
+    node_configurator = { requests = { cpu = 0.5, memory = 0.25 }, limits = { memory = 0.25 } }
   }
 
   # Effective per-component resources: an explicit component_overrides entry replaces the
@@ -237,7 +233,7 @@ locals {
     exporter                    = coalesce(var.component_overrides.exporter, local.component_presets.exporter[local.sizing_tier])
     rest                        = coalesce(var.component_overrides.rest, local.component_presets.rest[local.sizing_tier])
     mariadb                     = coalesce(var.component_overrides.mariadb, local.component_presets.mariadb[local.sizing_tier])
-    node_configurator           = coalesce(var.component_overrides.node_configurator, local.component_presets.node_configurator[local.sizing_tier])
+    node_configurator           = coalesce(var.component_overrides.node_configurator, local.constant_presets.node_configurator)
     soperator_main_controller   = coalesce(var.component_overrides.soperator_main_controller, local.component_presets.soperator_main_controller[local.sizing_tier])
     soperator_checks_controller = coalesce(var.component_overrides.soperator_checks_controller, local.component_presets.soperator_checks_controller[local.sizing_tier])
     dcgm_exporter               = coalesce(var.component_overrides.dcgm_exporter, local.component_presets.dcgm_exporter[local.sizing_tier])
@@ -356,12 +352,11 @@ locals {
   }
 
   # Per-node DaemonSet agents: they occupy every node, including each system node.
-  # Constant (non-tier-driven) agents (kruise daemon, logs agent, spo daemon) are small and not modeled here.
+  # Only node_configurator is modeled; the smaller constant agents (kruise daemon,
+  # logs agent, spo daemon) are not.
   daemonset_requests = {
-    for tier in local.tiers : tier => {
-      cpu    = local.component_presets.node_configurator[tier].requests.cpu
-      memory = local.component_presets.node_configurator[tier].requests.memory
-    }
+    cpu    = local.constant_presets.node_configurator.requests.cpu
+    memory = local.constant_presets.node_configurator.requests.memory
   }
 
   # Broken capacity invariants. Each produces a self-explaining message (tier, component, numbers, node),
@@ -372,13 +367,13 @@ locals {
       # agents: a pod larger than the node can never schedule - autoscaling cannot help.
       [
         for name, req in local.system_pod_requests[tier] :
-        "${tier}/${name}: ${req.cpu} cpu + ${format("%.4g", local.daemonset_requests[tier].cpu)} DaemonSet cpu > ${local.node_capacity_of.system[tier].cpu} allocatable cores on a ${local.node_presets.system[tier]} system node"
-        if req.cpu + local.daemonset_requests[tier].cpu > local.node_capacity_of.system[tier].cpu
+        "${tier}/${name}: ${req.cpu} cpu + ${format("%.4g", local.daemonset_requests.cpu)} DaemonSet cpu > ${local.node_capacity_of.system[tier].cpu} allocatable cores on a ${local.node_presets.system[tier]} system node"
+        if req.cpu + local.daemonset_requests.cpu > local.node_capacity_of.system[tier].cpu
       ],
       [
         for name, req in local.system_pod_requests[tier] :
-        "${tier}/${name}: ${req.memory}Gi + ${format("%.4g", local.daemonset_requests[tier].memory)}Gi DaemonSet memory > ${format("%.4g", local.node_capacity_of.system[tier].memory)}Gi allocatable on a ${local.node_presets.system[tier]} system node"
-        if req.memory + local.daemonset_requests[tier].memory > local.node_capacity_of.system[tier].memory
+        "${tier}/${name}: ${req.memory}Gi + ${format("%.4g", local.daemonset_requests.memory)}Gi DaemonSet memory > ${format("%.4g", local.node_capacity_of.system[tier].memory)}Gi allocatable on a ${local.node_presets.system[tier]} system node"
+        if req.memory + local.daemonset_requests.memory > local.node_capacity_of.system[tier].memory
       ],
       # mariadb must leave the accounting node room for munge (1 cpu / 1 GiB) and a useful
       # slurmdbd pod, which is sized from the remainder - hence 2 cores / 4 GiB of headroom.
@@ -396,8 +391,8 @@ locals {
   # (flux, cert-manager, operators) are not modeled.
   system_nodes_needed = ceil(max(
     sum([for req in values(local.system_pod_requests[local.sizing_tier]) : req.cpu])
-    / (local.node_capacity_of.system[local.sizing_tier].cpu - local.daemonset_requests[local.sizing_tier].cpu),
+    / (local.node_capacity_of.system[local.sizing_tier].cpu - local.daemonset_requests.cpu),
     sum([for req in values(local.system_pod_requests[local.sizing_tier]) : req.memory])
-    / (local.node_capacity_of.system[local.sizing_tier].memory - local.daemonset_requests[local.sizing_tier].memory),
+    / (local.node_capacity_of.system[local.sizing_tier].memory - local.daemonset_requests.memory),
   ))
 }
