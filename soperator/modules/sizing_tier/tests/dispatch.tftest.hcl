@@ -174,6 +174,10 @@ run "component_override_wins_over_tier" {
     error_message = "constant components without an override must keep their constant values"
   }
   assert {
+    condition     = output.preset.node_configurator.requests.memory == 0.25
+    error_message = "node_configurator without an override must keep its constant value"
+  }
+  assert {
     condition     = output.preset.soperator_checks_controller.requests.cpu == 2 && output.preset.soperator_checks_controller.limits.memory == 6
     error_message = "component_overrides.soperator_checks_controller must replace the XS tier value"
   }
@@ -197,6 +201,10 @@ run "constants_do_not_scale_with_tier" {
   assert {
     condition     = output.preset.spo_daemon.memory == "128Mi" && output.preset.spo_daemon.cpu == "100m"
     error_message = "spo_daemon must stay constant at XL"
+  }
+  assert {
+    condition     = output.preset.node_configurator.requests.cpu == 0.5 && output.preset.node_configurator.requests.memory == 0.25 && output.preset.node_configurator.limits.memory == 0.25
+    error_message = "node_configurator must stay constant at XL"
   }
 }
 
