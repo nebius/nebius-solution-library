@@ -885,9 +885,7 @@ resources:
 %{ endif ~}
 %{ endif ~}
             checks:
-              ensure-dir-snccld-logs:
-                enabled: true
-              soperator-outputs-logs-cleaner:
+              nccl-profiles-cleaner:
                 schedule: "*/5 * * * *"
                 %{~ if nccl_inspector_profiling.enabled ~}
                 k8sJobSpec:
