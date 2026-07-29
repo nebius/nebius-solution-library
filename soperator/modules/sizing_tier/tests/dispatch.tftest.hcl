@@ -82,6 +82,10 @@ run "five_hundred_workers_is_l" {
     condition     = output.preset.soperator_main_controller.limits.memory == 3 && output.preset.soperator_checks_controller.limits.memory == 4
     error_message = "L must expose 3Gi main / 4Gi checks controller memory"
   }
+  assert {
+    condition     = output.preset.vm_single.size == "1023Gi"
+    error_message = "L vm_single size must be 1023Gi (93x11, IO M3 granularity)"
+  }
 }
 
 run "nineteen_ninety_nine_workers_is_l" {
@@ -143,7 +147,7 @@ run "component_override_wins_over_tier" {
     worker_count = 5 # derives XS
     component_overrides = {
       rest                        = { cpu = 20, memory = 120, ephemeral_storage = 5 }
-      vm_single                   = { cpu = "25000m", memory = "24Gi", size = "512Gi", gomaxprocs = 25 }
+      vm_single                   = { cpu = "25000m", memory = "24Gi", size = "558Gi", gomaxprocs = 25 }
       logs_collector              = { memory = "1Gi", cpu = "500m" }
       kube_state_metrics          = { requests = { cpu = "300m", memory = "2048Mi" }, limits = { memory = "4096Mi" } }
       soperator_checks_controller = { requests = { cpu = 2, memory = 6 }, limits = { memory = 6 } }
@@ -187,6 +191,17 @@ run "component_override_wins_over_tier" {
   }
 }
 
+run "vm_single_size_override_must_be_io_m3_multiple" {
+  command = plan
+  variables {
+    worker_count = 5
+    component_overrides = {
+      vm_single = { cpu = "6000m", memory = "24Gi", size = "512Gi", gomaxprocs = 6 } # not a multiple of 93
+    }
+  }
+  expect_failures = [var.component_overrides]
+}
+
 run "constants_do_not_scale_with_tier" {
   command = apply
   variables { worker_count = 6000 } # XL
@@ -228,6 +243,10 @@ run "xs_matches_legacy_defaults" {
   assert {
     condition     = output.preset.vm_single.cpu == "6000m" && output.preset.vm_single.gomaxprocs == 6
     error_message = "XS vm_single must equal the legacy default 6000m / gomaxprocs 6"
+  }
+  assert {
+    condition     = output.preset.vm_single.size == "558Gi"
+    error_message = "XS vm_single size must be 558Gi (93x6, IO M3 granularity)"
   }
   assert {
     condition     = output.preset.vm_agent.memory == "10Gi" && output.preset.vm_agent.cpu == "5000m"
@@ -334,6 +353,10 @@ run "xl_matches_poc_numbers" {
   assert {
     condition     = output.preset.vm_single.cpu == "25000m" && output.preset.vm_single.gomaxprocs == 25
     error_message = "XL vm_single must be 25000m / gomaxprocs 25"
+  }
+  assert {
+    condition     = output.preset.vm_single.size == "2046Gi"
+    error_message = "XL vm_single size must be 2046Gi (93x22, IO M3 granularity)"
   }
   assert {
     condition     = output.preset.vm_agent.memory == "25Gi" && output.preset.vm_agent.cpu == "12000m"

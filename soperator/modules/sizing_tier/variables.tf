@@ -54,4 +54,12 @@ variable "component_overrides" {
   })
   default  = {}
   nullable = false
+
+  validation {
+    condition = var.component_overrides.vm_single == null ? true : (
+      can(regex("^\\d+Gi$", var.component_overrides.vm_single.size)) &&
+      tonumber(trimsuffix(var.component_overrides.vm_single.size, "Gi")) % 93 == 0
+    )
+    error_message = "component_overrides.vm_single.size must be \"<N>Gi\" with N a multiple of 93 GiB (IO M3 disk size granularity)."
+  }
 }

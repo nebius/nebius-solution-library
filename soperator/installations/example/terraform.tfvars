@@ -266,7 +266,7 @@ sizing_tier_override = null
 # as the component_presets table referenced above. Example:
 # component_overrides = {
 #   rest      = { cpu = 20, memory = 120, ephemeral_storage = 5 }
-#   vm_single = { cpu = "25000m", memory = "24Gi", size = "512Gi", gomaxprocs = 25 }
+#   vm_single = { cpu = "25000m", memory = "24Gi", size = "2046Gi", gomaxprocs = 25 }
 # }
 
 # Configuration of Slurm Controller node set.
