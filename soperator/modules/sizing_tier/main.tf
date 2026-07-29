@@ -109,12 +109,14 @@ locals {
       XL = { requests = { cpu = "1000m", memory = "6144Mi" }, limits = { memory = "12288Mi" } }
     }
     # Runs on: system nodes.
+    # The PVC lands on an IO M3 storage class (see the vmsingle storage block in terraform_fluxcd_values.yaml.tftpl),
+    # so size must be a multiple of 93 GiB.
     vm_single = {
-      XS = { memory = "24Gi", cpu = "6000m", size = "512Gi", gomaxprocs = 6 }
-      S  = { memory = "24Gi", cpu = "6000m", size = "512Gi", gomaxprocs = 6 }
-      M  = { memory = "24Gi", cpu = "8000m", size = "512Gi", gomaxprocs = 8 }
-      L  = { memory = "24Gi", cpu = "12000m", size = "512Gi", gomaxprocs = 12 }
-      XL = { memory = "24Gi", cpu = "25000m", size = "512Gi", gomaxprocs = 25 }
+      XS = { memory = "24Gi", cpu = "6000m", size = "558Gi", gomaxprocs = 6 }
+      S  = { memory = "24Gi", cpu = "6000m", size = "558Gi", gomaxprocs = 6 }
+      M  = { memory = "24Gi", cpu = "8000m", size = "558Gi", gomaxprocs = 8 }
+      L  = { memory = "24Gi", cpu = "12000m", size = "1023Gi", gomaxprocs = 12 }
+      XL = { memory = "24Gi", cpu = "25000m", size = "2046Gi", gomaxprocs = 25 }
     }
     # Runs on: system nodes.
     vm_agent = {
