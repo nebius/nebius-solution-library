@@ -94,6 +94,54 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 
 
 ```
 
+### GB300 production racks
+
+GB300 uses a separate rack-aware deployment path. Enabling it replaces the
+generic GPU node groups with one fixed MK8s node group and one NVLink instance
+group per rack. A production rack contains 18 `gpu-gb300` nodes using the
+`4gpu-112vcpu-800gb` preset, for 72 GPUs per rack.
+
+```hcl
+infiniband_fabric = "fabric-4"
+
+gb300 = {
+  enabled    = true
+  production = true
+  racks = {
+    rack0 = {
+      node_count = 18
+      reservation_policy = {
+        policy          = "STRICT"
+        reservation_ids = ["compute-reservation-..."]
+      }
+    }
+    rack1 = {
+      node_count = 18
+      reservation_policy = {
+        policy          = "STRICT"
+        reservation_ids = ["compute-reservation-..."]
+      }
+    }
+  }
+}
+```
+
+All racks attach to the same XDR InfiniBand fabric, while each rack receives its
+own NVLink instance group. The node groups use Ubuntu 24.04 driverfull images
+with the `cuda13.0` driver preset.
+
+IMEX configuration is owned by MK8s Node Infrastructure for driverfull GB300
+node groups. Before deploying, confirm the selected Node Infrastructure version
+includes managed GB300 IMEX support. Do not install the Omega PoC IMEX
+DaemonSet: MK8s writes `/etc/nvidia-imex/nodes_config.cfg` and manages
+`nvidia-imex.service`. DRA mode is intentionally not exposed by this template
+until MK8s provides a supported public selection path.
+
+The GB300 path currently rejects autoscaling, preemptible or public GPU nodes,
+MIG, custom drivers, x86 NUMA presets, the bundled HGX NCCL test, and the
+bundled KubeRay profiles. These guardrails keep the initial production path
+within the components validated for Grace ARM rack deployments.
+
 ### Nvidia Multi Instance GPU (MIG) configuration
 
 ```hcl

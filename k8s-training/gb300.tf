@@ -1,0 +1,143 @@
+resource "terraform_data" "gb300_validation" {
+  count = local.gb300_enabled ? 1 : 0
+
+  lifecycle {
+    precondition {
+      condition     = local.enable_gpu_cluster
+      error_message = "GB300 requires infiniband_fabric to identify the XDR fabric shared by all racks."
+    }
+
+    precondition {
+      condition     = !var.gpu_nodes_autoscaling.enabled
+      error_message = "GB300 rack node groups use fixed sizing; gpu_nodes_autoscaling must be disabled."
+    }
+
+    precondition {
+      condition     = !var.gpu_nodes_preemptible
+      error_message = "Production GB300 rack nodes cannot be preemptible."
+    }
+
+    precondition {
+      condition     = !var.gpu_nodes_public_ips
+      error_message = "GB300 nodes must not receive public IP addresses."
+    }
+
+    precondition {
+      condition     = !var.custom_driver
+      error_message = "GB300 uses the MK8s driverfull CUDA 13 image path; custom_driver is not supported."
+    }
+
+    precondition {
+      condition     = var.mig_strategy == null && var.mig_parted_config == null
+      error_message = "MIG configuration is not supported by the GB300 rack path."
+    }
+
+    precondition {
+      condition     = !var.enable_gpu_kubelet_numa && var.gpu_kubelet_numa_config == null && var.gpu_kubelet_numa_preset == null
+      error_message = "The existing x86 GPU NUMA presets are not validated for GB300 Grace ARM nodes."
+    }
+
+    precondition {
+      condition     = !var.test_mode
+      error_message = "The bundled NCCL test currently targets 8-GPU HGX nodes and cannot be enabled for GB300."
+    }
+
+    precondition {
+      condition     = !var.enable_kuberay_cluster && !var.enable_kuberay_service
+      error_message = "The bundled KubeRay images and resource profiles are not yet validated for GB300 Grace ARM nodes."
+    }
+  }
+}
+
+resource "nebius_compute_v1_nvl_instance_group" "gb300" {
+  for_each = local.gb300_enabled ? var.gb300.racks : {}
+
+  parent_id = var.parent_id
+  name      = "${var.cluster_name}-gb300-${each.key}"
+  size      = each.value.node_count
+  type      = "GB300"
+
+  depends_on = [
+    terraform_data.gb300_validation,
+  ]
+}
+
+resource "nebius_mk8s_v1_node_group" "gb300" {
+  for_each = local.gb300_enabled ? var.gb300.racks : {}
+
+  parent_id        = nebius_mk8s_v1_cluster.k8s-cluster.id
+  name             = "${var.cluster_name}-ng-gb300-${each.key}"
+  version          = var.k8s_version
+  fixed_node_count = each.value.node_count
+
+  labels = {
+    "library-solution"                 = "k8s-training"
+    "nebius.com/nvlink-instance-group" = nebius_compute_v1_nvl_instance_group.gb300[each.key].id
+  }
+
+  strategy = {
+    max_unavailable = {
+      percent = 50
+    }
+    max_surge = {
+      percent = 0
+    }
+  }
+
+  template = {
+    metadata = {
+      labels = {
+        "nebius.com/nvlink-instance-group" = nebius_compute_v1_nvl_instance_group.gb300[each.key].id
+      }
+    }
+
+    boot_disk = {
+      size_gibibytes = var.gpu_disk_size
+      type           = var.gpu_disk_type
+    }
+
+    service_account_id = var.enable_k8s_node_group_sa ? nebius_iam_v1_service_account.k8s_node_group_sa[0].id : null
+
+    network_interfaces = [{
+      subnet_id = var.subnet_id
+    }]
+
+    resources = {
+      platform = local.gb300_platform
+      preset   = local.gb300_preset
+    }
+
+    filesystems = var.enable_filestore ? [{
+      attach_mode = "READ_WRITE"
+      mount_tag   = "data"
+      existing_filesystem = {
+        id = local.shared-filesystem.id
+      }
+    }] : null
+
+    gpu_cluster        = nebius_compute_v1_gpu_cluster.fabric_2[0]
+    gpu_settings       = { drivers_preset = local.device_preset }
+    reservation_policy = each.value.reservation_policy
+    nvlink = {
+      nvl_instance_group_id = nebius_compute_v1_nvl_instance_group.gb300[each.key].id
+    }
+    placement_policy = length(each.value.placement_policy_nodes) > 0 ? {
+      nodes = each.value.placement_policy_nodes
+    } : null
+
+    os                = "ubuntu24.04"
+    underlay_required = false
+    cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
+      enable_filestore         = var.enable_filestore ? "true" : "false",
+      filestore_mount_path     = local.filestore.mount_path,
+      ssh_user_name            = var.ssh_user_name,
+      ssh_public_key           = local.ssh_public_key,
+      kubelet_numa_config      = null,
+      kubelet_numa_config_yaml = ""
+    })
+  }
+
+  depends_on = [
+    terraform_data.gb300_validation,
+  ]
+}

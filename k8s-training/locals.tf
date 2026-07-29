@@ -68,8 +68,12 @@ locals {
   infiniband_fabric  = var.infiniband_fabric
   enable_gpu_cluster = local.infiniband_fabric != null ? trimspace(local.infiniband_fabric) != "" : false
   device_preset      = "cuda13.0"
+  gb300_enabled      = var.gb300.enabled
+  gb300_platform     = "gpu-gb300"
+  gb300_preset       = "4gpu-112vcpu-800gb"
+  use_driverfull_gpu = var.gpu_nodes_driverfull_image || local.gb300_enabled
   gpu_operator_cdi_enabled = (
-    !var.gpu_nodes_driverfull_image &&
+    !local.use_driverfull_gpu &&
     var.mig_strategy != null &&
     var.mig_strategy != "none"
   ) ? true : null

@@ -39,6 +39,30 @@ gpu_nodes_preset   = "8gpu-128vcpu-1600gb" # GPU nodes preset: 8gpu-128vcpu-1600
 # Infiniband fabrics: https://docs.nebius.com/compute/clusters/gpu#fabrics
 infiniband_fabric = "" # Leave empty to disable GPU clustering for RTX6000 deployments or single-node deployments.
 
+# GB300 production example. When enabled, this replaces the generic GPU node
+# groups above. Add one map entry per physical 18-node NVLink rack and use the
+# same XDR infiniband_fabric for every rack.
+# gb300 = {
+#   enabled    = true
+#   production = true
+#   racks = {
+#     rack0 = {
+#       node_count = 18
+#       reservation_policy = {
+#         policy          = "STRICT"
+#         reservation_ids = ["compute-reservation-..."]
+#       }
+#     }
+#     rack1 = {
+#       node_count = 18
+#       reservation_policy = {
+#         policy          = "STRICT"
+#         reservation_ids = ["compute-reservation-..."]
+#       }
+#     }
+#   }
+# }
+
 gpu_nodes_driverfull_image = true
 enable_k8s_node_group_sa   = true
 enable_egress_gateway      = false

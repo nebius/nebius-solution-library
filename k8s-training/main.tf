@@ -81,10 +81,6 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
       platform = local.cpu_nodes_platform
       preset   = local.cpu_nodes_preset
     }
-    preemptible = var.cpu_nodes_preemptible ? {
-      on_preemption = "STOP"
-      priority      = 1
-    } : null
     filesystems = var.enable_filestore ? [
       {
         attach_mode = "READ_WRITE"
@@ -115,7 +111,7 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
 # GPU NODE GROUPS
 #################
 resource "nebius_mk8s_v1_node_group" "gpu" {
-  count = var.gpu_node_groups
+  count = local.gb300_enabled ? 0 : var.gpu_node_groups
 
   lifecycle {
     precondition {
@@ -161,10 +157,6 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
       platform = local.gpu_nodes_platform
       preset   = local.gpu_nodes_preset
     }
-    preemptible = var.gpu_nodes_preemptible ? {
-      on_preemption = "STOP"
-      priority      = 1
-    } : null
     filesystems = var.enable_filestore ? [
       {
         attach_mode = "READ_WRITE"
