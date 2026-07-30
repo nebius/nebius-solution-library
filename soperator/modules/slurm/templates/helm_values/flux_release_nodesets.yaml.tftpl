@@ -172,6 +172,17 @@ nodesets:
                     path: /sys
                     type: Directory
 
+              %{~ if nodeset.nccl_network_vars != null ~}
+              - name: nccl-network-vars
+                mountPath: /mnt/jail.upper/etc/profile.d/${nodeset.nccl_network_vars.file_name}
+                subPath: ${nodeset.nccl_network_vars.file_name}
+                readOnly: true
+                volumeSource:
+                  configMap:
+                    name: ${nodeset.nccl_network_vars.config_map_name}
+                    defaultMode: 0444
+
+              %{~ endif ~}
               %{~ if nodeset.node_local_image_storage.enabled ~}
               - name: enroot-on-image-storage
                 mountPath: /etc/enroot/enroot.conf.d/custom-dirs.conf

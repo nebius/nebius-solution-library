@@ -351,11 +351,38 @@ resources:
                 dumpDir: "${nccl_inspector_profiling.dump_dir}/%j/%s"
                 dumpVerbose: ${nccl_inspector_profiling.verbose}
 
-            %{~ if has_local_nvme ~}
+            %{~ if has_local_nvme || has_nccl_network_vars ~}
             slurmScripts:
+              %{ if has_local_nvme }
               builtIn:
                 nvme_raid_health.sh:
                   enabled: true
+              %{ endif }
+              %{ if has_nccl_network_vars }
+              extra:
+                nccl-network-vars.sh:
+                  content: |-
+                    #!/bin/bash
+                    ## Why cat here? https://slurm.schedmd.com/prolog_epilog.html
+                    cat /etc/profile.d/90-nccl-network-vars.sh
+                  config: |-
+                    {
+                      "name": "nccl-network-vars",
+                      "command": "./nccl-network-vars.sh",
+                      "platforms": ["any"],
+                      "skip_for_cpu_jobs": true,
+                      "skip_for_partial_gpu_jobs": false,
+                      "contexts": ["prolog"],
+                      "node_states": ["any"],
+                      "on_fail": "none",
+                      "on_ok": "none",
+                      "reason_base": "",
+                      "reason_append_details": false,
+                      "run_in_jail": false,
+                      "log": "slurm_scripts/$worker.$name.$context.out",
+                      "need_env": []
+                    }
+              %{ endif }
             %{~ endif ~}
 
             partitionConfiguration:

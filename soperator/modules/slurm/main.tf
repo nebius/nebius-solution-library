@@ -120,6 +120,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     public_o11y_enabled     = var.public_o11y_enabled
     tsa_token_writer_source = local.public_o11y_tsa_token_writer_source
     has_local_nvme          = anytrue([for nodeset in var.worker_nodesets : try(nodeset.local_nvme.enabled, false)])
+    has_nccl_network_vars   = length(local.worker_nccl_network_vars) > 0
     metrics_collector       = local.metrics_collector
     create_pvcs             = var.create_pvcs
 
