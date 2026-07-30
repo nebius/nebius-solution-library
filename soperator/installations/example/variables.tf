@@ -770,7 +770,7 @@ variable "slurm_nodeset_workers" {
     size = number
     autoscaling = optional(object({
       enabled  = optional(bool, true)
-      min_size = optional(number)
+      min_size = optional(number, 0)
     }), {})
     resource = object({
       platform = string
