@@ -101,26 +101,49 @@ generic GPU node groups with one fixed MK8s node group and one NVLink instance
 group per rack. A production rack contains 18 `gpu-gb300` nodes using the
 `4gpu-112vcpu-800gb` preset, for 72 GPUs per rack.
 
+The GB300 resources require Nebius Terraform provider `0.5.232` or newer and an
+explicit zero-surge rollout strategy. Replacing nodes one at a time avoids
+requesting capacity above the physical 18-node rack:
+
 ```hcl
 infiniband_fabric = "fabric-4"
 
+node_group_strategy = {
+  max_unavailable = { count = 1 }
+  max_surge       = { count = 0 }
+}
+```
+
+#### One rack
+
+One rack creates one 18-node MK8s node group and one 18-node NVLink instance
+group:
+
+```hcl
 gb300 = {
-  enabled    = true
-  production = true
+  enabled = true
   racks = {
     rack0 = {
       node_count = 18
-      reservation_policy = {
-        policy          = "STRICT"
-        reservation_ids = ["compute-reservation-..."]
-      }
+    }
+  }
+}
+```
+
+#### Two racks
+
+Two racks create 36 MK8s nodes and two separate NVLink instance groups. Both
+racks use the single XDR fabric selected by `infiniband_fabric`:
+
+```hcl
+gb300 = {
+  enabled = true
+  racks = {
+    rack0 = {
+      node_count = 18
     }
     rack1 = {
       node_count = 18
-      reservation_policy = {
-        policy          = "STRICT"
-        reservation_ids = ["compute-reservation-..."]
-      }
     }
   }
 }
@@ -129,6 +152,11 @@ gb300 = {
 All racks attach to the same XDR InfiniBand fabric, while each rack receives its
 own NVLink instance group. The node groups use Ubuntu 24.04 driverfull images
 with the `cuda13.0` driver preset.
+
+Capacity policies such as 17+1 or 16+2 are scheduling and operational policies
+over a complete 18-node rack. They do not reduce the MK8s node-group or NVLink
+instance-group size. Spare nodes should remain part of the rack and be excluded
+from normal workloads through Kubernetes scheduling policy.
 
 IMEX configuration is owned by MK8s Node Infrastructure for driverfull GB300
 node groups. Before deploying, confirm the selected Node Infrastructure version

@@ -62,7 +62,8 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
   labels = {
     "library-solution" : "k8s-training",
   }
-  version = var.k8s_version
+  version  = var.k8s_version
+  strategy = var.node_group_strategy
   template = {
     boot_disk = {
       size_gibibytes = var.cpu_disk_size
@@ -132,7 +133,8 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
   labels = {
     "library-solution" : "k8s-training",
   }
-  version = var.k8s_version
+  version  = var.k8s_version
+  strategy = var.node_group_strategy
   template = {
     metadata = {
       labels = var.mig_parted_config != null ? {

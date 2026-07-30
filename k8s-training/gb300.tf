@@ -8,6 +8,19 @@ resource "terraform_data" "gb300_validation" {
     }
 
     precondition {
+      condition     = var.node_group_strategy != null
+      error_message = "GB300 requires an explicit node_group_strategy. Use max_surge = { count = 0 } and normally max_unavailable = { count = 1 }."
+    }
+
+    precondition {
+      condition = (
+        try(coalesce(var.node_group_strategy.max_surge.count, -1) == 0, false) ||
+        try(coalesce(var.node_group_strategy.max_surge.percent, -1) == 0, false)
+      )
+      error_message = "GB300 rollout strategy must set max_surge to zero so an update never requests a nineteenth rack node."
+    }
+
+    precondition {
       condition     = !var.gpu_nodes_autoscaling.enabled
       error_message = "GB300 rack node groups use fixed sizing; gpu_nodes_autoscaling must be disabled."
     }
@@ -75,14 +88,7 @@ resource "nebius_mk8s_v1_node_group" "gb300" {
     "nebius.com/nvlink-instance-group" = nebius_compute_v1_nvl_instance_group.gb300[each.key].id
   }
 
-  strategy = {
-    max_unavailable = {
-      percent = 50
-    }
-    max_surge = {
-      percent = 0
-    }
-  }
+  strategy = var.node_group_strategy
 
   template = {
     metadata = {
@@ -115,15 +121,11 @@ resource "nebius_mk8s_v1_node_group" "gb300" {
       }
     }] : null
 
-    gpu_cluster        = nebius_compute_v1_gpu_cluster.fabric_2[0]
-    gpu_settings       = { drivers_preset = local.device_preset }
-    reservation_policy = each.value.reservation_policy
+    gpu_cluster  = nebius_compute_v1_gpu_cluster.fabric_2[0]
+    gpu_settings = { drivers_preset = local.device_preset }
     nvlink = {
       nvl_instance_group_id = nebius_compute_v1_nvl_instance_group.gb300[each.key].id
     }
-    placement_policy = length(each.value.placement_policy_nodes) > 0 ? {
-      nodes = each.value.placement_policy_nodes
-    } : null
 
     os                = "ubuntu24.04"
     underlay_required = false

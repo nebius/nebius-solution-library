@@ -16,12 +16,15 @@ variables {
     key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest gb300-test"
   }
   infiniband_fabric = "fabric-4"
+  node_group_strategy = {
+    max_unavailable = { count = 1 }
+    max_surge       = { count = 0 }
+  }
   loki = {
     enabled = false
   }
   gb300 = {
-    enabled    = true
-    production = true
+    enabled = true
     racks = {
       rack0 = {
         node_count = 18
@@ -61,13 +64,45 @@ run "valid_two_rack_production_configuration" {
   }
 }
 
-run "reject_partial_production_rack" {
+run "valid_one_rack_production_configuration" {
   command = plan
 
   variables {
     gb300 = {
-      enabled    = true
-      production = true
+      enabled = true
+      racks = {
+        rack0 = {
+          node_count = 18
+        }
+      }
+    }
+  }
+
+  plan_options {
+    target = [
+      terraform_data.gb300_validation,
+      nebius_compute_v1_nvl_instance_group.gb300,
+      nebius_mk8s_v1_node_group.gb300,
+    ]
+  }
+
+  assert {
+    condition     = length(nebius_compute_v1_nvl_instance_group.gb300) == 1
+    error_message = "A one-rack GB300 configuration must create one NVLink instance group."
+  }
+
+  assert {
+    condition     = length(nebius_mk8s_v1_node_group.gb300) == 1
+    error_message = "A one-rack GB300 configuration must create one MK8s node group."
+  }
+}
+
+run "reject_partial_rack" {
+  command = plan
+
+  variables {
+    gb300 = {
+      enabled = true
       racks = {
         rack0 = {
           node_count = 16
@@ -84,6 +119,45 @@ run "reject_partial_production_rack" {
 
   expect_failures = [
     var.gb300,
+  ]
+}
+
+run "reject_missing_rollout_strategy" {
+  command = plan
+
+  variables {
+    node_group_strategy = null
+  }
+
+  plan_options {
+    target = [
+      terraform_data.gb300_validation,
+    ]
+  }
+
+  expect_failures = [
+    terraform_data.gb300_validation,
+  ]
+}
+
+run "reject_nonzero_surge" {
+  command = plan
+
+  variables {
+    node_group_strategy = {
+      max_unavailable = { count = 1 }
+      max_surge       = { count = 1 }
+    }
+  }
+
+  plan_options {
+    target = [
+      terraform_data.gb300_validation,
+    ]
+  }
+
+  expect_failures = [
+    terraform_data.gb300_validation,
   ]
 }
 

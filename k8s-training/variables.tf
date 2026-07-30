@@ -109,6 +109,32 @@ variable "ssh_public_key" {
   }
 }
 
+variable "node_group_strategy" {
+  description = "Node-group rollout strategy on template changes. Set max_surge and max_unavailable using count or percent. GB300 requires max_surge to be zero."
+  type = object({
+    max_surge = optional(object({
+      count   = optional(number)
+      percent = optional(number)
+    }))
+    max_unavailable = optional(object({
+      count   = optional(number)
+      percent = optional(number)
+    }))
+  })
+  default = null
+
+  validation {
+    condition = var.node_group_strategy == null || alltrue([
+      for setting in [
+        var.node_group_strategy.max_surge,
+        var.node_group_strategy.max_unavailable,
+      ] :
+      setting == null || !(try(setting.count, null) != null && try(setting.percent, null) != null)
+    ])
+    error_message = "Set either count or percent for each node-group strategy setting, not both."
+  }
+}
+
 # K8s CPU node group
 variable "cpu_nodes_fixed_count" {
   description = "Number of nodes in the CPU-only node group."
@@ -193,18 +219,12 @@ variable "gb300" {
   description = <<-EOT
     Rack-aware GB300 configuration. When enabled, the generic GPU node groups are
     replaced by one fixed MK8s node group and one NVLink instance group per rack.
-    Production racks must contain exactly 18 nodes (72 GPUs).
+    Every rack must contain exactly 18 nodes (72 GPUs).
   EOT
   type = object({
-    enabled    = optional(bool, false)
-    production = optional(bool, true)
+    enabled = optional(bool, false)
     racks = optional(map(object({
       node_count = optional(number, 18)
-      reservation_policy = optional(object({
-        policy          = optional(string)
-        reservation_ids = optional(list(string))
-      }))
-      placement_policy_nodes = optional(list(string), [])
     })), {})
   })
   default = {}
@@ -217,27 +237,9 @@ variable "gb300" {
   validation {
     condition = alltrue([
       for rack in values(var.gb300.racks) :
-      var.gb300.production ? rack.node_count == 18 : rack.node_count > 0 && rack.node_count <= 18
+      rack.node_count == 18
     ])
-    error_message = "Each production GB300 rack must contain exactly 18 nodes. A non-production rack may contain between 1 and 18 nodes."
-  }
-
-  validation {
-    condition = !var.gb300.production || alltrue([
-      for rack in values(var.gb300.racks) :
-      length(rack.placement_policy_nodes) == 0
-    ])
-    error_message = "gb300.racks[*].placement_policy_nodes can only be used when gb300.production is false."
-  }
-
-  validation {
-    condition = alltrue([
-      for rack in values(var.gb300.racks) :
-      rack.reservation_policy == null ||
-      rack.reservation_policy.policy == null ||
-      contains(["AUTO", "FORBID", "STRICT"], rack.reservation_policy.policy)
-    ])
-    error_message = "GB300 reservation policy must be AUTO, FORBID, or STRICT when set."
+    error_message = "Each GB300 rack must contain exactly 18 nodes (72 GPUs). Capacity policies such as 17+1 or 16+2 do not change the rack size."
   }
 }
 
