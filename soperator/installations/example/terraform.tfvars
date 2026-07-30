@@ -154,7 +154,7 @@ nfs_in_k8s = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "4.1.5"
+slurm_operator_version = "4.1.6"
 
 # Is the version of soperator stable or not.
 # ---
@@ -266,7 +266,7 @@ sizing_tier_override = null
 # as the component_presets table referenced above. Example:
 # component_overrides = {
 #   rest      = { cpu = 20, memory = 120, ephemeral_storage = 5 }
-#   vm_single = { cpu = "25000m", memory = "24Gi", size = "512Gi", gomaxprocs = 25 }
+#   vm_single = { cpu = "25000m", memory = "24Gi", size = "2046Gi", gomaxprocs = 25 }
 # }
 
 # Configuration of Slurm Controller node set.
@@ -295,7 +295,8 @@ slurm_nodeset_controller = {
 # for the first rack and primtrain-rack1-0..primtrain-rack1-17 for the second rack.
 # Non-GB300 workers use the configured name as the node prefix, producing <name>-# nodes,
 # and must not enable NVLink.
-# infiniband_fabric is required field for GPU clusters
+# Set gpu_cluster.id to attach workers to an existing GPU cluster.
+# If id is omitted, infiniband_fabric is used to create a new GPU cluster.
 # ---
 slurm_nodeset_workers = [
   {
@@ -305,10 +306,14 @@ slurm_nodeset_workers = [
     autoscaling = {
       enabled = true
       # min_size options:
-      # - null: min=max, no scale-down (default, recommended - saves ~10 min on initial provisioning)
+      # - null: min=max, no scale-down
       #   it can be changed to a number later if needed.
+      # - 0: node group can has no nodes after creation
+      #   (default, recommended at first provisioning of a large cluster
+      #   as there's no wait for nodes to be instantiated during node group creation)
+      #   it should be changed to other number or null later to avoid random node downscale.
       # - N: can scale down to N nodes
-      min_size = null
+      min_size = 0
     }
     resource = {
       platform = "gpu-h100-sxm"
@@ -320,6 +325,7 @@ slurm_nodeset_workers = [
       block_size_kibibytes = 4
     }
     gpu_cluster = {
+      # id                = "gpucluster-..."
       infiniband_fabric = ""
     }
     # Change to preemptible = {} in case you want to use preemptible nodes

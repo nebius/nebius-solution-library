@@ -213,6 +213,7 @@ resources:
                     resources:
                       requests:
                         storage: ${resources.vm_single.size}
+                    storageClassName: "compute-csi-network-ssd-io-m3-ext4"
                   %{~ endif ~}
                   resources:
                     requests:
