@@ -122,7 +122,8 @@ variable "node_group_workers" {
       block_size_kibibytes = number
     })
     gpu_cluster = optional(object({
-      infiniband_fabric = string
+      id                = optional(string)
+      infiniband_fabric = optional(string)
     }))
     preemptible   = optional(object({}))
     nodeset_index = number
@@ -149,7 +150,8 @@ variable "node_group_workers_v2" {
       block_size_kibibytes = number
     })
     gpu_cluster = optional(object({
-      infiniband_fabric = string
+      id                = optional(string)
+      infiniband_fabric = optional(string)
     }))
     preemptible = optional(object({}))
     reservation_policy = optional(object({

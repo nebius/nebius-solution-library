@@ -280,7 +280,8 @@ slurm_nodeset_controller = {
 # for the first rack and primtrain-rack1-0..primtrain-rack1-17 for the second rack.
 # Non-GB300 workers use the configured name as the node prefix, producing <name>-# nodes,
 # and must not enable NVLink.
-# infiniband_fabric is required field for GPU clusters
+# Set gpu_cluster.id to attach workers to an existing GPU cluster.
+# If id is omitted, infiniband_fabric is used to create a new GPU cluster.
 # ---
 slurm_nodeset_workers = [
   {
@@ -305,6 +306,7 @@ slurm_nodeset_workers = [
       block_size_kibibytes = 4
     }
     gpu_cluster = {
+      # id                = "gpucluster-..."
       infiniband_fabric = ""
     }
     # Change to preemptible = {} in case you want to use preemptible nodes
