@@ -115,7 +115,7 @@ resources:
                   enabled: true
                   deleteAfterRead:
                     enabled: ${ opentelemetry_delete_jail_logs_after_read }
-                    minAge: 15m
+                    minAge: ${ opentelemetry_delete_jail_logs_min_age }
                   resources:
                     requests:
                       memory: ${resources.jail_logs_collector.memory}

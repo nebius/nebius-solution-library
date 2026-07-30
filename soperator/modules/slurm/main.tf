@@ -105,6 +105,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     opentelemetry_sending_queue               = var.opentelemetry_sending_queue
     opentelemetry_sending_queue_enabled       = local.opentelemetry_sending_queue_enabled
     opentelemetry_delete_jail_logs_after_read = var.opentelemetry_delete_jail_logs_after_read
+    opentelemetry_delete_jail_logs_min_age    = var.opentelemetry_delete_jail_logs_min_age
     prometheus_crds_version                   = var.prometheus_crds_version
     security_profiles_operator_version        = var.security_profiles_operator_version
     vmstack_version                           = var.vmstack_version

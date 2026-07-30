@@ -1510,6 +1510,17 @@ variable "opentelemetry_delete_jail_logs_after_read" {
   default     = true
 }
 
+variable "opentelemetry_delete_jail_logs_min_age" {
+  description = "Minimum time a jail log file must remain unmodified before the OpenTelemetry collector deletes it after reading. Logs are node-local (worker boot disk), so this is also the on-node debugging window."
+  type        = string
+  default     = "4h"
+
+  validation {
+    condition     = can(regex("^[0-9]+(s|m|h)$", var.opentelemetry_delete_jail_logs_min_age))
+    error_message = "Must be a Go-style duration with a single unit, e.g. 90s, 30m, or 4h."
+  }
+}
+
 variable "soperator_notifier" {
   description = "Configuration of the Soperator Notifier (https://github.com/nebius/soperator/tree/main/helm/soperator-notifier)."
   type = object({

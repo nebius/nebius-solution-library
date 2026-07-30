@@ -611,6 +611,12 @@ dcgm_job_mapping_enabled = true
 # opentelemetry_delete_jail_logs_after_read = false
 opentelemetry_delete_jail_logs_after_read = true
 
+# Minimum time a jail log file must remain unmodified before the OpenTelemetry collector
+# deletes it after reading. Logs are node-local (worker boot disk), so this is also the
+# on-node debugging window. By default, 4h.
+# ---
+# opentelemetry_delete_jail_logs_min_age = "4h"
+
 # Configuration of the Soperator Notifier (https://github.com/nebius/soperator/tree/main/helm/soperator-notifier).
 # ---
 # soperator_notifier = {
@@ -625,7 +631,7 @@ soperator_notifier = {
 # ---
 # nccl_inspector_profiling = {
 #   enabled  = true
-#   dump_dir = "/opt/soperator-outputs/nccl_profiles"
+#   dump_dir = "/opt/soperator-outputs/shared/nccl_profiles"
 #   verbose  = false
 # }
 nccl_inspector_profiling = {
