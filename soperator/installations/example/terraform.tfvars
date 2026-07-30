@@ -305,10 +305,14 @@ slurm_nodeset_workers = [
     autoscaling = {
       enabled = true
       # min_size options:
-      # - null: min=max, no scale-down (default, recommended - saves ~10 min on initial provisioning)
+      # - null: min=max, no scale-down
       #   it can be changed to a number later if needed.
+      # - 0: node group can has no nodes after creation
+      #   (default, recommended at first provisioning of a large cluster
+      #   as there's no wait for nodes to be instantiated during node group creation)
+      #   it should be changed to other number or null later to avoid random node downscale.
       # - N: can scale down to N nodes
-      min_size = null
+      min_size = 0
     }
     resource = {
       platform = "gpu-h100-sxm"
