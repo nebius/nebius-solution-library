@@ -668,7 +668,8 @@ variable "slurm_nodeset_workers" {
       block_size_kibibytes = number
     })
     gpu_cluster = optional(object({
-      infiniband_fabric = string
+      id                = optional(string)
+      infiniband_fabric = optional(string)
     }))
     preemptible = optional(object({}))
     reservation_policy = optional(object({
@@ -729,19 +730,26 @@ variable "slurm_nodeset_workers" {
   }]
 
   validation {
-    # GB300 racks contain 18 nodes. Production requests must use whole racks;
-    # non-production can request a single partial rack for small test clusters.
-    # Examples: production size = 36 passes, production size = 10 fails,
-    # non-production size = 10 passes, non-production size = 20 fails.
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.gpu_cluster == null || (
+        length(try(trimspace(worker.gpu_cluster.id), "")) > 0 ||
+        length(try(trimspace(worker.gpu_cluster.infiniband_fabric), "")) > 0
+      )
+    ])
+    error_message = "slurm_nodeset_workers.gpu_cluster must set either id or infiniband_fabric."
+  }
+
+  validation {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
       worker.resource.platform == "gpu-gb300" ? (
         var.production
-        ? try(worker.size % 18 == 0, false)
-        : try(worker.size < 18 || worker.size % 18 == 0, false)
+        ? try(worker.size % local.gb300_nodes_per_nodegroup == 0, false)
+        : try(worker.size < local.gb300_nodes_per_nodegroup || worker.size % local.gb300_nodes_per_nodegroup == 0, false)
       ) : true
     ])
-    error_message = "GB300 worker nodesets must have size divisible by 18 in production. Non-production GB300 nodesets may use one partial rack with size less than 18."
+    error_message = "GB300 worker nodesets must have size divisible by ${local.gb300_nodes_per_nodegroup}."
   }
 
   validation {
@@ -762,20 +770,6 @@ variable "slurm_nodeset_workers" {
       worker.resource.platform == "gpu-gb300" ? try(coalesce(worker.nvlink.type, "GB300") == "GB300", false) : true
     ])
     error_message = "GB300 worker nodesets must use nvlink.type = \"GB300\"."
-  }
-
-  validation {
-    # Keep the rack-size rule next to the NVLink-specific settings too, so a
-    # future non-GB NVLink platform must update this validation deliberately.
-    condition = alltrue([
-      for worker in var.slurm_nodeset_workers :
-      try(worker.nvlink.enabled == true, false) && worker.resource.platform == "gpu-gb300" ? (
-        var.production
-        ? try(worker.size % 18 == 0, false)
-        : try(worker.size < 18 || worker.size % 18 == 0, false)
-      ) : true
-    ])
-    error_message = "NVLink-enabled GB300 worker nodesets must have size divisible by 18 in production. Non-production GB300 nodesets may use one partial rack with size less than 18."
   }
 
   validation {

@@ -18,6 +18,7 @@ locals {
 
   gb300_platform              = "gpu-gb300"
   gb300_nodes_per_nodegroup   = 18
+  nvl_instance_group_size     = 18
   default_nodes_per_nodegroup = 100
   gb300_enabled               = anytrue([for nodeset in var.slurm_nodeset_workers : nodeset.resource.platform == local.gb300_platform])
 
@@ -247,7 +248,7 @@ resource "nebius_compute_v1_nvl_instance_group" "worker" {
   }
 
   parent_id = var.iam_project_id
-  size      = each.value.size
+  size      = local.nvl_instance_group_size
   name      = "${local.k8s_cluster_name}-${each.value.node_group_name}"
   type      = each.value.nvlink.type
 }

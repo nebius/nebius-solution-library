@@ -3,9 +3,9 @@ locals {
   gpu_clusters_v2 = {
     for gpu_placement in distinct([for worker in var.node_group_workers_v2 :
       {
-        fabric = worker.gpu_cluster.infiniband_fabric
+        fabric = try(trimspace(worker.gpu_cluster.infiniband_fabric), "")
       }
-      if worker.gpu_cluster != null
+      if worker.gpu_cluster != null && try(trimspace(worker.gpu_cluster.id), "") == "" && try(trimspace(worker.gpu_cluster.infiniband_fabric), "") != ""
     ]) :
     gpu_placement.fabric => {
       fabric = gpu_placement.fabric
@@ -16,11 +16,25 @@ locals {
     for ng in distinct([for worker in var.node_group_workers_v2 :
       {
         name   = worker.name
-        fabric = worker.gpu_cluster.infiniband_fabric
+        fabric = try(trimspace(worker.gpu_cluster.infiniband_fabric), "")
       }
-      if worker.gpu_cluster != null
+      if worker.gpu_cluster != null && try(trimspace(worker.gpu_cluster.id), "") == "" && try(trimspace(worker.gpu_cluster.infiniband_fabric), "") != ""
     ]) :
     ng.name => ng.fabric
+  }
+
+  node_group_gpu_cluster_id_v2 = {
+    worker = [
+      for worker in var.node_group_workers_v2 :
+      try(trimspace(worker.gpu_cluster.id), "")
+    ]
+  }
+
+  node_group_gpu_cluster_fabric_v2 = {
+    worker = [
+      for worker in var.node_group_workers_v2 :
+      try(trimspace(worker.gpu_cluster.infiniband_fabric), "")
+    ]
   }
 }
 
@@ -133,8 +147,13 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
       preset   = var.node_group_workers_v2[count.index].resource.preset
     }
     gpu_cluster = (local.node_group_gpu_cluster_compatible_v2.worker[count.index]
-      ? (var.node_group_workers_v2[count.index].gpu_cluster != null
-        ? nebius_compute_v1_gpu_cluster.this_v2[local.gpu_clusters_by_nodegroup[var.node_group_workers_v2[count.index].name]]
+      ? (var.node_group_workers_v2[count.index].gpu_cluster != null && (local.node_group_gpu_cluster_id_v2.worker[count.index] != "" || local.node_group_gpu_cluster_fabric_v2.worker[count.index] != "")
+        ? {
+          id = (local.node_group_gpu_cluster_id_v2.worker[count.index] != ""
+            ? local.node_group_gpu_cluster_id_v2.worker[count.index]
+            : nebius_compute_v1_gpu_cluster.this_v2[local.gpu_clusters_by_nodegroup[var.node_group_workers_v2[count.index].name]].id
+          )
+        }
         : null
       )
       : null
