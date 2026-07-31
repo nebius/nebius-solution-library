@@ -594,6 +594,7 @@ module "slurm" {
   }]
   worker_nodesets = [for nodeset in local.slurm_nodeset_workers : {
     name            = nodeset.name
+    platform        = nodeset.resource.platform
     replicas        = nodeset.size
     max_unavailable = "20%"
     features = concat(
@@ -653,7 +654,8 @@ module "slurm" {
   flux_namespace = local.flux_namespace
 
   providers = {
-    helm = helm
+    helm       = helm
+    kubernetes = kubernetes
   }
 }
 

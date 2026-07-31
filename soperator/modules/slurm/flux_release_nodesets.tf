@@ -7,7 +7,9 @@ resource "local_file" "flux_release_rendered_nodesets" {
     release_name = "soperator-nodesets"
     cluster_name = var.name
 
-    nodesets = var.worker_nodesets
+    nodesets = [for nodeset in var.worker_nodesets : merge(nodeset, {
+      nccl_network_vars = try(local.worker_nccl_network_vars[nodeset.name], null)
+    })]
     resources = [for res in var.node_capacity.worker : {
       cpu_cores = floor(
         res.cpu_cores

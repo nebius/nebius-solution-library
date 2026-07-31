@@ -867,6 +867,7 @@ variable "active_checks_scope" {
 variable "worker_nodesets" {
   type = list(object({
     name                           = string
+    platform                       = string
     replicas                       = number
     max_unavailable                = string
     features                       = list(string)
