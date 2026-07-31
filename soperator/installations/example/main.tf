@@ -442,6 +442,7 @@ module "slurm" {
   opentelemetry_batch                       = var.opentelemetry_batch
   opentelemetry_sending_queue               = var.opentelemetry_sending_queue
   opentelemetry_delete_jail_logs_after_read = var.opentelemetry_delete_jail_logs_after_read
+  opentelemetry_delete_jail_logs_min_age    = var.opentelemetry_delete_jail_logs_min_age
 
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
   cuda_version                  = lookup(var.platform_cuda_versions, local.slurm_nodeset_workers[0].resource.platform)

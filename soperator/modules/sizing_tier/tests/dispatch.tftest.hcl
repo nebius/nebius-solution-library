@@ -149,6 +149,7 @@ run "component_override_wins_over_tier" {
       rest                        = { cpu = 20, memory = 120, ephemeral_storage = 5 }
       vm_single                   = { cpu = "25000m", memory = "24Gi", size = "558Gi", gomaxprocs = 25 }
       logs_collector              = { memory = "1Gi", cpu = "500m" }
+      jail_logs_collector         = { memory = "1Gi", cpu = "1000m" }
       kube_state_metrics          = { requests = { cpu = "300m", memory = "2048Mi" }, limits = { memory = "4096Mi" } }
       soperator_checks_controller = { requests = { cpu = 2, memory = 6 }, limits = { memory = 6 } }
     }
@@ -168,6 +169,10 @@ run "component_override_wins_over_tier" {
   assert {
     condition     = output.preset.logs_collector.memory == "1Gi"
     error_message = "component_overrides.logs_collector must replace the constant"
+  }
+  assert {
+    condition     = output.preset.jail_logs_collector.memory == "1Gi" && output.preset.jail_logs_collector.cpu == "1000m"
+    error_message = "component_overrides.jail_logs_collector must replace the constant"
   }
   assert {
     condition     = output.preset.kube_state_metrics.requests.memory == "2048Mi" && output.preset.kube_state_metrics.limits.memory == "4096Mi"
@@ -212,6 +217,10 @@ run "constants_do_not_scale_with_tier" {
   assert {
     condition     = output.preset.logs_collector.memory == "200Mi" && output.preset.logs_collector.cpu == "200m"
     error_message = "logs_collector must stay constant at XL"
+  }
+  assert {
+    condition     = output.preset.jail_logs_collector.memory == "256Mi" && output.preset.jail_logs_collector.cpu == "200m"
+    error_message = "jail_logs_collector must stay constant at XL (per-worker agent, load bounded by its own node)"
   }
   assert {
     condition     = output.preset.spo_daemon.memory == "128Mi" && output.preset.spo_daemon.cpu == "100m"

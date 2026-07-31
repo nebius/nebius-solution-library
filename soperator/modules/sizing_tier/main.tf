@@ -143,14 +143,6 @@ locals {
       XL = { memory = "512Mi", cpu = "500m" }
     }
     # Runs on: system nodes.
-    jail_logs_collector = {
-      XS = { memory = "1Gi", cpu = "1000m" }
-      S  = { memory = "1Gi", cpu = "1000m" }
-      M  = { memory = "1Gi", cpu = "1000m" }
-      L  = { memory = "2Gi", cpu = "2000m" }
-      XL = { memory = "4Gi", cpu = "4000m" }
-    }
-    # Runs on: system nodes.
     nccl_profiles_collector = {
       XS = { memory = "200Mi", cpu = "500m" }
       S  = { memory = "200Mi", cpu = "500m" }
@@ -220,6 +212,10 @@ locals {
     # watch is node-scoped); the size-correlated part of the pipeline is the central
     # vm_logs sink, which is tier-scaled above.
     logs_collector = { memory = "200Mi", cpu = "200m" }
+    # Per-worker DaemonSet reading Slurm workload outputs from its own node's boot disk;
+    # its load is bounded by one node's log volume, not by the cluster size. Runs on worker
+    # nodes only, so it is not part of the system-node capacity guard below.
+    jail_logs_collector = { memory = "256Mi", cpu = "200m" }
     # Installs the security profiles onto its own node; the profile count is defined by the
     # workload (soperator ships essentially one static profile), not by the cluster size.
     spo_daemon = { cpu = "100m", memory = "128Mi" }
@@ -250,7 +246,7 @@ locals {
     vm_logs                     = coalesce(var.component_overrides.vm_logs, local.component_presets.vm_logs[local.sizing_tier])
     events_collector            = coalesce(var.component_overrides.events_collector, local.component_presets.events_collector[local.sizing_tier])
     logs_collector              = coalesce(var.component_overrides.logs_collector, local.constant_presets.logs_collector)
-    jail_logs_collector         = coalesce(var.component_overrides.jail_logs_collector, local.component_presets.jail_logs_collector[local.sizing_tier])
+    jail_logs_collector         = coalesce(var.component_overrides.jail_logs_collector, local.constant_presets.jail_logs_collector)
     nccl_profiles_collector     = coalesce(var.component_overrides.nccl_profiles_collector, local.component_presets.nccl_profiles_collector[local.sizing_tier])
   }
 
@@ -341,10 +337,6 @@ locals {
       events_collector = {
         cpu    = tonumber(trimsuffix(local.component_presets.events_collector[tier].cpu, "m")) / 1000
         memory = tonumber(trimsuffix(local.component_presets.events_collector[tier].memory, "Mi")) / 1024
-      }
-      jail_logs_collector = {
-        cpu    = tonumber(trimsuffix(local.component_presets.jail_logs_collector[tier].cpu, "m")) / 1000
-        memory = tonumber(trimsuffix(local.component_presets.jail_logs_collector[tier].memory, "Gi"))
       }
       nccl_profiles_collector = {
         cpu    = tonumber(trimsuffix(local.component_presets.nccl_profiles_collector[tier].cpu, "m")) / 1000

@@ -560,6 +560,17 @@ variable "opentelemetry_delete_jail_logs_after_read" {
   default     = false
 }
 
+variable "opentelemetry_delete_jail_logs_min_age" {
+  description = "Minimum time a jail log file must remain unmodified before the OpenTelemetry collector deletes it after reading. Logs are node-local (worker boot disk), so this is also the on-node debugging window."
+  type        = string
+  default     = "4h"
+
+  validation {
+    condition     = can(regex("^[0-9]+(s|m|h)$", var.opentelemetry_delete_jail_logs_min_age))
+    error_message = "Must be a Go-style duration with a single unit, e.g. 90s, 30m, or 4h."
+  }
+}
+
 variable "dcgm_job_map_dir" {
   description = "Directory where HPC job mapping files are located"
   type        = string
@@ -688,7 +699,7 @@ variable "nccl_inspector_profiling" {
   type = object({
     enabled  = bool
     verbose  = optional(bool, false)
-    dump_dir = optional(string, "/opt/soperator-outputs/nccl_profiles")
+    dump_dir = optional(string, "/opt/soperator-outputs/shared/nccl_profiles")
   })
   default = {
     enabled = false
