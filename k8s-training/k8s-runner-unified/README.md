@@ -1,0 +1,87 @@
+# Unified NCCL Test Runner
+
+A single, reusable NCCL benchmarking toolchain for Nebius MK8s clusters.
+It **auto-adapts to the GPU node type it is pointed at** (H100 / H200 / B200 / B300)
+instead of hardcoding per-hardware assumptions that break when switching clusters,
+runs `all_reduce` + `alltoall` over both NVLink (single-node) and InfiniBand
+(multi-node), and produces a shareable markdown report.
+
+## Contents
+
+| File | Role |
+|---|---|
+| `nccl_runner_unified.sh` | Orchestrator — detects hardware, renders + runs jobs, retries, reports |
+| `nccl-test-template.yaml` | Parameterized Kubeflow MPIJob (envsubst `${VAR}` placeholders) |
+| `generate-report.sh` | Parses raw logs → `report.md` (auto-invoked by the runner) |
+
+## What it auto-detects (so you don't hardcode it)
+
+1. **Node capacity** — allocatable CPU / memory / GPU → worker resource sizing
+   (`allocatable − RESERVE_*`).
+2. **IB devices** — a throwaway pod runs `ibv_devinfo`; only ports that are
+   `link_layer: InfiniBand` **and** `state: PORT_ACTIVE` are kept, giving the real
+   `NCCL_IB_HCA` list (e.g. B300 → `mlx5_4…11`, H200 → `mlx5_0…7`).
+3. **CPU topology** — `nproc` + NUMA node count + GPU count are used to compute the
+   process binding: `pe = CPUs / GPUs`, `procs_per_numa = GPUs / NUMA`, rendered as
+   `--map-by ppr:${procs_per_numa}:numa:pe=${pe} -bind-to hwthread`. Falls back to
+   coarse `-bind-to numa` when GPUs don't divide evenly across NUMA nodes.
+   *(This is the fix for the B300→H200 breakage: a fixed `pe=24` needs 96
+   hwthreads/NUMA and aborts on H200's 64/NUMA.)*
+4. **MPIJob API version** — `v1` vs `v2beta1` (installs differ per cluster);
+   `launcherCreationPolicy` is only emitted on `v2beta1`.
+5. **Host-count cap** — requested host counts are capped to the number of nodes
+   actually in the node group, so the sweep never hangs on unschedulable jobs.
+
+It also takes a **PID lock** (`/tmp/nccl_runner_unified.lock`) so two runners can't
+share the namespace and delete each other's pods, and retries a launch up to
+`MAX_LAUNCH_ATTEMPTS` times if it fails to start.
+
+## Usage
+
+```bash
+# 1. Install the MPI Operator if it isn't present (the runner tells you if not):
+kubectl apply --server-side -k \
+  "github.com/kubeflow/mpi-operator/manifests/overlays/standalone?ref=v0.6.0"
+
+# 2. Set NODE_GROUP_ID (and review IMAGE) at the top of nccl_runner_unified.sh.
+#    Find the node group ID with:
+kubectl get nodes -o custom-columns=\
+'NAME:.metadata.name,GROUP:.metadata.labels.nebius\.com/node-group-id,GPU:.status.capacity.nvidia\.com/gpu'
+
+# 3. Run:
+./nccl_runner_unified.sh
+#    -> results/nccl-<timestamp>/<test>-<hosts>.log  (raw NCCL output)
+#    -> results/nccl-<timestamp>/report.md           (auto-generated summary)
+```
+
+Regenerate a report from existing logs at any time:
+
+```bash
+./generate-report.sh results/nccl-<timestamp>
+```
+
+> **One runner per namespace at a time** — the lock enforces this. Two concurrent
+> runners on the same namespace force-delete each other's pods and produce spurious
+> launcher failures.
+
+## Configuration (top of `nccl_runner_unified.sh`)
+
+| Var | Default | Meaning |
+|---|---|---|
+| `NAMESPACE` | `nccl-tests` | Namespace to run in |
+| `IMAGE` | Nebius `nccl-tests` image | Must be pullable on the cluster |
+| `NODE_GROUP_ID` | — | **Set per cluster** |
+| `RESERVE_CPU_CORES` / `RESERVE_MEM_GI` | `4` / `50` | Headroom left for kubelet/daemonsets |
+| `MAX_LAUNCH_ATTEMPTS` | `6` | Retry budget for the transient launcher glitch |
+| `HOSTS` | `(1 2 3 4)` | Host counts to sweep (auto-capped to available nodes) |
+| `TESTS` | `(all_reduce alltoall)` | Add `all_gather reduce_scatter reduce gather broadcast scatter` for a fuller sweep |
+
+## Scope & caveats
+
+- **Supported as-is:** Nebius **x86 + InfiniBand** GPU types — H100, H200, B200, B300.
+- **Not supported as-is:** Grace-ARM types (GH200 / GB200) — aarch64, so the x86
+  image won't run and the binding math should be re-validated.
+- Assumes an **InfiniBand** fabric (RoCE/Ethernet clusters return no IB devices and
+  the runner errors out) and the Nebius `nebius.com/node-group-id` label.
+- `busbw` (bus bandwidth) is the figure to compare against reference numbers.
+  Single-host runs measure intra-node NVLink; multi-host runs cross the IB fabric.
