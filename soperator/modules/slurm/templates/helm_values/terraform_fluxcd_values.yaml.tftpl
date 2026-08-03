@@ -72,7 +72,13 @@ resources:
           enabled: ${telemetry_enabled}
           clusterName: ${cluster_name}
           publicEndpointEnabled: ${public_o11y_enabled}
+          publicEndpointTokenKind: secret
           region: ${region}
+          tsaToken:
+            secretName: o11y-writer-sa-token
+            secretKey: accessToken
+            writer:
+              enabled: false
           opentelemetry:
             enabled: ${telemetry_enabled}
 
