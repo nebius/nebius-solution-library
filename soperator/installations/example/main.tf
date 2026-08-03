@@ -150,6 +150,7 @@ resource "terraform_data" "check_variables" {
   depends_on = [
     terraform_data.check_slurm_nodeset,
     terraform_data.check_slurm_nodeset_accounting,
+    terraform_data.check_slurm_worker_cpu_platform,
     terraform_data.check_nfs,
     terraform_data.check_nfs_exclusivity,
     terraform_data.check_jail_submount_paths,
@@ -293,6 +294,7 @@ module "k8s" {
     module.cleanup,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_slurm_nodeset,
+    terraform_data.check_slurm_worker_cpu_platform,
   ]
 
   source = "../../modules/k8s"
