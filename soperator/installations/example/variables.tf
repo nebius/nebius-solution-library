@@ -1245,15 +1245,22 @@ resource "terraform_data" "check_slurm_nodeset" {
 }
 
 locals {
-  slurm_worker_cpu_platforms = compact(concat(
-    local.login_node_group.node_group_enabled ? [
-      try(module.resources.by_platform[local.login_node_group.resource.platform][local.login_node_group.resource.preset].cpu_platform, "")
-    ] : [],
-    [
-      for worker in var.slurm_nodeset_workers :
-      try(module.resources.by_platform[worker.resource.platform][worker.resource.preset].cpu_platform, "")
-    ],
-  ))
+  slurm_worker_cpu_platform_entries = [
+    for worker in var.slurm_nodeset_workers : {
+      name         = worker.name
+      platform     = worker.resource.platform
+      cpu_platform = try(module.resources.by_platform[worker.resource.platform][worker.resource.preset].cpu_platform, "")
+    }
+  ]
+
+  slurm_worker_cpu_platforms = compact([
+    for entry in local.slurm_worker_cpu_platform_entries : entry.cpu_platform
+  ])
+
+  slurm_worker_cpu_platform_message = join("\n", [
+    for entry in local.slurm_worker_cpu_platform_entries :
+    format("%s (%s) -> %s", entry.name, entry.platform, entry.cpu_platform)
+  ])
 }
 
 resource "terraform_data" "check_slurm_worker_cpu_platform" {
@@ -1263,10 +1270,10 @@ resource "terraform_data" "check_slurm_worker_cpu_platform" {
 
   lifecycle {
     precondition {
-      # Workers and login nodes share binaries through one jail filesystem, so
-      # all jail-mounted node groups must be binary-compatible.
+      # Worker nodesets share binaries through one jail filesystem, so all
+      # worker nodesets must be binary-compatible.
       condition     = length(distinct(local.slurm_worker_cpu_platforms)) <= 1
-      error_message = "Slurm worker nodesets and the enabled login node group must use the same CPU platform because they share one jail filesystem."
+      error_message = "Slurm worker nodesets must use the same CPU platform because they share one jail filesystem.\nConfigured CPU platforms:\n${local.slurm_worker_cpu_platform_message}"
     }
   }
 }
