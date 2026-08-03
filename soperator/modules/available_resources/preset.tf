@@ -400,6 +400,7 @@ locals {
   presets_by_platforms = tomap({
     for platform, presets in local.presets_by_platforms_raw : platform => tomap({
       for preset, resources in presets : preset => merge(resources, {
+        cpu_platform = local.cpu_platform_by_platform[platform]
         local_nvme_supported = anytrue([
           for region in [for _, region in local.regions : region] : try(local.local_nvme_supported_by_region_platform_preset[region][platform][preset], false)
         ])

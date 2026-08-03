@@ -10,6 +10,17 @@ locals {
     gpu-gb300      = "gpu-gb300"
   }
 
+  cpu_platform_by_platform = {
+    (local.platforms.cpu-e2)         = "amd64"
+    (local.platforms.cpu-d3)         = "amd64"
+    (local.platforms.gpu-h100-sxm)   = "amd64"
+    (local.platforms.gpu-h200-sxm)   = "amd64"
+    (local.platforms.gpu-b200-sxm)   = "amd64"
+    (local.platforms.gpu-b200-sxm-a) = "amd64"
+    (local.platforms.gpu-b300-sxm)   = "amd64"
+    (local.platforms.gpu-gb300)      = "arm64"
+  }
+
   platform_regions = tomap({
     (local.platforms.cpu-e2) = [
       local.regions.eu-north1,
