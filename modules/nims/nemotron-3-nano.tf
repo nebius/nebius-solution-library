@@ -1,22 +1,23 @@
-resource "kubernetes_deployment_v1" "evo2_40b" {
+resource "kubernetes_deployment_v1" "nemotron-3-nano" {
   metadata {
-    name      = "evo2-40b"
+    name      = "nemotron-3-nano"
     namespace = var.namespace
   }
 
   spec {
-    replicas = var.evo2_40b ? var.evo2_40b_replicas : 0
+    replicas = var.nemotron_3_nano ? var.nemotron_3_nano_replicas : 0
+
 
     selector {
       match_labels = {
-        app = "evo2-40b"
+        app = "nemotron-3-nano"
       }
     }
 
     template {
       metadata {
         labels = {
-          app      = "evo2-40b"
+          app      = "nemotron-3-nano"
           lb_group = "protein-apps"
 
         }
@@ -27,32 +28,17 @@ resource "kubernetes_deployment_v1" "evo2_40b" {
         image_pull_secrets {
           name = kubernetes_secret_v1.nvcrio-cred.metadata[0].name
         }
-        # init_container {
-        #   name  = "init-mnt-data"
-        #   image = "busybox:1.36"
-        #
-        #   command = [
-        #     "sh", "-c",
-        #     "mkdir -p /mnt/data/nim && chown -R 1000t:1000 /mnt/data/nim"
-        #   ]
-        #
-        #   volume_mount {
-        #     name       = "mnt-data"
-        #     mount_path = "/mnt/data"
-        #   }
-        # }
 
         container {
 
-          name  = "evo2-40b"
-          image = "nvcr.io/nim/arc/evo2-40b:${var.evo2_40b_version}"
+          name  = "nemotron-3-nano"
+          image = "nvcr.io/nim/nvidia/nemotron-3-nano:${var.nemotron_3_nano_version}"
 
           command = ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
           security_context {
             run_as_user  = 0
             run_as_group = 0
           }
-
           env {
             name = "NGC_API_KEY"
 
@@ -63,6 +49,7 @@ resource "kubernetes_deployment_v1" "evo2_40b" {
               }
             }
           }
+
 
           port {
             container_port = 8000
@@ -89,7 +76,6 @@ resource "kubernetes_deployment_v1" "evo2_40b" {
           volume_mount {
             name       = "mnt-data"
             mount_path = "/opt/nim/.cache/"
-            #   mount_path = "/mnt/data/"
           }
         }
 
@@ -100,7 +86,7 @@ resource "kubernetes_deployment_v1" "evo2_40b" {
 
           empty_dir {
             medium     = "Memory"
-            size_limit = "16Gi"
+            size_limit = "8Gi"
           }
         }
         volume {
@@ -111,6 +97,7 @@ resource "kubernetes_deployment_v1" "evo2_40b" {
             type = "DirectoryOrCreate"
           }
         }
+
       }
     }
   }
