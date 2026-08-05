@@ -19,13 +19,22 @@ def test_codex_configuration_is_four_lines_and_uses_token_environment() -> None:
     }
 
 
-def test_http_client_examples_share_the_same_authenticated_endpoint() -> None:
-    for filename in ("claude-mcp.json", "cursor-mcp.json"):
-        config = json.loads((EXAMPLES / filename).read_text(encoding="utf-8"))
-        server = config["mcpServers"]["nebius-bionemo"]
-        assert server["type"] == "http"
-        assert server["url"] == "https://bionemo.example.com/mcp"
-        assert server["headers"]["Authorization"] == "Bearer ${BIONEMO_MCP_TOKEN}"
+def _http_server(filename: str) -> dict[str, object]:
+    config = json.loads((EXAMPLES / filename).read_text(encoding="utf-8"))
+    server: dict[str, object] = config["mcpServers"]["nebius-bionemo"]
+    assert server["type"] == "http"
+    assert server["url"] == "https://bionemo.example.com/mcp"
+    return server
+
+
+def test_claude_http_example_uses_claude_environment_interpolation() -> None:
+    server = _http_server("claude-mcp.json")
+    assert server["headers"] == {"Authorization": "Bearer ${BIONEMO_MCP_TOKEN}"}
+
+
+def test_cursor_http_example_uses_cursor_environment_interpolation() -> None:
+    server = _http_server("cursor-mcp.json")
+    assert server["headers"] == {"Authorization": "Bearer ${env:BIONEMO_MCP_TOKEN}"}
 
 
 def test_stdio_example_runs_the_same_package() -> None:

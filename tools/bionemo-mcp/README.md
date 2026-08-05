@@ -148,7 +148,9 @@ configuration for the client:
 - Claude Code: `examples/claude-mcp.json` uses Streamable HTTP and an environment-
   expanded `Authorization` header.
 - Cursor: `examples/cursor-mcp.json` uses its HTTP MCP configuration with the same
-  bearer header.
+  bearer header and Cursor's `${env:BIONEMO_MCP_TOKEN}` interpolation. Launch the
+  IDE from an environment that contains the token, or provide it through the
+  desktop session's environment.
 - Local agents: `examples/stdio-mcp.json` starts the same implementation over
   stdio; bearer authentication applies only to HTTP.
 

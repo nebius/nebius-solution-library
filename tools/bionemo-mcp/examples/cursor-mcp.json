@@ -4,7 +4,7 @@
       "type": "http",
       "url": "https://bionemo.example.com/mcp",
       "headers": {
-        "Authorization": "Bearer ${BIONEMO_MCP_TOKEN}"
+        "Authorization": "Bearer ${env:BIONEMO_MCP_TOKEN}"
       }
     }
   }
