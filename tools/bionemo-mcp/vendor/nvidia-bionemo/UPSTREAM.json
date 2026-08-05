@@ -1,0 +1,146 @@
+{
+  "license": "Apache-2.0 OR CC-BY-4.0",
+  "preserved_files": {
+    "nim-skills/.skillsource.json": "524cb9499e125bc0ff4953ecba749f3589ab2b990d9895a9515d9eb7ca3852eb",
+    "nim-skills/README.md": "04a275c39978be598bb809604b719d3a3cc55e22b0662d1663627584f74cc17c",
+    "nim-skills/boltz2-nim/evals/evals.json": "0af7069e8db08ad6539b253a7057139e1c5a0ff8c825491a63ba28f5e95bb375",
+    "nim-skills/boltz2-nim/evals/trigger_evals.json": "498192f14160030f2cf37a6db4d2900b305cce3455d79e50e69c52f54cf316c7",
+    "nim-skills/boltz2-nim/references/api.md": "c8a62e0a8f3b1a52751ad21821e424c52168309317084c397dd1f0faefc3911c",
+    "nim-skills/boltz2-nim/references/examples.md": "01eb5749cbf60296792891f170c8003174423c8e0382eb82f83f9f34cb619124",
+    "nim-skills/boltz2-nim/references/parameters.md": "131b8a9ecd6c13bce6b741eef237e42ad82b084d760fed9fb9385f6fa3eac30d",
+    "nim-skills/boltz2-nim/references/science.md": "048f7a5ef31051051ccb61f976509d5968c797b3acbae8118fe8b1a5bd65da9c",
+    "nim-skills/boltz2-nim/references/validation.md": "0940c9a8ca5b65a07f1cb862386d0a77d89da63986233b691674bd8b0a913493",
+    "nim-skills/diffdock-nim/evals/evals.json": "6b5492bf22601417ca9c297541fa91c02c1c5858c3635a4506721c4698501b22",
+    "nim-skills/diffdock-nim/evals/trigger_evals.json": "5516c2be90adf5085bf4e50602f24347b20114a6ad3984a5bf5cd824396966a9",
+    "nim-skills/diffdock-nim/references/api.md": "da8510b406eecf95e98117fb99f7dad1f006828e04cab8205ee9129e3fa12bfb",
+    "nim-skills/diffdock-nim/references/examples.md": "931d9fbecb8afb3597cba5d3df21da3736a7f1aba2bb728eaf3d55e26f553c8b",
+    "nim-skills/diffdock-nim/references/parameters.md": "fb20bcd80cef5cc8026cf624cf814eadabc40dd98005a2ca966e13bf0366cca4",
+    "nim-skills/diffdock-nim/references/science.md": "34086c8a7d5d0c32cbccd9fbcc0f065ff595ae8132236ed5bb440da1fdf7cc34",
+    "nim-skills/diffdock-nim/references/validation.md": "8e07b78b1b7c9685d23547951d2af98368a01cd4e4627650f00ebb8cd58a1fc3",
+    "nim-skills/evo2-nim/evals/evals.json": "d588e388293f14c15ddc0b08f7deaed5f9c5b9deb7dd0b4a329737a401345da2",
+    "nim-skills/evo2-nim/evals/trigger_evals.json": "2ee2d2f829884e142b6e64f6ba482b66f20af1e8b050747e5ca431dd3412a684",
+    "nim-skills/evo2-nim/references/api.md": "42564e353cef9d0c66e5119161b4825da4cf443eea96fbd81e1144979f23a3c5",
+    "nim-skills/evo2-nim/references/examples.md": "3b25e4c2fa5354839858f77764cbbe04451ca7523b753f9933a2e25b8a47285b",
+    "nim-skills/evo2-nim/references/parameters.md": "1606277d60aa029efb1ce7c878b4ad880d7f824614a3fb75eac1b7059b453fb7",
+    "nim-skills/evo2-nim/references/science.md": "feadc56efddf96e4516f1ddfe1ff9f9c02aeb86922afe1aec3bae23cf6d0af59",
+    "nim-skills/evo2-nim/references/validation.md": "78e0677bbfde939872694135bb217a68296a4184043c8ecc5c5258c4e9135051",
+    "nim-skills/genmol-nim/evals/evals.json": "286fb4c9c0bab58591a4591cb3cca48476ed15dff5cd1dc74891d51f02a5693e",
+    "nim-skills/genmol-nim/evals/trigger_evals.json": "4c7d4393002a9d6749e9ce7cdecd7c4ca59b81607c3a2753dc88638c2c07ac69",
+    "nim-skills/genmol-nim/references/api.md": "ef93d5a646ee5e144df845294caeffa177089ed7d76ce59d7c5e8835c9d09418",
+    "nim-skills/genmol-nim/references/examples.md": "b692a2edd5532052ce9b74b82813845a51c1ae7492130c0fe8cd1feda9b6bd08",
+    "nim-skills/genmol-nim/references/parameters.md": "52d3d37ee0fd50270705aa5c6df3175f2893c78545e68710c56af351a3b37be4",
+    "nim-skills/genmol-nim/references/science.md": "1d0a7544744cd5c60c97fd48f19acec2fe47ac6c9d3d99ffd663d05fafb387ea",
+    "nim-skills/genmol-nim/references/validation.md": "61aeb3e540d087ccc40d471547f8bebc39d0b800e61d8d6103ee86cb426af343",
+    "nim-skills/meta-skills/README.md": "9c88fa59f59fc68991e90408934ccd17dacda756c5a1185be9da0dcc0e1d5ddd",
+    "nim-skills/meta-skills/drug-discovery-pipeline/evals/evals.json": "a8e15f61efea2e07caaa9a4808b12a7fc24f351f9beb3155decabb6633c0cf5c",
+    "nim-skills/meta-skills/msa-structure-prediction-pipeline/evals/evals.json": "1a67a4a3e779ff1610fd918f422f6daffefaab3444a3957f075762ed7ccf4fde",
+    "nim-skills/molmim-nim/evals/evals.json": "31927b2a3959997bdb6d076a0515809ab88ad3ea0df09672cdaac0658ec15fda",
+    "nim-skills/molmim-nim/evals/trigger_evals.json": "c1dac3f00d3e7eba20bcce44066341144927e1b16c1163c95fc1c37d6ba2348a",
+    "nim-skills/molmim-nim/references/api.md": "94ecd083c55edf921c292384a04c3b10789d60be0e94795b0b3f3fe5b93af957",
+    "nim-skills/molmim-nim/references/examples.md": "488ee14c5dce2c77970ad53eb785e4a8f38f1374701d7a63bdfc0b7ff585da53",
+    "nim-skills/molmim-nim/references/parameters.md": "56a47045dec865b3313f45abc27813d761225bc30d388bc9da0541e050e66d5c",
+    "nim-skills/molmim-nim/references/science.md": "3b2a8d4705639ca7344f52c6885e4201940fe32c655262c93e310123d4679176",
+    "nim-skills/molmim-nim/references/validation.md": "17325fc106f68d3c34fb18fe7e0bdbf8ee486000cc647936499890d7a9bf4bc6",
+    "nim-skills/msa-search-nim/evals/evals.json": "a27d29b6ea1be3029123aa766096f7c1f748bc35227409142a0b8291a5be42ff",
+    "nim-skills/msa-search-nim/evals/trigger_evals.json": "1f7c521f698aa0b0076b14762265abf57003abd7fc77a3f9de2ef96111e53f88",
+    "nim-skills/msa-search-nim/references/api.md": "587f867027c324aaf76eb90d20e7ef8af75e0dfb7d92451d0bd9faada0a54694",
+    "nim-skills/msa-search-nim/references/examples.md": "7cf20b1158f61102bf741e96f46e38927f8e76149609e0696ff0a23d26adfbff",
+    "nim-skills/msa-search-nim/references/parameters.md": "20ee41ee726f235be944e4a954665bc387911d1f445d20b192485d8eb388aa65",
+    "nim-skills/msa-search-nim/references/science.md": "e06293e4aee41fa4d8641fc85195503d966ac402a47ba85bfef436d23a7f75ad",
+    "nim-skills/msa-search-nim/references/validation.md": "f8d05cb2635bbff265aa9122dcf1d5156bde9664b203f2e69e096d2db1172d71",
+    "nim-skills/openfold2-nim/evals/evals.json": "4e2d0be60f5263a8437d82daba1ec9d2ba40f64e358f0446841a2e28d6bc04d4",
+    "nim-skills/openfold2-nim/evals/trigger_evals.json": "3bd273f2014e7174c6faa9bc64b564c21cbc90dd875d89c7b754a3c2269b355b",
+    "nim-skills/openfold2-nim/references/api.md": "f23175bf514ccc26fa7d029750214f63c4fd4c499589b64512216d24de949ac1",
+    "nim-skills/openfold2-nim/references/examples.md": "02cf5ef45491b48e7e4278ece423302bc0bfc4c2728aca5474adc0ebd3696915",
+    "nim-skills/openfold2-nim/references/parameters.md": "8ad9a1213e09b6d513c08b888cfd332d91f4bde5939f7fdb88a4cec086f71d03",
+    "nim-skills/openfold2-nim/references/science.md": "bca999505c6b63b332fdfc347a27be800ebfee78ba5d345dfa29fc490e19dad0",
+    "nim-skills/openfold2-nim/references/validation.md": "ca866196d1b59b032e3c0cfcb230bd9f93d29c2abb4a891bc5f9af9373214980",
+    "nim-skills/openfold3-nim/evals/evals.json": "a189508cfa7904955eaff0d5f026d40fd508ee717aaf4793d1a1b2a3122f8a55",
+    "nim-skills/openfold3-nim/evals/trigger_evals.json": "bdbaa62d177ac6d5379b815279732a331d17eeb61d4f2e44fd2ed88839ac30cf",
+    "nim-skills/openfold3-nim/references/api.md": "39c9963196fd986512a05837617bc896b668b1da5067ad9ddb4a952893407f8d",
+    "nim-skills/openfold3-nim/references/examples.md": "0f5e9df40033ee0e83ee2f1b6085f20edfcd989df6d4295931e1685e08a7114e",
+    "nim-skills/openfold3-nim/references/parameters.md": "e331a4f7e76ac63bc4e3f4b81fd569c5fe7ed555daddec29b3e7923a6d4ac1e7",
+    "nim-skills/openfold3-nim/references/science.md": "d6abed1fc620c1e4afcaf3cbef2fa289a126dfe009380f327181da7f376f8e54",
+    "nim-skills/openfold3-nim/references/validation.md": "4353739ef4d883182fc1f0887ed227da1859c76642e0ad4d5568bc5796f37167",
+    "nim-skills/proteinmpnn-nim/evals/evals.json": "cdcd60e3db2e52703289f2a2b217a15ae90719cd3ea04b2904a3a4a593f3805a",
+    "nim-skills/proteinmpnn-nim/evals/trigger_evals.json": "ecd2330c4f053b3c47cfbd2217532cd58a0734eab699c5743fa66a6f0fcb05ee",
+    "nim-skills/proteinmpnn-nim/references/api.md": "74984a765f90c5ce2f62c2a73207fab0294d4d90f2194ad35dab708973853bcd",
+    "nim-skills/proteinmpnn-nim/references/examples.md": "f044b1eb0fbf4c8f1f183023cd6e78efca1cbad5224d7a6663511bd153b55444",
+    "nim-skills/proteinmpnn-nim/references/parameters.md": "6528fdced77b75ddb06f3d434cc3065583682b9e2d8d480e421fbdb1fa49deb7",
+    "nim-skills/proteinmpnn-nim/references/science.md": "740fd45c526f5a1abfffb337a3cc30d3fbb4f7c00156f8e5f224c9fedb55a5d2",
+    "nim-skills/proteinmpnn-nim/references/validation.md": "a68174cc4995026e6c943193ea859006833f66f3e6a0a4084b12c42c3ababdd4",
+    "nim-skills/rfdiffusion-nim/evals/evals.json": "f9083029301d5b8b00cf55b1b4e1aa655fc413df2eca63d02c518223fcce797b",
+    "nim-skills/rfdiffusion-nim/evals/trigger_evals.json": "902e2f97621bf599d78af76e05d1a550f541b958355a81e692cf43384859031e",
+    "nim-skills/rfdiffusion-nim/references/api.md": "12f38ce6164855569e8d08061311c1e9f20d390088cccfda7edf0a0341975d87",
+    "nim-skills/rfdiffusion-nim/references/examples.md": "f408b189bde8b8a018359175bf526d77a167b78cc8ad753b10843e9ae0b383b9",
+    "nim-skills/rfdiffusion-nim/references/parameters.md": "6bad0230a7207bd0a6d54b25964ef4020d9a9cc9bfda9e7da3e83ea2a4f8a222",
+    "nim-skills/rfdiffusion-nim/references/science.md": "ebaa31f4e40063b63ebc327c080a269394ebb04633c5a2a7369096dc3385d09c",
+    "nim-skills/rfdiffusion-nim/references/validation.md": "556411adce28aadf864066ca7ed7b82f2d3253dff2f68a98109b8dbf3b524904"
+  },
+  "requested_sha": "4e8fda769bd773538cb7168c849bd712c1b51b7b",
+  "resolved_sha": "4e8fda769bd773538cb7168c849bd712c1b51b7b",
+  "source_subdirectory": "nim-skills",
+  "transformed_skills": {
+    "nim-skills/boltz2-nim/SKILL.md": {
+      "mcp_tool": "boltz2_predict",
+      "source_sha256": "2922790dee8174bce9bd75252789b1ae4080645f96509ae1af031ed7dd6ce8fa",
+      "vendored_sha256": "7e58fad04f3146171630ee30db9b993619c37f5f2210ec23b09de38fd89bb4ae"
+    },
+    "nim-skills/diffdock-nim/SKILL.md": {
+      "mcp_tool": "diffdock_dock",
+      "source_sha256": "8f7574aba302e7f1bd48841ee3af1df3387380a747ef0d16c503f453a40f1798",
+      "vendored_sha256": "894ae660827ef6f9dc3bb917a91609a3b97959e8b4d44385d10923d41eaa9a48"
+    },
+    "nim-skills/evo2-nim/SKILL.md": {
+      "mcp_tool": "evo2_run",
+      "source_sha256": "5a89a82906bb9ccaf6fceb07d6ad3239295e77c03e626cd4d7b9c1103d73f61a",
+      "vendored_sha256": "8b345baedfaec39dc32dac71beced7bc8f08ed1c90c009bca58aef03f04407ca"
+    },
+    "nim-skills/genmol-nim/SKILL.md": {
+      "mcp_tool": "genmol_generate",
+      "source_sha256": "d872e789ad8b7789b44a97b537054a95143b32d1a988fded95ca763908720941",
+      "vendored_sha256": "353b72a1c2b6c7259a6c60384cbf8c333bed412db71f14e1acb5f646c951d549"
+    },
+    "nim-skills/meta-skills/drug-discovery-pipeline/SKILL.md": {
+      "mcp_tool": "drug_discovery_pipeline",
+      "source_sha256": "508ae783fefa4ade905c0b9a3a0ba5ff603d69e72128a864754e8bec7f0e75ba",
+      "vendored_sha256": "aa277e250069971538ef646e0ff967024db56e4814ad971d9492fca7f7ac06b9"
+    },
+    "nim-skills/meta-skills/msa-structure-prediction-pipeline/SKILL.md": {
+      "mcp_tool": "msa_structure_prediction_pipeline",
+      "source_sha256": "9022af4b36fdcbde3e5643914287ab5e40a6cef028fedfff9087a43d755964bf",
+      "vendored_sha256": "0e63b83335735a80958fde4991a365d1c652694f168200bc8a4d9e96614b8b38"
+    },
+    "nim-skills/molmim-nim/SKILL.md": {
+      "mcp_tool": "molmim_run",
+      "source_sha256": "9ea44aa921413a8ffd977c686c3ed2cb376d536d5725c5eb77ffc9ea49a2a414",
+      "vendored_sha256": "fa340f7a1a38a8c667c5619129c4490462034cb1a131fe091acbecb8a9a4aa17"
+    },
+    "nim-skills/msa-search-nim/SKILL.md": {
+      "mcp_tool": "msa_search",
+      "source_sha256": "094afa2b20d680a5c7d171d34f2f40d1159427dbcb30272a43c51d821a573376",
+      "vendored_sha256": "e092d33266428b2f578cc8721374328dba104bfaaf44fc6ed4c4436cdecf96d7"
+    },
+    "nim-skills/openfold2-nim/SKILL.md": {
+      "mcp_tool": "openfold2_predict",
+      "source_sha256": "ba567cd67dbdf6f1863ed2120c8f0df61d0bab8f2286ea4bfb382d047924efd3",
+      "vendored_sha256": "a185af6d90c049c7a92856ea48eb65682ffead8a40283b6f09ddcb0197862b28"
+    },
+    "nim-skills/openfold3-nim/SKILL.md": {
+      "mcp_tool": "openfold3_predict",
+      "source_sha256": "39ebe7b3fcd8f3a2f6403a352410e9cade1d5dee896f8fec6290307009142f07",
+      "vendored_sha256": "dcd088277d8fc7aa34b797da54f0446b70c8c8e9a80ef4244ae9a947f490473c"
+    },
+    "nim-skills/proteinmpnn-nim/SKILL.md": {
+      "mcp_tool": "proteinmpnn_design",
+      "source_sha256": "66d377f77fa4261e4a9de87b2b7cfae92a12d4d6c4877439a1d6cf78ededcd2d",
+      "vendored_sha256": "17c315c13612cc23e3d8df518d34d3e6465c4a18de623bb50488dc3f2e772ea8"
+    },
+    "nim-skills/rfdiffusion-nim/SKILL.md": {
+      "mcp_tool": "rfdiffusion_generate",
+      "source_sha256": "794b5acbec4c80e4310123818745c475a507abf5a72a41e9f139a300715f61b2",
+      "vendored_sha256": "1c2ad50e2ec0171b230a395bf156cab59facd7ec1adcc1b46ed44d10918613ed"
+    }
+  },
+  "upstream_repository": "https://github.com/NVIDIA-BioNeMo/bionemo-agent-toolkit.git"
+}

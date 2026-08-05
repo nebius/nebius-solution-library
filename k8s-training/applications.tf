@@ -80,7 +80,7 @@ resource "kubectl_manifest" "binpacking_mutator" {
     var.opa_gatekeeper_enable
   ) ? 1 : 0
 
-  yaml_body = templatefile("../modules/binpacking/files/opa_gatekeeper_mutator.yaml.tftpl", {
+  yaml_body = templatefile("${path.module}/../modules/binpacking/files/opa_gatekeeper_mutator.yaml.tftpl", {
     namespaces = var.binpacking_forced_namespaces
   })
 
