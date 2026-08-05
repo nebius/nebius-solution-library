@@ -42,6 +42,7 @@ def test_loads_direct_and_complete_terraform_outputs(tmp_path) -> None:
         "http://boltz2-svc.nims.svc.cluster.local:9000",
         "http://boltz2-svc.nims.svc.cluster.local:8000/predict",
         "http://user:password@boltz2-svc.nims.svc.cluster.local:8000",
+        "http://boltz2-svc.nims.svc.cluster.local:not-a-port",
     ],
 )
 def test_rejects_catalog_urls_that_are_not_private_service_roots(tmp_path, url: str) -> None:

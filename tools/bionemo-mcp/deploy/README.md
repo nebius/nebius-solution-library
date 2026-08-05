@@ -35,7 +35,7 @@ healthy.
 ## Network isolation
 
 `networkPolicy.nimIsolation.enabled=true` selects every enabled model's
-`deployment_name` as its `app` label and permits inference/metrics port ingress
+catalog-exported `pod_selector_labels` and permits inference/metrics port ingress
 only from gateway pods and configured monitoring clients. Verify the cluster CNI
 enforces NetworkPolicy. Before acceptance, prove that:
 

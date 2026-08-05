@@ -26,10 +26,11 @@ catalog rather than a second routing table.
    registers a pipeline only when every dependency is healthy.
 4. Typed Pydantic request models preserve each NIM wire contract. A bounded HTTP
    client performs inference; it never accepts a caller-supplied URL.
-5. Complete responses and recognized scientific files are written under a unique
-   run prefix in a fresh Nebius Object Storage bucket. MCP responses return compact
-   summaries, hashes, and expiring presigned HTTPS URLs.
-6. One MCP runtime supports stdio and Streamable HTTP. HTTP applies constant-time
+5. Validated tool inputs, complete responses, and recognized scientific files are
+   written under a unique run prefix in a fresh Nebius Object Storage bucket. MCP
+   responses return compact summaries, hashes, and expiring presigned HTTPS URLs.
+6. One MCP runtime supports stdio and stateless Streamable HTTP so independent
+   requests can be balanced across gateway replicas. HTTP applies constant-time
    static bearer validation to `/mcp` and descendants. OAuth is intentionally a
    future version.
 7. The Helm chart runs non-root with a read-only root filesystem, no Kubernetes

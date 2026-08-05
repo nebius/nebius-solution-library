@@ -69,6 +69,8 @@ class FleetClient:
             return ModelHealth(
                 catalog_key=key,
                 display_name=model.display_name,
+                image=model.image,
+                version=model.version,
                 enabled=False,
                 healthy=False,
                 detail="disabled in nim_catalog",
@@ -85,6 +87,8 @@ class FleetClient:
             return ModelHealth(
                 catalog_key=key,
                 display_name=model.display_name,
+                image=model.image,
+                version=model.version,
                 enabled=True,
                 healthy=healthy,
                 status_code=response.status_code,
@@ -95,6 +99,8 @@ class FleetClient:
             return ModelHealth(
                 catalog_key=key,
                 display_name=model.display_name,
+                image=model.image,
+                version=model.version,
                 enabled=True,
                 healthy=False,
                 latency_seconds=round(time.monotonic() - started, 4),

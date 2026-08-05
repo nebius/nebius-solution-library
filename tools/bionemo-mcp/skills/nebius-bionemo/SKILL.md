@@ -57,8 +57,10 @@ nebius-bionemo-download result.json --run-dir runs/<experiment-name>
 ```
 
 Use a new run directory per experiment. The downloader rejects redirects and
-verifies checksums. Keep the original result JSON beside the downloaded files so
-the model inputs, returned metadata, and artifact hashes remain auditable.
+verifies checksums. Every run includes the validated tool input in `request.json`
+and the complete backend output in `response.json`. Keep the original MCP result
+JSON beside the downloaded files so model versions, returned metadata, and
+artifact hashes remain auditable.
 
 ## Scientific Use
 

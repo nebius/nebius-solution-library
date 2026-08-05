@@ -38,6 +38,7 @@ async def _run(settings: Settings) -> None:
             streamable_http_path=settings.mcp_path,
             max_request_body_size=32 * 1024 * 1024,
             host=settings.host,
+            stateless_http=True,
         )
         authenticated = StaticBearerAuthMiddleware(
             app,

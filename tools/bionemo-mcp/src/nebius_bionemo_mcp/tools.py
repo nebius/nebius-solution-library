@@ -93,11 +93,13 @@ class ToolHandlers:
         operation: str,
         path: str,
         payload: dict[str, Any],
+        request: dict[str, Any] | None = None,
     ) -> InvocationResult:
         response = await self.fleet.invoke(catalog_key, path, payload)
         return await self.artifacts.persist(
             model=artifact_model,
             operation=operation,
+            request=request if request is not None else payload,
             response=response.payload,
             elapsed_seconds=response.elapsed_seconds,
         )
@@ -166,6 +168,7 @@ class ToolHandlers:
             operation=request.operation,
             path=f"/{request.operation}",
             payload=_payload(request, exclude_operation=True),
+            request=_payload(request),
         )
 
     async def msa_search(self, request: MSASearchRequest) -> InvocationResult:
@@ -182,6 +185,7 @@ class ToolHandlers:
             operation=request.operation,
             path=paths[request.operation],
             payload=_payload(request, exclude_operation=True),
+            request=_payload(request),
         )
 
     async def rfdiffusion_generate(self, request: RFDiffusionRequest) -> InvocationResult:
@@ -215,6 +219,7 @@ class ToolHandlers:
             operation=request.operation,
             path=f"/biology/arc/evo2/{request.operation}",
             payload=_payload(request, exclude_operation=True),
+            request=_payload(request),
         )
 
     @staticmethod
@@ -281,6 +286,7 @@ class ToolHandlers:
         return await self.artifacts.persist(
             model="msa_structure_pipeline",
             operation="msa-structure-prediction",
+            request=_payload(request),
             response=response,
             elapsed_seconds=time.monotonic() - started,
             run_id=run_id,
@@ -377,6 +383,7 @@ class ToolHandlers:
         return await self.artifacts.persist(
             model="drug_discovery_pipeline",
             operation="drug-discovery",
+            request=_payload(request),
             response=response,
             elapsed_seconds=time.monotonic() - started,
             run_id=run_id,

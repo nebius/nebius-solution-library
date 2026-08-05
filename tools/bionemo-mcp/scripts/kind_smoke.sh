@@ -39,7 +39,7 @@ helm upgrade --install smoke "$ROOT/deploy/helm/nebius-bionemo-mcp" \
   --namespace bionemo \
   --values "$ROOT/deploy/helm/nebius-bionemo-mcp/values.test.yaml" \
   --set ingress.enabled=false \
-  --set replicaCount=1 \
+  --set replicaCount=2 \
   --set image.repository=nebius-bionemo-mcp \
   --set image.tag=archvteams-2370-local \
   --set image.pullPolicy=Never \
@@ -71,8 +71,9 @@ uv run python "$ROOT/scripts/smoke_http.py" \
   --token "$TOKEN" \
   --expected-tool list_models \
   --expected-tool fleet_health \
-  --expected-tool boltz2_predict
+  --expected-tool boltz2_predict \
+  --repetitions 8
 
 helm test smoke --kube-context "$CONTEXT" --namespace bionemo --logs --timeout 2m
 kubectl --context "$CONTEXT" --namespace bionemo get deployment,pod,service,networkpolicy
-echo "Kind smoke passed: bearer rejection, authenticated MCP, dynamic Boltz2 registration, and Helm test"
+echo "Kind smoke passed: two stateless replicas, bearer rejection, authenticated MCP, dynamic Boltz2 registration, and Helm test"

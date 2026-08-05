@@ -243,12 +243,14 @@ class ArtifactManager:
         *,
         model: str,
         operation: str,
+        request: dict[str, Any],
         response: dict[str, Any],
         elapsed_seconds: float,
         run_id: str | None = None,
     ) -> InvocationResult:
         run_id = run_id or uuid4().hex
-        references = [await self.store.put(run_id, item) for item in extract_artifacts(model, response)]
+        payloads = [_json_payload("request.json", request), *extract_artifacts(model, response)]
+        references = [await self.store.put(run_id, item) for item in payloads]
         return InvocationResult(
             run_id=run_id,
             model=model,

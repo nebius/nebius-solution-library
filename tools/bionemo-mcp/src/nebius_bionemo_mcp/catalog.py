@@ -71,7 +71,11 @@ def _validate_service_url(model_key: str, entry: CatalogEntry, allow_non_cluster
         raise CatalogError(f"{model_key}.service_url must be an unauthenticated http URL")
     if parsed.path not in ("", "/") or parsed.query or parsed.fragment:
         raise CatalogError(f"{model_key}.service_url must not contain a path, query, or fragment")
-    if parsed.port != entry.service_port:
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise CatalogError(f"{model_key}.service_url contains an invalid port") from exc
+    if port != entry.service_port:
         raise CatalogError(f"{model_key}.service_url port does not match service_port")
 
     if allow_non_cluster_urls:

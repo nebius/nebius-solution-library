@@ -299,6 +299,8 @@ class InvocationResult(StrictModel):
 class ModelHealth(StrictModel):
     catalog_key: str
     display_name: str
+    image: str
+    version: str
     enabled: bool
     healthy: bool
     tool_name: str | None = None

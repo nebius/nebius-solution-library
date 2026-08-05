@@ -26,7 +26,7 @@ TOKEN = "transport-test-token-000000000000"
 
 
 @pytest.mark.asyncio
-async def test_authenticated_streamable_http_protocol_session(
+async def test_authenticated_stateless_streamable_http_protocol(
     tmp_path, catalog_factory: Callable[..., FleetCatalog]
 ) -> None:
     fleet_http = httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, text="ready")))
@@ -43,7 +43,7 @@ async def test_authenticated_streamable_http_protocol_session(
         ArtifactManager(LocalArtifactStore(tmp_path)),
     )
     server = await build_server(runtime)
-    inner = server.streamable_http_app(streamable_http_path="/mcp", host="testserver")
+    inner = server.streamable_http_app(streamable_http_path="/mcp", host="testserver", stateless_http=True)
     app = StaticBearerAuthMiddleware(inner, token=TOKEN)
 
     async with inner.router.lifespan_context(inner):

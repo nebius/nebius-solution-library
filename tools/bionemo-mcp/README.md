@@ -7,7 +7,8 @@ At startup it probes `/v1/health/ready` and registers model tools only for
 catalog entries that are both enabled and ready.
 
 The same Python implementation supports local `stdio` and production
-Streamable HTTP. Streamable HTTP requires a static bearer token in v1. OAuth
+Streamable HTTP. HTTP mode is stateless so requests can be balanced across the
+chart's gateway replicas, and requires a static bearer token in v1. OAuth
 discovery and token issuance are intentionally not implemented.
 
 ## Supported tools
@@ -35,10 +36,11 @@ Health-gated pipelines:
 - `drug_discovery_pipeline` requires GenMol, DiffDock, and Boltz2.
 - `msa_structure_prediction_pipeline` requires MSA Search and OpenFold3.
 
-Every inference writes the complete response and recognized scientific files
-to the configured artifact store. Production uses Nebius Object Storage and
-returns time-limited presigned download URLs plus SHA-256 checksums. Local
-development writes `file:` URLs below `BIONEMO_ARTIFACT_DIRECTORY`.
+Every inference writes the complete validated input as `request.json`, the
+complete NIM response as `response.json`, and recognized scientific files to
+the configured artifact store. Production uses Nebius Object Storage and returns
+time-limited presigned download URLs plus SHA-256 checksums. Local development
+writes `file:` URLs below `BIONEMO_ARTIFACT_DIRECTORY`.
 
 ## Catalog input
 
@@ -133,6 +135,8 @@ helm upgrade --install bionemo-mcp deploy/helm/nebius-bionemo-mcp \
 not a hand-maintained endpoint list. Restart the Deployment after changing model
 readiness if the catalog itself did not change: tool registration is intentionally
 fixed for each MCP process lifetime so all requests see a stable tool surface.
+`list_models` and `fleet_health` report the catalog image and version for every
+model so result records can identify the exact fleet configuration.
 
 ## MCP clients
 

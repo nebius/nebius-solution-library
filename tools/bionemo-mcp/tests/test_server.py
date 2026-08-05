@@ -57,8 +57,15 @@ async def test_dynamic_registration_and_in_memory_call(tmp_path, catalog_factory
         )
         assert not result.is_error
         assert result.structured_content["model"] == "boltz2"
+        assert {item["name"] for item in result.structured_content["artifacts"]} >= {
+            "request.json",
+            "response.json",
+        }
         listed = await client.call_tool("list_models", {})
         listed_models = listed.structured_content["models"]
+        boltz2 = next(model for model in listed_models if model["catalog_key"] == "boltz2")
+        assert boltz2["image"] == "nvcr.io/test/image"
+        assert boltz2["version"] == "1.0.0"
         diffdock = next(model for model in listed_models if model["catalog_key"] == "diffdock")
         assert not diffdock["healthy"] and diffdock["tool_name"] is None
     await http.aclose()
@@ -234,4 +241,9 @@ async def test_every_model_tool_routes_through_its_catalog_service(
     assert seen_posts[0].url.path == expected_path
     if "operation" in payload:
         assert "operation" not in json.loads(seen_posts[0].content)
+        request_artifact = next(
+            artifact for artifact in result.structured_content["artifacts"] if artifact["name"] == "request.json"
+        )
+        saved_request = json.loads((tmp_path / request_artifact["object_key"]).read_text())
+        assert saved_request["operation"] == payload["operation"]
     await http.aclose()
