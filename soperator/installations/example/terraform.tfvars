@@ -720,7 +720,7 @@ cleanup_bucket_on_destroy = false
 
 # Version of the k8s to be used.
 # ---
-k8s_version = 1.33
+k8s_version = 1.34
 
 # Version of the node group to be used.
 # ---
