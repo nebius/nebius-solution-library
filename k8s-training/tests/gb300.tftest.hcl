@@ -24,15 +24,7 @@ variables {
     enabled = false
   }
   gb300 = {
-    enabled = true
-    racks = {
-      rack0 = {
-        node_count = 18
-      }
-      rack1 = {
-        node_count = 18
-      }
-    }
+    rack_count = 2
   }
 }
 
@@ -62,19 +54,20 @@ run "valid_two_rack_production_configuration" {
     condition     = length(nebius_mk8s_v1_node_group.gpu) == 0
     error_message = "The generic GPU node groups must be disabled when GB300 is enabled."
   }
+
+  assert {
+    condition     = contains(keys(nebius_mk8s_v1_node_group.gb300), "rack-001") && contains(keys(nebius_mk8s_v1_node_group.gb300), "rack-002")
+    error_message = "Generated GB300 rack keys must be stable and sequential."
+  }
 }
 
 run "valid_one_rack_production_configuration" {
   command = plan
 
   variables {
+    infiniband_fabric = ""
     gb300 = {
-      enabled = true
-      racks = {
-        rack0 = {
-          node_count = 18
-        }
-      }
+      rack_count = 1
     }
   }
 
@@ -95,19 +88,19 @@ run "valid_one_rack_production_configuration" {
     condition     = length(nebius_mk8s_v1_node_group.gb300) == 1
     error_message = "A one-rack GB300 configuration must create one MK8s node group."
   }
+
+  assert {
+    condition     = nebius_mk8s_v1_node_group.gb300["rack-001"].template.gpu_cluster == null
+    error_message = "A fabricless one-rack GB300 node group must not attach to a GPU cluster."
+  }
 }
 
-run "reject_partial_rack" {
+run "reject_fractional_rack_count" {
   command = plan
 
   variables {
     gb300 = {
-      enabled = true
-      racks = {
-        rack0 = {
-          node_count = 16
-        }
-      }
+      rack_count = 1.5
     }
   }
 
@@ -161,7 +154,7 @@ run "reject_nonzero_surge" {
   ]
 }
 
-run "reject_missing_infiniband_fabric" {
+run "reject_missing_infiniband_fabric_for_multiple_racks" {
   command = plan
 
   variables {

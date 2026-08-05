@@ -217,29 +217,18 @@ variable "gpu_nodes_preset" {
 
 variable "gb300" {
   description = <<-EOT
-    Rack-aware GB300 configuration. When enabled, the generic GPU node groups are
-    replaced by one fixed MK8s node group and one NVLink instance group per rack.
-    Every rack must contain exactly 18 nodes (72 GPUs).
+    Number of production GB300 racks. Each rack creates one fixed 18-node MK8s
+    node group and one 18-node NVLink instance group (72 GPUs per rack).
+    Set rack_count to zero to disable the GB300 path.
   EOT
   type = object({
-    enabled = optional(bool, false)
-    racks = optional(map(object({
-      node_count = optional(number, 18)
-    })), {})
+    rack_count = optional(number, 0)
   })
   default = {}
 
   validation {
-    condition     = !var.gb300.enabled || length(var.gb300.racks) > 0
-    error_message = "When gb300.enabled is true, configure at least one entry in gb300.racks."
-  }
-
-  validation {
-    condition = alltrue([
-      for rack in values(var.gb300.racks) :
-      rack.node_count == 18
-    ])
-    error_message = "Each GB300 rack must contain exactly 18 nodes (72 GPUs). Capacity policies such as 17+1 or 16+2 do not change the rack size."
+    condition     = var.gb300.rack_count >= 0 && var.gb300.rack_count == floor(var.gb300.rack_count)
+    error_message = "gb300.rack_count must be a non-negative whole number. Each rack always contains 18 nodes (72 GPUs)."
   }
 }
 

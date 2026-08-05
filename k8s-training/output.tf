@@ -45,8 +45,8 @@ output "gb300_racks" {
     for rack, node_group in nebius_mk8s_v1_node_group.gb300 : rack => {
       node_group_id        = node_group.id
       nvlink_group_id      = nebius_compute_v1_nvl_instance_group.gb300[rack].id
-      node_count           = var.gb300.racks[rack].node_count
-      gpu_count            = var.gb300.racks[rack].node_count * 4
+      node_count           = local.gb300_racks[rack].node_count
+      gpu_count            = local.gb300_racks[rack].node_count * local.gb300_gpus_per_node
       infiniband_fabric    = local.infiniband_fabric
       imex_management_mode = "mk8s-driverfull-static"
     }

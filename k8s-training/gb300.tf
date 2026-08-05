@@ -3,8 +3,8 @@ resource "terraform_data" "gb300_validation" {
 
   lifecycle {
     precondition {
-      condition     = local.enable_gpu_cluster
-      error_message = "GB300 requires infiniband_fabric to identify the XDR fabric shared by all racks."
+      condition     = local.gb300_rack_count == 1 || local.enable_gpu_cluster
+      error_message = "GB300 deployments with two or more racks require infiniband_fabric for cross-rack connectivity. A single rack may omit it."
     }
 
     precondition {
@@ -63,7 +63,7 @@ resource "terraform_data" "gb300_validation" {
 }
 
 resource "nebius_compute_v1_nvl_instance_group" "gb300" {
-  for_each = local.gb300_enabled ? var.gb300.racks : {}
+  for_each = local.gb300_racks
 
   parent_id = var.parent_id
   name      = "${var.cluster_name}-gb300-${each.key}"
@@ -76,7 +76,7 @@ resource "nebius_compute_v1_nvl_instance_group" "gb300" {
 }
 
 resource "nebius_mk8s_v1_node_group" "gb300" {
-  for_each = local.gb300_enabled ? var.gb300.racks : {}
+  for_each = local.gb300_racks
 
   parent_id        = nebius_mk8s_v1_cluster.k8s-cluster.id
   name             = "${var.cluster_name}-ng-gb300-${each.key}"
@@ -121,7 +121,7 @@ resource "nebius_mk8s_v1_node_group" "gb300" {
       }
     }] : null
 
-    gpu_cluster  = nebius_compute_v1_gpu_cluster.fabric_2[0]
+    gpu_cluster  = local.enable_gpu_cluster ? nebius_compute_v1_gpu_cluster.fabric_2[0] : null
     gpu_settings = { drivers_preset = local.device_preset }
     nvlink = {
       nvl_instance_group_id = nebius_compute_v1_nvl_instance_group.gb300[each.key].id

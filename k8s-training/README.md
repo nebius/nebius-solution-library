@@ -96,18 +96,17 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 
 
 ### GB300 production racks
 
-GB300 uses a separate rack-aware deployment path. Enabling it replaces the
-generic GPU node groups with one fixed MK8s node group and one NVLink instance
-group per rack. A production rack contains 18 `gpu-gb300` nodes using the
-`4gpu-112vcpu-800gb` preset, for 72 GPUs per rack.
+GB300 uses a separate rack-aware deployment path. Setting `gb300.rack_count` to
+a positive whole number replaces the generic GPU node groups with one fixed MK8s
+node group and one NVLink instance group per rack. A production rack contains 18
+`gpu-gb300` nodes using the `4gpu-112vcpu-800gb` preset, for 72 GPUs per rack.
 
 The GB300 resources require Nebius Terraform provider `0.5.232` or newer and an
 explicit zero-surge rollout strategy. Replacing nodes one at a time avoids
-requesting capacity above the physical 18-node rack:
+requesting capacity above the physical 18-node rack. An InfiniBand fabric is
+optional for one rack and required for deployments with two or more racks:
 
 ```hcl
-infiniband_fabric = "fabric-4"
-
 node_group_strategy = {
   max_unavailable = { count = 1 }
   max_surge       = { count = 0 }
@@ -117,16 +116,14 @@ node_group_strategy = {
 #### One rack
 
 One rack creates one 18-node MK8s node group and one 18-node NVLink instance
-group:
+group. Leave `infiniband_fabric` empty when the rack does not require an
+InfiniBand GPU cluster:
 
 ```hcl
+infiniband_fabric = ""
+
 gb300 = {
-  enabled = true
-  racks = {
-    rack0 = {
-      node_count = 18
-    }
-  }
+  rack_count = 1
 }
 ```
 
@@ -136,22 +133,24 @@ Two racks create 36 MK8s nodes and two separate NVLink instance groups. Both
 racks use the single XDR fabric selected by `infiniband_fabric`:
 
 ```hcl
+infiniband_fabric = "fabric-4"
+
 gb300 = {
-  enabled = true
-  racks = {
-    rack0 = {
-      node_count = 18
-    }
-    rack1 = {
-      node_count = 18
-    }
-  }
+  rack_count = 2
 }
 ```
 
-All racks attach to the same XDR InfiniBand fabric, while each rack receives its
-own NVLink instance group. The node groups use Ubuntu 24.04 driverfull images
-with the `cuda13.0` driver preset.
+Use the same syntax for larger deployments; for example, `rack_count = 6`
+creates six 18-node groups and six NVLink instance groups. Terraform generates
+stable sequential rack keys (`rack-001`, `rack-002`, and so on), so increasing
+the count adds racks without changing the addresses of existing racks. Reducing
+the count removes the highest-numbered racks.
+
+When configured, all racks attach to the same XDR InfiniBand fabric, while each
+rack receives its own NVLink instance group. A fabricless single rack remains
+inside its 72-GPU NVLink domain and has no cross-rack InfiniBand connectivity.
+The node groups use Ubuntu 24.04 driverfull images with the `cuda13.0` driver
+preset. Set `rack_count = 0` or omit `gb300` to disable this path.
 
 Capacity policies such as 17+1 or 16+2 are scheduling and operational policies
 over a complete 18-node rack. They do not reduce the MK8s node-group or NVLink
