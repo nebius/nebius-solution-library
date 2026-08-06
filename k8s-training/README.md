@@ -106,6 +106,10 @@ explicit zero-surge rollout strategy. Replacing nodes one at a time avoids
 requesting capacity above the physical 18-node rack. An InfiniBand fabric is
 optional for one rack and required for deployments with two or more racks:
 
+GB300 boot disks default to 256 GiB. Set `local_nvme = true` to request the
+host NVMe devices and combine them into kubelet ephemeral storage. Local NVMe
+data is erased when a node is restarted or replaced.
+
 ```hcl
 node_group_strategy = {
   max_unavailable = { count = 1 }
@@ -136,7 +140,9 @@ racks use the single XDR fabric selected by `infiniband_fabric`:
 infiniband_fabric = "fabric-4"
 
 gb300 = {
-  rack_count = 2
+  rack_count                = 2
+  boot_disk_size_gibibytes = 256
+  local_nvme                = true
 }
 ```
 

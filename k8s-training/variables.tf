@@ -219,16 +219,26 @@ variable "gb300" {
   description = <<-EOT
     Number of production GB300 racks. Each rack creates one fixed 18-node MK8s
     node group and one 18-node NVLink instance group (72 GPUs per rack).
+    boot_disk_size_gibibytes controls the network-backed boot disk size.
+    Set local_nvme to true to pass through the host NVMe devices and combine
+    them into kubelet ephemeral storage on each GB300 node.
     Set rack_count to zero to disable the GB300 path.
   EOT
   type = object({
-    rack_count = optional(number, 0)
+    rack_count               = optional(number, 0)
+    boot_disk_size_gibibytes = optional(number, 256)
+    local_nvme               = optional(bool, false)
   })
   default = {}
 
   validation {
     condition     = var.gb300.rack_count >= 0 && var.gb300.rack_count == floor(var.gb300.rack_count)
     error_message = "gb300.rack_count must be a non-negative whole number. Each rack always contains 18 nodes (72 GPUs)."
+  }
+
+  validation {
+    condition     = var.gb300.boot_disk_size_gibibytes > 0 && var.gb300.boot_disk_size_gibibytes == floor(var.gb300.boot_disk_size_gibibytes)
+    error_message = "gb300.boot_disk_size_gibibytes must be a positive whole number."
   }
 }
 

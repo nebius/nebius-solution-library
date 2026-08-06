@@ -98,9 +98,18 @@ resource "nebius_mk8s_v1_node_group" "gb300" {
     }
 
     boot_disk = {
-      size_gibibytes = var.gpu_disk_size
+      size_gibibytes = var.gb300.boot_disk_size_gibibytes
       type           = var.gpu_disk_type
     }
+
+    local_disks = var.gb300.local_nvme ? {
+      passthrough_group = {
+        requested = true
+      }
+      config = {
+        kubelet_ephemeral = true
+      }
+    } : null
 
     service_account_id = var.enable_k8s_node_group_sa ? nebius_iam_v1_service_account.k8s_node_group_sa[0].id : null
 
