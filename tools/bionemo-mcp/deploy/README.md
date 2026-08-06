@@ -19,6 +19,12 @@ Keep `service.type=ClusterIP`. The chart rejects another value because an L4
 LoadBalancer would also expose the unauthenticated internal health route. The
 Ingress must route exactly `/mcp`; the example uses `pathType: Exact`.
 
+The default ingress-nginx annotations disable request and response buffering and
+set read/send timeouts to 7200 seconds so long model and pipeline calls are not
+terminated by the ingress controller. Preserve those defaults when adding
+cert-manager annotations. For another ingress implementation, configure its
+equivalent streaming and upstream timeout settings explicitly.
+
 ## Catalog overlay
 
 ```bash

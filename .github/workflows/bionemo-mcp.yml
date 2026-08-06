@@ -64,6 +64,10 @@ jobs:
             --namespace bionemo \
             --values deploy/helm/nebius-bionemo-mcp/values.test.yaml \
             > /tmp/nebius-bionemo-mcp.yaml
+          grep -Fq 'nginx.ingress.kubernetes.io/proxy-buffering: "off"' /tmp/nebius-bionemo-mcp.yaml
+          grep -Fq 'nginx.ingress.kubernetes.io/proxy-request-buffering: "off"' /tmp/nebius-bionemo-mcp.yaml
+          grep -Fq 'nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"' /tmp/nebius-bionemo-mcp.yaml
+          grep -Fq 'nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"' /tmp/nebius-bionemo-mcp.yaml
 
       - name: Build container
         run: docker build --tag nebius-bionemo-mcp:test .
