@@ -226,7 +226,7 @@ variable "gb300" {
   EOT
   type = object({
     rack_count               = optional(number, 0)
-    boot_disk_size_gibibytes = optional(number, 256)
+    boot_disk_size_gibibytes = optional(number, 1024)
     local_nvme               = optional(bool, false)
   })
   default = {}

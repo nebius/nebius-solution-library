@@ -51,7 +51,7 @@ infiniband_fabric = "" # Leave empty to disable GPU clustering for RTX6000 deplo
 # instance group. Two or more racks require the same XDR infiniband_fabric.
 # gb300 = {
 #   rack_count                = 2
-#   boot_disk_size_gibibytes = 256
+#   boot_disk_size_gibibytes = 1024
 #   local_nvme                = true
 # }
 
