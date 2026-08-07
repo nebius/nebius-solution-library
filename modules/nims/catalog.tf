@@ -6,6 +6,18 @@ locals {
 
   nim_start_command = ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
 
+  # OpenFold3 1.5 runs synchronous predictions in FastAPI's shared thread pool,
+  # but its CUDA pipeline is not safe when two requests enter the same process.
+  # Serialize inference inside each replica; HPA adds replica-level parallelism.
+  openfold3_start_command = [
+    "/bin/bash",
+    "-c",
+    <<-EOT
+      python -c 'from pathlib import Path; p = Path("/opt/nim/inference.py"); s = p.read_text(); import_marker = "import logging\n"; predict_marker = "        result = self.pipeline.predict(body)"; assert s.count(import_marker) == 1, "unexpected OpenFold3 logging import"; assert s.count(predict_marker) == 1, "unexpected OpenFold3 predict call"; s = s.replace(import_marker, import_marker + "import threading\n\nOPENFOLD3_INFERENCE_LOCK = threading.Lock()\n", 1); s = s.replace(predict_marker, "        with OPENFOLD3_INFERENCE_LOCK:\n            result = self.pipeline.predict(body)", 1); p.write_text(s)'
+      exec /opt/nim/start_server.sh
+    EOT
+  ]
+
   resources_1gpu_16cpu_128gi = {
     limits = {
       cpu              = "16"
@@ -62,13 +74,13 @@ locals {
     threshold     = "2"
   }
 
-  evo2_gpu_scaling = {
+  nim_gpu_scaling = {
     enabled       = true
     fixed_reason  = null
     min_replicas  = 1
     max_replicas  = 3
     metric_type   = "Pods"
-    metric_name   = "evo2_gpu_utilization"
+    metric_name   = "nim_gpu_utilization"
     source_metric = "gpu_utilization"
     target_type   = "AverageValue"
     threshold     = "400m"
@@ -115,13 +127,13 @@ locals {
       container_name     = "openfold3"
       image              = "nvcr.io/nim/openfold/openfold3"
       version            = "latest"
-      command            = local.nim_start_command
+      command            = local.openfold3_start_command
       security_context   = local.root_security_context
       resources          = local.resources_1gpu_16cpu_128gi
       shared_memory_size = "64Gi"
       lb_group           = "protein-apps"
-      scaling = merge(local.fixed_replica_scaling, {
-        fixed_reason = "Structure-prediction backend does not expose a validated per-pod request queue metric for HPA."
+      scaling = merge(local.nim_gpu_scaling, {
+        threshold = "200m"
       })
       proxy = {
         upstream_name     = "openfold3"
@@ -142,8 +154,8 @@ locals {
       resources          = local.resources_1gpu_16cpu_128gi
       shared_memory_size = "64Gi"
       lb_group           = "protein-apps"
-      scaling = merge(local.fixed_replica_scaling, {
-        fixed_reason = "Structure-prediction backend does not expose a validated per-pod request queue metric for HPA."
+      scaling = merge(local.nim_gpu_scaling, {
+        threshold = "300m"
       })
       proxy = {
         upstream_name     = "boltz2"
@@ -164,7 +176,7 @@ locals {
       resources          = local.resources_2gpu_32cpu_256gi
       shared_memory_size = "16Gi"
       lb_group           = "protein-apps"
-      scaling            = local.evo2_gpu_scaling
+      scaling            = local.nim_gpu_scaling
       proxy = {
         upstream_name     = "evo2_40b"
         service_port_name = "evo2-40b"
@@ -184,9 +196,7 @@ locals {
       resources          = local.resources_1gpu_16cpu_128gi
       shared_memory_size = "16Gi"
       lb_group           = "protein-apps"
-      scaling = merge(local.fixed_replica_scaling, {
-        fixed_reason = "MSA jobs are batch-style requests without a validated request queue metric for HPA."
-      })
+      scaling            = local.nim_gpu_scaling
       proxy = {
         upstream_name     = "msa_search"
         service_port_name = "msa-search"
@@ -206,8 +216,8 @@ locals {
       resources          = local.resources_1gpu_16cpu_128gi
       shared_memory_size = "64Gi"
       lb_group           = "protein-apps"
-      scaling = merge(local.fixed_replica_scaling, {
-        fixed_reason = "Structure-prediction backend does not expose a validated per-pod request queue metric for HPA."
+      scaling = merge(local.nim_gpu_scaling, {
+        threshold = "100m"
       })
       proxy = {
         upstream_name     = "openfold2"
@@ -228,9 +238,7 @@ locals {
       resources          = local.resources_1gpu_16cpu_128gi
       shared_memory_size = "16Gi"
       lb_group           = "protein-apps"
-      scaling = merge(local.fixed_replica_scaling, {
-        fixed_reason = "Generative chemistry backend has not been validated with a stable custom metric for HPA."
-      })
+      scaling            = local.nim_gpu_scaling
       proxy = {
         upstream_name     = "genmol"
         service_port_name = "genmol"
@@ -313,8 +321,8 @@ locals {
       resources          = local.resources_1gpu_16cpu_128gi
       shared_memory_size = "16Gi"
       lb_group           = "protein-apps"
-      scaling = merge(local.fixed_replica_scaling, {
-        fixed_reason = "Protein design backend has not been validated with a stable custom metric for HPA."
+      scaling = merge(local.nim_gpu_scaling, {
+        threshold = "200m"
       })
       proxy = {
         upstream_name     = "proteinmpnn"

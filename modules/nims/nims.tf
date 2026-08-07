@@ -92,6 +92,33 @@ resource "kubernetes_deployment_v1" "nims" {
             container_port = each.value.container_port
           }
 
+          # NIM containers can spend minutes loading engines after their process
+          # starts. Do not add a replica to Service endpoints until its own HTTP
+          # readiness endpoint is serving; otherwise HPA scale-up drops requests.
+          startup_probe {
+            http_get {
+              path   = "/v1/health/ready"
+              port   = "http"
+              scheme = "HTTP"
+            }
+
+            failure_threshold = 180
+            period_seconds    = 10
+            timeout_seconds   = 5
+          }
+
+          readiness_probe {
+            http_get {
+              path   = "/v1/health/ready"
+              port   = "http"
+              scheme = "HTTP"
+            }
+
+            failure_threshold = 3
+            period_seconds    = 5
+            timeout_seconds   = 5
+          }
+
           resources {
             limits   = each.value.resources.limits
             requests = each.value.resources.requests

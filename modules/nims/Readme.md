@@ -167,7 +167,7 @@ rules:
         matches: '^vllm:num_requests_running$'
         as: vllm_num_requests_running
       metricsQuery: 'max by (<<.GroupBy>>) (<<.Series>>{<<.LabelMatchers>>})'
-    - seriesQuery: 'gpu_utilization{namespace!="",pod!="",container="evo2-40b"}'
+    - seriesQuery: 'gpu_utilization{namespace!="",pod!=""}'
       resources:
         overrides:
           namespace:
@@ -176,8 +176,8 @@ rules:
             resource: pod
       name:
         matches: '^gpu_utilization$'
-        as: evo2_gpu_utilization
-      metricsQuery: 'avg by (<<.GroupBy>>) (<<.Series>>{<<.LabelMatchers>>,container="evo2-40b"})'
+        as: nim_gpu_utilization
+      metricsQuery: 'avg by (<<.GroupBy>>) (<<.Series>>{<<.LabelMatchers>>})'
 ```
 
 Set `service_monitor_labels` to labels selected by the cluster Prometheus
@@ -186,7 +186,7 @@ instance. With kube-prometheus-stack this is commonly
 
 ```bash
 kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1 \
-  | jq '.resources[] | select(.name == "pods/vllm_num_requests_running" or .name == "pods/evo2_gpu_utilization")'
+  | jq '.resources[] | select(.name == "pods/vllm_num_requests_running" or .name == "pods/nim_gpu_utilization")'
 ```
 
 NVIDIA documents that LLM NIMs expose Prometheus metrics at `/v1/metrics` and
@@ -197,13 +197,35 @@ metrics such as `nv_inference_request_success` and
 `vllm_num_requests_running`, mapped from `vllm:num_requests_running`, only for
 the LLM/VLM family where this has a direct request-concurrency meaning.
 
-Evo2-40B does not expose a request-queue gauge and accepts one generation at a
-time per replica, returning HTTP 422 `Too Busy` for excess concurrency. Its NIM
-does expose `gpu_utilization` per device as a fraction from 0 to 1. The adapter
-averages both devices into `evo2_gpu_utilization` per pod; the default HPA target
-is `400m` (0.40). A B200 validation on 2026-08-07 observed 0 while idle and
-0.55–0.78 during 512–1,024-token generation. Keep load clients backoff-aware and
-override `max_replicas` to fit the cluster's complete GPU budget.
+The supported BioNeMo NIMs do not expose a common request-queue gauge, but they
+do expose `gpu_utilization` per device as a fraction from 0 to 1. The adapter
+averages devices into `nim_gpu_utilization` per pod. Idle replicas report zero;
+the per-model HPA targets below were calibrated with sustained requests on B200
+on 2026-08-07. Targets intentionally sit below the observed busy signal and
+Kubernetes HPA tolerance so a continuously busy replica actually scales.
+
+| NIM | Busy GPU signal | HPA target |
+| --- | ---: | ---: |
+| OpenFold3 | `370m` | `200m` |
+| Boltz2 | `390m–680m` | `300m` |
+| Evo2-40B | `550m–780m` | `400m` |
+| MSA Search | `540m–980m` | `400m` |
+| OpenFold2 | `230m` | `100m` |
+| GenMol | `310m–910m` | `400m` |
+| ProteinMPNN | `300m–330m` | `200m` |
+
+Evo2-40B accepts one generation at a time per replica and returns HTTP 422
+`Too Busy` for excess concurrency, so clients must retry with backoff while HPA
+adds replicas. OpenFold3 1.5 instead lets synchronous requests enter the same
+CUDA pipeline concurrently, which can cause an illegal-memory-access failure.
+Its catalog startup command installs a per-process inference lock: concurrent
+requests queue within one pod while HPA supplies replica-level parallelism.
+
+All NIM containers use `/v1/health/ready` for both startup and readiness probes.
+Model loading can take minutes, and a process-only readiness state routes Service
+traffic to a replica before its HTTP server is listening. The startup probe has
+a 30-minute failure budget; the readiness probe removes a previously ready pod
+after three failed checks.
 
 Budget for per-node packing, not only the cluster-wide GPU sum. For example,
 29 Evo2 replicas at two GPUs each plus six one-GPU NIMs equals 64 GPUs, but a
@@ -212,20 +234,29 @@ each node and leaves the 29th Evo2 pod Pending. Pack one-GPU workloads 4+2
 with scheduling affinity, or leave a two-GPU headroom margin when exact
 placement cannot be controlled.
 
-Scalable catalog entries:
+For a fleet containing exactly the seven B200-supported BioNeMo NIMs above,
+setting every HPA `max_replicas = 8` is a combined hard ceiling of 64 GPUs:
+six one-GPU models × eight replicas plus Evo2 × eight replicas × two GPUs.
+This limit is a fleet-wide budget only when unsupported catalog entries remain
+disabled. Use a smaller maximum or leave packing headroom when enabling more
+models.
+
+GPU-utilization scalable catalog entries:
+
+- OpenFold3, Boltz2, Evo2-40B, MSA Search
+- OpenFold2, GenMol, ProteinMPNN
+
+Request-gauge scalable catalog entries:
 
 - Qwen3 Next 80B A3B Instruct
 - Cosmos-Reason1-7B
 - Cosmos-Reason2-8B
 - Cosmos-Reason2-2B
 - Nemotron Nano 12B v2 VL
-- Evo2-40B
 
 Fixed-replica catalog entries:
 
-- OpenFold2, OpenFold3, Boltz2, MSA Search
-- GenMol, MolMIM, DiffDock
-- ProteinMPNN, RFdiffusion
+- MolMIM, DiffDock, RFdiffusion
 - Cosmos-Embed1
 - BioNeMo notebook
 

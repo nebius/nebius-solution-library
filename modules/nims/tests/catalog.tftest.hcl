@@ -66,6 +66,15 @@ run "default_catalog_is_disabled_and_state_stable" {
     condition     = output.nim_catalog["cosmos_reason1_7b"].proxy_port == 8000 && output.nim_catalog["nemotron_nano_12b_v2_vl"].proxy_port == 8004
     error_message = "The Cosmos legacy port range must remain 8000-8004."
   }
+
+  assert {
+    condition = alltrue([
+      for deployment in kubernetes_deployment_v1.nims :
+      deployment.spec[0].template[0].spec[0].container[0].startup_probe[0].http_get[0].path == "/v1/health/ready" &&
+      deployment.spec[0].template[0].spec[0].container[0].readiness_probe[0].http_get[0].path == "/v1/health/ready"
+    ])
+    error_message = "Every NIM must stay out of Service endpoints until its HTTP server is actually ready."
+  }
 }
 
 run "enabled_llm_gets_custom_metric_hpa" {
@@ -122,13 +131,67 @@ run "enabled_evo2_gets_gpu_utilization_hpa" {
   }
 
   assert {
-    condition     = kubernetes_horizontal_pod_autoscaler_v2.nims["evo2_40b"].spec[0].metric[0].pods[0].metric[0].name == "evo2_gpu_utilization"
+    condition     = kubernetes_horizontal_pod_autoscaler_v2.nims["evo2_40b"].spec[0].metric[0].pods[0].metric[0].name == "nim_gpu_utilization"
     error_message = "Evo2 autoscaling must use the validated per-pod GPU utilization metric."
   }
 
   assert {
     condition     = kubernetes_horizontal_pod_autoscaler_v2.nims["evo2_40b"].spec[0].metric[0].pods[0].target[0].average_value == "400m"
     error_message = "Evo2 GPU utilization must target the field-tested 0.40 average."
+  }
+}
+
+run "all_supported_bionemo_nims_get_gpu_hpas" {
+  command = plan
+
+  variables {
+    model_catalog = {
+      openfold3 = { enabled = true }
+      boltz2 = { enabled = true }
+      evo2_40b = { enabled = true }
+      msa_search = { enabled = true }
+      openfold2 = { enabled = true }
+      genmol = { enabled = true }
+      proteinmpnn = { enabled = true }
+    }
+  }
+
+  assert {
+    condition = toset(keys(kubernetes_horizontal_pod_autoscaler_v2.nims)) == toset([
+      "openfold3", "boltz2", "evo2_40b", "msa_search", "openfold2", "genmol", "proteinmpnn"
+    ])
+    error_message = "Every B200-supported BioNeMo NIM must render an HPA."
+  }
+
+  assert {
+    condition = alltrue([
+      for hpa in kubernetes_horizontal_pod_autoscaler_v2.nims :
+      hpa.spec[0].min_replicas == 1 &&
+      hpa.spec[0].max_replicas == 3 &&
+      hpa.spec[0].metric[0].pods[0].metric[0].name == "nim_gpu_utilization"
+    ])
+    error_message = "Supported NIM HPAs must keep one warm replica and use the bounded generic GPU metric."
+  }
+
+  assert {
+    condition = (
+      kubernetes_horizontal_pod_autoscaler_v2.nims["openfold3"].spec[0].metric[0].pods[0].target[0].average_value == "200m" &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["openfold2"].spec[0].metric[0].pods[0].target[0].average_value == "100m" &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["proteinmpnn"].spec[0].metric[0].pods[0].target[0].average_value == "200m" &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["boltz2"].spec[0].metric[0].pods[0].target[0].average_value == "300m" &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["evo2_40b"].spec[0].metric[0].pods[0].target[0].average_value == "400m" &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["msa_search"].spec[0].metric[0].pods[0].target[0].average_value == "400m" &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["genmol"].spec[0].metric[0].pods[0].target[0].average_value == "400m"
+    )
+    error_message = "Supported NIM HPAs must retain their B200-calibrated thresholds."
+  }
+
+  assert {
+    condition = strcontains(
+      join(" ", kubernetes_deployment_v1.nims["openfold3"].spec[0].template[0].spec[0].container[0].command),
+      "OPENFOLD3_INFERENCE_LOCK"
+    )
+    error_message = "OpenFold3 must serialize inference within each replica before HPA adds parallel replicas."
   }
 }
 
