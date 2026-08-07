@@ -39,6 +39,22 @@ gpu_nodes_preset   = "8gpu-128vcpu-1600gb" # GPU nodes preset: 8gpu-128vcpu-1600
 # Infiniband fabrics: https://docs.nebius.com/compute/clusters/gpu#fabrics
 infiniband_fabric = "" # Leave empty to disable GPU clustering for RTX6000 deployments or single-node deployments.
 
+# Node-group rollout strategy. GB300 requires max_surge to be zero and the
+# recommended production rollout replaces one node at a time.
+# node_group_strategy = {
+#   max_unavailable = { count = 1 }
+#   max_surge       = { count = 0 }
+# }
+
+# GB300 production example. A positive rack_count replaces the generic GPU node
+# groups above. Each rack contains 18 nodes (72 GPUs) and receives its own NVLink
+# instance group. Two or more racks require the same XDR infiniband_fabric.
+# gb300 = {
+#   rack_count                = 2
+#   boot_disk_size_gibibytes = 1024
+#   local_nvme                = true
+# }
+
 gpu_nodes_driverfull_image = true
 enable_k8s_node_group_sa   = true
 enable_egress_gateway      = false
