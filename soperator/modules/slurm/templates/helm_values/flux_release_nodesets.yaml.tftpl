@@ -249,6 +249,11 @@ nodesets:
         configMapRefSupervisord: custom-supervisord-config
         configMapRefSshd: ${sshd.config_map_ref}
 
+        hostNetwork: ${nodeset.host_network}
+        %{~ if nodeset.dns_policy != null ~}
+        dnsPolicy: ${nodeset.dns_policy}
+        %{~ endif ~}
+
         enableHostUserNamespace: true
 
         priorityClass: soperator-worker-high-priority
