@@ -63,6 +63,7 @@ resource "nebius_mk8s_v1_node_group" "cpu-only" {
     "library-solution" : "k8s-training",
   }
   version = var.k8s_version
+  strategy = var.node_group_strategy
   template = {
     boot_disk = {
       size_gibibytes = var.cpu_disk_size
@@ -137,6 +138,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     "library-solution" : "k8s-training",
   }
   version = var.k8s_version
+  strategy = var.node_group_strategy
   template = {
     metadata = {
       labels = var.mig_parted_config != null ? {
@@ -182,6 +184,7 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     } : null
 
     underlay_required = false
+    reservation_policy = var.node_group_reservation_policy
     cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
       enable_filestore         = var.enable_filestore ? "true" : "false",
       filestore_mount_path     = local.filestore.mount_path,

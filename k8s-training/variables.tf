@@ -109,6 +109,54 @@ variable "ssh_public_key" {
   }
 }
 
+
+# K8s Node group strategy
+variable "node_group_strategy" {
+  description = "Node group roll-out strategy on template change. Set max_surge/max_unavailable with count OR percent (not both); they cannot both be 0. Null inherits provider default."
+  type = object({
+    max_surge = optional(object({
+      count   = optional(number)
+      percent = optional(number)
+    }))
+    max_unavailable = optional(object({
+      count   = optional(number)
+      percent = optional(number)
+    }))
+  })
+  default = null
+}
+
+# K8s Node group reservation policy
+variable "node_group_reservation_policy" {
+  description = "Capacity reservation policy for node placement. policy: AUTO | STRICT | FORBID. Null inherits provider default."
+  type = object({
+    policy          = optional(string)
+    reservation_ids = optional(list(string))
+  })
+  default = null
+
+  validation {
+    condition = var.node_group_reservation_policy == null || contains(
+      ["AUTO", "STRICT", "FORBID"], coalesce(var.node_group_reservation_policy.policy, "AUTO")
+    )
+    error_message = "policy must be one of: AUTO, STRICT, FORBID."
+  }
+
+  # FORBID must not name any reservation (on-demand/PAYG only).
+  validation {
+    condition = var.node_group_reservation_policy == null || coalesce(var.node_group_reservation_policy.policy, "AUTO") != "FORBID" || length(coalesce(var.node_group_reservation_policy.reservation_ids, [])) == 0
+    error_message = "reservation_ids must be empty when policy = FORBID."
+  }
+
+  # No empty-string IDs; use [] for no reservations.
+  validation {
+    condition = var.node_group_reservation_policy == null || alltrue([
+      for id in coalesce(var.node_group_reservation_policy.reservation_ids, []) : trimspace(id) != ""
+    ])
+    error_message = "reservation_ids must not contain empty strings; use [] for no reservations."
+  }
+}
+
 # K8s CPU node group
 variable "cpu_nodes_fixed_count" {
   description = "Number of nodes in the CPU-only node group."
