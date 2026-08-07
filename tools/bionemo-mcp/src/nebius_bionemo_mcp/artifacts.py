@@ -18,6 +18,7 @@ import boto3
 from .schemas import ArtifactReference, InvocationResult
 
 _SAFE_NAME = re.compile(r"[^A-Za-z0-9._-]+")
+_STRUCTURE_PREFIXES = ("ATOM", "HETATM", "MODEL", "HEADER", "REMARK", "TITLE", "CRYST1", "data_")
 
 
 def _safe_name(name: str) -> str:
@@ -116,7 +117,7 @@ def _structure_strings(value: Any) -> list[str]:
     structures: list[str] = []
     if isinstance(value, str):
         stripped = value.lstrip()
-        if stripped.startswith(("ATOM", "HETATM", "MODEL", "data_")):
+        if stripped.startswith(_STRUCTURE_PREFIXES):
             structures.append(value)
     elif isinstance(value, list):
         for item in value:

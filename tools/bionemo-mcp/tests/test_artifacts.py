@@ -26,8 +26,13 @@ def test_extracts_scientific_files_from_individual_and_pipeline_results() -> Non
         "structure-output-1-structure-1.pdb",
     }
 
-    openfold2 = extract_artifacts("openfold2", {"prediction": {"structure": "ATOM      1  CA"}})
+    openfold2_pdb = "REMARK OpenFold2 metadata\nATOM      1  CA"
+    openfold2 = extract_artifacts(
+        "openfold2",
+        {"structures_in_ranked_order": [{"format": "pdb", "structure": openfold2_pdb}]},
+    )
     assert [item.name for item in openfold2] == ["response.json", "structure-1.pdb"]
+    assert openfold2[1].data.decode() == openfold2_pdb
 
 
 @pytest.mark.asyncio
