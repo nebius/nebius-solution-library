@@ -205,6 +205,13 @@ is `400m` (0.40). A B200 validation on 2026-08-07 observed 0 while idle and
 0.55–0.78 during 512–1,024-token generation. Keep load clients backoff-aware and
 override `max_replicas` to fit the cluster's complete GPU budget.
 
+Budget for per-node packing, not only the cluster-wide GPU sum. For example,
+29 Evo2 replicas at two GPUs each plus six one-GPU NIMs equals 64 GPUs, but a
+3+3 split of the one-GPU pods across two eight-GPU nodes strands one GPU on
+each node and leaves the 29th Evo2 pod Pending. Pack one-GPU workloads 4+2
+with scheduling affinity, or leave a two-GPU headroom margin when exact
+placement cannot be controlled.
+
 Scalable catalog entries:
 
 - Qwen3 Next 80B A3B Instruct
