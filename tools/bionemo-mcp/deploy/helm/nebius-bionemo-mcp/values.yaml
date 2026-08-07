@@ -89,6 +89,8 @@ networkPolicy:
       app.kubernetes.io/name: ingress-nginx
   nimIsolation:
     enabled: true
+    namespace: ""
+    namespaceLabels: {}
     additionalClients:
       - namespaceLabels:
           kubernetes.io/metadata.name: monitoring

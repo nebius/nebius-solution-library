@@ -71,7 +71,7 @@ spec:
             - name: BIONEMO_STARTUP_PROBE_TIMEOUT_SECONDS
               value: {{ .Values.runtime.startupProbeTimeoutSeconds | quote }}
             - name: BIONEMO_MAX_RESPONSE_BYTES
-              value: {{ printf "%.0f" .Values.runtime.maxResponseBytes | quote }}
+              value: {{ .Values.runtime.maxResponseBytes | int64 | quote }}
             - name: BIONEMO_PRESIGN_TTL_SECONDS
               value: {{ .Values.runtime.presignTtlSeconds | quote }}
             - name: AWS_ACCESS_KEY_ID

@@ -68,6 +68,12 @@ jobs:
           grep -Fq 'nginx.ingress.kubernetes.io/proxy-request-buffering: "off"' /tmp/nebius-bionemo-mcp.yaml
           grep -Fq 'nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"' /tmp/nebius-bionemo-mcp.yaml
           grep -Fq 'nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"' /tmp/nebius-bionemo-mcp.yaml
+          grep -A1 -F 'name: BIONEMO_MAX_RESPONSE_BYTES' /tmp/nebius-bionemo-mcp.yaml \
+            | grep -Fq 'value: "134217728"'
+          grep -A2 -F 'name: test-nebius-bionemo-mcp-nim-ingress' /tmp/nebius-bionemo-mcp.yaml \
+            | grep -Fq 'namespace: nims'
+          grep -A5 -F 'namespaceSelector:' /tmp/nebius-bionemo-mcp.yaml \
+            | grep -Fq 'kubernetes.io/metadata.name: bionemo'
 
       - name: Build container
         run: docker build --tag nebius-bionemo-mcp:test .

@@ -44,7 +44,12 @@ spec:
     - to:
         {{- range $key, $model := .Values.nimCatalog }}
         {{- if $model.enabled }}
-        - podSelector:
+        - {{- with $.Values.networkPolicy.nimIsolation.namespaceLabels }}
+          namespaceSelector:
+            matchLabels:
+              {{- toYaml . | nindent 14 }}
+          {{- end }}
+          podSelector:
             matchLabels:
               {{- toYaml (default (dict "app" $model.deployment_name) $model.pod_selector_labels) | nindent 14 }}
         {{- end }}
@@ -74,6 +79,9 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "nebius-bionemo-mcp.fullname" . }}-nim-ingress
+  {{- with .Values.networkPolicy.nimIsolation.namespace }}
+  namespace: {{ . }}
+  {{- end }}
   labels:
     {{- include "nebius-bionemo-mcp.labels" . | nindent 4 }}
 spec:
@@ -87,7 +95,12 @@ spec:
     - Ingress
   ingress:
     - from:
-        - podSelector:
+        - {{- with .Values.networkPolicy.nimIsolation.namespace }}
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $.Release.Namespace }}
+          {{- end }}
+          podSelector:
             matchLabels:
               {{- include "nebius-bionemo-mcp.selectorLabels" . | nindent 14 }}
               app.kubernetes.io/component: gateway

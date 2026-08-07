@@ -38,3 +38,9 @@ ingress:
     - secretName: bionemo-example-tls
       hosts:
         - bionemo.example.com
+
+networkPolicy:
+  nimIsolation:
+    namespace: nims
+    namespaceLabels:
+      kubernetes.io/metadata.name: nims

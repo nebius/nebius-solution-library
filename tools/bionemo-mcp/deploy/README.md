@@ -1,9 +1,9 @@
 # Deployment
 
-Deploy `nebius-bionemo-mcp` into the same namespace as the task-owned NIM fleet.
-The chart does not create NIMs, Object Storage, registry, TLS, ingress-controller,
-or credential resources. Provision those as fresh resources first and pass only
-their non-secret identifiers to Helm.
+Deploy `nebius-bionemo-mcp` either into the task-owned NIM namespace or into a
+dedicated gateway namespace. The chart does not create NIMs, Object Storage,
+registry, TLS, ingress-controller, or credential resources. Provision those as
+fresh resources first and pass only their non-secret identifiers to Helm.
 
 ## Required values
 
@@ -43,7 +43,25 @@ healthy.
 `networkPolicy.nimIsolation.enabled=true` selects every enabled model's
 catalog-exported `pod_selector_labels` and permits inference/metrics port ingress
 only from gateway pods and configured monitoring clients. Verify the cluster CNI
-enforces NetworkPolicy. Before acceptance, prove that:
+enforces NetworkPolicy.
+
+For a dedicated gateway namespace, set the NIM namespace and its labels so the
+gateway egress policy and NIM ingress policy are rendered in the correct
+namespaces:
+
+```yaml
+networkPolicy:
+  nimIsolation:
+    enabled: true
+    namespace: nims
+    namespaceLabels:
+      kubernetes.io/metadata.name: nims
+```
+
+Leave `namespace` and `namespaceLabels` empty only when gateway and NIM pods are
+co-located in the Helm release namespace.
+
+Before acceptance, prove that:
 
 1. a pod without an allowed label cannot connect to any NIM ClusterIP or legacy
    NIM LoadBalancer address;
