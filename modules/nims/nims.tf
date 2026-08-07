@@ -11,6 +11,10 @@ resource "kubernetes_deployment_v1" "nims" {
   spec {
     replicas = each.value.enabled ? (each.value.scaling.enabled ? each.value.scaling.min_replicas : each.value.replicas) : 0
 
+    strategy {
+      type = each.value.deployment_strategy
+    }
+
     selector {
       match_labels = {
         app = each.value.app
@@ -29,6 +33,8 @@ resource "kubernetes_deployment_v1" "nims" {
       }
 
       spec {
+        node_selector = each.value.node_selector
+
         image_pull_secrets {
           name = kubernetes_secret_v1.nvcrio-cred.metadata[0].name
         }
@@ -75,6 +81,20 @@ resource "kubernetes_deployment_v1" "nims" {
               secret_key_ref {
                 name = kubernetes_secret_v1.ngc_api_key.metadata[0].name
                 key  = "NGC_API_KEY"
+              }
+            }
+          }
+
+          dynamic "env" {
+            for_each = each.value.use_ngc_cli_api_key ? [1] : []
+            content {
+              name = "NGC_CLI_API_KEY"
+
+              value_from {
+                secret_key_ref {
+                  name = kubernetes_secret_v1.ngc_api_key.metadata[0].name
+                  key  = "NGC_API_KEY"
+                }
               }
             }
           }

@@ -28,6 +28,7 @@ Each catalog entry carries:
   `container_name`.
 - `resources`, `shared_memory_size`, optional `command`, optional
   `security_context`, and extra `env`.
+- optional `node_selector` placement constraints for mixed GPU fleets.
 - `lb_group`: `protein-apps` or `cosmos`.
 - `scaling`: either fixed-replica metadata or HPA settings.
 
@@ -178,6 +179,17 @@ rules:
         matches: '^gpu_utilization$'
         as: nim_gpu_utilization
       metricsQuery: 'avg by (<<.GroupBy>>) (<<.Series>>{<<.LabelMatchers>>})'
+    - seriesQuery: 'request_count_total{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: '^request_count_total$'
+        as: nim_request_rate
+      metricsQuery: 'sum by (<<.GroupBy>>) (rate(<<.Series>>{<<.LabelMatchers>>,exported_endpoint!~"/v1/.*"}[1m]))'
 ```
 
 Set `service_monitor_labels` to labels selected by the cluster Prometheus
@@ -186,7 +198,7 @@ instance. With kube-prometheus-stack this is commonly
 
 ```bash
 kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1 \
-  | jq '.resources[] | select(.name == "pods/vllm_num_requests_running" or .name == "pods/nim_gpu_utilization")'
+  | jq '.resources[] | select(.name == "pods/vllm_num_requests_running" or .name == "pods/nim_gpu_utilization" or .name == "pods/nim_request_rate")'
 ```
 
 NVIDIA documents that LLM NIMs expose Prometheus metrics at `/v1/metrics` and
@@ -197,12 +209,13 @@ metrics such as `nv_inference_request_success` and
 `vllm_num_requests_running`, mapped from `vllm:num_requests_running`, only for
 the LLM/VLM family where this has a direct request-concurrency meaning.
 
-The supported BioNeMo NIMs do not expose a common request-queue gauge, but they
+The GPU-metric BioNeMo NIMs do not expose a common request-queue gauge, but they
 do expose `gpu_utilization` per device as a fraction from 0 to 1. The adapter
 averages devices into `nim_gpu_utilization` per pod. Idle replicas report zero;
 the per-model HPA targets below were calibrated with sustained requests on B200
-on 2026-08-07. Targets intentionally sit below the observed busy signal and
-Kubernetes HPA tolerance so a continuously busy replica actually scales.
+and H200 on 2026-08-07. Targets intentionally sit below the observed busy
+signal and Kubernetes HPA tolerance so a continuously busy replica actually
+scales.
 
 | NIM | Busy GPU signal | HPA target |
 | --- | ---: | ---: |
@@ -213,6 +226,8 @@ Kubernetes HPA tolerance so a continuously busy replica actually scales.
 | OpenFold2 | `230m` | `100m` |
 | GenMol | `310m–910m` | `400m` |
 | ProteinMPNN | `300m–330m` | `200m` |
+| DiffDock (H200) | `120m–160m` | `100m` |
+| RFdiffusion (H200) | `550m–610m` | `200m` |
 
 Evo2-40B accepts one generation at a time per replica and returns HTTP 422
 `Too Busy` for excess concurrency, so clients must retry with backoff while HPA
@@ -241,10 +256,22 @@ This limit is a fleet-wide budget only when unsupported catalog entries remain
 disabled. Use a smaller maximum or leave packing headroom when enabling more
 models.
 
+For the three H200-only NIMs, default maxima of DiffDock 3, MolMIM 2, and
+RFdiffusion 3 form a separate hard ceiling of eight one-GPU H200 replicas. Keep
+their node selector on `gpu-h200-sxm` and the H200 node-group maximum at eight
+to preserve that boundary independently from the 64-GPU B200 fleet.
+
 GPU-utilization scalable catalog entries:
 
 - OpenFold3, Boltz2, Evo2-40B, MSA Search
 - OpenFold2, GenMol, ProteinMPNN
+- DiffDock and RFdiffusion on H200
+
+Request-rate scalable BioNeMo entries:
+
+- MolMIM 1.0.0 at `100m` requests/second per pod. This release publishes the
+  `gpu_utilization` metric metadata but no samples, so request rate is the
+  actionable signal.
 
 Request-gauge scalable catalog entries:
 
@@ -256,12 +283,40 @@ Request-gauge scalable catalog entries:
 
 Fixed-replica catalog entries:
 
-- MolMIM, DiffDock, RFdiffusion
 - Cosmos-Embed1
 - BioNeMo notebook
 
 These entries stay fixed until their backend exposes a validated request or
 inference metric that is useful for per-pod HPA decisions.
+
+### Mixed GPU architectures
+
+Use hard node selectors whenever a cluster has more than one GPU compute
+capability. The module passes a catalog entry's `node_selector` directly to the
+pod template and exports it in `nim_catalog`. For a B200 plus H200 BioNeMo
+fleet, an overlay can pin known-compatible images explicitly:
+
+```hcl
+model_catalog = {
+  evo2_40b = {
+    enabled = true
+    node_selector = {
+      "node.kubernetes.io/instance-type" = "gpu-b200-sxm"
+    }
+  }
+  diffdock = {
+    enabled = true
+    node_selector = {
+      "node.kubernetes.io/instance-type" = "gpu-h200-sxm"
+    }
+  }
+}
+```
+
+Apply the same B200 selector to every B200-validated model and the H200 selector
+to MolMIM, DiffDock, and RFdiffusion when their images lack Blackwell kernels.
+The selector is a compatibility boundary; an HPA or cluster autoscaler must not
+be allowed to satisfy a pod with an arbitrary free GPU.
 
 ## Validation Notes
 

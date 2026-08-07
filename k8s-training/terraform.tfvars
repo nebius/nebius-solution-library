@@ -30,6 +30,24 @@ gpu_nodes_autoscaling = {
   max_size = 1
 }
 gpu_node_groups = 1 # In case you need more then 100 nodes in cluster you have to put multiple node groups
+# Add independently scalable pools when one cluster needs more than one GPU
+# architecture. This example keeps three H200-backed NIMs warm and lets the
+# pool grow to eight GPUs without changing the primary GPU group.
+# additional_gpu_node_groups = {
+#   h200_nims = {
+#     platform = "gpu-h200-sxm"
+#     preset   = "1gpu-16vcpu-200gb"
+#     autoscaling = {
+#       min_size = 3
+#       max_size = 8
+#     }
+#     driver_preset = "cuda13.0"
+#     disk_size     = "2047"
+#     labels = {
+#       purpose = "bionemo-h200"
+#     }
+#   }
+# }
 # CPU platform and presets: https://docs.nebius.com/compute/virtual-machines/types#cpu-configurations
 cpu_nodes_platform = "cpu-d3"     # CPU nodes platform
 cpu_nodes_preset   = "4vcpu-16gb" # CPU nodes preset

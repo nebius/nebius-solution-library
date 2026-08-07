@@ -94,6 +94,36 @@ gpu_nodes_preset = "8gpu-128vcpu-1600gb" # The GPU node preset. Only nodes with 
 
 ```
 
+When the same cluster must run workloads built for different GPU compute
+capabilities, declare additional pools instead of changing the primary pool.
+Each pool has an independent scaling ceiling and can use a different driver or
+capacity reservation. For example, this adds private one-GPU H200 nodes while
+leaving an existing B200 pool unchanged:
+
+```hcl
+additional_gpu_node_groups = {
+  h200_nims = {
+    platform = "gpu-h200-sxm"
+    preset   = "1gpu-16vcpu-200gb"
+    autoscaling = {
+      min_size = 3
+      max_size = 8
+    }
+    driver_preset = "cuda13.0"
+    disk_size     = "2047"
+    labels = {
+      purpose = "bionemo-h200"
+    }
+  }
+}
+```
+
+Additional pools inherit the cluster subnet, service account, and optional
+shared filesystem. Nodes receive a `workload.nebius.ai/gpu-platform` label.
+GPU workloads should also set a hard node selector—normally the provider label
+`node.kubernetes.io/instance-type`—so a CUDA image cannot be scheduled onto an
+incompatible architecture merely because that pool has free GPUs.
+
 ### Nvidia Multi Instance GPU (MIG) configuration
 
 ```hcl

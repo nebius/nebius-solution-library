@@ -28,6 +28,18 @@ output "shared-filesystem" {
   value       = local.shared-filesystem
 }
 
+output "additional_gpu_node_groups" {
+  description = "Additional heterogeneous GPU node groups keyed by their Terraform configuration name."
+  value = {
+    for key, group in nebius_mk8s_v1_node_group.additional_gpu : key => {
+      id       = group.id
+      name     = group.name
+      platform = var.additional_gpu_node_groups[key].platform
+      preset   = var.additional_gpu_node_groups[key].preset
+    }
+  }
+}
+
 output "filesystem_csi" {
   description = "Nebius Shared Filesystem CSI installation details."
   value = local.filesystem_csi_enabled ? {

@@ -4,6 +4,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from nebius_bionemo_mcp.schemas import (
+    DiffDockRequest,
     GenMolRequest,
     Ligand,
     MolMIMRequest,
@@ -37,6 +38,8 @@ def test_api_quirks_and_required_structure_are_typed() -> None:
         Ligand(smiles="CC", ccd="ATP")
     with pytest.raises(ValidationError):
         RFDiffusionRequest(contigs="100")
+    with pytest.raises(ValidationError):
+        DiffDockRequest(protein="ATOM", ligand="CC", time_divisions=2)
 
 
 def test_openfold3_molecule_representation_matches_type() -> None:

@@ -18,6 +18,7 @@ output "nim_catalog" {
       pod_selector_labels = {
         app = model.app
       }
+      node_selector      = model.node_selector
       service_name       = model.service_name
       service_port       = model.service_port
       service_url        = "http://${model.service_name}.${var.namespace}.svc.cluster.local:${model.service_port}"

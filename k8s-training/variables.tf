@@ -171,6 +171,71 @@ variable "gpu_node_groups" {
   default     = 1
 }
 
+variable "additional_gpu_node_groups" {
+  description = <<-EOT
+    Additional heterogeneous GPU node groups keyed by a stable Terraform name.
+    Use this alongside the primary gpu node group when workloads require a
+    different GPU architecture, preset, driver, reservation policy, or scaling
+    boundary. Exactly one of fixed_node_count or autoscaling must be set.
+  EOT
+  type = map(object({
+    platform         = string
+    preset           = string
+    fixed_node_count = optional(number)
+    autoscaling = optional(object({
+      min_size = number
+      max_size = number
+    }))
+    driver_preset = optional(string)
+    disk_type     = optional(string, "NETWORK_SSD")
+    disk_size     = optional(string, "1023")
+    public_ips    = optional(bool, false)
+    preemptible   = optional(bool, false)
+    labels        = optional(map(string), {})
+    node_labels   = optional(map(string), {})
+    taints = optional(list(object({
+      key    = string
+      value  = string
+      effect = string
+    })), [])
+    reservation_policy = optional(object({
+      policy          = string
+      reservation_ids = optional(list(string), [])
+    }))
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue([
+      for group in values(var.additional_gpu_node_groups) :
+      (group.fixed_node_count != null) != (group.autoscaling != null)
+    ])
+    error_message = "Each additional GPU node group must set exactly one of fixed_node_count or autoscaling."
+  }
+
+  validation {
+    condition = alltrue([
+      for group in values(var.additional_gpu_node_groups) :
+      group.fixed_node_count == null ? (
+        group.autoscaling.min_size >= 0 &&
+        group.autoscaling.max_size >= group.autoscaling.min_size
+      ) : group.fixed_node_count >= 0
+    ])
+    error_message = "Additional GPU node counts must be non-negative and autoscaling max_size must be at least min_size."
+  }
+
+  validation {
+    condition = alltrue([
+      for group in values(var.additional_gpu_node_groups) :
+      group.reservation_policy == null ? true : (
+        contains(["AUTO", "FORBID", "STRICT"], upper(group.reservation_policy.policy)) &&
+        (upper(group.reservation_policy.policy) != "STRICT" || length(group.reservation_policy.reservation_ids) > 0)
+      )
+    ])
+    error_message = "reservation_policy.policy must be AUTO, FORBID, or STRICT; STRICT requires at least one reservation ID."
+  }
+}
+
 variable "gpu_nodes_platform" {
   description = "Platform for nodes in the GPU node group."
   type        = string

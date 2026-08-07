@@ -192,3 +192,94 @@ resource "nebius_mk8s_v1_node_group" "gpu" {
     })
   }
 }
+
+################################
+# ADDITIONAL GPU NODE GROUPS
+################################
+# Keep heterogeneous pools as a separate for_each resource so adding an H200
+# pool to a B200 cluster does not change the addresses of existing GPU groups.
+resource "nebius_mk8s_v1_node_group" "additional_gpu" {
+  for_each = var.additional_gpu_node_groups
+
+  autoscaling = each.value.autoscaling == null ? null : {
+    min_node_count = each.value.autoscaling.min_size
+    max_node_count = each.value.autoscaling.max_size
+  }
+
+  fixed_node_count = each.value.autoscaling == null ? each.value.fixed_node_count : null
+
+  parent_id = nebius_mk8s_v1_cluster.k8s-cluster.id
+  name      = "${var.cluster_name}-ng-gpu-${each.key}"
+  labels = merge(
+    {
+      "library-solution" = "k8s-training"
+    },
+    each.value.labels
+  )
+  version = var.k8s_version
+
+  template = {
+    metadata = {
+      labels = merge(
+        {
+          "workload.nebius.ai/gpu-platform" = each.value.platform
+        },
+        each.value.node_labels
+      )
+    }
+
+    boot_disk = {
+      size_gibibytes = each.value.disk_size
+      type           = each.value.disk_type
+    }
+
+    service_account_id = var.enable_k8s_node_group_sa ? nebius_iam_v1_service_account.k8s_node_group_sa[0].id : null
+
+    network_interfaces = [
+      {
+        subnet_id         = var.subnet_id
+        public_ip_address = each.value.public_ips ? {} : null
+      }
+    ]
+
+    resources = {
+      platform = each.value.platform
+      preset   = each.value.preset
+    }
+
+    preemptible = each.value.preemptible ? {
+      on_preemption = "STOP"
+      priority      = 3
+    } : null
+
+    filesystems = var.enable_filestore ? [
+      {
+        attach_mode = "READ_WRITE"
+        mount_tag   = "data"
+        existing_filesystem = {
+          id = local.shared-filesystem.id
+        }
+      }
+    ] : null
+
+    gpu_settings = var.gpu_nodes_driverfull_image ? {
+      drivers_preset = coalesce(each.value.driver_preset, local.device_preset)
+    } : null
+
+    reservation_policy = each.value.reservation_policy == null ? null : {
+      policy          = upper(each.value.reservation_policy.policy)
+      reservation_ids = each.value.reservation_policy.reservation_ids
+    }
+
+    taints            = each.value.taints
+    underlay_required = false
+    cloud_init_user_data = templatefile("${path.module}/../modules/cloud-init/k8s-cloud-init.tftpl", {
+      enable_filestore         = var.enable_filestore ? "true" : "false",
+      filestore_mount_path     = local.filestore.mount_path,
+      ssh_user_name            = var.ssh_user_name,
+      ssh_public_key           = local.ssh_public_key,
+      kubelet_numa_config      = null,
+      kubelet_numa_config_yaml = ""
+    })
+  }
+}

@@ -103,7 +103,7 @@ class DiffDockRequest(StrictModel):
     ligand: str = Field(min_length=1)
     ligand_file_type: Literal["mol2", "sdf", "txt"] = "txt"
     num_poses: int = Field(default=10, ge=1, le=100)
-    time_divisions: int = Field(default=20, ge=1, le=20)
+    time_divisions: int = Field(default=20, ge=3, le=20)
     steps: int = Field(default=18, ge=1, le=18)
     save_trajectory: bool = False
     skip_gen_conformer: bool = False

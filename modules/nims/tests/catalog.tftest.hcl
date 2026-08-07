@@ -141,36 +141,51 @@ run "enabled_evo2_gets_gpu_utilization_hpa" {
   }
 }
 
-run "all_supported_bionemo_nims_get_gpu_hpas" {
+run "all_supported_bionemo_nims_get_hpas" {
   command = plan
 
   variables {
     model_catalog = {
-      openfold3 = { enabled = true }
-      boltz2 = { enabled = true }
-      evo2_40b = { enabled = true }
-      msa_search = { enabled = true }
-      openfold2 = { enabled = true }
-      genmol = { enabled = true }
+      openfold3   = { enabled = true }
+      boltz2      = { enabled = true }
+      evo2_40b    = { enabled = true }
+      msa_search  = { enabled = true }
+      openfold2   = { enabled = true }
+      genmol      = { enabled = true }
+      molmim      = { enabled = true }
+      diffdock    = { enabled = true }
       proteinmpnn = { enabled = true }
+      rfdiffusion = { enabled = true }
     }
   }
 
   assert {
     condition = toset(keys(kubernetes_horizontal_pod_autoscaler_v2.nims)) == toset([
-      "openfold3", "boltz2", "evo2_40b", "msa_search", "openfold2", "genmol", "proteinmpnn"
+      "openfold3", "boltz2", "evo2_40b", "msa_search", "openfold2", "genmol", "proteinmpnn",
+      "molmim", "diffdock", "rfdiffusion"
     ])
-    error_message = "Every B200-supported BioNeMo NIM must render an HPA."
+    error_message = "Every deployed BioNeMo NIM must render an HPA."
   }
 
   assert {
     condition = alltrue([
-      for hpa in kubernetes_horizontal_pod_autoscaler_v2.nims :
+      for key, hpa in kubernetes_horizontal_pod_autoscaler_v2.nims :
       hpa.spec[0].min_replicas == 1 &&
       hpa.spec[0].max_replicas == 3 &&
       hpa.spec[0].metric[0].pods[0].metric[0].name == "nim_gpu_utilization"
+      if key != "molmim"
     ])
-    error_message = "Supported NIM HPAs must keep one warm replica and use the bounded generic GPU metric."
+    error_message = "GPU-metric NIM HPAs must keep one warm replica and a bounded default maximum."
+  }
+
+  assert {
+    condition = (
+      kubernetes_horizontal_pod_autoscaler_v2.nims["molmim"].spec[0].min_replicas == 1 &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["molmim"].spec[0].max_replicas == 2 &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["molmim"].spec[0].metric[0].pods[0].metric[0].name == "nim_request_rate" &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["molmim"].spec[0].metric[0].pods[0].target[0].average_value == "100m"
+    )
+    error_message = "MolMIM must scale on its emitted request counter because its GPU gauge has no samples."
   }
 
   assert {
@@ -181,9 +196,11 @@ run "all_supported_bionemo_nims_get_gpu_hpas" {
       kubernetes_horizontal_pod_autoscaler_v2.nims["boltz2"].spec[0].metric[0].pods[0].target[0].average_value == "300m" &&
       kubernetes_horizontal_pod_autoscaler_v2.nims["evo2_40b"].spec[0].metric[0].pods[0].target[0].average_value == "400m" &&
       kubernetes_horizontal_pod_autoscaler_v2.nims["msa_search"].spec[0].metric[0].pods[0].target[0].average_value == "400m" &&
-      kubernetes_horizontal_pod_autoscaler_v2.nims["genmol"].spec[0].metric[0].pods[0].target[0].average_value == "400m"
+      kubernetes_horizontal_pod_autoscaler_v2.nims["genmol"].spec[0].metric[0].pods[0].target[0].average_value == "400m" &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["diffdock"].spec[0].metric[0].pods[0].target[0].average_value == "100m" &&
+      kubernetes_horizontal_pod_autoscaler_v2.nims["rfdiffusion"].spec[0].metric[0].pods[0].target[0].average_value == "200m"
     )
-    error_message = "Supported NIM HPAs must retain their B200-calibrated thresholds."
+    error_message = "GPU-metric NIM HPAs must retain their field-tested thresholds."
   }
 
   assert {
@@ -210,6 +227,59 @@ run "cluster_internal_proxy_services" {
   assert {
     condition     = output.nims_lb_ip == null && output.cosmos_lb_ip == null
     error_message = "LoadBalancer IP outputs must be null when proxy Services are cluster-internal."
+  }
+}
+
+run "mixed_gpu_fleet_honors_hard_node_selectors" {
+  command = plan
+
+  variables {
+    model_catalog = {
+      evo2_40b = {
+        enabled = true
+        node_selector = {
+          "node.kubernetes.io/instance-type" = "gpu-b200-sxm"
+        }
+      }
+      diffdock = {
+        enabled = true
+        node_selector = {
+          "node.kubernetes.io/instance-type" = "gpu-h200-sxm"
+        }
+      }
+    }
+  }
+
+  assert {
+    condition = (
+      kubernetes_deployment_v1.nims["evo2_40b"].spec[0].template[0].spec[0].node_selector["node.kubernetes.io/instance-type"] == "gpu-b200-sxm" &&
+      kubernetes_deployment_v1.nims["diffdock"].spec[0].template[0].spec[0].node_selector["node.kubernetes.io/instance-type"] == "gpu-h200-sxm"
+    )
+    error_message = "Catalog node_selector overrides must isolate models onto compatible GPU architectures."
+  }
+
+  assert {
+    condition = (
+      output.nim_catalog["evo2_40b"].node_selector["node.kubernetes.io/instance-type"] == "gpu-b200-sxm" &&
+      output.nim_catalog["diffdock"].node_selector["node.kubernetes.io/instance-type"] == "gpu-h200-sxm"
+    )
+    error_message = "The resolved catalog must expose workload placement for downstream validation."
+  }
+
+  assert {
+    condition = (
+      kubernetes_deployment_v1.nims["diffdock"].spec[0].strategy[0].type == "Recreate" &&
+      kubernetes_deployment_v1.nims["diffdock"].spec[0].template[0].spec[0].container[0].resources[0].requests.cpu == "14"
+    )
+    error_message = "Singleton H200 NIMs must fit one-GPU nodes and avoid rollout surges that deadlock a full pool."
+  }
+
+  assert {
+    condition = one([
+      for env in kubernetes_deployment_v1.nims["molmim"].spec[0].template[0].spec[0].container[0].env : env
+      if env.name == "NGC_CLI_API_KEY"
+    ]).value_from[0].secret_key_ref[0].key == "NGC_API_KEY"
+    error_message = "MolMIM must receive its documented NGC_CLI_API_KEY from the existing NGC Secret."
   }
 }
 

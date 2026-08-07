@@ -31,6 +31,21 @@ locals {
     }
   }
 
+  # One-GPU H200 presets expose 15.9 allocatable CPUs. Leave room for CNI,
+  # monitoring, and device-plugin DaemonSets instead of requesting all 16.
+  resources_1gpu_14cpu_128gi = {
+    limits = {
+      cpu              = "14"
+      memory           = "128Gi"
+      "nvidia.com/gpu" = "1"
+    }
+    requests = {
+      cpu              = "14"
+      memory           = "128Gi"
+      "nvidia.com/gpu" = "1"
+    }
+  }
+
   resources_1gpu_8cpu_64gi = {
     limits = {
       cpu              = "8"
@@ -86,21 +101,39 @@ locals {
     threshold     = "400m"
   }
 
+  # Older NIMs such as MolMIM 1.0.0 advertise gpu_utilization HELP text but
+  # emit no samples. Scale those backends on completed non-health request rate
+  # exported from request_count_total instead of leaving HPA metrics unknown.
+  nim_request_rate_scaling = {
+    enabled       = true
+    fixed_reason  = null
+    min_replicas  = 1
+    max_replicas  = 2
+    metric_type   = "Pods"
+    metric_name   = "nim_request_rate"
+    source_metric = "request_count_total"
+    target_type   = "AverageValue"
+    threshold     = "100m"
+  }
+
   model_defaults = {
-    kind               = "nim"
-    enabled            = false
-    replicas           = 1
-    container_port     = 8000
-    service_port       = 8000
-    service_type       = "ClusterIP"
-    cache_mount_path   = "/opt/nim/.cache"
-    cache_sub_path     = "nim"
-    mount_cache        = true
-    shared_memory_size = "16Gi"
-    command            = null
-    security_context   = null
-    env                = {}
-    labels             = {}
+    kind                = "nim"
+    enabled             = false
+    replicas            = 1
+    container_port      = 8000
+    service_port        = 8000
+    service_type        = "ClusterIP"
+    cache_mount_path    = "/opt/nim/.cache"
+    cache_sub_path      = "nim"
+    mount_cache         = true
+    shared_memory_size  = "16Gi"
+    command             = null
+    security_context    = null
+    deployment_strategy = "RollingUpdate"
+    use_ngc_cli_api_key = false
+    env                 = {}
+    labels              = {}
+    node_selector       = {}
     resources = {
       limits   = {}
       requests = {}
@@ -246,19 +279,21 @@ locals {
     }
 
     molmim = {
-      display_name       = "MolMIM"
-      deployment_name    = "molmim"
-      app                = "molmim"
-      service_name       = "molmim-svc"
-      container_name     = "molmim"
-      image              = "nvcr.io/nim/nvidia/molmim"
-      version            = "1.0.0"
-      resources          = local.resources_1gpu_16cpu_128gi
-      shared_memory_size = "16Gi"
-      lb_group           = "protein-apps"
-      scaling = merge(local.fixed_replica_scaling, {
-        fixed_reason = "MolMIM uses its default entrypoint and has not been validated with a stable custom metric for HPA."
-      })
+      display_name        = "MolMIM"
+      deployment_name     = "molmim"
+      app                 = "molmim"
+      service_name        = "molmim-svc"
+      container_name      = "molmim"
+      image               = "nvcr.io/nim/nvidia/molmim"
+      version             = "1.0.0"
+      cache_mount_path    = "/home/nvs/.cache/nim"
+      deployment_strategy = "Recreate"
+      use_ngc_cli_api_key = true
+      security_context    = local.root_security_context
+      resources           = local.resources_1gpu_14cpu_128gi
+      shared_memory_size  = "16Gi"
+      lb_group            = "protein-apps"
+      scaling             = local.nim_request_rate_scaling
       proxy = {
         upstream_name     = "molmim"
         service_port_name = "molmim"
@@ -266,20 +301,21 @@ locals {
     }
 
     diffdock = {
-      display_name       = "DiffDock"
-      deployment_name    = "diffdock"
-      app                = "diffdock"
-      service_name       = "diffdock-svc"
-      container_name     = "diffdock"
-      image              = "nvcr.io/nim/mit/diffdock"
-      version            = "latest"
-      command            = local.nim_start_command
-      security_context   = local.root_security_context
-      resources          = local.resources_1gpu_16cpu_128gi
-      shared_memory_size = "16Gi"
-      lb_group           = "protein-apps"
-      scaling = merge(local.fixed_replica_scaling, {
-        fixed_reason = "Docking backend has not been validated with a stable custom metric for HPA."
+      display_name        = "DiffDock"
+      deployment_name     = "diffdock"
+      app                 = "diffdock"
+      service_name        = "diffdock-svc"
+      container_name      = "diffdock"
+      image               = "nvcr.io/nim/mit/diffdock"
+      version             = "2.2.0"
+      command             = local.nim_start_command
+      security_context    = local.root_security_context
+      deployment_strategy = "Recreate"
+      resources           = local.resources_1gpu_14cpu_128gi
+      shared_memory_size  = "16Gi"
+      lb_group            = "protein-apps"
+      scaling = merge(local.nim_gpu_scaling, {
+        threshold = "100m"
       })
       proxy = {
         upstream_name     = "diffdock"
@@ -331,19 +367,20 @@ locals {
     }
 
     rfdiffusion = {
-      display_name       = "RFdiffusion"
-      deployment_name    = "rfdiffusion"
-      app                = "rfdiffusion"
-      service_name       = "rfdiffusion-svc"
-      container_name     = "rfdiffusion"
-      image              = "nvcr.io/nim/ipd/rfdiffusion"
-      version            = "2.2.0"
-      security_context   = local.root_security_context
-      resources          = local.resources_1gpu_16cpu_128gi
-      shared_memory_size = "16Gi"
-      lb_group           = "protein-apps"
-      scaling = merge(local.fixed_replica_scaling, {
-        fixed_reason = "Protein design backend has not been validated with a stable custom metric for HPA."
+      display_name        = "RFdiffusion"
+      deployment_name     = "rfdiffusion"
+      app                 = "rfdiffusion"
+      service_name        = "rfdiffusion-svc"
+      container_name      = "rfdiffusion"
+      image               = "nvcr.io/nim/ipd/rfdiffusion"
+      version             = "2.3.0"
+      security_context    = local.root_security_context
+      deployment_strategy = "Recreate"
+      resources           = local.resources_1gpu_14cpu_128gi
+      shared_memory_size  = "16Gi"
+      lb_group            = "protein-apps"
+      scaling = merge(local.nim_gpu_scaling, {
+        threshold = "200m"
       })
       proxy = {
         upstream_name     = "rfdiffusion"
@@ -532,6 +569,11 @@ locals {
           try(local.model_defaults.env, {}),
           try(local.default_model_catalog[name].env, {}),
           try(var.model_catalog[name].env, {})
+        )
+        node_selector = merge(
+          try(local.model_defaults.node_selector, {}),
+          try(local.default_model_catalog[name].node_selector, {}),
+          try(var.model_catalog[name].node_selector, {})
         )
         scaling = merge(
           try(local.model_defaults.scaling, {}),
