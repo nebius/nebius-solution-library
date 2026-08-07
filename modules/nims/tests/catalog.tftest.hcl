@@ -100,6 +100,38 @@ run "enabled_llm_gets_custom_metric_hpa" {
   }
 }
 
+run "enabled_evo2_gets_gpu_utilization_hpa" {
+  command = plan
+
+  variables {
+    model_catalog = {
+      evo2_40b = {
+        enabled = true
+      }
+    }
+  }
+
+  assert {
+    condition     = kubernetes_deployment_v1.nims["evo2_40b"].spec[0].replicas == "1"
+    error_message = "Enabled Evo2 must start at one warm replica."
+  }
+
+  assert {
+    condition     = kubernetes_horizontal_pod_autoscaler_v2.nims["evo2_40b"].spec[0].max_replicas == 3
+    error_message = "Evo2 must have a bounded default HPA maximum."
+  }
+
+  assert {
+    condition     = kubernetes_horizontal_pod_autoscaler_v2.nims["evo2_40b"].spec[0].metric[0].pods[0].metric[0].name == "evo2_gpu_utilization"
+    error_message = "Evo2 autoscaling must use the validated per-pod GPU utilization metric."
+  }
+
+  assert {
+    condition     = kubernetes_horizontal_pod_autoscaler_v2.nims["evo2_40b"].spec[0].metric[0].pods[0].target[0].average_value == "400m"
+    error_message = "Evo2 GPU utilization must target the field-tested 0.40 average."
+  }
+}
+
 run "cluster_internal_proxy_services" {
   command = plan
 

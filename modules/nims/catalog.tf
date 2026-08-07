@@ -62,6 +62,18 @@ locals {
     threshold     = "2"
   }
 
+  evo2_gpu_scaling = {
+    enabled       = true
+    fixed_reason  = null
+    min_replicas  = 1
+    max_replicas  = 3
+    metric_type   = "Pods"
+    metric_name   = "evo2_gpu_utilization"
+    source_metric = "gpu_utilization"
+    target_type   = "AverageValue"
+    threshold     = "400m"
+  }
+
   model_defaults = {
     kind               = "nim"
     enabled            = false
@@ -152,9 +164,7 @@ locals {
       resources          = local.resources_2gpu_32cpu_256gi
       shared_memory_size = "16Gi"
       lb_group           = "protein-apps"
-      scaling = merge(local.fixed_replica_scaling, {
-        fixed_reason = "Sequence model backend has not been validated with a stable custom metric for HPA."
-      })
+      scaling            = local.evo2_gpu_scaling
       proxy = {
         upstream_name     = "evo2_40b"
         service_port_name = "evo2-40b"

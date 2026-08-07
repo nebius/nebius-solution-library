@@ -167,6 +167,17 @@ rules:
         matches: '^vllm:num_requests_running$'
         as: vllm_num_requests_running
       metricsQuery: 'max by (<<.GroupBy>>) (<<.Series>>{<<.LabelMatchers>>})'
+    - seriesQuery: 'gpu_utilization{namespace!="",pod!="",container="evo2-40b"}'
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: '^gpu_utilization$'
+        as: evo2_gpu_utilization
+      metricsQuery: 'avg by (<<.GroupBy>>) (<<.Series>>{<<.LabelMatchers>>,container="evo2-40b"})'
 ```
 
 Set `service_monitor_labels` to labels selected by the cluster Prometheus
@@ -175,7 +186,7 @@ instance. With kube-prometheus-stack this is commonly
 
 ```bash
 kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1 \
-  | jq '.resources[] | select(.name == "pods/vllm_num_requests_running")'
+  | jq '.resources[] | select(.name == "pods/vllm_num_requests_running" or .name == "pods/evo2_gpu_utilization")'
 ```
 
 NVIDIA documents that LLM NIMs expose Prometheus metrics at `/v1/metrics` and
@@ -186,6 +197,14 @@ metrics such as `nv_inference_request_success` and
 `vllm_num_requests_running`, mapped from `vllm:num_requests_running`, only for
 the LLM/VLM family where this has a direct request-concurrency meaning.
 
+Evo2-40B does not expose a request-queue gauge and accepts one generation at a
+time per replica, returning HTTP 422 `Too Busy` for excess concurrency. Its NIM
+does expose `gpu_utilization` per device as a fraction from 0 to 1. The adapter
+averages both devices into `evo2_gpu_utilization` per pod; the default HPA target
+is `400m` (0.40). A B200 validation on 2026-08-07 observed 0 while idle and
+0.55–0.78 during 512–1,024-token generation. Keep load clients backoff-aware and
+override `max_replicas` to fit the cluster's complete GPU budget.
+
 Scalable catalog entries:
 
 - Qwen3 Next 80B A3B Instruct
@@ -193,10 +212,11 @@ Scalable catalog entries:
 - Cosmos-Reason2-8B
 - Cosmos-Reason2-2B
 - Nemotron Nano 12B v2 VL
+- Evo2-40B
 
 Fixed-replica catalog entries:
 
-- OpenFold2, OpenFold3, Boltz2, MSA Search, Evo2-40B
+- OpenFold2, OpenFold3, Boltz2, MSA Search
 - GenMol, MolMIM, DiffDock
 - ProteinMPNN, RFdiffusion
 - Cosmos-Embed1
