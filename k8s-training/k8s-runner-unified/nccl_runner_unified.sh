@@ -4,29 +4,60 @@
 #
 # Usage: ./nccl-runner-unified.sh
 
-set -e
+# Exit on error and surface failures mid-pipeline. We deliberately do NOT add -u:
+# the script relies on conditionally-unset vars (e.g. MAP_BY_SPEC and empty query
+# results), guarded with ${var:-} where it matters.
+set -eo pipefail
 
-# Guard against a second concurrent runner. Two runners sharing the nccl-tests
-# namespace delete each other's launcher/worker pods mid-launch, which looks
-# exactly like random launcher crashes ("lost communication") — don't allow it.
+# Prevent accidental double-runs on THIS workstation (they'd share the local
+# results dir and lock). Cross-workstation safety does not come from this lock —
+# it comes from the unique per-run resource names/labels below.
 LOCKFILE="/tmp/nccl_runner_unified.lock"
 if [ -f "$LOCKFILE" ] && kill -0 "$(cat "$LOCKFILE" 2>/dev/null)" 2>/dev/null; then
-  echo "ERROR: another nccl_runner_unified.sh is already running (PID $(cat "$LOCKFILE"))."
-  echo "Two runners on the same namespace stomp each other's pods. Let it finish first,"
-  echo "or if that PID is dead, remove $LOCKFILE and re-run."
+  echo "ERROR: another nccl_runner_unified.sh is already running on this machine (PID $(cat "$LOCKFILE"))."
+  echo "Let it finish first, or if that PID is dead, remove $LOCKFILE and re-run."
   exit 1
 fi
 echo $$ > "$LOCKFILE"
 trap 'rm -f "$LOCKFILE"' EXIT
+
+# Unique per-run resource identity. A local lock can't stop a second engineer on
+# a different workstation from driving the same namespace, so every run names and
+# labels its own MPIJob/pods (nccl-test-<pid>-<epoch>, label nccl-runner/run=<id>).
+# All lookups and cleanup below are scoped to these, so concurrent runs sharing a
+# namespace never touch each other's resources.
+RUN_SUFFIX="$$-$(date +%s)"
+JOB_NAME="nccl-test-${RUN_SUFFIX}"
+# Sanitize into a valid Kubernetes label value: lowercase, non-alphanumerics to
+# '-', collapse repeats, and trim leading/trailing '-' (a label must start and
+# end alphanumeric — e.g. id -un's trailing newline would otherwise leave "user-").
+RUN_OWNER=$(id -un 2>/dev/null | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-' | sed -E 's/-+/-/g; s/^-+//; s/-+$//')
+RUN_OWNER="${RUN_OWNER:0:40}"
+RUN_OWNER="${RUN_OWNER:-unknown}"
+
+# Clean up this run's cluster resources on exit or interrupt (Ctrl-C). Everything
+# we create is uniquely named/labelled for this run, so this only ever removes our
+# own MPIJob and discovery pod — never another engineer's. Idempotent, so it's
+# harmless on a normal exit where per-iteration cleanup has already run.
+cleanup() {
+  rm -f "$LOCKFILE"
+  [ -z "${NAMESPACE:-}" ] && return
+  kubectl delete mpijob "$JOB_NAME" -n "$NAMESPACE" \
+    --ignore-not-found --cascade=foreground --wait=false >/dev/null 2>&1 || true
+  kubectl delete pod ib-discovery -n "$NAMESPACE" --ignore-not-found >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # ============ CONFIGURE FOR YOUR CLUSTER ============
 NAMESPACE=nccl-tests
 TEMPLATE=nccl-test-template.yaml
 IMAGE="cr.eu-north1.nebius.cloud/e00b94r7bkvywphmn6/nccl-tests:v2.18.3-cudav13.2.1-ncclv2.30.4-1-hpcxv2.26"
 
-# GPU node group ID — get via:
+# GPU node group ID — SET THIS for your cluster. Get it via:
 #   kubectl get nodes -o custom-columns='NAME:.metadata.name,GROUP:.metadata.labels.nebius\.com/node-group-id,GPU:.status.capacity.nvidia\.com/gpu'
-NODE_GROUP_ID="mk8snodegroup-e02j9bmhyza8zwvj9c"
+NODE_GROUP_ID="<your-node-group-id>"   # e.g. mk8snodegroup-xxxxxxxxxxxxxxxxxx
 
 # Worker resource sizing — auto-detected below from actual node capacity.
 # RESERVE values are headroom left for kubelet, device plugins, DaemonSets, etc.
@@ -47,11 +78,31 @@ HOSTS=(1 2 3 4)
 TESTS=(all_reduce alltoall)
 # ======================================================
 
+if [ -z "$NODE_GROUP_ID" ] || [[ "$NODE_GROUP_ID" == "<"* ]]; then
+  echo "ERROR: set NODE_GROUP_ID at the top of this script to your GPU node group ID."
+  echo "Find it with:"
+  echo "  kubectl get nodes -o custom-columns='NAME:.metadata.name,GROUP:.metadata.labels.nebius\\.com/node-group-id'"
+  exit 1
+fi
+
 echo "=== Detecting node capacity for node group $NODE_GROUP_ID ==="
-NODE_NAMES=($(kubectl get nodes -l "nebius.com/node-group-id=$NODE_GROUP_ID" -o jsonpath='{.items[*].metadata.name}'))
-NODE_NAME="${NODE_NAMES[0]}"
+# Count only nodes that can actually take work: Ready AND schedulable. A Cordoned
+# or NotReady node still carries the node-group label, so counting it would size a
+# host sweep the cluster can't place — the launcher never appears and watch_job
+# then burns the full timeout waiting for it.
+NODE_NAMES=()
+while read -r name ready unsched; do
+  [ -n "$name" ] || continue
+  [ "$ready" = "True" ] || continue
+  [ "$unsched" = "true" ] && continue
+  NODE_NAMES+=("$name")
+done < <(kubectl get nodes -l "nebius.com/node-group-id=$NODE_GROUP_ID" \
+  -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.conditions[?(@.type=="Ready")].status}{" "}{.spec.unschedulable}{"\n"}{end}')
+
+NODE_NAME="${NODE_NAMES[0]:-}"
 if [ -z "$NODE_NAME" ]; then
-  echo "ERROR: no nodes found matching node-group-id=$NODE_GROUP_ID"
+  echo "ERROR: no Ready, schedulable nodes found for node-group-id=$NODE_GROUP_ID"
+  echo "(Nodes may be Cordoned or NotReady — check: kubectl get nodes -l nebius.com/node-group-id=$NODE_GROUP_ID)"
   exit 1
 fi
 NODE_COUNT=${#NODE_NAMES[@]}
@@ -157,8 +208,10 @@ fi
 ACTIVE_DEVICES=""
 for dev in $ALL_DEVICES; do
   INFO=$(kubectl exec -n "$NAMESPACE" ib-discovery -- ibv_devinfo -d "$dev" 2>/dev/null)
-  LINK_LAYER=$(echo "$INFO" | grep -oP 'link_layer:\s*\K\S+')
-  STATE=$(echo "$INFO" | grep -oP 'state:\s*PORT_\K[A-Z]+')
+  # ibv_devinfo prints "link_layer: InfiniBand" and "state: PORT_ACTIVE (4)".
+  # Parse with awk — grep -oP (PCRE / \K) is GNU-only and not available on macOS.
+  LINK_LAYER=$(echo "$INFO" | awk '$1=="link_layer:"{print $2; exit}')
+  STATE=$(echo "$INFO" | awk '$1=="state:"{sub(/^PORT_/,"",$2); print $2; exit}')
   if [ "$LINK_LAYER" == "InfiniBand" ] && [ "$STATE" == "ACTIVE" ]; then
     ACTIVE_DEVICES="${ACTIVE_DEVICES}${ACTIVE_DEVICES:+,}${dev}"
   fi
@@ -238,14 +291,14 @@ fi
 watch_job() {
   local waited=0 timeout=1500 interval=5 lp rs failed
   while [ "$waited" -lt "$timeout" ]; do
-    if kubectl get mpijob nccl-test -n "$NAMESPACE" \
+    if kubectl get mpijob "$JOB_NAME" -n "$NAMESPACE" \
          -o jsonpath='{.status.conditions[?(@.type=="Succeeded")].status}' 2>/dev/null | grep -q True; then
       echo PASS; return
     fi
-    failed=$(kubectl get mpijob nccl-test -n "$NAMESPACE" \
+    failed=$(kubectl get mpijob "$JOB_NAME" -n "$NAMESPACE" \
          -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}' 2>/dev/null)
     if [ "$failed" == "True" ]; then echo FLAKE; return; fi
-    lp=$(kubectl get pods -n "$NAMESPACE" -o name 2>/dev/null | grep launcher | head -1)
+    lp=$(kubectl get pods -n "$NAMESPACE" -l "nccl-runner/run=$RUN_SUFFIX,nccl-runner/role=launcher" -o name 2>/dev/null | head -1)
     rs=$(kubectl get -n "$NAMESPACE" "$lp" -o jsonpath='{.status.containerStatuses[0].restartCount}' 2>/dev/null)
     if [ "${rs:-0}" -ge 3 ] 2>/dev/null; then echo FLAKE; return; fi
     sleep "$interval"; waited=$((waited + interval))
@@ -256,16 +309,25 @@ watch_job() {
 OUTPUT_PATH=results/nccl-$(date +"%Y-%m-%d_%H-%M-%S")
 mkdir -p "$OUTPUT_PATH"
 
+# Count tests that never launched cleanly, so the script can exit non-zero at the
+# end — a run where nothing launched must not look like success to a caller/CI.
+FAILED_TESTS=0
+
 for HOST_NUM in "${HOSTS[@]}"; do
   for TEST in "${TESTS[@]}"; do
     echo "=== Starting $TEST on $HOST_NUM host(s) ==="
 
-    # Clean up any leftover release from a prior iteration before starting
-    kubectl delete mpijob nccl-test -n "$NAMESPACE" --ignore-not-found || true
-    kubectl delete pods --all -n "$NAMESPACE" --grace-period=0 --force || true
-    sleep 2
+    # Clean up this run's previous iteration before starting. Scoped to our own
+    # uniquely-named MPIJob and cascaded gracefully (foreground) so we delete the
+    # pods this MPIJob owns — never unrelated pods, and never a force-kill that
+    # removes Pod objects before their processes have actually stopped.
+    kubectl delete mpijob "$JOB_NAME" -n "$NAMESPACE" \
+      --ignore-not-found --cascade=foreground --wait=true --timeout=60s || true
 
     RENDERED=$(mktemp)
+    JOB_NAME="$JOB_NAME" \
+    RUN_SUFFIX="$RUN_SUFFIX" \
+    RUN_OWNER="$RUN_OWNER" \
     NAMESPACE="$NAMESPACE" \
     IMAGE="$IMAGE" \
     UCX_NET_DEVICE="$UCX_NET_DEVICE" \
@@ -296,20 +358,21 @@ for HOST_NUM in "${HOSTS[@]}"; do
         echo "Job ran but did not finish within the window — collecting logs anyway."
         break
       fi
-      # FLAKE — relaunch on a clean slate
+      # FLAKE — relaunch on a clean slate (scoped, graceful; no force-delete)
       echo "Launcher glitched before starting (transient hwloc init); relaunching..."
-      kubectl delete mpijob nccl-test -n "$NAMESPACE" --ignore-not-found >/dev/null 2>&1
-      kubectl delete pods --all -n "$NAMESPACE" --grace-period=0 --force >/dev/null 2>&1
+      kubectl delete mpijob "$JOB_NAME" -n "$NAMESPACE" \
+        --ignore-not-found --cascade=foreground --wait=true --timeout=60s >/dev/null 2>&1 || true
       sleep 3
     done
     if [ "$OUTCOME" != "PASS" ] && [ "$OUTCOME" != "TIMEOUT" ]; then
       echo "WARNING: $TEST on $HOST_NUM host(s) never launched cleanly after $MAX_LAUNCH_ATTEMPTS attempts."
+      FAILED_TESTS=$((FAILED_TESTS + 1))
     fi
 
     echo "Collecting logs..."
     # Launcher pod name varies by API version (v2beta1 appends a random suffix),
     # so resolve it by name match instead of assuming a fixed name.
-    LAUNCHER_POD=$(kubectl get pods -n "$NAMESPACE" -o name 2>/dev/null | grep launcher | head -1)
+    LAUNCHER_POD=$(kubectl get pods -n "$NAMESPACE" -l "nccl-runner/run=$RUN_SUFFIX,nccl-runner/role=launcher" -o name 2>/dev/null | head -1)
     if [ -n "$LAUNCHER_POD" ]; then
       kubectl logs --namespace "$NAMESPACE" "$LAUNCHER_POD" > "$OUTPUT_PATH/$TEST-$HOST_NUM.log" 2>&1 || true
     else
@@ -336,4 +399,11 @@ if [ -x "$REPORT_SCRIPT" ]; then
   fi
 else
   echo "NOTE: $REPORT_SCRIPT not found/executable — skipping report (raw logs are in $OUTPUT_PATH)."
+fi
+
+# Fail loudly if any test never launched, so callers/CI can tell a run went bad
+# even though logs and a report were still produced.
+if [ "$FAILED_TESTS" -gt 0 ]; then
+  echo "ERROR: $FAILED_TESTS test(s) never launched cleanly — see WARNING lines above and $OUTPUT_PATH."
+  exit 1
 fi

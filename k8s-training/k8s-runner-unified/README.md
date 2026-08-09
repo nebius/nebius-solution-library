@@ -29,12 +29,16 @@ runs `all_reduce` + `alltoall` over both NVLink (single-node) and InfiniBand
    hwthreads/NUMA and aborts on H200's 64/NUMA.)*
 4. **MPIJob API version** — `v1` vs `v2beta1` (installs differ per cluster);
    `launcherCreationPolicy` is only emitted on `v2beta1`.
-5. **Host-count cap** — requested host counts are capped to the number of nodes
-   actually in the node group, so the sweep never hangs on unschedulable jobs.
+5. **Host-count cap** — requested host counts are capped to the number of
+   **Ready, schedulable** nodes in the node group (Cordoned / NotReady nodes are
+   excluded), so the sweep never hangs on unschedulable jobs.
 
-It also takes a **PID lock** (`/tmp/nccl_runner_unified.lock`) so two runners can't
-share the namespace and delete each other's pods, and retries a launch up to
-`MAX_LAUNCH_ATTEMPTS` times if it fails to start.
+Every run creates **uniquely-named, labelled resources** (`nccl-test-<pid>-<epoch>`,
+labelled `nccl-runner/run=<id>`), so two engineers can run against the same
+namespace without touching each other's MPIJob or pods. A local **PID lock**
+(`/tmp/nccl_runner_unified.lock`) additionally prevents accidental double-runs on
+the same workstation, and a launch is retried up to `MAX_LAUNCH_ATTEMPTS` times if
+it fails to start.
 
 ## Usage
 
@@ -60,9 +64,10 @@ Regenerate a report from existing logs at any time:
 ./generate-report.sh results/nccl-<timestamp>
 ```
 
-> **One runner per namespace at a time** — the lock enforces this. Two concurrent
-> runners on the same namespace force-delete each other's pods and produce spurious
-> launcher failures.
+> **Concurrent runs are isolated by unique resource names + labels**, so multiple
+> engineers can share a namespace safely. Cleanup is always scoped to a run's own
+> MPIJob and cascaded gracefully — the runner never force-deletes pods or touches
+> pods it doesn't own.
 
 ## Configuration (top of `nccl_runner_unified.sh`)
 

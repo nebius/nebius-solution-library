@@ -8,7 +8,7 @@
 # Usage: ./generate-report.sh [results/nccl-<timestamp>]
 #        (defaults to the most recent results/nccl-* directory)
 
-set -e
+set -eo pipefail
 
 RESULTS_DIR="${1:-$(ls -dt results/nccl-* 2>/dev/null | head -1)}"
 if [ -z "$RESULTS_DIR" ] || [ ! -d "$RESULTS_DIR" ]; then
@@ -24,7 +24,11 @@ REPORT="$RESULTS_DIR/report.md"
 DATA_ROWS='NF==13 && $3 ~ /^(float|double|half|bfloat16|int|int8|uint8|char)$/'
 
 # Collect the log files, sorted by host count then test name for a stable order.
-mapfile -t LOGS < <(ls "$RESULTS_DIR"/*.log 2>/dev/null | sort)
+# Built with a read loop rather than `mapfile`, which is bash 4+ (macOS ships 3.2).
+LOGS=()
+while IFS= read -r logfile; do
+  [ -n "$logfile" ] && LOGS+=("$logfile")
+done < <(ls "$RESULTS_DIR"/*.log 2>/dev/null | sort)
 if [ "${#LOGS[@]}" -eq 0 ]; then
   echo "ERROR: no *.log files in $RESULTS_DIR"
   exit 1
@@ -56,6 +60,15 @@ fi
       transport=$([ "$hosts" -gt 1 ] 2>/dev/null && echo "InfiniBand" || echo "NVLink (IB init'd)")
     else
       transport="?"
+    fi
+    # Guard against an empty/failed log: with no NCCL data rows the awk aggregates
+    # below return peak 0 and zero errors, which would render as a green
+    # "0.0 GB/s | none ✓" even for a run that only produced a launcher failure.
+    # Require at least one parsed data row before reporting any result.
+    nrows=$(awk "$DATA_ROWS"' {c++} END{print c+0}' "$f")
+    if [ "$nrows" -eq 0 ]; then
+      echo "| $test | $hosts | $scope | $transport | — | — | ✗ no data (incomplete/failed) |"
+      continue
     fi
     # peak busbw (field 8) and its size (field 1); errors if any field 9/13 nonzero (N/A ok)
     read -r peak psize < <(awk "$DATA_ROWS"' {if($8+0>max){max=$8+0;sz=$1}} END{printf "%.1f %s\n", max, sz}' "$f")

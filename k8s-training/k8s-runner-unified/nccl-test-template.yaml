@@ -1,8 +1,11 @@
 apiVersion: kubeflow.org/${MPIJOB_API_VERSION}
 kind: MPIJob
 metadata:
-  name: nccl-test
+  name: ${JOB_NAME}
   namespace: ${NAMESPACE}
+  labels:
+    nccl-runner/run: "${RUN_SUFFIX}"
+    nccl-runner/owner: "${RUN_OWNER}"
 spec:
   slotsPerWorker: ${GPUS_PER_NODE}
   ${LAUNCHER_CREATION_POLICY_LINE}
@@ -12,6 +15,10 @@ spec:
     Launcher:
       replicas: 1
       template:
+        metadata:
+          labels:
+            nccl-runner/run: "${RUN_SUFFIX}"
+            nccl-runner/role: launcher
         spec:
           containers:
             - image: ${IMAGE}
@@ -42,6 +49,10 @@ spec:
     Worker:
       replicas: ${WORKER_REPLICAS}
       template:
+        metadata:
+          labels:
+            nccl-runner/run: "${RUN_SUFFIX}"
+            nccl-runner/role: worker
         spec:
           tolerations:
             - key: nvidia.com/gpu
