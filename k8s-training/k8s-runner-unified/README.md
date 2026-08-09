@@ -88,6 +88,10 @@ Regenerate a report from existing logs at any time:
   beyond the largest value in `HOSTS`. For clusters bigger than 4 nodes, add
   higher counts (powers of two up to your node count, plus the full count) so the
   full-cluster fabric actually gets measured.
+  - *Example — 100-node cluster:* set `HOSTS=(1 2 4 8 16 32 64 100)`. Powers of
+    two give a clean scaling curve, and `100` measures the full cluster. Leaving
+    the default `(1 2 3 4)` would test only 4 of your 100 nodes and tell you
+    nothing about the fabric at scale.
 - **Supported as-is:** Nebius **x86 + InfiniBand** GPU types — H100, H200, B200, B300.
 - **Not supported as-is:** Grace-ARM types (GH200 / GB200) — aarch64, so the x86
   image won't run and the binding math should be re-validated.
