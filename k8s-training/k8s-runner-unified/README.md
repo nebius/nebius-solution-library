@@ -78,11 +78,16 @@ Regenerate a report from existing logs at any time:
 | `NODE_GROUP_ID` | — | **Set per cluster** |
 | `RESERVE_CPU_CORES` / `RESERVE_MEM_GI` | `4` / `50` | Headroom left for kubelet/daemonsets |
 | `MAX_LAUNCH_ATTEMPTS` | `6` | Retry budget for the transient launcher glitch |
-| `HOSTS` | `(1 2 3 4)` | Host counts to sweep (auto-capped to available nodes) |
+| `HOSTS` | `(1 2 3 4)` | Host counts to sweep. Auto-capped **down** to available Ready nodes, but never scales **up** past the values listed — on clusters larger than 4 nodes, edit this to test at full scale (e.g. `(1 2 4 8 16)` for a 16-node group). |
 | `TESTS` | `(all_reduce alltoall)` | Add `all_gather reduce_scatter reduce gather broadcast scatter` for a fuller sweep |
 
 ## Scope & caveats
 
+- **Sweep size is set by `HOSTS`, not auto-scaled.** The runner caps requested
+  counts down to the available Ready nodes so it never hangs, but it won't test
+  beyond the largest value in `HOSTS`. For clusters bigger than 4 nodes, add
+  higher counts (powers of two up to your node count, plus the full count) so the
+  full-cluster fabric actually gets measured.
 - **Supported as-is:** Nebius **x86 + InfiniBand** GPU types — H100, H200, B200, B300.
 - **Not supported as-is:** Grace-ARM types (GH200 / GB200) — aarch64, so the x86
   image won't run and the binding math should be re-validated.
