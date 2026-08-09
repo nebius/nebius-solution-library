@@ -19,6 +19,10 @@ CONTAINER="pytorch"
 POLL_INTERVAL="${POLL_INTERVAL:-30}"
 MAX_TEMP="${MAX_TEMP:-83}"
 MIN_UTIL="${MIN_UTIL:-80}"
+# Absolute cap on the poll loop so a hung/stuck master (e.g. a worker that never
+# joins) can't make the monitor poll forever. Defaults to the soak duration plus
+# a generous buffer for image pull, startup, and the end-of-run XID check.
+SOAK_MONITOR_TIMEOUT="${SOAK_MONITOR_TIMEOUT:-$(( ${SOAK_DURATION_SECONDS:-3600} + 1200 ))}"
 LOG_FILE="soak-monitor-$(date +%Y%m%d_%H%M%S).log"
 
 RED='\033[0;31m'
@@ -44,7 +48,7 @@ check_xid_on_node() {
   kubectl debug node/"$node" --image=ubuntu --profile=sysadmin -q \
     -- chroot /host sh -c 'dmesg 2>/dev/null | grep -ic xid || true' >/dev/null 2>&1 || true
   while [ "$waited" -lt 30 ]; do
-    dbg=$(kubectl get pods -n default -o name 2>/dev/null | grep "node-debugger-${node}" | tail -1)
+    dbg=$(kubectl get pods --request-timeout=30s -n default -o name 2>/dev/null | grep "node-debugger-${node}" | tail -1)
     [ -n "$dbg" ] && break
     sleep 2; waited=$(( waited + 2 ))
   done
@@ -57,7 +61,7 @@ check_xid_on_node() {
     if [ "$phase" = "Succeeded" ] || [ "$phase" = "Failed" ]; then break; fi
     sleep 3; waited=$(( waited + 3 ))
   done
-  out=$(kubectl logs -n default "$dbg" 2>/dev/null | tr -d ' \r\n')
+  out=$(kubectl logs --request-timeout=30s -n default "$dbg" 2>/dev/null | tr -d ' \r\n')
   kubectl delete "$dbg" -n default --wait=false >/dev/null 2>&1 || true
   # Accept any valid non-negative integer count; only fail if we got no number.
   if [ -n "$out" ] && [ "$out" -ge 0 ] 2>/dev/null; then
@@ -83,13 +87,13 @@ log "Log file: $LOG_FILE"
 echo ""
 
 # Wait for job pods to appear
-JOB_PODS=$(kubectl get pods -n $NAMESPACE -l "$JOB_SELECTOR" -o name 2>/dev/null || echo "")
+JOB_PODS=$(kubectl get pods --request-timeout=30s -n "$NAMESPACE" -l "$JOB_SELECTOR" -o name 2>/dev/null || echo "")
 if [ -z "$JOB_PODS" ]; then
   warn "No job pods found yet — waiting for PyTorchJob to start"
   sleep 30
-  JOB_PODS=$(kubectl get pods -n $NAMESPACE -l "$JOB_SELECTOR" -o name 2>/dev/null || echo "")
+  JOB_PODS=$(kubectl get pods --request-timeout=30s -n "$NAMESPACE" -l "$JOB_SELECTOR" -o name 2>/dev/null || echo "")
 fi
-log "Monitoring pods: $(echo $JOB_PODS | tr '\n' ' ')"
+log "Monitoring pods: $(echo "$JOB_PODS" | tr '\n' ' ')"
 echo ""
 
 # Wait until the workload reaches STEADY STATE before judging utilization.
@@ -102,11 +106,11 @@ echo ""
 log "Waiting for workload steady state (first [soak] iter line)..."
 WARMUP=0
 while [ "$WARMUP" -lt 180 ]; do
-  if kubectl logs -n $NAMESPACE -l "$MASTER_SELECTOR" 2>/dev/null | grep -qE '\[soak\] iter [0-9]+'; then
+  if kubectl logs --request-timeout=30s -n "$NAMESPACE" -l "$MASTER_SELECTOR" 2>/dev/null | grep -qE '\[soak\] iter [0-9]+'; then
     log "Workload is running steadily — starting utilization monitoring"
     break
   fi
-  MP=$(kubectl get pods -n $NAMESPACE -l "$MASTER_SELECTOR" -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "")
+  MP=$(kubectl get pods --request-timeout=30s -n "$NAMESPACE" -l "$MASTER_SELECTOR" -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "")
   if [ "$MP" = "Failed" ] || [ "$MP" = "Succeeded" ]; then
     warn "Master reached '$MP' before warm-up signal — proceeding to summary"
     break
@@ -116,9 +120,18 @@ while [ "$WARMUP" -lt 180 ]; do
 done
 echo ""
 
+MONITOR_START=$(date +%s)
+MASTER_STATUS="Unknown"
 while true; do
+  # Hard stop: never poll past the soak duration + buffer, so a master that never
+  # reaches a terminal phase (stuck rendezvous, hung worker) can't hang the run.
+  if [ "$(( $(date +%s) - MONITOR_START ))" -gt "$SOAK_MONITOR_TIMEOUT" ]; then
+    warn "Monitor timed out after ${SOAK_MONITOR_TIMEOUT}s with master still '$MASTER_STATUS' — giving up and reporting failure"
+    break
+  fi
+
   # Master (rank 0) exit determines completion.
-  MASTER_STATUS=$(kubectl get pods -n $NAMESPACE -l "$MASTER_SELECTOR" \
+  MASTER_STATUS=$(kubectl get pods --request-timeout=30s -n "$NAMESPACE" -l "$MASTER_SELECTOR" \
     -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "Unknown")
 
   if [ "$MASTER_STATUS" = "Succeeded" ] || [ "$MASTER_STATUS" = "Failed" ]; then
@@ -129,19 +142,19 @@ while true; do
   POLL_COUNT=$(( POLL_COUNT + 1 ))
   log "--- Poll #$POLL_COUNT | Master: $MASTER_STATUS ---"
 
-  JOB_PODS=$(kubectl get pods -n $NAMESPACE -l "$JOB_SELECTOR" -o name 2>/dev/null || echo "")
+  JOB_PODS=$(kubectl get pods --request-timeout=30s -n "$NAMESPACE" -l "$JOB_SELECTOR" -o name 2>/dev/null || echo "")
 
   for POD in $JOB_PODS; do
-    POD_NAME=$(echo $POD | sed 's|pod/||')
+    POD_NAME=$(echo "$POD" | sed 's|pod/||')
 
     # Record the node this pod runs on (for the end-of-run XID check).
-    NODE=$(kubectl get pod -n $NAMESPACE "$POD_NAME" -o jsonpath='{.spec.nodeName}' 2>/dev/null || echo "")
+    NODE=$(kubectl get pod --request-timeout=30s -n "$NAMESPACE" "$POD_NAME" -o jsonpath='{.spec.nodeName}' 2>/dev/null || echo "")
     if [ -n "$NODE" ] && ! echo "$SOAK_NODES" | grep -qw "$NODE"; then
       SOAK_NODES="$SOAK_NODES $NODE"
     fi
 
     log "Checking $POD_NAME:"
-    GPU_STATS=$(kubectl exec -n $NAMESPACE "$POD_NAME" -c "$CONTAINER" -- \
+    GPU_STATS=$(kubectl exec --request-timeout=30s -n "$NAMESPACE" "$POD_NAME" -c "$CONTAINER" -- \
       nvidia-smi --query-gpu=index,temperature.gpu,utilization.gpu,power.draw,memory.used,memory.total \
       --format=csv,noheader,nounits 2>/dev/null || echo "exec_failed")
 
@@ -151,11 +164,11 @@ while true; do
     fi
 
     while IFS=',' read -r idx temp util power mem_used mem_total; do
-      temp=$(echo $temp | tr -d ' ')
-      util=$(echo $util | tr -d ' ')
-      power=$(echo $power | tr -d ' ')
-      mem_used=$(echo $mem_used | tr -d ' ')
-      mem_total=$(echo $mem_total | tr -d ' ')
+      temp=$(echo "$temp" | tr -d ' ')
+      util=$(echo "$util" | tr -d ' ')
+      power=$(echo "$power" | tr -d ' ')
+      mem_used=$(echo "$mem_used" | tr -d ' ')
+      mem_total=$(echo "$mem_total" | tr -d ' ')
       [ -z "$idx" ] && continue
 
       log "  GPU $idx: temp=${temp}°C util=${util}% power=${power}W mem=${mem_used}/${mem_total}MiB"
@@ -173,13 +186,13 @@ while true; do
   done
 
   # Node readiness
-  NOT_READY=$(kubectl get nodes --no-headers 2>/dev/null | awk '$2!="Ready" && $2!="Ready,SchedulingDisabled"' | wc -l | tr -d ' \n' || echo "0")
+  NOT_READY=$(kubectl get nodes --request-timeout=30s --no-headers 2>/dev/null | awk '$2!="Ready" && $2!="Ready,SchedulingDisabled"' | wc -l | tr -d ' \n' || echo "0")
   if [ "$NOT_READY" -gt "0" ] 2>/dev/null; then
     warn "$NOT_READY node(s) not in Ready state"
   fi
 
   echo ""
-  sleep $POLL_INTERVAL
+  sleep "$POLL_INTERVAL"
 done
 
 # =============================================================================
@@ -206,9 +219,13 @@ else
       log "Node $NODE: no XID errors in dmesg"
     fi
   done
-  # Safety net: remove any stray node-debugger pods.
-  kubectl get pods -n default -o name 2>/dev/null | grep node-debugger \
-    | xargs -r kubectl delete -n default --wait=false 2>/dev/null || true
+  # Safety net: remove any stray node-debugger pods THIS run created (scoped to
+  # our own soak nodes — never another engineer's debug pods in the namespace).
+  for NODE in $SOAK_NODES; do
+    for p in $(kubectl get pods --request-timeout=30s -n default -o name 2>/dev/null | grep "node-debugger-${NODE}"); do
+      kubectl delete "$p" -n default --wait=false >/dev/null 2>&1 || true
+    done
+  done
 fi
 
 # =============================================================================
@@ -223,9 +240,9 @@ log "XID errors detected: $XID_COUNT"
 log "XID check unverified nodes: $XID_UNVERIFIED"
 
 # Master (rank 0) exit code is the authoritative workload pass/fail.
-MASTER_PHASE=$(kubectl get pods -n $NAMESPACE -l "$MASTER_SELECTOR" \
+MASTER_PHASE=$(kubectl get pods --request-timeout=30s -n "$NAMESPACE" -l "$MASTER_SELECTOR" \
   -o jsonpath='{.items[0].status.phase}' 2>/dev/null || echo "Unknown")
-MASTER_EXIT=$(kubectl get pods -n $NAMESPACE -l "$MASTER_SELECTOR" \
+MASTER_EXIT=$(kubectl get pods --request-timeout=30s -n "$NAMESPACE" -l "$MASTER_SELECTOR" \
   -o jsonpath='{.items[0].status.containerStatuses[0].state.terminated.exitCode}' 2>/dev/null || echo "Unknown")
 
 log "Master final phase: $MASTER_PHASE"

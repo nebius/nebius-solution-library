@@ -142,9 +142,12 @@ def main():
             busbw_sum += busbw
             peak_busbw = max(peak_busbw, busbw)
 
-        # Correctness: every element should equal `world`.
+        # Correctness: every element should equal `world`. Use a tolerance that
+        # scales with `world` — fp16 represents integers exactly only up to 2048,
+        # so a fixed 1e-3 would false-fail at large scale (>256 nodes). A genuine
+        # corrupt all_reduce is off by whole multiples, well outside 0.5%.
         result = ar[0].item()
-        if abs(result - expected) > 1e-3:
+        if abs(result - expected) > max(1e-3, expected * 5e-3):
             failures += 1
             print(
                 f"[WARN] rank {rank} iter {iterations}: all_reduce result "

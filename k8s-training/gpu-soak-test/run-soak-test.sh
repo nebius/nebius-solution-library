@@ -32,10 +32,15 @@
 set -euo pipefail
 
 DURATION="${1:-3600}"
+# Exported so monitor.sh can bound its poll loop to the soak duration (+ buffer).
+export SOAK_DURATION_SECONDS="$DURATION"
 NODE_COUNT="${2:-2}"
 NAMESPACE="gpu-soak"
 SLOTS=8
 HBM_FILL_FRACTION="${HBM_FILL_FRACTION:-0.75}"
+# Overtemp threshold °C. Exported so monitor.sh and the report agree on one value
+# (raise for Blackwell, e.g. MAX_TEMP=90). Default matches monitor.sh's default.
+export MAX_TEMP="${MAX_TEMP:-83}"
 # Container image for the workload. The default is a Hopper-era PyTorch (CUDA
 # 12.3) that works on H100/H200. It will NOT run on Blackwell (B200/GB200/GB300)
 # — those need a newer CUDA 12.6+ image, and Grace-based GB200/GB300 also need an
@@ -64,12 +69,20 @@ cleanup_ns() {
 }
 # On Ctrl-C / termination, tear down so an aborted run never leaks GPU pods.
 trap 'cleanup_ns; exit 130' INT TERM
+# On an unexpected error-exit (set -e) BEFORE we reach the normal cleanup
+# decision, also tear down — otherwise a mid-setup failure leaks the namespace.
+# REACHED_END is set to 1 once the run completes and the explicit cleanup
+# decision (prompt / AUTO_CLEANUP / leave-in-place) takes over, so this trap
+# never overrides that deliberate choice on a normal finish.
+REACHED_END=0
+trap '[ "$REACHED_END" = "1" ] || cleanup_ns' EXIT
 
 echo "=== GPU Soak Test (PyTorchJob / torch.distributed) ==="
 echo "Duration:     ${DURATION}s ($(( DURATION / 60 )) minutes)"
 echo "GPU nodes:    $NODE_COUNT"
 echo "GPUs/node:    $SLOTS"
 echo "HBM fill:     $(awk "BEGIN{printf \"%.0f\", ${HBM_FILL_FRACTION}*100}")%"
+echo "Max temp:     ${MAX_TEMP}°C"
 echo "Image:        $SOAK_IMAGE"
 echo "Namespace:    $NAMESPACE"
 echo "Started:      $START_TIME"
@@ -124,14 +137,74 @@ fi
 echo "GPU nodes available: $AVAILABLE_GPU_NODES ✓"
 echo ""
 
-# Clean up any previous run
-kubectl delete namespace $NAMESPACE --ignore-not-found=true
-kubectl wait --for=delete namespace/$NAMESPACE --timeout=120s 2>/dev/null || true
+# Single-tenant by design: a soak saturates every GPU on the cluster, so only one
+# run at a time makes sense. Claim the namespace ATOMICALLY with `kubectl create`
+# — the API server rejects a duplicate, so two runs starting at the same instant
+# can't both win the claim. Only reclaim an existing namespace when it's stale (no
+# running pods); otherwise another run owns it and we refuse.
+if ! kubectl create namespace "$NAMESPACE" 2>/dev/null; then
+  RUNNING_PODS=$(kubectl get pods -n "$NAMESPACE" --no-headers 2>/dev/null | awk '$3=="Running"' | wc -l | tr -d ' ')
+  if [ "${RUNNING_PODS:-0}" -gt 0 ]; then
+    echo -e "${RED}ERROR: namespace $NAMESPACE already has $RUNNING_PODS running pod(s) — another soak run may be in progress.${NC}"
+    echo "A soak saturates all cluster GPUs, so only one run at a time is supported."
+    echo "If you're sure it's stale, delete it manually: kubectl delete namespace $NAMESPACE"
+    exit 1
+  fi
+  echo "Reclaiming stale $NAMESPACE namespace from a previous run..."
+  kubectl delete namespace "$NAMESPACE" --ignore-not-found=true
+  kubectl wait --for=delete namespace/"$NAMESPACE" --timeout=120s 2>/dev/null || true
+  kubectl create namespace "$NAMESPACE"
+fi
 
-# Create namespace + mount the workload script as a ConfigMap
-kubectl create namespace $NAMESPACE
-kubectl create configmap soak-script -n $NAMESPACE \
+# Mount the workload script as a ConfigMap
+kubectl create configmap soak-script -n "$NAMESPACE" \
   --from-file=soak.py="$SCRIPT_DIR/scripts/soak.py"
+
+# Pre-pull the (large) container image onto the target GPU nodes before submitting
+# the job. The Training Operator injects a worker init container that waits only
+# ~200s for the master's DNS; on a cold cluster the first-time image pull can take
+# far longer, so the worker gives up (Init:Error) before the master is Ready.
+# Priming each node's image cache first makes the real pods start promptly.
+echo "Pre-pulling image on GPU nodes (first run on a cold cluster can take several minutes)..."
+kubectl apply -f - <<PREPULL >/dev/null
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: soak-prepull
+  namespace: $NAMESPACE
+spec:
+  selector:
+    matchLabels:
+      app: soak-prepull
+  template:
+    metadata:
+      labels:
+        app: soak-prepull
+    spec:
+      nodeSelector:
+        node.kubernetes.io/instance-type: $GPU_INSTANCE_TYPE
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: prepull
+        image: $SOAK_IMAGE
+        command: ["sh", "-c", "echo image-cached; sleep 3600"]
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "16Mi"
+PREPULL
+
+if kubectl rollout status ds/soak-prepull -n "$NAMESPACE" --timeout=900s 2>/dev/null; then
+  echo "Image cached on all target GPU nodes ✓"
+else
+  echo -e "${YELLOW}WARNING: pre-pull did not finish within 15m — proceeding anyway.${NC}"
+  echo "If workers hit Init:Error, the image is likely still pulling; re-run once it's cached."
+fi
+# The image stays in each node's containerd cache after the DaemonSet is removed.
+kubectl delete ds/soak-prepull -n "$NAMESPACE" --ignore-not-found=true --wait=false >/dev/null 2>&1 || true
 
 # Patch the PyTorchJob template. Worker replicas = total nodes - 1 (master is
 # rank 0 and also runs GPUs), so total pods == NODE_COUNT.
@@ -150,7 +223,7 @@ echo "$MANIFEST" | kubectl apply -f -
 echo ""
 echo "PyTorchJob submitted. Waiting for master pod to start..."
 
-kubectl wait --namespace $NAMESPACE \
+kubectl wait --namespace "$NAMESPACE" \
   --for=condition=Ready \
   --timeout=300s \
   -l training.kubeflow.org/replica-type=master \
@@ -159,7 +232,7 @@ kubectl wait --namespace $NAMESPACE \
 echo "Pods started. Beginning monitoring..."
 echo ""
 echo "To watch master logs in another terminal:"
-echo "  kubectl logs -f -n $NAMESPACE -l training.kubeflow.org/replica-type=master"
+echo "  kubectl logs -f -n "$NAMESPACE" -l training.kubeflow.org/replica-type=master"
 echo ""
 
 # Run monitor. set +e so a FAILED soak still produces a report and cleans up
@@ -170,7 +243,7 @@ MONITOR_EXIT=$?
 set -e
 
 # Collect final master logs (rank 0 prints the summary + BUSBW lines)
-MASTER_LOGS=$(kubectl logs -n $NAMESPACE -l training.kubeflow.org/replica-type=master 2>/dev/null | tail -40)
+MASTER_LOGS=$(kubectl logs --request-timeout=30s -n "$NAMESPACE" -l training.kubeflow.org/replica-type=master 2>/dev/null | tail -40)
 
 END_TIME=$(date -u)
 END_EPOCH=$(date +%s)
@@ -190,25 +263,32 @@ generate_report() {
   TOTAL_POLLS=$(grep -c "Poll #" "$LOG_FILE" 2>/dev/null || true); TOTAL_POLLS=${TOTAL_POLLS:-0}
   OVERTEMP=$(grep -c "OVERTEMP" "$LOG_FILE" 2>/dev/null || true); OVERTEMP=${OVERTEMP:-0}
   LOW_UTIL=$(grep -c "LOW UTIL" "$LOG_FILE" 2>/dev/null || true); LOW_UTIL=${LOW_UTIL:-0}
-  XID=$(grep "XID errors detected:" "$LOG_FILE" 2>/dev/null | grep -oP 'detected: \K[0-9]+' | tail -1 || true); XID=${XID:-0}
+  XID=$(grep "XID errors detected:" "$LOG_FILE" 2>/dev/null | sed -n 's/.*detected: \([0-9][0-9]*\).*/\1/p' | tail -1 || true); XID=${XID:-0}
   XID_UNVERIFIED=$(grep -c "XID_UNVERIFIED" "$LOG_FILE" 2>/dev/null || true); XID_UNVERIFIED=${XID_UNVERIFIED:-0}
 
-  local MAX_TEMP MAX_UTIL MAX_POWER AVG_UTIL AVG_TEMP
-  MAX_TEMP=$(grep "temp=" "$LOG_FILE" 2>/dev/null | grep -oP 'temp=\K[0-9]+' | sort -n | tail -1 || echo "N/A")
-  MAX_UTIL=$(grep "util=" "$LOG_FILE" 2>/dev/null | grep -oP 'util=\K[0-9]+' | sort -n | tail -1 || echo "N/A")
-  MAX_POWER=$(grep "power=" "$LOG_FILE" 2>/dev/null | grep -oP 'power=\K[0-9.]+' | sort -n | tail -1 || echo "N/A")
-  AVG_UTIL=$(grep "util=" "$LOG_FILE" 2>/dev/null | grep -oP 'util=\K[0-9]+' | awk '{s+=$1;c++} END {if(c)printf "%.0f", s/c; else print "N/A"}')
-  AVG_TEMP=$(grep "temp=" "$LOG_FILE" 2>/dev/null | grep -oP 'temp=\K[0-9]+' | awk '{s+=$1;c++} END {if(c)printf "%.0f", s/c; else print "N/A"}')
+  # Portable extraction (sed, not grep -oP which is GNU-only / breaks on macOS).
+  local PEAK_TEMP MAX_UTIL MAX_POWER AVG_UTIL AVG_TEMP
+  PEAK_TEMP=$(sed -n 's/.*temp=\([0-9][0-9]*\).*/\1/p' "$LOG_FILE" 2>/dev/null | sort -n | tail -1); PEAK_TEMP=${PEAK_TEMP:-N/A}
+  MAX_UTIL=$(sed -n 's/.*util=\([0-9][0-9]*\).*/\1/p' "$LOG_FILE" 2>/dev/null | sort -n | tail -1); MAX_UTIL=${MAX_UTIL:-N/A}
+  MAX_POWER=$(sed -n 's/.*power=\([0-9][0-9.]*\).*/\1/p' "$LOG_FILE" 2>/dev/null | sort -n | tail -1); MAX_POWER=${MAX_POWER:-N/A}
+  AVG_UTIL=$(sed -n 's/.*util=\([0-9][0-9]*\).*/\1/p' "$LOG_FILE" 2>/dev/null | awk '{s+=$1;c++} END {if(c)printf "%.0f", s/c; else print "N/A"}')
+  AVG_TEMP=$(sed -n 's/.*temp=\([0-9][0-9]*\).*/\1/p' "$LOG_FILE" 2>/dev/null | awk '{s+=$1;c++} END {if(c)printf "%.0f", s/c; else print "N/A"}')
 
   # NCCL evidence straight from the master (rank 0) logs
   local PEAK_BUSBW AVG_BUSBW ITERS FAILED_ITERS
-  PEAK_BUSBW=$(echo "$MASTER_LOGS" | grep -oP 'BUSBW_GBPS: \K[0-9.]+' | tail -1 || echo "N/A")
-  AVG_BUSBW=$(echo "$MASTER_LOGS" | grep -oP 'BUSBW_AVG_GBPS: \K[0-9.]+' | tail -1 || echo "N/A")
-  ITERS=$(echo "$MASTER_LOGS" | grep -oP 'Total iterations: \K[0-9]+' | tail -1 || echo "N/A")
-  FAILED_ITERS=$(echo "$MASTER_LOGS" | grep -oP 'Failed iterations \(all ranks\): \K[0-9]+' | tail -1 || echo "N/A")
+  PEAK_BUSBW=$(echo "$MASTER_LOGS" | sed -n 's/.*BUSBW_GBPS: \([0-9][0-9.]*\).*/\1/p' | tail -1); PEAK_BUSBW=${PEAK_BUSBW:-N/A}
+  AVG_BUSBW=$(echo "$MASTER_LOGS" | sed -n 's/.*BUSBW_AVG_GBPS: \([0-9][0-9.]*\).*/\1/p' | tail -1); AVG_BUSBW=${AVG_BUSBW:-N/A}
+  ITERS=$(echo "$MASTER_LOGS" | sed -n 's/.*Total iterations: \([0-9][0-9]*\).*/\1/p' | tail -1); ITERS=${ITERS:-N/A}
+  FAILED_ITERS=$(echo "$MASTER_LOGS" | sed -n 's/.*Failed iterations (all ranks): \([0-9][0-9]*\).*/\1/p' | tail -1); FAILED_ITERS=${FAILED_ITERS:-N/A}
+
+  # A run with no valid NCCL bandwidth means the collective produced nothing —
+  # treat that as a failure even if the master pod happened to exit 0, so an
+  # empty result never reads as a green PASS.
+  local NCCL_OK=1
+  if [ "$PEAK_BUSBW" = "N/A" ] || [ -z "$PEAK_BUSBW" ]; then NCCL_OK=0; fi
 
   local RESULT="PASSED"
-  if [ "$MONITOR_EXIT" != "0" ]; then RESULT="FAILED"; fi
+  if [ "$MONITOR_EXIT" != "0" ] || [ "$NCCL_OK" = "0" ]; then RESULT="FAILED"; fi
 
   cat > "$SCRIPT_DIR/$REPORT_FILE" << REPORT
 ================================================================================
@@ -231,7 +311,7 @@ generate_report() {
   GPU PERFORMANCE
 ================================================================================
 
-  Peak temperature:     ${MAX_TEMP}°C    (threshold: 83°C)
+  Peak temperature:     ${PEAK_TEMP}°C    (threshold: ${MAX_TEMP}°C)
   Average temperature:  ${AVG_TEMP}°C
   Peak utilization:     ${MAX_UTIL}%
   Average utilization:  ${AVG_UTIL}%
@@ -260,7 +340,7 @@ generate_report() {
 ================================================================================
 
   Total monitor polls:       $TOTAL_POLLS
-  Overtemperature events:    $OVERTEMP    (threshold: >83°C)
+  Overtemperature events:    $OVERTEMP    (threshold: >${MAX_TEMP}°C)
   Low utilization events:    $LOW_UTIL    (threshold: <80%)
   XID errors detected:       $XID
   XID check unverified:      $([ "$XID_UNVERIFIED" -gt 0 ] 2>/dev/null && echo "YES — see note below" || echo "no")
@@ -271,7 +351,8 @@ generate_report() {
 
 $(if [ "$OVERTEMP" = "0" ]; then echo "  [PASS] No overtemperature events"; else echo "  [FAIL] $OVERTEMP overtemperature event(s) detected"; fi)
 $(if [ "${XID_UNVERIFIED:-0}" -gt 0 ] 2>/dev/null; then echo "  [WARN] XID check could not run — GPUs NOT certified XID-clean"; elif [ "$XID" = "0" ]; then echo "  [PASS] No XID errors"; else echo "  [FAIL] $XID XID error(s) detected"; fi)
-$(if [ "$MONITOR_EXIT" = "0" ]; then echo "  [PASS] All NCCL all_reduce iterations completed successfully"; else echo "  [FAIL] Soak workload reported failures (see master logs)"; fi)
+$(if [ "$FAILED_ITERS" = "0" ]; then echo "  [PASS] All NCCL all_reduce iterations completed correctly"; elif [ "$FAILED_ITERS" = "N/A" ]; then echo "  [WARN] all_reduce iteration status unknown — no master summary in logs"; else echo "  [FAIL] $FAILED_ITERS all_reduce iteration(s) returned incorrect data"; fi)
+$(if [ "$NCCL_OK" = "1" ]; then echo "  [PASS] NCCL produced valid bandwidth (peak ${PEAK_BUSBW} GB/s)"; else echo "  [FAIL] No valid NCCL bandwidth recorded — collective produced no result"; fi)
 $(if [ "$LOW_UTIL" -lt "10" ] 2>/dev/null; then echo "  [PASS] GPU utilization stayed healthy"; else echo "  [WARN] $LOW_UTIL low utilization events detected"; fi)
 
   OVERALL RESULT: $RESULT
@@ -291,6 +372,10 @@ REPORT
 }
 
 generate_report
+
+# Run completed and the report is written — from here the explicit cleanup
+# decision below owns teardown, so the error-exit trap must no longer fire.
+REACHED_END=1
 
 # Cleanup — auto (CI), interactive prompt (tty), or leave-and-instruct (piped).
 echo ""

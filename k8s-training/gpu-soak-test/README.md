@@ -32,6 +32,12 @@ failure fails the job).
   ```bash
   kubectl apply -k 'github.com/kubeflow/training-operator/manifests/overlays/standalone?ref=v1.7.0'
   ```
+  > **Heads-up for clusters that already run an MPI operator** (e.g. Slurm-on-K8s /
+  > soperator setups): the Training Operator's standalone bundle also ships an
+  > `mpijobs.kubeflow.org` CRD, which can collide with an existing one at a
+  > different version and leave the operator crash-looping (PyTorchJobs then never
+  > reconcile). If you already have a Training Operator, skip this install; if you
+  > have a conflicting MPI operator, reconcile the `mpijobs` CRD versions first.
 - GPU nodes present and Ready in the cluster
 - kubectl configured and authenticated
 
@@ -211,8 +217,28 @@ The script prompts for cleanup at the end (or use `AUTO_CLEANUP=y`). To clean up
 kubectl delete namespace gpu-soak
 ```
 
+## Troubleshooting
+
+**Worker pod stuck in `Init:Error` on the first run.** The Kubeflow Training
+Operator injects a worker init container that waits only ~200s for the master
+pod's DNS. On a cold cluster the first-time pull of the (large, ~20GB) NGC image
+can take longer than that, so the worker gives up before the master is Ready.
+
+The runner **pre-pulls the image onto the target GPU nodes** (via a short-lived
+DaemonSet) before submitting the job, which avoids this in the normal case. If
+you still hit it — e.g. the pre-pull timed out on a very slow registry — just
+re-run once the image is cached, or pre-pull manually:
+
+```bash
+kubectl get nodes -l node.kubernetes.io/instance-type=gpu-h200-sxm -o name
+# then let the pre-pull finish, or crictl pull the image on those nodes
+```
+
 ## Known limitations
 
+- **Single-tenant** — a soak saturates every GPU on the cluster, so run only one
+  at a time. The script refuses to start if the `gpu-soak` namespace already has
+  running pods, rather than deleting another run's resources out from under it.
 - Requires the Kubeflow Training Operator (PyTorchJob CRD)
 - Inter-node IB stress requires 2+ GPU nodes — a single node exercises intra-node NVLink only
 - 10 minute run is a sanity check only — use 2+ hours for production handoff
