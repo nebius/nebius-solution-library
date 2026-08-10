@@ -9,6 +9,7 @@ resource "local_file" "flux_release_rendered_nodesets" {
 
     nodesets = [for nodeset in var.worker_nodesets : merge(nodeset, {
       nccl_network_vars = try(local.worker_nccl_network_vars[nodeset.name], null)
+      slurm_node_extra  = local.slurm_node_extra_by_nodeset[nodeset.name]
     })]
     resources = [for res in var.node_capacity.worker : {
       cpu_cores = floor(
@@ -64,7 +65,5 @@ resource "local_file" "flux_release_rendered_nodesets" {
       ldap_ca_config_map_ref_name = var.sssd_ldap_ca_config_map_ref_name
       resources                   = local.resources.sssd
     }
-
-    extra = local.slurm_node_extra
   })
 }

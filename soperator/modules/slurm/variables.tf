@@ -881,6 +881,8 @@ variable "worker_nodesets" {
     platform                       = string
     replicas                       = number
     max_unavailable                = string
+    rack_number                    = optional(number)
+    nvl_instance_group_id          = optional(string)
     features                       = list(string)
     cpu_topology                   = map(number)
     gres_name                      = optional(string)
