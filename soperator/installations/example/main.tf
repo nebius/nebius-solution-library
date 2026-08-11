@@ -73,9 +73,11 @@ locals {
         )
         size                = min(local.gb300_nodes_per_nodegroup, nodeset.size - rack * local.gb300_nodes_per_nodegroup)
         nodes_per_nodegroup = local.gb300_nodes_per_nodegroup
+        rack_number         = rack
       })
       ] : [merge(nodeset, {
         nodes_per_nodegroup = local.default_nodes_per_nodegroup
+        rack_number         = null
     })]
   ])
 
@@ -596,10 +598,12 @@ module "slurm" {
     config       = partition.config
   }]
   worker_nodesets = [for nodeset in local.slurm_nodeset_workers : {
-    name            = nodeset.name
-    platform        = nodeset.resource.platform
-    replicas        = nodeset.size
-    max_unavailable = "20%"
+    name                  = nodeset.name
+    platform              = nodeset.resource.platform
+    replicas              = nodeset.size
+    max_unavailable       = "20%"
+    rack_number           = try(nodeset.rack_number, null)
+    nvl_instance_group_id = try(nebius_compute_v1_nvl_instance_group.worker[nodeset.name].id, null)
     features = concat(
       [
         provider::string-functions::snake_case(nodeset.resource.platform),
