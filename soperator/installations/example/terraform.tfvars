@@ -154,7 +154,7 @@ nfs_in_k8s = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "4.1.7"
+slurm_operator_version = "4.1.6"
 
 # Is the version of soperator stable or not.
 # ---
@@ -644,7 +644,7 @@ cleanup_bucket_on_destroy = false
 # Version of the k8s to be used.
 # Set to null or don't set to use Nebius default (recommended), or specify explicitly
 # ---
-k8s_version = 1.34
+k8s_version = 1.33
 
 # SSH user credentials for accessing k8s nodes.
 # That option add public ip address to every node.
