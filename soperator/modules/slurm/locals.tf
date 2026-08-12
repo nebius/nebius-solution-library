@@ -151,7 +151,7 @@ locals {
   slurm_node_extra_by_nodeset = {
     for nodeset in var.worker_nodesets : nodeset.name => chomp(templatefile("${path.module}/templates/slurm_node_extra.tftpl", {
       rack_number           = try(nodeset.rack_number, null)
-      nvl_instance_group_id = coalesce(try(nodeset.nvl_instance_group_id, null), "")
+      nvl_instance_group_id = try(trimspace(nodeset.nvl_instance_group_id), "")
     }))
   }
 
