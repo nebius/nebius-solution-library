@@ -78,7 +78,10 @@ resources:
             secretName: o11y-writer-sa-token
             secretKey: accessToken
             writer:
-              enabled: false
+              enabled: true
+              source: imds
+              namespaces:
+                - monitoring-system
           opentelemetry:
             enabled: ${telemetry_enabled}
 
