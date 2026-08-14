@@ -1,0 +1,13 @@
+run,mode,nim,snapshot_version,node,gpu_product,t_start_iso,t_ready_iso,elapsed_s,pod_ip,pod_uid_prefix,result,notes
+1,fallback-no-cache,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T11:00:24Z,2026-08-14T11:10:21Z,597,10.126.8.x,run1,success,NIM_CACHE_PATH misconfigured (double-ngc path); NIM re-downloaded 77GB model; liveness probe 600s ok
+2,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T11:17:16Z,2026-08-14T11:30:16Z,780,,run2,liveness-killed,Cache hit; liveness probe killed at 780s (initialDelaySeconds=600 too short); server WAS ready at 780s
+3,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T11:37:33Z,2026-08-14T11:40:15Z,162,10.126.8.243,d3e67a21,success,Page cache warm; workspace mat fast; liveness 900s; all cache hits
+4,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T11:48:33Z,2026-08-14T11:51:30Z,177,10.126.8.211,272a29b1,success,
+5,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T11:52:02Z,2026-08-14T11:55:00Z,178,10.126.8.178,e0d24dcc,success,
+6,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T11:55:31Z,2026-08-14T11:58:07Z,156,10.126.8.220,066a40c9,success,
+7,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T12:15:27Z,2026-08-14T12:18:27Z,180,10.126.8.89,427a4f4d,success,
+8,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T12:19:56Z,2026-08-14T12:22:56Z,180,10.126.8.109,f9801167,success,
+9,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T12:07:15Z,2026-08-14T12:09:51Z,156,10.126.8.224,d0fe36ea,success,
+10,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T12:24:26Z,2026-08-14T12:27:18Z,172,10.126.8.187,5c801d69,success,
+11,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T12:28:24Z,2026-08-14T12:31:02Z,158,10.126.8.100,22a66eaf,success,
+12,fast-restore,nvcr.io/nim/arc/evo2-40b:latest,20260814-120000,computeinstance-e00gvs2vnp5zwg9ra7,H200,2026-08-14T12:31:36Z,2026-08-14T12:34:14Z,158,10.126.8.43,85c33469,success,

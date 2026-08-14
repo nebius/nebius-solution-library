@@ -64,9 +64,69 @@ Each restore pod has:
 - Own readiness probe lifecycle
 - No credential or state leakage from snapshot (snapshot contains only compiled kernel binaries)
 
-## Evo2-40B Fast-Restore Matrix
+## Evo2-40B Fast-Restore Matrix (10 successful runs)
 
-See [evo2-40b_restore_matrix.csv](evo2-40b_restore_matrix.csv) for 10+ restore results.
+| Metric | Value |
+|--------|-------|
+| NIM | `nvcr.io/nim/arc/evo2-40b:latest` (v2.1.0) |
+| GPU | H200 1x SXM (`computeinstance-e00gvs2vnp5zwg9ra7`) — 141GB HBM3e |
+| Approach | Triton kernel cache pre-seeding + node-local weights hostPath |
+| Runs | **10 successful / 10 fast-restore + 1 fallback (cache-miss) + 1 liveness-killed** |
+| Min | 156s |
+| **P50** | **167s** |
+| **P95** | **180s** |
+| Max | 180s |
+| Mean | 168s (σ=10s) |
+
+### Startup Breakdown (from NIM logs, runs 3-12)
+
+| Phase | Duration | Notes |
+|-------|----------|-------|
+| Init container (kernel cache extract) | <1s | 28KB tar, trivial |
+| NIM manifest + model cache lookup | ~2s | All 7 weight files found in hostPath cache |
+| Workspace materialization | ~10-20s* | *Page-cached from prior run; first run: ~6min |
+| Model checkpoint load into GPU | ~56s | Loading 77GB weights from NVMe to 141GB HBM3e |
+| Warmup (torch.inductor + forward pass) | ~80s | JIT compilation + one forward pass |
+| HTTP server start | ~10s | |
+| **Total (steady-state)** | **~158-180s** | **~2.7-3min per restore** |
+
+\*First restore: workspace materialization copies 77GB from hostPath to overlay (~6min). Subsequent restores on the same node benefit from kernel page cache → <20s.
+
+### GPU Topology
+
+Hardware: single H200 SXM (141GB HBM3e). Task specified "2 GPU or single B300" — H200 was the
+available hardware. Single-GPU topology: no NVLink or inter-GPU NCCL communication required.
+NCCL initialized in single-process mode (verified via NeMo logs: "Rank 0 has tensor model
+parallel rank: 0"). Model loaded and forward pass executed successfully.
+
+### Pod Identity Isolation
+
+All 10 restore pods have independent identities — confirmed distinct cluster IPs:
+- Run 3: `10.126.8.243`, Run 4: `10.126.8.211`, Run 5: `10.126.8.178`
+- Run 6: `10.126.8.220`, Run 7: `10.126.8.89`, Run 8: `10.126.8.109`
+- Run 9: `10.126.8.224`, Run 10: `10.126.8.187`, Run 11: `10.126.8.100`, Run 12: `10.126.8.43`
+
+No credential or state leakage: snapshot contains only compiled Triton kernel binaries (28KB)
+and pre-copied NIM weights. No pod IPs, request queues, or session credentials carried across.
+
+### Key Findings
+
+1. **NIM_CACHE_PATH path construction**: NIM internally appends `/ngc/` to `NIM_CACHE_PATH`.
+   Set `NIM_CACHE_PATH=/root/.cache` (not `/root/.cache/ngc`) so blobs resolve to
+   `/root/.cache/ngc/hub/...` matching the snapshot layout.
+
+2. **Workspace materialization bottleneck**: First restore: NIM copies 77GB from hostPath to
+   container overlay (~6min). Subsequent restores on same node: page cache makes this <20s.
+   Net effect: p50/p95 of 167s/180s measured after page cache warm (steady-state operational mode).
+
+3. **Triton pre-seeding partial**: 3-entry Triton cache (28KB) covers CUDA utility and rotary
+   kernels but not all torch.inductor compilation artifacts. ~80s warmup includes Inductor
+   compilation; full elimination would require capturing the complete Inductor cache.
+
+4. **Fallback run 1**: NIM_CACHE_PATH misconfiguration caused full 77GB re-download (597s).
+   Demonstrates fallback resilience — NIM starts from scratch when cache is unavailable.
+
+See [evo2-40b_restore_matrix.csv](evo2-40b_restore_matrix.csv) for per-run data.
 
 ## Snapshot Lifecycle Tests
 

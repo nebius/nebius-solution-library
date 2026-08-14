@@ -1,0 +1,135 @@
+# fast-restore-evo2-40b-pod.yaml — Evo2-40B NIM pod with pre-seeded kernel cache
+#
+# Mirrors fast-restore-pod.yaml but for Evo2-40B on H200.
+# NIM cache path: /root/.cache/ngc (differs from OpenFold2's /opt/nim/.cache)
+#
+# Template placeholders:
+#   ${POD_NAME}        unique pod name
+#   ${TARGET_NODE}     H200 node name
+#   ${SNAPSHOT_DIR}    absolute host path on H200 node (e.g. /snapshots/evo2-40b/20260814-120000)
+#   ${GPU_COUNT}       1 (H200 single GPU)
+#   ${NIM_IMAGE}       nvcr.io/nim/arc/evo2-40b:latest
+#   ${RESTORE_TS}      RFC3339 timestamp
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${POD_NAME}
+  namespace: nim-fast-start
+  labels:
+    nim: evo2-40b
+    nim-restore: "true"
+    workload: archvteams-2407
+  annotations:
+    nim-fast-start/snapshot-dir: "${SNAPSHOT_DIR}"
+    nim-fast-start/restored-at: "${RESTORE_TS}"
+    nim-fast-start/approach: "bionemo-kernel-cache-seeding"
+spec:
+  nodeName: ${TARGET_NODE}
+  restartPolicy: Never
+  imagePullSecrets:
+  - name: nvcrio-cred
+
+  initContainers:
+  - name: init-restore
+    image: ubuntu:22.04
+    command: ["/bin/sh", "-c"]
+    args:
+    - |
+      set -e
+      echo "[init-restore] Staging Evo2-40B kernel cache from snapshot..."
+      if [ -f /snapshot/kernel-cache.tar.gz ]; then
+        mkdir -p /restore-data
+        tar xzf /snapshot/kernel-cache.tar.gz -C /restore-data/ 2>/dev/null
+        echo "[init-restore] kernel cache staged:"
+        du -sh /restore-data/ 2>/dev/null
+      else
+        echo "[init-restore] No kernel cache in snapshot; NIM will compile on first run"
+      fi
+      echo "[init-restore] done"
+    volumeMounts:
+    - name: snapshot-vol
+      mountPath: /snapshot
+      readOnly: true
+    - name: restore-data
+      mountPath: /restore-data
+
+  containers:
+  - name: evo2-40b
+    image: ${NIM_IMAGE}
+    securityContext:
+      runAsUser: 0
+      runAsGroup: 0
+    ports:
+    - containerPort: 8000
+      name: http
+      protocol: TCP
+    env:
+    - name: NGC_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: ngc-api-key
+          key: NGC_API_KEY
+    # NIM appends /ngc internally; set to /root/.cache so blobs land at
+    # /root/.cache/ngc/hub/... matching the pre-cached weights layout
+    - name: NIM_CACHE_PATH
+      value: /root/.cache
+    # Pre-seeded Triton kernel cache (archive paths: .triton/cache/<hash>/...)
+    - name: TRITON_CACHE_DIR
+      value: /restore-data/.triton/cache
+    resources:
+      requests:
+        nvidia.com/gpu: "${GPU_COUNT}"
+        cpu: "14"
+        memory: "150Gi"
+      limits:
+        nvidia.com/gpu: "${GPU_COUNT}"
+        cpu: "15"
+        memory: "180Gi"
+    volumeMounts:
+    - name: nim-cache
+      mountPath: /root/.cache/ngc
+    - name: dshm
+      mountPath: /dev/shm
+    - name: restore-data
+      mountPath: /restore-data
+    readinessProbe:
+      httpGet:
+        path: /v1/health/ready
+        port: 8000
+      initialDelaySeconds: 30
+      periodSeconds: 15
+      failureThreshold: 120
+      timeoutSeconds: 5
+    livenessProbe:
+      httpGet:
+        path: /v1/health/live
+        port: 8000
+      initialDelaySeconds: 900
+      periodSeconds: 30
+      failureThreshold: 5
+
+  tolerations:
+  - key: archvteams-2407-testing
+    operator: Exists
+    effect: NoSchedule
+
+  nodeSelector:
+    nebius.com/gpu-name: H200
+
+  volumes:
+  - name: nim-cache
+    hostPath:
+      path: /snapshots/evo2-40b/weights/nim-cache
+      type: Directory
+  - name: dshm
+    emptyDir:
+      medium: Memory
+      sizeLimit: 32Gi
+  - name: snapshot-vol
+    hostPath:
+      path: ${SNAPSHOT_DIR}
+      type: Directory
+  - name: restore-data
+    emptyDir:
+      sizeLimit: 2Gi
