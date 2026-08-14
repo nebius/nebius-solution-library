@@ -19,3 +19,5 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 1,criu-full-checkpoint,criu_dump,64288,n/a,176 images 8.2GB --tree bash_pid -L cuda_plugin.so
 1,criu-full-checkpoint,cuda_restore,n/a,running,leave-running mode: restore+unlock after dump
 1,criu-full-restore,criu_restore,210,failed,namespace mismatch (net/mnt ns) bare restore in K8s
+2,criu-full-restore,criu_restore,63474,running,CRIU 4.2 + cuda_plugin restored 3 NIM procs; HTTP /v1/health/ready=200 on H100 NVMe (158 MB/s)
+2,criu-full-restore,http_ready,63500,ready,nsenter lo-up required; 62s reading 8.7GB pages; 1.4s CUDA GPU restore via cuda-checkpoint
