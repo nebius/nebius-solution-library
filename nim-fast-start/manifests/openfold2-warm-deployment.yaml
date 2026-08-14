@@ -1,0 +1,77 @@
+---
+# OpenFold2 NIM — warm-cache variant (PVC-backed model cache)
+# Apply nim-cache-pvc.yaml first to provision the PVC.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openfold2
+  namespace: nim-fast-start
+  labels:
+    workload: archvteams-2407
+    nim: openfold2
+    mode: warm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openfold2
+  template:
+    metadata:
+      labels:
+        app: openfold2
+        workload: archvteams-2407
+    spec:
+      imagePullSecrets:
+        - name: nvcrio-cred
+      containers:
+        - name: openfold2
+          image: nvcr.io/nim/openfold/openfold2:latest
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          env:
+            - name: NGC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ngc-api-key
+                  key: NGC_API_KEY
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "16"
+              memory: 128Gi
+              nvidia.com/gpu: "1"
+            requests:
+              cpu: "16"
+              memory: 128Gi
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /v1/health/ready
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /v1/health/live
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 10
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: nim-cache
+              mountPath: /home/user/.cache/nim
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+        - name: nim-cache
+          persistentVolumeClaim:
+            claimName: openfold2-nim-cache

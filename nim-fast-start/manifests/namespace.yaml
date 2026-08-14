@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nim-fast-start
+  labels:
+    workload: archvteams-2407
+    task: nim-fast-start

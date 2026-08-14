@@ -1,0 +1,34 @@
+---
+# Persistent volume claims for warm-cache benchmark runs.
+# network-ssd storage class preserves model weights across pod restarts.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openfold2-nim-cache
+  namespace: nim-fast-start
+  labels:
+    workload: archvteams-2407
+    nim: openfold2
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: compute-csi-default-sc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: evo2-40b-nim-cache
+  namespace: nim-fast-start
+  labels:
+    workload: archvteams-2407
+    nim: evo2-40b
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 150Gi
+  storageClassName: compute-csi-default-sc
