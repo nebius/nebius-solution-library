@@ -16,6 +16,7 @@ PLATFORM_RELEASE=${PLATFORM_RELEASE:-archvteams-2407-dynamo}
 SNAPSHOT_RELEASE=${SNAPSHOT_RELEASE:-archvteams-2407-snapshot}
 DYNAMO_IMAGE_TAG=${DYNAMO_IMAGE_TAG:-1.4.0}
 EXPECTED_BRANCH=${EXPECTED_BRANCH:-agent/archvteams-2407-p2_t41skg}
+SNAPSHOT_NODE_GROUP_ID=${SNAPSHOT_NODE_GROUP_ID:-}
 
 if [[ -z "${KUBECONFIG:-}" ]]; then
   echo "KUBECONFIG must point to the task-owned cluster" >&2
@@ -40,6 +41,23 @@ if [[ "${resolved_ref}" != "${DYNAMO_REF}" ]]; then
 fi
 
 kubectl cluster-info >/dev/null
+
+node_selector_args=(
+  --set-string 'daemonset.nodeSelector.nebius\.com/gpu=true'
+  --set 'daemonset.nodeSelector.nvidia\.com/gpu\.present=null'
+)
+if [[ -n "${SNAPSHOT_NODE_GROUP_ID}" ]]; then
+  node_selector_args=(
+    --set-string "daemonset.nodeSelector.nebius\\.com/node-group-id=${SNAPSHOT_NODE_GROUP_ID}"
+    --set 'daemonset.nodeSelector.nvidia\.com/gpu\.present=null'
+  )
+else
+  gpu_nodes=$(kubectl get nodes -l nebius.com/gpu=true --no-headers | wc -l)
+  if [[ "${gpu_nodes}" != "1" ]]; then
+    echo "Set SNAPSHOT_NODE_GROUP_ID when the cluster has ${gpu_nodes} GPU nodes" >&2
+    exit 1
+  fi
+fi
 
 existing_operator=$(helm list --all-namespaces -o json | jq -r \
   --arg release "${PLATFORM_RELEASE}" \
@@ -79,8 +97,7 @@ helm upgrade --install "${SNAPSHOT_RELEASE}" "${DYNAMO_DIR}/deploy/helm/charts/s
   --set daemonset.resources.requests.memory=256Mi \
   --set daemonset.resources.limits.cpu=4 \
   --set daemonset.resources.limits.memory=4Gi \
-  --set-string 'daemonset.nodeSelector.nebius\.com/gpu=true' \
-  --set 'daemonset.nodeSelector.nvidia\.com/gpu\.present=null' \
+  "${node_selector_args[@]}" \
   --wait \
   --timeout 10m
 

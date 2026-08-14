@@ -9,9 +9,11 @@ DYNAMO_DIR=${DYNAMO_DIR:-${ROOT_DIR}/.cache/dynamo}
 TOOLS_DIR=${TOOLS_DIR:-${ROOT_DIR}/.tools}
 GO_IMAGE=${GO_IMAGE:-golang:1.26.3}
 HELM_STATE_DIR=${HELM_STATE_DIR:-${ROOT_DIR}/.cache/helm}
+GO_STATE_DIR=${GO_STATE_DIR:-${ROOT_DIR}/.cache/go}
 
 mkdir -p "$(dirname "${DYNAMO_DIR}")" "${TOOLS_DIR}" \
-  "${HELM_STATE_DIR}/config" "${HELM_STATE_DIR}/cache" "${HELM_STATE_DIR}/data"
+  "${HELM_STATE_DIR}/config" "${HELM_STATE_DIR}/cache" "${HELM_STATE_DIR}/data" \
+  "${GO_STATE_DIR}/build" "${GO_STATE_DIR}/modules"
 
 if [[ ! -d "${DYNAMO_DIR}/.git" ]]; then
   git clone --filter=blob:none --no-checkout https://github.com/ai-dynamo/dynamo.git "${DYNAMO_DIR}"
@@ -40,6 +42,8 @@ docker run --rm \
   -e HOST_GID="${host_gid}" \
   -v "${DYNAMO_DIR}:/src" \
   -v "${TOOLS_DIR}:/out" \
+  -v "${GO_STATE_DIR}/build:/root/.cache/go-build" \
+  -v "${GO_STATE_DIR}/modules:/go/pkg/mod" \
   -w /src/deploy/snapshot \
   "${GO_IMAGE}" \
   sh -c 'go build -buildvcs=false -trimpath -o /out/snapshotctl ./cmd/snapshotctl && chown "$HOST_UID:$HOST_GID" /out/snapshotctl'

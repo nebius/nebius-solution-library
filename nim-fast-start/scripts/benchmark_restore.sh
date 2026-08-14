@@ -25,7 +25,7 @@ if [[ ! -x "${SNAPSHOTCTL}" ]]; then
 fi
 
 mkdir -p "$(dirname "${OUTPUT}")"
-printf '%s\n' 'run,checkpoint_id,t0,ready_at,restore_total_s,smoke_http_status,smoke_total_s,response_sha256,pod_uid,container_id,node,gpu_uuid' >"${OUTPUT}"
+printf '%s\n' 'run,checkpoint_id,t0,ready_at,restore_total_s,smoke_http_status,smoke_total_s,response_sha256,pod_uid,pod_ip,container_id,node,gpu_uuid' >"${OUTPUT}"
 
 for run in $(seq 1 "${RUNS}"); do
   kubectl -n "${NAMESPACE}" delete pod "${POD_NAME}" --ignore-not-found --wait=true >/dev/null
@@ -65,12 +65,13 @@ for run in $(seq 1 "${RUNS}"); do
 
   pod_json=$(kubectl -n "${NAMESPACE}" get pod "${POD_NAME}" -o json)
   pod_uid=$(jq -r '.metadata.uid' <<<"${pod_json}")
+  pod_ip=$(jq -r '.status.podIP' <<<"${pod_json}")
   container_id=$(jq -r '.status.containerStatuses[] | select(.name == "openfold2") | .containerID' <<<"${pod_json}")
   node=$(jq -r '.spec.nodeName' <<<"${pod_json}")
   gpu_uuid=$(kubectl -n "${NAMESPACE}" exec "${POD_NAME}" -c openfold2 -- \
     nvidia-smi --query-gpu=uuid --format=csv,noheader | head -1 | tr -d '[:space:]')
 
-  printf '%s\n' "${run},${CHECKPOINT_ID},${t0},${ready_at},${restore_total},${smoke_status},${smoke_total},${response_sha},${pod_uid},${container_id},${node},${gpu_uuid}" >>"${OUTPUT}"
+  printf '%s\n' "${run},${CHECKPOINT_ID},${t0},${ready_at},${restore_total},${smoke_status},${smoke_total},${response_sha},${pod_uid},${pod_ip},${container_id},${node},${gpu_uuid}" >>"${OUTPUT}"
   printf 'run=%s restore_total_s=%s smoke_total_s=%s pod_uid=%s gpu_uuid=%s\n' \
     "${run}" "${restore_total}" "${smoke_total}" "${pod_uid}" "${gpu_uuid}"
 done
