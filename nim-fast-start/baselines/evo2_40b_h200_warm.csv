@@ -1,0 +1,5 @@
+run,mode,gpu_type,nim,t_pod_create_iso,t_initialized_iso,t_containers_ready_iso,t_pod_ready_iso,startup_total_s,image_pull_s,weight_load_s,first_response_s,inference_time_s,notes
+1,warm,h200,evo2-40b,2026-08-14T10:29:35Z,2026-08-14T10:30:27Z,,2026-08-14T10:45:39Z,964,52,912,973,2.52,pvc-first-fill-from-ngc
+2,warm,h200,evo2-40b,2026-08-14T10:46:46Z,2026-08-14T10:46:58Z,,2026-08-14T10:49:39Z,173,12,161,189,2.59,pvc-cached-weights
+3,warm,h200,evo2-40b,2026-08-14T10:50:51Z,2026-08-14T10:51:00Z,,2026-08-14T10:53:29Z,158,9,149,180,2.53,pvc-cached-weights
+4,warm,h200,evo2-40b,2026-08-14T10:54:28Z,2026-08-14T10:54:35Z,,2026-08-14T10:57:01Z,153,7,146,180,2.60,pvc-cached-weights

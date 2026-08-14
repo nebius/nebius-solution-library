@@ -1,6 +1,6 @@
 ---
-# Evo2-40B NIM on B300 SXM (1 GPU) — warm-cache variant (PVC-backed at /root/.cache/ngc)
-# Apply nim-cache-pvc.yaml first to provision evo2-40b-nim-cache PVC.
+# Evo2-40B NIM on H200 SXM (1 GPU, 141 GB VRAM) — warm-cache variant (PVC at /root/.cache/ngc)
+# Apply nim-cache-pvc.yaml first; evo2-40b-nim-cache PVC provides persistent weight storage.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -9,10 +9,12 @@ metadata:
   labels:
     workload: archvteams-2407
     nim: evo2-40b
-    gpu-type: b300
+    gpu-type: h200
     mode: warm
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: evo2-40b
@@ -22,6 +24,8 @@ spec:
         app: evo2-40b
         workload: archvteams-2407
     spec:
+      nodeSelector:
+        nebius.com/gpu-name: H200
       imagePullSecrets:
         - name: nvcrio-cred
       containers:
@@ -42,12 +46,12 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: "20"
-              memory: 200Gi
+              cpu: "15"
+              memory: 180Gi
               nvidia.com/gpu: "1"
             requests:
-              cpu: "20"
-              memory: 200Gi
+              cpu: "15"
+              memory: 180Gi
               nvidia.com/gpu: "1"
           readinessProbe:
             httpGet:

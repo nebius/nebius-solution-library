@@ -1,6 +1,7 @@
 ---
-# Evo2-40B NIM on B300 SXM (1 GPU) — warm-cache variant (PVC-backed at /root/.cache/ngc)
-# Apply nim-cache-pvc.yaml first to provision evo2-40b-nim-cache PVC.
+# Evo2-40B NIM on B300 SXM (1 GPU, 346 GB VRAM — fits 40B params in BF16)
+# B300 has sufficient VRAM for Evo2-40B on a single GPU.
+# Fall back to 8-GPU B300 node group if this fails with OOM or GPU count error.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,7 +11,7 @@ metadata:
     workload: archvteams-2407
     nim: evo2-40b
     gpu-type: b300
-    mode: warm
+    mode: cold
 spec:
   replicas: 1
   selector:
@@ -74,8 +75,7 @@ spec:
             medium: Memory
             sizeLimit: 32Gi
         - name: nim-cache
-          persistentVolumeClaim:
-            claimName: evo2-40b-nim-cache
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
