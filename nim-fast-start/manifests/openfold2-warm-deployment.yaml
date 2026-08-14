@@ -41,11 +41,11 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: "16"
+              cpu: "15"
               memory: 128Gi
               nvidia.com/gpu: "1"
             requests:
-              cpu: "16"
+              cpu: "15"
               memory: 128Gi
               nvidia.com/gpu: "1"
           readinessProbe:

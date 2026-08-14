@@ -1,0 +1,6 @@
+run,mode,gpu_type,nim,t_pod_create_iso,t_initialized_iso,t_containers_ready_iso,t_pod_ready_iso,t_health_check_iso,startup_total_s,image_pull_s,weight_load_s,first_response_s,inference_time_s,notes
+1,cold,h100,openfold2,2026-08-14T07:00:05Z,2026-08-14T07:00:05Z,2026-08-14T07:07:28Z,2026-08-14T07:07:28Z,2026-08-14T07:08:36Z,444,284,158,542,6.50,first-pull-image-10.7GB
+2,cold,h100,openfold2,2026-08-14T07:21:22Z,2026-08-14T07:21:22Z,2026-08-14T07:23:05Z,2026-08-14T07:23:05Z,,104,2,102,123,6.49,node-image-cached-emptydir
+3,cold,h100,openfold2,2026-08-14T07:23:46Z,2026-08-14T07:23:56Z,2026-08-14T07:25:40Z,2026-08-14T07:25:40Z,,114,2,104,133,6.47,node-image-cached-emptydir
+4,cold,h100,openfold2,2026-08-14T07:26:55Z,2026-08-14T07:27:38Z,2026-08-14T07:29:17Z,2026-08-14T07:29:17Z,,143,1,99,154,6.51,node-image-cached-emptydir
+5,cold,h100,openfold2,2026-08-14T07:50:52Z,2026-08-14T07:50:52Z,,2026-08-14T07:52:38Z,,107,2,,121,6.52,node-image-cached-emptydir
