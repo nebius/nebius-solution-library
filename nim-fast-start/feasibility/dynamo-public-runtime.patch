@@ -1,0 +1,14 @@
+diff --git a/deploy/operator/Dockerfile b/deploy/operator/Dockerfile
+index 8ea2284cc..93f42016f 100644
+--- a/deploy/operator/Dockerfile
++++ b/deploy/operator/Dockerfile
+@@ -209 +209 @@ COPY --from=sources_collect /sources.zip /sources.zip
+-FROM nvcr.io/nvidia/distroless/go:v4.0.9
++FROM gcr.io/distroless/static-debian12:nonroot
+diff --git a/deploy/snapshot/Dockerfile b/deploy/snapshot/Dockerfile
+index 0de91667a..53ea4c239 100644
+--- a/deploy/snapshot/Dockerfile
++++ b/deploy/snapshot/Dockerfile
+@@ -26 +26 @@ ARG CRIU_REF=b47c692bb3a73ae45ee1c4ab215a8f6869d40efd
+-ARG AGENT_BASE_IMAGE=nvcr.io/nvidia/cuda-dl-base:25.11-cuda13.0-devel-ubuntu24.04
++ARG AGENT_BASE_IMAGE=nvidia/cuda:13.0.3-devel-ubuntu24.04@sha256:7d56ebe2b7cd864a60dca3c8b2d0a39f8fc110417e8253e32505c3387f59119c

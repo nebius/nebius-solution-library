@@ -1,0 +1,62 @@
+{
+  "captured_at": "2026-08-14T14:01:12Z",
+  "cluster": "mk8scluster-e00h7jeqm0hc89kx4q",
+  "namespace": "nim-fast-start",
+  "node": "computeinstance-e00f9mb4qxbb0jgp56",
+  "gpu": {
+    "product": "NVIDIA H100 80GB HBM3",
+    "uuid": "GPU-0d091bd0-bca1-7663-bf61-d43d809ad3fc",
+    "driver": "580.159.04"
+  },
+  "images": {
+    "openfold2": "nvcr.io/nim/openfold/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4",
+    "snapshot_agent": "cr.uk-south1.nebius.cloud/e03dneryzh058ymkwb/dynamo/snapshot-agent@sha256:c9df66930fbe31c2910752c6601ca4798f422c048f4df6d200df1624357729d9",
+    "operator": "cr.uk-south1.nebius.cloud/e03dneryzh058ymkwb/dynamo/kubernetes-operator@sha256:b7f5a04e850bc9b22073cad871ad2c933d67c4c5f99d9c5906dde87dd86dc469"
+  },
+  "source": {
+    "pod": "openfold2-checkpoint-source-checkpoint-v8kdb",
+    "pod_uid": "26308554-fe30-4749-8fd4-af9a2a610f03",
+    "pod_ip": "10.240.29.87",
+    "container_id": "containerd://9b9bc090d6e4fb5b73347380d847eebf0cae74362874055083a88b60a536f4fe",
+    "deleted_after_checkpoint": true
+  },
+  "checkpoint": {
+    "id": "openfold2-h100-v1",
+    "artifact_version": 1,
+    "artifact_bytes": 8279680833,
+    "storage": "64Gi Compute Network SSD RWO PVC",
+    "agent_total_s": 272.426254404,
+    "criu_dump_s": 270.516913211,
+    "cuda_checkpoint_s": 1.875045732,
+    "source_create_ready_and_checkpoint_s": 667.842
+  },
+  "first_restore": {
+    "pod": "openfold2-restore",
+    "pod_uid": "aab4b927-ecd2-4e7a-a529-5dba49790c73",
+    "pod_ip": "10.240.29.194",
+    "container_id": "containerd://07c91c71ea2cadfe4172a9ce8e6e5c12575bd167518b265df6aa815685c6cf97",
+    "agent_total_s": 264.583202734,
+    "criu_restore_s": 263.629224648,
+    "cuda_restore_s": 0.900255072,
+    "pod_create_to_ready_s": 330,
+    "inference": {
+      "endpoint": "/biology/openfold/openfold2/predict-structure-from-msa-and-template",
+      "http_status": 200,
+      "response_bytes": 78374,
+      "response_sha256": "1253e585dd70b377b505b59e06019ce02d5eee61c7a6e59ff9530264989537bc"
+    }
+  },
+  "restore_matrix": {
+    "runs": 5,
+    "successful_restores": 5,
+    "restore_p50_s": 268.755,
+    "restore_p95_s": 271.780,
+    "restore_min_s": 267.796,
+    "restore_max_s": 271.780,
+    "inference_p50_s": 2.937,
+    "inference_p95_s": 2.983,
+    "http_status": 200,
+    "response_sha256": "1253e585dd70b377b505b59e06019ce02d5eee61c7a6e59ff9530264989537bc",
+    "identity_evidence": "feasibility/restore_timings.csv"
+  }
+}

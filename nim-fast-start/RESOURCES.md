@@ -63,3 +63,30 @@ Context: `nebius-mk8s-archvteams-2407-baselines-e00en4dkk80w2d09c0`
 - Phase 1 environments are left running for Phase 2 (checkpoint/restore feasibility spike).
 - Phase 4 (codex) is responsible for final cleanup of all resources.
 - All resources tagged `workload=archvteams-2407` and `task=nim-fast-start`.
+
+## Phase 2 isolated feasibility resources
+
+These resources were created separately from the Phase 1/Phase 3 environments.
+They remain running for Phase 4 integration and cleanup.
+
+| Resource | ID / name | Project / region | Notes |
+|---|---|---|---|
+| Kubernetes cluster | `mk8scluster-e00h7jeqm0hc89kx4q` | `project-e00z6b02t8ddk96c49` / `eu-north1` | Kubernetes 1.33.7; task preview |
+| GPU node group | `mk8snodegroup-e00zc0r4a131base08` | `project-e00z6b02t8ddk96c49` / `eu-north1` | One preemptible H100, no local disk |
+| GPU node | `computeinstance-e00f9mb4qxbb0jgp56` | `project-e00z6b02t8ddk96c49` / `eu-north1` | Driver 580.159.04 |
+| Private pool | `vpcpool-e00h45yd2g89bt13p0` | `project-e00z6b02t8ddk96c49` / `eu-north1` | Preview network allocation |
+| Network | `vpcnetwork-e00wyc57abkahgp7nb` | `project-e00z6b02t8ddk96c49` / `eu-north1` | Preview network |
+| Subnet | `vpcsubnet-e00g7znr4y507hb991` | `project-e00z6b02t8ddk96c49` / `eu-north1` | Preview subnet |
+| Container registry | `registry-e03dneryzh058ymkwb` | `project-e03ptk5npr00tddhzjp263` / `uk-south1` | `cr.uk-south1.nebius.cloud/e03dneryzh058ymkwb` |
+
+Task-owned Helm releases:
+
+| Release | Namespace | Image digest |
+|---|---|---|
+| `archvteams-2407-dynamo` | `nim-fast-start-system` | operator `sha256:b7f5a04e850bc9b22073cad871ad2c933d67c4c5f99d9c5906dde87dd86dc469` |
+| `archvteams-2407-snapshot` | `nim-fast-start` | agent `sha256:c9df66930fbe31c2910752c6601ca4798f422c048f4df6d200df1624357729d9` |
+
+The snapshot release owns Bound PVC `archvteams-2407-snapshot` (64 GiB,
+`compute-csi-default-sc`, RWO). The isolated kubeconfig is
+`~/.kube/archvteams-2407-p2.yaml`. Do not copy registry or NGC credential data
+into this inventory.

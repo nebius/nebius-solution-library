@@ -1,0 +1,15 @@
+# Experimental wrapper for the isolated Phase 2 feasibility deployment.
+#
+# The upstream `agent` target copies license output after its policy gate. The
+# public CUDA 13 base leaves six NVIDIA meta-packages without SPDX metadata, so
+# that gate fails even though the snapshot binaries compile. Build the upstream
+# `agent_pre` target first and pass it here as BASE_IMAGE. This image is not a
+# releasable substitute for the policy-compliant upstream artifact.
+ARG BASE_IMAGE=archvteams-2407-snapshot-agent-pre:f7f37be
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="Dynamo snapshot-agent Phase 2 feasibility image" \
+      org.opencontainers.image.revision="f7f37be174d252590c4b56e25ff4262dd82466fd" \
+      org.opencontainers.image.source="https://github.com/ai-dynamo/dynamo"
+
+ENTRYPOINT ["/usr/local/bin/snapshot-agent"]

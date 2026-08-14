@@ -18,6 +18,7 @@ NAMESPACE=${NAMESPACE:-nim-fast-start}
 POD_NAME=${POD_NAME:-openfold2-restore}
 TIMEOUT=${TIMEOUT:-180s}
 SMOKE_SEQUENCE=${SMOKE_SEQUENCE:-MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLS}
+SMOKE_ENDPOINT=${SMOKE_ENDPOINT:-/biology/openfold/openfold2/predict-structure-from-msa-and-template}
 
 if [[ ! -x "${SNAPSHOTCTL}" ]]; then
   echo "snapshotctl is missing; run prepare_snapshot_tools.sh" >&2
@@ -51,8 +52,8 @@ for run in $(seq 1 "${RUNS}"); do
   smoke_start_ns=$(date +%s%N)
   # shellcheck disable=SC2016
   smoke_result=$(kubectl -n "${NAMESPACE}" exec "${POD_NAME}" -c openfold2 -- \
-    sh -lc 'response=$(mktemp); code=$(curl -sS -o "$response" -w "%{http_code}" --max-time 300 -X POST http://127.0.0.1:8000/v1/protein-structure/predict -H "Content-Type: application/json" --data "$1"); sha=$(sha256sum "$response" | cut -d" " -f1); rm -f "$response"; printf "%s %s\n" "$code" "$sha"' \
-    smoke "{\"sequence\":\"${SMOKE_SEQUENCE}\"}")
+    sh -lc 'response=$(mktemp); code=$(curl -sS -o "$response" -w "%{http_code}" --max-time 300 -X POST "http://127.0.0.1:8000$1" -H "Content-Type: application/json" --data "$2"); sha=$(sha256sum "$response" | cut -d" " -f1); rm -f "$response"; printf "%s %s\n" "$code" "$sha"' \
+    smoke "${SMOKE_ENDPOINT}" "{\"sequence\":\"${SMOKE_SEQUENCE}\",\"selected_models\":[1],\"relax_prediction\":false,\"use_templates\":false}")
   smoke_end_ns=$(date +%s%N)
   smoke_status=${smoke_result%% *}
   response_sha=${smoke_result##* }

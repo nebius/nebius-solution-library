@@ -15,6 +15,8 @@ STORAGE_CLASS=${STORAGE_CLASS:-compute-csi-default-sc}
 PLATFORM_RELEASE=${PLATFORM_RELEASE:-archvteams-2407-dynamo}
 SNAPSHOT_RELEASE=${SNAPSHOT_RELEASE:-archvteams-2407-snapshot}
 DYNAMO_IMAGE_TAG=${DYNAMO_IMAGE_TAG:-1.4.0}
+OPERATOR_IMAGE_REPOSITORY=${OPERATOR_IMAGE_REPOSITORY:-nvcr.io/nvidia/ai-dynamo/kubernetes-operator}
+SNAPSHOT_IMAGE_REPOSITORY=${SNAPSHOT_IMAGE_REPOSITORY:-nvcr.io/nvidia/ai-dynamo/snapshot-agent}
 EXPECTED_BRANCH=${EXPECTED_BRANCH:-agent/archvteams-2407-p2_t41skg}
 SNAPSHOT_NODE_GROUP_ID=${SNAPSHOT_NODE_GROUP_ID:-}
 
@@ -41,6 +43,7 @@ if [[ "${resolved_ref}" != "${DYNAMO_REF}" ]]; then
 fi
 
 kubectl cluster-info >/dev/null
+kubectl apply -f "${ROOT_DIR}/feasibility/manifests/nvidia-runtimeclass.yaml" >/dev/null
 
 node_selector_args=(
   --set-string 'daemonset.nodeSelector.nebius\.com/gpu=true'
@@ -79,6 +82,7 @@ helm upgrade --install "${PLATFORM_RELEASE}" "${DYNAMO_DIR}/deploy/helm/charts/p
   --namespace "${SYSTEM_NAMESPACE}" \
   --set dynamo-operator.checkpoint.enabled=true \
   --set "dynamo-operator.imagePullSecrets[0].name=${PULL_SECRET}" \
+  --set-string "dynamo-operator.controllerManager.manager.image.repository=${OPERATOR_IMAGE_REPOSITORY}" \
   --set "dynamo-operator.controllerManager.manager.image.tag=${DYNAMO_IMAGE_TAG}" \
   --wait \
   --timeout 10m
@@ -91,6 +95,7 @@ helm upgrade --install "${SNAPSHOT_RELEASE}" "${DYNAMO_DIR}/deploy/helm/charts/s
   --set "storage.pvc.size=${SNAPSHOT_SIZE}" \
   --set "storage.pvc.storageClass=${STORAGE_CLASS}" \
   --set storage.pvc.accessMode=ReadWriteOnce \
+  --set-string "daemonset.image.repository=${SNAPSHOT_IMAGE_REPOSITORY}" \
   --set "daemonset.image.tag=${DYNAMO_IMAGE_TAG}" \
   --set "daemonset.imagePullSecrets[0].name=${PULL_SECRET}" \
   --set daemonset.resources.requests.cpu=100m \

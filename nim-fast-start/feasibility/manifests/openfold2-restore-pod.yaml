@@ -33,11 +33,11 @@ spec:
           containerPort: 8000
       resources:
         requests:
-          cpu: "15"
+          cpu: "14"
           memory: 128Gi
           nvidia.com/gpu: "1"
         limits:
-          cpu: "15"
+          cpu: "14"
           memory: 128Gi
           nvidia.com/gpu: "1"
       readinessProbe:
