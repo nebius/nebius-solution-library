@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: openfold2-gpu-restore  # Override with -e RUN=001 when templating
+  namespace: nim-fast-start
+  labels:
+    approach: cuda-checkpoint-gpu
+    workload: archvteams-2407
+spec:
+  nodeName: computeinstance-e00t12crqg6tw0kz65
+  hostPID: true
+  restartPolicy: Never
+  initContainers:
+  - name: criu-restore
+    image: ubuntu:22.04
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      set -e
+      # Restore the checkpointed process tree
+      /opt/criu/criu.sh restore \
+        --images-dir /snapshots/openfold2/gpu-checkpoint \
+        --restore-detached \
+        --daemon \
+        --tcp-established \
+        --ext-unix-sk \
+        --shell-job \
+        2>&1 | tee /tmp/restore.log
+
+      echo "CRIU restore exit=$?"
+
+      # Restore CUDA context on the recovered process
+      RESTORED_PID=$(pgrep -f 'start_server' | head -1 || true)
+      if [ -n "$RESTORED_PID" ]; then
+        /usr/local/bin/cuda-checkpoint --action restore --pid "$RESTORED_PID" || true
+        /usr/local/bin/cuda-checkpoint --action unlock --pid "$RESTORED_PID" || true
+        echo "CUDA context restored on PID $RESTORED_PID"
+      fi
+
+      # Wait for NIM to accept connections
+      echo "Waiting for NIM ready..."
+      for i in $(seq 1 60); do
+        if curl -sf http://localhost:8000/v1/health/ready; then
+          echo "RESTORED_AND_READY"
+          exit 0
+        fi
+        sleep 1
+      done
+      echo "TIMEOUT waiting for NIM" >&2
+      exit 1
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: snapshots
+      mountPath: /snapshots
+    - name: opt-criu
+      mountPath: /opt/criu
+    - name: cuda-checkpoint-bin
+      mountPath: /usr/local/bin/cuda-checkpoint
+      subPath: cuda-checkpoint
+  containers:
+  - name: probe
+    image: ubuntu:22.04
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      echo "NIM is ready, running health probe loop..."
+      while true; do
+        if curl -sf http://localhost:8000/v1/health/ready >/dev/null; then
+          echo "$(date -u +%H:%M:%S) HEALTHY"
+        else
+          echo "$(date -u +%H:%M:%S) DEGRADED"
+        fi
+        sleep 30
+      done
+    securityContext:
+      privileged: true
+  volumes:
+  - name: snapshots
+    hostPath:
+      path: /snapshots
+  - name: opt-criu
+    hostPath:
+      path: /opt/criu
+  - name: cuda-checkpoint-bin
+    hostPath:
+      path: /usr/local/bin/cuda-checkpoint

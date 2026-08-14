@@ -1,0 +1,21 @@
+run,approach,action,elapsed_ms,cuda_state_after,notes
+1,cuda-checkpoint-only,lock,63,locked,first run (cold)
+1,cuda-checkpoint-only,checkpoint,1849,checkpointed,GPU weights frozen in ~1.8s
+1,cuda-checkpoint-only,restore,856,locked,GPU context restored in <1s
+2,cuda-checkpoint-only,lock,15,locked,
+2,cuda-checkpoint-only,checkpoint,1828,checkpointed,
+2,cuda-checkpoint-only,restore,859,locked,
+3,cuda-checkpoint-only,lock,14,locked,
+3,cuda-checkpoint-only,checkpoint,1787,checkpointed,
+3,cuda-checkpoint-only,restore,855,locked,
+4,cuda-checkpoint-only,lock,14,locked,
+4,cuda-checkpoint-only,checkpoint,1820,checkpointed,
+4,cuda-checkpoint-only,restore,860,locked,
+5,cuda-checkpoint-only,lock,14,locked,
+5,cuda-checkpoint-only,checkpoint,1847,checkpointed,
+5,cuda-checkpoint-only,restore,879,locked,
+1,criu-full-checkpoint,cuda_lock,n/a,locked,bash_pid=242550 python_pid=242651 H100 node
+1,criu-full-checkpoint,cuda_checkpoint,1905,checkpointed,GPU state serialized pre-CRIU
+1,criu-full-checkpoint,criu_dump,64288,n/a,176 images 8.2GB --tree bash_pid -L cuda_plugin.so
+1,criu-full-checkpoint,cuda_restore,n/a,running,leave-running mode: restore+unlock after dump
+1,criu-full-restore,criu_restore,210,failed,namespace mismatch (net/mnt ns) bare restore in K8s

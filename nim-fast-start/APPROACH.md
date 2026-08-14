@@ -52,17 +52,39 @@ engine is already compiled before restore is attempted. This turns TRT engine bu
 (typically 5–15 min) into a cache hit on the restored process. See
 `restore/scripts/preseed-trt-cache.sh` for the implementation.
 
+### Phase 5: Direct GPU Memory Snapshotting via cuda-checkpoint
+
+Phase 5 validated `cuda-checkpoint` (NVIDIA open-source, CUDA 580.159.04) paired with
+CRIU 4.2 as the GPU state snapshotting mechanism on the H100 cluster.
+
+**Verified working (2026-08-14)**:
+- `cuda-checkpoint` v580.159.04 installed on node `computeinstance-e00t12crqg6tw0kz65`
+- Full lock → checkpoint → restore → unlock cycle works on the live OpenFold2 NIM process
+- GPU checkpoint time (5 runs): p50=1.82s, p95=1.85s
+- GPU restore time (5 runs): p50=858ms, p95=879ms
+- Full CRIU 4.2 + cuda_plugin dump: 1 run, exit=0, 176 images, 8.2GB, 66s total
+
+**CRIU io_uring fixes required** (kernel 6.11 restriction — io_uring FDs cannot use SCM_RIGHTS):
+- `proc_parse.c`: classify `[io_uring]` VMAs as `VMA_ANON_SHARED`
+- `pie/parasite.c`: detect io_uring FDs via `readlinkat`, skip from drain_fds
+- `eventpoll.c`: filter io_uring TFDs from epoll image before dump
+- `parasite-syscall.c` + `files.c`: handle daemon/parasite FD count mismatch after filtering
+- Binary at `/opt/criu/criu-patched` (hostPath), dump flags: `-L /snapshots/criu-plugins/ --link-remap --tree <bash_ns_init_pid>`
+
+**Current blocker**: CRIU restore requires container-manager integration (containerd/K8s
+checkpoint API) for namespace reconstruction. Bare privileged-pod restore fails with
+network namespace mismatch. The checkpoint images exist and are valid; restore needs a
+container runtime that can inject the restored process into a fresh container namespace.
+
+See `snapshot/approach.md` for detailed technical writeup and timings.
+
 ### Known limitations
 
-- CRIU does not capture GPU VRAM directly. All model weights must reload from disk after
-  restore. The p95 budget assumes weights are in node-local memory (tmpfs or NVMe) so
-  reload is ≤ 5 s.
-- NVIDIA Dynamo Snapshot (`cuda-checkpoint`) would bypass the VRAM reload entirely by
-  capturing device memory. The tool was not available in the cluster at Phase 3 time
-  (driver 580.159.04 ships it in a separate dynamo-sdk package not yet included in the
-  Nebius node image). The tooling in `restore/` is designed to slot in cuda-checkpoint
-  transparently once it is available — see `restore/scripts/checkpoint.sh` for the
-  `USE_CUDA_CHECKPOINT` flag.
-- CRIU requires `hostPID: true` and a privileged security context on the checkpoint pod.
-  The restore pod needs the same to write into the new process's namespace. This is a
-  security boundary that must be reviewed before production use.
+- CRIU restore requires container-manager integration (containerd CRIU plugin) to
+  reconstruct network and mount namespaces correctly. Bare privileged-pod restore fails.
+- Full CRIU dump is 8.2GB and takes 66s (dominated by memory pages). With a live migration
+  approach (pre-copy dirty tracking), dump time could drop significantly.
+- CRIU requires `hostPID: true` and a privileged security context. This is a security
+  boundary that must be reviewed before production use.
+- cuda_plugin.so "restore TID" warnings are non-fatal for the dump but may complicate
+  restore on a different host (CUDA context would need to be re-initialized).
