@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: openfold2-restore
+  namespace: nim-fast-start
+  labels:
+    app: openfold2-restore
+    workload: archvteams-2407
+    phase: feasibility
+spec:
+  restartPolicy: Never
+  imagePullSecrets:
+    - name: nvcrio-cred
+  containers:
+    - name: openfold2
+      image: nvcr.io/nim/openfold/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4
+      command:
+        - /bin/sh
+        - -c
+      args:
+        - exec sleep infinity
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      env:
+        - name: NGC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ngc-api-key
+              key: NGC_API_KEY
+      ports:
+        - name: http
+          containerPort: 8000
+      resources:
+        requests:
+          cpu: "15"
+          memory: 128Gi
+          nvidia.com/gpu: "1"
+        limits:
+          cpu: "15"
+          memory: 128Gi
+          nvidia.com/gpu: "1"
+      readinessProbe:
+        httpGet:
+          path: /v1/health/ready
+          port: 8000
+        periodSeconds: 1
+        timeoutSeconds: 1
+        failureThreshold: 180
+      volumeMounts:
+        - name: dshm
+          mountPath: /dev/shm
+        - name: nim-cache
+          mountPath: /opt/nim/.cache
+  volumes:
+    - name: dshm
+      emptyDir:
+        medium: Memory
+        sizeLimit: 64Gi
+    - name: nim-cache
+      persistentVolumeClaim:
+        claimName: openfold2-nim-cache
