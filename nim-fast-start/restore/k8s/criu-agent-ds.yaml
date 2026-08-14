@@ -1,0 +1,125 @@
+# criu-agent-ds.yaml — DaemonSet that installs CRIU on GPU nodes and runs a
+# privileged agent pod that checkpoint.sh uses to call CRIU with hostPID access.
+#
+# Deploy once per cluster:
+#   kubectl apply -f criu-agent-ds.yaml
+#
+# The DaemonSet:
+#   1. Copies CRIU + its Jammy libraries to /opt/criu on the host
+#   2. Keeps a long-running agent container that exposes hostPID for CRIU dump/restore
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nim-criu-agent
+  namespace: nim-fast-start
+  labels:
+    app: nim-criu-agent
+    workload: archvteams-2407
+spec:
+  selector:
+    matchLabels:
+      app: nim-criu-agent
+  template:
+    metadata:
+      labels:
+        app: nim-criu-agent
+        nim-fast-start-criu-agent: "true"
+        workload: archvteams-2407
+    spec:
+      hostPID: true
+      hostNetwork: true
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
+      - operator: Exists
+        effect: NoExecute
+      initContainers:
+      # install-criu: downloads CRIU binary + libraries from Ubuntu 22.04 onto the host
+      - name: install-criu
+        image: ubuntu:22.04
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          set -e
+          # Skip if CRIU is already installed and working
+          if /host/opt/criu/criu.sh --version >/dev/null 2>&1; then
+            echo "CRIU already installed: $(/host/opt/criu/criu.sh --version)"
+            exit 0
+          fi
+
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq 2>&1 | tail -2
+          apt-get install -y criu 2>&1 | tail -3
+
+          mkdir -p /host/opt/criu/lib
+
+          # Install binary
+          cp /usr/sbin/criu /host/opt/criu/criu
+          chmod 755 /host/opt/criu/criu
+
+          # Install all shared library dependencies
+          ldd /usr/sbin/criu | awk '{print $3}' | grep -v "^$" | while read lib; do
+            test -f "$lib" && cp -L "$lib" /host/opt/criu/lib/ 2>/dev/null || true
+          done
+
+          # Write wrapper script that sets LD_LIBRARY_PATH
+          printf '#!/bin/bash\nexec env LD_LIBRARY_PATH=/opt/criu/lib:$LD_LIBRARY_PATH /opt/criu/criu "$@"\n' \
+            > /host/opt/criu/criu.sh
+          chmod 755 /host/opt/criu/criu.sh
+
+          echo "CRIU installed:"
+          LD_LIBRARY_PATH=/host/opt/criu/lib /host/opt/criu/criu --version
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: host-root
+          mountPath: /host
+      containers:
+      # agent: long-running privileged container with hostPID for CRIU operations.
+      # Must use ubuntu:22.04 because CRIU is not available for Ubuntu 24.04.
+      # The ubuntu:22.04 image ships CRIU 3.16.1 which works on kernel 6.x with glibc 2.35.
+      - name: agent
+        image: ubuntu:22.04
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq 2>&1 | tail -1
+          apt-get install -y criu 2>&1 | tail -2
+          echo "CRIU agent ready on $(hostname): $(criu --version)"
+          mkdir -p /snapshots
+          # Keep alive — checkpoint.sh kubectl exec into this container
+          while true; do sleep 3600; done
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - SYS_PTRACE
+            - NET_ADMIN
+            - SYS_ADMIN
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        volumeMounts:
+        - name: host-root
+          mountPath: /host
+        - name: opt-criu
+          mountPath: /opt/criu
+        - name: snapshots
+          mountPath: /snapshots
+      volumes:
+      - name: host-root
+        hostPath:
+          path: /
+      - name: opt-criu
+        hostPath:
+          path: /opt/criu
+      - name: snapshots
+        hostPath:
+          path: /snapshots
+          type: DirectoryOrCreate

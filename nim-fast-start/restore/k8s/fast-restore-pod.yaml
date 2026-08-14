@@ -1,0 +1,145 @@
+# fast-restore-pod.yaml — OpenFold2 NIM pod with pre-seeded bionemo kernel cache
+#
+# This skips the 57s Triton JIT compilation bottleneck by mounting a previously
+# captured kernel cache. The pod gets an independent identity (new name, IP, UID)
+# and its own GPU device allocation — only the kernel cache is reused.
+#
+# How it works:
+#   init-restore: extracts bionemo-cache.tar.gz from the snapshot hostPath into
+#                 an emptyDir at /restore-data/
+#   nim container: sets BIONEMO_KERNEL_CACHE_DIR=/restore-data/bionemo_kernel_cache
+#                  so NIM finds compiled kernels and skips JIT compilation (~57s saved)
+#
+# Template placeholders (restored by restore.sh):
+#   ${POD_NAME}        unique name, e.g. openfold2-restore-run1-1723630000
+#   ${TARGET_NODE}     node where snapshot lives, e.g. computeinstance-e00t12crqg6tw0kz65
+#   ${SNAPSHOT_DIR}    absolute host path, e.g. /snapshots/openfold2/20260814-090000
+#   ${GPU_COUNT}       integer, e.g. 1
+#   ${NIM_IMAGE}       e.g. nvcr.io/nim/openfold/openfold2:latest
+#   ${RESTORE_TS}      RFC3339 timestamp
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${POD_NAME}
+  namespace: nim-fast-start
+  labels:
+    nim: openfold2
+    nim-restore: "true"
+    workload: archvteams-2407
+  annotations:
+    nim-fast-start/snapshot-dir: "${SNAPSHOT_DIR}"
+    nim-fast-start/restored-at: "${RESTORE_TS}"
+    nim-fast-start/approach: "bionemo-kernel-cache-seeding"
+spec:
+  nodeName: ${TARGET_NODE}
+  restartPolicy: Never
+  imagePullSecrets:
+  - name: nvcrio-cred
+
+  initContainers:
+  # init-restore: extract bionemo kernel cache from snapshot into a shared emptyDir
+  - name: init-restore
+    image: ubuntu:22.04
+    command: ["/bin/sh", "-c"]
+    args:
+    - |
+      set -e
+      echo "[init-restore] Staging bionemo kernel cache from snapshot..."
+
+      if [ -f /snapshot/bionemo-cache.tar.gz ]; then
+        mkdir -p /restore-data
+        tar xzf /snapshot/bionemo-cache.tar.gz -C /restore-data/ 2>/dev/null
+        echo "[init-restore] bionemo cache staged:"
+        ls /restore-data/tmp/root/bionemo_kernel_cache/ 2>/dev/null | head -5
+        du -sh /restore-data/tmp/root/bionemo_kernel_cache/ 2>/dev/null
+        echo "[init-restore] done"
+      elif [ -d /snapshot/bionemo-cache/tmp/root/bionemo_kernel_cache ]; then
+        # pre-extracted cache directory (fallback)
+        mkdir -p /restore-data/tmp/root
+        cp -r /snapshot/bionemo-cache/tmp/root/bionemo_kernel_cache /restore-data/tmp/root/
+        echo "[init-restore] bionemo cache copied from pre-extracted dir"
+      else
+        echo "[init-restore] WARNING: no bionemo cache in snapshot; NIM will recompile kernels"
+      fi
+    volumeMounts:
+    - name: snapshot-vol
+      mountPath: /snapshot
+      readOnly: true
+    - name: restore-data
+      mountPath: /restore-data
+
+  containers:
+  - name: openfold2
+    image: ${NIM_IMAGE}
+    securityContext:
+      runAsUser: 0
+      runAsGroup: 0
+    ports:
+    - containerPort: 8000
+      name: http
+      protocol: TCP
+    env:
+    - name: NGC_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: ngc-api-key
+          key: NGC_API_KEY
+    # Pre-seeded NIM weight cache skips the NGC download phase
+    - name: NIM_CACHE_PATH
+      value: /opt/nim/.cache
+    # Point NIM at the pre-seeded kernel cache to skip Triton JIT compilation (~57s)
+    - name: BIONEMO_KERNEL_CACHE_DIR
+      value: /restore-data/tmp/root/bionemo_kernel_cache
+    # Also set Triton's own JIT cache to the bionemo-managed triton subdir
+    - name: TRITON_CACHE_DIR
+      value: /restore-data/tmp/root/bionemo_kernel_cache/triton
+    resources:
+      requests:
+        nvidia.com/gpu: "${GPU_COUNT}"
+        cpu: "14"
+        memory: "80Gi"
+      limits:
+        nvidia.com/gpu: "${GPU_COUNT}"
+        cpu: "16"
+        memory: "100Gi"
+    volumeMounts:
+    - name: nim-cache
+      mountPath: /opt/nim/.cache
+    - name: dshm
+      mountPath: /dev/shm
+    - name: restore-data
+      mountPath: /restore-data
+    readinessProbe:
+      httpGet:
+        path: /v1/health/ready
+        port: 8000
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      failureThreshold: 60
+      timeoutSeconds: 5
+    livenessProbe:
+      httpGet:
+        path: /v1/health/live
+        port: 8000
+      initialDelaySeconds: 120
+      periodSeconds: 15
+      failureThreshold: 5
+
+  volumes:
+  # Pre-copied NIM weights cache from /snapshots/openfold2/weights/nim-cache on the node
+  - name: nim-cache
+    hostPath:
+      path: /snapshots/openfold2/weights/nim-cache
+      type: Directory
+  - name: dshm
+    emptyDir:
+      medium: Memory
+      sizeLimit: 32Gi
+  - name: snapshot-vol
+    hostPath:
+      path: ${SNAPSHOT_DIR}
+      type: Directory
+  - name: restore-data
+    emptyDir:
+      sizeLimit: 2Gi

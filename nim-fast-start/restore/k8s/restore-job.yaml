@@ -1,0 +1,120 @@
+# restore-job.yaml — Template Kubernetes Job for one-shot NIM pod restore
+#
+# This is a template; use restore.sh to instantiate it, or substitute the
+# PLACEHOLDER values and apply directly.
+#
+# Placeholders:
+#   ${NIM_NAME}        e.g. openfold2
+#   ${SNAPSHOT_DIR}    absolute path on the target node, e.g. /snapshots/openfold2/20260814-090000
+#   ${TARGET_NODE}     node name, e.g. computeinstance-e00t12crqg6tw0kz65
+#   ${GPU_COUNT}       integer, e.g. 1 or 2
+#   ${NIM_IMAGE}       e.g. nvcr.io/nim/openfold/openfold2:latest
+#   ${RESTORE_TS}      RFC3339 timestamp, e.g. 2026-08-14T09:00:00Z
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${NIM_NAME}-restore-${RESTORE_TS}
+  namespace: nim-fast-start
+  labels:
+    nim: ${NIM_NAME}
+    nim-restore: "true"
+    workload: archvteams-2407
+  annotations:
+    nim-fast-start/snapshot-dir: "${SNAPSHOT_DIR}"
+    nim-fast-start/restored-at: "${RESTORE_TS}"
+spec:
+  nodeName: ${TARGET_NODE}
+  restartPolicy: Never
+  imagePullSecrets:
+  - name: nvcrio-cred
+
+  initContainers:
+  # init-restore: seeds the Triton kernel cache so the restored process skips JIT
+  - name: init-restore
+    image: ubuntu:24.04
+    command: ["/bin/sh", "-c"]
+    args:
+    - |
+      set -e
+      echo "[init-restore] Staging kernel cache from snapshot..."
+      mkdir -p /restore-data/root/.triton
+
+      if [ -f /snapshot/triton-cache.tar.gz ]; then
+        tar xzf /snapshot/triton-cache.tar.gz -C /restore-data/ 2>/dev/null && \
+          echo "[init-restore] Triton cache staged" || \
+          echo "[init-restore] WARNING: could not extract Triton cache"
+      else
+        echo "[init-restore] No Triton cache in snapshot (first restore will recompile)"
+      fi
+      echo "[init-restore] done"
+    volumeMounts:
+    - name: snapshot-vol
+      mountPath: /snapshot
+      readOnly: true
+    - name: restore-data
+      mountPath: /restore-data
+
+  containers:
+  - name: ${NIM_NAME}
+    image: ${NIM_IMAGE}
+    ports:
+    - containerPort: 8000
+      name: http
+      protocol: TCP
+    env:
+    - name: NGC_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: ngc-api-key
+          key: NGC_API_KEY
+    - name: NIM_CACHE_PATH
+      value: /opt/nim/.cache
+    - name: TRITON_CACHE_DIR
+      value: /restore-data/root/.triton/cache
+    resources:
+      requests:
+        nvidia.com/gpu: "${GPU_COUNT}"
+        cpu: "16"
+        memory: "100Gi"
+      limits:
+        nvidia.com/gpu: "${GPU_COUNT}"
+        cpu: "16"
+        memory: "100Gi"
+    volumeMounts:
+    - name: nim-cache
+      mountPath: /opt/nim/.cache
+    - name: dshm
+      mountPath: /dev/shm
+    - name: restore-data
+      mountPath: /restore-data
+      readOnly: true
+    readinessProbe:
+      httpGet:
+        path: /v1/health/ready
+        port: 8000
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      failureThreshold: 30
+      timeoutSeconds: 5
+    livenessProbe:
+      httpGet:
+        path: /v1/health/live
+        port: 8000
+      initialDelaySeconds: 30
+      periodSeconds: 15
+      failureThreshold: 5
+
+  volumes:
+  - name: nim-cache
+    persistentVolumeClaim:
+      claimName: ${NIM_NAME}-nim-cache
+  - name: dshm
+    emptyDir:
+      medium: Memory
+      sizeLimit: 32Gi
+  - name: snapshot-vol
+    hostPath:
+      path: ${SNAPSHOT_DIR}
+  - name: restore-data
+    emptyDir: {}

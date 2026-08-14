@@ -1,0 +1,20 @@
+# snapshot-pvc.yaml — Shared PVC for NIM snapshot storage
+#
+# Use network SSD for multi-node access, or local-path for single-node.
+# Adjust storageClassName based on cluster config.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nim-snapshots
+  namespace: nim-fast-start
+  labels:
+    workload: archvteams-2407
+    purpose: nim-snapshots
+spec:
+  accessModes:
+  - ReadWriteMany
+  storageClassName: nebius-network-ssd
+  resources:
+    requests:
+      storage: 200Gi
