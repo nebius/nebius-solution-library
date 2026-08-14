@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nim-prewarm-demand
+  namespace: nim-fast-start
+data:
+  desired-active: "0"

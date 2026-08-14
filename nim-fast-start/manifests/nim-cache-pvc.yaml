@@ -1,0 +1,33 @@
+---
+# Persistent model caches used by the warm-start baselines.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openfold2-nim-cache
+  namespace: nim-fast-start
+  labels:
+    app.kubernetes.io/name: openfold2
+    app.kubernetes.io/part-of: nim-fast-start
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: compute-csi-default-sc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: evo2-40b-nim-cache
+  namespace: nim-fast-start
+  labels:
+    app.kubernetes.io/name: evo2-40b
+    app.kubernetes.io/part-of: nim-fast-start
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 150Gi
+  storageClassName: compute-csi-default-sc

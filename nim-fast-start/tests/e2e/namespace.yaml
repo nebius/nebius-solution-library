@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nim-fast-start-p4
+  labels:
+    app.kubernetes.io/part-of: nim-fast-start
+    nim-fast-start.nebius.com/test: p4

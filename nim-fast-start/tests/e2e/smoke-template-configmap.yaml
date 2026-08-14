@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nim-prewarm-template
+data:
+  pod-template.json: |
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "generateName": "cuda-prewarm-",
+        "labels": {
+          "app.kubernetes.io/name": "cuda-prewarm-smoke"
+        }
+      },
+      "spec": {
+        "restartPolicy": "Never",
+        "nodeSelector": {
+          "nim-fast-start.nebius.com/pool": "p4"
+        },
+        "tolerations": [
+          {
+            "key": "nim-fast-start.nebius.com/pool",
+            "operator": "Equal",
+            "value": "p4",
+            "effect": "NoSchedule"
+          }
+        ],
+        "containers": [
+          {
+            "name": "cuda-smoke",
+            "image": "nvidia/cuda@sha256:995e80db6d0c3a53d56bd00bba48a0ebd633b67b99a57e16acf9a306e7c744a7",
+            "command": ["bash", "-ec"],
+            "args": ["nvidia-smi -L | tee /tmp/gpu; sleep infinity"],
+            "resources": {
+              "requests": {"cpu": "100m", "memory": "128Mi", "nvidia.com/gpu": "1"},
+              "limits": {"cpu": "500m", "memory": "512Mi", "nvidia.com/gpu": "1"}
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {"drop": ["ALL"]},
+              "seccompProfile": {"type": "RuntimeDefault"}
+            },
+            "readinessProbe": {
+              "exec": {"command": ["bash", "-ec", "grep -q GPU /tmp/gpu"]},
+              "periodSeconds": 2,
+              "failureThreshold": 30
+            }
+          }
+        ]
+      }
+    }

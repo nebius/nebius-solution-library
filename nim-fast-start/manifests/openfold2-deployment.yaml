@@ -1,0 +1,106 @@
+---
+# OpenFold2 cold-start baseline with an ephemeral model cache.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openfold2
+  namespace: nim-fast-start
+  labels:
+    app.kubernetes.io/name: openfold2
+    app.kubernetes.io/part-of: nim-fast-start
+    mode: cold
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: openfold2
+  template:
+    metadata:
+      labels:
+        app: openfold2
+        app.kubernetes.io/name: openfold2
+    spec:
+      imagePullSecrets:
+        - name: nvcrio-cred
+      containers:
+        - name: openfold2
+          image: nvcr.io/nim/openfold/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsUser: 0
+            runAsGroup: 0
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: NGC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ngc-api-key
+                  key: NGC_API_KEY
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "15"
+              memory: 128Gi
+              nvidia.com/gpu: "1"
+            requests:
+              cpu: "15"
+              memory: 128Gi
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /v1/health/ready
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /v1/health/ready
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 60
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /v1/health/live
+              port: 8000
+            periodSeconds: 30
+            failureThreshold: 5
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: nim-cache
+              mountPath: /home/user/.cache/nim
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+        - name: nim-cache
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openfold2-svc
+  namespace: nim-fast-start
+  labels:
+    app.kubernetes.io/name: openfold2
+    app.kubernetes.io/part-of: nim-fast-start
+spec:
+  selector:
+    app: openfold2
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

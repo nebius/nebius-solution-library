@@ -1,0 +1,110 @@
+---
+# Evo2-40B warm-start baseline on one H200 with a persistent model cache.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evo2-40b
+  namespace: nim-fast-start
+  labels:
+    app.kubernetes.io/name: evo2-40b
+    app.kubernetes.io/part-of: nim-fast-start
+    gpu-type: h200
+    mode: warm
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: evo2-40b
+  template:
+    metadata:
+      labels:
+        app: evo2-40b
+        app.kubernetes.io/name: evo2-40b
+    spec:
+      nodeSelector:
+        nebius.com/gpu-name: H200
+      imagePullSecrets:
+        - name: nvcrio-cred
+      containers:
+        - name: evo2-40b
+          image: nvcr.io/nim/arc/evo2-40b@sha256:561886bab1d2d0da836ebf5bec403f9de2baf6e92deb7eedf1b316aa994b5dd2
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsUser: 0
+            runAsGroup: 0
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: NGC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ngc-api-key
+                  key: NGC_API_KEY
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "15"
+              memory: 180Gi
+              nvidia.com/gpu: "1"
+            requests:
+              cpu: "15"
+              memory: 180Gi
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /v1/health/ready
+              port: 8000
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /v1/health/ready
+              port: 8000
+            periodSeconds: 30
+            failureThreshold: 120
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /v1/health/live
+              port: 8000
+            periodSeconds: 60
+            failureThreshold: 5
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: nim-cache
+              mountPath: /root/.cache/ngc
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+        - name: nim-cache
+          persistentVolumeClaim:
+            claimName: evo2-40b-nim-cache
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: evo2-40b-svc
+  namespace: nim-fast-start
+  labels:
+    app.kubernetes.io/name: evo2-40b
+    app.kubernetes.io/part-of: nim-fast-start
+spec:
+  selector:
+    app: evo2-40b
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

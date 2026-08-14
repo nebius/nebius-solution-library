@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nim-prewarm-template
+  namespace: nim-fast-start
+data:
+  pod-template.json: |
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "generateName": "openfold2-prewarm-",
+        "labels": {
+          "app.kubernetes.io/name": "openfold2"
+        },
+        "annotations": {
+          "nim-fast-start.nebius.com/cache-artifact": "openfold2-h100-v1"
+        }
+      },
+      "spec": {
+        "restartPolicy": "Never",
+        "nodeSelector": {
+          "nebius.com/gpu-name": "H100"
+        },
+        "imagePullSecrets": [
+          {"name": "nvcrio-cred"}
+        ],
+        "initContainers": [
+          {
+            "name": "stage-kernel-cache",
+            "image": "ubuntu:22.04",
+            "command": ["sh", "-ec"],
+            "args": [
+              "mkdir -p /preseed-data && tar xzf /cache/bionemo-cache.tar.gz -C /preseed-data"
+            ],
+            "resources": {
+              "requests": {"cpu": "10m", "memory": "16Mi"},
+              "limits": {"cpu": "100m", "memory": "64Mi"}
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {"drop": ["ALL"]},
+              "runAsUser": 0,
+              "seccompProfile": {"type": "RuntimeDefault"}
+            },
+            "volumeMounts": [
+              {"name": "cache-artifact", "mountPath": "/cache", "readOnly": true},
+              {"name": "preseed-data", "mountPath": "/preseed-data"}
+            ]
+          }
+        ],
+        "containers": [
+          {
+            "name": "openfold2",
+            "image": "nvcr.io/nim/openfold/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4",
+            "ports": [
+              {"name": "http", "containerPort": 8000}
+            ],
+            "env": [
+              {
+                "name": "NGC_API_KEY",
+                "valueFrom": {
+                  "secretKeyRef": {"name": "ngc-api-key", "key": "NGC_API_KEY"}
+                }
+              },
+              {"name": "NIM_CACHE_PATH", "value": "/opt/nim/.cache"},
+              {
+                "name": "BIONEMO_KERNEL_CACHE_DIR",
+                "value": "/preseed-data/tmp/root/bionemo_kernel_cache"
+              },
+              {
+                "name": "TRITON_CACHE_DIR",
+                "value": "/preseed-data/tmp/root/bionemo_kernel_cache/triton"
+              }
+            ],
+            "resources": {
+              "requests": {"cpu": "14", "memory": "80Gi", "nvidia.com/gpu": "1"},
+              "limits": {"cpu": "16", "memory": "100Gi", "nvidia.com/gpu": "1"}
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {"drop": ["ALL"]},
+              "runAsGroup": 0,
+              "runAsUser": 0,
+              "seccompProfile": {"type": "RuntimeDefault"}
+            },
+            "readinessProbe": {
+              "httpGet": {"path": "/v1/health/ready", "port": "http"},
+              "periodSeconds": 5,
+              "failureThreshold": 60,
+              "timeoutSeconds": 5
+            },
+            "startupProbe": {
+              "httpGet": {"path": "/v1/health/ready", "port": "http"},
+              "periodSeconds": 5,
+              "failureThreshold": 60,
+              "timeoutSeconds": 5
+            },
+            "livenessProbe": {
+              "httpGet": {"path": "/v1/health/live", "port": "http"},
+              "periodSeconds": 15,
+              "failureThreshold": 5,
+              "timeoutSeconds": 5
+            },
+            "volumeMounts": [
+              {"name": "nim-cache", "mountPath": "/opt/nim/.cache"},
+              {"name": "preseed-data", "mountPath": "/preseed-data"},
+              {"name": "dshm", "mountPath": "/dev/shm"}
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "cache-artifact",
+            "hostPath": {"path": "/var/lib/nim-fast-start/openfold2/current", "type": "Directory"}
+          },
+          {
+            "name": "nim-cache",
+            "hostPath": {"path": "/var/lib/nim-fast-start/openfold2/nim-cache", "type": "Directory"}
+          },
+          {"name": "preseed-data", "emptyDir": {"sizeLimit": "32Mi"}},
+          {"name": "dshm", "emptyDir": {"medium": "Memory", "sizeLimit": "32Gi"}}
+        ]
+      }
+    }
