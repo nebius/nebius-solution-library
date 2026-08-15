@@ -21,11 +21,15 @@ mkdir -p "$WORK_DIR" "$LOG_DIR"
 setup_once() {
   echo "[setup] Preparing CRIU tools..."
 
+  # TOOLS_SRC: where criu-420-bin / criu-libs / criu-plugins live.
+  # /snapshots (hostPath) on the original H100 node; /sfs/criu-tools on
+  # SFS-attached scale-out nodes.
+  local TOOLS_SRC="${TOOLS_SRC:-/snapshots}"
   mkdir -p "$WORK_DIR/criu/bin" "$WORK_DIR/criu/libs" "$WORK_DIR/criu/plugins"
-  cp /snapshots/criu-420-bin "$WORK_DIR/criu/criu"
+  cp "$TOOLS_SRC/criu-420-bin" "$WORK_DIR/criu/criu"
   chmod 755 "$WORK_DIR/criu/criu"
-  cp /snapshots/criu-libs/* "$WORK_DIR/criu/libs/"
-  cp /snapshots/criu-plugins/cuda_plugin.so "$WORK_DIR/criu/plugins/"
+  cp "$TOOLS_SRC"/criu-libs/* "$WORK_DIR/criu/libs/"
+  cp "$TOOLS_SRC/criu-plugins/cuda_plugin.so" "$WORK_DIR/criu/plugins/"
 
   for cmd in ip iptables-restore ip6tables-restore; do
     printf '#!/bin/sh\nexit 0\n' > "$WORK_DIR/criu/bin/$cmd"
@@ -129,6 +133,26 @@ run_restore() {
 
   local T0 T_CRIU T_SETUP T_READY
   T0=$(date +%s%3N)
+
+  # Optional parallel page-cache prefetch (PREFETCH=1): overlap storage reads
+  # with CRIU's restore work. CRIU reads pages single-threaded, which caps a
+  # single stream well below network-disk bandwidth limits; 4 parallel readers
+  # per large pages file warm the page cache at full disk throughput while
+  # CRIU proceeds. Deliberately not waited on — started inside the timed window.
+  if [ -n "${PREFETCH:-}" ]; then
+    for f in "$CHECKPOINT_DIR"/pages-*.img; do
+      local SZ Q
+      SZ=$(stat -c%s "$f")
+      if [ "$SZ" -gt $((64*1024*1024)) ]; then
+        Q=$((SZ/4))
+        for p in 0 1 2 3; do
+          dd if="$f" of=/dev/null bs=8M iflag=skip_bytes,count_bytes skip=$((p*Q)) count=$Q 2>/dev/null &
+        done
+      else
+        cat "$f" > /dev/null &
+      fi
+    done
+  fi
 
   export PATH="$WORK_DIR/criu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 

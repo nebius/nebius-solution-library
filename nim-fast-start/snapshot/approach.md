@@ -238,35 +238,87 @@ nsenter -t $NIM_HOST_PID -n -- ip addr add 127.0.0.1/8 dev lo
 
 ### Path to sub-30s
 
-With faster storage or lazy pages, the same approach achieves the target:
+## Measured Storage Matrix (2026-08-15, no projections)
 
-| Storage | 8.7GB read time | Total estimate |
-|---------|----------------|----------------|
-| NVMe (current, 158 MB/s) | 55s | ~63.5s |
-| Nebius SFS (2 GB/s) | 4.4s | ~6s ✓ |
-| SFS + CRIU lazy-pages | <2s warm-up | ~3s ✓ |
+Restore = CRIU 4.2 + cuda_plugin to HTTP 200 `/v1/health/ready`, 8.75GB checkpoint:
 
-## Results Summary
+| Storage path | Raw cold read | Restore plain | Restore + prefetch |
+|---|---|---|---|
+| network_ssd 300GB root disk | 135 MB/s | 64.0s p50 (n=5, p95 68.1s) | — |
+| NRD block PVC 1860Gi (io_m3-class) | 483 MB/s single / 2356 MB/s ×4 | 13.95s p50 (n=3) | **7.24s p50 (n=2)** |
+| SFS 4TiB network_ssd (virtiofs) | 393 MB/s single / 929 MB/s ×4 | 36.4s p50 (n=2) | **12.8s p50 (n=2)** |
+| tmpfs (RAM pre-staged) | RAM | **5.33s p50 (n=3)** | — |
+| S3 (s5cmd, uncontended) | 591 MB/s GET | via staging | download 15s + tmpfs 5.3s ≈ 20s |
 
-| Metric | Value | Target |
-|--------|-------|--------|
-| cuda-checkpoint GPU checkpoint p50 | 1.82s | — |
-| cuda-checkpoint GPU checkpoint p95 | 1.85s | — |
-| cuda-checkpoint GPU restore p50 | 858ms | — |
-| cuda-checkpoint GPU restore p95 | 879ms | — |
-| Full CRIU + CUDA dump (checkpoint v12) | 68s | — |
-| Full CRIU + CUDA restore (NVMe, 1 run) | 63.5s | <30s |
-| NIM HTTP /v1/health/ready after restore | 200 OK | ✓ |
-| NIM /v1/models after restore | openfold2 v2.5.0 | ✓ |
-| **End-to-end restore with SFS (projected)** | **~6s** | **<30s ✓** |
+The **prefetch recipe** (`PREFETCH=1` in `bench_restore.sh`) starts 4 parallel readers
+per large pages file just before `criu restore`: CRIU's page reads are single-threaded
+and cap well below disk bandwidth; warming the page cache in parallel closes the gap.
+It cut NRD restores from 14s to 7.2s and SFS restores from 36s to 12.8s.
 
-**Assessment**: CRIU 4.2 with cuda_plugin fully restores OpenFold2 NIM on H100. The 63.5s
-on NVMe is dominated by reading 8.7GB of CPU pages at 158 MB/s. Moving the checkpoint to
-Nebius SFS (2 GB/s) or using CRIU lazy-pages brings the restore well under 30s.
+CRIU's compute floor is ~5.0s (tmpfs shows it): process-tree rebuild + 8.7GB memcpy +
+1.4s cuda-checkpoint GPU state restore. Below ~7s requires attacking CRIU itself
+(lazy-pages, parallel restore) rather than storage.
+
+## Scale-Out Architecture (proven end-to-end on a fresh node)
+
+Goal: start OpenFold2/Evo2 pods on a NEW node as demand grows. Demonstrated 2026-08-15:
+
+1. **One shared checkpoint, zero per-node copies**: 4TiB SFS holds the checkpoint
+   (`/openfold2/criu42-v12` + `/criu-tools`). Seeded once via S3.
+2. **Node group with SFS attached at boot**: `--template-filesystems` on
+   `nebius mk8s node-group create` (see `k8s/openfold2-bench-sfs-pod.yaml` header for
+   the full command). Scale-up = bump `--fixed-node-count`. Measured: node object in
+   84s, schedulable in ~2 min.
+3. **Restore pod mounts virtiofs directly** (`mount -t virtiofs ckpt-sfs /sfs`,
+   privileged) — no CSI, no PVC, works on every node of the group simultaneously.
+4. **Prefetch + CRIU restore**: 12.8s to HTTP 200 on a node that had never run the
+   workload.
+
+Measured first-pod timeline on a brand-new node:
+
+| Step | Measured |
+|---|---|
+| Node group scale-up → node object | 84s |
+| Node schedulable | ~2 min |
+| **NIM image pull (10.7GB, nvcr.io)** | **4m54s ← dominates** |
+| CRIU restore from SFS (prefetch) | 12.8s |
+
+**The image pull, not the checkpoint, is now the bottleneck.** Mitigations (next
+phase): pre-baked node boot-disk images containing the NIM image; a registry
+pull-through cache inside the VPC; containerd lazy-pull (stargz/nydus). With the image
+pre-provisioned, a new node serves traffic ~13s after it is schedulable; a warm node
+(image present, checkpoint on SFS/NRD) serves in 7–13s.
+
+Caching model, by tier:
+- **Warm pool** (node already ran the pod): page cache or tmpfs staging → 5.3s.
+- **Warm node** (image present): SFS/NRD + prefetch → 7–13s.
+- **Cold node** (fresh scale-up): + image pull ≈ 5 min unless image is pre-baked.
+- **Cold region** (nothing local): + S3 seed of SFS (one-time, ~1–10 min).
+
+Notes for the 106GB Evo2-40B checkpoint: zstd-1 compresses these page files to 29%
+(3.4x) at 3.1 GB/s compress / 1.75 GB/s decompress (T8) — at 106GB, compression turns
+a 3-minute SFS read into ~1 minute of I/O, but decompression itself becomes the new
+bound (~60s single-process); parallel/pzstd decode or lazy-pages are the levers there.
+
+Known caveats:
+- SFS delivered 929 MB/s (4 readers) vs 3.7 GiB/s documented for 4TiB — virtiofs
+  per-client limits; more parallelism may help, unverified.
+- CSI rejects `network_ssd_io_m3`; `NETWORK_SSD_NON_REPLICATED` (documented-identical
+  perf) works and was used. NRD/io_m3 sizes must be multiples of 93 GiB.
+- `spec.nodeName` bypasses the scheduler and deadlocks `WaitForFirstConsumer` PVC
+  binding — pin pods with nodeAffinity instead.
+- S3→virtiofs writes are slow under load (13 MB/s seed during image pull); stage
+  downloads to local disk/tmpfs, or seed when the node is quiet (clean GET is 591 MB/s).
 
 ## Files
 
 - `scripts/checkpoint.sh` — full checkpoint script (lock → checkpoint → CRIU dump)
 - `scripts/restore.sh` — restore script (pre-restore stubs + CRIU command + lo setup)
+- `scripts/bench_restore.sh` — N-run timed restore benchmark; env: CHECKPOINT_DIR,
+  TOOLS_SRC, RESULTS_CSV, PREFETCH=1 (parallel page-cache prefetch recipe)
+- `scripts/fix_stdio.py` — ptrace stdout/stderr redirect (required after --shell-job)
 - `k8s/gpu-restore-pod.yaml` — K8s pod spec for CRIU-based restore
-- `results/gpu_checkpoint_restore.csv` — timing measurements (cuda-checkpoint + CRIU)
+- `k8s/openfold2-bench-pod.yaml` — benchmark pod (original node)
+- `k8s/openfold2-bench-sfs-pod.yaml` — scale-out restore pod + node-group command
+- `k8s/mlspec-storage-bench.yaml` — NRD StorageClass/PVC/fill-bench pod
+- `results/gpu_checkpoint_restore.csv` — all timing measurements

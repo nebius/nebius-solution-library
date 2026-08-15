@@ -37,3 +37,30 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 2,criu-bench-tmpfs,http_ready,5382,ready,
 3,criu-bench-tmpfs,criu_restore,5025,running,
 3,criu-bench-tmpfs,http_ready,5312,ready,p50=5334ms; I/O-free restore: 5.0s CRIU + 0.17s stdio/lo fixups + 0.13s HTTP
+1,criu-bench-nrd,criu_restore,13032,running,NETWORK_SSD_NON_REPLICATED 1860Gi PVC; 483 MB/s single-stream cold read
+1,criu-bench-nrd,http_ready,13323,ready,
+2,criu-bench-nrd,criu_restore,13643,running,
+2,criu-bench-nrd,http_ready,13953,ready,
+3,criu-bench-nrd,criu_restore,13856,running,
+3,criu-bench-nrd,http_ready,14145,ready,p50=13953ms; CRIU single-threaded read caps below disk bandwidth
+1,criu-bench-nrd-prefetch,criu_restore,6924,running,PREFETCH=1: 4x parallel dd per pages file overlapped with CRIU (disk does 2356 MB/s parallel)
+1,criu-bench-nrd-prefetch,http_ready,7212,ready,
+2,criu-bench-nrd-prefetch,criu_restore,6966,running,
+2,criu-bench-nrd-prefetch,http_ready,7259,ready,p50=7236ms; prefetch recipe halves block-storage restore; within 2s of tmpfs floor
+1,scaleout-node-provision,node_object,84000,n/a,mk8s node group create -> node object 84s; Ready ~2min; SFS attached via --template-filesystems
+1,scaleout-image-pull,image_pulled,294257,n/a,nvcr.io openfold2 10.7GB on fresh node; 4m54s; DOMINATES first-pod latency
+1,scaleout-s3-upload,upload,68354,n/a,8.75GB checkpoint kz65 -> S3 via s5cmd; source-disk-limited 135MB/s
+1,scaleout-s3-seed-sfs,download,632291,n/a,S3 -> SFS via s5cmd on new node; 13MB/s CONFOUNDED (image pull contention + virtiofs write path)
+1,sfs-throughput,cold_read_single,21200,n/a,393 MB/s single stream (4TiB network_ssd SFS via virtiofs; docs claim 3.7GiB/s)
+1,sfs-throughput,cold_read_parallel4,9000,n/a,929 MB/s with 4 parallel readers
+1,criu-bench-sfs-newnode,criu_restore,35985,running,FRESH node computeinstance-e00hf93cfnsgaxygn3; plain restore from SFS
+1,criu-bench-sfs-newnode,http_ready,36307,ready,
+2,criu-bench-sfs-newnode,criu_restore,36128,running,
+2,criu-bench-sfs-newnode,http_ready,36424,ready,p50=36366ms plain
+1,criu-bench-sfs-newnode-prefetch,criu_restore,12464,running,PREFETCH=1 on fresh node from shared SFS
+1,criu-bench-sfs-newnode-prefetch,http_ready,12763,ready,
+2,criu-bench-sfs-newnode-prefetch,criu_restore,12546,running,
+2,criu-bench-sfs-newnode-prefetch,http_ready,12831,ready,p50=12797ms; END-TO-END SCALE-OUT PROOF: new node + shared SFS + prefetch = 12.8s to HTTP 200
+1,compression-probe,zstd1_ratio,n/a,n/a,zstd-1 T8: ratio 0.291 (3.4x) compress 3165MB/s decompress 1747MB/s on 2GiB of pages-9.img
+1,compression-probe,lz4_ratio,n/a,n/a,lz4-1: ratio 0.408 compress 1370MB/s
+1,s3-throughput,get_clean,14100,n/a,591 MB/s uncontended s5cmd cat of 8.1GB pages-9.img on fresh node; earlier 13MB/s seed was image-pull contention + virtiofs write path

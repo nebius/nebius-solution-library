@@ -1,0 +1,52 @@
+# Scale-out restore pod: runs on a fresh SFS-attached node group node.
+#
+# The node group was created with the checkpoint SFS attached at boot:
+#   nebius mk8s node-group create \
+#     --parent-id <cluster-id> \
+#     --name mlspec-archvteams-2407-sfs-ng \
+#     --fixed-node-count 1 \
+#     --template-resources-platform gpu-h100-sxm \
+#     --template-resources-preset 1gpu-16vcpu-200gb \
+#     --template-boot-disk-size-gibibytes 279 \
+#     --template-boot-disk-type network_ssd \
+#     --template-gpu-settings-drivers-preset cuda13.0 \
+#     --template-network-interfaces '[{"subnet_id":"<subnet>"}]' \
+#     --template-filesystems '[{"attach_mode":"read_write",
+#       "existing_filesystem":{"id":"<filesystem-id>"},"mount_tag":"ckpt-sfs"}]'
+#
+# Every node in the group sees the shared filesystem as virtiofs device
+# "ckpt-sfs"; a privileged pod mounts it directly — no CSI needed, no per-node
+# checkpoint copy. Measured node provision: ~1.5 min to node object, ~7 min to
+# schedulable. The NIM image pull on the fresh node is measured separately and
+# dominates first-pod latency unless images are pre-pulled.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: openfold2-bench-sfs
+  namespace: nim-fast-start
+  labels:
+    app: openfold2-bench
+    workload: archvteams-2407
+spec:
+  nodeName: <new-node-name>
+  hostPID: true
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 10
+  containers:
+  - name: bench
+    image: nvcr.io/nim/openfold/openfold2:latest
+    imagePullPolicy: IfNotPresent
+    command: ["/bin/bash", "-c"]
+    args: ["mkdir -p /sfs && mount -t virtiofs ckpt-sfs /sfs && echo SFS_MOUNTED; while true; do sleep 3600; done"]
+    securityContext:
+      privileged: true
+      runAsUser: 0
+    resources:
+      requests:
+        cpu: "2"
+        memory: "8Gi"
+        nvidia.com/gpu: "1"
+      limits:
+        nvidia.com/gpu: "1"
+  imagePullSecrets:
+  - name: ngc-registry-secret
