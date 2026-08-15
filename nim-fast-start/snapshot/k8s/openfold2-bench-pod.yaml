@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: openfold2-bench-v1
+  namespace: nim-fast-start
+  labels:
+    app: openfold2-bench
+    approach: criu42-cuda-plugin
+    phase: "5"
+spec:
+  nodeName: computeinstance-e00t12crqg6tw0kz65
+  hostPID: true
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 10
+  containers:
+  - name: bench
+    image: nvcr.io/nim/openfold/openfold2:latest
+    imagePullPolicy: IfNotPresent
+    command: ["/bin/bash", "-c"]
+    args: ["while true; do sleep 3600; done"]
+    securityContext:
+      privileged: true
+      runAsUser: 0
+    resources:
+      requests:
+        cpu: "2"
+        memory: "8Gi"
+        nvidia.com/gpu: "1"
+      limits:
+        nvidia.com/gpu: "1"
+    volumeMounts:
+    - name: snapshots
+      mountPath: /snapshots
+    env:
+    - name: NGC_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: ngc-api-key
+          key: NGC_API_KEY
+          optional: true
+  volumes:
+  - name: snapshots
+    hostPath:
+      path: /snapshots

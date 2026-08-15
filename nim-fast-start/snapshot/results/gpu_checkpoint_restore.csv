@@ -21,3 +21,19 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 1,criu-full-restore,criu_restore,210,failed,namespace mismatch (net/mnt ns) bare restore in K8s
 2,criu-full-restore,criu_restore,63474,running,CRIU 4.2 + cuda_plugin restored 3 NIM procs; HTTP /v1/health/ready=200 on H100 NVMe (158 MB/s)
 2,criu-full-restore,http_ready,63500,ready,nsenter lo-up required; 62s reading 8.7GB pages; 1.4s CUDA GPU restore via cuda-checkpoint
+1,criu-bench-network-ssd,criu_restore,63578,running,run 1 of 5; NETWORK_SSD root disk; bench pod H100; all patches applied
+1,criu-bench-network-ssd,http_ready,63873,ready,post-restore: fix_stdio.py + Python ioctl lo; HTTP 200 in 125ms after criu
+2,criu-bench-network-ssd,criu_restore,67804,running,run 2 of 5
+2,criu-bench-network-ssd,http_ready,68135,ready,
+3,criu-bench-network-ssd,criu_restore,64576,running,run 3 of 5
+3,criu-bench-network-ssd,http_ready,64942,ready,
+4,criu-bench-network-ssd,criu_restore,63753,running,run 4 of 5
+4,criu-bench-network-ssd,http_ready,64024,ready,
+5,criu-bench-network-ssd,criu_restore,63639,running,run 5 of 5
+5,criu-bench-network-ssd,http_ready,63931,ready,p50=64024ms p95=68135ms; storage=NETWORK_SSD ~135MB/s; 8.7GB pages bottleneck
+1,criu-bench-tmpfs,criu_restore,5041,running,checkpoint pre-staged in RAM (tmpfs); proves CRIU compute floor ~5s
+1,criu-bench-tmpfs,http_ready,5334,ready,
+2,criu-bench-tmpfs,criu_restore,5091,running,
+2,criu-bench-tmpfs,http_ready,5382,ready,
+3,criu-bench-tmpfs,criu_restore,5025,running,
+3,criu-bench-tmpfs,http_ready,5312,ready,p50=5334ms; I/O-free restore: 5.0s CRIU + 0.17s stdio/lo fixups + 0.13s HTTP

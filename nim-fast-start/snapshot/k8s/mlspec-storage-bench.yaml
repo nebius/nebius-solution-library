@@ -1,0 +1,108 @@
+# Storage benchmarking resources for Phase 5 scale-out investigation.
+# All resources tagged workload=archvteams-2407 (ML specialist workstream).
+#
+# Findings encoded here:
+# - compute.csi.nebius.com rejects type network_ssd_io_m3 ("Unknown volume type"),
+#   so the identical-performance NETWORK_SSD_NON_REPLICATED (2 GiB/s cap, 93 GiB
+#   allocation units, 110 MiB/s read per unit) is used instead. 1860Gi = 20 units.
+# - Pods pinned via nodeAffinity, NOT spec.nodeName: nodeName bypasses the
+#   scheduler, which breaks WaitForFirstConsumer PVC binding (PVC stays Pending).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mlspec-archvteams-2407-io-m3
+  labels:
+    workload: archvteams-2407
+provisioner: compute.csi.nebius.com
+parameters:
+  type: NETWORK_SSD_NON_REPLICATED
+  csi.storage.k8s.io/fstype: ext4
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlspec-archvteams-2407-ckpt-m3
+  namespace: nim-fast-start
+  labels:
+    workload: archvteams-2407
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1860Gi
+  storageClassName: mlspec-archvteams-2407-io-m3
+---
+# Fill + raw-throughput pod: copies the checkpoint onto the PVC, then measures
+# cold single-stream and 4-way parallel reads. Runs on the H100 node so the
+# bench pod (same node) can later mount the RWO volume for a full CRIU restore.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mlspec-archvteams-2407-m3-fill
+  namespace: nim-fast-start
+  labels:
+    workload: archvteams-2407
+spec:
+  restartPolicy: Never
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - computeinstance-e00t12crqg6tw0kz65
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+  containers:
+  - name: fill
+    image: ubuntu:22.04
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      set -u
+      T0=$(date +%s%3N)
+      cp -a /snapshots/openfold2/criu42-v12/. /m3/
+      T1=$(date +%s%3N)
+      echo "M3_FILL_COPY_MS=$((T1-T0))"
+      sync; echo 3 > /proc/sys/vm/drop_caches || true
+      T0=$(date +%s%3N)
+      cat /m3/pages-*.img > /dev/null
+      T1=$(date +%s%3N)
+      BYTES=$(du -sbc /m3/pages-*.img | tail -1 | cut -f1)
+      awk "BEGIN{printf \"M3_SINGLE_MBPS=%.0f\n\", $BYTES/1048576/($((T1-T0))/1000)}"
+      sync; echo 3 > /proc/sys/vm/drop_caches || true
+      SZ=$(stat -c%s /m3/pages-9.img)
+      Q=$((SZ/4/1048576))
+      T0=$(date +%s%3N)
+      for i in 0 1 2 3; do dd if=/m3/pages-9.img of=/dev/null bs=4M count=$Q skip=$((i*Q)) iflag=skip_bytes,count_bytes,direct 2>/dev/null & done
+      wait
+      T1=$(date +%s%3N)
+      awk "BEGIN{printf \"M3_PARALLEL4_MBPS=%.0f\n\", $SZ/1048576/($((T1-T0))/1000)}"
+      echo "FILL_AND_BENCH_DONE"
+      sleep infinity
+    securityContext:
+      privileged: true
+    resources:
+      requests:
+        cpu: "2"
+        memory: "4Gi"
+    volumeMounts:
+    - name: m3
+      mountPath: /m3
+    - name: snapshots
+      mountPath: /snapshots
+  volumes:
+  - name: m3
+    persistentVolumeClaim:
+      claimName: mlspec-archvteams-2407-ckpt-m3
+  - name: snapshots
+    hostPath:
+      path: /snapshots
