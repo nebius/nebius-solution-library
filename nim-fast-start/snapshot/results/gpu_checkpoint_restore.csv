@@ -81,3 +81,8 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 1,v14-preemptible-demo,first_inference,2339,pdb-200,SCALE-OUT COMPLETE: preemptible node + shared SFS checkpoint + model cache + jit tar = 19.4s restore-to-fold; zero per-node prep beyond image pull
 1,v14-distribution,s3_upload,67097,n/a,v14 8.78GB to S3 67s; model cache 5.3GB 195s; SFS reseed (ckpt+cache+jit) 661s one-time
 1,arch-constraint,note,n/a,n/a,checkpoints are GPU-arch-bound (sm90 H100/H200 vs sm100 B300): per-arch checkpoint per NIM; B300 fleet dumps happen on the B300 full node
+1,diffdock-h100-dump,inference_pre,552,pose-200,donor on e00hf93; 81KB poses; NIM_CACHE on hostPath
+1,diffdock-h100-dump,criu_dump,56004,n/a,7.79GB; cuda lock+ckpt 1.72s; donor kept serving; jit=ComputeCache only
+1,rfdiffusion-h100-dump,inference_pre,5125,pdb-200,donor on PREEMPTIBLE node e00rvx89; 17KB generated backbone
+1,rfdiffusion-h100-dump,criu_dump,173440,n/a,23.4GB checkpoint; cuda lock+ckpt 5.65s; donor kept serving; no JIT dirs (prebuilt kernels)
+1,sm90-agent-bootstrap,notes,n/a,n/a,agent pods need: criu-patched + cuda-checkpoint (6KB libcuda shim) + host libcuda copied in + ip/iptables-save/restore stubs; PID discovery via pod-UID cgroup.procs
