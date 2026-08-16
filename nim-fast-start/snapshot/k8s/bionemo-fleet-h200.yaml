@@ -1,0 +1,420 @@
+# BioNeMo agent NIM fleet — full 8xH200 node deployment.
+# Derived from modules/nims/catalog.tf (ARCHVTEAMS-2369): same images, versions,
+# commands, shm sizes, and resource shapes, adapted to a single
+# 8gpu-128vcpu-1600gb node (node group mk8snodegroup-e00thw7k44pfaq5sqr).
+#
+# GPU budget (8 physical H200, 141GB each):
+#   1 GPU each: openfold2, openfold3, boltz2, evo2-40b, diffdock, rfdiffusion,
+#               genmol, molmim  (= 8 via device plugin)
+#   shared:     proteinmpnn, msa-search — tiny GPU footprints, run with
+#               NVIDIA_VISIBLE_DEVICES=all and no nvidia.com/gpu resource;
+#               on 141GB cards the few-GB tenancy is harmless. Documented tradeoff.
+# CPU budget: catalog wants 16 CPU/model; node has 128 -> big models get 12,
+#   small ones 4-8, sharing tenants 4, to fit 10 models + system pods.
+# Caches: one shared 1860Gi NRD volume (subPath per model) — NIM model
+#   downloads exceed the 1023Gi boot disk (msa-search DBs alone are huge).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlspec-archvteams-2407-nimcache-m3
+  namespace: nim-fast-start
+  labels:
+    workload: archvteams-2407
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1860Gi
+  storageClassName: mlspec-archvteams-2407-io-m3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bnm-openfold2
+  namespace: nim-fast-start
+  labels: {workload: archvteams-2407, fleet: bionemo, app: bnm-openfold2}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: bnm-openfold2}}
+  template:
+    metadata:
+      labels: {app: bnm-openfold2, fleet: bionemo, workload: archvteams-2407}
+    spec:
+      nodeSelector: {nebius.com/node-group-id: mk8snodegroup-e00thw7k44pfaq5sqr}
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      imagePullSecrets: [{name: nvcrio-cred}]
+      containers:
+      - name: openfold2
+        image: nvcr.io/nim/openfold/openfold2:latest
+        command: ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
+        securityContext: {runAsUser: 0, runAsGroup: 0}
+        ports: [{containerPort: 8000, name: http}]
+        env:
+        - {name: NGC_API_KEY, valueFrom: {secretKeyRef: {name: ngc-api-key, key: NGC_API_KEY}}}
+        resources:
+          requests: {cpu: "12", memory: "96Gi", nvidia.com/gpu: "1"}
+          limits: {cpu: "12", memory: "96Gi", nvidia.com/gpu: "1"}
+        volumeMounts:
+        - {name: cache, mountPath: /opt/nim/.cache, subPath: openfold2}
+        - {name: shm, mountPath: /dev/shm}
+        readinessProbe:
+          httpGet: {path: /v1/health/ready, port: 8000}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 200
+      volumes:
+      - {name: cache, persistentVolumeClaim: {claimName: mlspec-archvteams-2407-nimcache-m3}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 64Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bnm-openfold3
+  namespace: nim-fast-start
+  labels: {workload: archvteams-2407, fleet: bionemo, app: bnm-openfold3}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: bnm-openfold3}}
+  template:
+    metadata:
+      labels: {app: bnm-openfold3, fleet: bionemo, workload: archvteams-2407}
+    spec:
+      nodeSelector: {nebius.com/node-group-id: mk8snodegroup-e00thw7k44pfaq5sqr}
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      imagePullSecrets: [{name: nvcrio-cred}]
+      containers:
+      - name: openfold3
+        image: nvcr.io/nim/openfold/openfold3:latest
+        command: ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
+        securityContext: {runAsUser: 0, runAsGroup: 0}
+        ports: [{containerPort: 8000, name: http}]
+        env:
+        - {name: NGC_API_KEY, valueFrom: {secretKeyRef: {name: ngc-api-key, key: NGC_API_KEY}}}
+        resources:
+          requests: {cpu: "12", memory: "96Gi", nvidia.com/gpu: "1"}
+          limits: {cpu: "12", memory: "96Gi", nvidia.com/gpu: "1"}
+        volumeMounts:
+        - {name: cache, mountPath: /opt/nim/.cache, subPath: openfold3}
+        - {name: shm, mountPath: /dev/shm}
+        readinessProbe:
+          httpGet: {path: /v1/health/ready, port: 8000}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 200
+      volumes:
+      - {name: cache, persistentVolumeClaim: {claimName: mlspec-archvteams-2407-nimcache-m3}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 64Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bnm-boltz2
+  namespace: nim-fast-start
+  labels: {workload: archvteams-2407, fleet: bionemo, app: bnm-boltz2}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: bnm-boltz2}}
+  template:
+    metadata:
+      labels: {app: bnm-boltz2, fleet: bionemo, workload: archvteams-2407}
+    spec:
+      nodeSelector: {nebius.com/node-group-id: mk8snodegroup-e00thw7k44pfaq5sqr}
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      imagePullSecrets: [{name: nvcrio-cred}]
+      containers:
+      - name: boltz2
+        image: nvcr.io/nim/mit/boltz2:latest
+        command: ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
+        securityContext: {runAsUser: 0, runAsGroup: 0}
+        ports: [{containerPort: 8000, name: http}]
+        env:
+        - {name: NGC_API_KEY, valueFrom: {secretKeyRef: {name: ngc-api-key, key: NGC_API_KEY}}}
+        resources:
+          requests: {cpu: "12", memory: "96Gi", nvidia.com/gpu: "1"}
+          limits: {cpu: "12", memory: "96Gi", nvidia.com/gpu: "1"}
+        volumeMounts:
+        - {name: cache, mountPath: /opt/nim/.cache, subPath: boltz2}
+        - {name: shm, mountPath: /dev/shm}
+        readinessProbe:
+          httpGet: {path: /v1/health/ready, port: 8000}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 200
+      volumes:
+      - {name: cache, persistentVolumeClaim: {claimName: mlspec-archvteams-2407-nimcache-m3}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 64Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bnm-evo2-40b
+  namespace: nim-fast-start
+  labels: {workload: archvteams-2407, fleet: bionemo, app: bnm-evo2-40b}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: bnm-evo2-40b}}
+  template:
+    metadata:
+      labels: {app: bnm-evo2-40b, fleet: bionemo, workload: archvteams-2407}
+    spec:
+      nodeSelector: {nebius.com/node-group-id: mk8snodegroup-e00thw7k44pfaq5sqr}
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      imagePullSecrets: [{name: nvcrio-cred}]
+      containers:
+      - name: evo2-40b
+        image: nvcr.io/nim/arc/evo2-40b:latest
+        command: ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
+        securityContext: {runAsUser: 0, runAsGroup: 0}
+        ports: [{containerPort: 8000, name: http}]
+        env:
+        - {name: NGC_API_KEY, valueFrom: {secretKeyRef: {name: ngc-api-key, key: NGC_API_KEY}}}
+        resources:
+          requests: {cpu: "16", memory: "200Gi", nvidia.com/gpu: "1"}
+          limits: {cpu: "16", memory: "200Gi", nvidia.com/gpu: "1"}
+        volumeMounts:
+        - {name: cache, mountPath: /opt/nim/.cache, subPath: evo2-40b}
+        - {name: shm, mountPath: /dev/shm}
+        readinessProbe:
+          httpGet: {path: /v1/health/ready, port: 8000}
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          failureThreshold: 200
+      volumes:
+      - {name: cache, persistentVolumeClaim: {claimName: mlspec-archvteams-2407-nimcache-m3}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 16Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bnm-diffdock
+  namespace: nim-fast-start
+  labels: {workload: archvteams-2407, fleet: bionemo, app: bnm-diffdock}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: bnm-diffdock}}
+  template:
+    metadata:
+      labels: {app: bnm-diffdock, fleet: bionemo, workload: archvteams-2407}
+    spec:
+      nodeSelector: {nebius.com/node-group-id: mk8snodegroup-e00thw7k44pfaq5sqr}
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      imagePullSecrets: [{name: nvcrio-cred}]
+      containers:
+      - name: diffdock
+        image: nvcr.io/nim/mit/diffdock:latest
+        command: ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
+        securityContext: {runAsUser: 0, runAsGroup: 0}
+        ports: [{containerPort: 8000, name: http}]
+        env:
+        - {name: NGC_API_KEY, valueFrom: {secretKeyRef: {name: ngc-api-key, key: NGC_API_KEY}}}
+        resources:
+          requests: {cpu: "8", memory: "64Gi", nvidia.com/gpu: "1"}
+          limits: {cpu: "8", memory: "64Gi", nvidia.com/gpu: "1"}
+        volumeMounts:
+        - {name: cache, mountPath: /opt/nim/.cache, subPath: diffdock}
+        - {name: shm, mountPath: /dev/shm}
+        readinessProbe:
+          httpGet: {path: /v1/health/ready, port: 8000}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 200
+      volumes:
+      - {name: cache, persistentVolumeClaim: {claimName: mlspec-archvteams-2407-nimcache-m3}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 16Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bnm-rfdiffusion
+  namespace: nim-fast-start
+  labels: {workload: archvteams-2407, fleet: bionemo, app: bnm-rfdiffusion}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: bnm-rfdiffusion}}
+  template:
+    metadata:
+      labels: {app: bnm-rfdiffusion, fleet: bionemo, workload: archvteams-2407}
+    spec:
+      nodeSelector: {nebius.com/node-group-id: mk8snodegroup-e00thw7k44pfaq5sqr}
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      imagePullSecrets: [{name: nvcrio-cred}]
+      containers:
+      - name: rfdiffusion
+        image: nvcr.io/nim/ipd/rfdiffusion:2.2.0
+        securityContext: {runAsUser: 0, runAsGroup: 0}
+        ports: [{containerPort: 8000, name: http}]
+        env:
+        - {name: NGC_API_KEY, valueFrom: {secretKeyRef: {name: ngc-api-key, key: NGC_API_KEY}}}
+        resources:
+          requests: {cpu: "8", memory: "64Gi", nvidia.com/gpu: "1"}
+          limits: {cpu: "8", memory: "64Gi", nvidia.com/gpu: "1"}
+        volumeMounts:
+        - {name: cache, mountPath: /opt/nim/.cache, subPath: rfdiffusion}
+        - {name: shm, mountPath: /dev/shm}
+        readinessProbe:
+          httpGet: {path: /v1/health/ready, port: 8000}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 200
+      volumes:
+      - {name: cache, persistentVolumeClaim: {claimName: mlspec-archvteams-2407-nimcache-m3}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 16Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bnm-genmol
+  namespace: nim-fast-start
+  labels: {workload: archvteams-2407, fleet: bionemo, app: bnm-genmol}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: bnm-genmol}}
+  template:
+    metadata:
+      labels: {app: bnm-genmol, fleet: bionemo, workload: archvteams-2407}
+    spec:
+      nodeSelector: {nebius.com/node-group-id: mk8snodegroup-e00thw7k44pfaq5sqr}
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      imagePullSecrets: [{name: nvcrio-cred}]
+      containers:
+      - name: genmol
+        image: nvcr.io/nim/nvidia/genmol:latest
+        command: ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
+        securityContext: {runAsUser: 0, runAsGroup: 0}
+        ports: [{containerPort: 8000, name: http}]
+        env:
+        - {name: NGC_API_KEY, valueFrom: {secretKeyRef: {name: ngc-api-key, key: NGC_API_KEY}}}
+        resources:
+          requests: {cpu: "4", memory: "32Gi", nvidia.com/gpu: "1"}
+          limits: {cpu: "4", memory: "32Gi", nvidia.com/gpu: "1"}
+        volumeMounts:
+        - {name: cache, mountPath: /opt/nim/.cache, subPath: genmol}
+        - {name: shm, mountPath: /dev/shm}
+        readinessProbe:
+          httpGet: {path: /v1/health/ready, port: 8000}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 200
+      volumes:
+      - {name: cache, persistentVolumeClaim: {claimName: mlspec-archvteams-2407-nimcache-m3}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 16Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bnm-molmim
+  namespace: nim-fast-start
+  labels: {workload: archvteams-2407, fleet: bionemo, app: bnm-molmim}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: bnm-molmim}}
+  template:
+    metadata:
+      labels: {app: bnm-molmim, fleet: bionemo, workload: archvteams-2407}
+    spec:
+      nodeSelector: {nebius.com/node-group-id: mk8snodegroup-e00thw7k44pfaq5sqr}
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      imagePullSecrets: [{name: nvcrio-cred}]
+      containers:
+      - name: molmim
+        image: nvcr.io/nim/nvidia/molmim:1.0.0
+        ports: [{containerPort: 8000, name: http}]
+        env:
+        - {name: NGC_API_KEY, valueFrom: {secretKeyRef: {name: ngc-api-key, key: NGC_API_KEY}}}
+        resources:
+          requests: {cpu: "4", memory: "32Gi", nvidia.com/gpu: "1"}
+          limits: {cpu: "4", memory: "32Gi", nvidia.com/gpu: "1"}
+        volumeMounts:
+        - {name: cache, mountPath: /opt/nim/.cache, subPath: molmim}
+        - {name: shm, mountPath: /dev/shm}
+        readinessProbe:
+          httpGet: {path: /v1/health/ready, port: 8000}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 200
+      volumes:
+      - {name: cache, persistentVolumeClaim: {claimName: mlspec-archvteams-2407-nimcache-m3}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 16Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bnm-proteinmpnn
+  namespace: nim-fast-start
+  labels: {workload: archvteams-2407, fleet: bionemo, app: bnm-proteinmpnn}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: bnm-proteinmpnn}}
+  template:
+    metadata:
+      labels: {app: bnm-proteinmpnn, fleet: bionemo, workload: archvteams-2407}
+    spec:
+      nodeSelector: {nebius.com/node-group-id: mk8snodegroup-e00thw7k44pfaq5sqr}
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      imagePullSecrets: [{name: nvcrio-cred}]
+      containers:
+      - name: proteinmpnn
+        image: nvcr.io/nim/ipd/proteinmpnn:1.0.2
+        securityContext: {runAsUser: 0, runAsGroup: 0}
+        ports: [{containerPort: 8000, name: http}]
+        env:
+        - {name: NGC_API_KEY, valueFrom: {secretKeyRef: {name: ngc-api-key, key: NGC_API_KEY}}}
+        # Shares GPU headroom (no nvidia.com/gpu resource): few-GB footprint on 141GB cards
+        - {name: NVIDIA_VISIBLE_DEVICES, value: "all"}
+        - {name: NVIDIA_DRIVER_CAPABILITIES, value: "compute,utility"}
+        resources:
+          requests: {cpu: "4", memory: "24Gi"}
+          limits: {cpu: "4", memory: "24Gi"}
+        volumeMounts:
+        - {name: cache, mountPath: /opt/nim/.cache, subPath: proteinmpnn}
+        - {name: shm, mountPath: /dev/shm}
+        readinessProbe:
+          httpGet: {path: /v1/health/ready, port: 8000}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 200
+      volumes:
+      - {name: cache, persistentVolumeClaim: {claimName: mlspec-archvteams-2407-nimcache-m3}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 16Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bnm-msa-search
+  namespace: nim-fast-start
+  labels: {workload: archvteams-2407, fleet: bionemo, app: bnm-msa-search}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: bnm-msa-search}}
+  template:
+    metadata:
+      labels: {app: bnm-msa-search, fleet: bionemo, workload: archvteams-2407}
+    spec:
+      nodeSelector: {nebius.com/node-group-id: mk8snodegroup-e00thw7k44pfaq5sqr}
+      tolerations: [{key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}]
+      imagePullSecrets: [{name: nvcrio-cred}]
+      containers:
+      - name: msa-search
+        image: nvcr.io/nim/colabfold/msa-search:latest
+        command: ["/bin/bash", "-c", "/opt/nim/start_server.sh"]
+        securityContext: {runAsUser: 0, runAsGroup: 0}
+        ports: [{containerPort: 8000, name: http}]
+        env:
+        - {name: NGC_API_KEY, valueFrom: {secretKeyRef: {name: ngc-api-key, key: NGC_API_KEY}}}
+        # Shares GPU headroom (no nvidia.com/gpu resource): CPU-dominant workload
+        - {name: NVIDIA_VISIBLE_DEVICES, value: "all"}
+        - {name: NVIDIA_DRIVER_CAPABILITIES, value: "compute,utility"}
+        resources:
+          requests: {cpu: "16", memory: "128Gi"}
+          limits: {cpu: "16", memory: "128Gi"}
+        volumeMounts:
+        - {name: cache, mountPath: /opt/nim/.cache, subPath: msa-search}
+        - {name: shm, mountPath: /dev/shm}
+        readinessProbe:
+          httpGet: {path: /v1/health/ready, port: 8000}
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          failureThreshold: 400
+      volumes:
+      - {name: cache, persistentVolumeClaim: {claimName: mlspec-archvteams-2407-nimcache-m3}}
+      - {name: shm, emptyDir: {medium: Memory, sizeLimit: 16Gi}}

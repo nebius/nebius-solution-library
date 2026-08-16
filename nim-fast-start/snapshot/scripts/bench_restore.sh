@@ -30,6 +30,13 @@ setup_once() {
   chmod 755 "$WORK_DIR/criu/criu"
   cp "$TOOLS_SRC"/criu-libs/* "$WORK_DIR/criu/libs/"
   cp "$TOOLS_SRC/criu-plugins/cuda_plugin.so" "$WORK_DIR/criu/plugins/"
+  # cuda-checkpoint MUST be on PATH: cuda_plugin exec()s it during restore to
+  # repopulate GPU state. Without it CRIU logs a warning, HTTP health still
+  # returns ready, but the GPU is empty — health is a necessary-not-sufficient
+  # gate (found by Phase 7 adversarial validation).
+  cp "$TOOLS_SRC/cuda-checkpoint" "$WORK_DIR/criu/bin/cuda-checkpoint" 2>/dev/null \
+    || cp /snapshots/cuda-checkpoint "$WORK_DIR/criu/bin/cuda-checkpoint"
+  chmod 755 "$WORK_DIR/criu/bin/cuda-checkpoint"
 
   for cmd in ip iptables-restore ip6tables-restore; do
     printf '#!/bin/sh\nexit 0\n' > "$WORK_DIR/criu/bin/$cmd"
@@ -229,8 +236,14 @@ run_restore() {
     return 1
   fi
 
-  # Fix stdout/stderr broken pipes from --shell-job
-  python3 /tmp/fix_stdio.py "$NIM_PID" >/dev/null 2>&1 || true
+  # Fix stdout/stderr broken pipes from --shell-job — on the WHOLE restored
+  # process tree, not just the root: inference workers are children that crash
+  # with EPIPE on their first progress print if their stdio is left broken.
+  local ALL_PIDS
+  ALL_PIDS=$(pgrep -f 'start_serve[r]|resource_track[e]r' 2>/dev/null || true)
+  for p in $ALL_PIDS $NIM_PID; do
+    python3 /tmp/fix_stdio.py "$p" >/dev/null 2>&1 || true
+  done
 
   # Setup loopback in restored netns (Python ioctl — ip binary unreliable)
   setup_netns "$NIM_PID" >/dev/null 2>&1
