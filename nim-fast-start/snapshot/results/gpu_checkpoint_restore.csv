@@ -86,3 +86,7 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 1,rfdiffusion-h100-dump,inference_pre,5125,pdb-200,donor on PREEMPTIBLE node e00rvx89; 17KB generated backbone
 1,rfdiffusion-h100-dump,criu_dump,173440,n/a,23.4GB checkpoint; cuda lock+ckpt 5.65s; donor kept serving; no JIT dirs (prebuilt kernels)
 1,sm90-agent-bootstrap,notes,n/a,n/a,agent pods need: criu-patched + cuda-checkpoint (6KB libcuda shim) + host libcuda copied in + ip/iptables-save/restore stubs; PID discovery via pod-UID cgroup.procs
+1,diffdock-restore-val,http_ready,60651,ready,node-local root disk (135MB/s) I/O-bound; cuda restore/unlock 811ms; 0 externals
+1,diffdock-restore-val,first_inference,1289,pose-200,81KB poses — DIFFDOCK FULLY VALIDATED (dump+restore+inference)
+1,rfdiffusion-restore-val,http_ready,177336,ready,23.4GB from 135MB/s root disk (I/O-bound; ~30s on NRD); cuda 2.18s; ON PREEMPTIBLE NODE
+1,rfdiffusion-restore-val,first_inference,6104,pdb-200,17.7KB backbone — RFDIFFUSION FULLY VALIDATED on preemptible hardware
