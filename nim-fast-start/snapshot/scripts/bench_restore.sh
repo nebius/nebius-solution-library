@@ -48,7 +48,16 @@ setup_once() {
   # Old CTK hook UUID from checkpoint; bench pod has a newer UUID, create the old dir
   mkdir -p /run/nvidia-ctk-hook9d74ab72-3599-4b34-9bd8-9936587a6575
 
-  # JIT-compiled file stubs (MAP_PRIVATE mmap; content from checkpoint pages)
+  # JIT-compiled files: prefer REAL artifacts harvested from the donor at dump
+  # time (JIT_TAR). Zero-truncated stubs satisfy CRIU's mount/file checks but
+  # SEGFAULT at first kernel launch — CRIU restores only dirty pages; clean
+  # executable pages are faulted back in from these files.
+  if [ -n "${JIT_TAR:-}" ] && [ -f "$JIT_TAR" ]; then
+    echo "[setup] Installing real JIT artifacts from $JIT_TAR"
+    tar xf "$JIT_TAR" -C /
+    return 0
+  fi
+  echo "[setup] WARNING: no JIT_TAR — using zero stubs; restore will NOT survive inference"
   mkdir -p /root/.cache/tvm-ffi
   truncate -s 212272 /root/.cache/tvm-ffi/libtorch_c_dlpack_addon_torch210-cuda.so
   chmod 0755 /root/.cache/tvm-ffi/libtorch_c_dlpack_addon_torch210-cuda.so
