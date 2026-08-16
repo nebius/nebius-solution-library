@@ -104,3 +104,5 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 1,restore-portability,notes,n/a,n/a,restore_nim.sh: (1) mkdir every nvidia-ctk-hook UUID from checkpoint (strings on images); (2) TOOLS_SRC=/snapshots/criu-tools on B300 (H100=/snapshots); (3) health-ready != inference-ready — gate on real inference
 1,proteinmpnn-sm90-restore,http_ready,14957,ready,H100 pool; restore_nim.sh helper; CRIU 13.9s + cuda 441ms; tools synced from S3
 1,proteinmpnn-sm90-restore,first_inference,709,seq-200,PROTEINMPNN FULLY VALIDATED: 34KB designed sequences http 200
+1,io_uring-ROOT-CAUSE,uvloop,n/a,n/a,io_uring FDs in openfold3/boltz2/msa-search come from UVLOOP (uvicorn event loop). Two walls: (1) criu -22 FD-drain fixed by v9 patch; (2) io_uring_enter thread + ring state HANGS dump (480s timeout even solo). REAL FIX: drop uvloop -> uvicorn uses asyncio -> ZERO io_uring FDs -> dumps via proven path.
+1,openfold3-sm100-dump,criu_dump,6306,n/a,no-uvloop donor; 11GB 82 files inventory+pstree YES; cuda lock+ckpt 13.6s; donor served post-dump http 200; COMPLETE restorable checkpoint
