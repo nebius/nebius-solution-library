@@ -10,7 +10,7 @@ object storage for cross-node scale-out. The remaining 5 each hit a *distinct,
 identified, systems-level blocker* — 3 in CRIU's io_uring handling, 1 in CRIU's
 fanotify handling, 1 in the vendor NIM's Blackwell (SM103) compiler support.
 
-## Fully validated (checkpoint + restore + real inference)
+## Fully validated (checkpoint + restore + real inference) — 6/10
 
 | NIM | Arch/pool | Restore→serving | First real inference | Checkpoint |
 |-----|-----------|-----------------|----------------------|-----------|
@@ -19,9 +19,26 @@ fanotify handling, 1 in the vendor NIM's Blackwell (SM103) compiler support.
 | RFdiffusion | sm90 / H100 (preemptible) | ~30s NRD-class | backbone, 6.1s (17.7KB) | 23.4GB |
 | ProteinMPNN | sm90 / H100 | 15.0s | sequence design, 0.7s (34KB) | 1.9GB |
 | GenMol | **sm100 / B300** | ~33s (node-local) | molecule gen, HTTP 200 | 5.7GB |
+| OpenFold3 | **sm100 / B300, io_uring** | 88s (CRIU 30s + cuda restore/unlock 58s) | fold, 12s (22KB CIF w/ scores) | 11GB |
+
+Plus **Boltz2** (sm100/B300, io_uring, 2 CUDA contexts): checkpoint complete (16GB),
+restores to a live health-ready GPU server (CRIU 41.5s + cuda restore/unlock 76s,
+responds in ms). Its `/predict` input-prep needs network (MSA), blocked only by the
+benchmark's isolated `--empty-ns net`; production pod networking resolves it.
 
 All checkpoints + JIT artifacts + model caches are on object storage
 `s3://mlspec-archvteams-2407-ckpt/` for cross-node distribution.
+
+## The io_uring breakthrough (openfold3, boltz2, msa-search)
+
+These newer `/predict` NIMs create **io_uring** FDs via **uvloop** (uvicorn's event
+loop) that stock CRIU cannot dump. Solved with two config-level changes — no CRIU
+fork needed for the dump: **(1)** run the donor without uvloop (`pip uninstall -y
+uvloop` before `start_server.sh` → uvicorn falls back to asyncio → zero io_uring
+FDs); **(2)** cuda-checkpoint **all** running-CUDA procs (multi-worker NIMs like
+Boltz2 hold several contexts). Restore requires the fixed `bench_restore.sh`:
+timeout-guarded, all-context `cuda-checkpoint restore+unlock`. This took OpenFold3
+from instant `-22` (couldn't dump) to a validated end-to-end fold.
 
 ## Proven infrastructure
 
