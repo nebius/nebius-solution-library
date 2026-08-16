@@ -5,7 +5,7 @@ set -uo pipefail
 NIM="$1"; APP="$2"; AGENT="$3"
 export H100KC="${KC:-$HOME/.kube/archvteams-2407-baselines.yaml}"
 NS=nim-fast-start
-POD=$(kubectl --kubeconfig $H100KC get pod -n $NS -l app=$APP -o jsonpath='{.items[0].metadata.name}')
+POD=$(kubectl --kubeconfig $H100KC get pod -n $NS -l app=$APP --field-selector status.phase=Running -o jsonpath='{.items[0].metadata.name}')
 echo "NIM=$NIM POD=$POD AGENT=$AGENT"
 
 echo "=== A: functional inference ==="
@@ -88,44 +88,65 @@ for p in $PIDS; do
   FPIDS="$FPIDS $p"
 done
 ROOT=$(echo $FPIDS | tr " " "\n" | sort -n | head -1)
-CUDA_PID=""
+# Multi-worker NIMs (e.g. boltz2 = 4 uvicorn workers) can hold MULTIPLE CUDA
+# contexts. Every proc with a live CUDA context must be locked+checkpointed, or
+# an un-checkpointed device VMA fails the dump ("handle_device_vma plugin failed").
+CUDA_PIDS=""
 for p in $FPIDS; do
   ST=$(/usr/local/bin/cuda-checkpoint --get-state --pid $p 2>/dev/null || true)
-  [ "$ST" = "running" ] && CUDA_PID=$p && break
+  [ "$ST" = "running" ] && CUDA_PIDS="$CUDA_PIDS $p"
 done
-echo "ROOT=$ROOT CUDA_PID=${CUDA_PID:-none} (procs:$(echo $FPIDS | wc -w))"
+CUDA_PID=$(echo $CUDA_PIDS | awk "{print \$1}")
+echo "ROOT=$ROOT CUDA_PIDS=[${CUDA_PIDS# }] (procs:$(echo $FPIDS | wc -w))"
 [ -z "$CUDA_PID" ] && echo NO_CUDA_PID && exit 93
 T0=$(date +%s%3N)
-/usr/local/bin/cuda-checkpoint --action lock --pid $CUDA_PID --timeout 60000 || { echo LOCK_FAIL; exit 94; }
-/usr/local/bin/cuda-checkpoint --action checkpoint --pid $CUDA_PID || { /usr/local/bin/cuda-checkpoint --action unlock --pid $CUDA_PID; echo CKPT_FAIL; exit 95; }
+LOCKED=""
+for cp in $CUDA_PIDS; do
+  /usr/local/bin/cuda-checkpoint --action lock --pid $cp --timeout 60000 || { echo "LOCK_FAIL $cp"; for u in $LOCKED; do /usr/local/bin/cuda-checkpoint --action unlock --pid $u; done; exit 94; }
+  LOCKED="$LOCKED $cp"
+done
+for cp in $CUDA_PIDS; do
+  /usr/local/bin/cuda-checkpoint --action checkpoint --pid $cp || { echo "CKPT_FAIL $cp"; for u in $CUDA_PIDS; do /usr/local/bin/cuda-checkpoint --action unlock --pid $u; done; exit 95; }
+done
 T1=$(date +%s%3N)
 echo "cuda lock+checkpoint: $((T1-T0))ms"
-# Close io_uring FDs AFTER the GPU state is frozen (closing them before breaks
-# the CUDA context init). CRIU otherwise aborts -22 "Cant retrieve FDs from
-# socket"; the async server re-creates its event loop on restore (lossless warm).
+# io_uring handling: the patched eventpoll.c filters io_uring TFDs from the epoll
+# dump WHILE THE FDS ARE OPEN, and pie/parasite.c skips them from the SCM_RIGHTS
+# drain. Do NOT inject_close (that closes the FDs the eventpoll filter must
+# readlink, breaking the epoll dump). Only close as an explicit last resort.
 CLOSED=0
-for p in $FPIDS; do
-  for fd in $(ls /proc/$p/fd 2>/dev/null); do
-    tgt=$(readlink /proc/$p/fd/$fd 2>/dev/null || true)
-    case "$tgt" in
-      *"io_uring"*) /opt/criu/inject_close "$p" "$fd" >/dev/null 2>&1 && CLOSED=$((CLOSED+1));;
-    esac
+if [ -n "${IO_URING_CLOSE:-}" ]; then
+  for p in $FPIDS; do
+    for fd in $(ls /proc/$p/fd 2>/dev/null); do
+      tgt=$(readlink /proc/$p/fd/$fd 2>/dev/null || true)
+      case "$tgt" in
+        *"io_uring"*) /opt/criu/inject_close "$p" "$fd" >/dev/null 2>&1 && CLOSED=$((CLOSED+1));;
+      esac
+    done
   done
-done
-echo "io_uring FDs closed: $CLOSED"
+  echo "io_uring FDs closed: $CLOSED"
+fi
 SKIP_ARGS=""
 while IFS= read -r mnt; do SKIP_ARGS="$SKIP_ARGS --skip-mnt $mnt"; done < <(awk "{dev=\$3; mp=\$5} dev==\"253:1\"{print mp} dev==\"0:26\"{print mp} dev==\"0:392\"{print mp}" /proc/$CUDA_PID/mountinfo)
 rm -rf /snapshots/$NIM/criu42-v1
 mkdir -p /snapshots/$NIM/criu42-v1
 T2=$(date +%s%3N)
-/opt/criu/criu-patched dump -t $ROOT -D /snapshots/$NIM/criu42-v1 -o criu.log -R \
-  --tcp-established --ext-unix-sk --shell-job --link-remap --ghost-limit 104857600 $SKIP_ARGS
+# Hard timeout so a stuck seize (e.g. an io_uring thread that will not quiesce)
+# cannot hang forever. NOTE: run ONE dump per agent at a time — two concurrent
+# criu dumps on the same agent deadlock on ptrace/seize.
+timeout 480 /opt/criu/criu-patched dump -t $ROOT -D /snapshots/$NIM/criu42-v1 -o criu.log -R \
+  --tcp-established --ext-unix-sk --shell-job --link-remap --ghost-limit 104857600 \
+  --force-irmap $SKIP_ARGS
 CRIU_EXIT=$?
+[ $CRIU_EXIT -eq 124 ] && echo "CRIU DUMP TIMED OUT (480s)"
 T3=$(date +%s%3N)
 echo "criu dump: $((T3-T2))ms exit=$CRIU_EXIT"
-/usr/local/bin/cuda-checkpoint --action restore --pid $CUDA_PID
-/usr/local/bin/cuda-checkpoint --action unlock --pid $CUDA_PID
-echo "donor cuda state: $(/usr/local/bin/cuda-checkpoint --get-state --pid $CUDA_PID)"
+# restore+unlock EVERY checkpointed CUDA proc (leave-running donor)
+for cp in $CUDA_PIDS; do
+  /usr/local/bin/cuda-checkpoint --action restore --pid $cp 2>/dev/null
+  /usr/local/bin/cuda-checkpoint --action unlock --pid $cp 2>/dev/null
+done
+echo "donor cuda states: $(for cp in $CUDA_PIDS; do /usr/local/bin/cuda-checkpoint --get-state --pid $cp 2>/dev/null; done | tr "\n" " ")"
 if [ $CRIU_EXIT -ne 0 ]; then tail -8 /snapshots/$NIM/criu42-v1/criu.log; exit 96; fi
 du -sb /snapshots/$NIM/criu42-v1 | cut -f1
 '
