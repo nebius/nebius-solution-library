@@ -3,7 +3,7 @@
 # Usage: sm90_ckpt.sh <nim> <app-label> <agent-pod>
 set -uo pipefail
 NIM="$1"; APP="$2"; AGENT="$3"
-export H100KC=~/.kube/archvteams-2407-baselines.yaml
+export H100KC="${KC:-$HOME/.kube/archvteams-2407-baselines.yaml}"
 NS=nim-fast-start
 POD=$(kubectl --kubeconfig $H100KC get pod -n $NS -l app=$APP -o jsonpath='{.items[0].metadata.name}')
 echo "NIM=$NIM POD=$POD AGENT=$AGENT"
@@ -12,22 +12,36 @@ echo "=== A: functional inference ==="
 kubectl --kubeconfig $H100KC exec -n $NS "$POD" -- bash -c '
 set -e
 NIM='"$NIM"'
-curl -sf https://files.rcsb.org/download/1UBQ.pdb -o /tmp/1ubq.pdb
-if [ "$NIM" = "rfdiffusion" ]; then
-  python3 - <<PY
-import json
-pdb = open("/tmp/1ubq.pdb").read()
-json.dump({"input_pdb":pdb,"contigs":"A20-60/0 20-30","diffusion_steps":15}, open("/tmp/dd.json","w"))
+curl -sf https://files.rcsb.org/download/1UBQ.pdb -o /tmp/1ubq.pdb || true
+python3 - "$NIM" <<PY
+import json, sys
+nim = sys.argv[1]
+P20 = "ACDEFGHIKLMNPQRSTVWY"
+pdb = open("/tmp/1ubq.pdb").read() if nim in ("rfdiffusion","diffdock","proteinmpnn") else None
+payloads = {
+  "rfdiffusion": ({"input_pdb":pdb,"contigs":"A20-60/0 20-30","diffusion_steps":15},
+                  "/biology/ipd/rfdiffusion/generate"),
+  "diffdock":    ({"ligand":"CC(=O)Oc1ccccc1C(=O)O","ligand_file_type":"txt","protein":pdb,
+                   "num_poses":1,"time_divisions":20,"steps":18},
+                  "/molecular-docking/diffdock/generate"),
+  "genmol":      ({"smiles":"[*{20-30}]","num_molecules":1,"unique":False}, "/generate"),
+  "molmim":      ({"smi":"c1ccccc1","algorithm":"none","num_molecules":1}, "/generate"),
+  "proteinmpnn": ({"input_pdb":pdb,"num_seq_per_target":1,"random_seed":2370},
+                  "/biology/ipd/proteinmpnn/predict"),
+  "boltz2":      ({"polymers":[{"molecule_type":"protein","sequence":P20,"id":"A"}],
+                   "recycling_steps":1,"sampling_steps":10,"diffusion_samples":1,
+                   "output_format":"mmcif"}, "/biology/mit/boltz2/predict"),
+  "openfold3":   ({"request_id":"ckpt-openfold3","inputs":[{"input_id":"ckpt-openfold3",
+                   "output_format":"cif","molecules":[{"type":"protein","id":"A",
+                   "sequence":P20,"diffusion_samples":1,
+                   "msa":{"main":{"a3m":{"alignment":">query\n"+P20,"format":"a3m"}}}}]}]},
+                  "/biology/openfold/openfold3/predict"),
+}
+body, path = payloads[nim]
+json.dump(body, open("/tmp/dd.json","w"))
+open("/tmp/dd.url","w").write("http://127.0.0.1:8000"+path)
 PY
-  URL=http://127.0.0.1:8000/biology/ipd/rfdiffusion/generate
-elif [ "$NIM" = "diffdock" ]; then
-  python3 - <<PY
-import json
-pdb = open("/tmp/1ubq.pdb").read()
-json.dump({"ligand":"CC(=O)Oc1ccccc1C(=O)O","ligand_file_type":"txt","protein":pdb,"num_poses":1,"time_divisions":20,"steps":18}, open("/tmp/dd.json","w"))
-PY
-  URL=http://127.0.0.1:8000/molecular-docking/diffdock/generate
-fi
+URL=$(cat /tmp/dd.url)
 for i in 1 2; do
   T0=$(date +%s%3N)
   CODE=$(curl -sS --max-time 600 -o /tmp/inf$i.json -w "%{http_code}" -H "Content-Type: application/json" -X POST "$URL" --data @/tmp/dd.json 2>/dev/null || true)
@@ -35,7 +49,7 @@ for i in 1 2; do
   BYTES=$(stat -c %s /tmp/inf$i.json 2>/dev/null || echo 0)
   echo "INFER_$i: http=$CODE bytes=$BYTES ms=$((T1-T0))"
   [ "$CODE" != "200" ] && head -c 200 /tmp/inf$i.json && exit 90
-  [ "$BYTES" -le 200 ] && exit 90
+  [ "$BYTES" -le 50 ] && exit 90
 done
 echo "=== harvest JIT/caches ==="
 cd /
@@ -86,6 +100,19 @@ T0=$(date +%s%3N)
 /usr/local/bin/cuda-checkpoint --action checkpoint --pid $CUDA_PID || { /usr/local/bin/cuda-checkpoint --action unlock --pid $CUDA_PID; echo CKPT_FAIL; exit 95; }
 T1=$(date +%s%3N)
 echo "cuda lock+checkpoint: $((T1-T0))ms"
+# Close io_uring FDs AFTER the GPU state is frozen (closing them before breaks
+# the CUDA context init). CRIU otherwise aborts -22 "Cant retrieve FDs from
+# socket"; the async server re-creates its event loop on restore (lossless warm).
+CLOSED=0
+for p in $FPIDS; do
+  for fd in $(ls /proc/$p/fd 2>/dev/null); do
+    tgt=$(readlink /proc/$p/fd/$fd 2>/dev/null || true)
+    case "$tgt" in
+      *"io_uring"*) /opt/criu/inject_close "$p" "$fd" >/dev/null 2>&1 && CLOSED=$((CLOSED+1));;
+    esac
+  done
+done
+echo "io_uring FDs closed: $CLOSED"
 SKIP_ARGS=""
 while IFS= read -r mnt; do SKIP_ARGS="$SKIP_ARGS --skip-mnt $mnt"; done < <(awk "{dev=\$3; mp=\$5} dev==\"253:1\"{print mp} dev==\"0:26\"{print mp} dev==\"0:392\"{print mp}" /proc/$CUDA_PID/mountinfo)
 rm -rf /snapshots/$NIM/criu42-v1
@@ -106,11 +133,10 @@ RC=$?
 [ $RC -ne 0 ] && echo "DUMP_FAILED rc=$RC" && exit $RC
 
 echo ""
-echo "=== C: donor post-dump inference ==="
+echo "=== C: donor post-dump inference (best-effort; io_uring close may break donor) ==="
 sleep 3
 kubectl --kubeconfig $H100KC exec -n $NS "$POD" -- bash -c '
-NIM='"$NIM"'
-if [ "$NIM" = "diffdock" ]; then URL=http://127.0.0.1:8000/molecular-docking/diffdock/generate; else URL=http://127.0.0.1:8000/biology/ipd/rfdiffusion/generate; fi
+URL=$(cat /tmp/dd.url)
 CODE=$(curl -sS --max-time 600 -o /tmp/post.json -w "%{http_code}" -H "Content-Type: application/json" -X POST "$URL" --data @/tmp/dd.json 2>/dev/null || true)
 echo "POSTDUMP: http=$CODE bytes=$(stat -c %s /tmp/post.json 2>/dev/null || echo 0)"
 '

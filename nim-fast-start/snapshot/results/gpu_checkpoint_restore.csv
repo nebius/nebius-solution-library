@@ -90,3 +90,9 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 1,diffdock-restore-val,first_inference,1289,pose-200,81KB poses — DIFFDOCK FULLY VALIDATED (dump+restore+inference)
 1,rfdiffusion-restore-val,http_ready,177336,ready,23.4GB from 135MB/s root disk (I/O-bound; ~30s on NRD); cuda 2.18s; ON PREEMPTIBLE NODE
 1,rfdiffusion-restore-val,first_inference,6104,pdb-200,17.7KB backbone — RFDIFFUSION FULLY VALIDATED on preemptible hardware
+1,genmol-sm100-dump,inference_pre,389,mol-200,B300 full node; SMILES gen; jit 479MB
+1,genmol-sm100-dump,criu_dump,3513,n/a,5.67GB; cuda lock+ckpt 14.3s; donor preserved; 2 procs no io_uring
+1,proteinmpnn-sm90-dump,inference_pre,278,seq-200,H100 pool (B300 image sm_90-only); 34KB seqs
+1,proteinmpnn-sm90-dump,criu_dump,11586,n/a,1.87GB; cuda 605ms; no io_uring; donor preserved
+1,io_uring-fix,discovery,n/a,n/a,newer /predict NIMs (openfold3 boltz2) expose io_uring FDs -> CRIU -22; FIX=inject_close FDs AFTER cuda lock+checkpoint BEFORE criu dump (before breaks CUDA init); inject_close from Phase5 /opt/criu
+1,arch-split,finding,n/a,n/a,sm_90-ONLY images (cant run on B300): diffdock rfdiffusion proteinmpnn molmim -> H100 pool; sm_100-capable: openfold2 genmol openfold3 boltz2 msa-search evo2 -> B300
