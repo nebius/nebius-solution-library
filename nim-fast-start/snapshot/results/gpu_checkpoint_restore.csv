@@ -64,3 +64,14 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 1,compression-probe,zstd1_ratio,n/a,n/a,zstd-1 T8: ratio 0.291 (3.4x) compress 3165MB/s decompress 1747MB/s on 2GiB of pages-9.img
 1,compression-probe,lz4_ratio,n/a,n/a,lz4-1: ratio 0.408 compress 1370MB/s
 1,s3-throughput,get_clean,14100,n/a,591 MB/s uncontended s5cmd cat of 8.1GB pages-9.img on fresh node; earlier 13MB/s seed was image-pull contention + virtiofs write path
+1,correction,invalidation,n/a,n/a,ALL criu-bench rows above are STORAGE/CPU timings only: cuda-checkpoint was not on PATH (GPU never restored) and v12 JIT stubs segfault on first kernel. Functional rows below.
+1,v14-functional-nrd,http_ready,13151,ready,checkpoint v14 (donor-validated + JIT harvest); criu 11.6s + cuda restore/unlock 0.92s + fixups
+1,v14-functional-nrd,first_inference,2560,pdb-200,497KB ranked structure returned
+2,v14-functional-nrd,http_ready,13122,ready,
+2,v14-functional-nrd,first_inference,2603,pdb-200,
+1,v14-functional-nrd-prefetch,http_ready,8406,ready,PREFETCH=1; criu 6.83s + cuda 0.91s + fixups 0.5s
+1,v14-functional-nrd-prefetch,first_inference,2604,pdb-200,HEADLINE: 8.4s to serving 11.0s to first completed fold - FULLY FUNCTIONAL
+2,v14-functional-nrd-prefetch,http_ready,8360,ready,
+2,v14-functional-nrd-prefetch,first_inference,2624,pdb-200,
+1,v14-dump,criu_dump,65897,n/a,donor: cuda lock+ckpt 1.89s + criu-patched dump 65.9s; 8.78GB 184 files; donor kept serving (leave-running)
+1,v14-dump,notes,n/a,n/a,dump requires --skip-mnt for PVC cache mount (CSI dev unsupported by CRIU); zero --external args needed at restore (23-mount minimal tree); JIT dirs harvested to jit-v14.tar (5MB 6 .so)

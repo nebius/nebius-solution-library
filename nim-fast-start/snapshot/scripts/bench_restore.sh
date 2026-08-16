@@ -316,8 +316,10 @@ post_restore_and_wait() {
   CUDA_STATE=$("$CUDA_BIN" --get-state --pid "$PY_PID" 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
   if [ "$CUDA_STATE" = "checkpointed" ] || [ "$CUDA_STATE" = "locked" ]; then
     T_CUDA0=$(date +%s%3N)
-    [ "$CUDA_STATE" = "checkpointed" ] && "$CUDA_BIN" --action restore --pid "$PY_PID" --timeout 60000
-    "$CUDA_BIN" --action unlock --pid "$PY_PID" --timeout 60000
+    # NB: --timeout is only valid for the lock action; passing it to
+    # restore/unlock makes cuda-checkpoint print help and do nothing.
+    [ "$CUDA_STATE" = "checkpointed" ] && "$CUDA_BIN" --action restore --pid "$PY_PID"
+    "$CUDA_BIN" --action unlock --pid "$PY_PID"
     T_CUDA1=$(date +%s%3N)
     echo "[run $run_num] cuda-checkpoint restore+unlock: $((T_CUDA1-T_CUDA0))ms (state was: $CUDA_STATE)"
   fi
