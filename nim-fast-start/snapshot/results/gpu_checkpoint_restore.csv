@@ -98,3 +98,7 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 1,arch-split,finding,n/a,n/a,sm_90-ONLY images (cant run on B300): diffdock rfdiffusion proteinmpnn molmim -> H100 pool; sm_100-capable: openfold2 genmol openfold3 boltz2 msa-search evo2 -> B300
 1,molmim,deferred,n/a,n/a,molmim 1.0.0 = 17-proc supervisord with an fanotify/fsnotify handle (0xb7:...) CRIU cannot dump even with --force-irmap; also perms(fixed via root) + sm_90(H100 pool). LOW VALUE (tiny model fast conventionally); checkpoint deferred pending CRIU fanotify support or a watch-disable env
 1,s3-distribution-batch2,upload,n/a,n/a,genmol(297 obj)+proteinmpnn(60 obj)+JIT tars to S3 mlspec-archvteams-2407-ckpt; agent pods need --no-verify-ssl (no CA certs) unlike NIM-image pods
+1,genmol-sm100-restore,criu_restore,17567,running,B300 node; from node-local checkpoint; prefetch; CTK-hook dirs auto-created from checkpoint strings
+1,genmol-sm100-restore,cuda_restore_unlock,15002,running,genmol GPU state restore slower than openfold2 (0.9s) — larger context on B300
+1,genmol-sm100-restore,first_inference,5371,mol-200,GENMOL sm100 FULLY VALIDATED: real molecule generated http 200; /v1/health/ready probe path lagged but /generate works (inference is the true gate)
+1,restore-portability,notes,n/a,n/a,restore_nim.sh: (1) mkdir every nvidia-ctk-hook UUID from checkpoint (strings on images); (2) TOOLS_SRC=/snapshots/criu-tools on B300 (H100=/snapshots); (3) health-ready != inference-ready — gate on real inference
