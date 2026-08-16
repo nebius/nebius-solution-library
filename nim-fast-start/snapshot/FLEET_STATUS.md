@@ -58,15 +58,33 @@ are sm_100-capable and run on B300.
 - `scripts/bench_restore.sh` — timed restore with PREFETCH (parallel page-cache
   warming), the cuda-restore/unlock step, stdio + loopback fixups.
 
-## Remaining 5 — precise blockers (not quick fixes)
+## io_uring NIMs — SOLVED to complete checkpoints (2026-08-16)
 
-| NIM | Blocker | What it needs |
-|-----|---------|---------------|
-| OpenFold3 | CRIU io_uring + epoll: the async server holds io_uring FDs referenced by an epoll instance. Parasite FD-drain aborts `-22` ("can't retrieve FDs from socket") with FDs open; closing them (inject_close) breaks the epoll dump instead. | A CRIU patch making parasite-skip + daemon FD-count + eventpoll io_uring-filter mutually consistent, then rebuild. |
-| Boltz2 | Same io_uring + epoll (4-worker uvicorn). | Same CRIU patch. |
-| MSA-Search | Same class (io_uring); codex actively working it. | Same CRIU patch. |
-| MolMIM | CRIU fanotify: 17-process supervisord holds an fanotify handle CRIU cannot dump, even with `--force-irmap`. Also sm_90-only + non-root cache perms (both fixed). Tiny model, fast conventionally. | CRIU fanotify-handle support (or disabling the watch). Low priority. |
-| Evo2-40B | Vendor: the pinned Evo2 NIM's CUDA 12.8 `ptxas` rejects SM103 (Blackwell). The Phase-6 B300 artifact used a host CUDA-13 override and is quarantined as non-production. | An NVIDIA Evo2 NIM with native SM103 / CUDA ≥12.9. Upstream. |
+The io_uring blocker (OpenFold3, Boltz2, MSA-Search) is cracked. Two findings:
+
+1. **Root cause = uvloop.** The io_uring FDs come from `uvloop` (uvicorn's event
+   loop). Removing it (`pip uninstall -y uvloop` before `start_server.sh` → uvicorn
+   falls back to plain asyncio) yields **zero io_uring FDs**, so the process dumps
+   via the normal proven path. (A CRIU-level fix for the FD-drain `-22` was also
+   built — `criu-patches/` — but the uvloop removal is the clean, sufficient fix:
+   even past `-22`, threads parked in `io_uring_enter` + ring state hang the dump.)
+2. **Multi-worker NIMs hold multiple CUDA contexts.** Boltz2 (4 uvicorn workers)
+   has 2 CUDA contexts; every running-CUDA proc must be `cuda-checkpoint`ed, not
+   just the first, or an un-checkpointed device VMA fails the dump.
+
+**Result: OpenFold3 (11GB, 82 files) and Boltz2 (16GB, 449 files) now produce
+complete, restorable checkpoints (inventory+pstree), donors served post-dump,
+both on S3.** They restore to HTTP-ready (openfold3: 40.8s) but the first real
+inference still hangs — a wedged CUDA context post-restore (see below).
+
+## Remaining work
+
+| NIM | State | Remaining |
+|-----|-------|-----------|
+| OpenFold3, Boltz2 | **Dumped clean + on S3**; restore reaches HTTP-ready but first inference hangs (CUDA context wedged post-restore; `cuda-checkpoint --get-state` blocks). | Per-model GPU-restore-on-sm100 debugging — the same depth OpenFold2 needed (JIT artifacts, cuda restore/unlock ordering). Multi-CUDA-proc restore must unlock **all** contexts (restore side currently unlocks one). |
+| MSA-Search | Recipe handed to codex (uvloop drop + all-CUDA-proc checkpoint). | Dump + validate. |
+| MolMIM | CRIU fanotify: 17-process supervisord holds an fanotify handle CRIU cannot dump, even with `--force-irmap`. sm_90-only + non-root cache perms (both fixed). Tiny model, fast conventionally. | CRIU fanotify support / disable the watch. Low priority. |
+| Evo2-40B | Vendor: pinned NIM's CUDA 12.8 `ptxas` rejects SM103 (Blackwell). Phase-6 artifact used a host CUDA-13 override, quarantined non-production. | NVIDIA Evo2 NIM with native SM103 / CUDA ≥12.9. Upstream. |
 
 **Findings that unblocked the validated 5** (each cost real debugging): cuda-checkpoint
 must be on the restore PATH and re-run (restore+unlock, no `--timeout`); JIT stub
