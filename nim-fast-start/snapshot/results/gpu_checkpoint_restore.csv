@@ -75,3 +75,9 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 2,v14-functional-nrd-prefetch,first_inference,2624,pdb-200,
 1,v14-dump,criu_dump,65897,n/a,donor: cuda lock+ckpt 1.89s + criu-patched dump 65.9s; 8.78GB 184 files; donor kept serving (leave-running)
 1,v14-dump,notes,n/a,n/a,dump requires --skip-mnt for PVC cache mount (CSI dev unsupported by CRIU); zero --external args needed at restore (23-mount minimal tree); JIT dirs harvested to jit-v14.tar (5MB 6 .so)
+1,v14-preemptible-demo,node_provision,300000,n/a,PREEMPTIBLE H100 group (mlspec-archvteams-2407-preempt-ng) with SFS attached; node Ready ~5min after create
+1,v14-preemptible-demo,image_pull,237420,n/a,10.7GB nvcr image on fresh preemptible node: 3m57s
+1,v14-preemptible-demo,http_ready,17095,ready,functional restore from shared SFS (prefetch): criu 15.6s + cuda restore/unlock 0.86s + fixups
+1,v14-preemptible-demo,first_inference,2339,pdb-200,SCALE-OUT COMPLETE: preemptible node + shared SFS checkpoint + model cache + jit tar = 19.4s restore-to-fold; zero per-node prep beyond image pull
+1,v14-distribution,s3_upload,67097,n/a,v14 8.78GB to S3 67s; model cache 5.3GB 195s; SFS reseed (ckpt+cache+jit) 661s one-time
+1,arch-constraint,note,n/a,n/a,checkpoints are GPU-arch-bound (sm90 H100/H200 vs sm100 B300): per-arch checkpoint per NIM; B300 fleet dumps happen on the B300 full node
