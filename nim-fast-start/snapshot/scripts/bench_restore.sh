@@ -172,6 +172,46 @@ run_restore() {
 
   export PATH="$WORK_DIR/criu/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
+  # External mount list: per-checkpoint (mount ids are donor-pod-specific).
+  # EXTERNALS_FILE: one "--external mnt[extN]:/path" pair per line, generated
+  # from the checkpoint's mountpoints image. Falls back to the v12 list below.
+  local EXT_ARGS=()
+  if [ -n "${EXTERNALS_FILE:-}" ] && [ -f "$EXTERNALS_FILE" ]; then
+    while IFS= read -r line; do
+      [ -n "$line" ] && EXT_ARGS+=(--external "$line")
+    done < "$EXTERNALS_FILE"
+    echo "[run $run_num] using ${#EXT_ARGS[@]} externals from $EXTERNALS_FILE"
+    LD_LIBRARY_PATH="$WORK_DIR/criu/libs:/usr/lib/x86_64-linux-gnu" \
+      "$WORK_DIR/criu/criu" restore \
+        --images-dir "$CHECKPOINT_DIR" \
+        --log-file "$log" \
+        -v4 \
+        --mntns-compat-mode \
+        --root / \
+        --shell-job \
+        --restore-detached \
+        --tcp-close \
+        --ext-unix-sk \
+        --file-locks \
+        --link-remap \
+        --manage-cgroups=ignore \
+        -L "$WORK_DIR/criu/plugins" \
+        --empty-ns net \
+        "${EXT_ARGS[@]}"
+    local CRIU_EXIT=$?
+    T_CRIU=$(date +%s%3N)
+    local CRIU_MS=$(( T_CRIU - T0 ))
+    if [ $CRIU_EXIT -ne 0 ]; then
+      echo "[run $run_num] CRIU FAILED (exit=$CRIU_EXIT) after ${CRIU_MS}ms"
+      tail -5 "$log" 2>/dev/null
+      echo "$run_num	$CRIU_MS	-1	FAILED_CRIU_$CRIU_EXIT"
+      return 1
+    fi
+    echo "[run $run_num] CRIU: ${CRIU_MS}ms"
+    post_restore_and_wait "$run_num" "$T0" "$T_CRIU" "$CRIU_MS"
+    return $?
+  fi
+
   LD_LIBRARY_PATH="$WORK_DIR/criu/libs:/usr/lib/x86_64-linux-gnu" \
     "$WORK_DIR/criu/criu" restore \
       --images-dir "$CHECKPOINT_DIR" \
@@ -236,9 +276,17 @@ run_restore() {
   fi
 
   echo "[run $run_num] CRIU: ${CRIU_MS}ms"
+  post_restore_and_wait "$run_num" "$T0" "$T_CRIU" "$CRIU_MS"
+  return $?
+}
+
+# ─── Shared post-CRIU sequence: stdio fix, netns, HTTP readiness ─────────────
+post_restore_and_wait() {
+  local run_num="$1" T0="$2" T_CRIU="$3" CRIU_MS="$4"
+  local T_SETUP T_READY
 
   local NIM_PID
-  NIM_PID=$(pgrep -f 'start_server' | head -1 || true)
+  NIM_PID=$(pgrep -f 'start_serve[r]' | head -1 || true)
   if [ -z "$NIM_PID" ]; then
     echo "[run $run_num] ERROR: No NIM PID"
     echo "$run_num	$CRIU_MS	-1	FAILED_NO_PID"
@@ -256,6 +304,23 @@ run_restore() {
 
   # Setup loopback in restored netns (Python ioctl — ip binary unreliable)
   setup_netns "$NIM_PID" >/dev/null 2>&1
+
+  # Checkpoints dumped WITHOUT the CRIU cuda_plugin (manual cuda-checkpoint
+  # lock/checkpoint before dump) come back with the CUDA context still in
+  # 'checkpointed' state: HTTP health works, but the first kernel launch
+  # blocks forever. Detect and finish the GPU restore manually.
+  local CUDA_BIN="$WORK_DIR/criu/bin/cuda-checkpoint"
+  local PY_PID CUDA_STATE T_CUDA0 T_CUDA1
+  PY_PID=$(pgrep -f 'python.*start_serve[r]' | head -1 || true)
+  [ -z "$PY_PID" ] && PY_PID="$NIM_PID"
+  CUDA_STATE=$("$CUDA_BIN" --get-state --pid "$PY_PID" 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
+  if [ "$CUDA_STATE" = "checkpointed" ] || [ "$CUDA_STATE" = "locked" ]; then
+    T_CUDA0=$(date +%s%3N)
+    [ "$CUDA_STATE" = "checkpointed" ] && "$CUDA_BIN" --action restore --pid "$PY_PID" --timeout 60000
+    "$CUDA_BIN" --action unlock --pid "$PY_PID" --timeout 60000
+    T_CUDA1=$(date +%s%3N)
+    echo "[run $run_num] cuda-checkpoint restore+unlock: $((T_CUDA1-T_CUDA0))ms (state was: $CUDA_STATE)"
+  fi
 
   T_SETUP=$(date +%s%3N)
   echo "[run $run_num] NIM PID=$NIM_PID post-restore setup: $((T_SETUP - T_CRIU))ms"
