@@ -96,3 +96,4 @@ run,approach,action,elapsed_ms,cuda_state_after,notes
 1,proteinmpnn-sm90-dump,criu_dump,11586,n/a,1.87GB; cuda 605ms; no io_uring; donor preserved
 1,io_uring-fix,discovery,n/a,n/a,newer /predict NIMs (openfold3 boltz2) expose io_uring FDs -> CRIU -22; FIX=inject_close FDs AFTER cuda lock+checkpoint BEFORE criu dump (before breaks CUDA init); inject_close from Phase5 /opt/criu
 1,arch-split,finding,n/a,n/a,sm_90-ONLY images (cant run on B300): diffdock rfdiffusion proteinmpnn molmim -> H100 pool; sm_100-capable: openfold2 genmol openfold3 boltz2 msa-search evo2 -> B300
+1,molmim,deferred,n/a,n/a,molmim 1.0.0 = 17-proc supervisord with an fanotify/fsnotify handle (0xb7:...) CRIU cannot dump even with --force-irmap; also perms(fixed via root) + sm_90(H100 pool). LOW VALUE (tiny model fast conventionally); checkpoint deferred pending CRIU fanotify support or a watch-disable env
