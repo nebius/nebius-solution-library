@@ -112,3 +112,7 @@ cleanup state is appended after executing these scripts.
 - Task-prefixed container images and immutable tags remain in the authorized
   registry as the reproducible deliverable. The existing cluster, filesystem,
   bucket, registry, and service account were retained.
+- The temporary task kubeconfig in `/dev/shm` was securely shredded. Temporary
+  CRIU source and rendered diagnostic files were moved out of `/tmp` to the
+  local desktop trash so they remain recoverable without cluttering the shared
+  temporary directory. No task-named file remains in `/dev/shm` or `/tmp`.
