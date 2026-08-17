@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k301ud-warm-cache
+  namespace: archvteams-2407-k301ud
+  labels:
+    app.kubernetes.io/name: k301ud-warm-cache
+    app.kubernetes.io/part-of: archvteams-2407-k301ud
+    ml-specialist.nebius.ai/task: k301ud
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    ml-specialist.nebius.ai/task: k301ud-sfs
+  tolerations:
+    - key: ml-specialist.nebius.ai/task
+      operator: Equal
+      value: k301ud-sfs
+      effect: NoSchedule
+  containers:
+    - name: qwen
+      image: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/qwen-vllm-placeholder:v1.4.0-public-criu-aio.1
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/bash
+        - -lc
+        - exec sleep infinity
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 1
+          memory: 1Gi
+    - name: sdxl
+      image: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/sdxl-placeholder:v1.0.0-criu-aio-sleep.2
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/bash
+        - -lc
+        - exec sleep infinity
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 1
+          memory: 1Gi

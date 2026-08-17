@@ -1,0 +1,8 @@
+status=completed
+namespace=archvteams-2407-k301ud
+name=qwen3-8b-checkpoint-source
+checkpoint_job=qwen3-8b-checkpoint-source-checkpoint
+checkpoint_id=qwen3-8b-k301ud-v1
+checkpoint_location=/checkpoints/qwen3-8b-k301ud-v1/versions/1
+pod_snapshot=qwen3-8b-checkpoint-source-checkpoint
+bound_content=podsnapshotcontent-24a79555-34c3-43e3-a567-5b89f5a01085

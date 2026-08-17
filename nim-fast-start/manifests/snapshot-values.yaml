@@ -1,0 +1,43 @@
+storage:
+  type: pvc
+  accessMode: agentMount
+  pvc:
+    create: false
+    name: snapshot-pvc
+    size: 70Gi
+    storageClass: archvteams-2407-k301ud-memory
+    accessMode: ReadWriteOnce
+    basePath: /checkpoints
+
+daemonset:
+  image:
+    repository: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent
+    tag: v1.4.0-public-criu-aio.1
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  snapshotLogLevel: info
+  resources:
+    requests:
+      cpu: 4
+      memory: 8Gi
+    limits:
+      cpu: 8
+      memory: 48Gi
+  nodeSelector:
+    nvidia.com/gpu.present: null
+    ml-specialist.nebius.ai/task: k301ud
+  tolerations:
+    - key: ml-specialist.nebius.ai/task
+      operator: Equal
+      value: k301ud
+      effect: NoSchedule
+  initContainer:
+    image: docker.io/library/busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+    imagePullPolicy: IfNotPresent
+
+rbac:
+  create: true
+  namespaceRestricted: true
+
+seccomp:
+  deploy: true

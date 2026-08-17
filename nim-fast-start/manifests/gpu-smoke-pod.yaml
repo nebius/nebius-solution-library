@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k301ud-gpu-smoke
+  namespace: archvteams-2407-k301ud
+  labels:
+    app.kubernetes.io/name: gpu-smoke
+    app.kubernetes.io/part-of: archvteams-2407-k301ud
+    ml-specialist.nebius.ai/task: k301ud
+spec:
+  runtimeClassName: nvidia
+  restartPolicy: Never
+  nodeSelector:
+    ml-specialist.nebius.ai/task: k301ud
+  tolerations:
+    - key: ml-specialist.nebius.ai/task
+      operator: Equal
+      value: k301ud
+      effect: NoSchedule
+  containers:
+    - name: nvidia-smi
+      image: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:24abf45bebe06fccd4a2f2968d26a9501bde05f45d9377ac8863a108650ca689
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/bash
+        - -lc
+      args:
+        - >-
+          nvidia-smi --query-gpu=name,driver_version,memory.total
+          --format=csv,noheader
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+          nvidia.com/gpu: "1"
+        limits:
+          cpu: "1"
+          memory: 512Mi
+          nvidia.com/gpu: "1"

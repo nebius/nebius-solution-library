@@ -1,0 +1,44 @@
+diff --git a/deploy/operator/Dockerfile b/deploy/operator/Dockerfile
+index 8ea2284..93c0786 100644
+--- a/deploy/operator/Dockerfile
++++ b/deploy/operator/Dockerfile
+@@ -108,0 +109,13 @@ RUN --mount=type=cache,target=/go/pkg/mod,sharing=shared \
++# Task-local public build target. The released Dockerfile's final image uses an
++# NGC-only distroless base and its compliance target also depends on NGC build
++# infrastructure. The operator binaries are statically linked, so the public
++# distroless static base is equivalent for this isolated validation build.
++FROM gcr.io/distroless/static-debian12:nonroot@sha256:b7ebc675e6df3e26840de28a9d119969806b5542902111bfd111964d0930c08a AS public-operator
++WORKDIR /
++COPY --from=builder /workspace/manager .
++COPY --from=builder /workspace/crd-apply .
++COPY --from=builder /workspace/dgd-apply-overrides .
++COPY --from=builder /workspace/config/crd/bases/ /opt/dynamo-operator/crds/
++USER 65532:65532
++ENTRYPOINT ["./manager"]
++
+diff --git a/deploy/snapshot/Dockerfile b/deploy/snapshot/Dockerfile
+index eb8b995..0909c7a 100644
+--- a/deploy/snapshot/Dockerfile
++++ b/deploy/snapshot/Dockerfile
+@@ -25,2 +25,5 @@ ARG CRIU_REPO=https://github.com/checkpoint-restore/criu.git
+-ARG CRIU_REF=b47c692bb3a73ae45ee1c4ab215a8f6869d40efd
+-ARG AGENT_BASE_IMAGE=nvcr.io/nvidia/cuda-dl-base:25.11-cuda13.0-devel-ubuntu24.04
++# Includes upstream native-AIO VMA restore (2b660dd2) and parallel memfd
++# restore (e33b8559), both merged after Dynamo v1.4.0's CRIU pin.
++ARG CRIU_REF=91d552257809d0e5c7148190e9aa0372f13b76a0
++ARG AGENT_BASE_IMAGE=docker.io/nvidia/cuda:13.0.2-devel-ubuntu24.04@sha256:0eee3094c71518ad31d011a594ae6ed6de72959ee07e318cb31cffe71690e90c
++ARG CUDA_CHECKPOINT_REF=00d5cce84c628088d6caa203fc4af40c1538b6f7
+@@ -185 +188,5 @@ RUN mkdir -p /criu-install/usr/local/lib/snapshot/criu-plugins \
+-RUN git clone https://github.com/NVIDIA/cuda-checkpoint.git /tmp/cuda-checkpoint
++RUN git init /tmp/cuda-checkpoint \
++    && cd /tmp/cuda-checkpoint \
++    && git remote add origin https://github.com/NVIDIA/cuda-checkpoint.git \
++    && git fetch --depth 1 origin ${CUDA_CHECKPOINT_REF} \
++    && git checkout FETCH_HEAD
+@@ -362,0 +370,6 @@ ENTRYPOINT ["/usr/local/bin/snapshot-agent"]
++# Task-local public build target. It avoids the NVIDIA-internal compliance
++# build context while retaining the upstream source licenses already copied by
++# agent_pre. This image is for isolated benchmarking, not redistribution.
++FROM agent_pre AS public-agent
++ENTRYPOINT ["/usr/local/bin/snapshot-agent"]
++

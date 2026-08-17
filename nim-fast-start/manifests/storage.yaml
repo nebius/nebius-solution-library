@@ -1,0 +1,67 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: archvteams-2407-k301ud-memory
+  labels:
+    app.kubernetes.io/part-of: archvteams-2407-k301ud
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: archvteams-2407-k301ud-checkpoints
+  labels:
+    app.kubernetes.io/part-of: archvteams-2407-k301ud
+    ml-specialist.nebius.ai/task: k301ud
+spec:
+  capacity:
+    storage: 70Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: archvteams-2407-k301ud-memory
+  volumeMode: Filesystem
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: ml-specialist.nebius.ai/task
+              operator: In
+              values:
+                - k301ud
+  hostPath:
+    path: /dev/shm/archvteams-2407-k301ud-checkpoints
+    type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: snapshot-pvc
+  namespace: archvteams-2407-k301ud
+  labels:
+    app.kubernetes.io/part-of: archvteams-2407-k301ud
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 70Gi
+  storageClassName: archvteams-2407-k301ud-memory
+  volumeName: archvteams-2407-k301ud-checkpoints
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-cache
+  namespace: archvteams-2407-k301ud
+  labels:
+    app.kubernetes.io/part-of: archvteams-2407-k301ud
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 80Gi
+  storageClassName: compute-csi-default-sc

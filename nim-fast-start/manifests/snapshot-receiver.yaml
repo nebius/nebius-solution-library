@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k301ud-snapshot-receiver
+  namespace: archvteams-2407-k301ud
+  labels:
+    app.kubernetes.io/name: k301ud-snapshot-receiver
+    app.kubernetes.io/part-of: archvteams-2407-k301ud
+    ml-specialist.nebius.ai/task: k301ud
+spec:
+  restartPolicy: Never
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  nodeSelector:
+    ml-specialist.nebius.ai/task: k301ud-sfs
+  tolerations:
+    - key: ml-specialist.nebius.ai/task
+      operator: Equal
+      value: k301ud-sfs
+      effect: NoSchedule
+  initContainers:
+    - name: install-busybox
+      image: docker.io/library/busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+      command:
+        - /bin/sh
+        - -c
+        - cp /bin/busybox /tools/busybox
+      volumeMounts:
+        - name: tools
+          mountPath: /tools
+  containers:
+    - name: receiver
+      image: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/qwen-vllm-placeholder:v1.4.0-public-criu-aio.1
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/bash
+        - -lc
+        - exec sleep 2147483647
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 2
+          memory: 1Gi
+      volumeMounts:
+        - name: checkpoints
+          mountPath: /destination
+        - name: tools
+          mountPath: /tools
+  volumes:
+    - name: checkpoints
+      hostPath:
+        path: /mnt/k301ud-sfs/k301ud/checkpoints
+        type: Directory
+    - name: tools
+      emptyDir: {}

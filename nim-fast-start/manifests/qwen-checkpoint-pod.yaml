@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: qwen3-8b-checkpoint-source
+  namespace: archvteams-2407-k301ud
+  labels:
+    app.kubernetes.io/name: qwen3-8b
+    app.kubernetes.io/part-of: archvteams-2407-k301ud
+    ml-specialist.nebius.ai/task: k301ud
+spec:
+  runtimeClassName: nvidia
+  restartPolicy: Never
+  nodeSelector:
+    ml-specialist.nebius.ai/task: k301ud
+  tolerations:
+    - key: ml-specialist.nebius.ai/task
+      operator: Equal
+      value: k301ud
+      effect: NoSchedule
+  containers:
+    - name: main
+      image: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/qwen-vllm-placeholder:v1.4.0-public-criu-aio.1
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/bash
+        - -lc
+      args:
+        - |
+          set -euo pipefail
+          mkdir -p /run/cuda-ckpt
+          vllm serve Qwen/Qwen3-8B \
+            --served-model-name qwen3-8b \
+            --host 0.0.0.0 \
+            --port 8000 \
+            --dtype bfloat16 \
+            --kv-cache-memory 4294967296 \
+            --safetensors-load-strategy prefetch \
+            --enable-sleep-mode \
+            --max-model-len 4096 \
+            --enforce-eager &
+          server_pid=$!
+          trap 'kill ${server_pid} 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 1800); do
+            if curl --fail --silent --show-error \
+              --header 'Content-Type: application/json' \
+              --data '{"model":"qwen3-8b","messages":[{"role":"user","content":"Reply with exactly SNAPSHOT_OK"}],"temperature":0,"max_tokens":8,"chat_template_kwargs":{"enable_thinking":false}}' \
+              http://127.0.0.1:8000/v1/chat/completions \
+              --output /tmp/qwen-precheckpoint-semantic.json; then
+              python3 -c 'import json; p="/tmp/qwen-precheckpoint-semantic.json"; d=json.load(open(p)); assert "SNAPSHOT_OK" in d["choices"][0]["message"]["content"]'
+              curl --fail --silent --show-error \
+                --request POST http://127.0.0.1:8000/sleep?level=1 \
+                --output /tmp/qwen-sleep.json
+              touch "${DYN_SNAPSHOT_CONTROL_DIR}/ready-for-snapshot"
+              wait "${server_pid}"
+              exit $?
+            fi
+            if ! kill -0 "${server_pid}" 2>/dev/null; then
+              wait "${server_pid}"
+            fi
+            sleep 1
+          done
+          echo 'Qwen did not become semantically ready within 30 minutes' >&2
+          exit 1
+      env:
+        - name: HF_HOME
+          value: /model-cache/huggingface
+        - name: TRANSFORMERS_CACHE
+          value: /model-cache/huggingface
+        - name: HF_HUB_DISABLE_TELEMETRY
+          value: "1"
+        - name: VLLM_NO_USAGE_STATS
+          value: "1"
+        - name: VLLM_SERVER_DEV_MODE
+          value: "1"
+        - name: VLLM_HOST_IP
+          value: 127.0.0.1
+        - name: VLLM_WORKER_MULTIPROC_METHOD
+          value: spawn
+        - name: VLLM_RPC_BASE_PATH
+          value: /run/cuda-ckpt
+      ports:
+        - name: http
+          containerPort: 8000
+      resources:
+        requests:
+          cpu: "8"
+          memory: 64Gi
+          nvidia.com/gpu: "1"
+          ephemeral-storage: 40Gi
+        limits:
+          cpu: "14"
+          memory: 160Gi
+          nvidia.com/gpu: "1"
+          ephemeral-storage: 80Gi
+      volumeMounts:
+        - name: model-cache
+          mountPath: /model-cache
+  volumes:
+    - name: model-cache
+      persistentVolumeClaim:
+        claimName: model-cache

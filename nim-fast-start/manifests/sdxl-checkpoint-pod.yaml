@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sdxl-checkpoint-source
+  namespace: archvteams-2407-k301ud
+  labels:
+    app.kubernetes.io/name: sdxl
+    app.kubernetes.io/part-of: archvteams-2407-k301ud
+    ml-specialist.nebius.ai/task: k301ud
+spec:
+  runtimeClassName: nvidia
+  restartPolicy: Never
+  nodeSelector:
+    ml-specialist.nebius.ai/task: k301ud
+  tolerations:
+    - key: ml-specialist.nebius.ai/task
+      operator: Equal
+      value: k301ud
+      effect: NoSchedule
+  containers:
+    - name: main
+      image: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/sdxl-placeholder:v1.0.0-criu-aio-sleep.2
+      imagePullPolicy: IfNotPresent
+      command:
+        - /usr/bin/python3
+      args:
+        - /opt/k301ud/sdxl_server.py
+        - --model
+        - stabilityai/stable-diffusion-xl-base-1.0
+        - --cache-dir
+        - /model-cache/huggingface
+        - --ready-file
+        - /snapshot-control/ready-for-snapshot
+      env:
+        - name: HF_HOME
+          value: /model-cache/huggingface
+        - name: HF_HUB_DISABLE_TELEMETRY
+          value: "1"
+      ports:
+        - name: http
+          containerPort: 8000
+      resources:
+        requests:
+          cpu: "8"
+          memory: 64Gi
+          nvidia.com/gpu: "1"
+          ephemeral-storage: 40Gi
+        limits:
+          cpu: "14"
+          memory: 160Gi
+          nvidia.com/gpu: "1"
+          ephemeral-storage: 80Gi
+      volumeMounts:
+        - name: model-cache
+          mountPath: /model-cache
+  volumes:
+    - name: model-cache
+      persistentVolumeClaim:
+        claimName: model-cache

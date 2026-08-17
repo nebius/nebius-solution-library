@@ -1,0 +1,8 @@
+status=completed
+namespace=archvteams-2407-k301ud
+name=sdxl-checkpoint-source
+checkpoint_job=sdxl-checkpoint-source-checkpoint
+checkpoint_id=sdxl-k301ud-aio-sleep-v1
+checkpoint_location=/checkpoints/sdxl-k301ud-aio-sleep-v1/versions/1
+pod_snapshot=sdxl-checkpoint-source-checkpoint
+bound_content=podsnapshotcontent-6067fa8a-f04f-4c9a-b329-615f72879baf

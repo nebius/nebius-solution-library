@@ -1,0 +1,42 @@
+upgradeCRD: false
+discoveryBackend: kubernetes
+
+namespaceRestriction:
+  enabled: true
+  targetNamespace: archvteams-2407-k301ud
+
+gpuDiscovery:
+  enabled: false
+
+controllerManager:
+  tolerations:
+    - key: ml-specialist.nebius.ai/task
+      operator: Equal
+      value: k301ud
+      effect: NoSchedule
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: ml-specialist.nebius.ai/task
+                operator: In
+                values:
+                  - k301ud
+  manager:
+    image:
+      repository: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/kubernetes-operator
+      tag: v1.4.0-public.1
+      pullPolicy: IfNotPresent
+
+checkpoint:
+  enabled: true
+  cleanupImage: docker.io/library/busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+
+dynamo:
+  metrics:
+    podMonitors:
+      enabled: false
+
+metricsService:
+  enabled: false
