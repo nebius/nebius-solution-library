@@ -1,0 +1,27 @@
+# =============================================================================
+# GB300 / DRA ComputeDomain for cross-node NCCL.
+#
+# On DRA-native GB300 clusters, cross-node collectives use MNNVL (multi-node
+# NVLink). Without a ComputeDomain the nodes aren't in a shared NVLink clique,
+# so NCCL's NVLS/MNNVL setup fails with "Cuda failure 801 'operation not
+# supported'" (transport/nvls.cc). The ComputeDomain establishes the IMEX
+# channel that lets the pods form one NVLink domain.
+#
+# The NVIDIA controller AUTO-CREATES the channel ResourceClaimTemplate named
+# below (soak-channel) — do not hand-write it. Pods claim it via pytorchjob-dra.yaml.
+# Applied ONLY on DRA clusters (single-node runs skip it — no cross-node fabric).
+#
+# Placeholder patched by run-soak-test.sh:
+#   __NODE_COUNT__   number of GPU nodes in the run (= ComputeDomain size)
+# =============================================================================
+apiVersion: resource.nvidia.com/v1beta1
+kind: ComputeDomain
+metadata:
+  name: soak-cd
+  labels:
+    app: gpu-soak
+spec:
+  numNodes: __NODE_COUNT__
+  channel:
+    resourceClaimTemplate:
+      name: soak-channel
