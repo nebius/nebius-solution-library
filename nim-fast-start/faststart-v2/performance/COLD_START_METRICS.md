@@ -66,9 +66,11 @@ valid end-to-end total; neither value is reconstructed.
   87.423 s, with 8.611 s and 8.549 s calls; T0 through call 2 was 104.584 s.
   Its selected fully prewarmed buffered median is 12.281 s to HTTP readiness.
 - ProteinMPNN's selected buffered run excludes a measured 15.173 s full
-  pre-read of its 1.867 GB artifact before T0.
+  pre-read of its 1.867 GB artifact before T0. Its production-shaped direct
+  n=3 median was 23.898 s to HTTP readiness, with 0.606 s and 0.272 s calls.
 - DiffDock's selected buffered run excludes a full 7.516 GB pre-read before
-  T0. Its production-shaped direct canary took 74.022 s to HTTP readiness.
+  T0. Its production-shaped direct canary took 72.733 s to HTTP readiness,
+  with 1.321 s and 0.545 s calls.
 - MSA's retained page-cache result was 3.117 s to readiness, versus 13.808 s
   for its manual direct-I/O path.
 - GenMol's retained page-cache result was 3.732 s to readiness, versus 36.508 s
