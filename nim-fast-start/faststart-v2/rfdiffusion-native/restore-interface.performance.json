@@ -4,14 +4,14 @@
   "approval": {
     "reviewed_by": "archvteams-2407-performance-validation",
     "reviewed_at": "2026-08-18T05:30:00Z",
-    "evidence_sha256": "87553dc91c93a778446475540634e636a85eaa6ee42ba5084e54bf6f58e239d2"
+    "evidence_sha256": "3f6c42dd0b282e56599ea16d543b4a4b8d04779244208b021488c86e85ee5c76"
   },
   "source": {
     "repository": "https://github.com/ai-dynamo/dynamo",
     "commit": "f7f37be174d252590c4b56e25ff4262dd82466fd",
     "patch_sha256": "260c1d9a7f192b8c0b25c924ab26b43a95ad599d38d3f367383e3e984aecfd11"
   },
-  "worker_image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:25d195c97ee2e62577475d5a97d3de8c9f694c3e2a7bcc06d3b5c48d88549a24",
+  "worker_image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28",
   "worker_executable": "/usr/local/bin/restore-worker",
   "argument_template": [
     "restore",

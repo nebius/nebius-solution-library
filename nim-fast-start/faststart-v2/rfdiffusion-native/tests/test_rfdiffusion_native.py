@@ -26,6 +26,18 @@ import validate_rfdiffusion as validator  # noqa: E402
 POD_UID = "11111111-1111-4111-8111-111111111111"
 CONTAINER_ID = "containerd://" + "a" * 64
 MANIFEST_SHA256 = "b" * 64
+WORKER_IMAGE = (
+    "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/"
+    "snapshot-agent@sha256:"
+    "d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28"
+)
+RESTORE_WORKER_SHA256 = "941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651"
+TOOL_MANIFEST_SHA256 = "c0d638100c03fa35973e82859d15b9c8dd1bcbf0fe9cb185b58cc21fae7ead1e"
+SOURCE_TREE_SHA256 = "76838bc28fa641ba3d3165c1deb1f019c4f63ed9fce9571b38194ff65ef7b816"
+PROVENANCE_SHA256 = "3f6c42dd0b282e56599ea16d543b4a4b8d04779244208b021488c86e85ee5c76"
+NS_BIND_MOUNT_PATCH_SHA256 = (
+    "4847d7d42aae570fc7f91351a8fbf3018f10dc6247d93c2c9696754861731366"
+)
 
 
 def contract() -> dict[str, Any]:
@@ -479,14 +491,41 @@ class RFdiffusionAggregateAndProvenanceTests(unittest.TestCase):
         gate = render.WORKER_GATE
         provenance = (MODULE_DIR / gate["provenance_path"]).resolve()
         self.assertTrue(provenance.is_file())
+        self.assertEqual(WORKER_IMAGE, gate["worker_image"])
+        self.assertEqual(RESTORE_WORKER_SHA256, gate["restore_worker_sha256"])
+        self.assertEqual(TOOL_MANIFEST_SHA256, gate["tool_bundle_manifest_sha256"])
+        self.assertEqual(SOURCE_TREE_SHA256, gate["source_materialized_tree_sha256"])
+        self.assertEqual(PROVENANCE_SHA256, gate["provenance_sha256"])
         self.assertEqual(
             gate["provenance_sha256"], hashlib.sha256(provenance.read_bytes()).hexdigest()
+        )
+        provenance_payload = json.loads(provenance.read_text(encoding="utf-8"))
+        self.assertEqual(
+            SOURCE_TREE_SHA256,
+            provenance_payload["integrated_source_validation"][
+                "materialized_tree_sha256"
+            ],
+        )
+        self.assertEqual(
+            NS_BIND_MOUNT_PATCH_SHA256,
+            provenance_payload["upgrade_toolchain"][
+                "ns_bind_mount_runtime_patch_sha256"
+            ],
+        )
+        performance_image = provenance_payload["integrated_performance_validation_image"]
+        self.assertEqual(WORKER_IMAGE, performance_image["reference"])
+        self.assertEqual(
+            RESTORE_WORKER_SHA256, performance_image["restore_worker_sha256"]
+        )
+        self.assertEqual(
+            TOOL_MANIFEST_SHA256, performance_image["tool_bundle_manifest_sha256"]
         )
         self.assertTrue(gate["performance_validation_ready"])
         self.assertFalse(gate["release_ready"])
         self.assertEqual(
             gate["tool_bundle_manifest_sha256"], contract()["tool_bundle"]["content_sha256"]
         )
+        self.assertEqual(gate["provenance_sha256"], contract()["approval"]["evidence_sha256"])
 
     def test_runner_pins_contract_and_validator_bytes(self) -> None:
         runner = (MODULE_DIR / "run_one_provisioned_trial.sh").read_text(encoding="utf-8")

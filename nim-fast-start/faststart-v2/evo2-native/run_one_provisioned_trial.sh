@@ -5,7 +5,7 @@ umask 077
 
 readonly allowed_server="https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebius.cloud:443"
 readonly namespace="nim-fast-start"
-readonly expected_contract_sha256="d96e1e74cc89f6381c80f671742a1e72abc7a1acc06c959976883cab90569f90"
+readonly expected_contract_sha256="84a3ee4b6242b1205cb9e1c1cc03eca8dc0a3376fb0d9781af0488135a84d51f"
 readonly expected_validator_sha256="113747668c537e83c61648e193419248696e144d5b0598b1f6ca7d38efabe496"
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)

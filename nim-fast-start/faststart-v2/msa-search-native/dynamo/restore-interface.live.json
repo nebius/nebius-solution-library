@@ -8,12 +8,12 @@
   "approval": {
     "reviewed_by": "codex-performance-interface-review",
     "reviewed_at": "2026-08-18T05:09:07Z",
-    "evidence_sha256": "ffa53eadaf37b40b260766e6a33c07268b76c8ee7f3a045db1e6327a0ca671b4"
+    "evidence_sha256": "76838bc28fa641ba3d3165c1deb1f019c4f63ed9fce9571b38194ff65ef7b816"
   },
   "source": {
     "repository": "https://github.com/ai-dynamo/dynamo",
     "commit": "f7f37be174d252590c4b56e25ff4262dd82466fd",
-    "materialized_tree_sha256": "ffa53eadaf37b40b260766e6a33c07268b76c8ee7f3a045db1e6327a0ca671b4",
+    "materialized_tree_sha256": "76838bc28fa641ba3d3165c1deb1f019c4f63ed9fce9571b38194ff65ef7b816",
     "patch_inputs": {
       "public_aio_toolchain": "de10a0609115589efb137186544c9d90a0fcc03616ef959376139c65ae9615bc",
       "core_hardening": "260c1d9a7f192b8c0b25c924ab26b43a95ad599d38d3f367383e3e984aecfd11",
@@ -21,10 +21,11 @@
       "source_archive_fix": "5dd45d97596bbdf068f33f0532fc71da1754c9eeb7d91f0abe547ac29f30bf0e",
       "portable_glibc35_toolchain": "62d584ea83770c62d090bbbc15f265a6fadda064ec8c6e6a4fd0abe8328780b9",
       "buffered_criu_io": "6a59dcb524abd0d9596697efd28afb3bd9d4e543b193f687178494452cecac15",
-      "jammy_compliance_tomli": "6fa58bcdf97c54f8ecd75e2a685150bd1ae5cede71283eb8fc9aa88bacf87156"
+      "jammy_compliance_tomli": "6fa58bcdf97c54f8ecd75e2a685150bd1ae5cede71283eb8fc9aa88bacf87156",
+      "ns_bind_mount_glibc35": "4847d7d42aae570fc7f91351a8fbf3018f10dc6247d93c2c9696754861731366"
     }
   },
-  "worker_image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:25d195c97ee2e62577475d5a97d3de8c9f694c3e2a7bcc06d3b5c48d88549a24",
+  "worker_image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28",
   "worker_executable": "/usr/local/bin/restore-worker",
   "worker_executable_sha256": "941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651",
   "argument_template": [

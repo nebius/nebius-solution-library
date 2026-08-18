@@ -58,13 +58,13 @@ server and performs two strict loopback predictions before becoming Ready.
 ## Release contract and current blocker
 
 `dynamo/restore-interface.live.json` is the single source for the immutable
-capture/restore worker image, executable and tool receipts, exact seven-patch
+capture/restore worker image, executable and tool receipts, exact eight-patch
 source inputs, argument contract, supported image-I/O modes, classification,
 and release approval. Its current candidate is the integrated, exact-source
 portable-plus-buffered performance-validation build:
 
 ```text
-cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:25d195c97ee2e62577475d5a97d3de8c9f694c3e2a7bcc06d3b5c48d88549a24
+cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28
 ```
 
 Its restore-worker SHA-256 is

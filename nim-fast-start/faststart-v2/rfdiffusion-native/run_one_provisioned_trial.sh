@@ -5,7 +5,7 @@ umask 077
 
 readonly allowed_server="https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebius.cloud:443"
 readonly namespace="nim-fast-start"
-readonly expected_contract_sha256="9c30682725b79bad8e3df4a2be2ef7bcbe37c7a89a9147ae36a09b918129df8e"
+readonly expected_contract_sha256="080bf957e47ca3416636f6101dccd4dfd52c56dabffe2809c09afe3ba8174a2f"
 readonly expected_validator_sha256="e750bc6f45ce2d97a6f94038946c37a72080031a787c7941bc7882d8991f63be"
 readonly expected_fixture_sha256="d4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161"
 

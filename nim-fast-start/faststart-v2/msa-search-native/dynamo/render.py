@@ -48,6 +48,7 @@ SOURCE_PATCH_INPUTS = frozenset(
         "portable_glibc35_toolchain",
         "buffered_criu_io",
         "jammy_compliance_tomli",
+        "ns_bind_mount_glibc35",
     }
 )
 WORKER_CLASSIFICATIONS = frozenset(

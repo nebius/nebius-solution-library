@@ -75,14 +75,15 @@ A mode passes only after three restores and six strict RDKit-checked responses.
 portable-plus-buffered performance worker:
 
 ```text
-cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:25d195c97ee2e62577475d5a97d3de8c9f694c3e2a7bcc06d3b5c48d88549a24
+cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28
 ```
 
 It pins restore-worker SHA-256
 `941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651`
 and 34-file tool-manifest SHA-256
 `c0d638100c03fa35973e82859d15b9c8dd1bcbf0fe9cb185b58cc21fae7ead1e`.
-The worker supports direct, writeback, and buffered image I/O.
+The exact eight-patch worker supports direct, writeback, and buffered image
+I/O, with `ns-bind-mount` built against the Jammy/GLIBC-2.35 runtime.
 
 It is still classified `performance-validation-only`: the exact Jammy CUDA
 base lacks the required baseline SBOM in the pinned compliance corpus.

@@ -115,14 +115,15 @@ single trials.
 
 ## Worker release gate
 
-The exact current worker is
-`snapshot-agent@sha256:25d195c97ee2e62577475d5a97d3de8c9f694c3e2a7bcc06d3b5c48d88549a24`.
+The exact current eight-patch worker is
+`snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28`.
 Its restore-worker SHA-256 is
 `941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651`
 and its tool-manifest SHA-256 is
 `c0d638100c03fa35973e82859d15b9c8dd1bcbf0fe9cb185b58cc21fae7ead1e`.
 It supports direct, writeback, and buffered modes, and its 34-file bundle has
-an in-build GLIBC ceiling of 2.35.
+an in-build GLIBC ceiling of 2.35. The eighth source patch builds
+`ns-bind-mount` against the Jammy/GLIBC-2.35 worker runtime.
 
 This image is approved only for performance validation. `worker-gate.json`
 sets `release_ready` to false because the full `agent` compliance target still
