@@ -27,6 +27,17 @@ call 2's absolute `response_received_at`, then aggregated. It must not be
 reconstructed by adding independently aggregated readiness and call medians,
 and validator completion must never be substituted for response receipt.
 
+For the fresh n20 cohorts, a Ready attached-storage holder supplies a pre-T0
+`CLOCK_BOOTTIME` anchor bracketed by controller UTC and monotonic reads. The
+holder, target, worker, and semantic probe must retain the exact same node,
+boot ID, time-namespace offsets, and clock resolution. Each response-body
+boundary also records `CLOCK_BOOTTIME`. The conservative per-run upper bound is
+`(event_boottime - anchor_boottime) + 2 * resolution`, rounded upward to
+microseconds; it deliberately includes the proven at-most-1.25-second
+anchor-to-T0 gap. Observed UTC T0 durations remain separate diagnostics. The
+strict p95 SLO uses the conservative upper array, never the observed array or
+the non-exact API-return proxy.
+
 Kubernetes Pod `Ready` is retained as a separate diagnostic and must never be
 reported as HTTP readiness. Worker receipt completion and HTTP readiness are
 independent branches: a restored server can answer HTTP before the worker has
@@ -43,8 +54,11 @@ uses the same T0, readiness, and request boundaries.
 
 ## Evidence classes and storage states
 
-The timing table uses three evidence classes:
+The timing table uses four evidence classes:
 
+- **fresh fail-closed n=20** means one homogeneous immutable-contract cohort
+  with every admitted attempt retained in the denominator, explicit cleanup,
+  CLOCK_BOOTTIME conservative upper bounds, and nearest-rank percentiles;
 - **exact response-boundary n=3** means all five published timing fields come
   from one coherent three-run cohort, and each run retains an absolute call-2
   response timestamp;
@@ -70,7 +84,42 @@ retains the byte count, content/tree identity, and elapsed full-read time;
 historical receipts that lack elapsed time are identified below rather than
 having a duration inferred.
 
-## Current median results
+## Fresh fail-closed n=20 priority cohorts
+
+OpenFold2 and Boltz2 were rerun serially on the same already provisioned pinned
+H100 node with storage attached and exact image residency proven before T0. Both
+cohorts admitted exactly 20 attempts; all 40 attempts passed strict semantic
+and instrumentation validation and UID-bound cleanup. The primary SLO uses the
+per-run conservative CLOCK_BOOTTIME upper bound and nearest-rank p95 (rank 19
+for n=20), with failed attempts sorted after successful samples.
+
+| NIM | Cohort outcome | Qualified / cleanup | Failed denominator | T0 to HTTP ready, observed p50 / p95 / max | T0 to HTTP ready, BOOTTIME upper p50 / p95 / max | Call 1 p50 / p95 / max | Call 2 p50 / p95 / max | T0 to call-2 body, observed p50 / p95 / max | T0 to call-2 body, BOOTTIME upper p50 / p95 / max |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| OpenFold2 | **PASS** | 20/20 / 20/20 | 0/20 | 14.242080 / 14.572160 / 14.991581 | 14.342258 / 14.671991 / 15.099141 | 1.938516 / 1.973362 / 1.975756 | 1.015083 / 1.032614 / 1.035316 | 17.202273 / 17.532731 / 17.955461 | **17.302540 / 17.629887 / 18.063099** |
+| Boltz2 | **SLO FAIL** | 20/20 / 20/20 | 0/20 | 26.971552 / 28.328014 / 28.996664 | 27.070530 / 28.429408 / 29.095697 | 1.408064 / 1.489046 / 1.500368 | 0.282071 / 0.300494 / 0.361623 | 28.794544 / 30.208757 / 30.923531 | **28.892235 / 30.310246 / 31.022641** |
+
+Boltz2's SLO failure is a latency result, not an execution failure: its model,
+instrumentation, cleanup, and failed-attempt denominator all remained clean.
+The complete 20-element arrays and p50/nearest-rank-p95/max values for all 14
+retained clocks are in `openfold2/fresh-cohort-n20-results.tsv` and
+`../boltz2-native/fresh-cohort-n20-results.tsv`. These include T0-to-first-call,
+Kubernetes Ready, target-create API RTT, and the diagnostic client API-return
+proxy; the proxy is explicitly not exact server acceptance and is not the
+primary clock.
+
+Two qualification limitations remain explicit. Target-container GPU checks
+passed, but all 40 selected qualification receipts record privileged
+host-driver Xid absence as unavailable/unproven because there was no
+task-scoped privileged node-log collector. In addition, the 80 raw response
+bodies referenced by the 40 two-call semantic summaries were not copied from
+the probe containers or retained in controller-side evidence. The summaries do
+retain every response SHA-256, byte count, complete-body timestamp, and strict
+semantic invariant/receipt, and the pinned validator sources remain retained
+through exact per-model instrumentation contracts. These gaps do not change
+the reported timings, but the retained metadata is not a substitute for either
+host-driver log evidence or the raw response bodies themselves.
+
+## Retained n=3 median matrix
 
 All values are seconds and use `median [minimum–maximum]`. The exact-total
 column is intentionally blank where an absolute call-2 response timestamp was
@@ -106,8 +155,8 @@ manual histories are included only as explicitly non-selected comparators:
 
 | NIM | Selected pre-T0 state and retained identity | Full-read time excluded from T0 | Receipt status |
 |---|---|---:|---|
-| OpenFold2 | direct/O_DIRECT artifact; payload not page-preloaded | not applicable | direct-state evidence retained per run |
-| Boltz2 | direct/O_DIRECT, 16,241,056,616-byte artifact | not applicable | direct-state evidence retained per run |
+| OpenFold2 | direct/O_DIRECT M3 artifact identity-bound; payload not page-preloaded; exact target/worker/probe images proven resident | not applicable | n20 image-residency receipt SHA-256 `081a0183afe5d0be5906eab31c53d60acf953c8c06c79fa042a4024ba09a7a85`; no artifact page-cache claim |
+| Boltz2 | direct/O_DIRECT 16,241,056,616-byte M3 artifact plus attached cache with 18 unique blobs/13,341,111,872 payload bytes, 19 symlinks/924 bytes, tree `0d433cbb0e93382707368a166e708b50bb40d4d995b8490999d6f3258337f1a1` | cache full read 422.854590; artifact not read | n20 cache receipt SHA-256 `e9c4a57dc2aed5795e9bef1b233154816862d84bb8f33c7dbd947629a9e46a25`; identity/full-read proof makes no artifact or cache page-residency claim |
 | ProteinMPNN | 1,867,046,505 bytes, 57 files, aggregate content SHA-256 `b2ce82dfbef1cbeb9c3ac35b94f5a2f97fccc19a98419e213d8c0d42a5c2c0e0` | 3.586695 in-holder reader; 4.721513 outer `kubectl exec` wall interval | complete identity/elapsed receipt; outer command interval `2026-08-18T11:42:32.791854148Z`–`2026-08-18T11:42:37.513367125Z`; receipt SHA-256 `f611a9457b7991a63cbbac40849398ebcd826b86186d7ddfc3742199ac210ee5` |
 | DiffDock | 7,516,058,314 bytes, 122 files, tree SHA-256 `2d9e339392d6b4c5207ddbd4ef8f26465e324b2e165bd4cd9b43530f006e1b1d` | 5.931160 | complete byte/tree/timestamp/elapsed receipt SHA-256 `aeb1af149e0d054af810d1f670fb339342aa4066b9fbd01d8bd2d0f2058be7e8` |
 | OpenFold3 | 9,263,246,107 bytes, 148 files, tree SHA-256 `f488019348551f356a153ce17cd9568a9d59497ead375c81a84ddef3bc3972c2` | 7.386615 in-holder reader; 8.583788 outer `kubectl exec` wall interval | complete identity/timestamp/elapsed receipt SHA-256 `4e2ce483ed27d817f8e00fc26ef7f53fb9ad2b35f094b59ca44f97fb56abc7e9`; outer interval 12:35:15.138304811Z–12:35:23.722092736Z; holder UID retained |
@@ -146,9 +195,11 @@ its authoritative refreshed holder receipt is
 `<private-evidence-root>/rfdiffusion-native-f7-20260818T080831Z/setup/buffered-holder-r7-refresh-receipt.json`.
 The earlier `rfd-f7-buf-{1,2,3}` diagnostic cohort is explicitly excluded
 because direct-canary activity followed its stale holder read; it never
-contributes to the selected median. OpenFold2 and Boltz2 exact-image preloads
-took 264.996 and 33.536 seconds respectively, occurred before T0, and are
-image-residency setup rather than artifact full-read time.
+contributes to the selected median. The retained n=3 OpenFold2 and Boltz2
+exact-image preloads took 264.996 and 33.536 seconds respectively. The fresh
+n20 cohorts instead bind the exact image-residency receipts named above and in
+the model READMEs. Every preload occurred before T0 and is image-residency
+setup rather than artifact full-read time.
 
 MolMIM's selected call timers are monotonic dispatch-to-complete-body
 measurements and its exact total is independently derived from call 2's
@@ -188,6 +239,10 @@ implementation footnote.
 Nine of the ten NIMs have production-shaped n=3 HTTP-ready, two-call, and exact
 T0-to-call-2 response-boundary evidence: OpenFold2, Boltz2, ProteinMPNN,
 DiffDock, OpenFold3, MSA Search, GenMol, RFdiffusion, and MolMIM.
+
+OpenFold2 and Boltz2 additionally have the fresh fail-closed n=20 evidence
+reported above. OpenFold2 meets the strict `<30 s` conservative-upper p95
+target; Boltz2 does not, despite 20/20 valid runs and cleanups.
 
 Evo2-40B is the only remaining non-production-shaped row. It is blocked on an
 explicit owner decision to release the only allowed H200 from the healthy
