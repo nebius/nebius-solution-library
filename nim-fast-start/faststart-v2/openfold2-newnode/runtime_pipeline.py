@@ -12,7 +12,7 @@ from pathlib import Path
 from node_admission import AdmissionError, validate_admission
 
 
-VALIDATOR_SHA256 = "8da1693931ce62604917a74b1518ac29ee28bdcb89fbe389bee13912351ac9ce"
+VALIDATOR_SHA256 = "4f3e70ef29ea9cd3113c09e6f63bd15b4d9826bf64d7d16972c6c3d0eef3090e"
 MODULES = {"render", "lint", "bind", "evidence"}
 
 

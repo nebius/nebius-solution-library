@@ -54,6 +54,7 @@ FIXED_SEQUENCES = (
 EXPECTED_BACKBONE = frozenset({"N", "CA", "C", "O"})
 MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+RESPONSE_TIMING_CONTRACT = "request-dispatch-to-complete-http-body/v1"
 
 _PDB_THREE_TO_ONE = {
     "ALA": "A",
@@ -109,6 +110,9 @@ class HttpResult:
     headers: dict[str, str]
     body: bytes
     final_url: str
+    elapsed_seconds: float
+    request_started_at: str
+    response_received_at: str
 
 
 @dataclass(frozen=True)
@@ -394,13 +398,25 @@ def post_json(opener: OpenerDirector, url: str, body: bytes, timeout: float) -> 
             "Content-Type": "application/json",
         },
     )
+    request_started_at = utc_now()
+    request_started_ns = time.monotonic_ns()
     try:
         response = opener.open(request, timeout=timeout)
     except HTTPError as exc:
         try:
             response_body = read_bounded(exc)
+            response_received_ns = time.monotonic_ns()
+            response_received_at = utc_now()
             headers = {key.lower(): value for key, value in exc.headers.items()}
-            return HttpResult(int(exc.code), headers, response_body, str(exc.geturl()))
+            return HttpResult(
+                int(exc.code),
+                headers,
+                response_body,
+                str(exc.geturl()),
+                round((response_received_ns - request_started_ns) / 1_000_000_000, 6),
+                request_started_at,
+                response_received_at,
+            )
         finally:
             exc.close()
     except TransportFailure:
@@ -410,11 +426,17 @@ def post_json(opener: OpenerDirector, url: str, body: bytes, timeout: float) -> 
 
     try:
         with response:
+            response_body = read_bounded(response)
+            response_received_ns = time.monotonic_ns()
+            response_received_at = utc_now()
             return HttpResult(
                 int(response.status),
                 {key.lower(): value for key, value in response.headers.items()},
-                read_bounded(response),
+                response_body,
                 str(response.geturl()),
+                round((response_received_ns - request_started_ns) / 1_000_000_000, 6),
+                request_started_at,
+                response_received_at,
             )
     except TransportFailure:
         raise
@@ -428,13 +450,25 @@ def get_http(opener: OpenerDirector, url: str, timeout: float) -> HttpResult:
         method="GET",
         headers={"Accept": "application/json", "Connection": "close"},
     )
+    request_started_at = utc_now()
+    request_started_ns = time.monotonic_ns()
     try:
         response = opener.open(request, timeout=timeout)
     except HTTPError as exc:
         try:
             response_body = read_bounded(exc)
+            response_received_ns = time.monotonic_ns()
+            response_received_at = utc_now()
             headers = {key.lower(): value for key, value in exc.headers.items()}
-            return HttpResult(int(exc.code), headers, response_body, str(exc.geturl()))
+            return HttpResult(
+                int(exc.code),
+                headers,
+                response_body,
+                str(exc.geturl()),
+                round((response_received_ns - request_started_ns) / 1_000_000_000, 6),
+                request_started_at,
+                response_received_at,
+            )
         finally:
             exc.close()
     except TransportFailure:
@@ -444,11 +478,17 @@ def get_http(opener: OpenerDirector, url: str, timeout: float) -> HttpResult:
 
     try:
         with response:
+            response_body = read_bounded(response)
+            response_received_ns = time.monotonic_ns()
+            response_received_at = utc_now()
             return HttpResult(
                 int(response.status),
                 {key.lower(): value for key, value in response.headers.items()},
-                read_bounded(response),
+                response_body,
                 str(response.geturl()),
+                round((response_received_ns - request_started_ns) / 1_000_000_000, 6),
+                request_started_at,
+                response_received_at,
             )
     except TransportFailure:
         raise
@@ -722,6 +762,8 @@ def run_validation(
         "proxy_policy": "disabled",
         "receipt_dir": str(receipt),
         "redirect_policy": "reject",
+        "request_count": 2,
+        "response_timing_contract": RESPONSE_TIMING_CONTRACT,
         "schema_version": 1,
         "started_at": utc_now(),
         "status": "RUNNING",
@@ -736,18 +778,22 @@ def run_validation(
                 client, origin, float(ready_timeout)
             )
         except TransportFailure as exc:
+            validation_finished_at = utc_now()
+            validation_total_elapsed_seconds = round(
+                (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
+            )
             summary.update(
                 {
                     "error": str(exc),
                     "exit_code": 3,
                     "failed_case_count": 0,
-                    "finished_at": utc_now(),
+                    "finished_at": validation_finished_at,
+                    "validation_finished_at": validation_finished_at,
                     "ok": False,
                     "passed_case_count": 0,
                     "status": "ERROR_READY",
-                    "total_elapsed_seconds": round(
-                        (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
-                    ),
+                    "total_elapsed_seconds": validation_total_elapsed_seconds,
+                    "validation_total_elapsed_seconds": validation_total_elapsed_seconds,
                 }
             )
             write_private_json(receipt / "summary.json", summary)
@@ -769,7 +815,6 @@ def run_validation(
             "sequence": probe.sequence,
             "status": "RUNNING",
         }
-        case_started_ns = time.monotonic_ns()
         try:
             result = post_json(client, endpoint, request_body, float(timeout))
         except TransportFailure as exc:
@@ -783,6 +828,13 @@ def run_validation(
             )
             _case_failure(case, "ERROR_TRANSPORT", 3, str(exc))
         else:
+            case.update(
+                {
+                    "elapsed_seconds": result.elapsed_seconds,
+                    "request_started_at": result.request_started_at,
+                    "response_received_at": result.response_received_at,
+                }
+            )
             write_private(receipt / response_name, result.body)
             case.update(
                 {
@@ -841,24 +893,25 @@ def run_validation(
                                     "status": "PASS",
                                 }
                             )
-        case["elapsed_seconds"] = round(
-            (time.monotonic_ns() - case_started_ns) / 1_000_000_000, 6
-        )
         summary["cases"].append(case)
 
     failures = [case for case in summary["cases"] if not case["ok"]]
     exit_code = max((int(case["exit_code"]) for case in failures), default=0)
+    validation_finished_at = utc_now()
+    validation_total_elapsed_seconds = round(
+        (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
+    )
     summary.update(
         {
             "exit_code": exit_code,
             "failed_case_count": len(failures),
-            "finished_at": utc_now(),
+            "finished_at": validation_finished_at,
+            "validation_finished_at": validation_finished_at,
             "ok": not failures,
             "passed_case_count": len(summary["cases"]) - len(failures),
             "status": "PASS" if not failures else "FAIL",
-            "total_elapsed_seconds": round(
-                (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
-            ),
+            "total_elapsed_seconds": validation_total_elapsed_seconds,
+            "validation_total_elapsed_seconds": validation_total_elapsed_seconds,
         }
     )
     write_private_json(receipt / "summary.json", summary)
@@ -1001,24 +1054,28 @@ def run_offline_validation(
             _case_failure(case, "ERROR_SETUP", 2, str(exc))
         except SemanticFailure as exc:
             _case_failure(case, "ERROR_SEMANTIC", 6, str(exc))
-        case["elapsed_seconds"] = round(
+        case["validation_elapsed_seconds"] = round(
             (time.monotonic_ns() - case_started_ns) / 1_000_000_000, 6
         )
         summary["cases"].append(case)
 
     failures = [case for case in summary["cases"] if not case["ok"]]
     exit_code = max((int(case["exit_code"]) for case in failures), default=0)
+    validation_finished_at = utc_now()
+    validation_total_elapsed_seconds = round(
+        (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
+    )
     summary.update(
         {
             "exit_code": exit_code,
             "failed_case_count": len(failures),
-            "finished_at": utc_now(),
+            "finished_at": validation_finished_at,
+            "validation_finished_at": validation_finished_at,
             "ok": not failures,
             "passed_case_count": len(summary["cases"]) - len(failures),
             "status": "PASS" if not failures else "FAIL",
-            "total_elapsed_seconds": round(
-                (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
-            ),
+            "total_elapsed_seconds": validation_total_elapsed_seconds,
+            "validation_total_elapsed_seconds": validation_total_elapsed_seconds,
         }
     )
     return summary

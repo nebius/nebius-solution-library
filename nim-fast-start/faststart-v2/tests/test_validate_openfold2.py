@@ -8,12 +8,14 @@ import stat
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable, Iterator
 from urllib.request import ProxyHandler
+from unittest import mock
 
 
 SOURCE = Path(__file__).resolve().parents[1] / "validate_openfold2.py"
@@ -308,6 +310,34 @@ class SemanticValidationTests(unittest.TestCase):
 
 
 class ReceiptAndTransportTests(unittest.TestCase):
+    def test_response_latency_stops_before_semantic_validation(self) -> None:
+        def callback(handler: BaseHTTPRequestHandler, body: bytes) -> None:
+            request = json.loads(body)
+            send_json(handler, response_for(request["input_id"], request["sequence"]))
+
+        original_validate = VALIDATOR.validate_response
+
+        def slow_validate(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            time.sleep(0.05)
+            return original_validate(*args, **kwargs)
+
+        with serving(callback) as (base_url, _calls), tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            VALIDATOR, "validate_response", side_effect=slow_validate
+        ):
+            summary = VALIDATOR.run_validation(
+                base_url=base_url,
+                receipt_dir=Path(temporary) / "receipt",
+                run_ids=("timing-a", "timing-b"),
+                timeout=5,
+            )
+
+        self.assertEqual(summary["status"], "PASS")
+        self.assertGreater(
+            summary["validation_total_elapsed_seconds"]
+            - sum(case["elapsed_seconds"] for case in summary["cases"]),
+            0.08,
+        )
+
     def test_waits_for_exact_health_before_two_semantic_requests(self) -> None:
         readiness_attempts = 0
 
@@ -368,6 +398,14 @@ class ReceiptAndTransportTests(unittest.TestCase):
 
             self.assertTrue(summary["ok"])
             self.assertEqual(0, summary["exit_code"])
+            self.assertEqual(
+                VALIDATOR.RESPONSE_TIMING_CONTRACT,
+                summary["response_timing_contract"],
+            )
+            self.assertEqual(summary["finished_at"], summary["validation_finished_at"])
+            for case in summary["cases"]:
+                self.assertLessEqual(case["request_started_at"], case["response_received_at"])
+                self.assertGreaterEqual(case["elapsed_seconds"], 0)
             self.assertEqual(2, len(calls))
             self.assertEqual(
                 [VALIDATOR.OPENFOLD2_PATH, VALIDATOR.OPENFOLD2_PATH],

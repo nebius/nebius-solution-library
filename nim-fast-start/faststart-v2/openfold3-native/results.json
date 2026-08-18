@@ -1,10 +1,17 @@
 {
-  "schema": "archvteams.nebius.ai/openfold3-native-results/v1",
+  "schema": "archvteams.nebius.ai/openfold3-native-results/v2",
   "status": "PASS",
   "timing_correction": {
     "t0_source": "target-submit-at.txt",
-    "method": "subtract retained submit timestamp from absolute HTTP, Kubernetes Ready, and second-call completion timestamps",
+    "method": "legacy sidecar subtracts retained submit timestamp from HTTP, Kubernetes Ready, and validator-finished timestamps",
     "sidecar_filename": "corrected-submit-edge-timings.json"
+  },
+  "response_boundary_requalification": {
+    "status": "RERUN_REQUIRED_FOR_T0_TO_SECOND_RESPONSE",
+    "http_ready_values_preserved": true,
+    "call_values_status": "pure HTTP response latency; captured before response persistence and semantic validation",
+    "legacy_total_semantics": "T0 to validation completion, not T0 to receipt of the second HTTP body",
+    "required_validator_sha256": "679b3e027b18e78b4646569e8c6395fb5f62c4647704bb5089aa2385a20d11f5"
   },
   "measurement_contract": {
     "t0": "immediately before target Pod creation on an already provisioned H100 with storage attached",
@@ -25,14 +32,14 @@
     "demand_to_kubernetes_ready_seconds": [12.732474, 12.815803, 13.396096],
     "semantic_request_1_seconds": [8.620226, 8.556568, 8.604078],
     "semantic_request_2_seconds": [8.5307, 8.645413, 8.524887],
-    "demand_to_two_semantic_seconds": [29.162791, 29.345285, 29.461653],
+    "legacy_demand_to_validation_complete_seconds": [29.162791, 29.345285, 29.461653],
     "worker_restore_seconds": [4.661, 4.717, 4.741],
     "medians_seconds": {
       "demand_to_http_ready": 12.142147,
       "demand_to_kubernetes_ready": 12.815803,
       "semantic_request_1": 8.604078,
       "semantic_request_2": 8.5307,
-      "demand_to_two_semantic": 29.345285,
+      "legacy_demand_to_validation_complete": 29.345285,
       "worker_restore": 4.717
     },
     "legacy_aggregate_receipt_superseded": {
@@ -54,7 +61,7 @@
       "demand_to_kubernetes_ready": 88.224833,
       "semantic_request_1": 8.611488,
       "semantic_request_2": 8.548598,
-      "demand_to_two_semantic": 104.445954,
+      "legacy_demand_to_validation_complete": 104.445954,
       "worker_restore": 79.997
     },
     "legacy_receipt_superseded": {

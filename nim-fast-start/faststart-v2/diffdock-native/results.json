@@ -1,5 +1,5 @@
 {
-  "schema": "archvteams.nebius.ai/diffdock-native-results/v1",
+  "schema": "archvteams.nebius.ai/diffdock-native-results/v2",
   "measured_at": "2026-08-18T05:34:00Z",
   "cluster": "mk8scluster-e00en4dkk80w2d09c0",
   "node": "computeinstance-e00hf93cfnsgaxygn3",
@@ -7,9 +7,16 @@
   "target_glibc_version": "2.35",
   "timing_correction": {
     "t0_source": "target-submit-at.txt",
-    "method": "subtract retained submit timestamp from absolute HTTP, Kubernetes Ready, and second-call completion timestamps",
+    "method": "legacy sidecar subtracts retained submit timestamp from HTTP, Kubernetes Ready, and validator-finished timestamps",
     "sidecar_filename": "corrected-submit-edge-timings.json",
     "raw_canary_timing_label_superseded": true
+  },
+  "response_boundary_requalification": {
+    "status": "RERUN_REQUIRED_FOR_T0_TO_SECOND_RESPONSE",
+    "http_ready_values_preserved": true,
+    "call_values_status": "pure HTTP response latency; captured before response persistence and semantic validation",
+    "legacy_total_semantics": "T0 to validation completion, not T0 to receipt of the second HTTP body",
+    "required_validator_sha256": "245ae98a98db09c34924cd7a499b99da9eb35742667043aaee3e497c33268008"
   },
   "worker": {
     "image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:063286a3a1354d1c5969fa80f445bb5fbd2a96bc0999c7b6897495f0b4c2fd4d",
@@ -36,7 +43,7 @@
     "demand_to_kubernetes_ready_seconds": 73.883823,
     "semantic_request_1_seconds": 1.321248,
     "semantic_request_2_seconds": 0.545055,
-    "demand_to_two_semantic_responses_seconds": 74.462790,
+    "legacy_demand_to_validation_complete_seconds": 74.462790,
     "worker_restore_seconds": 65.016
   },
   "buffered_artifact": {
@@ -84,7 +91,7 @@
       "max": 0.558473,
       "mean": 0.54387
     },
-    "demand_to_two_semantic_responses_seconds": {
+    "legacy_demand_to_validation_complete_seconds": {
       "values": [13.657086, 13.506684, 13.707841],
       "min": 13.506684,
       "median": 13.657086,
@@ -100,8 +107,8 @@
     }
   },
   "improvement_over_direct_canary": {
-    "demand_to_two_speedup": 5.452319,
-    "demand_to_two_reduction_percent": 81.659,
+    "legacy_validation_complete_speedup": 5.452319,
+    "legacy_validation_complete_reduction_percent": 81.659,
     "worker_restore_speedup": 16.081128,
     "worker_restore_reduction_percent": 93.782
   },

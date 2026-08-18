@@ -243,6 +243,8 @@ def evidence_inputs() -> dict:
         "passed_case_count": 2,
         "failed_case_count": 0,
         "exit_code": 0,
+        "request_count": 2,
+        "response_timing_contract": "request-dispatch-to-complete-http-body/v1",
         "queries_distinct": True,
         "expected_records_per_response": 128,
         "expected_non_query_homologs_per_response": 127,
@@ -250,7 +252,9 @@ def evidence_inputs() -> dict:
         "started_at": "2026-08-17T20:00:08.100000Z",
         "ready_at": "2026-08-17T20:00:08.200000Z",
         "finished_at": "2026-08-17T20:00:09.900000Z",
+        "validation_finished_at": "2026-08-17T20:00:09.900000Z",
         "total_elapsed_seconds": 1.8,
+        "validation_total_elapsed_seconds": 1.8,
         "cases": [
             {
                 "index": 1,
@@ -259,6 +263,8 @@ def evidence_inputs() -> dict:
                 "status": "PASS",
                 "exit_code": 0,
                 "elapsed_seconds": 0.8,
+                "request_started_at": "2026-08-17T20:00:08.300000Z",
+                "response_received_at": "2026-08-17T20:00:09.000000Z",
                 "query_sha256": "233b4b0b8c4616095bc3249f9375fc345d32af7deaef07117d0383c51d6f19aa",
                 "response_sha256": "1" * 64,
                 "invariant": {
@@ -280,6 +286,8 @@ def evidence_inputs() -> dict:
                 "status": "PASS",
                 "exit_code": 0,
                 "elapsed_seconds": 0.9,
+                "request_started_at": "2026-08-17T20:00:09.100000Z",
+                "response_received_at": "2026-08-17T20:00:09.600000Z",
                 "query_sha256": "f0d4533cd51311bf988a54528938464a086a2810380f2a6d1b266f7c62ceacba",
                 "response_sha256": "2" * 64,
                 "invariant": {
@@ -413,7 +421,11 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(receipt["status"], "PASS")
         self.assertEqual(receipt["request_count"], 2)
         self.assertEqual(
-            receipt["timings_seconds"]["demand_to_two_semantic_responses"], 9.9
+            receipt["response_timing_contract"],
+            "request-dispatch-to-complete-http-body/v1",
+        )
+        self.assertEqual(
+            receipt["timings_seconds"]["demand_to_two_semantic_responses"], 9.6
         )
         self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 8.2)
         self.assertEqual(
@@ -521,6 +533,12 @@ class EvidenceTests(unittest.TestCase):
             copy.deepcopy(inputs["semantic_summary"]["cases"][1])
         )
         with self.assertRaisesRegex(evidence.EvidenceError, "exactly two cases"):
+            evidence.build_evidence(**inputs)
+
+    def test_legacy_response_boundary_evidence_is_rejected(self) -> None:
+        inputs = evidence_inputs()
+        del inputs["semantic_summary"]["cases"][1]["response_received_at"]
+        with self.assertRaises(evidence.EvidenceError):
             evidence.build_evidence(**inputs)
 
     def test_non_128_record_semantic_receipt_is_rejected(self) -> None:

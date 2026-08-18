@@ -12,6 +12,9 @@ class TimingEvidenceError(ValueError):
     """Raised when timing evidence is missing, malformed, or contradictory."""
 
 
+RESPONSE_TIMING_CONTRACT = "request-dispatch-to-complete-http-body/v1"
+
+
 def _timestamp(value: Any, label: str) -> datetime:
     if not isinstance(value, str) or not value:
         raise TimingEvidenceError(f"{label} timestamp is missing")
@@ -114,7 +117,18 @@ def build_timing_evidence(
     cases = semantic.get("cases")
     if not isinstance(cases, list) or len(cases) != 2:
         raise TimingEvidenceError("semantic summary must contain exactly two cases")
+    if semantic.get("response_timing_contract") != RESPONSE_TIMING_CONTRACT:
+        raise TimingEvidenceError("semantic summary has no reviewed response timing contract")
+    validation_total = _elapsed(
+        semantic.get("validation_total_elapsed_seconds"),
+        "semantic validation total",
+    )
+    if semantic.get("total_elapsed_seconds") != validation_total:
+        raise TimingEvidenceError(
+            "total_elapsed_seconds is not the validation-total compatibility alias"
+        )
     calls: list[float] = []
+    call_boundaries: list[tuple[datetime, datetime, str, str]] = []
     for index, case in enumerate(cases, 1):
         if (
             not isinstance(case, dict)
@@ -123,17 +137,43 @@ def build_timing_evidence(
         ):
             raise TimingEvidenceError(f"semantic request {index} did not pass")
         calls.append(_elapsed(case.get("elapsed_seconds"), f"semantic request {index}"))
+        request_started_raw = case.get("request_started_at")
+        response_received_raw = case.get("response_received_at")
+        request_started = _timestamp(
+            request_started_raw, f"semantic request {index} start"
+        )
+        response_received = _timestamp(
+            response_received_raw, f"semantic response {index} receipt"
+        )
+        if response_received < request_started:
+            raise TimingEvidenceError(
+                f"semantic response {index} precedes its request"
+            )
+        call_boundaries.append(
+            (
+                request_started,
+                response_received,
+                str(request_started_raw),
+                str(response_received_raw),
+            )
+        )
 
     setup_demand_raw = run.get("demand_at")
     demand_raw = target_submit_at if target_submit_at is not None else setup_demand_raw
     semantic_started_raw = semantic.get("started_at")
-    semantic_finished_raw = semantic.get("finished_at")
+    validation_finished_raw = semantic.get("validation_finished_at")
     setup_demand = _timestamp(setup_demand_raw, "setup demand")
     demand = _timestamp(demand_raw, "target submit/T0")
     if demand < setup_demand:
         raise TimingEvidenceError("target submit/T0 precedes setup demand")
     semantic_started = _timestamp(semantic_started_raw, "semantic probe start")
-    semantic_finished = _timestamp(semantic_finished_raw, "second semantic completion")
+    validation_finished = _timestamp(
+        validation_finished_raw, "semantic validation completion"
+    )
+    if semantic.get("finished_at") != validation_finished_raw:
+        raise TimingEvidenceError(
+            "finished_at is not the validation_finished_at compatibility alias"
+        )
     http_probe_started, http_ready, http_ready_raw = _http_ready(semantic)
     kubernetes_ready, kubernetes_ready_raw = _kubernetes_ready(target)
 
@@ -142,7 +182,11 @@ def build_timing_evidence(
         <= semantic_started
         <= http_probe_started
         <= http_ready
-        <= semantic_finished
+        <= call_boundaries[0][0]
+        <= call_boundaries[0][1]
+        <= call_boundaries[1][0]
+        <= call_boundaries[1][1]
+        <= validation_finished
     ):
         raise TimingEvidenceError("semantic probe timestamps are not monotonically ordered")
     kubernetes_ready_seconds = (kubernetes_ready - demand).total_seconds()
@@ -157,12 +201,13 @@ def build_timing_evidence(
         kubernetes_ready_seconds = 0.0
 
     return {
+        "response_timing_contract": RESPONSE_TIMING_CONTRACT,
         "demand_to_http_ready_seconds": round(
             (http_ready - demand).total_seconds(), 6
         ),
         "demand_to_kubernetes_ready_seconds": round(kubernetes_ready_seconds, 6),
         "demand_to_two_semantic_seconds": round(
-            (semantic_finished - demand).total_seconds(), 6
+            (call_boundaries[1][1] - demand).total_seconds(), 6
         ),
         "semantic_request_1_seconds": calls[0],
         "semantic_request_2_seconds": calls[1],
@@ -176,6 +221,8 @@ def build_timing_evidence(
             "http_ready_at": http_ready_raw,
             "kubernetes_ready_at": kubernetes_ready_raw,
             "semantic_started_at": semantic_started_raw,
-            "semantic_finished_at": semantic_finished_raw,
+            "semantic_response_1_received_at": call_boundaries[0][3],
+            "semantic_response_2_received_at": call_boundaries[1][3],
+            "validation_finished_at": validation_finished_raw,
         },
     }

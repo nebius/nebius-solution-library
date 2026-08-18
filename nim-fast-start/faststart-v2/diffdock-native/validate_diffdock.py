@@ -34,6 +34,7 @@ EXPECTED_KEYS = {
     "trajectory",
 }
 RUN_ID = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
+RESPONSE_TIMING_CONTRACT = "request-dispatch-to-complete-http-body/v1"
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 
 
@@ -234,7 +235,7 @@ def _post(
     payload: dict[str, Any],
     request_id: str,
     timeout: float,
-) -> tuple[bytes, float]:
+) -> tuple[bytes, float, str, str]:
     data = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     request = urllib.request.Request(
         base_url.rstrip("/") + ENDPOINT,
@@ -242,10 +243,13 @@ def _post(
         headers={"Content-Type": "application/json", "X-Request-ID": request_id},
         method="POST",
     )
-    started = time.monotonic()
+    request_started_at = _now()
+    started_ns = time.monotonic_ns()
     try:
         with HTTP.open(request, timeout=timeout) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)
+            response_received_ns = time.monotonic_ns()
+            response_received_at = _now()
             if response.status != 200:
                 raise ValidationError(f"semantic request returned HTTP {response.status}")
     except urllib.error.HTTPError as exc:
@@ -254,7 +258,12 @@ def _post(
         raise ValidationError(f"semantic request failed: {type(exc).__name__}") from exc
     if len(raw) > MAX_RESPONSE_BYTES:
         raise ValidationError("semantic response exceeded 8 MiB")
-    return raw, round(time.monotonic() - started, 6)
+    return (
+        raw,
+        round((response_received_ns - started_ns) / 1_000_000_000, 6),
+        request_started_at,
+        response_received_at,
+    )
 
 
 def _arguments() -> argparse.Namespace:
@@ -312,7 +321,9 @@ def main() -> int:
         args.receipt_dir.mkdir(parents=True, exist_ok=False)
         ready_at = _wait_ready(args.base_url, args.ready_timeout)
         for index, run_id in enumerate(args.run_id, 1):
-            raw, elapsed = _post(args.base_url, fixture, run_id, args.timeout)
+            raw, elapsed, request_started_at, response_received_at = _post(
+                args.base_url, fixture, run_id, args.timeout
+            )
             response_path = args.receipt_dir / f"response-{index}.json"
             response_path.write_bytes(raw)
             try:
@@ -327,6 +338,8 @@ def main() -> int:
                 "status": "PASS",
                 "exit_code": 0,
                 "elapsed_seconds": elapsed,
+                "request_started_at": request_started_at,
+                "response_received_at": response_received_at,
                 "response_bytes": len(raw),
                 "response_sha256": hashlib.sha256(raw).hexdigest(),
                 "invariant": invariant,
@@ -339,7 +352,10 @@ def main() -> int:
     except (ValidationError, OSError) as exc:
         failure = str(exc)
 
-    finished_at = _now()
+    validation_finished_at = _now()
+    validation_total_elapsed_seconds = round(
+        time.monotonic() - monotonic_started, 6
+    )
     passed = len(cases)
     summary = {
         "schema_version": 1,
@@ -349,6 +365,8 @@ def main() -> int:
         "inference_path": ENDPOINT,
         "proxy_policy": "disabled",
         "redirect_policy": "reject",
+        "request_count": 2,
+        "response_timing_contract": RESPONSE_TIMING_CONTRACT,
         "ok": failure is None and passed == 2,
         "status": "PASS" if failure is None and passed == 2 else "FAIL",
         "passed_case_count": passed,
@@ -356,8 +374,10 @@ def main() -> int:
         "exit_code": 0 if failure is None and passed == 2 else 1,
         "started_at": started_at,
         "ready_at": ready_at,
-        "finished_at": finished_at,
-        "total_elapsed_seconds": round(time.monotonic() - monotonic_started, 6),
+        "finished_at": validation_finished_at,
+        "validation_finished_at": validation_finished_at,
+        "total_elapsed_seconds": validation_total_elapsed_seconds,
+        "validation_total_elapsed_seconds": validation_total_elapsed_seconds,
         "cases": cases,
     }
     if failure is not None:

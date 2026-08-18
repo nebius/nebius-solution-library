@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: archvteams-2407-faststart
     nvidia.com/snapshot-checkpoint-id: proteinmpnn-native-f7-v1
   annotations:
-    archvteams.nebius.ai/validator-sha256: 00bc89ee2ad44ecc67358427e44032f1f44631840560198a3beed50759abb8cb
+    archvteams.nebius.ai/validator-sha256: 2e3c21af0987f4b9c7da2cef3f3e4d210a7b223049f231c24e871e2a553b48d3
     archvteams.nebius.ai/fixture-sha256: 42511546f59eb92479149df1fad8d713ae00176b89316b07a83d04586905938e
 spec:
   backoffLimit: 0

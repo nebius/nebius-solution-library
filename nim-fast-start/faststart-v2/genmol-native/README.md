@@ -22,6 +22,8 @@ results are performance evidence, not a full agent-compliance release.
   SHA-256 `3065261de604f495a2fbae1e7fd92488546ee51f2729e5d40e9be5ee2c22f444`.
 - Validator SHA-256:
   `089b4529bd88f0060492699b3c594c6e4557406cd22364e6930d2b44cd588368`.
+- Corrected response-boundary validator for requalification:
+  `f85da2029aaa459d687983e5ebeec6c69dffb19a66f34c084409fe2ccc2efad4`.
 
 Every trial performs exactly two POSTs: the retained QED request followed by
 the retained LogP request. Their canonical request hashes match the earlier
@@ -37,6 +39,12 @@ proven source of the required RDKit modules and `/usr/bin/python3`.
 
 ## Production-shaped result
 
+Response-boundary requalification is required for the end-to-end total. HTTP
+ready and both call values remain valid because their monotonic timers stopped
+at complete-body receipt. The retained terminal timestamp was validator
+completion, so the historical final interval is relabeled rather than
+presented as T0-to-call-2.
+
 `results.json` contains all six counted trial values and evidence hashes. T0 is
 recorded immediately before creation of each inert target Pod on an already
 provisioned H100 with the NIM/worker images resident and both PVCs attached.
@@ -45,13 +53,13 @@ response. Kubernetes Pod Ready is retained only as a separate diagnostic.
 Call 1 is the first strict QED inference after readiness and therefore includes
 any deferred model/JIT load; call 2 is the immediate strict LogP warm call.
 
-| Storage state (`n=3`) | HTTP ready | Pod Ready | Call 1 | Call 2 | T0 through call 2 | Worker restore |
+| Storage state (`n=3`) | HTTP ready | Pod Ready | Call 1 HTTP response | Call 2 HTTP response | Legacy T0 through validation | Worker restore |
 |---|---:|---:|---:|---:|---:|---:|
 | Direct/O_DIRECT | 48.738868 s | 49.737615 s | 1.186392 s | 0.592471 s | 50.517448 s | 41.219 s |
 | Buffered + fully page-resident | **10.548280 s** | 11.558094 s | 1.215907 s | 0.585500 s | **12.348272 s** | **2.933 s** |
 
 The buffered winner is 4.62x faster to application HTTP readiness and 4.09x
-faster through the second response. Its 4,781,347,930-byte full pre-read took
+faster through legacy validation completion. Its 4,781,347,930-byte full pre-read took
 6.328907 seconds and occurred before T0. The direct holder also verified and
 read every artifact byte outside T0, but CRIU's direct mode bypasses the page
 cache; the two rows therefore intentionally describe different, explicit

@@ -40,7 +40,7 @@ NIM_IMAGE = (
 OPENFOLD_IMAGE = base.NIM_IMAGE
 RUN_SCHEMA = "archvteams.nebius.ai/boltz2-faststart-run/v1"
 BINDING_SCHEMA = "archvteams.nebius.ai/boltz2-target-binding/v1"
-VALIDATOR_SHA256 = "284db204afbbad91a8a40fff4a7aea41400f032b54f70ca579ae6563a7b4ad08"
+VALIDATOR_SHA256 = "fad2b524739d699f7417fb083048431b3a87c4c2686010cc253ad8eb6057b958"
 
 
 class RenderError(ValueError):

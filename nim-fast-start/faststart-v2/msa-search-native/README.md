@@ -11,6 +11,13 @@ The machine-readable record is `results.json`. Raw evidence is retained under
 
 ## Selected result
 
+Response-boundary requalification is required for the end-to-end total. HTTP
+ready and both call values remain valid because their monotonic timers stopped
+at complete-body receipt. The retained terminal timestamp was validator
+completion, so the 5.144951-second median is preserved only as legacy
+T0-to-validation evidence; a corrected T0-to-call-2 total requires a new n=3
+run.
+
 The measurement ran on the already provisioned H100 node
 `computeinstance-e00hf93cfnsgaxygn3`. T0 is the timestamp written on the line
 immediately before creating each target. Storage attachment and cache prewarm
@@ -23,7 +30,7 @@ used as a substitute.
 | T0 to application HTTP ready | 5.071461 | 5.000388 | 5.128253 |
 | First strict inference | 0.040720 | 0.040700 | 0.040840 |
 | Second strict inference | 0.031058 | 0.030818 | 0.031083 |
-| T0 through second inference | 5.144951 | 5.073655 | 5.201905 |
+| Legacy T0 through validation completion | 5.144951 | 5.073655 | 5.201905 |
 | T0 to Kubernetes Ready, diagnostic | 4.704828 | 4.687398 | 4.831026 |
 
 The retained storage receipt proves that `msa-search-native-f7-cache` was
@@ -49,6 +56,8 @@ same pipe. All three trials passed these checks.
   `874b0e5e3be9776ea289fb46444032e04b63875d9d4110f1560e5435de72686a`
 - Strict validator SHA-256:
   `4ac58960c881f748dd1340288d1fa97f6d722a1be26c71c321f681a2c252bdee`
+- Corrected response-boundary validator for requalification:
+  `20e8951ceaaa1b81e8129d86b787c6bb009cf2e207d55829cf13f4fa9489188b`
 - MMseqs pipe validator SHA-256:
   `29f45a3c0d7197b5ad0757174666b1f6a8e11f2e3dd7cc54d63fc71fb030ad23`
 
@@ -99,7 +108,7 @@ for manifest binding but passes `target-submit-at.txt` separately to the
 evidence collector. The latter is the authoritative demand clock and is
 written immediately before `kubectl create`. Receipts expose the source as
 `target-submit-at-immediately-before-create`. Native `n=3` aggregation retains
-T0-to-HTTP-ready, both semantic calls, T0-through-call-2, worker restore, and
+T0-to-HTTP-ready, both semantic calls, T0-to-call-2 response, worker restore, and
 T0-to-Kubernetes-Ready as distinct fields.
 
 ## Verification

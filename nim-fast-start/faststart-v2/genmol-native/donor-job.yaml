@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: archvteams-2407-faststart
     nvidia.com/snapshot-checkpoint-id: genmol-native-f7-v1
   annotations:
-    archvteams.nebius.ai/validator-sha256: 089b4529bd88f0060492699b3c594c6e4557406cd22364e6930d2b44cd588368
+    archvteams.nebius.ai/validator-sha256: f85da2029aaa459d687983e5ebeec6c69dffb19a66f34c084409fe2ccc2efad4
     archvteams.nebius.ai/fixture-sha256: 3065261de604f495a2fbae1e7fd92488546ee51f2729e5d40e9be5ee2c22f444
 spec:
   backoffLimit: 0
@@ -68,7 +68,7 @@ spec:
               import subprocess
 
               expected = {
-                  "validate_genmol.py": "089b4529bd88f0060492699b3c594c6e4557406cd22364e6930d2b44cd588368",
+                  "validate_genmol.py": "f85da2029aaa459d687983e5ebeec6c69dffb19a66f34c084409fe2ccc2efad4",
                   "requests-qed-logp.json": "3065261de604f495a2fbae1e7fd92488546ee51f2729e5d40e9be5ee2c22f444",
               }
               root = pathlib.Path("/output/donor-validation")

@@ -20,7 +20,8 @@ The measured path is:
 7. make exactly two independently executed, semantically validated DiffDock calls.
 
 `evidence.py` reports successful semantic HTTP readiness, each inference call,
-and `demand_to_two_semantic_responses`; Kubernetes Pod Ready and worker timing
+and `demand_to_two_semantic_responses` (ending at case 2
+`response_received_at`, never validator finish); Kubernetes Pod Ready and worker timing
 remain separate diagnostics. It refuses incomplete, failed, cross-run, or
 wrong-UID evidence.
 

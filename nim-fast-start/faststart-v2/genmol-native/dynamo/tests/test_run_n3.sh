@@ -36,6 +36,7 @@ summary="$test_tmp/evidence/n3-genmol-ut-direct.json"
 [[ $(jq -r '.t0_source' "$summary") == target-submit-at.txt ]]
 [[ $(jq -r '.trial_count' "$summary") == 3 ]]
 [[ $(jq -r '.request_count' "$summary") == 6 ]]
+[[ $(jq -r '.response_timing_contract' "$summary") == request-dispatch-to-complete-http-body/v1 ]]
 [[ $(jq -r '.statistics_seconds.demand_to_two_semantic_median' "$summary") == 20.0 ]]
 [[ $(jq -r '.statistics_seconds.demand_to_http_ready_median' "$summary") == 15.0 ]]
 [[ $(jq -r '.statistics_seconds.demand_to_kubernetes_ready_median' "$summary") == 16.0 ]]
@@ -54,4 +55,13 @@ if "$test_tmp/lane/run_n3.sh" "${args[@]}" > /dev/null 2> "$test_tmp/duplicate.s
 fi
 [[ $(wc -l < "$FAKE_N3_LOG") == "$calls_before" ]]
 rg -q 'summary path already exists' "$test_tmp/duplicate.stderr"
+
+stale_args=("${args[@]}")
+stale_args[1]=genmol-stale
+if FAKE_N3_STALE_TOTAL=1 "$test_tmp/lane/run_n3.sh" "${stale_args[@]}" \
+  > /dev/null 2> "$test_tmp/stale.stderr"; then
+  printf 'stale validation-complete total was accepted\n' >&2
+  exit 1
+fi
+rg -q 'trial total does not match response boundary' "$test_tmp/stale.stderr"
 printf 'n=3 runner: PASS\n'

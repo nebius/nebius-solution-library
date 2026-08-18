@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: archvteams-2407-faststart
     nvidia.com/snapshot-checkpoint-id: openfold3-native-f7-v1
   annotations:
-    archvteams.nebius.ai/validator-sha256: c7ec22a6107d0fff36e17c4c9d1b8a6cf3f4efcc592215da05521f2b43d9cd4a
+    archvteams.nebius.ai/validator-sha256: 679b3e027b18e78b4646569e8c6395fb5f62c4647704bb5089aa2385a20d11f5
     archvteams.nebius.ai/fixture-sha256: 09b30bf2132e3764f99d4f417b47713cd6350bd332fe3100cceb1be11589f8ae
 spec:
   backoffLimit: 0
@@ -68,7 +68,7 @@ spec:
               import subprocess
 
               expected = {
-                  "validate_openfold3.py": "c7ec22a6107d0fff36e17c4c9d1b8a6cf3f4efcc592215da05521f2b43d9cd4a",
+                  "validate_openfold3.py": "679b3e027b18e78b4646569e8c6395fb5f62c4647704bb5089aa2385a20d11f5",
                   "request-20aa.json": "09b30bf2132e3764f99d4f417b47713cd6350bd332fe3100cceb1be11589f8ae",
               }
               root = pathlib.Path("/opt/nim/output/donor-validation")

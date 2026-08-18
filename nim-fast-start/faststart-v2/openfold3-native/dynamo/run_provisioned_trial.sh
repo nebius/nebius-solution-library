@@ -4,7 +4,7 @@ set -euo pipefail
 umask 077
 
 readonly allowed_server="https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebius.cloud:443"
-readonly expected_validator_sha256="c7ec22a6107d0fff36e17c4c9d1b8a6cf3f4efcc592215da05521f2b43d9cd4a"
+readonly expected_validator_sha256="679b3e027b18e78b4646569e8c6395fb5f62c4647704bb5089aa2385a20d11f5"
 readonly expected_fixture_sha256="09b30bf2132e3764f99d4f417b47713cd6350bd332fe3100cceb1be11589f8ae"
 readonly trial_namespace="nim-fast-start"
 

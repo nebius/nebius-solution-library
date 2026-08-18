@@ -1,4 +1,4 @@
-mode	run_id	status	demand_to_http_ready_s	demand_to_kubernetes_ready_s	demand_to_two_semantic_s	worker_restore_s	request_1_s	request_2_s
+mode	run_id	status	demand_to_http_ready_s	demand_to_kubernetes_ready_s	legacy_demand_to_validation_complete_s	worker_restore_s	request_1_http_response_s	request_2_http_response_s
 direct	p6	PASS	23.555962	23.289210	24.443143	15.735	0.609911	0.272718
 direct	p7	PASS	24.012981	24.864866	24.893916	15.723	0.605700	0.271201
 direct	p8	PASS	23.763006	24.902014	24.641450	15.727	0.603024	0.271714

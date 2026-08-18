@@ -22,6 +22,7 @@ ENDPOINT = "/generate"
 READY_ENDPOINT = "/v1/health/ready"
 EXPECTED_FIXTURE_SHA256 = "3065261de604f495a2fbae1e7fd92488546ee51f2729e5d40e9be5ee2c22f444"
 RUN_ID = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
+RESPONSE_TIMING_CONTRACT = "request-dispatch-to-complete-http-body/v1"
 MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 EXPECTED_CALLS = [
     {
@@ -196,7 +197,7 @@ def _post(
     payload: dict[str, Any],
     request_id: str,
     timeout: float,
-) -> tuple[bytes, float, str]:
+) -> tuple[bytes, float, str, str, str]:
     data = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     request = urllib.request.Request(
         base_url.rstrip("/") + ENDPOINT,
@@ -208,10 +209,13 @@ def _post(
         },
         method="POST",
     )
-    started = time.monotonic()
+    request_started_at = _now()
+    started_ns = time.monotonic_ns()
     try:
         with HTTP.open(request, timeout=timeout) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)
+            response_received_ns = time.monotonic_ns()
+            response_received_at = _now()
             if response.status != 200:
                 raise ValidationError(f"semantic request returned HTTP {response.status}")
             content_type = response.headers.get_content_type()
@@ -223,7 +227,13 @@ def _post(
         raise ValidationError("semantic response exceeded 16 MiB")
     if content_type != "application/json":
         raise ValidationError("semantic response is not application/json")
-    return raw, round(time.monotonic() - started, 6), hashlib.sha256(data).hexdigest()
+    return (
+        raw,
+        round((response_received_ns - started_ns) / 1_000_000_000, 6),
+        request_started_at,
+        response_received_at,
+        hashlib.sha256(data).hexdigest(),
+    )
 
 
 def _arguments() -> argparse.Namespace:
@@ -289,7 +299,7 @@ def main() -> int:
             (args.receipt_dir / f"request-{index}-{name}.json").write_text(
                 json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
             )
-            raw, elapsed, request_sha256 = _post(
+            raw, elapsed, request_started_at, response_received_at, request_sha256 = _post(
                 args.base_url, payload, request_id, args.timeout
             )
             response_path = args.receipt_dir / f"response-{index}-{name}.json"
@@ -307,6 +317,8 @@ def main() -> int:
                 "status": "PASS",
                 "exit_code": 0,
                 "elapsed_seconds": elapsed,
+                "request_started_at": request_started_at,
+                "response_received_at": response_received_at,
                 "request_sha256": request_sha256,
                 "response_bytes": len(raw),
                 "response_sha256": hashlib.sha256(raw).hexdigest(),
@@ -324,7 +336,10 @@ def main() -> int:
     except (ValidationError, OSError) as exc:
         failure = str(exc)
 
-    finished_at = _now()
+    validation_finished_at = _now()
+    validation_total_elapsed_seconds = round(
+        time.monotonic() - monotonic_started, 6
+    )
     passed = len(cases)
     summary = {
         "schema_version": 1,
@@ -334,6 +349,8 @@ def main() -> int:
         "inference_path": ENDPOINT,
         "proxy_policy": "disabled",
         "redirect_policy": "reject",
+        "request_count": 2,
+        "response_timing_contract": RESPONSE_TIMING_CONTRACT,
         "ok": failure is None and passed == 2,
         "status": "PASS" if failure is None and passed == 2 else "FAIL",
         "passed_case_count": passed,
@@ -341,8 +358,10 @@ def main() -> int:
         "exit_code": 0 if failure is None and passed == 2 else 1,
         "started_at": started_at,
         "ready_at": ready_at,
-        "finished_at": finished_at,
-        "total_elapsed_seconds": round(time.monotonic() - monotonic_started, 6),
+        "finished_at": validation_finished_at,
+        "validation_finished_at": validation_finished_at,
+        "total_elapsed_seconds": validation_total_elapsed_seconds,
+        "validation_total_elapsed_seconds": validation_total_elapsed_seconds,
         "cases": cases,
     }
     if failure is not None:

@@ -129,8 +129,22 @@ def stamp(value):
 t0 = stamp(pathlib.Path(sys.argv[1]).read_text())
 summary = json.loads(pathlib.Path(sys.argv[2]).read_text())
 pod = json.loads(pathlib.Path(sys.argv[3]).read_text())
+if (
+    summary.get("response_timing_contract") != "request-dispatch-to-complete-http-body/v1"
+    or summary.get("request_count") != 2
+    or len(summary.get("cases", [])) != 2
+    or summary.get("finished_at") != summary.get("validation_finished_at")
+    or summary.get("total_elapsed_seconds")
+    != summary.get("validation_total_elapsed_seconds")
+):
+    raise SystemExit("semantic summary lacks reviewed response-boundary provenance")
 ready = stamp(summary["ready_at"])
-finished = stamp(summary["finished_at"])
+call2_received = stamp(summary["cases"][1]["response_received_at"])
+validation_finished = stamp(summary["validation_finished_at"])
+if not ready <= stamp(summary["cases"][0]["request_started_at"]) <= stamp(
+    summary["cases"][0]["response_received_at"]
+) <= stamp(summary["cases"][1]["request_started_at"]) <= call2_received <= validation_finished:
+    raise SystemExit("semantic response boundaries are not monotonically ordered")
 k8s_ready = None
 for condition in pod.get("status", {}).get("conditions", []):
     if condition.get("type") == "Ready" and condition.get("status") == "True":
@@ -139,15 +153,17 @@ for condition in pod.get("status", {}).get("conditions", []):
 result = {
     "schema": "archvteams.nebius.ai/msa-search-conventional-trial/v1",
     "status": "PASS",
+    "response_timing_contract": "request-dispatch-to-complete-http-body/v1",
     "run_id": summary["cases"][0]["input_id"].removesuffix("-semantic-a"),
     "storage_state": "cache PVC attached and fully prewarmed outside T0",
     "demand_at": t0.isoformat(),
     "http_ready_at": ready.isoformat(),
-    "finished_at": finished.isoformat(),
+    "second_response_received_at": call2_received.isoformat(),
+    "validation_finished_at": validation_finished.isoformat(),
     "demand_to_http_ready_seconds": round((ready - t0).total_seconds(), 6),
     "call1_seconds": summary["cases"][0]["elapsed_seconds"],
     "call2_seconds": summary["cases"][1]["elapsed_seconds"],
-    "demand_to_call2_complete_seconds": round((finished - t0).total_seconds(), 6),
+    "demand_to_call2_response_seconds": round((call2_received - t0).total_seconds(), 6),
     "kubernetes_ready_at": k8s_ready.isoformat() if k8s_ready else None,
     "demand_to_kubernetes_ready_seconds": round((k8s_ready - t0).total_seconds(), 6) if k8s_ready else None,
     "semantic_pass_count": 2,
@@ -160,6 +176,7 @@ PY
 done
 
 python3 -B - "$evidence_root" "$batch_id" > "$evidence_root/aggregate.json" <<'PY'
+import datetime
 import json
 import pathlib
 import statistics
@@ -175,11 +192,26 @@ if (
     or holder.get("prewarm_outside_t0") is not True
 ):
     raise SystemExit("cache holder receipt is not a storage-attached prewarm PASS")
+for trial in trials:
+    if (
+        trial.get("status") != "PASS"
+        or trial.get("response_timing_contract")
+        != "request-dispatch-to-complete-http-body/v1"
+    ):
+        raise SystemExit("trial lacks reviewed response-boundary provenance")
+    demand_at = datetime.datetime.fromisoformat(trial["demand_at"])
+    response_at = datetime.datetime.fromisoformat(trial["second_response_received_at"])
+    validation_at = datetime.datetime.fromisoformat(trial["validation_finished_at"])
+    if not demand_at <= response_at <= validation_at:
+        raise SystemExit("trial response boundary is outside T0/validation")
+    recomputed = round((response_at - demand_at).total_seconds(), 6)
+    if trial.get("demand_to_call2_response_seconds") != recomputed:
+        raise SystemExit("trial total does not match response boundary")
 fields = (
     "demand_to_http_ready_seconds",
     "call1_seconds",
     "call2_seconds",
-    "demand_to_call2_complete_seconds",
+    "demand_to_call2_response_seconds",
     "demand_to_kubernetes_ready_seconds",
 )
 metrics = {}
@@ -194,6 +226,7 @@ for field in fields:
 print(json.dumps({
     "schema": "archvteams.nebius.ai/msa-search-conventional-n3/v1",
     "status": "PASS",
+    "response_timing_contract": "request-dispatch-to-complete-http-body/v1",
     "trial_count": 3,
     "semantic_call_count": 6,
     "storage_state": "cache PVC attached and fully prewarmed before every T0",

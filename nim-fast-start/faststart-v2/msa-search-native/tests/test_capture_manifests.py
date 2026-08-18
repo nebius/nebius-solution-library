@@ -17,7 +17,7 @@ IMAGE = (
     "nvcr.io/nim/colabfold/msa-search@sha256:"
     "944f3cf845761be8e42b33147ae08b68c61eca7cad67bf5251e1708d03c0165c"
 )
-VALIDATOR_SHA256 = "4ac58960c881f748dd1340288d1fa97f6d722a1be26c71c321f681a2c252bdee"
+VALIDATOR_SHA256 = "20e8951ceaaa1b81e8129d86b787c6bb009cf2e207d55829cf13f4fa9489188b"
 FIXTURE_SHA256 = "874b0e5e3be9776ea289fb46444032e04b63875d9d4110f1560e5435de72686a"
 PIPE_VALIDATOR_SHA256 = "29f45a3c0d7197b5ad0757174666b1f6a8e11f2e3dd7cc54d63fc71fb030ad23"
 WORKER_IMAGE = (
@@ -86,7 +86,7 @@ class CaptureManifestTests(unittest.TestCase):
             "demand_to_http_ready_seconds": [5.128253, 5.000388, 5.071461],
             "semantic_request_1_seconds": [0.04084, 0.04072, 0.0407],
             "semantic_request_2_seconds": [0.031083, 0.030818, 0.031058],
-            "demand_to_second_response_seconds": [5.201905, 5.073655, 5.144951],
+            "legacy_demand_to_validation_complete_seconds": [5.201905, 5.073655, 5.144951],
             "demand_to_kubernetes_ready_seconds": [4.831026, 4.687398, 4.704828],
         }
         for name, values in expected.items():
@@ -97,6 +97,10 @@ class CaptureManifestTests(unittest.TestCase):
             self.assertEqual(recorded["max"], max(values))
         self.assertTrue(selected["storage"]["prewarm_outside_t0"])
         self.assertEqual(selected["storage"]["unique_prewarm_bytes"], 112682799)
+        self.assertEqual(
+            results["response_boundary_requalification"]["status"],
+            "RERUN_REQUIRED_FOR_T0_TO_SECOND_RESPONSE",
+        )
         self.assertEqual(results["native_checkpoint"]["counted_trials"], 0)
 
     def test_input_digests_and_donor_warmup_are_exact(self) -> None:

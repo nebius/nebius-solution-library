@@ -153,7 +153,7 @@ def _only_job_container(job: dict[str, Any], name: str, label: str) -> dict[str,
 
 def _validate_semantics(
     summary: dict[str, Any], run_id: str
-) -> tuple[datetime, datetime, list[float]]:
+) -> tuple[datetime, datetime, datetime, list[float]]:
     if (
         summary.get("schema_version") != 1
         or summary.get("validator") != "msa-search-pdb70-faststart-semantic-v1"
@@ -162,6 +162,9 @@ def _validate_semantics(
         or summary.get("passed_case_count") != 2
         or summary.get("failed_case_count") != 0
         or summary.get("exit_code") != 0
+        or summary.get("request_count") != 2
+        or summary.get("response_timing_contract")
+        != "request-dispatch-to-complete-http-body/v1"
         or summary.get("queries_distinct") is not True
         or summary.get("expected_records_per_response") != 128
         or summary.get("expected_non_query_homologs_per_response") != 127
@@ -171,7 +174,7 @@ def _validate_semantics(
     cases = summary.get("cases")
     if not isinstance(cases, list) or len(cases) != 2:
         raise EvidenceError("semantic summary must contain exactly two cases")
-    total = summary.get("total_elapsed_seconds")
+    total = summary.get("validation_total_elapsed_seconds")
     if (
         not isinstance(total, (int, float))
         or isinstance(total, bool)
@@ -179,12 +182,15 @@ def _validate_semantics(
         or total < 0
     ):
         raise EvidenceError("semantic summary has invalid total elapsed time")
+    if summary.get("total_elapsed_seconds") != total:
+        raise EvidenceError("total_elapsed_seconds is not the validation-total alias")
     expected_ids = [f"{run_id}-semantic-a", f"{run_id}-semantic-b"]
     expected_query_sha256 = [
         "233b4b0b8c4616095bc3249f9375fc345d32af7deaef07117d0383c51d6f19aa",
         "f0d4533cd51311bf988a54528938464a086a2810380f2a6d1b266f7c62ceacba",
     ]
     elapsed: list[float] = []
+    boundaries: list[tuple[datetime, datetime]] = []
     response_sha256: list[str] = []
     for index, (case, expected_id, expected_query) in enumerate(
         zip(cases, expected_ids, expected_query_sha256, strict=True), 1
@@ -222,17 +228,39 @@ def _validate_semantics(
         ):
             raise EvidenceError(f"semantic case {index} has invalid elapsed time")
         elapsed.append(round(float(value), 6))
+        request_started = _timestamp(
+            case.get("request_started_at"), f"semantic request {index} start"
+        )
+        response_received = _timestamp(
+            case.get("response_received_at"), f"semantic response {index} receipt"
+        )
+        if response_received < request_started:
+            raise EvidenceError(f"semantic response {index} precedes its request")
+        boundaries.append((request_started, response_received))
         response_sha256.append(case["response_sha256"])
     if len(set(response_sha256)) != 2:
         raise EvidenceError("distinct PDB70 queries returned an identical response")
     semantic_started = _timestamp(summary.get("started_at"), "semantic probe start")
     http_ready = _timestamp(summary.get("ready_at"), "successful HTTP readiness")
-    semantic_finished = _timestamp(
-        summary.get("finished_at"), "second semantic completion"
+    validation_finished_raw = summary.get("validation_finished_at")
+    validation_finished = _timestamp(
+        validation_finished_raw, "semantic validation completion"
     )
-    if not semantic_started <= http_ready <= semantic_finished:
+    if summary.get("finished_at") != validation_finished_raw:
+        raise EvidenceError(
+            "finished_at is not the validation_finished_at compatibility alias"
+        )
+    if not (
+        semantic_started
+        <= http_ready
+        <= boundaries[0][0]
+        <= boundaries[0][1]
+        <= boundaries[1][0]
+        <= boundaries[1][1]
+        <= validation_finished
+    ):
         raise EvidenceError("HTTP readiness is outside the semantic probe interval")
-    return http_ready, semantic_finished, elapsed
+    return http_ready, boundaries[1][1], validation_finished, elapsed
 
 
 def build_evidence(
@@ -456,7 +484,7 @@ def build_evidence(
     probe_started, probe_finished = _container_times(probe_pod, "semantic-probe", "probe Pod")
     if probe_finished is None:
         raise EvidenceError("semantic probe container has not completed")
-    http_ready, semantic_finished, case_elapsed = _validate_semantics(
+    http_ready, second_response_received, validation_finished, case_elapsed = _validate_semantics(
         semantic_summary, run_id
     )
     expected_origin = f"http://{service_name}:8000"
@@ -485,7 +513,9 @@ def build_evidence(
         placeholder_started_for_order,
         probe_started,
         http_ready,
-        semantic_finished,
+        second_response_received,
+        validation_finished,
+        probe_finished,
     ]
     if any(
         later < earlier
@@ -501,6 +531,7 @@ def build_evidence(
         "status": "PASS",
         "run_id": run_id,
         "request_count": 2,
+        "response_timing_contract": semantic_summary["response_timing_contract"],
         "semantic_pass_count": 2,
         "demand_at": target_submit_at,
         "demand_clock_source": "target-submit-at-immediately-before-create",
@@ -541,11 +572,11 @@ def build_evidence(
                 demand, ready, "Kubernetes Pod readiness"
             ),
             "demand_to_two_semantic_responses": _seconds(
-                demand, semantic_finished, "two semantic responses"
+                demand, second_response_received, "two semantic responses"
             ),
             "worker_restore": round(duration_ms / 1000, 6),
-            "semantic_probe_total": round(
-                float(semantic_summary.get("total_elapsed_seconds")), 6
+            "semantic_probe_validation_total": round(
+                float(semantic_summary.get("validation_total_elapsed_seconds")), 6
             ),
             "semantic_request_1": case_elapsed[0],
             "semantic_request_2": case_elapsed[1],
@@ -567,7 +598,10 @@ def build_evidence(
             "worker_completed_at": worker_receipt["completed_at"],
             "worker_job_completed_at": worker_completed.isoformat(),
             "probe_job_completed_at": probe_completed.isoformat(),
-            "semantic_finished_at": semantic_summary["finished_at"],
+            "second_response_received_at": semantic_summary["cases"][1][
+                "response_received_at"
+            ],
+            "validation_finished_at": semantic_summary["validation_finished_at"],
             "http_ready_at": semantic_summary["ready_at"],
             "validator": semantic_summary["validator"],
         },

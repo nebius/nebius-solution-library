@@ -9,7 +9,11 @@ from pathlib import Path
 MODULE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(MODULE_DIR))
 
-from timing_evidence import TimingEvidenceError, build_timing_evidence  # noqa: E402
+from timing_evidence import (  # noqa: E402
+    RESPONSE_TIMING_CONTRACT,
+    TimingEvidenceError,
+    build_timing_evidence,
+)
 
 
 def fixtures() -> tuple[dict, dict, dict]:
@@ -21,6 +25,10 @@ def fixtures() -> tuple[dict, dict, dict]:
         "base_url": "http://canary:8000",
         "started_at": "2026-08-18T00:00:01Z",
         "finished_at": "2026-08-18T00:00:05Z",
+        "validation_finished_at": "2026-08-18T00:00:05Z",
+        "response_timing_contract": RESPONSE_TIMING_CONTRACT,
+        "total_elapsed_seconds": 4.0,
+        "validation_total_elapsed_seconds": 4.0,
         "passed_case_count": 2,
         "failed_case_count": 0,
         "ready": {
@@ -30,8 +38,20 @@ def fixtures() -> tuple[dict, dict, dict]:
             "finished_at": "2026-08-18T00:00:02Z",
         },
         "cases": [
-            {"status": "PASS", "ok": True, "elapsed_seconds": 2.5},
-            {"status": "PASS", "ok": True, "elapsed_seconds": 0.4},
+            {
+                "status": "PASS",
+                "ok": True,
+                "elapsed_seconds": 2.5,
+                "request_started_at": "2026-08-18T00:00:02.100000Z",
+                "response_received_at": "2026-08-18T00:00:04Z",
+            },
+            {
+                "status": "PASS",
+                "ok": True,
+                "elapsed_seconds": 0.4,
+                "request_started_at": "2026-08-18T00:00:04.100000Z",
+                "response_received_at": "2026-08-18T00:00:04.400000Z",
+            },
         ],
     }
     target = {
@@ -55,7 +75,11 @@ class TimingEvidenceTests(unittest.TestCase):
         self.assertEqual(result["demand_to_kubernetes_ready_seconds"], 3.0)
         self.assertEqual(result["semantic_request_1_seconds"], 2.5)
         self.assertEqual(result["semantic_request_2_seconds"], 0.4)
-        self.assertEqual(result["demand_to_two_semantic_seconds"], 5.0)
+        self.assertEqual(result["demand_to_two_semantic_seconds"], 4.4)
+        self.assertEqual(
+            result["timing_evidence"]["validation_finished_at"],
+            "2026-08-18T00:00:05Z",
+        )
 
     def test_http_readiness_and_worker_receipt_have_no_shared_order(self) -> None:
         run, semantic, target = fixtures()
@@ -73,7 +97,7 @@ class TimingEvidenceTests(unittest.TestCase):
         )
         self.assertEqual(result["demand_to_http_ready_seconds"], 1.5)
         self.assertEqual(result["demand_to_kubernetes_ready_seconds"], 2.5)
-        self.assertEqual(result["demand_to_two_semantic_seconds"], 4.5)
+        self.assertEqual(result["demand_to_two_semantic_seconds"], 3.9)
         self.assertEqual(result["timing_evidence"]["t0_source"], "target-submit-at.txt")
 
     def test_rejects_failed_or_misbound_http_readiness(self) -> None:
@@ -93,6 +117,20 @@ class TimingEvidenceTests(unittest.TestCase):
         semantic["ready"]["finished_at"] = "2026-08-18T00:00:06Z"
         with self.assertRaisesRegex(TimingEvidenceError, "monotonically ordered"):
             build_timing_evidence(run, semantic, target)
+
+    def test_rejects_legacy_or_unbound_response_timings(self) -> None:
+        run, semantic, target = fixtures()
+        for mutation in ("contract", "response", "validation-finish"):
+            with self.subTest(mutation=mutation):
+                changed = copy.deepcopy(semantic)
+                if mutation == "contract":
+                    del changed["response_timing_contract"]
+                elif mutation == "response":
+                    del changed["cases"][1]["response_received_at"]
+                else:
+                    changed["validation_finished_at"] = "2026-08-18T00:00:06Z"
+                with self.assertRaises(TimingEvidenceError):
+                    build_timing_evidence(run, changed, target)
 
     def test_accepts_ready_wait_and_ready_at_encodings(self) -> None:
         run, semantic, target = fixtures()

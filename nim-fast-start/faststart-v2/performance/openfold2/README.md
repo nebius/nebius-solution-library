@@ -1,17 +1,23 @@
 # OpenFold2 production-native provisioned-node result
 
-The optimized production-shaped path completes two distinct, semantically
-validated OpenFold2 folds in a **14.096900-second median** from target submit. Three
+The optimized production-shaped path completed validation of two distinct
+OpenFold2 folds in a **14.096900-second median** from target submit. Three
 consecutive clean restores passed on an already provisioned H100:
+
+Response-boundary requalification is required. The HTTP-ready values remain
+valid, but the historical per-call timers included response persistence and
+semantic validation, and the terminal timestamp was validator completion.
+Therefore both call columns and the true T0-to-second-response total require a
+new n=3 run. The values below are preserved without manufacturing corrections.
 
 | Measurement | Median | Range |
 |---|---:|---:|
 | T0 to successful semantic HTTP ready | **11.162167 s** | 10.840150–11.340513 s |
 | T0 to Kubernetes Pod Ready | **11.662171 s** | 11.640975–12.588935 s |
 | Worker restore | **3.570 s** | 3.568–3.584 s |
-| T0 to two semantic responses | **14.096900 s** | 13.819209–14.316461 s |
-| Semantic request 1 | 1.951462 s | 1.929074–1.955740 s |
-| Semantic request 2 | 1.018719 s | 1.001957–1.020497 s |
+| Legacy T0 to validation completion | **14.096900 s** | 13.819209–14.316461 s |
+| Legacy request 1, response + validation | 1.951462 s | 1.929074–1.955740 s |
+| Legacy request 2, response + validation | 1.018719 s | 1.001957–1.020497 s |
 
 The separate CPU probe Job is submitted as soon as the scheduler-created
 target Pod has a bound UID and canonical PodSpec hash. It waits on the exact
@@ -36,6 +42,8 @@ SHA-256
 `78368af3e6f143d7dc681632c4150b29f6354717103638b56e776244d9631b04`.
 The optimized runs use semantic-validator SHA-256
 `8da1693931ce62604917a74b1518ac29ee28bdcb89fbe389bee13912351ac9ce`.
+The response-boundary rerun is pinned to corrected validator SHA-256
+`4f3e70ef29ea9cd3113c09e6f63bd15b4d9826bf64d7d16972c6c3d0eef3090e`.
 
 The source evidence root is intentionally retained outside the repository at:
 
@@ -57,6 +65,7 @@ image's JSON-object health response and sent no inference requests.
 This is the warm-instance cold-start result: `T0` is recorded immediately
 before target creation on an already provisioned H100 with the exact images,
 model cache, native checkpoint, and storage attached. The first and second
-request rows are the strict call latencies after successful semantic HTTP
-readiness; demand-to-two is retained only as a timeline cross-check.
+request rows are legacy response-plus-validation durations, not publishable
+HTTP-body latencies. Demand-to-validation is retained only as a historical
+timeline cross-check.
 Newly-created-node latency is measured and reported separately.

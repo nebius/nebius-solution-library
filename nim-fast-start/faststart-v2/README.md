@@ -4,7 +4,9 @@ This subtree contains live production-shaped OpenFold2, Boltz2, ProteinMPNN,
 DiffDock, OpenFold3, and GenMol results, plus offline-prepared MSA Search,
 Evo2-40B, RFdiffusion, and MolMIM checkpoint/restore paths. The shared metric
 contract and current ten-model matrix are in
-`performance/COLD_START_METRICS.md`:
+`performance/COLD_START_METRICS.md`. Exact stable-lane rerun requirements after
+the response-boundary audit are in
+`performance/RESPONSE_BOUNDARY_REQUALIFICATION.md`:
 
 - `native-capture/` creates the qualified native Dynamo artifact;
 - `phase2-agent/` reproduces the generic one-shot restore-worker image;
@@ -25,8 +27,9 @@ contract and current ten-model matrix are in
   validator, direct canary, and winning buffered n=3 result;
 - `openfold3-native/` contains the completed native capture, direct canary, and
   winning fully prewarmed buffered n=3 result;
-- `msa-search-native/` contains the complete offline capture, direct/buffered,
-  early-probe, and n=3 execution lane pending live qualification; and
+- `msa-search-native/` contains the selected cache-attached, fully prewarmed
+  conventional n=3 result plus the excluded topology-mismatched native capture;
+  and
 - `evo2-native/` pins the exact Evo2 image and single-H200 profile, native
   capture workflow, direct/buffered artifact candidates, early external
   two-call semantic probe, and n=3 runner. H200 capture and live qualification

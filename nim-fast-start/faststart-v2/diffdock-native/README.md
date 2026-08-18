@@ -4,6 +4,13 @@ Status: complete on the provisioned H100 lane. The production-shaped buffered
 checkpoint passed three repeated runs and six strict 1UBQ-plus-aspirin
 dockings.
 
+Response-boundary requalification is required for the end-to-end total. HTTP
+ready and both call values remain valid because the call timer stopped when the
+complete body was read. The retained terminal timestamp is validator
+completion, so the historical total is relabeled and cannot be corrected
+without a rerun. The rerun validator SHA-256 is
+`245ae98a98db09c34924cd7a499b99da9eb35742667043aaee3e497c33268008`.
+
 ## Winning result
 
 - Approved cluster: `mk8scluster-e00en4dkk80w2d09c0`
@@ -21,14 +28,14 @@ dockings.
 - Injected tool manifest:
   `fc22c423deca17b4175ab42c23a66310c8e2c4d8c4b63a24c33894300020943b`
 
-| mode | run | HTTP ready (s) | Kubernetes Ready (s) | call 1 (s) | call 2 (s) | demand to call 2 (s) | restore (s) |
+| mode | run | HTTP ready (s) | Kubernetes Ready (s) | call 1 HTTP response (s) | call 2 HTTP response (s) | legacy demand to validation complete (s) | restore (s) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | direct/O_DIRECT | `dd-direct-smoke` | 72.594545 | 73.883823 | 1.321248 | 0.545055 | 74.462790 | 65.016 |
 | buffered | `dd-buf-p1` | 11.773042 | 12.634546 | 1.323664 | 0.558473 | 13.657086 | 4.139 |
 | buffered | `dd-buf-p2` | 11.604310 | 12.426498 | 1.350125 | 0.550279 | 13.506684 | 4.043 |
 | buffered | `dd-buf-p3` | 11.860136 | 12.453577 | 1.322778 | 0.522857 | 13.707841 | 4.010 |
 
-The buffered n=3 median is **13.657086 seconds** T0-to-two and
+The buffered n=3 legacy T0-to-validation median is **13.657086 seconds** and
 **4.043 seconds** in the restore worker. All three runs passed two independent
 strict semantic calls through a run-scoped ClusterIP: 6/6 requests passed.
 Compared with the production-shaped direct canary, buffered I/O is 5.452x
@@ -38,7 +45,8 @@ Here HTTP ready is the validator's first successful semantic readiness
 response. Kubernetes Pod Ready is retained as a separate diagnostic. `T0` is
 captured before target creation on the provisioned H100 with storage attached;
 the two call columns are the first and immediate warm semantic inference
-latencies, and demand-to-call-2 is only a timeline cross-check.
+latencies, and the retained demand-to-validation interval is only a legacy
+timeline cross-check.
 
 ## Artifact construction
 
@@ -85,6 +93,10 @@ Each counted directory also contains immutable
 `corrected-submit-edge-timings.json`. The retained raw
 `canary-evidence.json` mislabeled Kubernetes Ready as HTTP ready; the sidecar
 supersedes that stale field without modifying the raw receipt.
+
+`compatibility-evidence.json` also remains byte-for-byte hash-bound to its
+historical review. Its old `demand_to_two_semantic_responses_seconds` key names
+a validation-complete value; `results.json` carries the authoritative relabel.
 
 ## Verification
 

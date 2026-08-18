@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import io
 import json
 import sys
+import tempfile
+import time
 import unittest
 from pathlib import Path
 from typing import Any, Callable
+from unittest import mock
 
 
 TEST_DIR = Path(__file__).resolve().parent
@@ -113,6 +117,68 @@ def live_target() -> dict[str, Any]:
 
 
 class BoltzRequestAndSemanticTests(unittest.TestCase):
+    def test_response_latency_stops_before_semantic_validation(self) -> None:
+        class Response:
+            status = 200
+            headers = {"Content-Type": "application/json"}
+
+            def __init__(self, body: bytes, url: str) -> None:
+                self.stream = io.BytesIO(body)
+                self.url = url
+
+            def read(self, size: int = -1) -> bytes:
+                return self.stream.read(size)
+
+            def geturl(self) -> str:
+                return self.url
+
+            def __enter__(self) -> "Response":
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+        class Opener:
+            def open(self, request: Any, timeout: float) -> Response:
+                self.timeout = timeout
+                payload = json.loads(request.data)
+                polymer = payload["polymers"][0]
+                body = json.dumps(
+                    response_for(polymer["sequence"], polymer["id"]),
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+                return Response(body, request.full_url)
+
+        original_validate = validator.validate_response
+
+        def slow_validate(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            time.sleep(0.05)
+            return original_validate(*args, **kwargs)
+
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            validator, "validate_response", side_effect=slow_validate
+        ):
+            summary = validator.run_validation(
+                base_url="http://127.0.0.1:8000",
+                receipt_dir=Path(temporary) / "receipt",
+                run_ids=("timing-a", "timing-b"),
+                timeout=5,
+                opener=Opener(),
+            )
+
+        self.assertEqual(summary["status"], "PASS")
+        self.assertEqual(
+            summary["response_timing_contract"], validator.RESPONSE_TIMING_CONTRACT
+        )
+        self.assertGreater(
+            summary["validation_total_elapsed_seconds"]
+            - sum(case["elapsed_seconds"] for case in summary["cases"]),
+            0.08,
+        )
+        for case in summary["cases"]:
+            self.assertLessEqual(case["request_started_at"], case["response_received_at"])
+
     def test_actual_lf_msa_rejects_literal_backslash_n_regression(self) -> None:
         probes = validator.build_probes(("actual-lf-a", "actual-lf-b"))
         for probe in probes:

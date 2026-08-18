@@ -54,7 +54,7 @@ SOURCE_PATCH_INPUTS = frozenset(
 WORKER_CLASSIFICATIONS = frozenset(
     {"performance-validation-only", "full-agent-compliance-release"}
 )
-VALIDATOR_SHA256 = "089b4529bd88f0060492699b3c594c6e4557406cd22364e6930d2b44cd588368"
+VALIDATOR_SHA256 = "f85da2029aaa459d687983e5ebeec6c69dffb19a66f34c084409fe2ccc2efad4"
 FIXTURE_SHA256 = "3065261de604f495a2fbae1e7fd92488546ee51f2729e5d40e9be5ee2c22f444"
 PROBE_EXECUTABLE = "/usr/bin/python3"
 ALLOWED_H100_NODES = frozenset(

@@ -52,7 +52,7 @@
   ],
   "probe_image": "nvcr.io/nim/nvidia/genmol@sha256:139b909a450fe1fb81198214784a15f67e172e766a93a1569827ba5aa05b4541",
   "probe_executable": "/usr/bin/python3",
-  "validator_sha256": "089b4529bd88f0060492699b3c594c6e4557406cd22364e6930d2b44cd588368",
+  "validator_sha256": "f85da2029aaa459d687983e5ebeec6c69dffb19a66f34c084409fe2ccc2efad4",
   "tool_bundle": {
     "layout": "archvteams-public-dynamo-tools/v1",
     "content_sha256": "c0d638100c03fa35973e82859d15b9c8dd1bcbf0fe9cb185b58cc21fae7ead1e",

@@ -2,8 +2,13 @@
 
 The production-shaped direct-AIO path passed three consecutive one-H100 trials.
 Median time was **17.145 seconds** for the UID/PodSpec-bound native restore and
-**26.086703 seconds** from target submit to completion of the second strict semantic
-HTTP response.
+**26.086703 seconds** from target submit to completion of response persistence
+and semantic validation.
+
+Response-boundary requalification is required. HTTP-ready remains valid, but
+the historical call timers included response persistence and semantic
+validation, and the terminal timestamp was validator completion. Both call
+latencies and the true T0-to-second-response total require a new n=3 run.
 
 ## Qualified path
 
@@ -22,6 +27,8 @@ HTTP response.
   `cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:31e1dacd18b99aec1ab7e8ec8c933f260c9dcec687938b40c44c61274f930d86`
 - Strict validator SHA-256:
   `284db204afbbad91a8a40fff4a7aea41400f032b54f70ca579ae6563a7b4ad08`
+- Corrected response-boundary validator for the rerun:
+  `fad2b524739d699f7417fb083048431b3a87c4c2686010cc253ad8eb6057b958`
 
 Each trial created an inert exact-digest GPU target, bound the live Pod UID,
 container ID, image ID, cgroup and canonical PodSpec hash, submitted a separate
@@ -37,9 +44,9 @@ and pTM scores in `[0,1]`.
 | Native restore | 17.017 s | 17.145 s | 17.753 s | **17.145 s** |
 | T0 to successful semantic HTTP ready | 23.753685 s | 24.288388 s | 24.517988 s | **24.288388 s** |
 | T0 to Kubernetes Pod Ready | 24.265334 s | 25.564981 s | 25.734361 s | **25.564981 s** |
-| First semantic inference call | 1.543270 s | 1.496779 s | 1.497235 s | **1.497235 s** |
-| Second warm semantic inference call | 0.443073 s | 0.282542 s | 0.287273 s | **0.287273 s** |
-| T0 to second semantic response | 25.909834 s | 26.086703 s | 26.450581 s | **26.086703 s** |
+| Legacy call 1, response + validation | 1.543270 s | 1.496779 s | 1.497235 s | **1.497235 s** |
+| Legacy call 2, response + validation | 0.443073 s | 0.282542 s | 0.287273 s | **0.287273 s** |
+| Legacy T0 to validation completion | 25.909834 s | 26.086703 s | 26.450581 s | **26.086703 s** |
 | Validator total, including readiness wait | 19.134357 s | 18.771843 s | 19.636290 s | **19.134357 s** |
 
 The full per-run values and evidence locations are in `results.tsv`. Each
@@ -56,8 +63,8 @@ contained 20 residues, 167 atoms and 501 finite coordinates.
 An isolated `writeback` manifest variant used hard links for every immutable
 data file, a distinct manifest inode, and a deliberate full 16.241 GB buffered
 read into the node page cache. Prewarming took 16.292456 seconds. The variant
-remained functionally correct but regressed restore to 25.764 seconds and
-T0-to-two to 34.620570 seconds, so it is rejected. Direct-AIO v1 remains the
+remained functionally correct but regressed restore to 25.764 seconds and the
+legacy T0-to-validation interval to 34.620570 seconds, so it is rejected. Direct-AIO v1 remains the
 leader.
 
 `b2p1-0333` is not part of the sample. Its restore succeeded in 17.617 seconds,

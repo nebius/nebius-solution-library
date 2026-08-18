@@ -39,7 +39,7 @@ BINDING_SCHEMA = "archvteams.nebius.ai/proteinmpnn-target-binding/v1"
 TOOL_LAYOUT = "archvteams-public-dynamo-tools/v1"
 SOURCE_REPOSITORY = "https://github.com/ai-dynamo/dynamo"
 SOURCE_COMMIT = "f7f37be174d252590c4b56e25ff4262dd82466fd"
-VALIDATOR_SHA256 = "00bc89ee2ad44ecc67358427e44032f1f44631840560198a3beed50759abb8cb"
+VALIDATOR_SHA256 = "2e3c21af0987f4b9c7da2cef3f3e4d210a7b223049f231c24e871e2a553b48d3"
 PROBE_EXECUTABLES = frozenset({"/usr/local/bin/python3", "/usr/bin/python3"})
 ALLOWED_H100_NODES = frozenset(
     {

@@ -135,9 +135,11 @@ done
 python3 - "$evidence_root" "$checkpoint_id" "$image_io_mode" \
   "${run_ids[@]}" <<'PY' > "$partial_path"
 import json
+import math
 import statistics
 import sys
 from pathlib import Path
+from datetime import datetime
 
 root = Path(sys.argv[1])
 checkpoint_id = sys.argv[2]
@@ -146,6 +148,7 @@ run_ids = sys.argv[4:]
 if len(run_ids) != 3 or len(set(run_ids)) != 3:
     raise SystemExit("n=3 runner did not produce exactly three unique run IDs")
 runs = []
+demand = []
 for run_id in run_ids:
     path = root / "runs" / run_id / "canary-evidence.json"
     value = json.loads(path.read_text(encoding="utf-8"))
@@ -153,6 +156,7 @@ for run_id in run_ids:
         value.get("status") != "PASS"
         or value.get("request_count") != 2
         or value.get("semantic_pass_count") != 2
+        or value.get("response_timing_contract") != "request-dispatch-to-complete-http-body/v1"
         or value.get("t0_source") != "target-submit-at.txt"
         or value.get("t0_at") != value.get("demand_at")
     ):
@@ -160,9 +164,32 @@ for run_id in run_ids:
     artifact = value.get("artifact", {})
     if artifact.get("checkpoint_id") != checkpoint_id or artifact.get("image_io_mode") != image_io_mode:
         raise SystemExit(f"trial artifact identity mismatch: {run_id}")
+    boundary = value.get("evidence", {})
+    t0_at = value.get("t0_at")
+    response_received = boundary.get("second_response_received_at")
+    validation_finished = boundary.get("validation_finished_at")
+    try:
+        t0_time = datetime.fromisoformat(t0_at.replace("Z", "+00:00"))
+        response_time = datetime.fromisoformat(response_received.replace("Z", "+00:00"))
+        validation_time = datetime.fromisoformat(validation_finished.replace("Z", "+00:00"))
+    except (AttributeError, ValueError) as exc:
+        raise SystemExit(f"trial lacks response-boundary provenance: {run_id}") from exc
+    if not t0_time <= response_time <= validation_time:
+        raise SystemExit(f"trial response boundary is outside T0/validation: {run_id}")
+    recomputed_demand = round((response_time - t0_time).total_seconds(), 6)
+    reported_demand = value.get("timings_seconds", {}).get(
+        "demand_to_two_semantic_responses"
+    )
+    if (
+        isinstance(reported_demand, bool)
+        or not isinstance(reported_demand, (int, float))
+        or not math.isfinite(float(reported_demand))
+        or round(float(reported_demand), 6) != recomputed_demand
+    ):
+        raise SystemExit(f"trial total does not match response boundary: {run_id}")
+    demand.append(recomputed_demand)
     runs.append(value)
 
-demand = [float(run["timings_seconds"]["demand_to_two_semantic_responses"]) for run in runs]
 http_ready = [float(run["timings_seconds"]["demand_to_http_ready"]) for run in runs]
 kubernetes_ready = [float(run["timings_seconds"]["demand_to_kubernetes_ready"]) for run in runs]
 call_1 = [float(run["timings_seconds"]["semantic_request_1"]) for run in runs]
@@ -177,6 +204,7 @@ result = {
     "trial_count": 3,
     "request_count": 6,
     "semantic_pass_count": 6,
+    "response_timing_contract": "request-dispatch-to-complete-http-body/v1",
     "run_ids": run_ids,
     "demand_to_two_semantic_seconds": demand,
     "demand_to_http_ready_seconds": http_ready,

@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: archvteams-2407-faststart
     nvidia.com/snapshot-checkpoint-id: msa-search-native-f7-v1
   annotations:
-    archvteams.nebius.ai/validator-sha256: 4ac58960c881f748dd1340288d1fa97f6d722a1be26c71c321f681a2c252bdee
+    archvteams.nebius.ai/validator-sha256: 20e8951ceaaa1b81e8129d86b787c6bb009cf2e207d55829cf13f4fa9489188b
     archvteams.nebius.ai/fixture-sha256: 874b0e5e3be9776ea289fb46444032e04b63875d9d4110f1560e5435de72686a
 spec:
   backoffLimit: 0
@@ -68,7 +68,7 @@ spec:
               import subprocess
 
               expected = {
-                  "validate_msa_search.py": "4ac58960c881f748dd1340288d1fa97f6d722a1be26c71c321f681a2c252bdee",
+                  "validate_msa_search.py": "20e8951ceaaa1b81e8129d86b787c6bb009cf2e207d55829cf13f4fa9489188b",
                   "request-pdb70.json": "874b0e5e3be9776ea289fb46444032e04b63875d9d4110f1560e5435de72686a",
               }
               root = pathlib.Path("/output/donor-validation")

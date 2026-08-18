@@ -33,6 +33,12 @@ contains the exact posted request bytes, exact raw response bytes, and a summary
 Every file is created exclusively with mode `0600`. A zero-byte response file
 is retained when transport fails before response bytes arrive.
 
+For online cases, `elapsed_seconds` is monotonic request-dispatch-to-complete-
+body latency. `response_received_at` is captured at that boundary before the
+raw response is persisted, hashed, decoded, or semantically validated. The
+summary exposes `validation_finished_at` separately. Offline raw-HTTP checks
+emit `validation_elapsed_seconds` and are never accepted as performance timing.
+
 Run the offline unit suite with:
 
 ```bash

@@ -1,5 +1,5 @@
 {
-  "schema": "archvteams.nebius.ai/msa-search-faststart-results/v1",
+  "schema": "archvteams.nebius.ai/msa-search-faststart-results/v2",
   "status": "PASS",
   "measured_at": "2026-08-18",
   "cluster": "mk8scluster-e00en4dkk80w2d09c0",
@@ -12,8 +12,15 @@
     "readiness": "first successful application HTTP readiness response",
     "call_1": "first strict PDB70 inference after application readiness, including deferred loading",
     "call_2": "immediate second strict, distinct PDB70 inference",
-    "through_call_2": "T0 through completion of the second inference",
+    "legacy_validation_complete": "T0 through response persistence and semantic validation",
     "kubernetes_ready": "separate diagnostic; never substituted for application HTTP readiness"
+  },
+  "response_boundary_requalification": {
+    "status": "RERUN_REQUIRED_FOR_T0_TO_SECOND_RESPONSE",
+    "http_ready_values_preserved": true,
+    "call_values_status": "pure HTTP response latency; captured before response persistence and semantic validation",
+    "legacy_total_semantics": "T0 to validation completion, not T0 to receipt of the second HTTP body",
+    "required_validator_sha256": "20e8951ceaaa1b81e8129d86b787c6bb009cf2e207d55829cf13f4fa9489188b"
   },
   "conventional_cached_n3": {
     "batch_id": "msa-conv-f7c",
@@ -50,7 +57,7 @@
       "median": 0.031058,
       "max": 0.031083
     },
-    "demand_to_second_response_seconds": {
+    "legacy_demand_to_validation_complete_seconds": {
       "values": [5.201905, 5.073655, 5.144951],
       "min": 5.073655,
       "median": 5.144951,

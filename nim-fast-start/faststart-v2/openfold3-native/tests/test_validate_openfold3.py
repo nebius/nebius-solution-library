@@ -225,6 +225,13 @@ class EndToEndTests(unittest.TestCase):
                 self.assertEqual(summary["status"], "PASS")
                 self.assertEqual(summary["passed_case_count"], 2)
                 self.assertEqual(
+                    validator.RESPONSE_TIMING_CONTRACT,
+                    summary["response_timing_contract"],
+                )
+                self.assertEqual(summary["finished_at"], summary["validation_finished_at"])
+                for case in summary["cases"]:
+                    self.assertLessEqual(case["request_started_at"], case["response_received_at"])
+                self.assertEqual(
                     _StrictHandler.request_ids,
                     ["of3-ut-semantic-a", "of3-ut-semantic-b"],
                 )

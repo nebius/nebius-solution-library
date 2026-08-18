@@ -4,8 +4,8 @@ set -euo pipefail
 umask 077
 
 readonly allowed_server="https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebius.cloud:443"
-readonly expected_contract_sha256="3dd37721a990176d5ed37fe0c4435c2f6057e81db06b51a1b93f5053618d8a3f"
-readonly expected_validator_sha256="8da1693931ce62604917a74b1518ac29ee28bdcb89fbe389bee13912351ac9ce"
+readonly expected_contract_sha256="67fa2849db9f258ace42a55e1763481370292ec3b040910e82ab9e950dff0d52"
+readonly expected_validator_sha256="4f3e70ef29ea9cd3113c09e6f63bd15b4d9826bf64d7d16972c6c3d0eef3090e"
 readonly trial_namespace="nim-fast-start"
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)

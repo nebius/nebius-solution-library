@@ -23,11 +23,18 @@ and inventories every regular file before measurement.
 
 ## Results
 
+Response-boundary requalification is required for the end-to-end total. The
+HTTP-ready and call values remain valid: the call timer stopped immediately
+after the complete response body was read. The retained terminal timestamp,
+however, is validator completion, so the historical total is relabeled below
+and must not be reported as T0-to-call-2. The rerun validator is pinned at
+SHA-256 `2e3c21af0987f4b9c7da2cef3f3e4d210a7b223049f231c24e871e2a553b48d3`.
+
 All six measured runs passed the exact Pod UID, worker receipt, eventual
 Kubernetes Ready, two-call, and strict ProteinMPNN sequence-structure gates.
 Both response hashes are deterministic and equal to the checkpoint donor.
 
-| mode | HTTP ready median (s) | Kubernetes Ready median (s) | call 1 median (s) | call 2 median (s) | demand to call 2 median (s) | worker restore median (s) |
+| mode | HTTP ready median (s) | Kubernetes Ready median (s) | call 1 HTTP response (s) | call 2 HTTP response (s) | legacy demand to validation complete (s) | worker restore median (s) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | direct/O_DIRECT | 23.763006 | 24.864866 | 0.605700 | 0.271714 | 24.641450 | 15.727 |
 | legacy buffered | **9.399878** | 10.034350 | 0.601493 | 0.266078 | **10.265944** | 1.385 |
@@ -35,10 +42,10 @@ Both response hashes are deterministic and equal to the checkpoint donor.
 HTTP ready is the validator's first successful semantic readiness response,
 not the Kubernetes condition. `T0` is captured before target creation on the
 already provisioned H100 with storage attached. Kubernetes Ready is diagnostic;
-demand-to-call-2 is a cross-check, while the call columns are the individual
+demand-to-validation is a legacy cross-check, while the call columns are the individual
 first (potentially deferred-load) and immediate warm inference latencies.
 
-The buffered n=3 median is 10.265944 seconds T0-to-two, a 2.400x speedup
+The buffered n=3 legacy T0-to-validation median is 10.265944 seconds, a 2.400x speedup
 and 58.3% reduction from the 24.641450-second direct median. Its median worker
 restore is 1.385 seconds, an 11.355x speedup and 91.2% reduction from the
 15.727-second direct median. The first buffered canary is included in n=3;

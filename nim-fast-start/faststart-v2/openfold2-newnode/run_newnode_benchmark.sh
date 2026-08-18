@@ -707,7 +707,7 @@ require_sha256 "$pipeline_root/manifests/target.yaml.tmpl" "04d68f1d7d7eb723443b
 require_sha256 "$pipeline_root/manifests/restore-worker.yaml.tmpl" "717e22f17a2eb5d2792d3e55753ecf0ade8e46a3ce956964dbb24898f89cfe41" "frozen restore template"
 require_sha256 "$pipeline_root/manifests/semantic-probe.yaml.tmpl" "918a412f90c1923fac03c13b6ad2fabd84db589e32277c0bb0e854312f7e503e" "frozen probe template"
 require_sha256 "$pipeline_root/restore-interface.live.json" "3dd37721a990176d5ed37fe0c4435c2f6057e81db06b51a1b93f5053618d8a3f" "frozen live contract"
-require_sha256 "$pipeline_root/../validate_openfold2.py" "8da1693931ce62604917a74b1518ac29ee28bdcb89fbe389bee13912351ac9ce" "frozen OpenFold2 validator"
+require_sha256 "$pipeline_root/../validate_openfold2.py" "4f3e70ef29ea9cd3113c09e6f63bd15b4d9826bf64d7d16972c6c3d0eef3090e" "frozen OpenFold2 validator"
 require_sha256 "$starting_state_tool" "50a7f65b792c951685cd47f375d837e9293c9e14ddcd900e409c2ce7eb6bb787" "retiring-node starting-state gate"
 require_sha256 "$node_admission" "e81f19b87e083fe21f14e81d851b3facf7976f90c9101a61f84cad24cd79eff4" "bounded startup/admission gate"
 require_sha256 "$node_service_gate" "470a703e91901fafe2bbb6ef11cc73c80efc94f30d8782fb13bb8624249c3dbb" "node service-occupancy gate"
@@ -719,7 +719,7 @@ jq -e '
   .source.commit=="f7f37be174d252590c4b56e25ff4262dd82466fd" and
   .source.patch_sha256=="260c1d9a7f192b8c0b25c924ab26b43a95ad599d38d3f367383e3e984aecfd11" and
   .worker_image=="cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:31e1dacd18b99aec1ab7e8ec8c933f260c9dcec687938b40c44c61274f930d86" and
-  .validator_sha256=="8da1693931ce62604917a74b1518ac29ee28bdcb89fbe389bee13912351ac9ce"
+  .validator_sha256=="4f3e70ef29ea9cd3113c09e6f63bd15b4d9826bf64d7d16972c6c3d0eef3090e"
 ' "$pipeline_root/restore-interface.live.json" >/dev/null
 
 zero_established=0

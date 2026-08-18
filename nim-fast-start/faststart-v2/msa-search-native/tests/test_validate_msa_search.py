@@ -204,6 +204,13 @@ class EndToEndTests(unittest.TestCase):
                 summary = json.loads(completed.stdout)
                 self.assertEqual(summary["status"], "PASS")
                 self.assertEqual(summary["passed_case_count"], 2)
+                self.assertEqual(
+                    validator.RESPONSE_TIMING_CONTRACT,
+                    summary["response_timing_contract"],
+                )
+                self.assertEqual(summary["finished_at"], summary["validation_finished_at"])
+                for case in summary["cases"]:
+                    self.assertLessEqual(case["request_started_at"], case["response_received_at"])
                 self.assertTrue(summary["queries_distinct"])
                 self.assertEqual(summary["expected_records_per_response"], 128)
                 self.assertEqual(summary["expected_non_query_homologs_per_response"], 127)

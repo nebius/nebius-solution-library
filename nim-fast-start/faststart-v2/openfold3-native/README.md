@@ -18,6 +18,8 @@ release is built after the exact Jammy CUDA base receives a baseline SBOM.
   `09b30bf2132e3764f99d4f417b47713cd6350bd332fe3100cceb1be11589f8ae`.
 - Validator SHA-256:
   `c7ec22a6107d0fff36e17c4c9d1b8a6cf3f4efcc592215da05521f2b43d9cd4a`.
+- Corrected response-boundary validator for requalification:
+  `679b3e027b18e78b4646569e8c6395fb5f62c4647704bb5089aa2385a20d11f5`.
 
 The fixture is the retained 20-residue, query-only A3M request with one
 diffusion sample. Every qualification trial makes exactly two actual HTTP
@@ -26,6 +28,12 @@ call identity, one CIF structure, at least 100 `ATOM` rows, Cartesian atom-site
 fields, and all five finite OpenFold3 scores.
 
 ## Warm-instance cold-start result
+
+Response-boundary requalification is required for the end-to-end total. HTTP
+ready and both call values remain valid because their monotonic timers stopped
+at complete-body receipt. The retained terminal timestamp was validator
+completion, so the historical final interval is relabeled rather than
+presented as T0-to-call-2.
 
 The primary clock starts immediately before target Pod creation on an already
 provisioned H100 with both storage volumes attached. HTTP readiness is the first
@@ -39,7 +47,7 @@ was page-resident. That prewarm is deliberately outside the measured interval
 and is reported as part of the storage state, not hidden as ordinary attached
 storage. The direct comparator bypasses the page cache.
 
-| Path | n | T0 to HTTP ready | T0 to Kubernetes Ready | Call 1 | Call 2 | T0 through call 2 | Worker restore |
+| Path | n | T0 to HTTP ready | T0 to Kubernetes Ready | Call 1 HTTP response | Call 2 HTTP response | Legacy T0 through validation | Worker restore |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Buffered, attached storage, fully prewarmed | 3 | **12.142147 s** | 12.815803 s | **8.604078 s** | **8.530700 s** | **29.345285 s** | 4.717 s |
 | Direct I/O, attached storage | 1 | 87.284431 s | 88.224833 s | 8.611488 s | 8.548598 s | 104.445954 s | 79.997 s |
