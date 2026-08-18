@@ -1,7 +1,7 @@
 # BioNeMo NIM fast start v2
 
-This subtree contains production-native OpenFold2, Boltz2, and ProteinMPNN
-checkpoint/restore paths:
+This subtree contains production-native OpenFold2, Boltz2, ProteinMPNN, and
+offline-prepared Evo2-40B checkpoint/restore paths:
 
 - `native-capture/` creates the qualified native Dynamo artifact;
 - `phase2-agent/` reproduces the generic one-shot restore-worker image;
@@ -17,7 +17,11 @@ checkpoint/restore paths:
   comparison; and
 - `proteinmpnn-native/` contains the ProteinMPNN capture inputs, strict
   validator, provisioned-node runner, direct-I/O baseline, and winning
-  retained-page-cache buffered n=3 result.
+  retained-page-cache buffered n=3 result; and
+- `evo2-native/` pins the exact Evo2 image and single-H200 profile, native
+  capture workflow, direct/buffered artifact candidates, early external
+  two-call semantic probe, and n=3 runner. H200 capture and live qualification
+  remain explicitly deferred.
 
 All renderer and verifier entry points are offline. Live work requires an
 explicit invocation of either `dynamo/run_provisioned_trial.sh` or
