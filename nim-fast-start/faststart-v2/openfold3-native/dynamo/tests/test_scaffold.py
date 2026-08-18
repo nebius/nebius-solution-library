@@ -319,6 +319,22 @@ class UnsafeMutationTests(unittest.TestCase):
         job["spec"]["template"]["spec"]["tolerations"] = [{"operator": "Exists"}]
         self.assert_rejected(documents, "broad toleration")
 
+    def test_rejects_restore_worker_request_above_proven_envelope(self) -> None:
+        documents = copy.deepcopy(self.worker)
+        job = find_document(documents, "Job", "restore-worker")
+        job["spec"]["template"]["spec"]["containers"][0]["resources"][
+            "requests"
+        ]["cpu"] = "1"
+        self.assert_rejected(documents, "proven scheduling envelope")
+
+    def test_rejects_restore_worker_limit_drift(self) -> None:
+        documents = copy.deepcopy(self.worker)
+        job = find_document(documents, "Job", "restore-worker")
+        job["spec"]["template"]["spec"]["containers"][0]["resources"][
+            "limits"
+        ]["cpu"] = "3"
+        self.assert_rejected(documents, "proven execution envelope")
+
     def test_rejects_host_root_mount(self) -> None:
         documents = copy.deepcopy(self.worker)
         job = find_document(documents, "Job", "restore-worker")

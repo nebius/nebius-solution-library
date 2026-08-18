@@ -19,9 +19,10 @@ readonly expected_contract_sha256='8b01f233ae97dcace0d3359302c3ed9b6749824f26174
 readonly expected_validator_sha256='679b3e027b18e78b4646569e8c6395fb5f62c4647704bb5089aa2385a20d11f5'
 readonly expected_fixture_sha256='09b30bf2132e3764f99d4f417b47713cd6350bd332fe3100cceb1be11589f8ae'
 readonly expected_prewarm_sha256='bcd8c5e66154f8e6939739219ab61a1ddc6ec0fa922c8c9e0acc1673af75cce3'
-# This mirrors the current manifest. A fresh preflight must prove whether the
-# request needs the separately reviewed 500m scheduling pin before any mutation.
-readonly worker_request_mcpu=1000
+# Fresh hf93 capacity evidence proved that the original 1000m request left
+# negative scheduling headroom. Keep the 4-CPU execution limit, but reserve the
+# independently reviewed 500m so the cohort still retains at least 400m.
+readonly worker_request_mcpu=500
 readonly required_candidate_headroom_mcpu=400
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)

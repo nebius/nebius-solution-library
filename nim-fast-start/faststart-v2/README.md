@@ -2,15 +2,13 @@
 
 This subtree contains production-shaped n=3 results for OpenFold2, Boltz2,
 ProteinMPNN, DiffDock, OpenFold3, MSA Search, GenMol, RFdiffusion, and MolMIM.
-OpenFold2, Boltz2, ProteinMPNN, DiffDock, MSA Search, GenMol, RFdiffusion,
-and MolMIM retain exact T0-to-second-response boundaries; one older stable
-lane retains exact HTTP-ready and complete-body call latencies but still needs
-an absolute call-2 timestamp rerun. Evo2-40B is
-the only remaining non-production-shaped row and remains blocked on release of
-the only allowed H200 from an owner-managed Deployment. The shared metric
-contract and current ten-model matrix are in
-`performance/COLD_START_METRICS.md`. Remaining stable-lane rerun requirements
-after the response-boundary audit are in
+OpenFold2, Boltz2, ProteinMPNN, DiffDock, OpenFold3, MSA Search, GenMol,
+RFdiffusion, and MolMIM retain exact T0-to-second-response boundaries.
+Evo2-40B is the only remaining non-production-shaped row and remains blocked
+on release of the only allowed H200 from an owner-managed Deployment. The
+shared metric contract and current ten-model matrix are in
+`performance/COLD_START_METRICS.md`. The completed stable-lane
+response-boundary audit is recorded in
 `performance/RESPONSE_BOUNDARY_REQUALIFICATION.md`:
 
 - `native-capture/` creates the qualified native Dynamo artifact;
@@ -36,7 +34,9 @@ after the response-boundary audit are in
   n=3 result. The selected route reaches HTTP readiness in 12.127239 seconds
   and the second complete response in 14.190621 seconds from T0;
 - `openfold3-native/` contains the completed native capture, direct canary, and
-  winning fully prewarmed buffered n=3 result;
+  winning fully prewarmed buffered response-boundary n=3 result. The selected
+  route reaches HTTP readiness in 12.271182 seconds and the second complete
+  response in 30.564921 seconds from T0;
 - `msa-search-native/` contains the selected cache-attached, fully prewarmed
   conventional response-boundary n=3 result plus the excluded
   topology-mismatched native capture. The selected route reaches HTTP

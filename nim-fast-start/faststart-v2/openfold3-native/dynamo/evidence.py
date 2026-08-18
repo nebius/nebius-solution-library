@@ -442,6 +442,13 @@ def build_evidence(
     http_ready, second_response_received, validation_finished, case_elapsed = _validate_semantics(
         semantic_summary, run_id
     )
+    # Kubernetes container-state timestamps are serialized at whole-second
+    # precision, while the in-container validator records response boundaries
+    # with sub-second precision. Normalize only that bounded quantization edge;
+    # a one-second-or-larger inversion remains a hard evidence failure.
+    probe_finished_for_order = _kubernetes_not_before(
+        probe_finished, validation_finished, "probe finish"
+    )
     expected_origin = f"http://{service_name}:8000"
     expected_path = "/biology/openfold/openfold3/predict"
     if (
@@ -470,7 +477,7 @@ def build_evidence(
         http_ready,
         second_response_received,
         validation_finished,
-        probe_finished,
+        probe_finished_for_order,
     ]
     if any(
         later < earlier

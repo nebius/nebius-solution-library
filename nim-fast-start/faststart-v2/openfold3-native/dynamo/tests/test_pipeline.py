@@ -480,6 +480,22 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(evidence.EvidenceError, "at least one second"):
             evidence.build_evidence(**inputs)
 
+    def test_probe_finish_subsecond_quantization_is_normalized(self) -> None:
+        inputs = evidence_inputs()
+        inputs["probe_pod"]["status"]["containerStatuses"][0]["state"][
+            "terminated"
+        ]["finishedAt"] = "2026-08-17T20:00:09Z"
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["status"], "PASS")
+
+    def test_probe_finish_one_second_inversion_is_rejected(self) -> None:
+        inputs = evidence_inputs()
+        inputs["probe_pod"]["status"]["containerStatuses"][0]["state"][
+            "terminated"
+        ]["finishedAt"] = "2026-08-17T20:00:08Z"
+        with self.assertRaisesRegex(evidence.EvidenceError, "at least one second"):
+            evidence.build_evidence(**inputs)
+
     def test_http_ready_may_precede_restore_receipt(self) -> None:
         inputs = evidence_inputs()
         inputs["semantic_summary"]["ready_at"] = "2026-08-17T20:00:08.200000Z"

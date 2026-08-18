@@ -29,11 +29,12 @@ fields, and all five finite OpenFold3 scores.
 
 ## Warm-instance cold-start result
 
-Response-boundary requalification is required for the end-to-end total. HTTP
-ready and both call values remain valid because their monotonic timers stopped
-at complete-body receipt. The retained terminal timestamp was validator
-completion, so the historical final interval is relabeled rather than
-presented as T0-to-call-2.
+The response-boundary requalification completed three independent strict PASS
+trials and six semantic calls. Each call timer ends after the complete HTTP
+body is received, and each run retains call 2's absolute
+`response_received_at`. The exact end-to-end total is therefore computed for
+each run as T0 through that response boundary; it is not reconstructed by
+adding medians and does not use validator completion.
 
 The primary clock starts immediately before target Pod creation on an already
 provisioned H100 with both storage volumes attached. HTTP readiness is the first
@@ -47,29 +48,53 @@ The selected buffered artifact was fully read before T0 so its exact
 SHA-256 is
 `f488019348551f356a153ce17cd9568a9d59497ead375c81a84ddef3bc3972c2`.
 That prewarm is deliberately outside the measured interval and is reported as
-part of the storage state, not hidden as ordinary attached storage. The
-authoritative receipt did not retain the full-read elapsed time, so no prewarm
-duration is inferred. The direct comparator bypasses the page cache.
+part of the storage state, not hidden as ordinary attached storage. The fresh
+full read took 7.386615 seconds. The direct comparator bypasses the page cache.
 
-| Path | n | T0 to HTTP ready | T0 to Kubernetes Ready | Call 1 HTTP response | Call 2 HTTP response | Legacy T0 through validation | Worker restore |
+| Path | n | T0 to HTTP ready | T0 to Kubernetes Ready | Call 1 HTTP response | Call 2 HTTP response | Exact T0 through call 2 | Worker restore |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Buffered, attached storage, fully prewarmed | 3 | **12.142147 s** | 12.815803 s | **8.604078 s** | **8.530700 s** | **29.345285 s** | 4.717 s |
-| Direct I/O, attached storage | 1 | 87.284431 s | 88.224833 s | 8.611488 s | 8.548598 s | 104.445954 s | 79.997 s |
+| Buffered, attached storage, fully prewarmed | 3 | **12.271182 s** | 12.887492 s | **9.098247 s** | **9.166892 s** | **30.564921 s** | 4.924 s |
 
-The buffered row is the median of three strict PASS trials; its individual HTTP
-readiness values were 12.010717, 12.142147, and 12.331491 seconds. The direct row
-is a single storage-cold canary and is not presented as an n=3 median. Compact
-digest-bound receipts are in `results.json`; raw private evidence remains under
-`/home/tux/.local/state/archvteams-2407/openfold3-native-f7-20260818T055003Z`.
-Each counted run has an immutable `corrected-submit-edge-timings.json` that
-rebases the already distinct HTTP and Kubernetes timestamps to submit-edge T0.
+The selected values are medians. Their raw arrays and ranges are:
 
-The selected storage receipt is
-`/home/tux/.local/state/archvteams-2407/openfold3-native-f7-20260818T055003Z/artifact-buffered-receipt.json`,
+- HTTP ready: 12.088885, 12.271182, 12.369170 seconds;
+- Kubernetes Ready diagnostic: 12.651241, 12.966096, 12.887492 seconds;
+- call 1: 9.098247, 9.180301, 9.070079 seconds;
+- call 2: 9.166892, 9.112610, 9.174043 seconds;
+- exact T0 through call 2: 30.354807, 30.564921, 30.614101 seconds; and
+- restore worker: 4.925, 4.924, 4.915 seconds.
+
+The direct row remains a single historical storage-cold comparator: 87.284431
+seconds to HTTP ready, 88.224833 seconds to Kubernetes Ready, 8.611488 and
+8.548598 seconds for the two calls, 104.445954 seconds through legacy
+validation completion, and 79.997 seconds in the restore worker. It does not
+have an exact call-2 total and is not presented as an n=3 median.
+
+The selected aggregate is
+`/home/tux/.local/state/archvteams-2407/openfold3-native-f7-response-20260818T123500Z/aggregate.json`,
 SHA-256
-`f780779202dcd93180b49c6d9e40e20044fd7fcb7ceea85b60c964ed8e994550`.
-It is authoritative for the selected artifact's byte count, file count,
-manifest, and tree identity.
+`a8c8469759452aaf709aeeb5200e5b773337bae85788a94b7384e8f862d244f3`.
+The full-read receipt SHA-256 is
+`4e2ce483ed27d817f8e00fc26ef7f53fb9ad2b35f094b59ca44f97fb56abc7e9`;
+the exact three-image residency receipt SHA-256 is
+`e456d8410c95dc3bca4f0b43086de364523a5f876eada374d0fc1cd24aa0f613`.
+All three trials recorded zero post-T0 pull events and zero terminal fault
+events. Their cleanup receipts report no remaining run-scoped resources and
+zero active GPU requests. The final-state receipt preserves the Ready holder
+and both attached PVCs and has SHA-256
+`914ef402442db45e10419a5958ceb57eaa49645d4fe96d1764d1f8ea5037fffe`.
+
+The fresh capacity audit found 4,830m of existing CPU requests against 15,900m
+allocatable. The original 1,000m worker request would have left -30m after the
+10,000m target and 100m probe, so that preflight failed before mutation. The
+selected worker reserves 500m with the same 4-CPU execution limit and leaves
+470m headroom; the manifest linter pins both values.
+
+One earlier cohort was excluded before aggregation when Kubernetes' whole-second
+probe-finish timestamp exposed a 0.614789-second precision inversion against
+the validator's sub-second completion time. The verifier now normalizes only a
+sub-second Kubernetes quantization edge and still rejects an inversion of one
+second or more. The excluded run was cleaned and was neither reused nor counted.
 
 ## Retained H100 baseline
 
@@ -167,7 +192,10 @@ bash dynamo/tests/test_run_provisioned_trial.sh
 bash dynamo/tests/test_run_n3.sh
 python3 -m py_compile validate_openfold3.py render_capture.py \
   render_snapshot_agent.py render_buffered_variant.py dynamo/*.py
-bash -n dynamo/run_provisioned_trial.sh dynamo/run_n3.sh dynamo/tests/*.sh
+bash -n dynamo/run_provisioned_trial.sh dynamo/run_n3.sh \
+  dynamo/run_response_n3.sh dynamo/tests/*.sh
+shellcheck -e SC1091 dynamo/run_provisioned_trial.sh dynamo/run_n3.sh \
+  dynamo/run_response_n3.sh dynamo/tests/*.sh
 ```
 
 These checks make no Kubernetes, cloud, registry, or external-network call.

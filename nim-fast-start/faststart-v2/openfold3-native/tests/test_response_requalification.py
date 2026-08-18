@@ -102,7 +102,7 @@ class AggregateTests(unittest.TestCase):
                 "node": aggregate.NODE,
                 "active_gpu_requests_on_node": 0,
                 "attached_volume_count": 2,
-                "worker_request_mcpu": 1000,
+                "worker_request_mcpu": 500,
                 "candidate_headroom_after_target_probe_worker_mcpu": 500,
                 "required_candidate_headroom_mcpu": 400,
             },
@@ -254,7 +254,7 @@ class RunnerContractTests(unittest.TestCase):
             {"mk8scluster-e00en4dkk80w2d09c0"},
         )
         self.assertIn("allowed_context='archvteams-2407-openfold2'", source)
-        self.assertIn("readonly worker_request_mcpu=1000", source)
+        self.assertIn("readonly worker_request_mcpu=500", source)
         self.assertIn("--preflight-only", source)
         self.assertNotIn('delete pvc "$artifact_pvc"', source)
         self.assertNotIn('delete pod "$holder_name"', source)
