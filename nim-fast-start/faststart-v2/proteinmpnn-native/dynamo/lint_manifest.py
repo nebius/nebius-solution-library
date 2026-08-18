@@ -480,6 +480,12 @@ def _check_worker(document: dict[str, Any], errors: list[str]) -> None:
         errors.append(f"{location} has no canonical target PodSpec hash binding")
 
     resources = container.get("resources", {})
+    requests = resources.get("requests", {}) if isinstance(resources, dict) else {}
+    limits = resources.get("limits", {}) if isinstance(resources, dict) else {}
+    if requests != {"cpu": "500m", "memory": "1Gi"}:
+        errors.append(f"{location} worker requests must match the proven scheduling envelope")
+    if limits != {"cpu": "4", "memory": "4Gi"}:
+        errors.append(f"{location} worker limits must match the proven execution envelope")
     for group in ("requests", "limits"):
         if isinstance(resources, dict) and "nvidia.com/gpu" in resources.get(group, {}):
             errors.append(f"{location} worker must not reserve the target GPU")

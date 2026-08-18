@@ -1,10 +1,10 @@
 # ProteinMPNN production canary using the one-shot Dynamo worker
 
 This directory contains the offline renderer and evidence contract for one
-production-shaped ProteinMPNN cold-start canary, plus an explicit provisioned-node
-runner. The Python tools do not call Kubernetes, Nebius, a registry, or any
-external network. `run_provisioned_trial.sh` is the sole live orchestration
-entry point.
+production-shaped ProteinMPNN cold-start canary, plus explicit provisioned-node
+single-trial and exact n=3 runners. The Python tools do not call Kubernetes,
+Nebius, a registry, or any external network. `run_provisioned_trial.sh` and
+`run_response_n3.sh` are the only live orchestration entry points.
 
 The measured path is:
 
@@ -13,7 +13,7 @@ The measured path is:
 3. bind the API-defaulted live Pod spec, UID, container ID, cgroup, IP, image,
    and node;
 4. immediately create one tokenless CPU probe Job, which polls readiness while
-   the restore path proceeds;
+the restore path proceeds;
 5. run one privileged, node-affine, no-retry restore Job;
 6. require the restored target's exact readiness response and resolve the
    run-scoped ClusterIP Service to that exact Pod UID; and
@@ -50,7 +50,9 @@ contains image and source digests, but no credential material. The current
 probe accepts the two observed successful `/v1/health/ready` JSON shapes:
 literal `true` or `{"status":"ready"}`. It then issues exactly two inference
 calls. The direct p6-p8 and buffered p9-p11 measurements are recorded in
-`../README.md` and `../results.tsv`; raw evidence payloads stay outside Git.
+`../README.md` and `../results.tsv`; the selected exact cohort is in
+`../response-boundary-results.tsv` and `../results.json`. Raw evidence payloads
+stay outside Git.
 
 The target is scheduler-created: its template uses required hostname affinity
 and never `spec.nodeName`. The worker and target use the previously measured
@@ -62,6 +64,24 @@ redundant tools PVC or target `LD_LIBRARY_PATH` is used. The target's read-only
 cache PVC must contain the exact cache tree used by the checkpoint donor.
 
 ## Reproducible provisioned-node run
+
+For an exact three-trial cohort, `run_response_n3.sh` first fails closed on the
+Ready-node, zero-GPU, exact 4,830m CPU baseline, holder/PVC/CSI attachment, and
+minimum 400m headroom gates. It proves all three exact images resident in a
+setup-only Pod, deletes that Pod, performs one fresh full artifact read in the
+existing holder, and then runs three trials without another artifact refresh.
+It requires zero post-T0 pulling events and UID-scoped cleanup plus zero GPU
+requests after every trial before `aggregate_response_n3.py` admits the cohort.
+
+```console
+./run_response_n3.sh \
+  --kubeconfig /private/kubeconfig \
+  --evidence-root /private/evidence/proteinmpnn-response \
+  --batch-id pmp-rb-0001
+```
+
+The worker request is fixed at 500m with its 4-CPU execution limit unchanged;
+the linter rejects either value drifting from the proven scheduling envelope.
 
 Create an evidence root with an existing `runs/` directory, then supply every
 machine-specific input explicitly:
@@ -198,10 +218,10 @@ repeat the measured run at least three times and report every run.
 
 ```console
 python3 -m unittest discover -s tests -v
-python3 -m py_compile render.py lint_manifest.py bind_target.py evidence.py
+python3 -m py_compile render.py lint_manifest.py bind_target.py evidence.py aggregate_response_n3.py
 bash tests/test_run_provisioned_trial.sh
-bash -n run_provisioned_trial.sh tests/test_run_provisioned_trial.sh
-shellcheck -x run_provisioned_trial.sh tests/test_run_provisioned_trial.sh \
+bash -n run_provisioned_trial.sh run_response_n3.sh tests/test_run_provisioned_trial.sh
+shellcheck -x run_provisioned_trial.sh run_response_n3.sh tests/test_run_provisioned_trial.sh \
   tests/provisioned-fixtures/bin/kubectl \
   tests/provisioned-fixtures/bin/python3
 ```

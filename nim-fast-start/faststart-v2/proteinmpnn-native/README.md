@@ -14,7 +14,7 @@ The measured implementation is restricted to
 - artifact inventory: 57 regular files, 1,867,046,505 bytes
 - restore worker: `cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:063286a3a1354d1c5969fa80f445bb5fbd2a96bc0999c7b6897495f0b4c2fd4d`
 - injected tool manifest: `fc22c423deca17b4175ab42c23a66310c8e2c4d8c4b63a24c33894300020943b`
-- restore interface: `dynamo/restore-interface.live.json`, SHA-256 `ac7140a508d8a863ee191638a7fd9a50103175af6da2ee00a57f1d75f7758848`
+- restore interface: `dynamo/restore-interface.live.json`, SHA-256 `8202091d7811b7727c69b41c9e2f2cf906eefb7b99d117ad7b5d0fb5f69960e1`
 
 The artifact differs from retained direct-I/O v1 only in its checkpoint ID and
 `criu.imageIoMode: buffered`; all 56 payload files are hard links, including
@@ -23,46 +23,74 @@ and inventories every regular file before measurement.
 
 ## Results
 
-Response-boundary requalification is required for the end-to-end total. The
-HTTP-ready and call values remain valid: the call timer stopped immediately
-after the complete response body was read. The retained terminal timestamp,
-however, is validator completion, so the historical total is relabeled below
-and must not be reported as T0-to-call-2. The rerun validator is pinned at
-SHA-256 `2e3c21af0987f4b9c7da2cef3f3e4d210a7b223049f231c24e871e2a553b48d3`.
+The selected fully prewarmed buffered route passed a fresh coherent exact
+response-boundary n=3. Values are `median [minimum–maximum]` seconds.
 
-All six measured runs passed the exact Pod UID, worker receipt, eventual
-Kubernetes Ready, two-call, and strict ProteinMPNN sequence-structure gates.
-Both response hashes are deterministic and equal to the checkpoint donor.
-
-| mode | HTTP ready median (s) | Kubernetes Ready median (s) | call 1 HTTP response (s) | call 2 HTTP response (s) | legacy demand to validation complete (s) | worker restore median (s) |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| direct/O_DIRECT | 23.763006 | 24.864866 | 0.605700 | 0.271714 | 24.641450 | 15.727 |
-| legacy buffered | **9.399878** | 10.034350 | 0.601493 | 0.266078 | **10.265944** | 1.385 |
+| metric | selected n=3 |
+| --- | ---: |
+| T0 to independent HTTP ready | **9.460347 [9.401879–9.494261]** |
+| T0 to Kubernetes Ready (diagnostic) | 9.872222 [9.784322–9.996060] |
+| call 1, dispatch to complete body | **0.589204 [0.390123–0.597313]** |
+| call 2, dispatch to complete body | **0.248845 [0.244145–0.255925]** |
+| T0 to call 2 `response_received_at` | **10.249097 [10.096532–10.342388]** |
+| worker restore | 1.344 [1.310–1.346] |
 
 HTTP ready is the validator's first successful semantic readiness response,
 not the Kubernetes condition. `T0` is captured before target creation on the
 already provisioned H100 with storage attached. Kubernetes Ready is diagnostic;
-demand-to-validation is a legacy cross-check, while the call columns are the individual
-first (potentially deferred-load) and immediate warm inference latencies.
+call 1 is the first inference and therefore includes any model work deferred
+until first use, and call 2 is the immediate warm inference. The exact total is
+computed per trial from the absolute call-2 response timestamp, never by adding
+independently aggregated medians or using validation completion.
 
-The buffered n=3 legacy T0-to-validation median is 10.265944 seconds, a 2.400x speedup
-and 58.3% reduction from the 24.641450-second direct median. Its median worker
-restore is 1.385 seconds, an 11.355x speedup and 91.2% reduction from the
-15.727-second direct median. The first buffered canary is included in n=3;
-p10/p11 show the retained-page-cache steady state.
+The selected route's 9.460347-second readiness median is 2.512x faster than
+the retained 23.763006-second direct median. Its 1.344-second restore median is
+11.702x faster than the retained 15.727-second direct median. Those historical
+direct and buffered cohorts remain non-selected comparators because they lack
+absolute call-2 response timestamps; `results.tsv` labels their terminal total
+as validation completion.
 
 The strict calls used seeds 2370 and 2371. Their response hashes are:
 
 - `7fdaec16e144acc4e9547348a4ebf898c3d9c2838086c8f67256b6f0319a392e`
 - `e418b42ce8e13c34e65b97a83b7196895f7b2ac84274b6ef4b53966f54bfb4f2`
 
+Immediately before the selected cohort, the unchanged holder read all 57 files
+and 1,867,046,505 bytes in 3.586695 seconds. The read began at
+`2026-08-18T11:42:32.791854148Z` and completed at
+`2026-08-18T11:42:37.513367125Z`; its tree SHA-256 is
+`b2ce82dfbef1cbeb9c3ac35b94f5a2f97fccc19a98419e213d8c0d42a5c2c0e0`.
+No artifact refresh occurred between counted trials. The exact target, worker,
+and probe images were proven resident outside T0, and no counted target emitted
+an image-pull event.
+
 Raw evidence is retained outside Git under
+`/home/tux/.local/state/archvteams-2407/proteinmpnn-native-f7-response-20260818T114151Z`.
+The selected `aggregate.json` SHA-256 is
+`a19a7b8c618b771623c2f6df45267d125961d28a05b0e87eb8a40023ea5f88df`;
+the full-read and image-residency receipt SHA-256 values are respectively
+`f611a9457b7991a63cbbac40849398ebcd826b86186d7ddfc3742199ac210ee5`
+and `885ca3ed7f042575d32b7eac06dffc1f956dd74a1cbd68ce8e37ab1497a95b4c`.
+Each trial used UID-scoped cleanup and retained a zero-GPU receipt. The final
+state has no counted or excluded run resources, zero active GPU requests, the
+same Ready holder, both PVCs Bound, and all unrelated holders preserved; its
+receipt SHA-256 is
+`7823e7c864eb8b62e14abd871dd3ed91dd3087a01ab0fd8e1308b99480cb6c0a`.
+
+One setup attempt, `pmp-rb-1131-r1`, is excluded because the original 1000m
+worker request exceeded the exact scheduling envelope by 30m. The selected
+worker requests 500m with the same 4-CPU limit, leaving 470m scheduled
+headroom at the audited 4,830m baseline; the linter and tests pin both values.
+The first online r1 derivation also encountered Kubernetes' whole-second probe
+finish timestamp 0.254489 seconds before precise validator completion. The
+immutable raw inputs were rederived with a bounded rule that accepts only a
+sub-second quantization inversion and rejects one second or more; recovery
+receipt SHA-256
+`818e6f30d211141ee4ef51241d51cc2cfac3a2c445169b98aed3ca966a836b80`.
+
+The exact rows are checked in as `response-boundary-results.tsv` and
+`results.json`. Historical raw evidence remains under
 `/home/tux/.local/state/archvteams-2407/proteinmpnn-native-f7-20260818T0336Z`.
-Each counted run has a new immutable `corrected-submit-edge-timings.json`.
-The retained raw `canary-evidence.json` mislabeled Kubernetes Ready as HTTP
-ready; the sidecar supersedes that field and preserves both clocks separately.
-The direct and buffered aggregate receipts are respectively
-`capture/direct-baseline-n3.json` and `capture/buffered-baseline-n3.json`.
 
 ## Verification
 

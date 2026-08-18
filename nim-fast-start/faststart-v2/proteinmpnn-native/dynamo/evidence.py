@@ -67,6 +67,17 @@ def _seconds(start: datetime, finish: datetime, label: str) -> float:
     return round(result, 6)
 
 
+def _kubernetes_not_before(
+    value: datetime, floor: datetime, label: str
+) -> datetime:
+    """Normalize only a sub-second inversion from Kubernetes second precision."""
+    if value >= floor:
+        return value
+    if (floor - value).total_seconds() < 1:
+        return floor
+    raise EvidenceError(f"{label} precedes its required phase by at least one second")
+
+
 def _kubernetes_seconds(demand: datetime, transition: datetime) -> float:
     result = (transition - demand).total_seconds()
     if result < 0:
@@ -427,6 +438,9 @@ def build_evidence(
     http_ready, second_response_received, validation_finished, case_elapsed = _validate_semantics(
         semantic_summary, run_id
     )
+    probe_finished_for_order = _kubernetes_not_before(
+        probe_finished, validation_finished, "probe container finish"
+    )
     expected_origin = f"http://{service_name}:8000"
     expected_path = "/biology/ipd/proteinmpnn/predict"
     if (
@@ -472,7 +486,7 @@ def build_evidence(
         http_ready,
         second_response_received,
         validation_finished,
-        probe_finished,
+        probe_finished_for_order,
     ]
     if any(
         later < earlier
