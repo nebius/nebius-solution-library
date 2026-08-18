@@ -1,0 +1,76 @@
+{
+  "schema": "archvteams.nebius.ai/genmol-production-shaped-results/v1",
+  "status": "PASS",
+  "measured_at": "2026-08-18",
+  "node": "computeinstance-e00t12crqg6tw0kz65",
+  "gpu": "NVIDIA H100",
+  "image": "nvcr.io/nim/nvidia/genmol@sha256:139b909a450fe1fb81198214784a15f67e172e766a93a1569827ba5aa05b4541",
+  "worker_image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28",
+  "metric": {
+    "t0": "immediately before target Pod creation",
+    "ready": "first successful application HTTP readiness response",
+    "request_1": "first strict QED inference after readiness, including deferred loading",
+    "request_2": "immediate strict LogP warm inference",
+    "through_request_2": "T0 through completion of request 2",
+    "kubernetes_ready": "separate diagnostic; never substituted for HTTP readiness"
+  },
+  "direct": {
+    "checkpoint_id": "genmol-native-f7-v1",
+    "manifest_sha256": "09fe2724e9083c40e403ed37dedba90310335695f2a19764dece532fcfba7632",
+    "storage_state": "attached artifact PVC; direct/O_DIRECT restore; verification read occurred outside T0 but restore bypasses page cache",
+    "trial_count": 3,
+    "request_count": 6,
+    "demand_to_http_ready_seconds": [48.967941, 48.876871, 48.844697],
+    "demand_to_kubernetes_ready_seconds": [49.878735, 49.875618, 49.666353],
+    "semantic_request_1_seconds": [1.13862, 1.188524, 1.186392],
+    "semantic_request_2_seconds": [0.592471, 0.585748, 0.593281],
+    "demand_to_two_semantic_responses_seconds": [50.703184, 50.655451, 50.628864],
+    "worker_restore_seconds": [41.227, 41.219, 41.198],
+    "median_seconds": {
+      "demand_to_http_ready": 48.876871,
+      "demand_to_kubernetes_ready": 49.875618,
+      "semantic_request_1": 1.186392,
+      "semantic_request_2": 0.592471,
+      "demand_to_two_semantic_responses": 50.655451,
+      "worker_restore": 41.219
+    }
+  },
+  "buffered": {
+    "checkpoint_id": "genmol-native-f7-v2-buffered",
+    "manifest_sha256": "0be18a2585fe23799e1583e20436860bea4413eb35d055393c611e6cd7382770",
+    "storage_state": "attached artifact PVC; all 4781347930 bytes read through buffered I/O and page-resident before T0",
+    "prewarm_seconds_outside_t0": 6.328907,
+    "trial_count": 3,
+    "request_count": 6,
+    "demand_to_http_ready_seconds": [10.873901, 10.687875, 10.575621],
+    "demand_to_kubernetes_ready_seconds": [12.021111, 11.697689, 10.574327],
+    "semantic_request_1_seconds": [1.215907, 1.211042, 1.230406],
+    "semantic_request_2_seconds": [0.593163, 0.58451, 0.5855],
+    "demand_to_two_semantic_responses_seconds": [12.687165, 12.487867, 12.395646],
+    "worker_restore_seconds": [2.933, 2.947, 2.932],
+    "median_seconds": {
+      "demand_to_http_ready": 10.687875,
+      "demand_to_kubernetes_ready": 11.697689,
+      "semantic_request_1": 1.215907,
+      "semantic_request_2": 0.5855,
+      "demand_to_two_semantic_responses": 12.487867,
+      "worker_restore": 2.933
+    }
+  },
+  "speedup": {
+    "demand_to_http_ready": 4.573114019391133,
+    "demand_to_two_semantic_responses": 4.0563733582364385,
+    "worker_restore": 14.053528810092057
+  },
+  "evidence_sha256": {
+    "direct_r1": "aa34da3a5767464b76f6493cd54b6b705a02309761e165a414e880bce175e3e7",
+    "direct_r2": "753d3ad30c750092be916c7484e993c3c2e4899337edcbbf6527c3369f2e3724",
+    "direct_r3": "45ec7e47c057a57641adcb116cfc3a89f3250f144224ba028e9b0dfa5d1284f3",
+    "buffered_r1": "bafc1aaa30f3fbf06595a7cf474480156bbf4d487b2d3e842cfae6b7039ad716",
+    "buffered_r2": "34b15c6e4f24b01efb9b7d75b91cb2aa5456296183934f02af617b2b4aeead65",
+    "buffered_r3": "f3ccf66d65dc71d9c1f88e66a71bed8012b3df1d290fdfa3db0ad08a3ebfcc3a",
+    "direct_artifact_receipt": "50a93d215de979966fcc18fc29b3c500c8b44f97d083b790c0ef62acece71556",
+    "buffered_build_receipt": "1dd58d0fdf2ee739b04052e1fff822c569f9cc8ef02636d30b74ac0685cee2a0",
+    "buffered_artifact_receipt": "a7ce88ad82544aa54e3785556e956fcc655af14f0af204186274f309838b2e4d"
+  }
+}

@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover - package discovery path
 POD_UID = "11111111-1111-4111-8111-111111111111"
 CONTAINER_ID = "containerd://" + "a" * 64
 CROSS_LANGUAGE_SPEC_SHA256 = (
-    "7323481ece424e586fdeb9a90751ee1aed965bc31e50c600ef2f91ddfb8d85c8"
+    "ba681faafc0f6b8e9b243e2f6b37c3656b8bdf82583b43d13ef17d10d11d0561"
 )
 
 
@@ -244,6 +244,7 @@ def evidence_inputs() -> dict:
         "failed_case_count": 0,
         "exit_code": 0,
         "started_at": "2026-08-17T20:00:08.100000Z",
+        "ready_at": "2026-08-17T20:00:08.200000Z",
         "finished_at": "2026-08-17T20:00:09.900000Z",
         "total_elapsed_seconds": 1.8,
         "cases": [
@@ -407,6 +408,12 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(
             receipt["timings_seconds"]["demand_to_two_semantic_responses"], 9.9
         )
+        self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 8.2)
+        self.assertEqual(
+            receipt["timings_seconds"]["demand_to_kubernetes_ready"], 7.0
+        )
+        self.assertEqual(receipt["timings_seconds"]["semantic_request_1"], 0.8)
+        self.assertEqual(receipt["timings_seconds"]["semantic_request_2"], 0.9)
         self.assertEqual(receipt["timings_seconds"]["worker_restore"], 1.5)
         self.assertEqual(
             receipt["artifact"]["target_glibc_version"],
@@ -442,7 +449,7 @@ class EvidenceTests(unittest.TestCase):
         receipt = evidence.build_evidence(**inputs)
         self.assertEqual(receipt["status"], "PASS")
 
-    def test_ready_timestamp_subsecond_quantization_is_accepted(self) -> None:
+    def test_kubernetes_ready_timestamp_subsecond_quantization_is_accepted(self) -> None:
         inputs = evidence_inputs()
         for condition in inputs["target"]["status"]["conditions"]:
             if condition["type"] == "Ready":
@@ -451,14 +458,36 @@ class EvidenceTests(unittest.TestCase):
         receipt = evidence.build_evidence(**inputs)
         self.assertEqual(receipt["status"], "PASS")
 
-    def test_ready_timestamp_one_second_before_receipt_is_rejected(self) -> None:
+    def test_kubernetes_ready_may_lag_semantic_success(self) -> None:
         inputs = evidence_inputs()
         for condition in inputs["target"]["status"]["conditions"]:
             if condition["type"] == "Ready":
-                condition["lastTransitionTime"] = "2026-08-17T20:00:04Z"
+                condition["lastTransitionTime"] = "2026-08-17T20:00:10Z"
         inputs["worker_receipt"]["completed_at"] = "2026-08-17T20:00:05.900000Z"
-        with self.assertRaisesRegex(evidence.EvidenceError, "monotonically ordered"):
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["timings_seconds"]["demand_to_kubernetes_ready"], 10.0)
+
+    def test_target_creation_subsecond_quantization_is_normalized(self) -> None:
+        inputs = evidence_inputs()
+        inputs["run"]["demand_at"] = "2026-08-17T20:00:00.135000Z"
+        inputs["target"]["metadata"]["creationTimestamp"] = "2026-08-17T20:00:00Z"
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["timings_seconds"]["demand_to_target_created"], 0.0)
+
+    def test_target_creation_one_second_inversion_is_rejected(self) -> None:
+        inputs = evidence_inputs()
+        inputs["run"]["demand_at"] = "2026-08-17T20:00:01Z"
+        inputs["target"]["metadata"]["creationTimestamp"] = "2026-08-17T20:00:00Z"
+        with self.assertRaisesRegex(evidence.EvidenceError, "at least one second"):
             evidence.build_evidence(**inputs)
+
+    def test_http_ready_may_precede_restore_receipt(self) -> None:
+        inputs = evidence_inputs()
+        inputs["semantic_summary"]["ready_at"] = "2026-08-17T20:00:08.200000Z"
+        inputs["worker_receipt"]["completed_at"] = "2026-08-17T20:00:08.500000Z"
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 8.2)
+        self.assertEqual(receipt["timings_seconds"]["demand_to_restore_receipt"], 8.5)
 
     def test_more_than_two_semantic_cases_is_rejected(self) -> None:
         inputs = evidence_inputs()

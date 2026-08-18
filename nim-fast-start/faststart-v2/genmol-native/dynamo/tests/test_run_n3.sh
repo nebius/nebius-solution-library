@@ -21,11 +21,12 @@ args=(
   --evidence-root "$test_tmp/evidence"
   --node computeinstance-e00t12crqg6tw0kz65
   --kubeconfig "$test_tmp/kubeconfig"
-  --artifact-holder genmol-native-f7-holder-t12
+  --artifact-holder genmol-native-f7-holder-t12-v2
   --checkpoint-id genmol-native-f7-v1
   --target-glibc-version 2.35
   --image-io-mode direct
   --artifact-manifest-sha256 "$(printf 'a%.0s' {1..64})"
+  --allow-performance-validation-worker
   --cleanup
 )
 
@@ -35,6 +36,11 @@ summary="$test_tmp/evidence/n3-genmol-ut-direct.json"
 [[ $(jq -r '.trial_count' "$summary") == 3 ]]
 [[ $(jq -r '.request_count' "$summary") == 6 ]]
 [[ $(jq -r '.statistics_seconds.demand_to_two_semantic_median' "$summary") == 20.0 ]]
+[[ $(jq -r '.statistics_seconds.demand_to_http_ready_median' "$summary") == 15.0 ]]
+[[ $(jq -r '.statistics_seconds.demand_to_kubernetes_ready_median' "$summary") == 16.0 ]]
+[[ $(jq -r '.statistics_seconds.semantic_request_1_median' "$summary") == 3.0 ]]
+[[ $(jq -r '.statistics_seconds.semantic_request_2_median' "$summary") == 2.0 ]]
+[[ $(jq -r '.statistics_seconds.demand_to_restore_receipt_median' "$summary") == 15.5 ]]
 [[ $(jq -r '.statistics_seconds.worker_restore_median' "$summary") == 4.0 ]]
 [[ $(wc -l < "$FAKE_N3_LOG") == 3 ]]
 [[ $(cut -d' ' -f1 "$FAKE_N3_LOG" | paste -sd, -) == genmol-ut-r1,genmol-ut-r2,genmol-ut-r3 ]]

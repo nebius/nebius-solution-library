@@ -328,8 +328,8 @@ def _check_target(document: dict[str, Any], errors: list[str]) -> None:
     resources = container.get("resources", {})
     requests = resources.get("requests", {}) if isinstance(resources, dict) else {}
     limits = resources.get("limits", {}) if isinstance(resources, dict) else {}
-    if requests != {"cpu": "12", "memory": "128Gi", "nvidia.com/gpu": "1"}:
-        errors.append(f"{location} target requests do not match the capture envelope")
+    if requests != {"cpu": "11", "memory": "120Gi", "nvidia.com/gpu": "1"}:
+        errors.append(f"{location} target requests do not match the Burstable restore envelope")
     if limits != {"cpu": "12", "memory": "128Gi", "nvidia.com/gpu": "1"}:
         errors.append(f"{location} target limits do not match the capture envelope")
     expected_env = [

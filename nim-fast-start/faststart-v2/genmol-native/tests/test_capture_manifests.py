@@ -61,7 +61,7 @@ class CaptureManifestTests(unittest.TestCase):
         claims = {item["metadata"]["name"]: item for item in storage}
         self.assertEqual(
             claims["genmol-native-f7-artifacts"]["spec"]["resources"]["requests"]["storage"],
-            "20Gi",
+            "93Gi",
         )
         self.assertEqual(
             claims["genmol-native-f7-artifacts"]["spec"]["storageClassName"],
@@ -85,6 +85,14 @@ class CaptureManifestTests(unittest.TestCase):
         self.assertIn('"checkpoint_id": "genmol-native-f7-v2-buffered"', buffered_script)
         self.assertIn('"image_io_mode": "buffered"', buffered_script)
         self.assertNotEqual(direct["metadata"]["name"], buffered["metadata"]["name"])
+        self.assertEqual(direct["metadata"]["name"], "genmol-native-f7-holder-t12-v2")
+        for holder in (direct, buffered):
+            context = holder["spec"]["containers"][0]["securityContext"]
+            self.assertFalse(context["runAsNonRoot"])
+            self.assertEqual(context["runAsUser"], 0)
+            self.assertEqual(context["runAsGroup"], 0)
+            self.assertTrue(context["readOnlyRootFilesystem"])
+            self.assertEqual(context["capabilities"], {"drop": ["ALL"]})
 
     def test_worker_image_has_one_release_contract_source(self) -> None:
         contract = json.loads((ROOT / "dynamo" / "restore-interface.live.json").read_text())

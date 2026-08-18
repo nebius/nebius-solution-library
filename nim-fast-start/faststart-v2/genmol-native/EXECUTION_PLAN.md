@@ -1,33 +1,25 @@
-# Deferred GenMol native capture and qualification plan
+# GenMol native capture and qualification procedure
 
-These commands were not executed during offline preparation. Run them only
-after `dynamo/restore-interface.live.json` has been replaced with an immutable
-full `agent` compliance release contract. The integrated portable-plus-buffered
-image currently pinned there is performance-validation-only because the exact
-Jammy CUDA base still needs a baseline SBOM. The shipped contract closes the
-gate, and the first renderer below fails before any Kubernetes command.
+This procedure was executed on 2026-08-18 with the pinned d5ce worker and the
+explicit performance-validation acknowledgement shown below. `results.json`
+is the compact qualification record. The exact Jammy CUDA base still needs a
+baseline SBOM, so this is performance evidence rather than a full agent
+compliance release.
 
 Use one shell for the complete procedure so `set -Eeuo pipefail` makes every
 failed identity or semantic check terminal.
 
-## 1. Open the release gate and establish the boundary
+## 1. Acknowledge the performance worker and establish the boundary
 
-Update these fields in the single contract input before starting:
-
-- the final `worker_image`, `worker_executable_sha256`, and tool receipts;
-- the matching materialized-source inputs and formal approval receipt;
-- direct and buffered entries in `supported_image_io_modes`;
-- `worker_classification` to `full-agent-compliance-release`;
-- `release_blocker` to the empty string; and
-- `release_ready` to `true`.
-
-Do not open the gate on the performance-validation-only image. Then run:
+Do not mutate the release fields. The explicit CLI flag authorizes only the
+exact pinned `performance-validation-only` contract and retains
+`release_ready: false` in every receipt.
 
 ```console
 set -Eeuo pipefail
 umask 077
 
-export GENMOL_LANE=/home/tux/worktrees/archvteams-2407-genmol-native-prep/nim-fast-start/faststart-v2/genmol-native
+export GENMOL_LANE=/home/tux/worktrees/archvteams-2407-faststart-production/nim-fast-start/faststart-v2/genmol-native
 export GENMOL_KUBECONFIG=/home/tux/.local/state/archvteams-2407/openfold2-snapshot/private/kubeconfig
 export GENMOL_NODE=computeinstance-e00t12crqg6tw0kz65
 export GENMOL_EVIDENCE=/home/tux/.local/state/archvteams-2407/genmol-native-f7-$(date -u +%Y%m%dT%H%M%SZ)
@@ -35,9 +27,9 @@ install -d -m 0700 "$GENMOL_EVIDENCE" "$GENMOL_EVIDENCE/runs"
 
 jq -e '
   .approved == true and
-  .release_ready == true and
-  .release_blocker == "" and
-  .worker_classification == "full-agent-compliance-release" and
+  .release_ready == false and
+  (.release_blocker | type == "string" and length > 0) and
+  .worker_classification == "performance-validation-only" and
   (.supported_image_io_modes | index("direct")) != null and
   (.supported_image_io_modes | index("buffered")) != null and
   (.worker_image | test("@sha256:[0-9a-f]{64}$")) and
@@ -48,6 +40,7 @@ jq -e '
 ' "$GENMOL_LANE/dynamo/restore-interface.live.json" >/dev/null
 python3 "$GENMOL_LANE/render_snapshot_agent.py" \
   --contract "$GENMOL_LANE/dynamo/restore-interface.live.json" \
+  --allow-performance-validation-worker \
   > "$GENMOL_EVIDENCE/snapshot-agent.yaml"
 install -m 0600 "$GENMOL_LANE/dynamo/restore-interface.live.json" \
   "$GENMOL_EVIDENCE/restore-interface.json"
@@ -62,18 +55,19 @@ kubectl --kubeconfig "$GENMOL_KUBECONFIG" get node "$GENMOL_NODE" -o json \
 jq -e --arg node "$GENMOL_NODE" '
   .metadata.name == $node and
   any(.status.conditions[]?; .type == "Ready" and .status == "True") and
-  ((.status.allocatable["nvidia.com/gpu"] // "0") | tonumber) >= 1 and
-  ((.metadata.labels["nvidia.com/gpu.product"] // "") | test("H100"; "i"))
+  ((.status.allocatable["nvidia.com/gpu"] // "0") | tonumber) == 1 and
+  .metadata.labels["nebius.com/gpu-name"] == "H100" and
+  .metadata.labels["node.kubernetes.io/instance-type"] == "gpu-h100-sxm"
 ' "$GENMOL_EVIDENCE/node-before.json" >/dev/null
 
-kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start get pods \
+kubectl --kubeconfig "$GENMOL_KUBECONFIG" get pods -A \
   --field-selector "spec.nodeName=$GENMOL_NODE" -o json \
   > "$GENMOL_EVIDENCE/node-pods-before.json"
 jq -e '
   [
     .items[]
     | select(.status.phase == "Pending" or .status.phase == "Running")
-    | select(any(.spec.containers[]?;
+    | select(any((((.spec.initContainers // []) + (.spec.containers // []))[]);
         ((.resources.requests["nvidia.com/gpu"] // "0") | tonumber) > 0))
   ] | length == 0
 ' "$GENMOL_EVIDENCE/node-pods-before.json" >/dev/null
@@ -82,7 +76,7 @@ jq -e '
 Stop if the node is not the exact Ready H100 or another active Pod requests its
 GPU. Do not delete or modify another lane's objects to make this check pass.
 
-## 2. Create isolated storage and the release-gated capture agent
+## 2. Create isolated storage and the capture agent
 
 The shared snapshot ServiceAccount and ConfigMaps must already exist. Preserve
 their live identities before creating anything:
@@ -100,11 +94,11 @@ kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start get configmap \
 
 kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start create \
   -f "$GENMOL_LANE/storage.yaml"
-kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start wait \
-  --for=jsonpath='{.status.phase}'=Bound pvc/genmol-native-f7-artifacts \
-  pvc/genmol-native-f7-cache --timeout=600s
 kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start create \
   -f "$GENMOL_EVIDENCE/snapshot-agent.yaml"
+kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start wait \
+  --for=jsonpath='{.status.phase}'=Bound pvc/genmol-native-f7-artifacts \
+  --timeout=600s
 kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start wait \
   --for=condition=Ready pod/genmol-native-f7-snapshot-agent-t12 \
   --timeout=300s
@@ -127,6 +121,9 @@ kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start create \
   -f "$GENMOL_EVIDENCE/donor-configmap.yaml"
 kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start create \
   -f "$GENMOL_LANE/donor-job.yaml"
+kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start wait \
+  --for=jsonpath='{.status.phase}'=Bound pvc/genmol-native-f7-cache \
+  --timeout=600s
 
 GENMOL_DONOR_POD=$(kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start get pods \
   -l job-name=genmol-native-f7-donor-r1 -o json | \
@@ -196,9 +193,9 @@ artifact.
 kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start create \
   -f "$GENMOL_LANE/artifact-holder.yaml"
 kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start wait \
-  --for=condition=Ready pod/genmol-native-f7-holder-t12 --timeout=1800s
+  --for=condition=Ready pod/genmol-native-f7-holder-t12-v2 --timeout=1800s
 kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start logs \
-  genmol-native-f7-holder-t12 | tail -n 1 \
+  genmol-native-f7-holder-t12-v2 | tail -n 1 \
   > "$GENMOL_EVIDENCE/artifact-direct-receipt.json"
 GENMOL_DIRECT_MANIFEST=$(jq -er '
   select(.schema == "archvteams.nebius.ai/genmol-native-artifact-receipt/v1") |
@@ -220,15 +217,16 @@ that run's target, worker, probe, Service, and binding objects.
 
 ```console
 "$GENMOL_LANE/dynamo/run_n3.sh" \
-  --run-prefix genmol-direct \
+  --run-prefix genmol-direct-v2 \
   --evidence-root "$GENMOL_EVIDENCE" \
   --node "$GENMOL_NODE" \
   --kubeconfig "$GENMOL_KUBECONFIG" \
-  --artifact-holder genmol-native-f7-holder-t12 \
+  --artifact-holder genmol-native-f7-holder-t12-v2 \
   --checkpoint-id genmol-native-f7-v1 \
   --target-glibc-version "$GENMOL_TARGET_GLIBC" \
   --image-io-mode direct \
   --artifact-manifest-sha256 "$GENMOL_DIRECT_MANIFEST" \
+  --allow-performance-validation-worker \
   --cleanup
 ```
 
@@ -245,14 +243,14 @@ then atomically publishes the destination directory.
 ```console
 python3 "$GENMOL_LANE/render_buffered_variant.py" \
   --artifact-receipt "$GENMOL_EVIDENCE/artifact-direct-receipt.json" \
-  > "$GENMOL_EVIDENCE/buffered-build.yaml"
+  > "$GENMOL_EVIDENCE/buffered-build-v2.yaml"
 kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start create \
-  -f "$GENMOL_EVIDENCE/buffered-build.yaml"
+  -f "$GENMOL_EVIDENCE/buffered-build-v2.yaml"
 kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start wait \
-  --for=condition=Complete job/genmol-native-f7-v2-buffered-build \
+  --for=condition=Complete job/genmol-native-f7-v2-buffered-build-v2 \
   --timeout=900s
 kubectl --kubeconfig "$GENMOL_KUBECONFIG" -n nim-fast-start logs \
-  job/genmol-native-f7-v2-buffered-build | tail -n 1 \
+  job/genmol-native-f7-v2-buffered-build-v2 | tail -n 1 \
   > "$GENMOL_EVIDENCE/buffered-build-receipt.json"
 jq -e '
   .schema == "archvteams.nebius.ai/genmol-buffered-build/v1" and
@@ -281,7 +279,7 @@ test "$GENMOL_BUFFERED_MANIFEST" = \
   "$(jq -er '.manifest_sha256' "$GENMOL_EVIDENCE/buffered-build-receipt.json")"
 
 "$GENMOL_LANE/dynamo/run_provisioned_trial.sh" \
-  --run-id genmol-buffered-smoke \
+  --run-id genmol-buf-smoke-v2 \
   --evidence-root "$GENMOL_EVIDENCE" \
   --node "$GENMOL_NODE" \
   --kubeconfig "$GENMOL_KUBECONFIG" \
@@ -290,6 +288,7 @@ test "$GENMOL_BUFFERED_MANIFEST" = \
   --target-glibc-version "$GENMOL_TARGET_GLIBC" \
   --image-io-mode buffered \
   --artifact-manifest-sha256 "$GENMOL_BUFFERED_MANIFEST" \
+  --allow-performance-validation-worker \
   --cleanup
 ```
 
@@ -300,7 +299,7 @@ reports `PASS`.
 
 ```console
 "$GENMOL_LANE/dynamo/run_n3.sh" \
-  --run-prefix genmol-buffered \
+  --run-prefix genmol-buffered-v2 \
   --evidence-root "$GENMOL_EVIDENCE" \
   --node "$GENMOL_NODE" \
   --kubeconfig "$GENMOL_KUBECONFIG" \
@@ -309,6 +308,7 @@ reports `PASS`.
   --target-glibc-version "$GENMOL_TARGET_GLIBC" \
   --image-io-mode buffered \
   --artifact-manifest-sha256 "$GENMOL_BUFFERED_MANIFEST" \
+  --allow-performance-validation-worker \
   --cleanup
 
 jq -s '
@@ -317,25 +317,32 @@ jq -s '
     image_io_mode,
     trial_count,
     request_count,
+    demand_to_http_ready_seconds,
+    demand_to_kubernetes_ready_seconds,
+    semantic_request_1_seconds,
+    semantic_request_2_seconds,
     demand_to_two_semantic_seconds,
     worker_restore_seconds,
     statistics_seconds
   })
-' "$GENMOL_EVIDENCE/n3-genmol-direct-direct.json" \
-  "$GENMOL_EVIDENCE/n3-genmol-buffered-buffered.json" \
+' "$GENMOL_EVIDENCE/n3-genmol-direct-v2-direct.json" \
+  "$GENMOL_EVIDENCE/n3-genmol-buffered-v2-buffered.json" \
   > "$GENMOL_EVIDENCE/direct-vs-buffered.json"
 ```
 
-Report all six demand values, both medians, all six worker restore values, and
-the direct/buffered winner. Do not report the retained 4.831-second page-cache
-experiment as the production-shaped result.
+Report all HTTP-readiness, call-1, call-2, and T0-through-call-2 values and
+medians. Report Kubernetes Pod Ready and worker restore only as separate
+diagnostics, declare the storage state, and keep full prewarm outside T0. Do not
+report the retained 4.831-second page-cache experiment as the
+production-shaped result.
 
 ## 9. Cleanup after evidence is durable
 
 The runner already deletes its exact run-scoped objects when `--cleanup` is
-used. After copying all receipts, remove only the two named holder Pods and the
-completed buffered-builder Job. Retain the PodSnapshotContent and both PVCs
-until the qualification result and rollback decision are accepted.
+used. After copying all receipts, remove only the direct holder and completed
+buffered-builder Job. Retain the selected buffered holder, PodSnapshotContent,
+and both PVCs until the qualification result and rollback decision are
+accepted.
 
 Deleting either PVC is destructive and intentionally has no command in this
 plan.

@@ -67,8 +67,8 @@
           "nvidia.com/gpu": "1"
         },
         "requests": {
-          "cpu": "12",
-          "memory": "128Gi",
+          "cpu": "11",
+          "memory": "120Gi",
           "nvidia.com/gpu": "1"
         }
       },

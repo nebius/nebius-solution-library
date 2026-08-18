@@ -24,6 +24,7 @@ trial_target_glibc_version=""
 trial_image_io_mode=""
 trial_artifact_manifest_sha256=""
 trial_cleanup=0
+trial_allow_performance_validation=0
 
 usage() {
   cat >&2 <<'USAGE'
@@ -36,7 +37,8 @@ usage: run_provisioned_trial.sh \
   --checkpoint-id genmol-native-f7-v1|genmol-native-f7-v2-buffered \
   --target-glibc-version MAJOR.MINOR \
   --image-io-mode direct|buffered \
-  --artifact-manifest-sha256 CAPTURED_64_HEX_SHA256 [--cleanup]
+  --artifact-manifest-sha256 CAPTURED_64_HEX_SHA256 \
+  [--allow-performance-validation-worker] [--cleanup]
 USAGE
 }
 
@@ -119,6 +121,12 @@ while (($# > 0)); do
       trial_cleanup=1
       shift
       ;;
+    --allow-performance-validation-worker)
+      ((trial_allow_performance_validation == 0)) || \
+        die_usage "--allow-performance-validation-worker may be supplied only once"
+      trial_allow_performance_validation=1
+      shift
+      ;;
     --help|-h)
       usage
       exit 0
@@ -146,7 +154,7 @@ if [[ ! $trial_holder =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ || ${#trial_holder} -gt
   die_usage "--artifact-holder must be a DNS label of at most 63 characters"
 fi
 case "${trial_image_io_mode}:${trial_checkpoint_id}:${trial_holder}" in
-  direct:genmol-native-f7-v1:genmol-native-f7-holder-t12)
+  direct:genmol-native-f7-v1:genmol-native-f7-holder-t12-v2)
     ;;
   buffered:genmol-native-f7-v2-buffered:genmol-native-f7-buffered-holder-t12)
     ;;
@@ -192,16 +200,18 @@ if [[ $actual_fixture_sha256 != "$expected_fixture_sha256" ]]; then
   printf 'semantic fixture digest mismatch\n' >&2
   exit 78
 fi
-jq -e --arg validator "$expected_validator_sha256" --arg mode "$trial_image_io_mode" '
-  .approved == true and
-  .release_ready == true and
-  .release_blocker == "" and
-  .worker_classification == "full-agent-compliance-release" and
-  .validator_sha256 == $validator and
-  (.supported_image_io_modes | index($mode)) != null and
-  (.worker_image | test("@sha256:[0-9a-f]{64}$")) and
-  (.probe_image | test("@sha256:[0-9a-f]{64}$"))
-' "$contract_path" >/dev/null || {
+if ((trial_allow_performance_validation == 1)); then
+  contract_gate='.approved == true and .release_ready == false and (.release_blocker | type == "string" and length > 0) and .worker_classification == "performance-validation-only"'
+else
+  contract_gate='.approved == true and .release_ready == true and .release_blocker == "" and .worker_classification == "full-agent-compliance-release"'
+fi
+jq -e --arg validator "$expected_validator_sha256" --arg mode "$trial_image_io_mode" "
+  ${contract_gate} and
+  .validator_sha256 == \$validator and
+  (.supported_image_io_modes | index(\$mode)) != null and
+  (.worker_image | test(\"@sha256:[0-9a-f]{64}\$\")) and
+  (.probe_image | test(\"@sha256:[0-9a-f]{64}\$\"))
+" "$contract_path" >/dev/null || {
   printf 'immutable restore contract is not deployable\n' >&2
   exit 78
 }

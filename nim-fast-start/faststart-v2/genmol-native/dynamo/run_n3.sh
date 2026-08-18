@@ -17,6 +17,7 @@ target_glibc_version=""
 image_io_mode=""
 artifact_manifest_sha256=""
 cleanup=0
+allow_performance_validation=0
 
 usage() {
   cat >&2 <<'USAGE'
@@ -29,7 +30,8 @@ usage: run_n3.sh \
   --checkpoint-id EXACT_CHECKPOINT_ID \
   --target-glibc-version MAJOR.MINOR \
   --image-io-mode direct|buffered \
-  --artifact-manifest-sha256 CAPTURED_64_HEX_SHA256 [--cleanup]
+  --artifact-manifest-sha256 CAPTURED_64_HEX_SHA256 \
+  [--allow-performance-validation-worker] [--cleanup]
 USAGE
 }
 
@@ -77,6 +79,10 @@ while (($# > 0)); do
     --cleanup)
       ((cleanup == 0)) || die_usage "--cleanup may be supplied only once"
       cleanup=1; shift ;;
+    --allow-performance-validation-worker)
+      ((allow_performance_validation == 0)) || \
+        die_usage "--allow-performance-validation-worker may be supplied only once"
+      allow_performance_validation=1; shift ;;
     --help|-h)
       usage; exit 0 ;;
     *)
@@ -115,6 +121,9 @@ common_args=(
 if ((cleanup == 1)); then
   common_args+=(--cleanup)
 fi
+if ((allow_performance_validation == 1)); then
+  common_args+=(--allow-performance-validation-worker)
+fi
 
 run_ids=()
 for repetition in 1 2 3; do
@@ -152,6 +161,11 @@ for run_id in run_ids:
     runs.append(value)
 
 demand = [float(run["timings_seconds"]["demand_to_two_semantic_responses"]) for run in runs]
+http_ready = [float(run["timings_seconds"]["demand_to_http_ready"]) for run in runs]
+kubernetes_ready = [float(run["timings_seconds"]["demand_to_kubernetes_ready"]) for run in runs]
+call_1 = [float(run["timings_seconds"]["semantic_request_1"]) for run in runs]
+call_2 = [float(run["timings_seconds"]["semantic_request_2"]) for run in runs]
+restore_receipt = [float(run["timings_seconds"]["demand_to_restore_receipt"]) for run in runs]
 restore = [float(run["timings_seconds"]["worker_restore"]) for run in runs]
 result = {
     "schema": "archvteams.nebius.ai/genmol-native-n3/v1",
@@ -163,12 +177,22 @@ result = {
     "semantic_pass_count": 6,
     "run_ids": run_ids,
     "demand_to_two_semantic_seconds": demand,
+    "demand_to_http_ready_seconds": http_ready,
+    "demand_to_kubernetes_ready_seconds": kubernetes_ready,
+    "semantic_request_1_seconds": call_1,
+    "semantic_request_2_seconds": call_2,
+    "demand_to_restore_receipt_seconds": restore_receipt,
     "worker_restore_seconds": restore,
     "statistics_seconds": {
         "demand_to_two_semantic_min": min(demand),
         "demand_to_two_semantic_median": statistics.median(demand),
         "demand_to_two_semantic_max": max(demand),
         "demand_to_two_semantic_mean": statistics.mean(demand),
+        "demand_to_http_ready_median": statistics.median(http_ready),
+        "demand_to_kubernetes_ready_median": statistics.median(kubernetes_ready),
+        "semantic_request_1_median": statistics.median(call_1),
+        "semantic_request_2_median": statistics.median(call_2),
+        "demand_to_restore_receipt_median": statistics.median(restore_receipt),
         "worker_restore_median": statistics.median(restore),
     },
 }

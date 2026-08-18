@@ -1,15 +1,18 @@
 # GenMol production-shaped native fast-start lane
 
-Status: offline implementation complete; native capture and live qualification
-have not run. The checked-in worker contract is deliberately closed until the
-portable worker is published as a full `agent` compliance release.
+Status: native capture and production-shaped H100 qualification completed on
+2026-08-18. The fully prewarmed buffered artifact is the selected fast-start
+path. The worker remains classified `performance-validation-only`; these
+results are performance evidence, not a full agent-compliance release.
 
 ## Frozen workload contract
 
 - NIM image:
   `nvcr.io/nim/nvidia/genmol@sha256:139b909a450fe1fb81198214784a15f67e172e766a93a1569827ba5aa05b4541`
 - Qualification resource: `computeinstance-e00t12crqg6tw0kz65`, one NVIDIA
-  H100, 12 CPUs, 128 GiB memory, and 16 GiB memory-backed `/dev/shm`.
+  H100, 11 CPUs/120 GiB requested, 12 CPUs/128 GiB limited, and 16 GiB
+  memory-backed `/dev/shm`. Unequal requests and limits deliberately produce
+  the Burstable cgroup layout required by the UID-bound restore worker.
 - NIM cache: `/opt/nim/.cache`, retained source path
   `/snapshots/nim-caches/genmol-h100-v1`.
 - Direct artifact: `genmol-native-f7-v1`, version `1`.
@@ -32,6 +35,33 @@ worker. It reaches only the run-scoped ClusterIP. It uses the exact GenMol NIM
 image without requesting a GPU because that immutable image is the retained,
 proven source of the required RDKit modules and `/usr/bin/python3`.
 
+## Production-shaped result
+
+`results.json` contains all six counted trial values and evidence hashes. T0 is
+recorded immediately before creation of each inert target Pod on an already
+provisioned H100 with the NIM/worker images resident and both PVCs attached.
+Application readiness is the validator's first successful HTTP readiness
+response. Kubernetes Pod Ready is retained only as a separate diagnostic.
+Call 1 is the first strict QED inference after readiness and therefore includes
+any deferred model/JIT load; call 2 is the immediate strict LogP warm call.
+
+| Storage state (`n=3`) | HTTP ready | Pod Ready | Call 1 | Call 2 | T0 through call 2 | Worker restore |
+|---|---:|---:|---:|---:|---:|---:|
+| Direct/O_DIRECT | 48.876871 s | 49.875618 s | 1.186392 s | 0.592471 s | 50.655451 s | 41.219 s |
+| Buffered + fully page-resident | **10.687875 s** | 11.697689 s | 1.215907 s | 0.585500 s | **12.487867 s** | **2.933 s** |
+
+The buffered winner is 4.57x faster to application HTTP readiness and 4.06x
+faster through the second response. Its 4,781,347,930-byte full pre-read took
+6.328907 seconds and occurred before T0. The direct holder also verified and
+read every artifact byte outside T0, but CRIU's direct mode bypasses the page
+cache; the two rows therefore intentionally describe different, explicit
+storage states rather than silently mixing cache conditions.
+
+Every counted trial issued exactly two distinct POSTs and passed both RDKit
+descriptor checks. Setup attempts that failed before a valid semantic restore
+(invalid initial PVC size, holder permissions, target QoS, and builder source
+escaping) are preserved as excluded evidence and do not appear in the table.
+
 ## What the old numbers mean
 
 `prior-evidence.json` binds the retained raw sources and their exact hashes.
@@ -49,7 +79,7 @@ UID-bound native trials and did not start the clock before target creation.
 This lane must not label 4.831 seconds—or any other historical number—as its
 production-shaped result.
 
-## Native direct and buffered comparison
+## Native direct and buffered implementation
 
 The donor runs both strict loopback calls before declaring itself ready for a
 UID-bound `PodSnapshotContent` capture. The direct holder verifies and reads
@@ -62,14 +92,14 @@ every regular artifact file. The buffered builder then:
 5. changes exactly `imageIoMode: direct` to `imageIoMode: buffered` before an
    atomic publish.
 
-Both modes use the same image, cache, target resources, request fixture,
+Both modes used the same image, cache, target resources, request fixture,
 worker/tool receipts, node, and `n=3` measurement path. The runner timestamps
 demand before creating the inert GPU target, lets Kubernetes schedule it,
 binds its live Pod UID/container ID/cgroup/IP/image ID/canonical PodSpec hash,
 submits the CPU semantic probe, and then creates the one-shot restore worker.
-A mode passes only after three restores and six strict RDKit-checked responses.
+A mode passed only after three restores and six strict RDKit-checked responses.
 
-## Worker release gate
+## Worker classification
 
 `dynamo/restore-interface.live.json` pins the current integrated
 portable-plus-buffered performance worker:
@@ -87,11 +117,12 @@ I/O, with `ns-bind-mount` built against the Jammy/GLIBC-2.35 runtime.
 
 It is still classified `performance-validation-only`: the exact Jammy CUDA
 base lacks the required baseline SBOM in the pinned compliance corpus.
-Therefore `release_ready` is `false`, and the capture renderer and live runner
-fail before any Kubernetes command. Open the gate only by replacing the
-contract with an immutable full-compliance image and receipts, formal approval,
-classification `full-agent-compliance-release`, an empty blocker, and
-`release_ready: true`.
+Therefore `release_ready` remains `false`. Live qualification required the
+explicit `--allow-performance-validation-worker` acknowledgement on both the
+capture renderer and trial runner; the unacknowledged path still fails before
+any Kubernetes command. A production release still requires an immutable
+full-compliance image and receipts, formal approval, classification
+`full-agent-compliance-release`, an empty blocker, and `release_ready: true`.
 
 ## Files
 
@@ -103,9 +134,11 @@ classification `full-agent-compliance-release`, an empty blocker, and
 - `artifact-holder*.yaml`, `render_buffered_variant.py`: complete artifact hash,
   prewarm, and write-once buffered materialization.
 - `validate_genmol.py`: proxy-free, redirect-rejecting ClusterIP validator.
+- `results.json`: compact production-shaped raw values, medians, storage-state
+  declarations, and SHA-256 bindings to the retained live receipts.
 - `dynamo/`: scheduler-created target, one-shot restore, early CPU probe,
   evidence receipt, cleanup, and `n=3` aggregation.
-- `EXECUTION_PLAN.md`: deferred live procedure.
+- `EXECUTION_PLAN.md`: live procedure and retained cleanup boundary.
 
 ## Offline verification
 

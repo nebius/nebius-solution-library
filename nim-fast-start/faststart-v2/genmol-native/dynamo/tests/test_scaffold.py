@@ -119,6 +119,17 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(lint_manifest.lint_documents(target), [])
         self.assertEqual(lint_manifest.lint_documents(worker), [])
         self.assertEqual(lint_manifest.lint_documents(probe), [])
+        target_pod = next(item for item in target if item["kind"] == "Pod")
+        resources = target_pod["spec"]["containers"][0]["resources"]
+        self.assertEqual(
+            resources["requests"],
+            {"cpu": "11", "memory": "120Gi", "nvidia.com/gpu": "1"},
+        )
+        self.assertEqual(
+            resources["limits"],
+            {"cpu": "12", "memory": "128Gi", "nvidia.com/gpu": "1"},
+        )
+        self.assertNotEqual(resources["requests"], resources["limits"])
 
     def test_shipped_contract_fails_closed(self) -> None:
         example = json.loads(
