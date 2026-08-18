@@ -554,6 +554,7 @@ def build_evidence(
             "worker_completed_at": worker_receipt["completed_at"],
             "worker_job_completed_at": worker_completed.isoformat(),
             "probe_job_completed_at": probe_completed.isoformat(),
+            "kubernetes_ready_at": ready.isoformat().replace("+00:00", "Z"),
             "second_response_received_at": semantic_summary["cases"][1][
                 "response_received_at"
             ],

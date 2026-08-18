@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "@@PRELOAD_NAME@@"
+  namespace: nim-fast-start
+  labels:
+    app.kubernetes.io/name: openfold3
+    app.kubernetes.io/component: response-requalification-image-preload
+    app.kubernetes.io/part-of: archvteams-2407-faststart
+    archvteams.nebius.ai/batch-id: "@@BATCH_ID@@"
+spec:
+  automountServiceAccountToken: false
+  enableServiceLinks: false
+  restartPolicy: Never
+  nodeSelector:
+    kubernetes.io/hostname: computeinstance-e00hf93cfnsgaxygn3
+  imagePullSecrets:
+    - name: nvcrio-cred
+    - name: archvteams-2407-registry-pull
+  containers:
+    - name: target
+      image: nvcr.io/nim/openfold/openfold3@sha256:6286cc7c02247ed3efe42f0f1af6c2f6f6a680b1e5cae669512c44b636aa42d2
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+        runAsUser: 0
+    - name: restore-worker
+      image: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+        runAsUser: 0
+    - name: semantic-probe
+      image: docker.io/library/python@sha256:356b0d18f9385f4bdcc673af60e1e64c9d1504952e4ec36ee32044c722a6bc4e
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/true
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
