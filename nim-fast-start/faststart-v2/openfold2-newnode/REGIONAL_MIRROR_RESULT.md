@@ -33,9 +33,11 @@ Kubernetes displayed the image-config tag as `nvcr.io/nim/openfold/openfold2:lat
 in the separate status `image` field. The worker intentionally does not bind
 that display-only field, so no restore-interface change is required.
 
-The gate ran on a node that already had the content and therefore proves
-identity compatibility only. A second true `0 -> 1` run is required to measure
-the regional cold pull and its effect on the prior **607.247-second** result.
+The gate ran on a node that already had the content and therefore proved
+identity compatibility only. The subsequent true `0 -> 1` run measured the
+regional cold pull at **260.653 seconds**, versus **251.094 seconds** from NGC in
+r4. The mirror therefore did not improve cold-pull latency in this sample. The
+complete comparison is in [`R5_REGIONAL_RESULT.md`](R5_REGIONAL_RESULT.md).
 
 Raw local receipts are retained under:
 

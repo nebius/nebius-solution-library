@@ -1,7 +1,8 @@
 # BioNeMo NIM fast start v2
 
-This subtree contains production-native OpenFold2, Boltz2, ProteinMPNN, and
-offline-prepared Evo2-40B checkpoint/restore paths:
+This subtree contains live production-shaped OpenFold2, Boltz2, ProteinMPNN,
+and DiffDock results, plus offline-prepared OpenFold3, MSA Search, and Evo2-40B
+checkpoint/restore paths:
 
 - `native-capture/` creates the qualified native Dynamo artifact;
 - `phase2-agent/` reproduces the generic one-shot restore-worker image;
@@ -11,13 +12,18 @@ offline-prepared Evo2-40B checkpoint/restore paths:
 - `performance/openfold2/` records the provisioned-node result without storing
   raw cluster evidence or credentials in Git; and
 - `openfold2-newnode/` contains the scale-from-zero preemptible-node harness,
-  lifecycle verifier, automated node bootstrap, and first true new-node result;
+  lifecycle verifier, automated node bootstrap, and two true new-node results;
 - `boltz2-native/` contains the Boltz2 capture inputs, strict validator,
   model adapter, provisioned-node runner, n=3 result, and rejected writeback
   comparison; and
 - `proteinmpnn-native/` contains the ProteinMPNN capture inputs, strict
   validator, provisioned-node runner, direct-I/O baseline, and winning
   retained-page-cache buffered n=3 result; and
+- `diffdock-native/` contains the DiffDock capture inputs, strict 1UBQ+aspirin
+  validator, direct canary, and winning buffered n=3 result;
+- `openfold3-native/` and `msa-search-native/` contain complete offline capture,
+  direct/buffered, early-probe, and n=3 execution lanes pending live slots and
+  the final worker-release receipt; and
 - `evo2-native/` pins the exact Evo2 image and single-H200 profile, native
   capture workflow, direct/buffered artifact candidates, early external
   two-call semantic probe, and n=3 runner. H200 capture and live qualification

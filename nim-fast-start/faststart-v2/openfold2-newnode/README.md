@@ -1,9 +1,10 @@
 # OpenFold2 new-node benchmark harness
 
-Status: **LIVE BENCHMARK PASS; REGIONAL EXACT-DIGEST MIRROR QUALIFIED.**
-Run `of2-newnode-r4-0418` completed the true new-node benchmark and full cleanup.
-The next run uses the byte-identical regional OpenFold2 mirror documented in
-[`REGIONAL_MIRROR_RESULT.md`](REGIONAL_MIRROR_RESULT.md).
+Status: **TWO LIVE NEW-NODE BENCHMARKS PASS.**
+Runs `of2-newnode-r4-0418` and `of2-newnode-r5-regional` both completed the true
+new-node benchmark and full cleanup. The regional result and comparison are in
+[`R5_REGIONAL_RESULT.md`](R5_REGIONAL_RESULT.md); mirror identity qualification
+is in [`REGIONAL_MIRROR_RESULT.md`](REGIONAL_MIRROR_RESULT.md).
 The runner retains a fail-closed coordination gate
 (`OPENFOLD2_NEWNODE_COORDINATED=YES`) in addition to its required `--execute`
 argument. Do not use that gate without a new explicit live handoff.
