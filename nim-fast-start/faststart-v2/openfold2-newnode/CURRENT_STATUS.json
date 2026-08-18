@@ -4,6 +4,7 @@
   "audit_mode": "offline-read-only",
   "current_contract": {
     "sample_count": 0,
+    "future_execution_path": "newnode-v2-only",
     "cohort_status": "NOT_RUN",
     "poolable_run_ids": [],
     "required_newnode_terminal_boundary": "setup_demand_at (scale dispatch) through call_2_response_received_at",

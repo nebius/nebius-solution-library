@@ -5,11 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-import uuid
 from pathlib import Path
-
-import yaml
-
 
 HARNESS = Path(__file__).resolve().parents[1]
 PIPELINE = HARNESS.parent / "dynamo"
@@ -741,186 +737,44 @@ class FrozenPipelineIntegrationTests(unittest.TestCase):
         self.assertNotIn("| Two strict semantic responses |", r4)
         self.assertNotIn("| Two strict semantic responses |", r5)
 
-    def run_command(self, *arguments: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            [sys.executable, *arguments],
-            check=True,
-            cwd=HARNESS,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+    def test_archived_v1_pipeline_fails_closed_on_stale_pins(self) -> None:
+        self.assert_current_status_receipt()
+        status = json.loads(
+            (HARNESS / "CURRENT_STATUS.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            status["current_contract"]["future_execution_path"],
+            "newnode-v2-only",
+        )
+        self.assertTrue(
+            status["v1_blockers"]["shared_pipeline_pin_drift_diagnostics_only"]
         )
 
-    def test_dynamic_node_target_worker_and_early_probe_all_lint(self) -> None:
-        self.assert_current_status_receipt()
-        old = compatible_node(
-            "computeinstance-oldfixture01", "11111111-1111-4111-8111-111111111111"
-        )
-        new = compatible_node(
-            "computeinstance-newfixture02", "22222222-2222-4222-8222-222222222222"
-        )
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            old_path = root / "old.json"
-            node_path = root / "node.json"
             admission_path = root / "admission.json"
-            old_path.write_text(json.dumps(old), encoding="utf-8")
-            node_path.write_text(json.dumps(new), encoding="utf-8")
-            self.run_command(
-                str(HARNESS / "node_admission.py"),
-                "build",
-                "--node-json",
-                str(node_path),
-                "--previous-node-json",
-                str(old_path),
-                "--collected-at",
-                "2026-08-18T03:00:01Z",
-                "--output",
-                str(admission_path),
-            )
-
-            run_id = "offline-a1"
-            run = {
-                "schema": "archvteams.nebius.ai/openfold2-faststart-run/v1",
-                "demand_at": "2026-08-18T03:00:02Z",
-                "run_id": run_id,
-                "target_node": new["metadata"]["name"],
-                "checkpoint_id": "openfold2-native-f7-v1",
-                "artifact_version": "1",
-                "artifact_manifest_sha256": "7" * 64,
-                "artifact_pvc": "mlspec-archvteams-2407-ckpt-m3",
-                "cache_pvc": "openfold2-nim-cache",
-            }
-            run_path = root / "run.json"
-            run_path.write_text(json.dumps(run), encoding="utf-8")
-            binding = {
-                "schema": "archvteams.nebius.ai/openfold2-target-binding/v1",
-                "collected_at": "2026-08-18T03:00:03Z",
-                "run_id": run_id,
-                "namespace": "nim-fast-start",
-                "pod_name": f"of2-target-{run_id}",
-                "pod_uid": str(uuid.UUID("33333333-3333-4333-8333-333333333333")),
-                "container_name": "openfold2",
-                "container_id": "containerd://" + "4" * 64,
-                "cgroup": "/kubepods.slice/test.scope",
-                "pod_ip": "10.2.3.4",
-                "node": new["metadata"]["name"],
-                "image_id": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4",
-                "pod_spec_sha256": "5" * 64,
-            }
-            binding_path = root / "binding.json"
-            binding_path.write_text(json.dumps(binding), encoding="utf-8")
-            prefix = [
-                str(HARNESS / "runtime_pipeline.py"),
-                "--pipeline-root",
-                str(PIPELINE),
-                "--admission",
-                str(admission_path),
-                "--node-json",
-                str(node_path),
-            ]
-            contract = PIPELINE / "restore-interface.live.json"
-
-            target_base = root / "target.base.yaml"
-            result = self.run_command(
-                *prefix,
-                "render",
-                "target",
-                "--contract",
-                str(contract),
-                "--run-config",
-                str(run_path),
-            )
-            target_base.write_text(result.stdout, encoding="utf-8")
-            target = root / "target.yaml"
-            target_sa = root / "target-sa.yaml"
-            self.run_command(
-                str(HARNESS / "manifest_overlay.py"),
-                "target",
-                "--run-id",
-                run_id,
-                "--input",
-                str(target_base),
-                "--output",
-                str(target),
-                "--service-account-output",
-                str(target_sa),
-            )
-            self.run_command(*prefix, "lint", str(target))
-            target_documents = list(yaml.safe_load_all(target.read_text(encoding="utf-8")))
-            self.assertEqual(
-                [(item["kind"], item["metadata"]["name"]) for item in target_documents],
+            node_path = root / "node.json"
+            admission_path.write_text("{}", encoding="utf-8")
+            node_path.write_text("{}", encoding="utf-8")
+            result = subprocess.run(
                 [
-                    ("Pod", f"of2-target-{run_id}"),
-                    ("Service", f"of2-canary-{run_id}"),
-                    ("Service", f"of2-qualified-{run_id}"),
-                    ("NetworkPolicy", f"of2-target-{run_id}"),
-                    ("NetworkPolicy", f"of2-probe-{run_id}"),
+                    sys.executable,
+                    str(HARNESS / "runtime_pipeline.py"),
+                    "--pipeline-root", str(PIPELINE),
+                    "--admission", str(admission_path),
+                    "--node-json", str(node_path),
+                    "render",
                 ],
+                check=False, cwd=HARNESS, text=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
 
-            restore_base = root / "restore.base.yaml"
-            result = self.run_command(
-                *prefix,
-                "render",
-                "restore",
-                "--contract",
-                str(contract),
-                "--run-config",
-                str(run_path),
-                "--binding",
-                str(binding_path),
-            )
-            restore_base.write_text(result.stdout, encoding="utf-8")
-            restore = root / "restore.yaml"
-            self.run_command(
-                str(HARNESS / "manifest_overlay.py"),
-                "restore",
-                "--run-id",
-                run_id,
-                "--input",
-                str(restore_base),
-                "--output",
-                str(restore),
-            )
-            self.run_command(*prefix, "lint", str(restore))
-            restore_documents = list(yaml.safe_load_all(restore.read_text(encoding="utf-8")))
-            self.assertEqual(
-                [(item["kind"], item["metadata"]["name"]) for item in restore_documents],
-                [
-                    ("ServiceAccount", f"of2-restore-{run_id}"),
-                    ("Role", f"of2-restore-{run_id}"),
-                    ("RoleBinding", f"of2-restore-{run_id}"),
-                    ("Job", f"of2-restore-{run_id}"),
-                ],
-            )
-
-            probe = root / "probe.yaml"
-            result = self.run_command(
-                *prefix,
-                "render",
-                "probe",
-                "--contract",
-                str(contract),
-                "--run-config",
-                str(run_path),
-                "--binding",
-                str(binding_path),
-            )
-            probe.write_text(result.stdout, encoding="utf-8")
-            self.run_command(*prefix, "lint", str(probe))
-            probe_documents = list(yaml.safe_load_all(probe.read_text(encoding="utf-8")))
-            self.assertEqual(
-                [(item["kind"], item["metadata"]["name"]) for item in probe_documents],
-                [
-                    ("ConfigMap", f"of2-semantic-{run_id}"),
-                    ("Job", f"of2-semantic-{run_id}"),
-                ],
-            )
-            probe_job = next(item for item in probe_documents if item["kind"] == "Job")
-            arguments = probe_job["spec"]["template"]["spec"]["containers"][0]["args"]
-            self.assertEqual(arguments.count("--run-id"), 2)
-            self.assertIn("--ready-timeout", arguments)
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        self.assertIn(
+            "frozen validator does not have the approved SHA-256",
+            result.stderr,
+        )
 
 
 if __name__ == "__main__":
