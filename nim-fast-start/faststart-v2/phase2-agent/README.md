@@ -137,11 +137,12 @@ the CUDA helper on Jammy, and used an external ELF audit. It is validation
 evidence, not byte provenance for the integrated patch above. A new immutable
 `agent` image must be built before release.
 
-The exact seven-patch materialization, including buffered I/O and the in-build
-GLIBC gate, produced this newer performance-validation image:
+The exact eight-patch materialization, including buffered I/O, the in-build
+GLIBC gate, and the Jammy-built host-side `ns-bind-mount`, produced this newer
+performance-validation image:
 
 ```text
-cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:25d195c97ee2e62577475d5a97d3de8c9f694c3e2a7bcc06d3b5c48d88549a24
+cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28
 ```
 
 Its restore-worker SHA-256 is
@@ -151,6 +152,10 @@ its tool-manifest SHA-256 is
 and its GLIBC receipt SHA-256 is
 `f7af5b214cb963c4cf64910dfafe16987f0c5ec886af5d0e5d7aab5b634f6950`.
 The receipt covers 34 ELFs/files and caps required GLIBC at 2.35. This image
+also carries host-side `ns-bind-mount` SHA-256
+`4fa66737c2963cb0fac4305a058fbd39e95819d10b8e1b14776c3a212087b2d5`,
+built and executed on GLIBC 2.35.
+This image
 uses `task-public-agent`; the full compliance `agent` build remains gated on a
 captured baseline SBOM for the exact Jammy CUDA runtime base.
 
@@ -160,7 +165,7 @@ captured baseline SBOM for the exact Jammy CUDA runtime base.
 ./verify_offline.sh /path/to/dynamo-at-f7f37be
 ```
 
-The verifier checks the source object, seven patch hashes, materialized files,
+The verifier checks the source object, eight patch hashes, materialized files,
 dependency graph, Jammy and retained-helper pins, the GLIBC gate's comparison
 self-test, provenance JSON, and normalized overlay hash. It makes no network,
 registry, cloud, or Kubernetes request. The exact integrated materialization

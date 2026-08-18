@@ -49,6 +49,7 @@ class BufferedVariantTests(unittest.TestCase):
         )
         container = pod["containers"][0]
         script = container["args"][1]
+        compile(script, "<buffered-builder>", "exec")
         self.assertIn('old_mode = b"        imageIoMode: direct', script)
         self.assertIn('new_mode = b"        imageIoMode: buffered', script)
         self.assertIn("os.link(source, destination", script)

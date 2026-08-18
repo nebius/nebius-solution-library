@@ -1,9 +1,10 @@
 # OpenFold3 production-shaped native fast-start lane
 
-Status: the offline implementation is complete. Native capture and live
-qualification have not run. The checked-in worker contract deliberately closes
-the live gate until a full `agent` compliance release is built after the exact
-Jammy CUDA base receives a baseline SBOM.
+Status: native capture and performance qualification are complete on the
+provisioned H100 lane. The selected buffered artifact passed three independent
+production-shaped trials and six strict semantic calls. The checked-in worker
+contract remains performance-validation-only until a full `agent` compliance
+release is built after the exact Jammy CUDA base receives a baseline SBOM.
 
 ## Frozen OpenFold3 identity
 
@@ -23,6 +24,31 @@ diffusion sample. Every qualification trial makes exactly two actual HTTP
 calls with different request and input IDs. A PASS requires HTTP 200, exact
 call identity, one CIF structure, at least 100 `ATOM` rows, Cartesian atom-site
 fields, and all five finite OpenFold3 scores.
+
+## Warm-instance cold-start result
+
+The primary clock starts immediately before target Pod creation on an already
+provisioned H100 with both storage volumes attached. HTTP readiness is the first
+successful application readiness response observed by the independent probe;
+it is not the Kubernetes Pod `Ready` condition. The two semantic calls follow
+immediately, with distinct IDs and inputs. Call 1 therefore includes any
+deferred model/JIT work, while call 2 is the warm call.
+
+The selected buffered artifact was fully read before T0 so its 9.263 GB payload
+was page-resident. That prewarm is deliberately outside the measured interval
+and is reported as part of the storage state, not hidden as ordinary attached
+storage. The direct comparator bypasses the page cache.
+
+| Path | n | T0 to HTTP ready | Call 1 | Call 2 | T0 through call 2 | Worker restore |
+|---|---:|---:|---:|---:|---:|---:|
+| Buffered, attached storage, fully prewarmed | 3 | **12.280810 s** | **8.604078 s** | **8.530700 s** | **29.483948 s** | 4.717 s |
+| Direct I/O, attached storage | 1 | 87.422719 s | 8.611488 s | 8.548598 s | 104.584242 s | 79.997 s |
+
+The buffered row is the median of three strict PASS trials; its individual HTTP
+readiness values were 12.146076, 12.280810, and 12.469558 seconds. The direct row
+is a single storage-cold canary and is not presented as an n=3 median. Compact
+digest-bound receipts are in `results.json`; raw private evidence remains under
+`/home/tux/.local/state/archvteams-2407/openfold3-native-f7-20260818T055003Z`.
 
 ## Retained H100 baseline
 
@@ -55,13 +81,13 @@ server and performs two strict loopback predictions before becoming Ready.
 ## Release contract and current blocker
 
 `dynamo/restore-interface.live.json` is the single source for the immutable
-capture/restore worker image, executable and tool receipts, exact seven-patch
+capture/restore worker image, executable and tool receipts, exact eight-patch
 source inputs, argument contract, supported image-I/O modes, classification,
 and release approval. Its current candidate is the integrated, exact-source
 portable-plus-buffered performance-validation build:
 
 ```text
-cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:25d195c97ee2e62577475d5a97d3de8c9f694c3e2a7bcc06d3b5c48d88549a24
+cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28
 ```
 
 Its restore-worker SHA-256 is
@@ -102,7 +128,8 @@ empty blocker, and `release_ready: true`.
   exact direct/buffered artifact tuples, evidence construction, and an `n=3`
   aggregator covering six semantic calls.
 
-The exact deferred live procedure is in `EXECUTION_PLAN.md`.
+The exact capture, qualification, and replay procedure is in
+`EXECUTION_PLAN.md`.
 
 ## Offline verification
 

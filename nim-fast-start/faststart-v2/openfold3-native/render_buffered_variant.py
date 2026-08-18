@@ -111,10 +111,10 @@ if total != EXPECTED_BYTES:
 source_manifest = (SOURCE / "manifest.yaml").read_bytes()
 if digest(source_manifest) != EXPECTED_MANIFEST_SHA256:
     raise SystemExit("source manifest digest changed")
-old_id = f"checkpointId: {{SOURCE_ID}}\n".encode()
-new_id = f"checkpointId: {{DESTINATION_ID}}\n".encode()
-old_mode = b"        imageIoMode: direct\n"
-new_mode = b"        imageIoMode: buffered\n"
+old_id = f"checkpointId: {{SOURCE_ID}}\\n".encode()
+new_id = f"checkpointId: {{DESTINATION_ID}}\\n".encode()
+old_mode = b"        imageIoMode: direct\\n"
+new_mode = b"        imageIoMode: buffered\\n"
 if source_manifest.count(old_id) != 1 or source_manifest.count(old_mode) != 1:
     raise SystemExit("source manifest identity or direct I/O marker is not exact")
 

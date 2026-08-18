@@ -52,6 +52,7 @@ apply_patch_file "${script_dir}/source-archive-fix.patch"
 apply_patch_file "${script_dir}/portable-glibc35-toolchain.patch"
 apply_patch_file "${script_dir}/buffered-criu-io.patch"
 apply_patch_file "${script_dir}/jammy-compliance-tomli.patch"
+apply_patch_file "${script_dir}/ns-bind-mount-glibc35.patch"
 cp -a "${script_dir}/overlay/." "${destination}/"
 
 if find "${destination}" -type f \( -name '*.orig' -o -name '*.rej' \) -print -quit \

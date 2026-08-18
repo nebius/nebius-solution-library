@@ -161,6 +161,9 @@ for run_id in run_ids:
     runs.append(value)
 
 demand = [float(run["timings_seconds"]["demand_to_two_semantic_responses"]) for run in runs]
+http_ready = [float(run["timings_seconds"]["demand_to_http_ready"]) for run in runs]
+call_1 = [float(run["timings_seconds"]["semantic_request_1"]) for run in runs]
+call_2 = [float(run["timings_seconds"]["semantic_request_2"]) for run in runs]
 restore = [float(run["timings_seconds"]["worker_restore"]) for run in runs]
 result = {
     "schema": "archvteams.nebius.ai/openfold3-native-n3/v1",
@@ -172,12 +175,18 @@ result = {
     "semantic_pass_count": 6,
     "run_ids": run_ids,
     "demand_to_two_semantic_seconds": demand,
+    "demand_to_http_ready_seconds": http_ready,
+    "semantic_request_1_seconds": call_1,
+    "semantic_request_2_seconds": call_2,
     "worker_restore_seconds": restore,
     "statistics_seconds": {
         "demand_to_two_semantic_min": min(demand),
         "demand_to_two_semantic_median": statistics.median(demand),
         "demand_to_two_semantic_max": max(demand),
         "demand_to_two_semantic_mean": statistics.mean(demand),
+        "demand_to_http_ready_median": statistics.median(http_ready),
+        "semantic_request_1_median": statistics.median(call_1),
+        "semantic_request_2_median": statistics.median(call_2),
         "worker_restore_median": statistics.median(restore),
     },
 }

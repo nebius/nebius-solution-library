@@ -30,6 +30,7 @@ readonly source_archive_patch_file="${script_dir}/source-archive-fix.patch"
 readonly portable_toolchain_patch_file="${script_dir}/portable-glibc35-toolchain.patch"
 readonly buffered_io_patch_file="${script_dir}/buffered-criu-io.patch"
 readonly jammy_compliance_patch_file="${script_dir}/jammy-compliance-tomli.patch"
+readonly ns_bind_mount_patch_file="${script_dir}/ns-bind-mount-glibc35.patch"
 readonly overlay_dir="${script_dir}/overlay"
 
 apply_checked_patch() {
@@ -86,6 +87,7 @@ apply_checked_patch "${source_archive_patch_file}"
 apply_checked_patch "${portable_toolchain_patch_file}"
 apply_checked_patch "${buffered_io_patch_file}"
 apply_checked_patch "${jammy_compliance_patch_file}"
+apply_checked_patch "${ns_bind_mount_patch_file}"
 cp -a "${overlay_dir}/." "${tmp_dir}/"
 
 if find "${tmp_dir}" -type f \( -name '*.orig' -o -name '*.rej' \) -print -quit \
@@ -118,6 +120,10 @@ grep -F 'FROM ${CRIU_BUILD_IMAGE} AS criu-builder' \
 grep -F 'FROM ${AGENT_BASE_IMAGE} AS agent_pre_unverified' \
   "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
 grep -F 'FROM criu-builder AS bundle-glibc35-audit' \
+  "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
+grep -F 'FROM criu-builder AS ns-bind-mount-builder' \
+  "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
+grep -F 'COPY --from=ns-bind-mount-builder /ns-bind-mount /usr/local/sbin/ns-bind-mount' \
   "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
 grep -F 'FROM agent_pre_unverified AS agent_pre' \
   "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
@@ -208,6 +214,8 @@ test "$(sha256sum "${buffered_io_patch_file}" | cut -d' ' -f1)" = \
   '6a59dcb524abd0d9596697efd28afb3bd9d4e543b193f687178494452cecac15'
 test "$(sha256sum "${jammy_compliance_patch_file}" | cut -d' ' -f1)" = \
   '6fa58bcdf97c54f8ecd75e2a685150bd1ae5cede71283eb8fc9aa88bacf87156'
+test "$(sha256sum "${ns_bind_mount_patch_file}" | cut -d' ' -f1)" = \
+  '4847d7d42aae570fc7f91351a8fbf3018f10dc6247d93c2c9696754861731366'
 test "$(sha256sum "${script_dir}/Dockerfile.restore-worker" | cut -d' ' -f1)" = \
   'f0fb42c68ad7bf8dd39e27a5e070a1613953e7ec2cac0f19027cbea63a509570'
 test "$(sha256sum "${overlay_dir}/deploy/snapshot/scripts/verify-bundle-glibc.sh" | cut -d' ' -f1)" = \

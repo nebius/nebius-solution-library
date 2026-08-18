@@ -1,0 +1,66 @@
+{
+  "schema": "archvteams.nebius.ai/openfold3-native-results/v1",
+  "status": "PASS",
+  "measurement_contract": {
+    "t0": "immediately before target Pod creation on an already provisioned H100 with storage attached",
+    "readiness": "first successful application HTTP readiness response",
+    "call_1": "first strict semantic response, including deferred model or JIT loading",
+    "call_2": "immediate second strict semantic response",
+    "kubernetes_ready_is_not_http_ready": true
+  },
+  "selected": {
+    "checkpoint_id": "openfold3-native-f7-v2-buffered",
+    "artifact_version": "1",
+    "manifest_sha256": "5df221e0736a4c6f369781ea0dbc7c36783c26d3f35dcd874b4ced8f5f9e009f",
+    "image_io_mode": "buffered",
+    "storage_state": "attached and fully prewarmed before T0",
+    "trial_count": 3,
+    "semantic_call_count": 6,
+    "demand_to_http_ready_seconds": [12.146076, 12.28081, 12.469558],
+    "semantic_request_1_seconds": [8.620226, 8.556568, 8.604078],
+    "semantic_request_2_seconds": [8.5307, 8.645413, 8.524887],
+    "demand_to_two_semantic_seconds": [29.29815, 29.483948, 29.59972],
+    "worker_restore_seconds": [4.661, 4.717, 4.741],
+    "medians_seconds": {
+      "demand_to_http_ready": 12.28081,
+      "semantic_request_1": 8.604078,
+      "semantic_request_2": 8.5307,
+      "demand_to_two_semantic": 29.483948,
+      "worker_restore": 4.717
+    },
+    "aggregate_receipt": {
+      "path": "/home/tux/.local/state/archvteams-2407/openfold3-native-f7-20260818T055003Z/n3-of3-buf-buffered.json",
+      "bytes": 1081,
+      "sha256": "167e6ef6df1b7b83d9f076a83305f5b185b96c0b32ad372bd9ee61b9d3999728"
+    }
+  },
+  "direct_comparator": {
+    "checkpoint_id": "openfold3-native-f7-v1",
+    "artifact_version": "1",
+    "manifest_sha256": "86faa2d4149492ac1735823d625d160bc29a68098b47082cd67ce63241238b53",
+    "image_io_mode": "direct",
+    "storage_state": "attached; direct I/O bypassed page cache",
+    "trial_count": 1,
+    "semantic_call_count": 2,
+    "timings_seconds": {
+      "demand_to_http_ready": 87.422719,
+      "semantic_request_1": 8.611488,
+      "semantic_request_2": 8.548598,
+      "demand_to_two_semantic": 104.584242,
+      "worker_restore": 79.997
+    },
+    "receipt": {
+      "path": "/home/tux/.local/state/archvteams-2407/openfold3-native-f7-20260818T055003Z/runs/of3-direct-r2/canary-evidence.json",
+      "bytes": 2331,
+      "sha256": "2475778dc09489ad12122cab6ddd2918a105dcc1eb88f5497b67db464fcff5d8"
+    }
+  },
+  "worker": {
+    "image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28",
+    "classification": "performance-validation-only",
+    "release_ready": false,
+    "restore_worker_sha256": "941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651",
+    "tool_bundle_manifest_sha256": "c0d638100c03fa35973e82859d15b9c8dd1bcbf0fe9cb185b58cc21fae7ead1e",
+    "source_materialized_tree_sha256": "76838bc28fa641ba3d3165c1deb1f019c4f63ed9fce9571b38194ff65ef7b816"
+  }
+}
