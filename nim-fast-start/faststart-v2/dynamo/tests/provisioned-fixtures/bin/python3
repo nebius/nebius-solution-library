@@ -3,6 +3,10 @@ set -euo pipefail
 
 : "${FAKE_CALL_LOG:?FAKE_CALL_LOG is required}"
 
+if [[ ${1:-} == -c ]]; then
+  exec /usr/bin/python3 "$@"
+fi
+
 script_path=${1:?Python script path is required}
 shift
 script_name=${script_path##*/}
@@ -43,6 +47,9 @@ option_value() {
 }
 
 case "$script_name" in
+  instrumentation_contract.py)
+    exec /usr/bin/python3 "$script_path" "$@"
+    ;;
   render.py)
     mode=${1:?render mode is required}
     printf 'python-render:%s\n' "$mode" >> "$FAKE_CALL_LOG"
@@ -126,7 +133,7 @@ case "$script_name" in
     model=$(option_value --model "$@")
     printf '%s\n' "python-qualification" >> "$FAKE_CALL_LOG"
     /usr/bin/jq -n --arg run_id "$run_id" --arg model "$model" '{
-      schema:"archvteams.nebius.ai/warm-instance-qualification/v1",
+      schema:"archvteams.nebius.ai/warm-instance-qualification/v3",
       status:"PASS",model:$model,run_id:$run_id,
       timing_boundaries:{acceptance_response_proxy:{
         label:"client-observed-api-create-response-return/v1",

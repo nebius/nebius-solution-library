@@ -83,8 +83,13 @@ pass "Boltz2 worker failure is cleaned and durably failed"
 : > "$FAKE_CALL_LOG"
 ledger="${test_tmp}/attempts.ndjson"
 : > "$ledger"
+instrumentation_contract_sha256=$(
+  /usr/bin/python3 "$boltz_dir/../performance/instrumentation_contract.py" \
+    --model boltz2 | /usr/bin/jq -er '.instrumentation_contract_sha256'
+)
 "$runner" --run-id b2-cohort-001 "${args[@]}" --cleanup \
   --cohort-id b2-fresh --attempt-index 1 --attempt-ledger "$ledger" \
+  --instrumentation-contract-sha256 "$instrumentation_contract_sha256" \
   > "${test_tmp}/cohort.stdout" 2> "${test_tmp}/cohort.stderr" || {
   sed -n '1,160p' "${test_tmp}/cohort.stderr" >&2
   fail "fake cohort attempt failed"
@@ -93,6 +98,12 @@ ledger="${test_tmp}/attempts.ndjson"
   fail "cohort ledger does not contain exactly admitted/completed events"
 [[ $(/usr/bin/jq -s -r '.[1].cleanup_status' "$ledger") == PASS ]] || \
   fail "cohort completion does not retain cleanup status"
+[[ $(/usr/bin/jq -s -r '.[0].instrumentation_contract_sha256' "$ledger") == \
+   "$instrumentation_contract_sha256" && \
+   $(/usr/bin/jq -r '.instrumentation_contract_sha256' \
+     "${test_tmp}/evidence/runs/b2-cohort-001/instrumentation-contract.json") == \
+   "$instrumentation_contract_sha256" ]] || \
+  fail "cohort attempt did not retain its exact instrumentation contract"
 pass "Boltz2 runner appends one admitted/completed ledger pair"
 
 printf '1..%d\n' "$pass_count"

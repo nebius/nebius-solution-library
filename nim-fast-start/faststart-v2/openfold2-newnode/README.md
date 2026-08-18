@@ -1,13 +1,46 @@
 # OpenFold2 new-node benchmark harness
 
-Status: **TWO LIVE NEW-NODE BENCHMARKS PASS.**
-Runs `of2-newnode-r4-0418` and `of2-newnode-r5-regional` both completed the true
-new-node benchmark and full cleanup. The regional result and comparison are in
+Status: **TWO HISTORICAL LIFECYCLES PASS; ZERO CURRENT-CONTRACT SAMPLES.**
+
+Runs `of2-newnode-r4-0418` and `of2-newnode-r5-regional` both completed a true
+new-node lifecycle, two strict semantic calls, and full cleanup. They remain
+useful evidence for node scaling, cold image pulls, volume detach/attach,
+restore, semantic correctness, and restoration. They are not poolable under
+the current exact metric contract because their validator did not timestamp
+each call's dispatch and complete-body arrival. The values formerly described
+as demand-to-two-response totals are actually demand-to-validation-complete
+totals, and their per-call timers include response persistence and semantic
+validation.
+
+The corrected r4 result is in [`R4_RESULT.md`](R4_RESULT.md), the regional
+result and comparison are in
 [`R5_REGIONAL_RESULT.md`](R5_REGIONAL_RESULT.md); mirror identity qualification
-is in [`REGIONAL_MIRROR_RESULT.md`](REGIONAL_MIRROR_RESULT.md).
-The runner retains a fail-closed coordination gate
+is in [`REGIONAL_MIRROR_RESULT.md`](REGIONAL_MIRROR_RESULT.md), and the
+machine-readable audit is in [`CURRENT_STATUS.json`](CURRENT_STATUS.json).
+
+The v1 runner retains a fail-closed coordination gate
 (`OPENFOLD2_NEWNODE_COORDINATED=YES`) in addition to its required `--execute`
-argument. Do not use that gate without a new explicit live handoff.
+argument. **Do not execute it as the current harness.** It has the blockers
+listed below and may only become live work after a reviewed v2 implementation
+and a new explicit handoff.
+
+## Current audit blockers
+
+- Eight of the nine archived v1 shared-pipeline SHA checks are stale. The
+  current full-hash diagnostics are recorded in `CURRENT_STATUS.json`; only
+  `dynamo/bind_target.py` still matches. These are audit diagnostics, not
+  approved pins to copy into the runner.
+- The current shared evidence CLI requires a target-submit timestamp, a target
+  create-return proxy, and qualification receipts; v1 supplies none. Its warm
+  qualifier also requires the exact image to be present before T0, which is
+  incompatible with an intentionally cold new node.
+- Current shared evidence assigns `demand_at` to target submission and
+  `setup_demand_at` to scale dispatch. The v1 lifecycle validator instead
+  requires `demand_at` to equal scale dispatch. Aliasing those boundaries would
+  make the result ambiguous.
+- V1 has no current clock receipt, image/storage phase receipts, complete
+  attempt ledger, n>=20 cohort aggregator, or generalized per-NIM
+  configuration.
 
 ## Fixed scope
 
@@ -29,17 +62,18 @@ member or one exact non-deleting retiring member with cloud counts `1/1/1/0`,
 other starting states or any differing holder, PVC, attachment, secret metadata,
 frozen pipeline hash, or native contract.
 
-## Execution plan
+## Archived v1 execution shape
 
-After the explicit handoff, choose a new lowercase run ID (30 characters max)
-and run exactly:
+The following command records the archived invocation shape; it is not a
+current execution instruction. Do not set the coordination variable until a
+reviewed v2 replacement and separate live handoff exist:
 
 ```bash
 OPENFOLD2_NEWNODE_COORDINATED=YES \
   ./run_newnode_benchmark.sh of2-newnode-01 --execute
 ```
 
-The one-shot sequence is:
+The historical one-shot sequence was:
 
 1. Revalidate the single allowed cluster/group, original desired count, old
    node, holder, the two RWO attachments, pull-secret references, and frozen
@@ -85,6 +119,26 @@ Successful completion requires both the frozen canary receipt and
 `lifecycle-evidence.json` to be `PASS`. A benchmark failure with successful
 restoration is recorded separately from a cleanup/restoration failure.
 
+## Newnode-v2 measurement plan
+
+1. Version the two clocks separately: `setup_demand_at` immediately before the
+   exact `0 -> 1` scale request and `demand_at` immediately before target Pod
+   creation. Never alias or sum independently aggregated phases.
+2. Record the independent first successful application-readiness response,
+   then call 1 and call 2 dispatch and complete-body arrival timestamps. Keep
+   semantic-validation completion as a later, separately named boundary.
+3. Add a cold-node qualification path that proves the target image was absent
+   at scale T0 and binds the pulled exact digest afterward. Retain exact clock,
+   image-pull, and volume detach/attach receipts.
+4. Preserve every accepted and failed attempt in a fail-closed ledger. Run at
+   least 20 accepted samples per scenario and report nearest-rank p50, p95,
+   max, and the full failure denominator; do not pool either historical run.
+5. Move node, image, storage, request, and semantic details into a generalized
+   per-NIM configuration so the contract can cover all supported NIMs without
+   changing metric definitions.
+6. Pass offline tests and non-mutating preflight gates before requesting a
+   separately authorized live cohort. No v2 performance result exists yet.
+
 ## Offline verification
 
 ```bash
@@ -98,5 +152,6 @@ bash -n run_newnode_benchmark.sh
 shellcheck -x run_newnode_benchmark.sh
 ```
 
-Current results: 22/22 harness tests and 47/47 frozen pipeline tests pass; Python
-compilation, Bash syntax, and ShellCheck pass.
+The scoped correction gate is all 22 harness tests (including the structured
+audit-label assertions), JSON parsing, Python compilation, Bash syntax,
+ShellCheck, and repository diff checks.

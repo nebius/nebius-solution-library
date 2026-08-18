@@ -55,6 +55,8 @@ EXPECTED_BACKBONE = frozenset({"N", "CA", "C", "O"})
 MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 RESPONSE_TIMING_CONTRACT = "request-dispatch-to-complete-http-body/v1"
+SEMANTIC_SCHEMA_VERSION = 2
+NODE_BOOTTIME_SCHEMA = "archvteams.nebius.ai/semantic-node-boottime/v1"
 
 _PDB_THREE_TO_ONE = {
     "ALA": "A",
@@ -113,6 +115,8 @@ class HttpResult:
     elapsed_seconds: float
     request_started_at: str
     response_received_at: str
+    request_dispatched_boottime_ns: int
+    response_body_received_boottime_ns: int
 
 
 @dataclass(frozen=True)
@@ -137,6 +141,52 @@ class RejectRedirects(HTTPRedirectHandler):
         newurl: str,
     ) -> None:
         return None
+
+
+def _timens_offsets() -> list[dict[str, int | str]]:
+    try:
+        lines = Path("/proc/self/timens_offsets").read_text(encoding="ascii").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SetupFailure(
+            f"could not read the process time-namespace offsets: {type(exc).__name__}"
+        ) from exc
+    offsets: list[dict[str, int | str]] = []
+    for line in lines:
+        fields = line.split()
+        if len(fields) != 3 or fields[0] not in {"monotonic", "boottime"}:
+            raise SetupFailure("the process time-namespace offsets are malformed")
+        try:
+            seconds, nanoseconds = int(fields[1]), int(fields[2])
+        except ValueError as exc:
+            raise SetupFailure("the process time-namespace offsets are malformed") from exc
+        offsets.append(
+            {"clock": fields[0], "seconds": seconds, "nanoseconds": nanoseconds}
+        )
+    if [item["clock"] for item in offsets] != ["monotonic", "boottime"]:
+        raise SetupFailure("the process time-namespace offsets are incomplete")
+    return offsets
+
+
+def node_boottime_identity() -> dict[str, Any]:
+    try:
+        boot_id = Path("/proc/sys/kernel/random/boot_id").read_text(
+            encoding="ascii"
+        ).strip()
+        resolution_ns = math.ceil(time.clock_getres(time.CLOCK_BOOTTIME) * 1_000_000_000)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise SetupFailure(f"could not inspect CLOCK_BOOTTIME: {type(exc).__name__}") from exc
+    if re.fullmatch(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        boot_id,
+    ) is None or not 1 <= resolution_ns <= 1_000_000:
+        raise SetupFailure("the node boot identity or CLOCK_BOOTTIME resolution is invalid")
+    return {
+        "schema": NODE_BOOTTIME_SCHEMA,
+        "clock_id": "CLOCK_BOOTTIME",
+        "boot_id": boot_id,
+        "clock_resolution_ns": resolution_ns,
+        "timens_offsets": _timens_offsets(),
+    }
 
 
 def utc_now() -> str:
@@ -400,12 +450,14 @@ def post_json(opener: OpenerDirector, url: str, body: bytes, timeout: float) -> 
     )
     request_started_at = utc_now()
     request_started_ns = time.monotonic_ns()
+    request_started_boottime_ns = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
     try:
         response = opener.open(request, timeout=timeout)
     except HTTPError as exc:
         try:
             response_body = read_bounded(exc)
             response_received_ns = time.monotonic_ns()
+            response_received_boottime_ns = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
             response_received_at = utc_now()
             headers = {key.lower(): value for key, value in exc.headers.items()}
             return HttpResult(
@@ -413,9 +465,15 @@ def post_json(opener: OpenerDirector, url: str, body: bytes, timeout: float) -> 
                 headers,
                 response_body,
                 str(exc.geturl()),
-                round((response_received_ns - request_started_ns) / 1_000_000_000, 6),
+                round(
+                    (response_received_boottime_ns - request_started_boottime_ns)
+                    / 1_000_000_000,
+                    6,
+                ),
                 request_started_at,
                 response_received_at,
+                request_started_boottime_ns,
+                response_received_boottime_ns,
             )
         finally:
             exc.close()
@@ -428,15 +486,22 @@ def post_json(opener: OpenerDirector, url: str, body: bytes, timeout: float) -> 
         with response:
             response_body = read_bounded(response)
             response_received_ns = time.monotonic_ns()
+            response_received_boottime_ns = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
             response_received_at = utc_now()
             return HttpResult(
                 int(response.status),
                 {key.lower(): value for key, value in response.headers.items()},
                 response_body,
                 str(response.geturl()),
-                round((response_received_ns - request_started_ns) / 1_000_000_000, 6),
+                round(
+                    (response_received_boottime_ns - request_started_boottime_ns)
+                    / 1_000_000_000,
+                    6,
+                ),
                 request_started_at,
                 response_received_at,
+                request_started_boottime_ns,
+                response_received_boottime_ns,
             )
     except TransportFailure:
         raise
@@ -452,12 +517,14 @@ def get_http(opener: OpenerDirector, url: str, timeout: float) -> HttpResult:
     )
     request_started_at = utc_now()
     request_started_ns = time.monotonic_ns()
+    request_started_boottime_ns = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
     try:
         response = opener.open(request, timeout=timeout)
     except HTTPError as exc:
         try:
             response_body = read_bounded(exc)
             response_received_ns = time.monotonic_ns()
+            response_received_boottime_ns = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
             response_received_at = utc_now()
             headers = {key.lower(): value for key, value in exc.headers.items()}
             return HttpResult(
@@ -465,9 +532,15 @@ def get_http(opener: OpenerDirector, url: str, timeout: float) -> HttpResult:
                 headers,
                 response_body,
                 str(exc.geturl()),
-                round((response_received_ns - request_started_ns) / 1_000_000_000, 6),
+                round(
+                    (response_received_boottime_ns - request_started_boottime_ns)
+                    / 1_000_000_000,
+                    6,
+                ),
                 request_started_at,
                 response_received_at,
+                request_started_boottime_ns,
+                response_received_boottime_ns,
             )
         finally:
             exc.close()
@@ -480,15 +553,22 @@ def get_http(opener: OpenerDirector, url: str, timeout: float) -> HttpResult:
         with response:
             response_body = read_bounded(response)
             response_received_ns = time.monotonic_ns()
+            response_received_boottime_ns = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
             response_received_at = utc_now()
             return HttpResult(
                 int(response.status),
                 {key.lower(): value for key, value in response.headers.items()},
                 response_body,
                 str(response.geturl()),
-                round((response_received_ns - request_started_ns) / 1_000_000_000, 6),
+                round(
+                    (response_received_boottime_ns - request_started_boottime_ns)
+                    / 1_000_000_000,
+                    6,
+                ),
                 request_started_at,
                 response_received_at,
+                request_started_boottime_ns,
+                response_received_boottime_ns,
             )
     except TransportFailure:
         raise
@@ -533,6 +613,7 @@ def wait_until_ready(
     endpoint = origin + READY_PATH
     started_at = utc_now()
     started_ns = time.monotonic_ns()
+    started_boottime_ns = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
     deadline = time.monotonic() + float(timeout)
     attempts = 0
     last_result = "no response"
@@ -558,14 +639,25 @@ def wait_until_ready(
             if 300 <= result.status < 400:
                 raise TransportFailure(f"readiness redirect rejected with HTTP {result.status}")
             if result.status == 200 and readiness_body_is_ready(result.body):
+                finished_boottime_ns = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
                 return {
                     "attempts": attempts,
                     "elapsed_seconds": round(
-                        (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
+                        (finished_boottime_ns - started_boottime_ns)
+                        / 1_000_000_000,
+                        6,
                     ),
                     "endpoint": endpoint,
                     "finished_at": utc_now(),
+                    "finished_boottime_ns": finished_boottime_ns,
+                    "request_dispatched_boottime_ns": (
+                        result.request_dispatched_boottime_ns
+                    ),
+                    "response_body_received_boottime_ns": (
+                        result.response_body_received_boottime_ns
+                    ),
                     "started_at": started_at,
+                    "started_boottime_ns": started_boottime_ns,
                     "status": "PASS",
                 }
             last_result = f"HTTP {result.status} body_sha256={sha256(result.body)}"
@@ -753,6 +845,7 @@ def run_validation(
     endpoint = origin + OPENFOLD2_PATH
     client = opener if opener is not None else direct_opener()
     started_ns = time.monotonic_ns()
+    started_boottime_ns = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
     summary: dict[str, Any] = {
         "base_url": origin,
         "cases": [],
@@ -764,11 +857,13 @@ def run_validation(
         "redirect_policy": "reject",
         "request_count": 2,
         "response_timing_contract": RESPONSE_TIMING_CONTRACT,
-        "schema_version": 1,
+        "schema_version": SEMANTIC_SCHEMA_VERSION,
         "started_at": utc_now(),
+        "started_boottime_ns": started_boottime_ns,
         "status": "RUNNING",
         "timeout_seconds": float(timeout),
         "validator": "openfold2-faststart-semantic-v1",
+        "node_clock": node_boottime_identity(),
     }
 
     if ready_timeout is not None:
@@ -779,8 +874,13 @@ def run_validation(
             )
         except TransportFailure as exc:
             validation_finished_at = utc_now()
+            validation_finished_boottime_ns = time.clock_gettime_ns(
+                time.CLOCK_BOOTTIME
+            )
             validation_total_elapsed_seconds = round(
-                (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
+                (validation_finished_boottime_ns - started_boottime_ns)
+                / 1_000_000_000,
+                6,
             )
             summary.update(
                 {
@@ -789,6 +889,9 @@ def run_validation(
                     "failed_case_count": 0,
                     "finished_at": validation_finished_at,
                     "validation_finished_at": validation_finished_at,
+                    "validation_finished_boottime_ns": (
+                        validation_finished_boottime_ns
+                    ),
                     "ok": False,
                     "passed_case_count": 0,
                     "status": "ERROR_READY",
@@ -832,7 +935,13 @@ def run_validation(
                 {
                     "elapsed_seconds": result.elapsed_seconds,
                     "request_started_at": result.request_started_at,
+                    "request_dispatched_boottime_ns": (
+                        result.request_dispatched_boottime_ns
+                    ),
                     "response_received_at": result.response_received_at,
+                    "response_body_received_boottime_ns": (
+                        result.response_body_received_boottime_ns
+                    ),
                 }
             )
             write_private(receipt / response_name, result.body)
@@ -898,8 +1007,10 @@ def run_validation(
     failures = [case for case in summary["cases"] if not case["ok"]]
     exit_code = max((int(case["exit_code"]) for case in failures), default=0)
     validation_finished_at = utc_now()
+    validation_finished_boottime_ns = time.clock_gettime_ns(time.CLOCK_BOOTTIME)
     validation_total_elapsed_seconds = round(
-        (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
+        (validation_finished_boottime_ns - started_boottime_ns) / 1_000_000_000,
+        6,
     )
     summary.update(
         {
@@ -907,6 +1018,7 @@ def run_validation(
             "failed_case_count": len(failures),
             "finished_at": validation_finished_at,
             "validation_finished_at": validation_finished_at,
+            "validation_finished_boottime_ns": validation_finished_boottime_ns,
             "ok": not failures,
             "passed_case_count": len(summary["cases"]) - len(failures),
             "status": "PASS" if not failures else "FAIL",

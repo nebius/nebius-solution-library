@@ -4,8 +4,8 @@ set -Eeuo pipefail
 umask 077
 
 readonly allowed_server="${EXPECTED_API_SERVER:-https://kubernetes-api.example.invalid:443}"
-readonly expected_contract_sha256="${OF2_EXPECTED_CONTRACT_SHA256:-72bffec02b2895921fbfd76d3c9c176f412abac2c8e299ab23a6fc4130437669}"
-readonly expected_validator_sha256="4f3e70ef29ea9cd3113c09e6f63bd15b4d9826bf64d7d16972c6c3d0eef3090e"
+readonly expected_contract_sha256="${OF2_EXPECTED_CONTRACT_SHA256:-e9f6da8b0923a776ee305c3b5b351dcca40f1db8d914b76c64fc14aa9c03130b}"
+readonly expected_validator_sha256="66c75652e7f17b35ff569a59cc6a21bc09416329d9fbf30178041aed9006a9ed"
 readonly trial_namespace='nim-fast-start'
 readonly trial_artifact_pvc="${OF2_ARTIFACT_PVC:-openfold2-artifacts-example}"
 readonly trial_cache_pvc="${OF2_CACHE_PVC:-openfold2-cache-example}"
@@ -19,6 +19,7 @@ readonly qualification_collector="${script_dir}/../performance/qualification_rec
 readonly manifest_splitter="${script_dir}/../performance/split_manifest.py"
 readonly uid_cleanup_library="${script_dir}/../performance/uid_cleanup.sh"
 readonly clock_sample_library="${script_dir}/../performance/clock_sample.sh"
+readonly instrumentation_contract_builder="${script_dir}/../performance/instrumentation_contract.py"
 # shellcheck source=../performance/uid_cleanup.sh
 source "$uid_cleanup_library"
 # shellcheck source=../performance/clock_sample.sh
@@ -33,6 +34,7 @@ trial_cleanup=0
 trial_cohort_id=""
 trial_attempt_index=""
 trial_attempt_ledger=""
+trial_instrumentation_contract_sha256=""
 
 usage() {
   cat >&2 <<'USAGE'
@@ -43,7 +45,8 @@ usage: run_provisioned_trial.sh \
   --kubeconfig ABSOLUTE_FILE \
   --artifact-holder READY_POD [--cleanup] \
   [--cohort-id DNS_LABEL --attempt-index POSITIVE_INTEGER \
-   --attempt-ledger ABSOLUTE_APPEND_ONLY_NDJSON]
+   --attempt-ledger ABSOLUTE_APPEND_ONLY_NDJSON \
+   --instrumentation-contract-sha256 LOWERCASE_SHA256]
 USAGE
 }
 
@@ -120,6 +123,13 @@ while (($# > 0)); do
       trial_attempt_ledger=$2
       shift 2
       ;;
+    --instrumentation-contract-sha256)
+      (($# >= 2)) || die_usage "--instrumentation-contract-sha256 requires a value"
+      set_once "--instrumentation-contract-sha256" \
+        "$trial_instrumentation_contract_sha256" "$2"
+      trial_instrumentation_contract_sha256=$2
+      shift 2
+      ;;
     --help|-h)
       usage
       exit 0
@@ -140,8 +150,10 @@ cohort_option_count=0
 [[ -z $trial_cohort_id ]] || cohort_option_count=$((cohort_option_count + 1))
 [[ -z $trial_attempt_index ]] || cohort_option_count=$((cohort_option_count + 1))
 [[ -z $trial_attempt_ledger ]] || cohort_option_count=$((cohort_option_count + 1))
-if ((cohort_option_count != 0 && cohort_option_count != 3)); then
-  die_usage "cohort ID, attempt index, and attempt ledger must be supplied together"
+[[ -z $trial_instrumentation_contract_sha256 ]] || \
+  cohort_option_count=$((cohort_option_count + 1))
+if ((cohort_option_count != 0 && cohort_option_count != 4)); then
+  die_usage "cohort ID, attempt index, attempt ledger, and instrumentation contract must be supplied together"
 fi
 
 if [[ ! $trial_run_id =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ || ${#trial_run_id} -gt 30 ]]; then
@@ -150,7 +162,7 @@ fi
 if [[ ! $trial_holder =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ || ${#trial_holder} -gt 63 ]]; then
   die_usage "--artifact-holder must be a DNS label of at most 63 characters"
 fi
-if ((cohort_option_count == 3)); then
+if ((cohort_option_count == 4)); then
   if [[ ! $trial_cohort_id =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ || ${#trial_cohort_id} -gt 40 ]]; then
     die_usage "--cohort-id must be a DNS label of at most 40 characters"
   fi
@@ -160,6 +172,8 @@ if ((cohort_option_count == 3)); then
     die_usage "--attempt-ledger must be absolute"
   [[ -f $trial_attempt_ledger && ! -L $trial_attempt_ledger ]] || \
     die_usage "--attempt-ledger must be an existing regular non-symlink file"
+  [[ $trial_instrumentation_contract_sha256 =~ ^[0-9a-f]{64}$ ]] || \
+    die_usage "--instrumentation-contract-sha256 must be one lowercase SHA-256"
   ((trial_cleanup == 1)) || \
     die_usage "cohort attempts require --cleanup"
 fi
@@ -206,6 +220,20 @@ jq -e --arg validator "$expected_validator_sha256" '
   printf 'immutable restore contract is not deployable\n' >&2
   exit 78
 }
+trial_instrumentation_contract_receipt=""
+if ((cohort_option_count == 4)); then
+  trial_instrumentation_contract_receipt=$(
+    python3 "$instrumentation_contract_builder" --model openfold2
+  )
+  actual_instrumentation_contract_sha256=$(jq -er \
+    '.instrumentation_contract_sha256 | select(test("^[0-9a-f]{64}$"))' \
+    <<<"$trial_instrumentation_contract_receipt")
+  if [[ $actual_instrumentation_contract_sha256 != \
+        "$trial_instrumentation_contract_sha256" ]]; then
+    printf 'fresh-cohort instrumentation contract drifted before admission\n' >&2
+    exit 78
+  fi
+fi
 
 readonly trial_dir="${trial_evidence_root}/runs/${trial_run_id}"
 readonly trial_target="of2-target-${trial_run_id}"
@@ -311,10 +339,13 @@ append_admission_event() {
     --arg admitted_at "$admitted_at" \
     --arg trial_dir "$trial_dir" \
     --arg runner_sha256 "$runner_sha256" \
+    --arg instrumentation_contract_sha256 \
+      "$trial_instrumentation_contract_sha256" \
     --argjson attempt_index "$trial_attempt_index" \
     '{schema:$schema,event:$event,cohort_id:$cohort_id,model:$model,
       attempt_index:$attempt_index,run_id:$run_id,admitted_at:$admitted_at,
-      trial_dir:$trial_dir,runner_sha256:$runner_sha256}' \
+      trial_dir:$trial_dir,runner_sha256:$runner_sha256,
+      instrumentation_contract_sha256:$instrumentation_contract_sha256}' \
     >> "$trial_attempt_ledger"
 }
 
@@ -442,6 +473,10 @@ mkdir -m 0700 -- "$trial_dir" || {
 trap finalize_trial EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+if [[ -n $trial_instrumentation_contract_receipt ]]; then
+  printf '%s\n' "$trial_instrumentation_contract_receipt" \
+    > "$trial_dir/instrumentation-contract.json"
+fi
 jq -n --arg checked_at "$trial_holder_checked_at" --argjson pod "$holder_json" \
   --argjson mount_verifications "$trial_holder_mount_verifications" \
   '{schema:"archvteams.nebius.ai/warm-storage-holder-check/v1",
@@ -455,8 +490,6 @@ jq -n --arg checked_at "$trial_capture_agent_checked_at" \
     daemonset_list:$daemonset_list,status:"PASS"}' \
   > "$trial_dir/capture-agent-absence.json"
 trial_holder_uid=$(jq -er '.pod.metadata.uid' "$trial_dir/artifact-holder.json")
-capture_target_clock_sample trial_kubectl "$trial_holder" "$trial_holder_uid" \
-  "$trial_node" "" before-semantic "$trial_dir/clock-sample-start.json"
 install -m 0600 -- "$contract_path" "$trial_dir/restore-interface.json"
 (
   cd -- "$trial_dir"
@@ -506,10 +539,28 @@ fi
 # Cohort admission is durably appended before T0.  The primary clock remains
 # the conservative pre-dispatch boundary; the post-response timestamp below is
 # an explicitly labeled client-observed proxy, not exact server acceptance.
-trial_admitted_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
+capture_controller_clock_boundary cohort-admission \
+  "$trial_dir/admission-boundary.json"
+trial_admitted_at=$(jq -er '.utc' "$trial_dir/admission-boundary.json")
 append_admission_event "$trial_admitted_at"
 trial_admitted=1
-date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$trial_dir/target-submit-at.txt"
+"${trial_kubectl[@]}" get pod "$trial_holder" -o json \
+  > "$trial_dir/anchor-holder.json"
+jq -e --arg uid "$trial_holder_uid" --arg node "$trial_node" \
+  --arg image "$BOOT_TIME_ANCHOR_HOLDER_IMAGE" '
+    .metadata.uid == $uid and .metadata.deletionTimestamp == null and
+    .spec.nodeName == $node and .status.phase == "Running" and
+    ([.status.conditions[] | select(.type == "Ready" and .status == "True")] | length) == 1 and
+    ([.spec.containers[] | select(.name == "holder" and .image == $image)] | length) == 1 and
+    ([.status.containerStatuses[] | select(.name == "holder" and .ready == true and
+      .restartCount == 0 and .imageID == $image)] | length) == 1
+  ' "$trial_dir/anchor-holder.json" >/dev/null
+capture_boot_time_anchor trial_kubectl "$trial_holder" "$trial_holder_uid" \
+  "$trial_node" holder "$trial_dir/boot-time-anchor.json"
+capture_controller_clock_boundary target-submit \
+  "$trial_dir/target-submit-clock.json"
+jq -er '.utc' "$trial_dir/target-submit-clock.json" \
+  > "$trial_dir/target-submit-at.txt"
 target_create_attempted=1
 "${trial_kubectl[@]}" create -f "$trial_dir/target-bundle/primary.json" -o json \
   > "$trial_dir/target-create-response.json" \
@@ -634,8 +685,6 @@ tail -1 "$trial_dir/semantic-probe.log" | jq -e -c \
 
 "${trial_kubectl[@]}" get pod "$trial_target" -o json \
   > "$trial_dir/target-final.json"
-capture_target_clock_sample trial_kubectl "$trial_target" "$trial_target_uid" \
-  "$trial_node" openfold2 after-semantic "$trial_dir/clock-sample-end.json"
 "${trial_kubectl[@]}" get service "$trial_canary" -o json \
   > "$trial_dir/canary-service.json"
 "${trial_kubectl[@]}" get endpointslices.discovery.k8s.io \
@@ -668,11 +717,15 @@ python3 "$qualification_collector" \
   --target-pod "$trial_dir/target-final.json" \
   --target-events "$trial_dir/target-events.json" \
   --worker-pod "$trial_dir/worker-pod.json" \
+  --worker-receipt "$trial_dir/worker-receipt.json" \
   --probe-pod "$trial_dir/probe-pod.json" \
+  --semantic-summary "$trial_dir/semantic-summary.json" \
   --gpu-health-xml "$trial_dir/target-nvidia-smi.xml" \
   --gpu-health-stderr "$trial_dir/target-nvidia-smi.stderr" \
-  --clock-sample-start "$trial_dir/clock-sample-start.json" \
-  --clock-sample-end "$trial_dir/clock-sample-end.json" \
+  --admission-boundary "$trial_dir/admission-boundary.json" \
+  --target-submit-clock "$trial_dir/target-submit-clock.json" \
+  --boot-time-anchor "$trial_dir/boot-time-anchor.json" \
+  --anchor-holder "$trial_dir/anchor-holder.json" \
   --capture-agent-absence "$trial_dir/capture-agent-absence.json" \
   > "$trial_dir/qualification-receipt.json"
 

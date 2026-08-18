@@ -16,6 +16,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(FASTSTART))
 
 import aggregate_fresh_cohort as aggregate  # noqa: E402
+import instrumentation_contract as instrumentation_builder  # noqa: E402
 import qualification_receipt as qualification_builder  # noqa: E402
 import timing_evidence  # noqa: E402
 from dynamo import evidence as openfold2_evidence  # noqa: E402
@@ -124,6 +125,8 @@ class CohortFixture:
         self.runs.mkdir(parents=True)
         self.cohort.mkdir(parents=True)
         self.ledger = self.cohort / "attempts.ndjson"
+        self.instrumentation = instrumentation_builder.build_contract(model)
+        write_json(self.cohort / "instrumentation-contract.json", self.instrumentation)
         self.base = datetime(2026, 8, 18, tzinfo=UTC)
         self.events: list[dict] = [
             {
@@ -135,6 +138,9 @@ class CohortFixture:
                 "evidence_root": str(self.evidence),
                 "started_at": iso(self.base),
                 "runner_sha256": "e" * 64,
+                "instrumentation_contract_sha256": self.instrumentation[
+                    "instrumentation_contract_sha256"
+                ],
                 "requested_attempt_count": count,
                 "maximum_scheduled_attempts": count + 10,
             }
@@ -170,6 +176,7 @@ class CohortFixture:
         trial = self.runs / run_id
         trial.mkdir()
         self.trials.append(trial)
+        write_json(trial / "instrumentation-contract.json", self.instrumentation)
 
         admitted = self.base + timedelta(minutes=2 * index)
         demand = admitted - timedelta(seconds=2)
@@ -203,6 +210,9 @@ class CohortFixture:
                     "image": approved["target_image"],
                     "command": ["/bin/sleep"],
                     "args": ["2147483647"],
+                    "startupProbe": copy.deepcopy(
+                        qualification_builder.EXPECTED_STARTUP_PROBE
+                    ),
                 }
             ],
             "volumes": [
@@ -405,6 +415,7 @@ class CohortFixture:
             uid: str,
             container: dict,
             rendered_job: dict | None,
+            finished_at: datetime,
         ) -> tuple[dict, dict]:
             if rendered_job is None:
                 job = {
@@ -425,7 +436,7 @@ class CohortFixture:
             job["metadata"]["uid"] = uid
             job["status"] = {
                 "succeeded": 1,
-                "completionTime": iso(validation_finished + timedelta(milliseconds=100)),
+                "completionTime": iso(finished_at + timedelta(milliseconds=100)),
             }
             pod = {
                 "apiVersion": "v1",
@@ -450,7 +461,7 @@ class CohortFixture:
                                     "exitCode": 0,
                                     "reason": "Completed",
                                     "startedAt": iso(semantic_started),
-                                    "finishedAt": iso(validation_finished),
+                                    "finishedAt": iso(finished_at),
                                 }
                             },
                             "lastState": {},
@@ -461,10 +472,20 @@ class CohortFixture:
             return job, pod
 
         worker_job, worker_pod = job_and_pod(
-            "worker", worker_name, worker_uid, worker_container, rendered_worker_job
+            "worker",
+            worker_name,
+            worker_uid,
+            worker_container,
+            rendered_worker_job,
+            http_ready - timedelta(seconds=1),
         )
         probe_job, probe_pod = job_and_pod(
-            "probe", probe_name, probe_uid, probe_container, rendered_probe_job
+            "probe",
+            probe_name,
+            probe_uid,
+            probe_container,
+            rendered_probe_job,
+            validation_finished,
         )
         write_json(trial / "worker-job.json", worker_job)
         write_json(trial / "probe-job.json", probe_job)
@@ -512,8 +533,27 @@ class CohortFixture:
             if self.model == "openfold2"
             else "/biology/mit/boltz2/predict"
         )
+        node_t0_boottime_ns = (
+            20_000_000_000_000
+            + round((t0 - self.base).total_seconds() * 1_000_000_000)
+        )
+        def event_boottime(value: datetime) -> int:
+            return node_t0_boottime_ns + round(
+                (value - t0).total_seconds() * 1_000_000_000
+            )
+
+        node_clock = {
+            "schema": qualification_builder.SEMANTIC_NODE_BOOTTIME_SCHEMA,
+            "clock_id": "CLOCK_BOOTTIME",
+            "boot_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            "clock_resolution_ns": 1,
+            "timens_offsets": [
+                {"clock": "monotonic", "seconds": 0, "nanoseconds": 0},
+                {"clock": "boottime", "seconds": 0, "nanoseconds": 0},
+            ],
+        }
         semantic = {
-            "schema_version": 1,
+            "schema_version": qualification_builder.SEMANTIC_SCHEMA_VERSION,
             "validator": (
                 "openfold2-faststart-semantic-v1"
                 if self.model == "openfold2"
@@ -532,11 +572,20 @@ class CohortFixture:
             "proxy_policy": "disabled",
             "redirect_policy": "reject",
             "started_at": iso(semantic_started),
+            "started_boottime_ns": event_boottime(semantic_started),
+            "node_clock": node_clock,
             "ready_wait": {
                 "status": "PASS",
                 "endpoint": base_url + "/v1/health/ready",
                 "started_at": iso(ready_started),
+                "started_boottime_ns": event_boottime(ready_started),
+                "request_dispatched_boottime_ns": event_boottime(ready_started),
+                "response_body_received_boottime_ns": event_boottime(http_ready),
                 "finished_at": iso(http_ready),
+                "finished_boottime_ns": event_boottime(http_ready),
+                "elapsed_seconds": round(
+                    (http_ready - ready_started).total_seconds(), 6
+                ),
             },
             "cases": [
                 {
@@ -548,7 +597,9 @@ class CohortFixture:
                     "sequence": "ACDEFGHIKLMNPQRSTVWY",
                     "elapsed_seconds": 1.5,
                     "request_started_at": iso(request_1),
+                    "request_dispatched_boottime_ns": event_boottime(request_1),
                     "response_received_at": iso(response_1),
+                    "response_body_received_boottime_ns": event_boottime(response_1),
                     "request_sha256": "1" * 64,
                     "response_sha256": "3" * 64,
                     "invariant": {"structure": "valid"},
@@ -562,7 +613,9 @@ class CohortFixture:
                     "sequence": "YWVTSRQPNMLKIHGFEDCA",
                     "elapsed_seconds": 0.25,
                     "request_started_at": iso(request_2),
+                    "request_dispatched_boottime_ns": event_boottime(request_2),
                     "response_received_at": iso(response_2),
+                    "response_body_received_boottime_ns": event_boottime(response_2),
                     "request_sha256": "2" * 64,
                     "response_sha256": "4" * 64,
                     "invariant": {"structure": "valid"},
@@ -575,6 +628,9 @@ class CohortFixture:
                 (validation_finished - semantic_started).total_seconds(), 6
             ),
             "validation_finished_at": iso(validation_finished),
+            "validation_finished_boottime_ns": event_boottime(
+                validation_finished
+            ),
             "finished_at": iso(validation_finished),
         }
         write_json(trial / "semantic-summary.json", semantic)
@@ -671,40 +727,86 @@ class CohortFixture:
                 ),
             )
 
-        clock_start = {
-            "schema": qualification_builder.CLOCK_SAMPLE_SCHEMA,
-            "phase": "before-semantic",
+        controller_base_ns = 50_000_000_000_000 + index * 10_000_000_000
+        admission_boundary = {
+            "schema": qualification_builder.CONTROLLER_CLOCK_BOUNDARY_SCHEMA,
+            "phase": "cohort-admission",
+            "utc": iso(admitted),
+            "monotonic_ns": controller_base_ns,
+        }
+        target_submit_clock = {
+            "schema": qualification_builder.CONTROLLER_CLOCK_BOUNDARY_SCHEMA,
+            "phase": "target-submit",
+            "utc": iso(t0),
+            "monotonic_ns": controller_base_ns + 100_000_000,
+        }
+        holder_image = qualification_builder.BOOT_TIME_ANCHOR_HOLDER_IMAGE
+        anchor_holder = {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": artifact_holder_name,
+                "namespace": NAMESPACE,
+                "uid": artifact_holder_uid,
+            },
+            "spec": {
+                "nodeName": NODE,
+                "containers": [
+                    {"name": "holder", "image": holder_image, "resources": {}}
+                ],
+            },
+            "status": {
+                "phase": "Running",
+                "conditions": [{"type": "Ready", "status": "True"}],
+                "containerStatuses": [
+                    {
+                        "name": "holder",
+                        "image": "sha256:" + "1" * 64,
+                        "imageID": holder_image,
+                        "ready": True,
+                        "restartCount": 0,
+                        "state": {"running": {"startedAt": iso(demand)}},
+                    }
+                ],
+            },
+        }
+        anchor_node = {**node_clock, "boottime_ns": node_t0_boottime_ns - 80_000_000}
+        boot_time_anchor = {
+            "schema": qualification_builder.BOOT_TIME_ANCHOR_SCHEMA,
+            "phase": "pre-t0-anchor",
             "sampled_pod_name": artifact_holder_name,
             "sampled_pod_uid": artifact_holder_uid,
             "target_node": NODE,
-            "sampled_container": "",
-            "controller_before": iso(t0 - timedelta(seconds=1.5)),
-            "node_observed": iso(t0 - timedelta(seconds=1.45)),
-            "controller_after": iso(t0 - timedelta(seconds=1.4)),
+            "sampled_container": "holder",
+            "expected_holder_image": holder_image,
+            "controller_before": {
+                "utc": iso(admitted + timedelta(milliseconds=20)),
+                "monotonic_ns": controller_base_ns + 20_000_000,
+            },
+            "node_observed": anchor_node,
+            "controller_after": {
+                "utc": iso(admitted + timedelta(milliseconds=40)),
+                "monotonic_ns": controller_base_ns + 40_000_000,
+            },
         }
-        clock_end = {
-            "schema": qualification_builder.CLOCK_SAMPLE_SCHEMA,
-            "phase": "after-semantic",
-            "sampled_pod_name": target["metadata"]["name"],
-            "sampled_pod_uid": target_uid,
-            "target_node": NODE,
-            "sampled_container": container_name,
-            "controller_before": iso(response_2 + timedelta(milliseconds=500)),
-            "node_observed": iso(response_2 + timedelta(milliseconds=550)),
-            "controller_after": iso(response_2 + timedelta(milliseconds=600)),
-        }
-        write_json(trial / "clock-sample-start.json", clock_start)
-        write_json(trial / "clock-sample-end.json", clock_end)
+        write_json(trial / "admission-boundary.json", admission_boundary)
+        write_json(trial / "target-submit-clock.json", target_submit_clock)
+        write_json(trial / "boot-time-anchor.json", boot_time_anchor)
+        write_json(trial / "anchor-holder.json", anchor_holder)
 
         source_paths = {
             "capture_agent_absence": trial / "capture-agent-absence.json",
-            "clock_sample_start": trial / "clock-sample-start.json",
-            "clock_sample_end": trial / "clock-sample-end.json",
+            "admission_boundary": trial / "admission-boundary.json",
+            "target_submit_clock": trial / "target-submit-clock.json",
+            "boot_time_anchor": trial / "boot-time-anchor.json",
+            "anchor_holder": trial / "anchor-holder.json",
             "target_create_response": trial / "target-create-response.json",
             "target_pod": trial / "target-final.json",
             "target_events": trial / "target-events.json",
             "worker_pod": trial / "worker-pod.json",
+            "worker_receipt": trial / "worker-receipt.json",
             "probe_pod": trial / "probe-pod.json",
+            "semantic_summary": trial / "semantic-summary.json",
         }
         q = qualification_builder.build_receipt(
             model=self.model,
@@ -719,13 +821,17 @@ class CohortFixture:
             target=target,
             target_events=events,
             worker_pod=worker_pod,
+            worker_receipt=worker_receipt,
             worker_container="restore-worker",
             probe_pod=probe_pod,
             probe_container="semantic-probe",
+            semantic_summary=semantic,
             gpu_health_xml=trial / "target-nvidia-smi.xml",
             gpu_health_stderr=trial / "target-nvidia-smi.stderr",
-            clock_sample_start=clock_start,
-            clock_sample_end=clock_end,
+            admission_boundary=admission_boundary,
+            target_submit_clock=target_submit_clock,
+            boot_time_anchor=boot_time_anchor,
+            anchor_holder=anchor_holder,
             source_paths=source_paths,
         )
         write_json(trial / "qualification-receipt.json", q)
@@ -757,6 +863,7 @@ class CohortFixture:
             )
             summary_name = "canary-evidence.json"
         else:
+            conservative = q["boot_time_alignment"]["conservative_upper_bounds"]
             summary = {
                 "schema": "archvteams.nebius.ai/boltz2-native-trial-summary/v1",
                 "status": "PASS",
@@ -764,6 +871,15 @@ class CohortFixture:
                 "worker_receipt": worker_receipt,
                 "semantic": semantic,
                 "qualification": q,
+                "demand_to_http_ready_boottime_upper_seconds": conservative[
+                    "http_ready_complete_body"
+                ]["upper_bound_seconds"],
+                "demand_to_first_semantic_boottime_upper_seconds": conservative[
+                    "first_semantic_response_complete_body"
+                ]["upper_bound_seconds"],
+                "demand_to_two_semantic_boottime_upper_seconds": conservative[
+                    "two_semantic_responses_complete_body"
+                ]["upper_bound_seconds"],
                 **timings,
             }
             summary_name = "trial-summary.json"
@@ -873,6 +989,9 @@ class CohortFixture:
                     "admitted_at": iso(admitted),
                     "trial_dir": str(trial),
                     "runner_sha256": "e" * 64,
+                    "instrumentation_contract_sha256": self.instrumentation[
+                        "instrumentation_contract_sha256"
+                    ],
                 },
                 {
                     "schema": aggregate.LEDGER_SCHEMA,
@@ -914,7 +1033,7 @@ class AggregateFreshCohortTests(unittest.TestCase):
             coarse_kube_edge=coarse_kube_edge,
         )
 
-    def test_nearest_rank_n20_and_clock_bounded_contract(self) -> None:
+    def test_nearest_rank_n20_and_boottime_bounded_contract(self) -> None:
         fixture = self.make_fixture()
         result = aggregate.aggregate(fixture.ledger, "openfold2")
         self.assertEqual(result["status"], "PASS")
@@ -925,16 +1044,14 @@ class AggregateFreshCohortTests(unittest.TestCase):
         self.assertEqual(metric["p95"]["seconds"], ordered[18])
         self.assertEqual(metric["maximum"]["seconds"], ordered[-1])
         upper = result["metrics"][
-            "demand_to_two_semantic_clock_upper_bound_seconds"
+            "demand_to_two_semantic_boottime_upper_seconds"
         ]
         self.assertGreater(upper["p95"]["seconds"], metric["p95"]["seconds"])
         self.assertIn("demand_to_first_semantic_seconds", result["metrics"])
-        self.assertIn("demand_to_http_ready_clock_upper_bound_seconds", result["metrics"])
-        kube_upper = result["metrics"][
-            "demand_to_kubernetes_ready_clock_and_timestamp_upper_bound_seconds"
-        ]
-        self.assertGreater(kube_upper["p95"]["seconds"], 1.0)
-        self.assertTrue(result["primary_target"]["pass_uses_clock_uncertainty_upper_bound"])
+        self.assertIn("demand_to_http_ready_boottime_upper_seconds", result["metrics"])
+        self.assertTrue(
+            result["primary_target"]["pass_uses_boottime_conservative_upper_bound"]
+        )
         self.assertFalse(result["old_n3_mixed"])
 
     def test_kubernetes_ready_quantization_edge_is_bounded_not_rejected(self) -> None:
@@ -952,11 +1069,11 @@ class AggregateFreshCohortTests(unittest.TestCase):
             ]["p95"]["seconds"],
             0.0,
         )
-        self.assertGreaterEqual(
+        self.assertGreater(
             result["metrics"][
-                "demand_to_kubernetes_ready_clock_and_timestamp_upper_bound_seconds"
+                "demand_to_http_ready_boottime_upper_seconds"
             ]["p95"]["seconds"],
-            1.0,
+            0.0,
         )
 
     def test_boltz2_binding_and_same_aggregate_contract(self) -> None:
@@ -1070,6 +1187,34 @@ class AggregateFreshCohortTests(unittest.TestCase):
         missing_outcomes.flush()
         with self.assertRaisesRegex(aggregate.AggregateError, "scheduled"):
             aggregate.aggregate(missing_outcomes.ledger, "openfold2")
+
+    def test_rejects_mixed_v2_and_instrumentation_contract_drift(self) -> None:
+        mixed = self.make_fixture()
+        receipt_path = mixed.trials[-1] / "qualification-receipt.json"
+        receipt = json.loads(receipt_path.read_text())
+        receipt["schema"] = "archvteams.nebius.ai/warm-instance-qualification/v2"
+        write_json(receipt_path, receipt)
+        with self.assertRaisesRegex(aggregate.AggregateError, "qualification"):
+            aggregate.aggregate(mixed.ledger, "openfold2")
+
+        admission_drift = self.make_fixture()
+        admission = next(
+            event
+            for event in reversed(admission_drift.events)
+            if event.get("event") == "admitted"
+        )
+        admission["instrumentation_contract_sha256"] = "0" * 64
+        admission_drift.flush()
+        with self.assertRaisesRegex(aggregate.AggregateError, "admission"):
+            aggregate.aggregate(admission_drift.ledger, "openfold2")
+
+        receipt_drift = self.make_fixture()
+        contract_path = receipt_drift.cohort / "instrumentation-contract.json"
+        contract = json.loads(contract_path.read_text())
+        contract["sources"][0]["sha256"] = "0" * 64
+        write_json(contract_path, contract)
+        with self.assertRaisesRegex(aggregate.AggregateError, "instrumentation"):
+            aggregate.aggregate(receipt_drift.ledger, "openfold2")
 
 
 if __name__ == "__main__":

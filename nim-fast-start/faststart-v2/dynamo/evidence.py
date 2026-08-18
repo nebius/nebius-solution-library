@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover - package import path
 RECEIPT_SCHEMA = "archvteams.nebius.ai/openfold2-production-canary-evidence/v2"
 WORKER_RECEIPT_SCHEMA = "archvteams.nebius.ai/dynamo-one-shot-restore-receipt/v1"
 POD_SPEC_HASH_KEY = "archvteams.nebius.ai/target-pod-spec-sha256"
-QUALIFICATION_SCHEMA = "archvteams.nebius.ai/warm-instance-qualification/v1"
+QUALIFICATION_SCHEMA = "archvteams.nebius.ai/warm-instance-qualification/v3"
 ACCEPTANCE_RESPONSE_PROXY = "client-observed-api-create-response-return/v1"
 
 
@@ -149,7 +149,7 @@ def _validate_semantics(
     summary: dict[str, Any], run_id: str
 ) -> tuple[datetime, datetime, datetime, list[float]]:
     if (
-        summary.get("schema_version") != 1
+        summary.get("schema_version") != 2
         or summary.get("validator") != "openfold2-faststart-semantic-v1"
         or summary.get("ok") is not True
         or summary.get("status") != "PASS"
@@ -503,6 +503,7 @@ def build_evidence(
     if worker_completed < worker_finished or probe_completed < probe_finished:
         raise EvidenceError("Job completion precedes its successful container finish")
 
+    boot_upper_bounds: dict[str, float] | None = None
     if qualification_receipt is not None:
         expected_qualification_target = {
             "namespace": render.NAMESPACE,
@@ -542,6 +543,34 @@ def build_evidence(
             or proxy.get("is_exact_server_acceptance") is not False
         ):
             raise EvidenceError("acceptance-response proxy receipt is missing or mislabeled")
+        conservative = qualification_receipt.get("boot_time_alignment", {}).get(
+            "conservative_upper_bounds"
+        )
+        source_keys = {
+            "demand_to_http_ready_boottime_upper": (
+                "http_ready_complete_body"
+            ),
+            "demand_to_first_semantic_response_boottime_upper": (
+                "first_semantic_response_complete_body"
+            ),
+            "demand_to_two_semantic_responses_boottime_upper": (
+                "two_semantic_responses_complete_body"
+            ),
+        }
+        if not isinstance(conservative, dict):
+            raise EvidenceError("BOOTTIME conservative upper bounds are missing")
+        boot_upper_bounds = {}
+        for output_key, source_key in source_keys.items():
+            item = conservative.get(source_key)
+            value = item.get("upper_bound_seconds") if isinstance(item, dict) else None
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or float(value) < 0
+            ):
+                raise EvidenceError("BOOTTIME conservative upper bounds are malformed")
+            boot_upper_bounds[output_key] = float(value)
 
     timings_seconds = {
         "demand_to_target_created": _coarse_kubernetes_seconds(
@@ -614,7 +643,7 @@ def build_evidence(
             }
         )
 
-    return {
+    result = {
         "schema": RECEIPT_SCHEMA,
         "status": "PASS",
         "run_id": run_id,
@@ -652,6 +681,9 @@ def build_evidence(
         },
         "qualification": qualification_receipt,
     }
+    if boot_upper_bounds is not None:
+        result["timings_upper_bound_seconds"] = boot_upper_bounds
+    return result
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

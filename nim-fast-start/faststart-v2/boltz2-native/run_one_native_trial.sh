@@ -9,7 +9,7 @@ checkpoint_id=${B2_CHECKPOINT_ID:-boltz2-native-f7-v1}
 artifact_manifest_sha256=${B2_ARTIFACT_MANIFEST_SHA256:-6539b9f50a71c9f5fb6a3fbacd44f5d5ea41003539b6563682a38600d1492456}
 readonly expected_checkpoint_id="boltz2-native-f7-v1"
 readonly expected_artifact_manifest_sha256="6539b9f50a71c9f5fb6a3fbacd44f5d5ea41003539b6563682a38600d1492456"
-readonly expected_contract_sha256="${B2_EXPECTED_CONTRACT_SHA256:-90b4d4de50bb53e72d05a9fa0ea1d23431d406ef499a53f912eeb4b9a9729586}"
+readonly expected_contract_sha256="${B2_EXPECTED_CONTRACT_SHA256:-ca266cc317802971d6f767bf8c28008338bd88dc7470d0fc45ed7084f6845e9c}"
 readonly namespace='nim-fast-start'
 artifact_pvc=${B2_ARTIFACT_PVC:-boltz2-artifacts-example}
 cache_pvc=${B2_CACHE_PVC:-boltz2-cache-example}
@@ -21,6 +21,7 @@ readonly qualification_collector="${code_dir}/../performance/qualification_recei
 readonly manifest_splitter="${code_dir}/../performance/split_manifest.py"
 readonly uid_cleanup_library="${code_dir}/../performance/uid_cleanup.sh"
 readonly clock_sample_library="${code_dir}/../performance/clock_sample.sh"
+readonly instrumentation_contract_builder="${code_dir}/../performance/instrumentation_contract.py"
 # shellcheck source=../performance/uid_cleanup.sh
 source "$uid_cleanup_library"
 # shellcheck source=../performance/clock_sample.sh
@@ -33,6 +34,7 @@ cache_holder=""
 cohort_id=""
 attempt_index=""
 attempt_ledger=""
+instrumentation_contract_sha256=""
 
 usage() {
   cat >&2 <<'USAGE'
@@ -44,7 +46,8 @@ usage: run_one_native_trial.sh \
   --artifact-holder READY_POD \
   --cache-holder READY_POD [--cleanup] \
   [--cohort-id DNS_LABEL --attempt-index POSITIVE_INTEGER \
-   --attempt-ledger ABSOLUTE_APPEND_ONLY_NDJSON]
+   --attempt-ledger ABSOLUTE_APPEND_ONLY_NDJSON \
+   --instrumentation-contract-sha256 LOWERCASE_SHA256]
 
 Legacy compatibility: run_one_native_trial.sh RUN_ID [--cleanup] reads the
 kubeconfig, node, evidence root, and optional holder names from the environment.
@@ -103,6 +106,11 @@ else
       --attempt-ledger)
         (($# >= 2)) || die_usage "--attempt-ledger requires a value"
         set_once --attempt-ledger "$attempt_ledger" "$2"; attempt_ledger=$2; shift 2 ;;
+      --instrumentation-contract-sha256)
+        (($# >= 2)) || die_usage "--instrumentation-contract-sha256 requires a value"
+        set_once --instrumentation-contract-sha256 \
+          "$instrumentation_contract_sha256" "$2"
+        instrumentation_contract_sha256=$2; shift 2 ;;
       --help|-h)
         usage; exit 0 ;;
       *)
@@ -149,16 +157,20 @@ cohort_option_count=0
 [[ -z $cohort_id ]] || cohort_option_count=$((cohort_option_count + 1))
 [[ -z $attempt_index ]] || cohort_option_count=$((cohort_option_count + 1))
 [[ -z $attempt_ledger ]] || cohort_option_count=$((cohort_option_count + 1))
-if ((cohort_option_count != 0 && cohort_option_count != 3)); then
-  die_usage "cohort ID, attempt index, and attempt ledger must be supplied together"
+[[ -z $instrumentation_contract_sha256 ]] || \
+  cohort_option_count=$((cohort_option_count + 1))
+if ((cohort_option_count != 0 && cohort_option_count != 4)); then
+  die_usage "cohort ID, attempt index, attempt ledger, and instrumentation contract must be supplied together"
 fi
-if ((cohort_option_count == 3)); then
+if ((cohort_option_count == 4)); then
   [[ $cohort_id =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ && ${#cohort_id} -le 40 ]] || \
     die_usage "--cohort-id must be a DNS label of at most 40 characters"
   [[ $attempt_index =~ ^[1-9][0-9]*$ ]] || \
     die_usage "--attempt-index must be a positive integer"
   [[ $attempt_ledger == /* && -f $attempt_ledger && ! -L $attempt_ledger ]] || \
     die_usage "--attempt-ledger must be an absolute regular non-symlink file"
+  [[ $instrumentation_contract_sha256 =~ ^[0-9a-f]{64}$ ]] || \
+    die_usage "--instrumentation-contract-sha256 must be one lowercase SHA-256"
   ((cleanup == 1)) || die_usage "cohort attempts require --cleanup"
   [[ $checkpoint_id == "$expected_checkpoint_id" && \
      $artifact_manifest_sha256 == "$expected_artifact_manifest_sha256" ]] || \
@@ -181,6 +193,20 @@ actual_contract_sha256=${actual_contract_sha256%% *}
 if [[ $actual_contract_sha256 != "$expected_contract_sha256" ]]; then
   printf 'immutable Boltz2 restore contract digest mismatch\n' >&2
   exit 78
+fi
+instrumentation_contract_receipt=""
+if ((cohort_option_count == 4)); then
+  instrumentation_contract_receipt=$(
+    python3 "$instrumentation_contract_builder" --model boltz2
+  )
+  actual_instrumentation_contract_sha256=$(jq -er \
+    '.instrumentation_contract_sha256 | select(test("^[0-9a-f]{64}$"))' \
+    <<<"$instrumentation_contract_receipt")
+  if [[ $actual_instrumentation_contract_sha256 != \
+        "$instrumentation_contract_sha256" ]]; then
+    printf 'fresh-cohort instrumentation contract drifted before admission\n' >&2
+    exit 78
+  fi
 fi
 
 server=$(kubectl --kubeconfig "$kubeconfig" config view --minify -o jsonpath='{.clusters[0].cluster.server}')
@@ -286,10 +312,13 @@ append_admission_event() {
     --arg admitted_at "$admitted_at" \
     --arg trial_dir "$run_dir" \
     --arg runner_sha256 "$runner_sha256" \
+    --arg instrumentation_contract_sha256 \
+      "$instrumentation_contract_sha256" \
     --argjson attempt_index "$attempt_index" \
     '{schema:$schema,event:$event,cohort_id:$cohort_id,model:$model,
       attempt_index:$attempt_index,run_id:$run_id,admitted_at:$admitted_at,
-      trial_dir:$trial_dir,runner_sha256:$runner_sha256}' \
+      trial_dir:$trial_dir,runner_sha256:$runner_sha256,
+      instrumentation_contract_sha256:$instrumentation_contract_sha256}' \
     >> "$attempt_ledger"
 }
 
@@ -414,6 +443,10 @@ mkdir -m 700 "$run_dir"
 trap finalize_trial EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+if [[ -n $instrumentation_contract_receipt ]]; then
+  printf '%s\n' "$instrumentation_contract_receipt" \
+    > "$run_dir/instrumentation-contract.json"
+fi
 jq -n --arg checked_at "$artifact_holder_checked_at" \
   --argjson pod "$artifact_holder_json" \
   --argjson mount_verification "$artifact_holder_mount_json" \
@@ -434,8 +467,6 @@ jq -n --arg checked_at "$capture_agent_checked_at" \
     daemonset_list:$daemonset_list,status:"PASS"}' \
   > "$run_dir/capture-agent-absence.json"
 artifact_holder_uid=$(jq -er '.pod.metadata.uid' "$run_dir/artifact-holder.json")
-capture_target_clock_sample trial_kubectl "$artifact_holder" "$artifact_holder_uid" \
-  "$node" "" before-semantic "$run_dir/clock-sample-start.json"
 cp "$contract_path" "$run_dir/restore-interface.json"
 sha256sum "$run_dir/restore-interface.json" > "$run_dir/restore-interface.sha256"
 
@@ -480,12 +511,30 @@ if ! uid_create_bundle trial_kubectl \
   printf 'target support creation failed\n' >&2
   exit 1
 fi
-trial_admitted_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
+capture_controller_clock_boundary cohort-admission \
+  "$run_dir/admission-boundary.json"
+trial_admitted_at=$(jq -er '.utc' "$run_dir/admission-boundary.json")
 append_admission_event "$trial_admitted_at"
 trial_admitted=1
 # Primary T0 is conservative pre-dispatch.  The timestamp captured immediately
 # after the JSON create response is a client-observed proxy, not server acceptance.
-date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$run_dir/target-submit-at.txt"
+"${trial_kubectl[@]}" get pod "$artifact_holder" -o json \
+  > "$run_dir/anchor-holder.json"
+jq -e --arg uid "$artifact_holder_uid" --arg node "$node" \
+  --arg image "$BOOT_TIME_ANCHOR_HOLDER_IMAGE" '
+    .metadata.uid == $uid and .metadata.deletionTimestamp == null and
+    .spec.nodeName == $node and .status.phase == "Running" and
+    ([.status.conditions[] | select(.type == "Ready" and .status == "True")] | length) == 1 and
+    ([.spec.containers[] | select(.name == "holder" and .image == $image)] | length) == 1 and
+    ([.status.containerStatuses[] | select(.name == "holder" and .ready == true and
+      .restartCount == 0 and .imageID == $image)] | length) == 1
+  ' "$run_dir/anchor-holder.json" >/dev/null
+capture_boot_time_anchor trial_kubectl "$artifact_holder" "$artifact_holder_uid" \
+  "$node" holder "$run_dir/boot-time-anchor.json"
+capture_controller_clock_boundary target-submit \
+  "$run_dir/target-submit-clock.json"
+jq -er '.utc' "$run_dir/target-submit-clock.json" \
+  > "$run_dir/target-submit-at.txt"
 target_create_attempted=1
 "${trial_kubectl[@]}" create -f "$run_dir/target-bundle/primary.json" -o json \
   > "$run_dir/target-create-response.json" \
@@ -607,8 +656,6 @@ tail -1 "$run_dir/semantic-probe.log" | jq -e -c \
 
 kubectl --kubeconfig "$kubeconfig" -n "$namespace" get pod "$target" -o json \
   > "$run_dir/target-final.json"
-capture_target_clock_sample trial_kubectl "$target" "$target_uid" "$node" \
-  boltz2 after-semantic "$run_dir/clock-sample-end.json"
 kubectl --kubeconfig "$kubeconfig" -n "$namespace" get service "$canary" -o json \
   > "$run_dir/canary-service.json"
 kubectl --kubeconfig "$kubeconfig" -n "$namespace" get endpointslices.discovery.k8s.io \
@@ -640,11 +687,15 @@ python3 "$qualification_collector" \
   --target-pod "$run_dir/target-final.json" \
   --target-events "$run_dir/target-events.json" \
   --worker-pod "$run_dir/worker-pod.json" \
+  --worker-receipt "$run_dir/worker-receipt.json" \
   --probe-pod "$run_dir/probe-pod.json" \
+  --semantic-summary "$run_dir/semantic-summary.json" \
   --gpu-health-xml "$run_dir/target-nvidia-smi.xml" \
   --gpu-health-stderr "$run_dir/target-nvidia-smi.stderr" \
-  --clock-sample-start "$run_dir/clock-sample-start.json" \
-  --clock-sample-end "$run_dir/clock-sample-end.json" \
+  --admission-boundary "$run_dir/admission-boundary.json" \
+  --target-submit-clock "$run_dir/target-submit-clock.json" \
+  --boot-time-anchor "$run_dir/boot-time-anchor.json" \
+  --anchor-holder "$run_dir/anchor-holder.json" \
   --capture-agent-absence "$run_dir/capture-agent-absence.json" \
   > "$run_dir/qualification-receipt.json"
 
@@ -683,7 +734,7 @@ expected_qualification_target = {
 }
 if (
     qualification.get("schema")
-    != "archvteams.nebius.ai/warm-instance-qualification/v1"
+    != "archvteams.nebius.ai/warm-instance-qualification/v3"
     or qualification.get("status") != "PASS"
     or qualification.get("model") != "boltz2"
     or qualification.get("run_id") != run["run_id"]
@@ -694,6 +745,27 @@ if (
     is not False
 ):
     raise ValueError("qualification receipt does not match the Boltz2 trial")
+conservative = qualification.get("boot_time_alignment", {}).get(
+    "conservative_upper_bounds"
+)
+upper_sources = {
+    "demand_to_http_ready_boottime_upper_seconds": "http_ready_complete_body",
+    "demand_to_first_semantic_boottime_upper_seconds": (
+        "first_semantic_response_complete_body"
+    ),
+    "demand_to_two_semantic_boottime_upper_seconds": (
+        "two_semantic_responses_complete_body"
+    ),
+}
+if not isinstance(conservative, dict):
+    raise ValueError("qualification BOOTTIME upper bounds are missing")
+upper_timings = {}
+for output_key, source_key in upper_sources.items():
+    item = conservative.get(source_key)
+    value = item.get("upper_bound_seconds") if isinstance(item, dict) else None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+        raise ValueError("qualification BOOTTIME upper bounds are malformed")
+    upper_timings[output_key] = float(value)
 result = {
     "schema": "archvteams.nebius.ai/boltz2-native-trial-summary/v1",
     "run_id": run["run_id"],
@@ -705,6 +777,7 @@ result = {
     "worker_receipt": worker,
     "semantic": semantic,
     "qualification": qualification,
+    **upper_timings,
     **timings,
 }
 print(json.dumps(result, sort_keys=True, indent=2))
@@ -712,6 +785,9 @@ PY
 
 jq '{run_id,status,demand_to_http_ready_seconds,demand_to_kubernetes_ready_seconds,
      semantic_request_1_seconds,semantic_request_2_seconds,demand_to_two_semantic_seconds,
+     demand_to_http_ready_boottime_upper_seconds,
+     demand_to_first_semantic_boottime_upper_seconds,
+     demand_to_two_semantic_boottime_upper_seconds,
      target_create_api_round_trip_seconds,
      acceptance_response_proxy_to_two_semantic_seconds,
      restore_seconds:(.worker_receipt.duration_ms / 1000)}' \
