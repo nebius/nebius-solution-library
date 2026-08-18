@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${FAKE_N3_LOG:?}"
+run_id=""
+evidence_root=""
+checkpoint_id=""
+image_io_mode=""
+while (($# > 0)); do
+  case "$1" in
+    --run-id) run_id=$2; shift 2 ;;
+    --evidence-root) evidence_root=$2; shift 2 ;;
+    --checkpoint-id) checkpoint_id=$2; shift 2 ;;
+    --image-io-mode) image_io_mode=$2; shift 2 ;;
+    --cleanup) shift ;;
+    *) shift 2 ;;
+  esac
+done
+printf '%s %s %s\n' "$run_id" "$checkpoint_id" "$image_io_mode" >> "$FAKE_N3_LOG"
+case "$run_id" in
+  *-r1) demand=20.0; restore=4.0 ;;
+  *-r2) demand=18.0; restore=3.0 ;;
+  *-r3) demand=22.0; restore=5.0 ;;
+  *) exit 91 ;;
+esac
+mkdir -m 0700 -- "$evidence_root/runs/$run_id"
+jq -n --arg run "$run_id" --arg checkpoint "$checkpoint_id" --arg mode "$image_io_mode" \
+  --argjson demand "$demand" --argjson restore "$restore" '{
+    status:"PASS",run_id:$run,request_count:2,semantic_pass_count:2,
+    mmseqs_pipe:{shared_pipe_verified:true,mmseqs_fd:1,api_worker_fd:24},
+    artifact:{checkpoint_id:$checkpoint,image_io_mode:$mode},
+    timings_seconds:{demand_to_two_semantic_responses:$demand,worker_restore:$restore}
+  }' > "$evidence_root/runs/$run_id/canary-evidence.json"
