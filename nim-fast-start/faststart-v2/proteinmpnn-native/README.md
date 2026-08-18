@@ -54,7 +54,7 @@ The direct and buffered aggregate receipts are respectively
 python3 -m unittest discover -s dynamo/tests -v
 bash dynamo/tests/test_run_provisioned_trial.sh
 bash -n dynamo/run_provisioned_trial.sh
-patch --dry-run -p1 -d /path/to/dynamo < buffered-criu-io.patch
+patch --dry-run -p1 -d /path/to/dynamo < ../phase2-agent/buffered-criu-io.patch
 ```
 
 The full Go suite passed in the pinned Go builder. The generic buffered patch
