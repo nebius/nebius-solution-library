@@ -673,6 +673,74 @@ class LifecycleEvidenceTests(unittest.TestCase):
 
 
 class FrozenPipelineIntegrationTests(unittest.TestCase):
+    def assert_current_status_receipt(self) -> None:
+        status = json.loads(
+            (HARNESS / "CURRENT_STATUS.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            status["schema"],
+            "archvteams.nebius.ai/openfold2-newnode-current-status/v1",
+        )
+        self.assertEqual(status["audit_mode"], "offline-read-only")
+        self.assertEqual(status["current_contract"]["sample_count"], 0)
+        self.assertEqual(status["current_contract"]["poolable_run_ids"], [])
+
+        historical = {item["run_id"]: item for item in status["historical_runs"]}
+        self.assertEqual(
+            set(historical),
+            {"of2-newnode-r4-0418", "of2-newnode-r5-regional"},
+        )
+        expected = {
+            "of2-newnode-r4-0418": (604.270994, 607.247235),
+            "of2-newnode-r5-regional": (572.607133, 575.458978),
+        }
+        for run_id, (http_ready, validation_complete) in expected.items():
+            with self.subTest(run_id=run_id):
+                run = historical[run_id]
+                self.assertEqual(run["classification"], "HISTORICAL_NONPOOLABLE")
+                self.assertEqual(run["lifecycle_status"], "PASS")
+                self.assertTrue(
+                    run["raw_evidence_root"].endswith(f"/{run_id}/")
+                )
+                self.assertEqual(
+                    run["independent_scale_to_http_ready_seconds"], http_ready
+                )
+                self.assertEqual(
+                    run["legacy_scale_to_validation_complete_seconds"],
+                    validation_complete,
+                )
+                self.assertIsNone(run["call_1_dispatch_to_body_seconds"])
+                self.assertIsNone(run["call_2_dispatch_to_body_seconds"])
+                self.assertIsNone(run["exact_scale_to_call_2_body_seconds"])
+                self.assertEqual(len(run["source_receipts_sha256"]), 5)
+                self.assertTrue(
+                    all(
+                        len(digest) == 64
+                        for digest in run["source_receipts_sha256"].values()
+                    )
+                )
+
+        r4 = (HARNESS / "R4_RESULT.md").read_text(encoding="utf-8")
+        r5 = (HARNESS / "R5_REGIONAL_RESULT.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "Independent first successful HTTP readiness response | **604.270994**",
+            r4,
+        )
+        self.assertIn(
+            "Legacy validation complete after two strict semantic calls | **607.247235**",
+            r4,
+        )
+        self.assertIn(
+            "Independent first successful HTTP readiness response | **572.607133**",
+            r5,
+        )
+        self.assertIn(
+            "Legacy validation complete after two strict semantic calls | **575.458978**",
+            r5,
+        )
+        self.assertNotIn("| Two strict semantic responses |", r4)
+        self.assertNotIn("| Two strict semantic responses |", r5)
+
     def run_command(self, *arguments: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, *arguments],
@@ -684,6 +752,7 @@ class FrozenPipelineIntegrationTests(unittest.TestCase):
         )
 
     def test_dynamic_node_target_worker_and_early_probe_all_lint(self) -> None:
+        self.assert_current_status_receipt()
         old = compatible_node(
             "computeinstance-oldfixture01", "11111111-1111-4111-8111-111111111111"
         )
