@@ -7,6 +7,23 @@ retained legacy evidence establishes the workload contract and a useful lower
 bound; a new manifest-bound native artifact is still required before either
 candidate can run.
 
+## Live qualification status (2026-08-18)
+
+Read-only preflight against the only allowed cluster confirmed that the pinned
+H200 is Ready and has the exact Evo2 digest cached, but it is occupied by the
+healthy owner-managed `nim-fast-start/evo2-40b` Deployment. That Pod requests
+the node's single full GPU plus 15 CPU and 180 GiB. It is not a task-scoped
+capture donor, and its `/root/.cache/ngc` mount and 32 GiB shared-memory layout
+do not match this lane's final topology. No Deployment, Pod, PVC, Service, or
+snapshot object was changed.
+
+The one external action required before qualification is an explicit owner
+decision to release that Deployment's sole H200 (for example, an authorized
+temporary scale to zero). Once the node has zero active GPU requests, follow
+the capture sequence below. The runner then fails closed unless the node,
+three exact images, attached PVCs, holder receipt, and requested storage state
+are all present before T0.
+
 ## Exact workload contract
 
 - NIM image: `nvcr.io/nim/arc/evo2-40b@sha256:561886bab1d2d0da836ebf5bec403f9de2baf6e92deb7eedf1b316aa994b5dd2`
@@ -119,6 +136,15 @@ second call, and demand to completion of call 2. `T0` is before target creation
 on the already provisioned H200 with storage attached. The HTTP timestamp comes
 from the validator's successful readiness receipt; worker receipt and probe
 events remain independent concurrent timelines.
+
+More precisely, the authoritative T0 is the nanosecond timestamp written to
+`target-submit-at.txt` immediately before `kubectl create` of the inert target;
+the earlier `run.json:demand_at` is setup evidence only. The aggregate rejects
+the legacy fallback. It also records that the target, restore-worker, and probe
+images were already cached, both PVCs were attached through the Ready holder,
+and either (a) direct/O_DIRECT payload pages were not preloaded or (b) the
+entire buffered artifact was read before T0. Buffered prewarm duration and
+completion time are reported but excluded from the cold-start interval.
 
 ## Worker release gate
 

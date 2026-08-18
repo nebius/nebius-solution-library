@@ -136,7 +136,10 @@ artifact_version=$(jq -er --arg mode "$image_io_mode" '.artifacts[$mode].artifac
 artifact_pvc=$(jq -er '.storage.artifact_pvc' "$profile_path")
 cache_pvc=$(jq -er '.storage.cache_pvc' "$profile_path")
 nim_image=$(jq -er '.model.image' "$profile_path")
+worker_image=$(jq -er '.worker_image' "$contract_path")
+probe_image=$(jq -er '.probe_image' "$contract_path")
 readonly target_node checkpoint_id artifact_version artifact_pvc cache_pvc nim_image
+readonly worker_image probe_image
 
 server=$(kubectl --kubeconfig "$kubeconfig" config view --minify -o jsonpath='{.clusters[0].cluster.server}')
 [[ $server == "$allowed_server" ]] || { printf 'kubeconfig is not bound to the allowed cluster\n' >&2; exit 78; }
@@ -153,6 +156,14 @@ jq -e '
   printf 'node does not match the pinned one-full-GPU H200 topology\n' >&2
   exit 69
 }
+for cached_image in "$nim_image" "$worker_image" "$probe_image"; do
+  jq -e --arg image "$cached_image" '
+    any(.status.images[]?.names[]?; . == $image)
+  ' <<<"$node_json" >/dev/null || {
+    printf 'required image is not already present on the warm H200: %s\n' "$cached_image" >&2
+    exit 69
+  }
+done
 
 pods_before=$(kubectl --kubeconfig "$kubeconfig" get pods -A \
   --field-selector "spec.nodeName=$target_node" -o json)
@@ -183,8 +194,25 @@ jq -e \
     any(.status.conditions[]?; .type == "Ready" and .status == "True") and
     any(.spec.volumes[]?; .persistentVolumeClaim.claimName == $artifact_pvc) and
     any(.spec.volumes[]?; .persistentVolumeClaim.claimName == $cache_pvc)
-  ' <<<"$holder_json" >/dev/null || {
+' <<<"$holder_json" >/dev/null || {
   printf 'artifact holder is not Ready with the exact mode, artifact, and cache\n' >&2
+  exit 69
+}
+holder_receipt=$("${trial_kubectl[@]}" logs "$artifact_holder" -c holder | tail -n 1)
+jq -e \
+  --arg mode "$image_io_mode" \
+  --arg manifest "$artifact_manifest_sha256" '
+    .schema == "archvteams.nebius.ai/evo2-artifact-holder/v1" and
+    .status == "PASS" and
+    .image_io_mode == $mode and
+    .manifest_sha256 == $manifest and
+    .regular_file_count >= 2 and .regular_bytes > 0 and
+    (.elapsed_seconds | type) == "number" and .elapsed_seconds >= 0 and
+    (.started_at | type) == "string" and (.started_at | length) > 0 and
+    (.finished_at | type) == "string" and (.finished_at | length) > 0 and
+    .payload_read == ($mode == "buffered")
+  ' <<<"$holder_receipt" >/dev/null || {
+  printf 'artifact holder receipt does not prove the requested storage state\n' >&2
   exit 69
 }
 
@@ -198,6 +226,18 @@ mkdir -m 0700 -- "$run_dir"
 install -m 0600 -- "$contract_path" "$run_dir/restore-interface.json"
 install -m 0600 -- "$profile_path" "$run_dir/profile.json"
 install -m 0600 -- "$gate_path" "$run_dir/worker-gate.json"
+printf '%s\n' "$holder_receipt" > "$run_dir/artifact-holder-receipt.json"
+jq '{metadata:{name:.metadata.name,uid:.metadata.uid,creationTimestamp:.metadata.creationTimestamp},
+     spec:{nodeName:.spec.nodeName,volumes:.spec.volumes},
+     status:{phase:.status.phase,conditions:.status.conditions}}' \
+  <<<"$holder_json" > "$run_dir/artifact-holder.json"
+jq --arg nim_image "$nim_image" --arg worker_image "$worker_image" \
+  --arg probe_image "$probe_image" '
+    {metadata:{name:.metadata.name,uid:.metadata.uid,labels:.metadata.labels},
+     status:{capacity:.status.capacity,allocatable:.status.allocatable,
+             conditions:.status.conditions},
+     cached_images:[$nim_image,$worker_image,$probe_image]}
+  ' <<<"$node_json" > "$run_dir/warm-node-preflight.json"
 (cd -- "$run_dir" && sha256sum restore-interface.json profile.json worker-gate.json > inputs.sha256)
 
 demand_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
@@ -311,6 +351,7 @@ jq -e \
 python3 - "$run_dir" "$nim_image" "$script_dir/.." <<'PY' > "$run_dir/trial-summary.json"
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 directory = Path(sys.argv[1])
@@ -323,7 +364,42 @@ binding = json.loads((directory / "binding.json").read_text())
 worker = json.loads((directory / "worker-receipt.json").read_text())
 semantic = json.loads((directory / "semantic-summary.json").read_text())
 target = json.loads((directory / "target-final.json").read_text())
-timings = build_timing_evidence(run, semantic, target)
+holder = json.loads((directory / "artifact-holder-receipt.json").read_text())
+holder_pod = json.loads((directory / "artifact-holder.json").read_text())
+target_submit_at = (directory / "target-submit-at.txt").read_text().strip()
+timings = build_timing_evidence(
+    run, semantic, target, target_submit_at=target_submit_at
+)
+
+def timestamp(value):
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+holder_ready = [
+    condition["lastTransitionTime"]
+    for condition in holder_pod["status"]["conditions"]
+    if condition.get("type") == "Ready" and condition.get("status") == "True"
+]
+if len(holder_ready) != 1:
+    raise ValueError("artifact holder has no unique Ready timestamp")
+if timestamp(holder["finished_at"]) > timestamp(target_submit_at):
+    raise ValueError("artifact verification/prewarm did not finish before T0")
+if timestamp(holder_ready[0]) > timestamp(target_submit_at):
+    raise ValueError("artifact and cache PVCs were not Ready on the H200 before T0")
+payload_read = holder["payload_read"]
+storage_state = {
+    "artifact_and_cache_pvcs_attached_before_t0": True,
+    "artifact_holder_ready_at": holder_ready[0],
+    "artifact_regular_file_count": holder["regular_file_count"],
+    "artifact_regular_bytes": holder["regular_bytes"],
+    "artifact_payload_read_before_t0": payload_read,
+    "artifact_prewarm_seconds": holder["elapsed_seconds"] if payload_read else None,
+    "artifact_prewarm_finished_at": holder["finished_at"] if payload_read else None,
+    "artifact_prewarm_excluded_from_t0": payload_read,
+    "page_cache_state": (
+        "fully-prewarmed-buffered" if payload_read
+        else "not-preloaded-direct-o_direct"
+    ),
+}
 result = {
     "schema": "archvteams.nebius.ai/evo2-native-trial-summary/v1",
     "run_id": run["run_id"],
@@ -338,6 +414,15 @@ result = {
     "pod_spec_sha256": binding["pod_spec_sha256"],
     "semantic_request_count": 2,
     "semantic_response_sha256": [case["response_sha256"] for case in semantic["cases"]],
+    "warm_instance_contract": {
+        "node_ready_before_t0": True,
+        "target_image_cached_before_t0": True,
+        "restore_worker_image_cached_before_t0": True,
+        "semantic_probe_image_cached_before_t0": True,
+        "storage_attached_before_t0": True,
+    },
+    "storage_state": storage_state,
+    "artifact_holder_receipt": holder,
     "worker_receipt": worker,
     "semantic": semantic,
     **timings,
@@ -348,6 +433,7 @@ PY
 jq '{run_id,status,image_io_mode,demand_to_http_ready_seconds,
      demand_to_kubernetes_ready_seconds,semantic_request_1_seconds,
      semantic_request_2_seconds,demand_to_two_semantic_seconds,
+     storage_state,
      restore_seconds:(.worker_receipt.duration_ms / 1000)}' "$run_dir/trial-summary.json"
 
 if ((cleanup == 1)); then

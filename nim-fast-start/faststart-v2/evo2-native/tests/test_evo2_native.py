@@ -147,8 +147,35 @@ def trial_summary(index: int, mode: str = "direct") -> dict[str, Any]:
         "semantic_request_1_seconds": 1.0 + index / 10,
         "semantic_request_2_seconds": 0.2 + index / 10,
         "demand_to_two_semantic_seconds": 65.0 + index,
+        "warm_instance_contract": {
+            "node_ready_before_t0": True,
+            "target_image_cached_before_t0": True,
+            "restore_worker_image_cached_before_t0": True,
+            "semantic_probe_image_cached_before_t0": True,
+            "storage_attached_before_t0": True,
+        },
+        "storage_state": {
+            "artifact_and_cache_pvcs_attached_before_t0": True,
+            "artifact_holder_ready_at": "2026-08-17T23:50:00Z",
+            "artifact_regular_file_count": 12,
+            "artifact_regular_bytes": 99_959_572_798,
+            "artifact_payload_read_before_t0": mode == "buffered",
+            "artifact_prewarm_seconds": 31.25 if mode == "buffered" else None,
+            "artifact_prewarm_finished_at": (
+                "2026-08-17T23:59:00Z" if mode == "buffered" else None
+            ),
+            "artifact_prewarm_excluded_from_t0": mode == "buffered",
+            "page_cache_state": (
+                "fully-prewarmed-buffered"
+                if mode == "buffered"
+                else "not-preloaded-direct-o_direct"
+            ),
+        },
         "timing_evidence": {
             "demand_at": "2026-08-18T00:00:00Z",
+            "t0_at": "2026-08-18T00:00:00Z",
+            "t0_source": "target-submit-at.txt",
+            "setup_demand_at": "2026-08-17T23:59:59Z",
             "http_ready_at": "2026-08-18T00:00:41Z",
             "kubernetes_ready_at": "2026-08-18T00:00:42Z",
             "semantic_started_at": "2026-08-18T00:00:01Z",
@@ -378,6 +405,14 @@ class Evo2AggregateAndProvenanceTests(unittest.TestCase):
             self.assertEqual(0.4, result["semantic_request_2_seconds"]["median"])
             self.assertEqual(67.0, result["demand_to_two_semantic_seconds"]["median"])
             self.assertEqual(50.2, result["worker_restore_seconds"]["median"])
+            self.assertEqual(
+                "immediately-before-target-create",
+                result["measurement_contract"]["t0"],
+            )
+            self.assertEqual(
+                "not-preloaded-direct-o_direct",
+                result["storage_state"]["page_cache_state"],
+            )
 
             drifted = json.loads(paths[2].read_text())
             drifted["semantic"]["cases"][1]["invariant"]["output_sequence"] = "A" * 20
@@ -442,6 +477,8 @@ class Evo2AggregateAndProvenanceTests(unittest.TestCase):
         self.assertIn(f'expected_contract_sha256="{contract_sha256}"', runner)
         self.assertIn(f'expected_validator_sha256="{validator_sha256}"', runner)
         self.assertEqual(validator_sha256, contract()["validator_sha256"])
+        self.assertIn('target_submit_at = (directory / "target-submit-at.txt")', runner)
+        self.assertIn("target_submit_at=target_submit_at", runner)
 
     def test_profile_preserves_retained_evidence_and_defers_new_manifests(self) -> None:
         profile = render.PROFILE

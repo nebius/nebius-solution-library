@@ -99,6 +99,9 @@ def load_summary(path: Path, mode: str) -> dict[str, Any]:
         not isinstance(timestamps.get(key), str) or not timestamps[key]
         for key in (
             "demand_at",
+            "t0_at",
+            "t0_source",
+            "setup_demand_at",
             "http_ready_at",
             "kubernetes_ready_at",
             "semantic_started_at",
@@ -106,6 +109,45 @@ def load_summary(path: Path, mode: str) -> dict[str, Any]:
         )
     ):
         raise AggregateError(f"{path}: timing evidence timestamps are incomplete")
+    if timestamps["t0_source"] != "target-submit-at.txt":
+        raise AggregateError(f"{path}: T0 is not the immediate target-submit edge")
+    warm = value.get("warm_instance_contract")
+    if warm != {
+        "node_ready_before_t0": True,
+        "target_image_cached_before_t0": True,
+        "restore_worker_image_cached_before_t0": True,
+        "semantic_probe_image_cached_before_t0": True,
+        "storage_attached_before_t0": True,
+    }:
+        raise AggregateError(f"{path}: warm-instance preconditions are incomplete")
+    storage = value.get("storage_state")
+    expected_payload_read = mode == "buffered"
+    expected_page_cache = (
+        "fully-prewarmed-buffered"
+        if expected_payload_read
+        else "not-preloaded-direct-o_direct"
+    )
+    if (
+        not isinstance(storage, dict)
+        or storage.get("artifact_and_cache_pvcs_attached_before_t0") is not True
+        or storage.get("artifact_payload_read_before_t0") is not expected_payload_read
+        or storage.get("artifact_prewarm_excluded_from_t0") is not expected_payload_read
+        or storage.get("page_cache_state") != expected_page_cache
+        or not isinstance(storage.get("artifact_regular_file_count"), int)
+        or storage["artifact_regular_file_count"] < 2
+        or not isinstance(storage.get("artifact_regular_bytes"), int)
+        or storage["artifact_regular_bytes"] <= 0
+    ):
+        raise AggregateError(f"{path}: storage state does not match {mode} mode")
+    if expected_payload_read:
+        finite_positive(storage.get("artifact_prewarm_seconds"), f"{path}: prewarm")
+        if not isinstance(storage.get("artifact_prewarm_finished_at"), str):
+            raise AggregateError(f"{path}: buffered prewarm timestamp is missing")
+    elif (
+        storage.get("artifact_prewarm_seconds") is not None
+        or storage.get("artifact_prewarm_finished_at") is not None
+    ):
+        raise AggregateError(f"{path}: direct mode incorrectly reports payload prewarm")
     worker = value.get("worker_receipt")
     if not isinstance(worker, dict) or worker.get("status") != "succeeded":
         raise AggregateError(f"{path}: worker receipt did not succeed")
@@ -135,6 +177,9 @@ def aggregate(paths: Sequence[Path], mode: str) -> dict[str, Any]:
     request_2 = [float(item["semantic_request_2_seconds"]) for item in summaries]
     restore = [float(item["worker_receipt"]["duration_ms"]) / 1000 for item in summaries]
     semantic = [float(item["semantic"]["total_elapsed_seconds"]) for item in summaries]
+    storage_states = [item["storage_state"] for item in summaries]
+    if any(item != storage_states[0] for item in storage_states[1:]):
+        raise AggregateError("the three runs did not use one identical prepared storage state")
     return {
         "schema": "archvteams.nebius.ai/evo2-native-n3/v1",
         "status": "PASS",
@@ -146,6 +191,17 @@ def aggregate(paths: Sequence[Path], mode: str) -> dict[str, Any]:
         "artifact_manifest_sha256": next(iter(manifests)),
         "trial_count": 3,
         "semantic_pass_count": 6,
+        "measurement_contract": {
+            "t0": "immediately-before-target-create",
+            "primary_readiness": "first-successful-application-http-readiness",
+            "call_1": "first-strict-semantic-inference-including-deferred-work",
+            "call_2": "immediate-second-distinct-strict-semantic-inference",
+            "kubernetes_ready_is_diagnostic": True,
+            "image_pull_excluded": True,
+            "storage_setup_excluded": True,
+            "prewarm_excluded": mode == "buffered",
+        },
+        "storage_state": storage_states[0],
         "run_ids": run_ids,
         "pod_uids": pod_uids,
         "demand_to_http_ready_seconds": statistics_block(http_ready),

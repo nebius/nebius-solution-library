@@ -11,6 +11,7 @@ import re
 import stat
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -52,6 +53,7 @@ def verify_and_prewarm(
         raise PrewarmError("manifest digest is invalid")
     if mode not in {"direct", "buffered"}:
         raise PrewarmError("mode must be direct or buffered")
+    started_at = datetime.now(timezone.utc)
     started = time.monotonic()
     members = sorted(root.iterdir(), key=lambda item: item.name)
     observed_bytes = 0
@@ -82,6 +84,7 @@ def verify_and_prewarm(
     expected_mode = f"imageIoMode: {mode}".encode("ascii")
     if manifest.count(expected_mode) != 1:
         raise PrewarmError("manifest image I/O mode does not match the holder mode")
+    finished_at = datetime.now(timezone.utc)
     return {
         "schema": "archvteams.nebius.ai/evo2-artifact-holder/v1",
         "status": "PASS",
@@ -93,6 +96,12 @@ def verify_and_prewarm(
         "payload_read": mode == "buffered",
         "aggregate_sha256": aggregate.hexdigest(),
         "elapsed_seconds": round(time.monotonic() - started, 6),
+        "started_at": started_at.isoformat(timespec="microseconds").replace(
+            "+00:00", "Z"
+        ),
+        "finished_at": finished_at.isoformat(timespec="microseconds").replace(
+            "+00:00", "Z"
+        ),
     }
 
 
