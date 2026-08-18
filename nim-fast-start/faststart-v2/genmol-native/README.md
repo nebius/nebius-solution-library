@@ -39,13 +39,15 @@ proven source of the required RDKit modules and `/usr/bin/python3`.
 
 ## Production-shaped result
 
-Response-boundary requalification is required for the end-to-end total. HTTP
-ready and both call values remain valid because their monotonic timers stopped
-at complete-body receipt. The retained terminal timestamp was validator
-completion, so the historical final interval is relabeled rather than
-presented as T0-to-call-2.
+Response-boundary requalification is complete. The selected coherent cohort is
+`genmol-rb-1055-r1` through `-r3`; its aggregate SHA-256 is
+`4739950f1032a77e896aa2673f139d9268e08d749a705fd8a86c0af58319548b`.
+Each call timer stops when the complete HTTP body has been received, and the
+end-to-end total is independently computed from T0 to call 2's absolute
+`response_received_at`.
 
-`results.json` contains all six counted trial values and evidence hashes. T0 is
+`results.json` contains the three selected buffered trials, the retained
+direct n=3 comparator, the superseded cohort, and their evidence hashes. T0 is
 recorded immediately before creation of each inert target Pod on an already
 provisioned H100 with the NIM/worker images resident and both PVCs attached.
 Application readiness is the validator's first successful HTTP readiness
@@ -53,28 +55,35 @@ response. Kubernetes Pod Ready is retained only as a separate diagnostic.
 Call 1 is the first strict QED inference after readiness and therefore includes
 any deferred model/JIT load; call 2 is the immediate strict LogP warm call.
 
-| Storage state (`n=3`) | HTTP ready | Pod Ready | Call 1 HTTP response | Call 2 HTTP response | Legacy T0 through validation | Worker restore |
+| Storage state (`n=3`) | HTTP ready | Pod Ready | Call 1 HTTP body | Call 2 HTTP body | Exact T0 through call 2 body | Worker restore |
 |---|---:|---:|---:|---:|---:|---:|
-| Direct/O_DIRECT | 48.738868 s | 49.737615 s | 1.186392 s | 0.592471 s | 50.517448 s | 41.219 s |
-| Buffered + fully page-resident | **10.548280 s** | 11.558094 s | 1.215907 s | 0.585500 s | **12.348272 s** | **2.933 s** |
+| Direct/O_DIRECT, retained cohort | 48.738868 s | 49.737615 s | 1.186392 s | 0.592471 s | — | 41.219 s |
+| Buffered + fully page-resident, selected cohort | **10.400351 s** | 10.319216 s | 1.198462 s | 0.575554 s | **12.177434 s** | **2.907 s** |
 
-The buffered winner is 4.62x faster to application HTTP readiness and 4.09x
-faster through legacy validation completion. Its 4,781,347,930-byte full pre-read took
+The buffered winner is 4.69x faster to application HTTP readiness and 14.18x
+faster in worker restore. An exact direct-to-buffered end-to-end speedup is not
+reported because the retained direct cohort lacks call 2's absolute response
+timestamp. The buffered artifact's 4,781,347,930-byte full pre-read took
 6.328907 seconds and occurred before T0. The direct holder also verified and
 read every artifact byte outside T0, but CRIU's direct mode bypasses the page
 cache; the two rows therefore intentionally describe different, explicit
 storage states rather than silently mixing cache conditions.
 
 Every counted trial issued exactly two distinct POSTs and passed both RDKit
-descriptor checks. Setup attempts that failed before a valid semantic restore
-(invalid initial PVC size, holder permissions, target QoS, and builder source
-escaping) are preserved as excluded evidence and do not appear in the table.
+descriptor checks. The exact target and restore-worker images were resident
+before every selected T0, and run-scoped resources were removed between
+trials. Setup attempts that failed before a valid semantic restore (including
+the initial PVC/holder/QoS/builder issues and later image-residency setup
+attempts) are preserved as excluded evidence and do not appear in the table.
 
 ## What the old numbers mean
 
 `prior-evidence.json` binds the retained raw sources and their exact hashes.
-Each counted run also has immutable `corrected-submit-edge-timings.json`, which
-rebases the existing distinct HTTP and Kubernetes timestamps to submit-edge T0.
+The superseded cohort also has immutable
+`corrected-submit-edge-timings.json`, which rebases its distinct HTTP and
+Kubernetes timestamps to submit-edge T0. Its 12.348272-second terminal median
+is validation completion, not response receipt, and is retained only as legacy
+provenance.
 The prior H100 artifact was `/snapshots/genmol/criu42-h100-warm-v3`, a
 4,744,161,151-byte manual hostPID checkpoint. It produced these `n=3` medians:
 
@@ -103,11 +112,14 @@ every regular artifact file. The buffered builder then:
    atomic publish.
 
 Both modes used the same image, cache, target resources, request fixture,
-worker/tool receipts, node, and `n=3` measurement path. The runner timestamps
-demand before creating the inert GPU target, lets Kubernetes schedule it,
-binds its live Pod UID/container ID/cgroup/IP/image ID/canonical PodSpec hash,
-submits the CPU semantic probe, and then creates the one-shot restore worker.
-A mode passed only after three restores and six strict RDKit-checked responses.
+worker/tool receipts, node, and production-shaped runner topology. Only the
+selected buffered requalification retained call 2's absolute
+`response_received_at`; the direct comparator therefore has no exact
+T0-to-call-2 value. The runner timestamps demand before creating the inert GPU
+target, lets Kubernetes schedule it, binds its live Pod UID/container
+ID/cgroup/IP/image ID/canonical PodSpec hash, submits the CPU semantic probe,
+and then creates the one-shot restore worker. A mode passed only after three
+restores and six strict RDKit-checked responses.
 
 ## Worker classification
 

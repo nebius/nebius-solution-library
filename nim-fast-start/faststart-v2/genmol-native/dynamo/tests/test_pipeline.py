@@ -479,6 +479,32 @@ class EvidenceTests(unittest.TestCase):
         receipt = evidence.build_evidence(**inputs)
         self.assertEqual(receipt["status"], "PASS")
 
+    def test_probe_finish_timestamp_subsecond_quantization_is_accepted(self) -> None:
+        inputs = evidence_inputs()
+        inputs["semantic_summary"]["validation_finished_at"] = (
+            "2026-08-17T20:00:09.900000Z"
+        )
+        inputs["semantic_summary"]["finished_at"] = "2026-08-17T20:00:09.900000Z"
+        terminated = inputs["probe_pod"]["status"]["containerStatuses"][0]["state"][
+            "terminated"
+        ]
+        terminated["finishedAt"] = "2026-08-17T20:00:09Z"
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["status"], "PASS")
+
+    def test_probe_finish_timestamp_one_second_inversion_is_rejected(self) -> None:
+        inputs = evidence_inputs()
+        inputs["semantic_summary"]["validation_finished_at"] = (
+            "2026-08-17T20:00:09.900000Z"
+        )
+        inputs["semantic_summary"]["finished_at"] = "2026-08-17T20:00:09.900000Z"
+        terminated = inputs["probe_pod"]["status"]["containerStatuses"][0]["state"][
+            "terminated"
+        ]
+        terminated["finishedAt"] = "2026-08-17T20:00:08Z"
+        with self.assertRaisesRegex(evidence.EvidenceError, "at least one second"):
+            evidence.build_evidence(**inputs)
+
     def test_kubernetes_ready_may_lag_semantic_success(self) -> None:
         inputs = evidence_inputs()
         for condition in inputs["target"]["status"]["conditions"]:

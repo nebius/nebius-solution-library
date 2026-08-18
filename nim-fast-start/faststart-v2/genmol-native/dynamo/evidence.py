@@ -487,6 +487,9 @@ def build_evidence(
     http_ready, second_response_received, validation_finished, case_elapsed = _validate_semantics(
         semantic_summary, run_id
     )
+    probe_finished_for_order = _kubernetes_not_before(
+        probe_finished, validation_finished, "probe container finish"
+    )
     expected_origin = f"http://{service_name}:8000"
     expected_path = "/generate"
     if (
@@ -515,7 +518,7 @@ def build_evidence(
         http_ready,
         second_response_received,
         validation_finished,
-        probe_finished,
+        probe_finished_for_order,
     ]
     if any(
         later < earlier

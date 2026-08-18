@@ -2,9 +2,10 @@
 
 This subtree contains production-shaped n=3 results for OpenFold2, Boltz2,
 ProteinMPNN, DiffDock, OpenFold3, MSA Search, GenMol, RFdiffusion, and MolMIM.
-OpenFold2, Boltz2, RFdiffusion, and MolMIM retain exact T0-to-second-response
-boundaries; five older stable lanes retain exact HTTP-ready and complete-body
-call latencies but still need an absolute call-2 timestamp rerun. Evo2-40B is
+OpenFold2, Boltz2, GenMol, RFdiffusion, and MolMIM retain exact
+T0-to-second-response boundaries; four older stable lanes retain exact
+HTTP-ready and complete-body call latencies but still need an absolute call-2
+timestamp rerun. Evo2-40B is
 the only remaining non-production-shaped row and remains blocked on release of
 the only allowed H200 from an owner-managed Deployment. The shared metric
 contract and current ten-model matrix are in
@@ -41,7 +42,9 @@ after the response-boundary audit are in
   deferred;
 - `genmol-native/` contains the completed native capture, strict RDKit QED/LogP
   two-call contract, direct n=3 comparator, and winning fully prewarmed
-  buffered n=3 result. Historical page-cache timings remain
+  buffered response-boundary n=3 result. The selected route reaches HTTP
+  readiness in 10.400351 seconds and the second complete response in
+  12.177434 seconds from T0. Historical page-cache timings remain
   non-production-shaped comparators;
 - `rfdiffusion-native/` contains the strict native capture, exact direct
   canary, and selected refreshed fully prewarmed buffered n=3 result. The

@@ -87,11 +87,11 @@ in-Pod restore trigger, not target-create T0.
 | OpenFold3 | production-shaped n=3; exact total pending | buffered, fully prewarmed | 3 | 12.142147 [12.010717–12.331491] | 12.815803 [12.732474–13.396096] | 8.604078 [8.556568–8.620226] | 8.530700 [8.524887–8.645413] | — |
 | MSA Search PDB70 | production-shaped conventional n=3; exact total pending | cache volume, fully prewarmed | 3 | 5.071461 [5.000388–5.128253] | 4.704828 [4.687398–4.831026] | 0.040720 [0.040700–0.040840] | 0.031058 [0.030818–0.031083] | — |
 | Evo2-40B | manual/provisional H200 restore trigger | direct, legacy artifact | 3 | 65.377 [63.052–65.696] | — | 1.181 [1.163–1.213] | 0.796 [0.795–0.819] | — |
-| GenMol | production-shaped n=3; exact total pending | buffered, fully prewarmed | 3 | 10.548280 [10.435267–10.733755] | 11.558094 [10.433973–11.880965] | 1.215907 [1.211042–1.230406] | 0.585500 [0.584510–0.593163] | — |
+| GenMol | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 10.400351 [10.217778–10.478343] | 10.319216 [10.219599–11.051287] | 1.198462 [1.186065–1.205458] | 0.575554 [0.574723–0.585800] | **12.177434 [11.981694–12.272754]** |
 | RFdiffusion | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 17.662044 [17.456876–17.965447] | 19.609357 [19.532522–21.124378] | 7.892573 [7.792848–7.980680] | 5.584081 [5.552619–5.726694] | **31.379359 [30.843879–31.420852]** |
 | MolMIM | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 10.520799 [10.446875–10.522802] | 11.735781 [11.706764–11.862442] | 2.839590 [2.812727–2.854831] | 2.099549 [2.082203–2.109474] | **15.431630 [15.414674–15.464302]** |
 
-The five production-shaped rows with an unavailable exact total retain the
+The four production-shaped rows with an unavailable exact total retain the
 following later terminal timestamps. They are useful provenance, but are not
 call-2 response totals. The Evo2 and RFdiffusion manual histories are included
 in the same table only as explicitly non-selected comparators:
@@ -102,7 +102,6 @@ in the same table only as explicitly non-selected comparators:
 | DiffDock | legacy T0 to validation complete | 13.657086 [13.506684–13.707841] |
 | OpenFold3 | legacy T0 to validation complete | 29.345285 [29.162791–29.461653] |
 | MSA Search PDB70 | legacy T0 to validation complete | 5.144951 [5.073655–5.201905] |
-| GenMol | legacy T0 to validation complete | 12.348272 [12.255292–12.547019] |
 | Evo2-40B | manual restore trigger through two responses | 67.390 [65.080–67.780] |
 | RFdiffusion | legacy manual restore trigger through two responses; not selected | 24.593 [24.458–24.851] |
 
@@ -149,7 +148,9 @@ image-residency setup rather than artifact full-read time.
 - DiffDock direct took 72.594545 seconds to HTTP readiness in its canary,
   versus the selected 11.773042-second buffered median.
 - GenMol direct n=3 took 48.738868 seconds to HTTP readiness, versus the
-  selected 10.548280-second buffered median.
+  selected 10.400351-second buffered median. The selected exact
+  response-boundary total is 12.177434 seconds; an exact direct total is not
+  available from the retained direct cohort.
 - RFdiffusion's exact direct canary took 199.036267 seconds to HTTP readiness,
   8.323738 and 5.639307 seconds for the two calls, and 213.009981 seconds
   through the second complete response. The selected refreshed, fully
@@ -163,10 +164,10 @@ implementation footnote.
 ## Remaining measurement work
 
 Nine of the ten NIMs have production-shaped n=3 HTTP-ready and two-call
-evidence. OpenFold2, Boltz2, RFdiffusion, and MolMIM have complete exact
-response-boundary n=3 totals. ProteinMPNN, DiffDock, OpenFold3, GenMol, and MSA
-Search require one new n=3 run only to add the exact absolute T0-to-call-2
-total; their published readiness and call latencies are already complete-body
+evidence. OpenFold2, Boltz2, GenMol, RFdiffusion, and MolMIM have complete exact
+response-boundary n=3 totals. ProteinMPNN, DiffDock, OpenFold3, and MSA Search
+require one new n=3 run only to add the exact absolute T0-to-call-2 total;
+their published readiness and call latencies are already complete-body
 measurements.
 
 Evo2-40B is the only remaining non-production-shaped row. It is blocked on an
