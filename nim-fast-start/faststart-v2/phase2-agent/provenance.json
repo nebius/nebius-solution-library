@@ -32,8 +32,9 @@
     "cuda_checkpoint_commit": "00d5cce84c628088d6caa203fc4af40c1538b6f7",
     "go_build_image": "golang:1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
     "cuda_helper_build_image": "nvidia/cuda:13.0.3-devel-ubuntu24.04@sha256:7d56ebe2b7cd864a60dca3c8b2d0a39f8fc110417e8253e32505c3387f59119c",
-    "criu_build_image": "ubuntu:24.04@sha256:561618e2c15bf2397621dd04f96926663a3b5616c189cf7e38db7e82f5c538ea",
-    "agent_runtime_image": "nvidia/cuda:13.0.3-base-ubuntu24.04@sha256:7c7413a56200486f71f181cad9310f6fd31b6bb21816ade15fc9c1e1e927a5c1",
+    "criu_build_image": "ubuntu:22.04@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc",
+    "agent_runtime_image": "nvidia/cuda:13.0.3-base-ubuntu22.04@sha256:73ab6dfb3814a5097cd456736e70650ef9dc72343be4117d0400de78168760fe",
+    "retained_cuda_checkpoint_helper_sha256": "0e44e9067d71411c775cd3b21fa0df806613504c8c699bd1944e3e7c10989298",
     "public_operator_base": "gcr.io/distroless/static-debian12:nonroot@sha256:b7ebc675e6df3e26840de28a9d119969806b5542902111bfd111964d0930c08a",
     "patch": "public-aio-toolchain.patch",
     "patch_sha256": "de10a0609115589efb137186544c9d90a0fcc03616ef959376139c65ae9615bc",
@@ -41,11 +42,44 @@
     "compliance_closure_patch_sha256": "32493e5da929a993976148124699f8abf99240c4ba486e6a01fda453c682ae68",
     "source_archive_fix_patch": "source-archive-fix.patch",
     "source_archive_fix_patch_sha256": "5dd45d97596bbdf068f33f0532fc71da1754c9eeb7d91f0abe547ac29f30bf0e",
+    "portable_toolchain_patch": "portable-glibc35-toolchain.patch",
+    "portable_toolchain_patch_sha256": "62d584ea83770c62d090bbbc15f265a6fadda064ec8c6e6a4fd0abe8328780b9",
+    "injected_elf_gate": {
+      "script": "deploy/snapshot/scripts/verify-bundle-glibc.sh",
+      "script_sha256": "7849fea3931032dfa35c9d9cc0ecc577d94185160910ef37dc5b2573a08cc406",
+      "maximum_required_glibc": "2.35",
+      "receipt": "/snapshot-binaries.glibc-compatibility",
+      "build_stage": "bundle-glibc35-audit"
+    },
+    "reproducibility_scope": {
+      "source_and_base_image_inputs_pinned": true,
+      "ubuntu_apt_repository_snapshot_pinned": false,
+      "note": "The mandatory helper hash and GLIBC gate fail closed on incompatible drift, but a clean release build must record its new immutable image and bundle digests."
+    },
     "dependency_snapshot": {
       "go_mod_sha256": "7e8580094f486fe9e0f5dc37b9cd8ecf1ed153cdd1a6a2293cc53bb3530cebc1",
       "go_sum_sha256": "cc3ffd4efe77d70fc65b5c47689931a18080d65619b093250ea3011e20675822",
       "build_time_go_get": false
     }
+  },
+  "integrated_source_validation": {
+    "classification": "offline-local-no-image-build",
+    "materialized_tree_sha256": "b52488a128a6f36091bf0fc6ffe9b7a2b932d4e94e3b0e3c4f986af880821900",
+    "materialized_tree_hash_algorithm": "SHA-256 of path-sorted sha256sum records for every regular file, relative to the materialization root",
+    "independent_materializations_equal": true,
+    "tester_image_id": "sha256:44c161e4bd6894ee223311c92c348dfdf5954a460b6c732e0dc6ae11b76f34a6",
+    "go_test_network": "none",
+    "go_test_result": "passed",
+    "go_test_log_sha256": "500c6d01b25a7ec5e058b45b9ec4e8758589ff2cb58821aa4d53901834cf7026",
+    "docker_build_check_targets": [
+      "task-public-agent",
+      "agent"
+    ],
+    "docker_build_check_network": "none",
+    "docker_build_check_result": "passed-no-warnings",
+    "docker_build_check_log_sha256": "edb60971db3d4f549ba85e6b924a6fb3c1c25e52957b65a3e0f045289b710b19",
+    "image_built": false,
+    "image_pushed": false
   },
   "local_preclosure_compliance_build": {
     "reference": "archvteams-2407-restore-worker:f7f37be-criu91d552-compliant-base",
@@ -59,14 +93,16 @@
     "note": "This build validated that the pinned CUDA base can pass the upstream compliance target. It does not contain compliance-closure.patch and is not provenance for the current materialized candidate."
   },
   "one_shot_restore_worker": {
-    "classification": "built-and-validated-on-an-already-provisioned-h100",
+    "classification": "portable-source-materialized-with-historical-noble-image-validation",
     "core_patch": "core-hardening.patch",
     "core_patch_sha256": "260c1d9a7f192b8c0b25c924ab26b43a95ad599d38d3f367383e3e984aecfd11",
     "compliance_closure_patch": "compliance-closure.patch",
     "compliance_closure_patch_sha256": "32493e5da929a993976148124699f8abf99240c4ba486e6a01fda453c682ae68",
     "source_archive_fix_patch": "source-archive-fix.patch",
     "source_archive_fix_patch_sha256": "5dd45d97596bbdf068f33f0532fc71da1754c9eeb7d91f0abe547ac29f30bf0e",
-    "overlay_tree_sha256": "c5a443ad574f77011a7e330b2759b651399fef87c9ef40010750ab509f2c886f",
+    "portable_toolchain_patch": "portable-glibc35-toolchain.patch",
+    "portable_toolchain_patch_sha256": "62d584ea83770c62d090bbbc15f265a6fadda064ec8c6e6a4fd0abe8328780b9",
+    "overlay_tree_sha256": "51dcf9f3f0d06360bd6806c0e6f9684861c0b244967f97e4bacc62874de3b1c9",
     "pinned_binary_dockerfile": "Dockerfile.restore-worker",
     "pinned_binary_dockerfile_sha256": "f0fb42c68ad7bf8dd39e27a5e070a1613953e7ec2cac0f19027cbea63a509570",
     "interface": {
@@ -103,12 +139,32 @@
       }
     },
     "built_image": {
+      "source_relation": "historical-pre-portable-toolchain-patch",
       "reference": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:31e1dacd18b99aec1ab7e8ec8c933f260c9dcec687938b40c44c61274f930d86",
       "local_image_id": "sha256:dc7806d8440c967fcf1efd713ec0a9bcb6496a7741f97fe65e28a66d66a91314",
       "restore_worker_sha256": "8873c760a1760c0dc3b3e331c7aedf879e7737ad11aed7f028513f057bbbee6e",
       "tool_bundle_manifest_sha256": "04214d6f4d72fa59d5daa6168d8c63024b6ebe34c4876394e47e80319ef00c39"
     },
-    "verification_note": "The final upstream tester image target and full Go suite passed before the immutable image was used for three consecutive provisioned-node OpenFold2 restores. The retained offline verifier also materializes the exact Git object, four patches, and overlay without network access."
+    "verification_note": "The historical Noble image passed the upstream tester target and three provisioned-node OpenFold2 restores. The portable source verifier materializes the exact Git object, five patches, and overlay without network access; a new immutable compliance-target image is still required for byte provenance."
+  },
+  "jammy_compatibility_validation": {
+    "classification": "pre-integration-task-public-agent-validation-only",
+    "reference": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:b3801ee9272b9032da7e46c4cea8f6a20ac1bf2f3c7fa25c604b4ad15cd761a3",
+    "local_image_id": "sha256:3915634b8c44b613894b7dce821956301c9c78e1003d30888bd8e2263f2c390b",
+    "tool_bundle_manifest_sha256": "fbee62d23781a1298fe7b1173ce39e50edd1ea451476ffb147319d92fa88e44c",
+    "bundle_regular_files": 34,
+    "bundle_elf_files": 34,
+    "bundle_versioned_elf_files": 33,
+    "maximum_required_glibc": "2.35",
+    "criu_sha256": "6b2cbba994b252fddbbe632cb055ca81257cf4e3cab2c26f1f33355f4d71764c",
+    "cuda_checkpoint_sha256": "707fa7f54136824d6c1d6dd724b9b1717610f831033c00d06da474de363a06db",
+    "cuda_checkpoint_helper_sha256": "37a48743fe2f86affbb8c142112c25bd32e05901cb8fb6a420cb25fad7b5f929",
+    "exact_target_image": "nvcr.io/nim/ipd/proteinmpnn@sha256:b55a0aa6733e267e6e6fe06434e98aea61eff14bc5545127555607fef6f38aa5",
+    "exact_target_glibc": "2.35-0ubuntu3.8",
+    "source_relation": "validates the Jammy strategy but predates the mandatory in-build gate and rebuilt the CUDA helper on Jammy",
+    "go_test_log_sha256": "9e6850af9f6ad46734e4905aace98660ff4ff25f5ea21ffd9c36a087a1a7b608",
+    "external_bundle_gate_sha256": "a27043766b18636ea956dd3b06bde8155c89d20e5bc4f1c034975a89f456d4f5",
+    "exact_target_selftest_sha256": "32413dd12a8aa8f19381afcc0226a3e2f74bee8b7208ccc28b3cd4e77424611b"
   },
   "openfold2_provisioned_evidence": {
     "image": "nvcr.io/nim/openfold/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4",

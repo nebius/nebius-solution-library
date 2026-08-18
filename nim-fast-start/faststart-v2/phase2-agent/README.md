@@ -21,13 +21,18 @@ in order, and then installs `overlay/`:
 | `core-hardening.patch` | `260c1d9a7f192b8c0b25c924ab26b43a95ad599d38d3f367383e3e984aecfd11` |
 | `compliance-closure.patch` | `32493e5da929a993976148124699f8abf99240c4ba486e6a01fda453c682ae68` |
 | `source-archive-fix.patch` | `5dd45d97596bbdf068f33f0532fc71da1754c9eeb7d91f0abe547ac29f30bf0e` |
-| normalized overlay tree | `c5a443ad574f77011a7e330b2759b651399fef87c9ef40010750ab509f2c886f` |
+| `portable-glibc35-toolchain.patch` | `62d584ea83770c62d090bbbc15f265a6fadda064ec8c6e6a4fd0abe8328780b9` |
+| normalized overlay tree | `51dcf9f3f0d06360bd6806c0e6f9684861c0b244967f97e4bacc62874de3b1c9` |
 | `Dockerfile.restore-worker` | `f0fb42c68ad7bf8dd39e27a5e070a1613953e7ec2cac0f19027cbea63a509570` |
 
 The patch series pins the compiler, CUDA helper, CRIU builder, runtime, CRIU
 revision, cuda-checkpoint revision, Go dependency graph, SBOM inputs, and source
-archive behavior. The overlay adds the one-shot worker plus its focused tests
-and the namespace-FD pinning used during restore.
+archive behavior. The portable-toolchain patch builds CRIU and the injected
+shared-library closure on pinned Ubuntu 22.04 while retaining the already
+validated Ubuntu 24.04 CUDA helper build. Its helper SHA-256 remains pinned to
+`0e44e9067d71411c775cd3b21fa0df806613504c8c699bd1944e3e7c10989298`.
+The overlay adds the one-shot worker, focused tests, namespace-FD pinning, and
+the all-ELF compatibility verifier.
 
 The exact component and image metadata is in `provenance.json`.
 
@@ -47,6 +52,14 @@ It injects the baked CRIU/CUDA tool bundle into the unmodified target mount
 namespace. The OpenFold2 target therefore remains the exact NVIDIA image
 digest; no derivative model image is required.
 
+Before either runnable agent target can be built, a dedicated stage scans
+every regular ELF in `/snapshot-binaries` with `readelf` and rejects any
+required GLIBC version newer than 2.35. The resulting deterministic receipt is
+copied to `/snapshot-binaries.glibc-compatibility`, making the gate a build
+dependency rather than an external post-build observation. Rootfs extraction
+uses the target image's `/bin/tar` with `LD_LIBRARY_PATH` removed only for that
+child process, so the target's tar cannot accidentally load injected libraries.
+
 ## Reproduce the source tree
 
 ```console
@@ -57,6 +70,12 @@ digest; no derivative model image is required.
 
 The destination must not exist. The script reads only the pinned Git object,
 never untracked or dirty files from the source checkout.
+
+The source object and base images are immutable inputs. Ubuntu package
+repositories are not date-snapshotted in the upstream Dockerfile, so a clean
+release build must still record and review its resulting image, bundle, and
+compatibility-receipt digests. The pinned helper hash and GLIBC gate fail
+closed if dependency drift changes those compatibility-critical outputs.
 
 ## Build and test
 
@@ -96,14 +115,31 @@ the worker binary SHA-256 was
 and its tool-bundle manifest SHA-256 was
 `04214d6f4d72fa59d5daa6168d8c63024b6ebe34c4876394e47e80319ef00c39`.
 
+The pre-integration Jammy validation image was:
+
+```text
+cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:b3801ee9272b9032da7e46c4cea8f6a20ac1bf2f3c7fa25c604b4ad15cd761a3
+```
+
+It demonstrated the compatibility strategy against the exact ProteinMPNN
+image: all 34 bundled ELFs were at or below GLIBC 2.35 and the bundle manifest
+SHA-256 was
+`fbee62d23781a1298fe7b1173ce39e50edd1ea451476ffb147319d92fa88e44c`.
+That image was built from the task-local `task-public-agent` target, rebuilt
+the CUDA helper on Jammy, and used an external ELF audit. It is validation
+evidence, not byte provenance for the integrated patch above. A new immutable
+`agent` image must be built before release.
+
 ## Offline verification
 
 ```console
 ./verify_offline.sh /path/to/dynamo-at-f7f37be
 ```
 
-The verifier checks the source object, patch hashes, materialized files,
-dependency graph, Dockerfile pins, provenance JSON, and normalized overlay
-hash. It makes no network, registry, cloud, or Kubernetes request. The final
-upstream Go/tester suite passed before the image above was used in three
-consecutive successful OpenFold2 restores.
+The verifier checks the source object, five patch hashes, materialized files,
+dependency graph, Jammy and retained-helper pins, the GLIBC gate's comparison
+self-test, provenance JSON, and normalized overlay hash. It makes no network,
+registry, cloud, or Kubernetes request. The exact integrated materialization
+passed the full upstream Go suite offline through the cached tester image, and
+both runnable Docker targets passed static build checks. Building the integrated
+`agent` image and compliance target remains a release gate.

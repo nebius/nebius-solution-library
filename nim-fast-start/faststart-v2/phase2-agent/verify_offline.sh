@@ -27,6 +27,7 @@ readonly patch_file="${script_dir}/public-aio-toolchain.patch"
 readonly core_patch_file="${script_dir}/core-hardening.patch"
 readonly closure_patch_file="${script_dir}/compliance-closure.patch"
 readonly source_archive_patch_file="${script_dir}/source-archive-fix.patch"
+readonly portable_toolchain_patch_file="${script_dir}/portable-glibc35-toolchain.patch"
 readonly overlay_dir="${script_dir}/overlay"
 
 apply_checked_patch() {
@@ -79,6 +80,7 @@ apply_checked_patch "${patch_file}"
 apply_checked_patch "${core_patch_file}"
 apply_checked_patch "${closure_patch_file}"
 apply_checked_patch "${source_archive_patch_file}"
+apply_checked_patch "${portable_toolchain_patch_file}"
 cp -a "${overlay_dir}/." "${tmp_dir}/"
 
 if find "${tmp_dir}" -type f \( -name '*.orig' -o -name '*.rej' \) -print -quit \
@@ -93,9 +95,11 @@ grep -F 'ARG GO_BUILD_IMAGE=golang:1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73
   "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
 grep -F 'ARG CUDA_BUILD_IMAGE=nvidia/cuda:13.0.3-devel-ubuntu24.04@sha256:7d56ebe2b7cd864a60dca3c8b2d0a39f8fc110417e8253e32505c3387f59119c' \
   "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
-grep -F 'ARG CRIU_BUILD_IMAGE=ubuntu:24.04@sha256:561618e2c15bf2397621dd04f96926663a3b5616c189cf7e38db7e82f5c538ea' \
+grep -F 'ARG CRIU_BUILD_IMAGE=ubuntu:22.04@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc' \
   "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
-grep -F 'ARG AGENT_BASE_IMAGE=nvidia/cuda:13.0.3-base-ubuntu24.04@sha256:7c7413a56200486f71f181cad9310f6fd31b6bb21816ade15fc9c1e1e927a5c1' \
+grep -F 'ARG AGENT_BASE_IMAGE=nvidia/cuda:13.0.3-base-ubuntu22.04@sha256:73ab6dfb3814a5097cd456736e70650ef9dc72343be4117d0400de78168760fe' \
+  "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
+grep -F 'ARG CUDA_CHECKPOINT_HELPER_SHA256=0e44e9067d71411c775cd3b21fa0df806613504c8c699bd1944e3e7c10989298' \
   "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
 # Dockerfile variables must remain literal in both search expressions.
 # shellcheck disable=SC2016
@@ -103,6 +107,16 @@ grep -F 'FROM ${CUDA_BUILD_IMAGE} AS cuda-helper-builder' \
   "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
 # shellcheck disable=SC2016
 grep -F 'FROM ${CRIU_BUILD_IMAGE} AS criu-builder' \
+  "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
+# Dockerfile variables must remain literal in the search expression.
+# shellcheck disable=SC2016
+grep -F 'FROM ${AGENT_BASE_IMAGE} AS agent_pre_unverified' \
+  "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
+grep -F 'FROM criu-builder AS bundle-glibc35-audit' \
+  "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
+grep -F 'FROM agent_pre_unverified AS agent_pre' \
+  "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
+grep -F '/snapshot-binaries 2.35 /snapshot-binaries.glibc-compatibility' \
   "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
 if grep -F 'RUN go get' "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null; then
   echo "dependency refresh still mutates go.mod/go.sum during the image build" >&2
@@ -127,6 +141,11 @@ fi
 test -f "${tmp_dir}/deploy/snapshot/cmd/restore-worker/worker.go"
 test -f "${tmp_dir}/deploy/snapshot/internal/executor/pinned_namespaces.go"
 test -f "${tmp_dir}/deploy/snapshot/internal/executor/checkpoint_overlay_test.go"
+test -x "${tmp_dir}/deploy/snapshot/scripts/verify-bundle-glibc.sh"
+grep -F 'targetTar := filepath.Join(targetRoot, "bin", "tar")' \
+  "${tmp_dir}/deploy/snapshot/internal/runtime/overlay.go" >/dev/null
+grep -F 'cmd.Env = environmentWithout(os.Environ(), "LD_LIBRARY_PATH")' \
+  "${tmp_dir}/deploy/snapshot/internal/runtime/overlay.go" >/dev/null
 grep -F 'RequireCleanUnmount bool' \
   "${tmp_dir}/deploy/snapshot/internal/executor/restore.go" >/dev/null
 grep -F 'openPinnedRestoreNamespaces(snapshotruntime.HostProcPath' \
@@ -170,8 +189,12 @@ test "$(sha256sum "${closure_patch_file}" | cut -d' ' -f1)" = \
   '32493e5da929a993976148124699f8abf99240c4ba486e6a01fda453c682ae68'
 test "$(sha256sum "${source_archive_patch_file}" | cut -d' ' -f1)" = \
   '5dd45d97596bbdf068f33f0532fc71da1754c9eeb7d91f0abe547ac29f30bf0e'
+test "$(sha256sum "${portable_toolchain_patch_file}" | cut -d' ' -f1)" = \
+  '62d584ea83770c62d090bbbc15f265a6fadda064ec8c6e6a4fd0abe8328780b9'
 test "$(sha256sum "${script_dir}/Dockerfile.restore-worker" | cut -d' ' -f1)" = \
   'f0fb42c68ad7bf8dd39e27a5e070a1613953e7ec2cac0f19027cbea63a509570'
+test "$(sha256sum "${overlay_dir}/deploy/snapshot/scripts/verify-bundle-glibc.sh" | cut -d' ' -f1)" = \
+  '7849fea3931032dfa35c9d9cc0ecc577d94185160910ef37dc5b2573a08cc406'
 overlay_tree_sha=$(
   find "${overlay_dir}" -type f -print0 \
     | sort -z \
@@ -180,10 +203,13 @@ overlay_tree_sha=$(
     | sha256sum \
     | cut -d' ' -f1
 )
-if [[ "${overlay_tree_sha}" != 'c5a443ad574f77011a7e330b2759b651399fef87c9ef40010750ab509f2c886f' ]]; then
+if [[ "${overlay_tree_sha}" != '51dcf9f3f0d06360bd6806c0e6f9684861c0b244967f97e4bacc62874de3b1c9' ]]; then
   echo "one-shot worker overlay tree hash mismatch: ${overlay_tree_sha}" >&2
   exit 1
 fi
+
+bash -n "${tmp_dir}/deploy/snapshot/scripts/verify-bundle-glibc.sh"
+"${tmp_dir}/deploy/snapshot/scripts/verify-bundle-glibc.sh" --self-test >/dev/null
 
 python3 -m json.tool "${script_dir}/provenance.json" >/dev/null
 
