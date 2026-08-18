@@ -22,8 +22,10 @@ response-boundary audit is recorded in
 - `performance/cost-ledger/` builds a fail-closed resource-usage ledger and
   joins only explicit, effective-dated price snapshots; latency remains
   distinct from billed cost;
-- `openfold2-newnode/` contains the scale-from-zero preemptible-node harness,
-  lifecycle verifier, automated node bootstrap, and two true new-node results;
+- `openfold2-newnode/` contains the archived scale-from-zero preemptible-node
+  harness, lifecycle verifier, automated node bootstrap, and two historical
+  lifecycle results. Both remain useful operational evidence but contribute
+  zero samples to the current complete-response metric;
 - `boltz2-native/` contains the Boltz2 capture inputs, strict validator,
   model adapter, provisioned-node runner, corrected response-boundary n=3
   result, and rejected writeback comparison;
