@@ -46,8 +46,9 @@ creation. A rerun is nonqualifying if the collector lacks either response
 timestamp, uses a validator-completion timestamp for T0-to-call-2, or
 aggregates a legacy receipt without the response-timing contract.
 
-MolMIM was qualified directly under the response-boundary contract and is not
-part of this historical rerun list. RFdiffusion remains pending a coherent
-native n=3 aggregate. Evo2-40B remains a manual H200 result until the current
-owner-managed Deployment is explicitly released and a new manifest-bound
-artifact can be captured and qualified.
+MolMIM and RFdiffusion were qualified directly under the response-boundary
+contract and are not part of this historical rerun list. RFdiffusion's selected
+fully prewarmed buffered n=3 median is 31.379359 seconds from T0 through the
+second complete response. Evo2-40B remains a manual H200 result until the
+current owner-managed Deployment is explicitly released and a new
+manifest-bound artifact can be captured and qualified.

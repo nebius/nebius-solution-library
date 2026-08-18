@@ -88,14 +88,13 @@ in-Pod restore trigger, not target-create T0.
 | MSA Search PDB70 | production-shaped conventional n=3; exact total pending | cache volume, fully prewarmed | 3 | 5.071461 [5.000388–5.128253] | 4.704828 [4.687398–4.831026] | 0.040720 [0.040700–0.040840] | 0.031058 [0.030818–0.031083] | — |
 | Evo2-40B | manual/provisional H200 restore trigger | direct, legacy artifact | 3 | 65.377 [63.052–65.696] | — | 1.181 [1.163–1.213] | 0.796 [0.795–0.819] | — |
 | GenMol | production-shaped n=3; exact total pending | buffered, fully prewarmed | 3 | 10.548280 [10.435267–10.733755] | 11.558094 [10.433973–11.880965] | 1.215907 [1.211042–1.230406] | 0.585500 [0.584510–0.593163] | — |
-| RFdiffusion | manual/provisional; native n=3 pending | retained page cache | 3 | 12.751 [12.630–12.902] | — | 5.881 [5.817–5.996] | 5.945 [5.867–6.046] | — |
+| RFdiffusion | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 17.662044 [17.456876–17.965447] | 19.609357 [19.532522–21.124378] | 7.892573 [7.792848–7.980680] | 5.584081 [5.552619–5.726694] | **31.379359 [30.843879–31.420852]** |
 | MolMIM | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 10.520799 [10.446875–10.522802] | 11.735781 [11.706764–11.862442] | 2.839590 [2.812727–2.854831] | 2.099549 [2.082203–2.109474] | **15.431630 [15.414674–15.464302]** |
-
-<!-- RF_NATIVE_N3_FILL: replace the RFdiffusion timing row, its storage-receipt row, and the status count below only after one coherent qualifying n=3 aggregate lands. -->
 
 The five production-shaped rows with an unavailable exact total retain the
 following later terminal timestamps. They are useful provenance, but are not
-call-2 response totals:
+call-2 response totals. The Evo2 and RFdiffusion manual histories are included
+in the same table only as explicitly non-selected comparators:
 
 | NIM | Retained terminal evidence | Median [minimum–maximum], seconds |
 |---|---|---:|
@@ -105,7 +104,7 @@ call-2 response totals:
 | MSA Search PDB70 | legacy T0 to validation complete | 5.144951 [5.073655–5.201905] |
 | GenMol | legacy T0 to validation complete | 12.348272 [12.255292–12.547019] |
 | Evo2-40B | manual restore trigger through two responses | 67.390 [65.080–67.780] |
-| RFdiffusion | manual restore trigger through two responses | 24.593 [24.458–24.851] |
+| RFdiffusion | legacy manual restore trigger through two responses; not selected | 24.593 [24.458–24.851] |
 
 ## Pre-T0 storage preparation audit
 
@@ -119,7 +118,7 @@ call-2 response totals:
 | MSA Search PDB70 | 112,682,799 bytes across 13 unique inodes, content-stream SHA-256 `416efa6571423414a0fb46e8739bfa1202b5885122ce2e6cb280a00607bd4062` | not retained | authoritative receipt SHA-256 `7d04ebeaa890d272545d613424058156e59c4c59118e9614cf3fa29467e9c3a0`; elapsed missing |
 | Evo2-40B | legacy direct 99,959,572,798-byte checkpoint | not applicable | no current manifest-bound artifact; manual evidence only |
 | GenMol | 4,781,347,930 bytes, 114 files, tree SHA-256 `8d847217744b84f2ddce4520bfaf83dec0285241fade9d9fb91b5b83d8c18198` | 6.328907 | complete identity and elapsed receipts |
-| RFdiffusion | retained page cache in the manual experiment | not retained | qualifying native n=3 receipt pending |
+| RFdiffusion | artifact: 22,087,352,229 bytes/90 files/manifest `5d47f0fac7bba60bdab3e29843f2fd99150491e917f7f3758a84176aef8c7f9d`/aggregate SHA-256 `8f3b3f66b2b8e886b2b04880d6e511ee138b409bf55471849dfd9657a6df44fb`; cache: 2,590,162,178 bytes/674 files/tree `8b79aa4f4ca6a3121ca6d3d7e8083addd949a28a84b375bd5754580415eb80fd` | artifact 16.332096; cache 32.633541; total 48.965637 | complete refreshed holder receipt SHA-256 `17afc7961933a10cd7b1ab6d0d391a54f459bf1f5db67bbb51be61cae5d0920d` |
 | MolMIM | artifact: 5,220,755,473 bytes/81 files/tree `19c9d2eafb62887aa6dd1e71c0bcd4b4ea73522da5235ea19c4812d9a5c5ac20`; cache: 284,497,920 bytes/2 files/tree `5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c` | artifact 4.194605; cache 17.524894 | both bytes/tree/elapsed receipts complete; aggregate retains pre-T0 capture times |
 
 The authoritative OpenFold3 receipt is
@@ -127,9 +126,17 @@ The authoritative OpenFold3 receipt is
 The authoritative MSA receipt is the unique-inode version at
 `/home/tux/.local/state/archvteams-2407/msa-search-native-f7-20260818T065544Z/conventional-n3-final-v2/cache-holder-receipt.json`;
 the older root-level cache receipt double-counted a symlink and its target and
-must not be used. OpenFold2 and Boltz2 exact-image preloads took 264.996 and
-33.536 seconds respectively, occurred before T0, and are image-residency setup
-rather than artifact full-read time.
+must not be used. RFdiffusion's selected aggregate is
+`/home/tux/.local/state/archvteams-2407/rfdiffusion-native-f7-20260818T080831Z/aggregates/rfd-f7-warm-buffered-n3.json`,
+SHA-256
+`5e27493276dfd1eda3eb640c1bfe4655e378060ceba8a77619abb3271f27f0b6`;
+its authoritative refreshed holder receipt is
+`/home/tux/.local/state/archvteams-2407/rfdiffusion-native-f7-20260818T080831Z/setup/buffered-holder-r7-refresh-receipt.json`.
+The earlier `rfd-f7-buf-{1,2,3}` diagnostic cohort is explicitly excluded
+because direct-canary activity followed its stale holder read; it never
+contributes to the selected median. OpenFold2 and Boltz2 exact-image preloads
+took 264.996 and 33.536 seconds respectively, occurred before T0, and are
+image-residency setup rather than artifact full-read time.
 
 ## Storage sensitivity already demonstrated
 
@@ -143,27 +150,30 @@ rather than artifact full-read time.
   versus the selected 11.773042-second buffered median.
 - GenMol direct n=3 took 48.738868 seconds to HTTP readiness, versus the
   selected 10.548280-second buffered median.
-- RFdiffusion's retained manual page-cache result was 12.751 seconds to
-  readiness, versus 170.368 seconds for its manual direct-I/O path. These
-  values remain provisional until the native production-shaped n=3 lane lands.
+- RFdiffusion's exact direct canary took 199.036267 seconds to HTTP readiness,
+  8.323738 and 5.639307 seconds for the two calls, and 213.009981 seconds
+  through the second complete response. The selected refreshed, fully
+  prewarmed buffered n=3 median is 17.662044 seconds to readiness and
+  31.379359 seconds through the second response. Its 48.965637-second artifact
+  plus cache full read occurred before T0.
 
 These deltas are why storage state is part of the result rather than an
 implementation footnote.
 
 ## Remaining measurement work
 
-Eight of the ten NIMs have production-shaped n=3 HTTP-ready and two-call
-evidence. OpenFold2, Boltz2, and MolMIM have complete exact response-boundary
-n=3 totals. ProteinMPNN, DiffDock, OpenFold3, GenMol, and MSA Search require one
-new n=3 run only to add the exact absolute T0-to-call-2 total; their published
-readiness and call latencies are already complete-body measurements.
+Nine of the ten NIMs have production-shaped n=3 HTTP-ready and two-call
+evidence. OpenFold2, Boltz2, RFdiffusion, and MolMIM have complete exact
+response-boundary n=3 totals. ProteinMPNN, DiffDock, OpenFold3, GenMol, and MSA
+Search require one new n=3 run only to add the exact absolute T0-to-call-2
+total; their published readiness and call latencies are already complete-body
+measurements.
 
-RFdiffusion's native qualification is pending and remains represented by the
-clearly labeled manual row. Evo2-40B is blocked on an explicit owner decision
-to release the only allowed H200 from the healthy owner-managed Deployment;
-the current Pod topology is not a task-scoped capture donor and was not
-modified. Its retained manual direct result is not promoted into the
-production-shaped comparison.
+Evo2-40B is the only remaining non-production-shaped row. It is blocked on an
+explicit owner decision to release the only allowed H200 from the healthy
+owner-managed Deployment; the current Pod topology is not a task-scoped
+capture donor and was not modified. Its retained manual direct result is not
+promoted into the production-shaped comparison.
 
 Primary evidence lives in the model lanes and the private run directories
 named by their checked-in compact receipts. Failed setup attempts are excluded

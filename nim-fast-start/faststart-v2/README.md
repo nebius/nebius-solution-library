@@ -1,14 +1,15 @@
 # BioNeMo NIM fast start v2
 
 This subtree contains production-shaped n=3 results for OpenFold2, Boltz2,
-ProteinMPNN, DiffDock, OpenFold3, MSA Search, GenMol, and MolMIM. OpenFold2,
-Boltz2, and MolMIM retain exact T0-to-second-response boundaries; five older
-stable lanes retain exact HTTP-ready and complete-body call latencies but still
-need an absolute call-2 timestamp rerun. RFdiffusion native qualification is
-pending, and Evo2-40B remains blocked on release of the only allowed H200 from
-an owner-managed Deployment. The shared metric contract and current ten-model
-matrix are in `performance/COLD_START_METRICS.md`. Remaining stable-lane rerun
-requirements after the response-boundary audit are in
+ProteinMPNN, DiffDock, OpenFold3, MSA Search, GenMol, RFdiffusion, and MolMIM.
+OpenFold2, Boltz2, RFdiffusion, and MolMIM retain exact T0-to-second-response
+boundaries; five older stable lanes retain exact HTTP-ready and complete-body
+call latencies but still need an absolute call-2 timestamp rerun. Evo2-40B is
+the only remaining non-production-shaped row and remains blocked on release of
+the only allowed H200 from an owner-managed Deployment. The shared metric
+contract and current ten-model matrix are in
+`performance/COLD_START_METRICS.md`. Remaining stable-lane rerun requirements
+after the response-boundary audit are in
 `performance/RESPONSE_BOUNDARY_REQUALIFICATION.md`:
 
 - `native-capture/` creates the qualified native Dynamo artifact;
@@ -42,14 +43,14 @@ requirements after the response-boundary audit are in
   two-call contract, direct n=3 comparator, and winning fully prewarmed
   buffered n=3 result. Historical page-cache timings remain
   non-production-shaped comparators;
-- `rfdiffusion-native/` contains the strict native capture and provisioned-node
-  lane; its coherent live n=3 aggregate is still pending; and
+- `rfdiffusion-native/` contains the strict native capture, exact direct
+  canary, and selected refreshed fully prewarmed buffered n=3 result. The
+  selected route reaches HTTP readiness in 17.662044 seconds and the second
+  complete response in 31.379359 seconds from T0; and
 - `molmim-native/` contains the exact-image conventional control and completed
   buffered/direct native comparison. The selected buffered native n=3 result
   reaches HTTP readiness in 10.520799 seconds and the second complete response
   in 15.431630 seconds from T0.
-
-<!-- RF_NATIVE_N3_FILL: update the RFdiffusion status above only after the coherent qualifying n=3 aggregate is committed. -->
 
 All renderer and verifier entry points are offline. Live work requires an
 explicit invocation of either `dynamo/run_provisioned_trial.sh` or
