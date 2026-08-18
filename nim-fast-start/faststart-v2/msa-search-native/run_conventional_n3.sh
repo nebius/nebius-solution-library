@@ -4,7 +4,8 @@ set -Eeuo pipefail
 readonly allowed_server='https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebius.cloud:443'
 readonly allowed_node='computeinstance-e00hf93cfnsgaxygn3'
 readonly namespace='nim-fast-start'
-readonly script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+readonly script_dir
 
 usage() {
   printf 'usage: %s --kubeconfig ABS_PATH --evidence-root ABS_DIR --batch-id DNS_LABEL\n' "$0" >&2
