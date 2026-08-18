@@ -443,6 +443,29 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(evidence.EvidenceError, "reversed timestamps"):
             evidence._kubernetes_seconds(demand, previous_second)
 
+    def test_submit_edge_tolerates_only_same_second_api_timestamp_quantization(self) -> None:
+        inputs = evidence_inputs()
+        inputs["target_submit_at"] = "2026-08-17T20:00:01.900000Z"
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["timings_seconds"]["demand_to_target_created"], 0.0)
+
+        inputs["target_submit_at"] = "2026-08-17T20:00:02.100000Z"
+        with self.assertRaisesRegex(evidence.EvidenceError, "target creation"):
+            evidence.build_evidence(**inputs)
+
+    def test_probe_finish_tolerates_only_same_second_kubelet_quantization(self) -> None:
+        inputs = evidence_inputs()
+        terminated = inputs["probe_pod"]["status"]["containerStatuses"][0]["state"][
+            "terminated"
+        ]
+        terminated["finishedAt"] = "2026-08-17T20:00:09Z"
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["status"], "PASS")
+
+        terminated["finishedAt"] = "2026-08-17T20:00:08Z"
+        with self.assertRaisesRegex(evidence.EvidenceError, "at least one second"):
+            evidence.build_evidence(**inputs)
+
     def test_endpoint_uid_mismatch_is_rejected(self) -> None:
         inputs = evidence_inputs()
         inputs["endpoint_slices"]["items"][0]["endpoints"][0]["targetRef"]["uid"] = (

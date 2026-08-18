@@ -1,14 +1,9 @@
 # Boltz2 native Dynamo fast start
 
-The production-shaped direct-AIO path passed three consecutive one-H100 trials.
-Median time was **17.145 seconds** for the UID/PodSpec-bound native restore and
-**26.086703 seconds** from target submit to completion of response persistence
-and semantic validation.
-
-Response-boundary requalification is required. HTTP-ready remains valid, but
-the historical call timers included response persistence and semantic
-validation, and the terminal timestamp was validator completion. Both call
-latencies and the true T0-to-second-response total require a new n=3 run.
+The production-shaped direct-AIO path passed three consecutive response-boundary
+trials on one provisioned H100. Median time was **18.465 seconds** for the
+UID/PodSpec-bound native restore and **27.342018 seconds** from target submit
+through receipt of the second complete inference response.
 
 ## Qualified path
 
@@ -41,18 +36,19 @@ and pTM scores in `[0,1]`.
 
 | Measurement | Trial 1 | Trial 2 | Trial 3 | Median |
 |---|---:|---:|---:|---:|
-| Native restore | 17.017 s | 17.145 s | 17.753 s | **17.145 s** |
-| T0 to successful semantic HTTP ready | 23.753685 s | 24.288388 s | 24.517988 s | **24.288388 s** |
-| T0 to Kubernetes Pod Ready | 24.265334 s | 25.564981 s | 25.734361 s | **25.564981 s** |
-| Legacy call 1, response + validation | 1.543270 s | 1.496779 s | 1.497235 s | **1.497235 s** |
-| Legacy call 2, response + validation | 0.443073 s | 0.282542 s | 0.287273 s | **0.287273 s** |
-| Legacy T0 to validation completion | 25.909834 s | 26.086703 s | 26.450581 s | **26.086703 s** |
-| Validator total, including readiness wait | 19.134357 s | 18.771843 s | 19.636290 s | **19.134357 s** |
+| Native restore | 18.868 s | 18.465 s | 17.880 s | **18.465 s** |
+| T0 to successful semantic HTTP ready | 25.711837 s | 25.484587 s | 24.698911 s | **25.484587 s** |
+| T0 to Kubernetes Pod Ready | 27.021134 s | 26.391013 s | 25.741550 s | **26.391013 s** |
+| First inference, dispatch through complete HTTP body | 1.399536 s | 1.406047 s | 1.400760 s | **1.400760 s** |
+| Second inference, dispatch through complete HTTP body | 0.273126 s | 0.288888 s | 0.278996 s | **0.278996 s** |
+| T0 through second complete inference response | 27.664935 s | 27.342018 s | 26.639785 s | **27.342018 s** |
 
-The full per-run values and evidence locations are in `results.tsv`. Each
-counted run also has an immutable `corrected-submit-edge-timings.json` that
-promotes nested semantic HTTP/Kubernetes/call timestamps into explicit
-submit-edge fields; the original `trial-summary.json` remains unchanged.
+The current per-run values and evidence locations are in
+`response-boundary-results.tsv`. Each counted run has a `trial-summary.json`
+whose call timers end at `response_received_at`, after the complete HTTP body
+but before persistence and semantic validation. Historical response-plus-
+validation measurements remain unchanged in `results.tsv` and their immutable
+`corrected-submit-edge-timings.json` sidecars.
 
 ## Capture baseline and experiments
 
@@ -81,8 +77,9 @@ semantic HTTP readiness comes from the probe's strict 200/ready response;
 Kubernetes Pod Ready is retained separately. Worker receipt and semantic probe
 events are concurrent timelines and are not ordered against each other. The
 measurements include target creation, binding, worker scheduling/restore, and
-two external semantic calls. They do not include H100 provisioning, the initial
-image pull, model-cache construction, or artifact creation. The writeback
+two external semantic calls. Both call clocks stop after receipt of the complete
+HTTP body. They do not include H100 provisioning, the initial 33.536-second
+exact-image preload, model-cache construction, or artifact creation. The writeback
 prewarm cost is reported but excluded from its demand clock because it was an
 explicit provisioned-state experiment.
 

@@ -1,23 +1,18 @@
 # OpenFold2 production-native provisioned-node result
 
-The optimized production-shaped path completed validation of two distinct
-OpenFold2 folds in a **14.096900-second median** from target submit. Three
-consecutive clean restores passed on an already provisioned H100:
-
-Response-boundary requalification is required. The HTTP-ready values remain
-valid, but the historical per-call timers included response persistence and
-semantic validation, and the terminal timestamp was validator completion.
-Therefore both call columns and the true T0-to-second-response total require a
-new n=3 run. The values below are preserved without manufacturing corrections.
+The selected direct-AIO production path completed two distinct strict OpenFold2
+folds in a **14.236758-second median** from target submit through receipt of the
+second complete HTTP body. Three consecutive clean restores passed on an
+already provisioned H100 with storage attached and the exact image cached:
 
 | Measurement | Median | Range |
 |---|---:|---:|
-| T0 to successful semantic HTTP ready | **11.162167 s** | 10.840150–11.340513 s |
-| T0 to Kubernetes Pod Ready | **11.662171 s** | 11.640975–12.588935 s |
-| Worker restore | **3.570 s** | 3.568–3.584 s |
-| Legacy T0 to validation completion | **14.096900 s** | 13.819209–14.316461 s |
-| Legacy request 1, response + validation | 1.951462 s | 1.929074–1.955740 s |
-| Legacy request 2, response + validation | 1.018719 s | 1.001957–1.020497 s |
+| T0 to successful semantic HTTP ready | **11.365660 s** | 11.238689–11.913086 s |
+| First inference, dispatch through complete HTTP body | **1.851894 s** | 1.844734–1.871146 s |
+| Second inference, dispatch through complete HTTP body | **0.992264 s** | 0.984416–0.996515 s |
+| T0 through second complete inference response | **14.236758 s** | 14.087336–14.756378 s |
+| T0 to Kubernetes Pod Ready | **12.311987 s** | 11.542021–12.904340 s |
+| Worker restore | **3.954 s** | 3.811–4.025 s |
 
 The separate CPU probe Job is submitted as soon as the scheduler-created
 target Pod has a bound UID and canonical PodSpec hash. It waits on the exact
@@ -27,8 +22,10 @@ scheduling with restoration. The earlier sequential flow is retained as
 historical evidence but used an older clock and is not mixed into the corrected
 submit-edge comparison.
 
-The individual optimized runs are in `provisioned-early-probe-results.tsv`.
-The earlier sequential comparison is retained in `provisioned-results.tsv`.
+The current response-boundary runs are in
+`provisioned-response-boundary-results.tsv`. The historical early-probe runs
+remain in `provisioned-early-probe-results.tsv`, and the earlier sequential
+comparison is retained in `provisioned-results.tsv`.
 That older probe did not retain a successful HTTP-readiness timestamp, so its
 HTTP-ready cells are `NA`; its 10–11 second values are preserved in
 the separately named Kubernetes-Ready column. Its Kubernetes and total fields
@@ -36,7 +33,7 @@ have also been losslessly rebased to `target-submit-at.txt`; immutable sidecars
 record HTTP readiness as unavailable rather than substituting Pod Ready.
 
 The exact model image was
-`nvcr.io/nim/openfold/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4`.
+`cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4`.
 The native artifact was `openfold2-native-f7-v1`, version `1`, with manifest
 SHA-256
 `78368af3e6f143d7dc681632c4150b29f6354717103638b56e776244d9631b04`.
@@ -51,8 +48,12 @@ The source evidence root is intentionally retained outside the repository at:
 /home/tux/.local/state/archvteams-2407/openfold2-native-f7-20260818T0221Z
 ```
 
-The optimized evidence directories are `runs/p6-earlyprobe`,
-`runs/p7-earlyprobe`, and `runs/p8-earlyprobe`. They contain the target
+The current evidence directories are `runs/of2rb1b-0913`,
+`runs/of2rb2-0916`, and `runs/of2rb3-0918`. They contain the target binding,
+worker receipt, exact readiness wait, two response-body timestamps, Kubernetes
+object captures, and derived `canary-evidence.json`. The historical optimized
+evidence directories are `runs/p6-earlyprobe`, `runs/p7-earlyprobe`, and
+`runs/p8-earlyprobe`. They contain the target
 binding, worker receipt, readiness wait, semantic summary, Kubernetes object
 captures, derived `canary-evidence.json`, and immutable
 `corrected-submit-edge-timings.json`. The raw `canary-evidence.json` field named
@@ -62,10 +63,18 @@ Setup-only `p5-earlyprobe` is
 explicitly excluded because its first readiness matcher did not recognize the
 image's JSON-object health response and sent no inference requests.
 
+Two response-boundary setup attempts are also excluded. The first image preload
+omitted the existing private-registry pull secret and received HTTP 403 before
+any target was created. `runs/of2rb1-0909` submitted a target, but its restore
+worker could not schedule with a 1-CPU request beside the preserved CPU-only
+holders; it completed no semantic call. The counted path requests 500m for
+scheduling while retaining the 4-CPU worker limit. The exact target image's
+264.996-second preload occurred before T0 and is excluded from every trial.
+
 This is the warm-instance cold-start result: `T0` is recorded immediately
 before target creation on an already provisioned H100 with the exact images,
-model cache, native checkpoint, and storage attached. The first and second
-request rows are legacy response-plus-validation durations, not publishable
-HTTP-body latencies. Demand-to-validation is retained only as a historical
-timeline cross-check.
+model cache, native checkpoint, and storage attached. HTTP readiness is the
+first successful application readiness response. Both inference timers end when
+the complete HTTP response body is received, before persistence and semantic
+validation; the second request is distinct and immediately follows the first.
 Newly-created-node latency is measured and reported separately.

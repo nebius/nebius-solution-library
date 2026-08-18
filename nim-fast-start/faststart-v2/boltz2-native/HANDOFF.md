@@ -3,10 +3,14 @@
 ## Result and evidence
 
 - `README.md`: qualification result, scope and rejected/excluded variants
-- `results.tsv`: counted n=3, median, rejected writeback trial and excluded p1
+- `response-boundary-results.tsv`: current response-body n=3 and median
+- `results.tsv`: historical response-plus-validation n=3, rejected writeback
+  trial and excluded p1
 - Raw evidence root:
   `/home/tux/.local/state/archvteams-2407/boltz2-native-f7-20260818T0310Z`
-- Counted run receipts: `runs/b2p2-0337`, `runs/b2p3-0343`,
+- Current counted run receipts: `runs/b2rb1-0924`, `runs/b2rb2-0925`,
+  `runs/b2rb3-0927`
+- Historical counted receipts: `runs/b2p2-0337`, `runs/b2p3-0343`, and
   `runs/b2p4-0344`
 - Direct capture evidence: `podsnapshotcontent.json`, `capture-agent.log`,
   `manifest.yaml`, `artifact-inventory.txt`, `artifact-total-bytes.txt`
@@ -29,7 +33,7 @@
 - `boltz2-cache-pvc.yaml` and `boltz2-cache-holder.yaml`: isolated cache assets
 - `boltz2-writeback-prewarm-job.yaml`: rejected variant experiment, retained for
   reproducibility but not for rollout
-- `tests/test_boltz2_native.py`: seven focused offline regression tests
+- `tests/test_boltz2_native.py`: nine focused offline regression tests
 
 ## Runtime handoff state
 
@@ -39,5 +43,3 @@ deleted, and no Boltz Pod mounted M3. The pre-existing CPU-only
 t12. The direct `boltz2-native-f7-v1` artifact and raw evidence were preserved.
 The rejected writeback artifact was also left intact because the scale-zero
 lane requested no further live work after t12 release.
-
-The source worktree remains uncommitted as requested.

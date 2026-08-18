@@ -67,13 +67,19 @@ def _seconds(start: datetime, finish: datetime, label: str) -> float:
     return round(result, 6)
 
 
-def _kubernetes_seconds(demand: datetime, transition: datetime) -> float:
+def _coarse_kubernetes_seconds(
+    demand: datetime, transition: datetime, label: str
+) -> float:
     result = (transition - demand).total_seconds()
     if result < 0:
         if abs(result) >= 1:
-            raise EvidenceError("Kubernetes readiness has reversed timestamps")
+            raise EvidenceError(f"{label} has reversed timestamps")
         return 0.0
     return round(result, 6)
+
+
+def _kubernetes_seconds(demand: datetime, transition: datetime) -> float:
+    return _coarse_kubernetes_seconds(demand, transition, "Kubernetes readiness")
 
 
 def _condition_time(pod: dict[str, Any], kind: str, required_status: str = "True") -> datetime:
@@ -450,12 +456,12 @@ def build_evidence(
     ):
         raise EvidenceError("semantic summary is not bound to the exact canary Service endpoint")
 
-    target_order = [
-        demand,
-        target_created,
-        scheduled,
-        placeholder_started,
-    ]
+    # API creation and Pod condition timestamps are whole-second Kubernetes
+    # fields.  Validate their submit edge with the same bounded precision rule
+    # used for Kubernetes Ready, then order the remaining coarse fields.
+    _coarse_kubernetes_seconds(demand, target_created, "target creation")
+    _coarse_kubernetes_seconds(demand, scheduled, "target scheduling")
+    target_order = [target_created, scheduled, placeholder_started]
     restore_order = [
         placeholder_started,
         worker_started,
@@ -467,7 +473,6 @@ def build_evidence(
         http_ready,
         second_response_received,
         validation_finished,
-        probe_finished,
     ]
     if any(
         later < earlier
@@ -475,6 +480,15 @@ def build_evidence(
         for earlier, later in zip(ordered, ordered[1:])
     ):
         raise EvidenceError("canary phase timestamps are not monotonically ordered")
+    # Kubelet container termination timestamps are serialized at whole-second
+    # precision, while the validator's in-process completion timestamp retains
+    # microseconds.  A completion observed in the same second can therefore
+    # appear up to (but not including) one second earlier.  Bound that single
+    # coarse edge without weakening the response timestamps used for metrics.
+    if probe_finished < validation_finished and (
+        validation_finished - probe_finished
+    ).total_seconds() >= 1:
+        raise EvidenceError("probe finish precedes semantic validation by at least one second")
     if worker_completed < worker_finished or probe_completed < probe_finished:
         raise EvidenceError("Job completion precedes its successful container finish")
 
@@ -500,8 +514,12 @@ def build_evidence(
             "cluster_ip": service_spec["clusterIP"],
         },
         "timings_seconds": {
-            "demand_to_target_created": _seconds(demand, target_created, "target creation"),
-            "demand_to_scheduled": _seconds(demand, scheduled, "scheduling"),
+            "demand_to_target_created": _coarse_kubernetes_seconds(
+                demand, target_created, "target creation"
+            ),
+            "demand_to_scheduled": _coarse_kubernetes_seconds(
+                demand, scheduled, "target scheduling"
+            ),
             "demand_to_placeholder_running": _seconds(
                 demand, placeholder_started, "placeholder start"
             ),

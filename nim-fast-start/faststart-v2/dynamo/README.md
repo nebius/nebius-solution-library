@@ -8,7 +8,7 @@ entry point.
 
 The measured path is:
 
-1. record `demand_at` immediately before submitting the target;
+1. persist `target-submit-at.txt` immediately before submitting the target;
 2. let Kubernetes schedule a one-container, exact-digest OpenFold2 placeholder;
 3. bind the API-defaulted live Pod spec, UID, container ID, cgroup, IP, image,
    and node;
@@ -49,13 +49,16 @@ have immutable registry digests and the approval fields are completed.
 contains image and source digests, but no credential material. The current
 probe accepts the two observed successful `/v1/health/ready` JSON shapes:
 literal `true` or `{"status":"ready"}`. It then issues exactly two inference
-calls. The optimized p6-p8 measurements and validator digest are recorded in
-`../performance/openfold2/README.md`; raw evidence payloads stay outside Git.
+calls. The current response-boundary n=3 measurements and validator digest are
+recorded in `../performance/openfold2/README.md`; raw evidence payloads stay
+outside Git.
 
 The target is scheduler-created: its template uses required hostname affinity
-and never `spec.nodeName`. The worker and target use the previously measured
-single-H100 resource envelope. The semantic Job requests CPU and memory only;
-it has no GPU resource.
+and never `spec.nodeName`. The worker and target use the measured single-H100
+resource envelope. The worker requests 500m CPU for scheduling but retains a
+4-CPU limit, allowing the one-shot restore to fit beside the explicitly
+preserved CPU-only storage holders. The semantic Job requests CPU and memory
+only; it has no GPU resource.
 
 The worker verifies and injects its baked `/snapshot-binaries` bundle. No
 redundant tools PVC or target `LD_LIBRARY_PATH` is used. The target's read-only
@@ -184,6 +187,7 @@ python3 evidence.py \
   --probe-job probe-job.json \
   --probe-pod probe-pod.json \
   --semantic-summary semantic-summary.json \
+  --target-submit-at target-submit-at.txt \
   > canary-evidence.json
 ```
 
@@ -193,6 +197,9 @@ latencies, and demand-to-two-semantic-responses as a cross-check. Worker receipt
 and semantic probe are independent concurrent timelines; neither is ordered
 against the other. Keep raw Kubernetes JSON and Job logs beside this derived
 receipt; repeat the measured run at least three times and report every run.
+Whole-second Kubernetes creation, scheduling, Ready, Job, and container
+timestamps receive only bounded same-second precision normalization; the
+application HTTP timestamps used for the published metrics are never rebased.
 
 ## Offline verification
 

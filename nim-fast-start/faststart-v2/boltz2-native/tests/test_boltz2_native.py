@@ -252,6 +252,8 @@ class BoltzRequestAndSemanticTests(unittest.TestCase):
 class BoltzRenderAndBindingTests(unittest.TestCase):
     def test_trial_runner_emits_aligned_timing_metrics(self) -> None:
         runner = (MODULE_DIR / "run_one_native_trial.sh").read_text(encoding="utf-8")
+        self.assertIn('${BASH_SOURCE[0]}', runner)
+        self.assertNotIn("archvteams-2407-openfold2-faststart", runner)
         self.assertIn("build_timing_evidence", runner)
         self.assertIn('directory / "target-submit-at.txt"', runner)
         self.assertIn("target_submit_at=target_submit_at", runner)
