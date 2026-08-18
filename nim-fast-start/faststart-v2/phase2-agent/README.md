@@ -23,6 +23,7 @@ in order, and then installs `overlay/`:
 | `source-archive-fix.patch` | `5dd45d97596bbdf068f33f0532fc71da1754c9eeb7d91f0abe547ac29f30bf0e` |
 | `portable-glibc35-toolchain.patch` | `62d584ea83770c62d090bbbc15f265a6fadda064ec8c6e6a4fd0abe8328780b9` |
 | `buffered-criu-io.patch` | `6a59dcb524abd0d9596697efd28afb3bd9d4e543b193f687178494452cecac15` |
+| `jammy-compliance-tomli.patch` | `6fa58bcdf97c54f8ecd75e2a685150bd1ae5cede71283eb8fc9aa88bacf87156` |
 | normalized overlay tree | `51dcf9f3f0d06360bd6806c0e6f9684861c0b244967f97e4bacc62874de3b1c9` |
 | `Dockerfile.restore-worker` | `f0fb42c68ad7bf8dd39e27a5e070a1613953e7ec2cac0f19027cbea63a509570` |
 
@@ -37,6 +38,8 @@ the all-ELF compatibility verifier.
 The buffered-I/O patch preserves direct and writeback behavior and adds an
 explicit `buffered` mode that leaves CRIU's image-I/O protobuf field unset.
 This is the retained-page-cache path selected by the ProteinMPNN benchmark.
+The Jammy compliance patch supplies the `tomllib` compatibility module needed
+by the policy gate under Python 3.10; it is build-stage-only.
 
 The exact component and image metadata is in `provenance.json`.
 
@@ -140,7 +143,7 @@ evidence, not byte provenance for the integrated patch above. A new immutable
 ./verify_offline.sh /path/to/dynamo-at-f7f37be
 ```
 
-The verifier checks the source object, six patch hashes, materialized files,
+The verifier checks the source object, seven patch hashes, materialized files,
 dependency graph, Jammy and retained-helper pins, the GLIBC gate's comparison
 self-test, provenance JSON, and normalized overlay hash. It makes no network,
 registry, cloud, or Kubernetes request. The exact integrated materialization

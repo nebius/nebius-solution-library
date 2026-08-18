@@ -20,6 +20,7 @@ apply_patch_file() {
   patch \
     --batch \
     --forward \
+    --fuzz=0 \
     --no-backup-if-mismatch \
     --reject-file=- \
     -p1 \
@@ -50,6 +51,7 @@ apply_patch_file "${script_dir}/compliance-closure.patch"
 apply_patch_file "${script_dir}/source-archive-fix.patch"
 apply_patch_file "${script_dir}/portable-glibc35-toolchain.patch"
 apply_patch_file "${script_dir}/buffered-criu-io.patch"
+apply_patch_file "${script_dir}/jammy-compliance-tomli.patch"
 cp -a "${script_dir}/overlay/." "${destination}/"
 
 if find "${destination}" -type f \( -name '*.orig' -o -name '*.rej' \) -print -quit \

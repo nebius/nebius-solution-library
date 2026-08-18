@@ -29,6 +29,7 @@ readonly closure_patch_file="${script_dir}/compliance-closure.patch"
 readonly source_archive_patch_file="${script_dir}/source-archive-fix.patch"
 readonly portable_toolchain_patch_file="${script_dir}/portable-glibc35-toolchain.patch"
 readonly buffered_io_patch_file="${script_dir}/buffered-criu-io.patch"
+readonly jammy_compliance_patch_file="${script_dir}/jammy-compliance-tomli.patch"
 readonly overlay_dir="${script_dir}/overlay"
 
 apply_checked_patch() {
@@ -36,6 +37,7 @@ apply_checked_patch() {
   local patch_args=(
     --batch
     --forward
+    --fuzz=0
     --no-backup-if-mismatch
     --reject-file=-
     -p1
@@ -83,6 +85,7 @@ apply_checked_patch "${closure_patch_file}"
 apply_checked_patch "${source_archive_patch_file}"
 apply_checked_patch "${portable_toolchain_patch_file}"
 apply_checked_patch "${buffered_io_patch_file}"
+apply_checked_patch "${jammy_compliance_patch_file}"
 cp -a "${overlay_dir}/." "${tmp_dir}/"
 
 if find "${tmp_dir}" -type f \( -name '*.orig' -o -name '*.rej' \) -print -quit \
@@ -154,6 +157,8 @@ grep -F 'return nil, nil' \
   "${tmp_dir}/deploy/snapshot/internal/criu/util.go" >/dev/null
 grep -F '"writeback", "direct", "buffered"' \
   "${tmp_dir}/deploy/snapshot/internal/types/config.go" >/dev/null
+grep -F 'python3 python3-yaml python3-tomli' \
+  "${tmp_dir}/deploy/snapshot/Dockerfile" >/dev/null
 grep -F 'RequireCleanUnmount bool' \
   "${tmp_dir}/deploy/snapshot/internal/executor/restore.go" >/dev/null
 grep -F 'openPinnedRestoreNamespaces(snapshotruntime.HostProcPath' \
@@ -201,6 +206,8 @@ test "$(sha256sum "${portable_toolchain_patch_file}" | cut -d' ' -f1)" = \
   '62d584ea83770c62d090bbbc15f265a6fadda064ec8c6e6a4fd0abe8328780b9'
 test "$(sha256sum "${buffered_io_patch_file}" | cut -d' ' -f1)" = \
   '6a59dcb524abd0d9596697efd28afb3bd9d4e543b193f687178494452cecac15'
+test "$(sha256sum "${jammy_compliance_patch_file}" | cut -d' ' -f1)" = \
+  '6fa58bcdf97c54f8ecd75e2a685150bd1ae5cede71283eb8fc9aa88bacf87156'
 test "$(sha256sum "${script_dir}/Dockerfile.restore-worker" | cut -d' ' -f1)" = \
   'f0fb42c68ad7bf8dd39e27a5e070a1613953e7ec2cac0f19027cbea63a509570'
 test "$(sha256sum "${overlay_dir}/deploy/snapshot/scripts/verify-bundle-glibc.sh" | cut -d' ' -f1)" = \
