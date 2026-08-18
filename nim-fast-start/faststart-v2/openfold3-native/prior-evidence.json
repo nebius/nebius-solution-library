@@ -1,0 +1,47 @@
+{
+  "schema": "archvteams.nebius.ai/openfold3-retained-baseline/v1",
+  "status": "PASS",
+  "source": {
+    "path": "/home/tux/.local/state/archvteams-2407/openfold3-h100-faststart-20260817T231544Z/results.json",
+    "bytes": 5710,
+    "sha256": "f2b3832a91bb745c678589bf16c378ca2f2aac7d3d3064c21b714aa8ab6b7236"
+  },
+  "execution_identity": {
+    "node": "computeinstance-e00hf93cfnsgaxygn3",
+    "gpu": "NVIDIA H100",
+    "gpu_count": 1,
+    "image": "nvcr.io/nim/openfold/openfold3@sha256:6286cc7c02247ed3efe42f0f1af6c2f6f6a680b1e5cae669512c44b636aa42d2"
+  },
+  "semantic_fixture": {
+    "path": "fixtures/request-20aa.json",
+    "bytes": 532,
+    "sha256": "09b30bf2132e3764f99d4f417b47713cd6350bd332fe3100cceb1be11589f8ae",
+    "endpoint": "/biology/openfold/openfold3/predict",
+    "calls_per_trial": 2
+  },
+  "conventional_start": {
+    "pod_creation_to_ready_seconds": 202.0,
+    "container_start_to_ready_seconds": 181.0,
+    "model_cache_bytes": 3305746737,
+    "model_cache_file_count": 10,
+    "uvloop_absent_before_capture": true
+  },
+  "checkpoint": {
+    "regular_file_count": 154,
+    "regular_file_bytes": 9346630368
+  },
+  "retained_page_cache_n3_medians_seconds": {
+    "criu_restore": 4.249,
+    "manual_cuda_restore_unlock": 0.688,
+    "http_ready": 5.454,
+    "first_semantic_response": 8.375062,
+    "second_semantic_response": 8.474428,
+    "restore_through_two_semantic_responses": 22.298048
+  },
+  "cold_root_disk_n1_seconds": {
+    "criu_restore": 67.978,
+    "http_ready": 69.44,
+    "restore_through_two_semantic_responses": 90.322516
+  },
+  "qualification_note": "These are retained experimental baselines, not production-shaped Dynamo qualification results."
+}
