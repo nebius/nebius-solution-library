@@ -26,6 +26,8 @@ except ImportError:  # pragma: no cover - package import path
 RECEIPT_SCHEMA = "archvteams.nebius.ai/openfold2-production-canary-evidence/v2"
 WORKER_RECEIPT_SCHEMA = "archvteams.nebius.ai/dynamo-one-shot-restore-receipt/v1"
 POD_SPEC_HASH_KEY = "archvteams.nebius.ai/target-pod-spec-sha256"
+QUALIFICATION_SCHEMA = "archvteams.nebius.ai/warm-instance-qualification/v1"
+ACCEPTANCE_RESPONSE_PROXY = "client-observed-api-create-response-return/v1"
 
 
 class EvidenceError(ValueError):
@@ -254,6 +256,8 @@ def build_evidence(
     probe_pod: dict[str, Any],
     semantic_summary: dict[str, Any],
     target_submit_at: str,
+    target_create_response_at: str | None = None,
+    qualification_receipt: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     try:
         contract = render.validate_contract(contract)
@@ -303,6 +307,13 @@ def build_evidence(
         raise EvidenceError("target container identity changed after binding")
 
     demand = _timestamp(target_submit_at, "target submit/T0")
+    acceptance_response = None
+    if target_create_response_at is not None:
+        acceptance_response = _timestamp(
+            target_create_response_at, "client-observed target create response"
+        )
+        if acceptance_response < demand:
+            raise EvidenceError("target create response precedes request dispatch")
     target_created = _timestamp(target_metadata.get("creationTimestamp"), "target creation")
     scheduled = _condition_time(target, "PodScheduled")
     ready = _condition_time(target, "Ready")
@@ -492,6 +503,117 @@ def build_evidence(
     if worker_completed < worker_finished or probe_completed < probe_finished:
         raise EvidenceError("Job completion precedes its successful container finish")
 
+    if qualification_receipt is not None:
+        expected_qualification_target = {
+            "namespace": render.NAMESPACE,
+            "name": target_name,
+            "uid": binding["pod_uid"],
+            "pod_spec_sha256": binding["pod_spec_sha256"],
+            "image": render.NIM_IMAGE,
+        }
+        if (
+            qualification_receipt.get("schema") != QUALIFICATION_SCHEMA
+            or qualification_receipt.get("status") != "PASS"
+            or qualification_receipt.get("model") != "openfold2"
+            or qualification_receipt.get("run_id") != run_id
+            or qualification_receipt.get("target") != expected_qualification_target
+            or qualification_receipt.get("warm_instance", {}).get(
+                "target_image_already_present_before_t0"
+            )
+            is not True
+            or qualification_receipt.get("warm_instance", {}).get(
+                "target_image_pull_or_download_after_t0"
+            )
+            is not False
+            or qualification_receipt.get("gpu_health", {}).get("status") != "PASS"
+            or qualification_receipt.get("gpu_health", {})
+            .get("host_xid_check", {})
+            .get("status")
+            != "unavailable"
+        ):
+            raise EvidenceError("warm-instance qualification receipt does not match the trial")
+        proxy = qualification_receipt.get("timing_boundaries", {}).get(
+            "acceptance_response_proxy", {}
+        )
+        if (
+            target_create_response_at is None
+            or proxy.get("label") != ACCEPTANCE_RESPONSE_PROXY
+            or proxy.get("timestamp") != target_create_response_at
+            or proxy.get("is_exact_server_acceptance") is not False
+        ):
+            raise EvidenceError("acceptance-response proxy receipt is missing or mislabeled")
+
+    timings_seconds = {
+        "demand_to_target_created": _coarse_kubernetes_seconds(
+            demand, target_created, "target creation"
+        ),
+        "demand_to_scheduled": _coarse_kubernetes_seconds(
+            demand, scheduled, "target scheduling"
+        ),
+        "demand_to_placeholder_running": _seconds(
+            demand, placeholder_started, "placeholder start"
+        ),
+        "demand_to_worker_started": _seconds(demand, worker_started, "worker start"),
+        "demand_to_restore_receipt": _seconds(
+            demand, receipt_completed, "restore receipt"
+        ),
+        "demand_to_http_ready": _seconds(demand, http_ready, "HTTP readiness"),
+        "demand_to_kubernetes_ready": _kubernetes_seconds(demand, ready),
+        "demand_to_two_semantic_responses": _seconds(
+            demand, second_response_received, "two semantic responses"
+        ),
+        "demand_to_first_semantic_response": _seconds(
+            demand,
+            _timestamp(
+                semantic_summary["cases"][0]["response_received_at"],
+                "first semantic response",
+            ),
+            "first semantic response",
+        ),
+        "worker_restore": round(duration_ms / 1000, 6),
+        "semantic_probe_validation_total": round(
+            float(semantic_summary.get("validation_total_elapsed_seconds")), 6
+        ),
+        "semantic_request_1": case_elapsed[0],
+        "semantic_request_2": case_elapsed[1],
+    }
+    if acceptance_response is not None:
+        if acceptance_response > probe_started:
+            raise EvidenceError("target create response follows semantic probe start")
+        proxy_ready_seconds = (ready - acceptance_response).total_seconds()
+        if proxy_ready_seconds < 0:
+            if abs(proxy_ready_seconds) >= 1:
+                raise EvidenceError(
+                    "Kubernetes Ready precedes create-response proxy by at least one second"
+                )
+            proxy_ready_seconds = 0.0
+        timings_seconds.update(
+            {
+                "target_create_api_round_trip": _seconds(
+                    demand, acceptance_response, "target create API round trip"
+                ),
+                "acceptance_response_proxy_to_http_ready": _seconds(
+                    acceptance_response, http_ready, "proxy to HTTP readiness"
+                ),
+                "acceptance_response_proxy_to_kubernetes_ready": round(
+                    proxy_ready_seconds, 6
+                ),
+                "acceptance_response_proxy_to_two_semantic_responses": _seconds(
+                    acceptance_response,
+                    second_response_received,
+                    "proxy to two semantic responses",
+                ),
+                "acceptance_response_proxy_to_first_semantic_response": _seconds(
+                    acceptance_response,
+                    _timestamp(
+                        semantic_summary["cases"][0]["response_received_at"],
+                        "first semantic response",
+                    ),
+                    "proxy to first semantic response",
+                ),
+            }
+        )
+
     return {
         "schema": RECEIPT_SCHEMA,
         "status": "PASS",
@@ -499,6 +621,8 @@ def build_evidence(
         "request_count": 2,
         "response_timing_contract": semantic_summary["response_timing_contract"],
         "semantic_pass_count": 2,
+        "checkpoint_id": run["checkpoint_id"],
+        "artifact_manifest_sha256": run["artifact_manifest_sha256"],
         "demand_at": target_submit_at,
         "t0_at": target_submit_at,
         "t0_source": "target-submit-at.txt",
@@ -513,32 +637,7 @@ def build_evidence(
             "service": service_name,
             "cluster_ip": service_spec["clusterIP"],
         },
-        "timings_seconds": {
-            "demand_to_target_created": _coarse_kubernetes_seconds(
-                demand, target_created, "target creation"
-            ),
-            "demand_to_scheduled": _coarse_kubernetes_seconds(
-                demand, scheduled, "target scheduling"
-            ),
-            "demand_to_placeholder_running": _seconds(
-                demand, placeholder_started, "placeholder start"
-            ),
-            "demand_to_worker_started": _seconds(demand, worker_started, "worker start"),
-            "demand_to_restore_receipt": _seconds(
-                demand, receipt_completed, "restore receipt"
-            ),
-            "demand_to_http_ready": _seconds(demand, http_ready, "HTTP readiness"),
-            "demand_to_kubernetes_ready": _kubernetes_seconds(demand, ready),
-            "demand_to_two_semantic_responses": _seconds(
-                demand, second_response_received, "two semantic responses"
-            ),
-            "worker_restore": round(duration_ms / 1000, 6),
-            "semantic_probe_validation_total": round(
-                float(semantic_summary.get("validation_total_elapsed_seconds")), 6
-            ),
-            "semantic_request_1": case_elapsed[0],
-            "semantic_request_2": case_elapsed[1],
-        },
+        "timings_seconds": timings_seconds,
         "evidence": {
             "worker_completed_at": worker_receipt["completed_at"],
             "worker_job_completed_at": worker_completed.isoformat(),
@@ -551,6 +650,7 @@ def build_evidence(
             "validation_finished_at": semantic_summary["validation_finished_at"],
             "validator": semantic_summary["validator"],
         },
+        "qualification": qualification_receipt,
     }
 
 
@@ -572,6 +672,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ):
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--target-submit-at", type=Path, required=True)
+    parser.add_argument("--target-create-response-at", type=Path, required=True)
+    parser.add_argument("--qualification-receipt", type=Path, required=True)
     return parser.parse_args(argv)
 
 
@@ -598,6 +700,13 @@ def main(argv: list[str] | None = None) -> int:
                 _load(args.semantic_summary, "semantic summary"), "semantic summary"
             ),
             target_submit_at=args.target_submit_at.read_text(encoding="utf-8").strip(),
+            target_create_response_at=args.target_create_response_at.read_text(
+                encoding="utf-8"
+            ).strip(),
+            qualification_receipt=_object(
+                _load(args.qualification_receipt, "qualification receipt"),
+                "qualification receipt",
+            ),
         )
     except (EvidenceError, render.RenderError) as exc:
         print(f"evidence: refused: {exc}", file=sys.stderr)

@@ -1,20 +1,116 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
-if [[ $# -lt 1 || $# -gt 2 ]]; then
-  echo "usage: $0 RUN_ID [--cleanup]" >&2
-  exit 64
-fi
+umask 077
 
-run_id=$1
-cleanup=${2:-}
+run_id=""
+cleanup=0
 checkpoint_id=${B2_CHECKPOINT_ID:-boltz2-native-f7-v1}
 artifact_manifest_sha256=${B2_ARTIFACT_MANIFEST_SHA256:-6539b9f50a71c9f5fb6a3fbacd44f5d5ea41003539b6563682a38600d1492456}
-kubeconfig=/home/tux/.local/state/archvteams-2407/openfold2-snapshot/private/kubeconfig
+readonly expected_checkpoint_id="boltz2-native-f7-v1"
+readonly expected_artifact_manifest_sha256="6539b9f50a71c9f5fb6a3fbacd44f5d5ea41003539b6563682a38600d1492456"
+readonly expected_contract_sha256="c7e852ac8b63ae793391904b094293a8cedb1dc91bca30f3c96fb2700374308b"
 namespace=nim-fast-start
-node=computeinstance-e00t12crqg6tw0kz65
 code_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-root=/home/tux/.local/state/archvteams-2407/boltz2-native-f7-20260818T0310Z
+readonly code_dir
+readonly qualification_collector="${code_dir}/../performance/qualification_receipt.py"
+readonly manifest_splitter="${code_dir}/../performance/split_manifest.py"
+readonly uid_cleanup_library="${code_dir}/../performance/uid_cleanup.sh"
+readonly clock_sample_library="${code_dir}/../performance/clock_sample.sh"
+# shellcheck source=../performance/uid_cleanup.sh
+source "$uid_cleanup_library"
+# shellcheck source=../performance/clock_sample.sh
+source "$clock_sample_library"
+kubeconfig=""
+node=""
+root=""
+artifact_holder=""
+cache_holder=""
+cohort_id=""
+attempt_index=""
+attempt_ledger=""
+
+usage() {
+  cat >&2 <<'USAGE'
+usage: run_one_native_trial.sh \
+  --run-id RUN_ID \
+  --evidence-root ABSOLUTE_DIRECTORY \
+  --node ALLOWED_H100_HOSTNAME \
+  --kubeconfig ABSOLUTE_FILE \
+  --artifact-holder READY_POD \
+  --cache-holder READY_POD [--cleanup] \
+  [--cohort-id DNS_LABEL --attempt-index POSITIVE_INTEGER \
+   --attempt-ledger ABSOLUTE_APPEND_ONLY_NDJSON]
+
+Legacy compatibility: run_one_native_trial.sh RUN_ID [--cleanup] uses the
+retained ARCHVTEAMS-2407 t12 evidence paths and holders.
+USAGE
+}
+
+die_usage() { printf '%s\n' "$1" >&2; usage; exit 64; }
+
+set_once() {
+  local option_name=$1 current_value=$2 new_value=$3
+  [[ -z $current_value ]] || die_usage "${option_name} may be supplied only once"
+  [[ -n $new_value ]] || die_usage "${option_name} requires a nonempty value"
+}
+
+if (($# >= 1)) && [[ $1 != --* ]]; then
+  (($# <= 2)) || die_usage "legacy form accepts only RUN_ID [--cleanup]"
+  run_id=$1
+  [[ ${2:-} != --cleanup ]] || cleanup=1
+  [[ -z ${2:-} || ${2:-} == --cleanup ]] || \
+    die_usage "legacy second argument must be --cleanup"
+  kubeconfig=/home/tux/.local/state/archvteams-2407/openfold2-snapshot/private/kubeconfig
+  node=computeinstance-e00t12crqg6tw0kz65
+  root=/home/tux/.local/state/archvteams-2407/boltz2-native-f7-20260818T0310Z
+  artifact_holder=of2-artifact-holder-t12
+  cache_holder=boltz2-cache-holder-r3-t12
+else
+  while (($# > 0)); do
+    case "$1" in
+      --run-id)
+        (($# >= 2)) || die_usage "--run-id requires a value"
+        set_once --run-id "$run_id" "$2"; run_id=$2; shift 2 ;;
+      --evidence-root)
+        (($# >= 2)) || die_usage "--evidence-root requires a value"
+        set_once --evidence-root "$root" "$2"; root=$2; shift 2 ;;
+      --node)
+        (($# >= 2)) || die_usage "--node requires a value"
+        set_once --node "$node" "$2"; node=$2; shift 2 ;;
+      --kubeconfig)
+        (($# >= 2)) || die_usage "--kubeconfig requires a value"
+        set_once --kubeconfig "$kubeconfig" "$2"; kubeconfig=$2; shift 2 ;;
+      --artifact-holder)
+        (($# >= 2)) || die_usage "--artifact-holder requires a value"
+        set_once --artifact-holder "$artifact_holder" "$2"; artifact_holder=$2; shift 2 ;;
+      --cache-holder)
+        (($# >= 2)) || die_usage "--cache-holder requires a value"
+        set_once --cache-holder "$cache_holder" "$2"; cache_holder=$2; shift 2 ;;
+      --cleanup)
+        ((cleanup == 0)) || die_usage "--cleanup may be supplied only once"
+        cleanup=1; shift ;;
+      --cohort-id)
+        (($# >= 2)) || die_usage "--cohort-id requires a value"
+        set_once --cohort-id "$cohort_id" "$2"; cohort_id=$2; shift 2 ;;
+      --attempt-index)
+        (($# >= 2)) || die_usage "--attempt-index requires a value"
+        set_once --attempt-index "$attempt_index" "$2"; attempt_index=$2; shift 2 ;;
+      --attempt-ledger)
+        (($# >= 2)) || die_usage "--attempt-ledger requires a value"
+        set_once --attempt-ledger "$attempt_ledger" "$2"; attempt_ledger=$2; shift 2 ;;
+      --help|-h)
+        usage; exit 0 ;;
+      *)
+        die_usage "unknown argument: $1" ;;
+    esac
+  done
+fi
+
+[[ -n $run_id && -n $root && -n $node && -n $kubeconfig ]] || \
+  die_usage "run ID, evidence root, node, and kubeconfig are required"
+[[ -n $artifact_holder && -n $cache_holder ]] || \
+  die_usage "artifact and cache holders are required"
 run_dir="$root/runs/$run_id"
 target="b2-target-$run_id"
 worker="b2-restore-$run_id"
@@ -25,13 +121,58 @@ if [[ ! $run_id =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ || ${#run_id} -gt 30 ]]; then
   echo "invalid run ID" >&2
   exit 64
 fi
-if [[ -e $run_dir ]]; then
+for holder in "$artifact_holder" "$cache_holder"; do
+  [[ $holder =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ && ${#holder} -le 63 ]] || \
+    die_usage "holder names must be DNS labels"
+done
+case "$node" in
+  computeinstance-e00t12crqg6tw0kz65|computeinstance-e00hf93cfnsgaxygn3|computeinstance-e00rvx892g3q63zws1)
+    ;;
+  *) die_usage "--node is not an allowlisted H100 hostname" ;;
+esac
+[[ $root == /* && -d $root && ! -L $root ]] || \
+  die_usage "--evidence-root must be an existing absolute non-symlink directory"
+[[ -d $root/runs && ! -L $root/runs ]] || \
+  die_usage "--evidence-root/runs must be an existing non-symlink directory"
+[[ $kubeconfig == /* && -f $kubeconfig && ! -L $kubeconfig ]] || \
+  die_usage "--kubeconfig must be an absolute regular non-symlink file"
+
+cohort_option_count=0
+[[ -z $cohort_id ]] || cohort_option_count=$((cohort_option_count + 1))
+[[ -z $attempt_index ]] || cohort_option_count=$((cohort_option_count + 1))
+[[ -z $attempt_ledger ]] || cohort_option_count=$((cohort_option_count + 1))
+if ((cohort_option_count != 0 && cohort_option_count != 3)); then
+  die_usage "cohort ID, attempt index, and attempt ledger must be supplied together"
+fi
+if ((cohort_option_count == 3)); then
+  [[ $cohort_id =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ && ${#cohort_id} -le 40 ]] || \
+    die_usage "--cohort-id must be a DNS label of at most 40 characters"
+  [[ $attempt_index =~ ^[1-9][0-9]*$ ]] || \
+    die_usage "--attempt-index must be a positive integer"
+  [[ $attempt_ledger == /* && -f $attempt_ledger && ! -L $attempt_ledger ]] || \
+    die_usage "--attempt-ledger must be an absolute regular non-symlink file"
+  ((cleanup == 1)) || die_usage "cohort attempts require --cleanup"
+  [[ $checkpoint_id == "$expected_checkpoint_id" && \
+     $artifact_manifest_sha256 == "$expected_artifact_manifest_sha256" ]] || \
+    die_usage "fresh cohorts forbid Boltz2 checkpoint/artifact environment overrides"
+fi
+if [[ -e $run_dir || -L $run_dir ]]; then
   echo "run directory already exists: $run_dir" >&2
   exit 73
 fi
-if [[ $cleanup != "" && $cleanup != "--cleanup" ]]; then
-  echo "second argument must be --cleanup" >&2
-  exit 64
+
+for required_command in kubectl jq python3 sha256sum date install tail sleep mv rm curl; do
+  command -v "$required_command" >/dev/null || {
+    printf 'required command is unavailable: %s\n' "$required_command" >&2
+    exit 69
+  }
+done
+
+actual_contract_sha256=$(sha256sum "$code_dir/restore-interface.live.json")
+actual_contract_sha256=${actual_contract_sha256%% *}
+if [[ $actual_contract_sha256 != "$expected_contract_sha256" ]]; then
+  printf 'immutable Boltz2 restore contract digest mismatch\n' >&2
+  exit 78
 fi
 
 server=$(kubectl --kubeconfig "$kubeconfig" config view --minify -o jsonpath='{.clusters[0].cluster.server}')
@@ -39,19 +180,254 @@ if [[ $server != "https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebiu
   echo "kubeconfig is not bound to the allowed cluster" >&2
   exit 78
 fi
-for holder in of2-artifact-holder-t12 boltz2-cache-holder-r3-t12; do
-  if [[ $(kubectl --kubeconfig "$kubeconfig" -n "$namespace" get pod "$holder" -o jsonpath='{.status.containerStatuses[0].ready}') != true ]]; then
-    echo "required holder is not Ready: $holder" >&2
+trial_kubectl=(kubectl --kubeconfig "$kubeconfig" -n "$namespace")
+artifact_holder_json=""
+artifact_holder_checked_at=""
+artifact_holder_mount_json=""
+cache_holder_json=""
+cache_holder_checked_at=""
+cache_holder_mount_json=""
+for holder in "$artifact_holder" "$cache_holder"; do
+  holder_json=$("${trial_kubectl[@]}" get pod "$holder" -o json)
+  if ! jq -e --arg node "$node" '
+    .spec.nodeName == $node and
+    any(.status.conditions[]?; .type == "Ready" and .status == "True") and
+    ((.status.containerStatuses // []) | length > 0) and
+    all(.status.containerStatuses[]?; .ready == true)
+  ' <<<"$holder_json" >/dev/null; then
+    echo "required holder is not Ready on the requested node: $holder" >&2
     exit 69
   fi
+  holder_checked_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
+  if [[ $holder == "$artifact_holder" ]]; then
+    holder_claim=mlspec-archvteams-2407-ckpt-m3
+  else
+    holder_claim=boltz2-nim-cache-native-f7-r3
+  fi
+  holder_mount=$(
+    jq -er --arg claim "$holder_claim" '
+      [.spec.volumes[]? |
+        select(.persistentVolumeClaim.claimName == $claim) | .name] as $names |
+      select(($names | length) == 1) |
+      [.spec.containers[]? as $container |
+        $container.volumeMounts[]? |
+        select(.name == $names[0]) |
+        [$container.name, $names[0], .mountPath]] |
+      select(length == 1) | .[0] | @tsv
+    ' <<<"$holder_json"
+  ) || {
+    printf 'holder does not mount the reviewed PVC exactly once: %s\n' "$holder" >&2
+    exit 69
+  }
+  IFS=$'\t' read -r holder_container holder_volume holder_mount_path <<<"$holder_mount"
+  "${trial_kubectl[@]}" exec "pod/$holder" -c "$holder_container" -- \
+    /bin/test -d "$holder_mount_path" || {
+    printf 'holder PVC mount is not accessible: %s\n' "$holder" >&2
+    exit 69
+  }
+  holder_mount_checked_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
+  holder_mount_json=$(jq -nc --arg checked_at "$holder_mount_checked_at" \
+    --arg claim "$holder_claim" \
+    --arg container "$holder_container" --arg volume "$holder_volume" \
+    --arg mount_path "$holder_mount_path" \
+    '{checked_at:$checked_at,claim:$claim,container:$container,volume_name:$volume,
+      mount_path:$mount_path,command:["/bin/test","-d",$mount_path],
+      status:"PASS",exit_code:0}')
+  if [[ $holder == "$artifact_holder" ]]; then
+    artifact_holder_json=$holder_json
+    artifact_holder_checked_at=$holder_checked_at
+    artifact_holder_mount_json=$holder_mount_json
+  else
+    cache_holder_json=$holder_json
+    cache_holder_checked_at=$holder_checked_at
+    cache_holder_mount_json=$holder_mount_json
+  fi
 done
-if kubectl --kubeconfig "$kubeconfig" -n "$namespace" get daemonset archvteams-2407-native-snapshot-agent >/dev/null 2>&1; then
-  echo "native capture agent must be absent during restore" >&2
+if ! capture_agent_list=$("${trial_kubectl[@]}" get daemonsets -o json); then
+  echo "could not prove native capture agent absence" >&2
   exit 69
 fi
+if ((${#capture_agent_list} > 1048576)) || ! jq -e '
+  (.kind == "DaemonSetList" or .kind == "List") and
+  (.items | type == "array") and
+  ([.items[]? | select(.metadata.name == "archvteams-2407-native-snapshot-agent")]
+    | length) == 0
+' <<<"$capture_agent_list" >/dev/null; then
+  echo "native capture agent is present or its absence receipt is malformed" >&2
+  exit 69
+fi
+capture_agent_checked_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
 
-install -d -m 700 "$root/runs"
+target_create_attempted=0
+target_support_create_attempted=0
+probe_create_attempted=0
+worker_create_attempted=0
+trial_admitted=0
+
+append_admission_event() {
+  local admitted_at=$1 runner_sha256
+  [[ -n $attempt_ledger ]] || return 0
+  runner_sha256=$(sha256sum "${BASH_SOURCE[0]}")
+  runner_sha256=${runner_sha256%% *}
+  jq -nc \
+    --arg schema "archvteams.nebius.ai/fresh-cohort-ledger-event/v1" \
+    --arg event "admitted" \
+    --arg cohort_id "$cohort_id" \
+    --arg model "boltz2" \
+    --arg run_id "$run_id" \
+    --arg admitted_at "$admitted_at" \
+    --arg trial_dir "$run_dir" \
+    --arg runner_sha256 "$runner_sha256" \
+    --argjson attempt_index "$attempt_index" \
+    '{schema:$schema,event:$event,cohort_id:$cohort_id,model:$model,
+      attempt_index:$attempt_index,run_id:$run_id,admitted_at:$admitted_at,
+      trial_dir:$trial_dir,runner_sha256:$runner_sha256}' \
+    >> "$attempt_ledger"
+}
+
+write_cleanup_receipt() {
+  local original_exit_code=$1
+  local cleanup_started_at cleanup_completed_at cleanup_status
+  local cleanup_failure=0
+  local resources_file="$run_dir/.cleanup-resources.ndjson"
+  local receipt_partial="$run_dir/.cleanup-receipt.json.partial"
+  cleanup_started_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
+  : > "$resources_file"
+  : > "$run_dir/cleanup.log"
+
+  if ((cleanup == 1)) && \
+    ((target_support_create_attempted == 1 || target_create_attempted == 1 || \
+      worker_create_attempted == 1 || probe_create_attempted == 1)); then
+    uid_cleanup_start_proxy trial_kubectl "$run_dir" \
+      "$run_dir/cleanup.log" || cleanup_failure=1
+  fi
+
+  uid_cleanup_group trial_kubectl "$namespace" "$cleanup" \
+    semantic-probe "$run_dir/probe-create-response.json" \
+    "$probe_create_attempted" 2 120s \
+    "$run_dir/cleanup.log" "$resources_file" "$run_dir" || cleanup_failure=1
+  uid_cleanup_group trial_kubectl "$namespace" "$cleanup" \
+    restore-worker "$run_dir/worker-create-response.json" \
+    "$worker_create_attempted" 4 120s \
+    "$run_dir/cleanup.log" "$resources_file" "$run_dir" || cleanup_failure=1
+  uid_cleanup_group trial_kubectl "$namespace" "$cleanup" \
+    target "$run_dir/target-create-response.json" \
+    "$target_create_attempted" 1 180s \
+    "$run_dir/cleanup.log" "$resources_file" "$run_dir" || cleanup_failure=1
+  uid_cleanup_group trial_kubectl "$namespace" "$cleanup" \
+    target-support "$run_dir/target-support-create-response.json" \
+    "$target_support_create_attempted" 4 120s \
+    "$run_dir/cleanup.log" "$resources_file" "$run_dir" || cleanup_failure=1
+  uid_cleanup_stop_proxy
+
+  cleanup_completed_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
+  if ((cleanup == 0)); then
+    cleanup_status="NOT_REQUESTED"
+  elif ((cleanup_failure == 0)); then
+    cleanup_status="PASS"
+  else
+    cleanup_status="FAIL"
+  fi
+  if jq -s \
+    --arg schema "archvteams.nebius.ai/run-cleanup-receipt/v1" \
+    --arg run_id "$run_id" \
+    --arg status "$cleanup_status" \
+    --arg started_at "$cleanup_started_at" \
+    --arg completed_at "$cleanup_completed_at" \
+    --argjson requested "$([[ $cleanup == 1 ]] && printf true || printf false)" \
+    --argjson original_exit_code "$original_exit_code" \
+    '{schema:$schema,run_id:$run_id,status:$status,requested:$requested,
+      original_runner_exit_code:$original_exit_code,started_at:$started_at,
+      completed_at:$completed_at,resources:.}' \
+    "$resources_file" > "$receipt_partial"; then
+    mv -- "$receipt_partial" "$run_dir/cleanup-receipt.json" || cleanup_failure=1
+  else
+    cleanup_failure=1
+  fi
+  rm -f -- "$resources_file" "$receipt_partial"
+  return "$cleanup_failure"
+}
+
+finalize_trial() {
+  local original_exit_code=$?
+  local cleanup_exit_code=0 final_exit_code cleanup_status completed_at
+  trap - EXIT
+  # Cleanup and receipt publication are the fail-closed critical section.  A
+  # second signal must not interrupt UID-preconditioned deletion halfway.
+  trap ':' INT TERM
+  set +e
+  write_cleanup_receipt "$original_exit_code"
+  cleanup_exit_code=$?
+  final_exit_code=$original_exit_code
+  if ((final_exit_code == 0 && cleanup_exit_code != 0)); then
+    final_exit_code=1
+  fi
+  cleanup_status=$(jq -r '.status' "$run_dir/cleanup-receipt.json" 2>/dev/null)
+  [[ -n $cleanup_status && $cleanup_status != null ]] || cleanup_status="FAIL"
+  completed_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
+  jq -n \
+    --arg schema "archvteams.nebius.ai/runner-attempt-result/v1" \
+    --arg run_id "$run_id" \
+    --arg model "boltz2" \
+    --arg completed_at "$completed_at" \
+    --arg cleanup_status "$cleanup_status" \
+    --argjson admitted "$([[ $trial_admitted == 1 ]] && printf true || printf false)" \
+    --argjson original_exit_code "$original_exit_code" \
+    --argjson final_exit_code "$final_exit_code" \
+    '{schema:$schema,run_id:$run_id,model:$model,admitted:$admitted,
+      completed_at:$completed_at,original_runner_exit_code:$original_exit_code,
+      cleanup_status:$cleanup_status,final_exit_code:$final_exit_code}' \
+    > "$run_dir/attempt-result.json" || final_exit_code=1
+  if ((trial_admitted == 1)) && [[ -n $attempt_ledger ]]; then
+    jq -nc \
+      --arg schema "archvteams.nebius.ai/fresh-cohort-ledger-event/v1" \
+      --arg event "completed" \
+      --arg cohort_id "$cohort_id" \
+      --arg model "boltz2" \
+      --arg run_id "$run_id" \
+      --arg completed_at "$completed_at" \
+      --arg trial_dir "$run_dir" \
+      --arg summary_path "$run_dir/trial-summary.json" \
+      --arg cleanup_receipt_path "$run_dir/cleanup-receipt.json" \
+      --arg cleanup_status "$cleanup_status" \
+      --argjson attempt_index "$attempt_index" \
+      --argjson runner_exit_code "$final_exit_code" \
+      '{schema:$schema,event:$event,cohort_id:$cohort_id,model:$model,
+        attempt_index:$attempt_index,run_id:$run_id,completed_at:$completed_at,
+        trial_dir:$trial_dir,summary_path:$summary_path,
+        cleanup_receipt_path:$cleanup_receipt_path,cleanup_status:$cleanup_status,
+        runner_exit_code:$runner_exit_code}' \
+      >> "$attempt_ledger" || final_exit_code=1
+  fi
+  exit "$final_exit_code"
+}
+
 mkdir -m 700 "$run_dir"
+trap finalize_trial EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+jq -n --arg checked_at "$artifact_holder_checked_at" \
+  --argjson pod "$artifact_holder_json" \
+  --argjson mount_verification "$artifact_holder_mount_json" \
+  '{schema:"archvteams.nebius.ai/warm-storage-holder-check/v1",
+    checked_at:$checked_at,pod:$pod,mount_verifications:[$mount_verification]}' \
+  > "$run_dir/artifact-holder.json"
+jq -n --arg checked_at "$cache_holder_checked_at" \
+  --argjson pod "$cache_holder_json" \
+  --argjson mount_verification "$cache_holder_mount_json" \
+  '{schema:"archvteams.nebius.ai/warm-storage-holder-check/v1",
+    checked_at:$checked_at,pod:$pod,mount_verifications:[$mount_verification]}' \
+  > "$run_dir/cache-holder.json"
+jq -n --arg checked_at "$capture_agent_checked_at" \
+  --argjson daemonset_list "$capture_agent_list" \
+  '{schema:"archvteams.nebius.ai/capture-agent-absence/v1",
+    checked_at:$checked_at,namespace:"nim-fast-start",
+    forbidden_name:"archvteams-2407-native-snapshot-agent",
+    daemonset_list:$daemonset_list,status:"PASS"}' \
+  > "$run_dir/capture-agent-absence.json"
+artifact_holder_uid=$(jq -er '.pod.metadata.uid' "$run_dir/artifact-holder.json")
+capture_target_clock_sample trial_kubectl "$artifact_holder" "$artifact_holder_uid" \
+  "$node" "" before-semantic "$run_dir/clock-sample-start.json"
 cp "$code_dir/restore-interface.live.json" "$run_dir/restore-interface.json"
 sha256sum "$run_dir/restore-interface.json" > "$run_dir/restore-interface.sha256"
 
@@ -77,14 +453,45 @@ jq -n \
 python3 "$code_dir/render.py" target \
   --contract "$run_dir/restore-interface.json" \
   --run-config "$run_dir/run.json" > "$run_dir/target.yaml"
-# Authoritative T0: keep this immediately adjacent to target creation.
+python3 "$manifest_splitter" \
+  --input "$run_dir/target.yaml" \
+  --output-directory "$run_dir/target-bundle" \
+  --bundle target > "$run_dir/target-bundle.json"
+target_support_manifests=("$run_dir"/target-bundle/support/*.json)
+[[ ${#target_support_manifests[@]} == 4 ]] || {
+  printf 'target support bundle is incomplete\n' >&2
+  exit 78
+}
+target_support_create_attempted=1
+if ! uid_create_bundle trial_kubectl \
+  "$run_dir/target-support-create-response.json" \
+  "$run_dir/target-support-create.log" \
+  "${target_support_manifests[@]}"; then
+  printf 'target support creation failed\n' >&2
+  exit 1
+fi
+trial_admitted_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
+append_admission_event "$trial_admitted_at"
+trial_admitted=1
+# Primary T0 is conservative pre-dispatch.  The timestamp captured immediately
+# after the JSON create response is a client-observed proxy, not server acceptance.
 date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$run_dir/target-submit-at.txt"
-kubectl --kubeconfig "$kubeconfig" create -f "$run_dir/target.yaml"
+target_create_attempted=1
+"${trial_kubectl[@]}" create -f "$run_dir/target-bundle/primary.json" -o json \
+  > "$run_dir/target-create-response.json" \
+  2> "$run_dir/target-create.stderr"
+date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$run_dir/target-create-response-at.txt"
+jq -e --arg name "$target" '
+  select(.apiVersion == "v1" and .kind == "Pod")
+  | select(.metadata.name == $name and .metadata.namespace == "nim-fast-start")
+  | select(.metadata.uid | type == "string" and length > 0)
+' "$run_dir/target-create-response.json" >/dev/null
 kubectl --kubeconfig "$kubeconfig" -n "$namespace" wait \
   --for=jsonpath='{.status.containerStatuses[0].state.running}' \
   "pod/$target" --timeout=300s
 kubectl --kubeconfig "$kubeconfig" -n "$namespace" get pod "$target" -o json \
   > "$run_dir/target-before-binding.json"
+target_uid=$(jq -er '.metadata.uid' "$run_dir/target-before-binding.json")
 
 python3 "$code_dir/bind_target.py" \
   --contract "$run_dir/restore-interface.json" \
@@ -105,15 +512,37 @@ python3 "$code_dir/render.py" probe \
   --contract "$run_dir/restore-interface.json" \
   --run-config "$run_dir/run.json" \
   --binding "$run_dir/binding.json" > "$run_dir/semantic-probe.yaml"
+python3 "$manifest_splitter" \
+  --input "$run_dir/semantic-probe.yaml" \
+  --output-directory "$run_dir/probe-bundle" \
+  --bundle semantic-probe > "$run_dir/probe-bundle.json"
+probe_support_manifests=("$run_dir"/probe-bundle/support/*.json)
 date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$run_dir/probe-submit-at.txt"
-kubectl --kubeconfig "$kubeconfig" create -f "$run_dir/semantic-probe.yaml"
+probe_create_attempted=1
+if ! uid_create_bundle trial_kubectl "$run_dir/probe-create-response.json" \
+  "$run_dir/probe-create.log" "${probe_support_manifests[@]}" \
+  "$run_dir/probe-bundle/primary.json"; then
+  printf 'semantic probe creation failed\n' >&2
+  exit 1
+fi
 
 python3 "$code_dir/render.py" restore \
   --contract "$run_dir/restore-interface.json" \
   --run-config "$run_dir/run.json" \
   --binding "$run_dir/binding.json" > "$run_dir/restore-worker.yaml"
+python3 "$manifest_splitter" \
+  --input "$run_dir/restore-worker.yaml" \
+  --output-directory "$run_dir/worker-bundle" \
+  --bundle restore-worker > "$run_dir/worker-bundle.json"
+worker_support_manifests=("$run_dir"/worker-bundle/support/*.json)
 date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$run_dir/worker-submit-at.txt"
-kubectl --kubeconfig "$kubeconfig" create -f "$run_dir/restore-worker.yaml"
+worker_create_attempted=1
+if ! uid_create_bundle trial_kubectl "$run_dir/worker-create-response.json" \
+  "$run_dir/worker-create.log" "${worker_support_manifests[@]}" \
+  "$run_dir/worker-bundle/primary.json"; then
+  printf 'restore worker creation failed\n' >&2
+  exit 1
+fi
 
 wait_for_job() {
   local name=$1
@@ -168,10 +597,46 @@ tail -1 "$run_dir/semantic-probe.log" | jq -e -c \
 
 kubectl --kubeconfig "$kubeconfig" -n "$namespace" get pod "$target" -o json \
   > "$run_dir/target-final.json"
+capture_target_clock_sample trial_kubectl "$target" "$target_uid" "$node" \
+  boltz2 after-semantic "$run_dir/clock-sample-end.json"
 kubectl --kubeconfig "$kubeconfig" -n "$namespace" get service "$canary" -o json \
   > "$run_dir/canary-service.json"
 kubectl --kubeconfig "$kubeconfig" -n "$namespace" get endpointslices.discovery.k8s.io \
   -l "kubernetes.io/service-name=$canary" -o json > "$run_dir/canary-endpointslices.json"
+
+target_uid=$(jq -er '.metadata.uid' "$run_dir/target-final.json")
+target_image=$(jq -er '
+  [.spec.containers[] | select(.name == "boltz2") | .image] |
+  select(length == 1) | .[0]
+' "$run_dir/target-final.json")
+"${trial_kubectl[@]}" get events \
+  --field-selector "involvedObject.uid=$target_uid" -o json \
+  > "$run_dir/target-events.json"
+"${trial_kubectl[@]}" exec "pod/$target" -c boltz2 -- \
+  nvidia-smi -q -x > "$run_dir/target-nvidia-smi.xml" \
+  2> "$run_dir/target-nvidia-smi.stderr"
+python3 "$qualification_collector" \
+  --model boltz2 \
+  --run-id "$run_id" \
+  --namespace "$namespace" \
+  --target-name "$target" \
+  --target-container boltz2 \
+  --expected-image "$target_image" \
+  --worker-container restore-worker \
+  --probe-container semantic-probe \
+  --target-submit-at "$run_dir/target-submit-at.txt" \
+  --target-create-response-at "$run_dir/target-create-response-at.txt" \
+  --target-create-response "$run_dir/target-create-response.json" \
+  --target-pod "$run_dir/target-final.json" \
+  --target-events "$run_dir/target-events.json" \
+  --worker-pod "$run_dir/worker-pod.json" \
+  --probe-pod "$run_dir/probe-pod.json" \
+  --gpu-health-xml "$run_dir/target-nvidia-smi.xml" \
+  --gpu-health-stderr "$run_dir/target-nvidia-smi.stderr" \
+  --clock-sample-start "$run_dir/clock-sample-start.json" \
+  --clock-sample-end "$run_dir/clock-sample-end.json" \
+  --capture-agent-absence "$run_dir/capture-agent-absence.json" \
+  > "$run_dir/qualification-receipt.json"
 
 python3 - "$run_dir" "$code_dir/.." <<'PY' > "$run_dir/trial-summary.json"
 import json
@@ -187,10 +652,38 @@ binding = json.loads((directory / "binding.json").read_text())
 worker = json.loads((directory / "worker-receipt.json").read_text())
 semantic = json.loads((directory / "semantic-summary.json").read_text())
 target = json.loads((directory / "target-final.json").read_text())
+qualification = json.loads((directory / "qualification-receipt.json").read_text())
 target_submit_at = (directory / "target-submit-at.txt").read_text().strip()
+target_create_response_at = (
+    directory / "target-create-response-at.txt"
+).read_text().strip()
 timings = build_timing_evidence(
-    run, semantic, target, target_submit_at=target_submit_at
+    run,
+    semantic,
+    target,
+    target_submit_at=target_submit_at,
+    target_create_response_at=target_create_response_at,
 )
+expected_qualification_target = {
+    "namespace": binding["namespace"],
+    "name": binding["pod_name"],
+    "uid": binding["pod_uid"],
+    "pod_spec_sha256": binding["pod_spec_sha256"],
+    "image": target["spec"]["containers"][0]["image"],
+}
+if (
+    qualification.get("schema")
+    != "archvteams.nebius.ai/warm-instance-qualification/v1"
+    or qualification.get("status") != "PASS"
+    or qualification.get("model") != "boltz2"
+    or qualification.get("run_id") != run["run_id"]
+    or qualification.get("target") != expected_qualification_target
+    or qualification.get("timing_boundaries", {})
+    .get("acceptance_response_proxy", {})
+    .get("is_exact_server_acceptance")
+    is not False
+):
+    raise ValueError("qualification receipt does not match the Boltz2 trial")
 result = {
     "schema": "archvteams.nebius.ai/boltz2-native-trial-summary/v1",
     "run_id": run["run_id"],
@@ -201,6 +694,7 @@ result = {
     "pod_spec_sha256": binding["pod_spec_sha256"],
     "worker_receipt": worker,
     "semantic": semantic,
+    "qualification": qualification,
     **timings,
 }
 print(json.dumps(result, sort_keys=True, indent=2))
@@ -208,11 +702,7 @@ PY
 
 jq '{run_id,status,demand_to_http_ready_seconds,demand_to_kubernetes_ready_seconds,
      semantic_request_1_seconds,semantic_request_2_seconds,demand_to_two_semantic_seconds,
+     target_create_api_round_trip_seconds,
+     acceptance_response_proxy_to_two_semantic_seconds,
      restore_seconds:(.worker_receipt.duration_ms / 1000)}' \
   "$run_dir/trial-summary.json"
-
-if [[ $cleanup == "--cleanup" ]]; then
-  kubectl --kubeconfig "$kubeconfig" delete -f "$run_dir/semantic-probe.yaml" --ignore-not-found --wait=true --timeout=120s
-  kubectl --kubeconfig "$kubeconfig" delete -f "$run_dir/restore-worker.yaml" --ignore-not-found --wait=true --timeout=120s
-  kubectl --kubeconfig "$kubeconfig" delete -f "$run_dir/target.yaml" --ignore-not-found --wait=true --timeout=180s
-fi

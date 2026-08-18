@@ -7,6 +7,27 @@ script_path=${1:?Python script path is required}
 shift
 script_name=${script_path##*/}
 
+if [[ $script_path == - ]]; then
+  run_dir=${1:?run directory is required}
+  /bin/cat >/dev/null
+  run_id=$(/usr/bin/jq -er '.run_id' "$run_dir/run.json")
+  printf '%s\n' "python-inline-summary" >> "$FAKE_CALL_LOG"
+  /usr/bin/jq -n --arg run_id "$run_id" '{
+    schema:"archvteams.nebius.ai/boltz2-native-trial-summary/v1",
+    run_id:$run_id,status:"PASS",
+    response_timing_contract:"request-dispatch-to-complete-http-body/v1",
+    demand_to_http_ready_seconds:25.0,
+    demand_to_kubernetes_ready_seconds:26.0,
+    semantic_request_1_seconds:1.4,
+    semantic_request_2_seconds:0.3,
+    demand_to_two_semantic_seconds:27.0,
+    target_create_api_round_trip_seconds:0.2,
+    acceptance_response_proxy_to_two_semantic_seconds:26.8,
+    worker_receipt:{duration_ms:18000}
+  }'
+  exit 0
+fi
+
 option_value() {
   local wanted=$1
   shift
@@ -34,6 +55,49 @@ case "$script_name" in
   lint_manifest.py)
     printf 'python-lint:%s\n' "${1##*/}" >> "$FAKE_CALL_LOG"
     ;;
+  split_manifest.py)
+    input_path=$(option_value --input "$@")
+    output_directory=$(option_value --output-directory "$@")
+    bundle=$(option_value --bundle "$@")
+    run_dir=$(dirname -- "$input_path")
+    run_id=$(/usr/bin/jq -er '.run_id' "$run_dir/run.json")
+    if [[ ${FAKE_MODEL:-openfold2} == boltz2 ]]; then
+      prefix=b2
+    else
+      prefix=of2
+    fi
+    mkdir -m 0700 "$output_directory" "$output_directory/support"
+    case "$bundle" in
+      target)
+        primary_kind=Pod; primary_api=v1; primary_name="${prefix}-target-${run_id}"
+        support_kinds=(Service Service NetworkPolicy NetworkPolicy)
+        support_apis=(v1 v1 networking.k8s.io/v1 networking.k8s.io/v1)
+        ;;
+      restore-worker)
+        primary_kind=Job; primary_api=batch/v1; primary_name="${prefix}-restore-${run_id}"
+        support_kinds=(ServiceAccount Role RoleBinding)
+        support_apis=(v1 rbac.authorization.k8s.io/v1 rbac.authorization.k8s.io/v1)
+        ;;
+      semantic-probe)
+        primary_kind=Job; primary_api=batch/v1; primary_name="${prefix}-semantic-${run_id}"
+        support_kinds=(ConfigMap); support_apis=(v1)
+        ;;
+      *) exit 97 ;;
+    esac
+    /usr/bin/jq -n --arg api "$primary_api" --arg kind "$primary_kind" \
+      --arg name "$primary_name" \
+      '{apiVersion:$api,kind:$kind,metadata:{name:$name,namespace:"nim-fast-start"}}' \
+      > "$output_directory/primary.json"
+    for ((index=0; index<${#support_kinds[@]}; index++)); do
+      /usr/bin/jq -n --arg api "${support_apis[$index]}" \
+        --arg kind "${support_kinds[$index]}" \
+        --arg name "${primary_name}-support-$index" \
+        '{apiVersion:$api,kind:$kind,metadata:{name:$name,namespace:"nim-fast-start"}}' \
+        > "$output_directory/support/$(printf '%02d' "$index")-${support_kinds[$index]}.json"
+    done
+    printf 'python-split:%s\n' "$bundle" >> "$FAKE_CALL_LOG"
+    /usr/bin/jq -n --arg bundle "$bundle" '{bundle:$bundle,status:"PASS"}'
+    ;;
   bind_target.py)
     binding_output=$(option_value --binding-output "$@")
     patch_output=$(option_value --patch-output "$@")
@@ -55,6 +119,19 @@ case "$script_name" in
         worker_restore:3.5,
         demand_to_two_semantic_responses:14.0
       }
+    }'
+    ;;
+  qualification_receipt.py)
+    run_id=$(option_value --run-id "$@")
+    model=$(option_value --model "$@")
+    printf '%s\n' "python-qualification" >> "$FAKE_CALL_LOG"
+    /usr/bin/jq -n --arg run_id "$run_id" --arg model "$model" '{
+      schema:"archvteams.nebius.ai/warm-instance-qualification/v1",
+      status:"PASS",model:$model,run_id:$run_id,
+      timing_boundaries:{acceptance_response_proxy:{
+        label:"client-observed-api-create-response-return/v1",
+        is_exact_server_acceptance:false
+      }}
     }'
     ;;
   *)

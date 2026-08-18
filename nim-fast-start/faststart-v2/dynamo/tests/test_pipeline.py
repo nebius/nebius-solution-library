@@ -302,6 +302,35 @@ def evidence_inputs() -> dict:
         "probe_pod": probe_pod,
         "semantic_summary": semantic,
         "target_submit_at": "2026-08-17T20:00:00Z",
+        "target_create_response_at": "2026-08-17T20:00:00.200000Z",
+        "qualification_receipt": {
+            "schema": "archvteams.nebius.ai/warm-instance-qualification/v1",
+            "status": "PASS",
+            "model": "openfold2",
+            "run_id": run_id,
+            "target": {
+                "namespace": render.NAMESPACE,
+                "name": f"of2-target-{run_id}",
+                "uid": POD_UID,
+                "pod_spec_sha256": binding["pod_spec_sha256"],
+                "image": render.NIM_IMAGE,
+            },
+            "timing_boundaries": {
+                "acceptance_response_proxy": {
+                    "label": "client-observed-api-create-response-return/v1",
+                    "timestamp": "2026-08-17T20:00:00.200000Z",
+                    "is_exact_server_acceptance": False,
+                }
+            },
+            "warm_instance": {
+                "target_image_already_present_before_t0": True,
+                "target_image_pull_or_download_after_t0": False,
+            },
+            "gpu_health": {
+                "status": "PASS",
+                "host_xid_check": {"status": "unavailable"},
+            },
+        },
     }
 
 
@@ -426,6 +455,20 @@ class EvidenceTests(unittest.TestCase):
             "2026-08-17T20:00:08.200000+00:00",
         )
         self.assertEqual(receipt["timings_seconds"]["worker_restore"], 1.5)
+        self.assertEqual(
+            receipt["timings_seconds"]["target_create_api_round_trip"], 0.2
+        )
+        self.assertEqual(
+            receipt["timings_seconds"][
+                "acceptance_response_proxy_to_two_semantic_responses"
+            ],
+            9.4,
+        )
+        self.assertFalse(
+            receipt["qualification"]["timing_boundaries"][
+                "acceptance_response_proxy"
+            ]["is_exact_server_acceptance"]
+        )
 
     def test_pre_submit_render_time_is_excluded_from_startup_metrics(self) -> None:
         inputs = evidence_inputs()
@@ -446,10 +489,18 @@ class EvidenceTests(unittest.TestCase):
     def test_submit_edge_tolerates_only_same_second_api_timestamp_quantization(self) -> None:
         inputs = evidence_inputs()
         inputs["target_submit_at"] = "2026-08-17T20:00:01.900000Z"
+        inputs["target_create_response_at"] = "2026-08-17T20:00:01.950000Z"
+        inputs["qualification_receipt"]["timing_boundaries"][
+            "acceptance_response_proxy"
+        ]["timestamp"] = inputs["target_create_response_at"]
         receipt = evidence.build_evidence(**inputs)
         self.assertEqual(receipt["timings_seconds"]["demand_to_target_created"], 0.0)
 
         inputs["target_submit_at"] = "2026-08-17T20:00:02.100000Z"
+        inputs["target_create_response_at"] = "2026-08-17T20:00:02.200000Z"
+        inputs["qualification_receipt"]["timing_boundaries"][
+            "acceptance_response_proxy"
+        ]["timestamp"] = inputs["target_create_response_at"]
         with self.assertRaisesRegex(evidence.EvidenceError, "target creation"):
             evidence.build_evidence(**inputs)
 
@@ -567,6 +618,8 @@ class EvidenceTests(unittest.TestCase):
             "probe_pod": "probe-pod.json",
             "semantic_summary": "semantic.json",
             "target_submit_at": "target-submit-at.txt",
+            "target_create_response_at": "target-create-response-at.txt",
+            "qualification_receipt": "qualification.json",
         }
         flags = {
             "contract": "--contract",
@@ -582,6 +635,8 @@ class EvidenceTests(unittest.TestCase):
             "probe_pod": "--probe-pod",
             "semantic_summary": "--semantic-summary",
             "target_submit_at": "--target-submit-at",
+            "target_create_response_at": "--target-create-response-at",
+            "qualification_receipt": "--qualification-receipt",
         }
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -589,7 +644,9 @@ class EvidenceTests(unittest.TestCase):
             for key, filename in filenames.items():
                 path = root / filename
                 path.write_text(
-                    values[key] if key == "target_submit_at" else json.dumps(values[key]),
+                    values[key]
+                    if key in {"target_submit_at", "target_create_response_at"}
+                    else json.dumps(values[key]),
                     encoding="utf-8",
                 )
                 argv.extend([flags[key], str(path)])

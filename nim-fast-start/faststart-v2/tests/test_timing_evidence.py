@@ -100,6 +100,49 @@ class TimingEvidenceTests(unittest.TestCase):
         self.assertEqual(result["demand_to_two_semantic_seconds"], 3.9)
         self.assertEqual(result["timing_evidence"]["t0_source"], "target-submit-at.txt")
 
+    def test_retains_conservative_and_client_response_proxy_clocks(self) -> None:
+        run, semantic, target = fixtures()
+        result = build_timing_evidence(
+            run,
+            semantic,
+            target,
+            target_submit_at="2026-08-18T00:00:00.500000Z",
+            target_create_response_at="2026-08-18T00:00:00.800000Z",
+        )
+        self.assertEqual(result["target_create_api_round_trip_seconds"], 0.3)
+        self.assertEqual(
+            result["acceptance_response_proxy_to_http_ready_seconds"], 1.2
+        )
+        self.assertEqual(
+            result["acceptance_response_proxy_to_kubernetes_ready_seconds"], 2.2
+        )
+        self.assertEqual(
+            result["acceptance_response_proxy_to_two_semantic_seconds"], 3.6
+        )
+        self.assertFalse(
+            result["timing_evidence"][
+                "target_create_response_is_exact_server_acceptance"
+            ]
+        )
+
+    def test_rejects_create_response_outside_submit_probe_interval(self) -> None:
+        run, semantic, target = fixtures()
+        for response_at in (
+            "2026-08-17T23:59:59Z",
+            "2026-08-18T00:00:01.100000Z",
+        ):
+            with self.subTest(response_at=response_at):
+                with self.assertRaisesRegex(
+                    TimingEvidenceError, "outside the submit/probe-start"
+                ):
+                    build_timing_evidence(
+                        run,
+                        semantic,
+                        target,
+                        target_submit_at="2026-08-18T00:00:00.500000Z",
+                        target_create_response_at=response_at,
+                    )
+
     def test_rejects_failed_or_misbound_http_readiness(self) -> None:
         run, semantic, target = fixtures()
         for mutation in ("failed", "misbound"):

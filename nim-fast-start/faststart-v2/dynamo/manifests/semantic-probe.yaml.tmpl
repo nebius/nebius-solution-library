@@ -51,6 +51,18 @@ spec:
       hostIPC: false
       hostNetwork: false
       terminationGracePeriodSeconds: 1
+      # Keep semantic wall-clock timestamps on the target node.  The aggregate
+      # rejects a probe Pod scheduled elsewhere so controller-to-node clock
+      # uncertainty can be bounded once per admitted attempt.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - "@@TARGET_NODE@@"
       securityContext:
         fsGroup: 65534
         fsGroupChangePolicy: OnRootMismatch

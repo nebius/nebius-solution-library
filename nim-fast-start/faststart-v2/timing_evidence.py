@@ -13,6 +13,7 @@ class TimingEvidenceError(ValueError):
 
 
 RESPONSE_TIMING_CONTRACT = "request-dispatch-to-complete-http-body/v1"
+ACCEPTANCE_RESPONSE_PROXY = "client-observed-api-create-response-return/v1"
 
 
 def _timestamp(value: Any, label: str) -> datetime:
@@ -95,12 +96,15 @@ def build_timing_evidence(
     target: dict[str, Any],
     *,
     target_submit_at: str | None = None,
+    target_create_response_at: str | None = None,
 ) -> dict[str, Any]:
     """Return the standardized warm-instance benchmark timing fields.
 
     Production-shaped callers pass the timestamp persisted immediately before
-    target creation as ``target_submit_at``.  The fallback exists only for
-    retained/manual callers that have not yet adopted the submit-edge contract.
+    target creation as ``target_submit_at``.  Fresh-cohort callers additionally
+    pass the client timestamp recorded immediately after the API create response
+    as ``target_create_response_at``.  That second edge is an explicitly labeled
+    proxy and is never represented as exact server-side acceptance.
 
     Worker timing is deliberately absent: worker receipt and semantic probing are
     independent concurrent timelines and must not be ordered against one another.
@@ -177,6 +181,16 @@ def build_timing_evidence(
     http_probe_started, http_ready, http_ready_raw = _http_ready(semantic)
     kubernetes_ready, kubernetes_ready_raw = _kubernetes_ready(target)
 
+    acceptance_response = None
+    if target_create_response_at is not None:
+        acceptance_response = _timestamp(
+            target_create_response_at, "client-observed target create response"
+        )
+        if not demand <= acceptance_response <= semantic_started:
+            raise TimingEvidenceError(
+                "target create response is outside the submit/probe-start interval"
+            )
+
     if not (
         demand
         <= semantic_started
@@ -200,7 +214,7 @@ def build_timing_evidence(
         # same-second precision inversion for the diagnostic duration.
         kubernetes_ready_seconds = 0.0
 
-    return {
+    result: dict[str, Any] = {
         "response_timing_contract": RESPONSE_TIMING_CONTRACT,
         "demand_to_http_ready_seconds": round(
             (http_ready - demand).total_seconds(), 6
@@ -208,6 +222,9 @@ def build_timing_evidence(
         "demand_to_kubernetes_ready_seconds": round(kubernetes_ready_seconds, 6),
         "demand_to_two_semantic_seconds": round(
             (call_boundaries[1][1] - demand).total_seconds(), 6
+        ),
+        "demand_to_first_semantic_seconds": round(
+            (call_boundaries[0][1] - demand).total_seconds(), 6
         ),
         "semantic_request_1_seconds": calls[0],
         "semantic_request_2_seconds": calls[1],
@@ -226,3 +243,38 @@ def build_timing_evidence(
             "validation_finished_at": validation_finished_raw,
         },
     }
+    if acceptance_response is not None:
+        proxy_ready_seconds = (kubernetes_ready - acceptance_response).total_seconds()
+        if proxy_ready_seconds < 0:
+            if abs(proxy_ready_seconds) >= 1:
+                raise TimingEvidenceError(
+                    "Kubernetes Ready precedes the create-response proxy by at least one second"
+                )
+            proxy_ready_seconds = 0.0
+        result.update(
+            {
+                "target_create_api_round_trip_seconds": round(
+                    (acceptance_response - demand).total_seconds(), 6
+                ),
+                "acceptance_response_proxy_to_http_ready_seconds": round(
+                    (http_ready - acceptance_response).total_seconds(), 6
+                ),
+                "acceptance_response_proxy_to_kubernetes_ready_seconds": round(
+                    proxy_ready_seconds, 6
+                ),
+                "acceptance_response_proxy_to_two_semantic_seconds": round(
+                    (call_boundaries[1][1] - acceptance_response).total_seconds(), 6
+                ),
+                "acceptance_response_proxy_to_first_semantic_seconds": round(
+                    (call_boundaries[0][1] - acceptance_response).total_seconds(), 6
+                ),
+            }
+        )
+        result["timing_evidence"].update(
+            {
+                "target_create_response_at": target_create_response_at,
+                "target_create_response_proxy_label": ACCEPTANCE_RESPONSE_PROXY,
+                "target_create_response_is_exact_server_acceptance": False,
+            }
+        )
+    return result
