@@ -1,22 +1,25 @@
 # MSA Search fast-start lane
 
-Status: **qualified** on 2026-08-18. The selected route is a conventional NIM
-start from an already attached, fully prewarmed cache PVC. It passed three
-independent H100 trials and six strict PDB70 calls. The first native checkpoint
-was captured successfully but is explicitly excluded as non-promotable because
-its donor and restore-target database topologies differed.
+Status: **qualified with an exact response boundary** on 2026-08-18. The
+selected route is a conventional NIM start from an already attached, fully
+prewarmed cache PVC. It passed three independent H100 trials and six strict
+PDB70 calls. The first native checkpoint was captured successfully but is
+explicitly excluded as non-promotable because its donor and restore-target
+database topologies differed.
 
-The machine-readable record is `results.json`. Raw evidence is retained under
-`/home/tux/.local/state/archvteams-2407/msa-search-native-f7-20260818T065544Z`.
+The machine-readable record is `results.json`. Raw selected evidence is
+retained under
+`/home/tux/.local/state/archvteams-2407/msa-search-response-requal-20260818T111418Z`.
+Its aggregate SHA-256 is
+`8b2e6a126d49ce49ed333d6e8b446d873856f66e9b9c3bf89e3b15eb94bbdb75`.
 
 ## Selected result
 
-Response-boundary requalification is required for the end-to-end total. HTTP
-ready and both call values remain valid because their monotonic timers stopped
-at complete-body receipt. The retained terminal timestamp was validator
-completion, so the 5.144951-second median is preserved only as legacy
-T0-to-validation evidence; a corrected T0-to-call-2 total requires a new n=3
-run.
+Batch `msa-rb-1114` is the selected coherent response-boundary cohort. Every
+call timer stops after the complete HTTP body is read, and every trial retains
+the second call's absolute `response_received_at`. The exact end-to-end total
+is computed per trial as T0 to that timestamp. Validation completion remains a
+separate later boundary and is never substituted for response receipt.
 
 The measurement ran on the already provisioned H100 node
 `computeinstance-e00hf93cfnsgaxygn3`. T0 is the timestamp written on the line
@@ -27,17 +30,25 @@ used as a substitute.
 
 | Metric, seconds | Median | Min | Max |
 |---|---:|---:|---:|
-| T0 to application HTTP ready | 5.071461 | 5.000388 | 5.128253 |
-| First strict inference | 0.040720 | 0.040700 | 0.040840 |
-| Second strict inference | 0.031058 | 0.030818 | 0.031083 |
-| Legacy T0 through validation completion | 5.144951 | 5.073655 | 5.201905 |
-| T0 to Kubernetes Ready, diagnostic | 4.704828 | 4.687398 | 4.831026 |
+| T0 to application HTTP ready | 4.872400 | 4.830585 | 4.962104 |
+| First strict inference, dispatch to complete body | 0.040644 | 0.039441 | 0.041808 |
+| Second strict inference, dispatch to complete body | 0.029920 | 0.028986 | 0.030188 |
+| **T0 through second complete response** | **4.942788** | **4.901161** | **5.035089** |
+| T0 through validation completion, separate | 4.943544 | 4.901863 | 5.035818 |
+| T0 to Kubernetes Ready, diagnostic | 4.687717 | 4.545373 | 4.982360 |
 
 The retained storage receipt proves that `msa-search-native-f7-cache` was
 Bound, attached on the target node, and held by a CPU-only Pod before every
-T0. The holder read 112,682,799 bytes across 13 unique regular inodes before
-the trials. This unique-inode count avoids double-counting the NGC snapshot
-symlink and blob target. The PDB70 index itself is 69,500,928 bytes.
+T0. The holder read 112,682,799 bytes across 13 unique regular inodes in
+0.104987 seconds before the trials. This unique-inode count avoids
+double-counting the NGC snapshot symlink and blob target. The PDB70 index
+itself is 69,500,928 bytes. The holder receipt SHA-256 is
+`6aea481f44cd7d4ca05505c6bfd427a4353563ba2a3fb0c5c1fd09a92a98b98e`.
+
+A setup-only CPU Pod made the exact NIM image resident and was deleted before
+T0. Each target Event stream says that exact digest was already present; no
+target emitted a `Pulling` event. The image-residency receipt SHA-256 is
+`16c3083b4aca488d2ce9319d20519c24c1631c701e65e1a2f15beb7c65962b0e`.
 
 Every counted trial used exactly two distinct requests against
 `/biology/colabfold/msa-search/predict`. A PASS required HTTP 200, database
@@ -54,18 +65,26 @@ same pipe. All three trials passed these checks.
   `ad5086cc67393792e71fa57444f13eaff8425658e8fb5feea07070ca3b2d34bb`
 - Fixture: `fixtures/request-pdb70.json`, SHA-256
   `874b0e5e3be9776ea289fb46444032e04b63875d9d4110f1560e5435de72686a`
-- Strict validator SHA-256:
+- Legacy strict validator SHA-256, retained for the earlier cohort:
   `4ac58960c881f748dd1340288d1fa97f6d722a1be26c71c321f681a2c252bdee`
-- Corrected response-boundary validator for requalification:
+- Exact response-boundary validator used by the selected cohort:
   `20e8951ceaaa1b81e8129d86b787c6bb009cf2e207d55829cf13f4fa9489188b`
 - MMseqs pipe validator SHA-256:
   `29f45a3c0d7197b5ad0757174666b1f6a8e11f2e3dd7cc54d63fc71fb030ad23`
 
 `run_conventional_n3.sh` implements the selected measurement. It checks the
-exact cluster and H100 identity, requires a Bound cache PVC, prewarms through a
-CPU-only holder, performs a fresh all-namespace zero-GPU-request preflight
-before every target, bounds every wait, stages the fixture as a regular file,
-and cleans only its three Jobs and input ConfigMap.
+exact context, API server, and H100 identity; requires a Bound cache PVC;
+prewarms through a CPU-only holder; preloads the exact image outside T0;
+performs a fresh all-namespace zero-GPU-request preflight before every target;
+rejects target-side image pulls, restarts, OOM, eviction, and backoff; bounds
+every wait; stages the fixture as a regular file; and cleans only its
+run-scoped Jobs, setup Pod, and input ConfigMap. Each successful trial retains
+an absence and zero-GPU cleanup receipt.
+
+The older `msa-conv-f7c` cohort remains in `results.json` as explicitly legacy
+evidence. Its 5.144951-second median ends at validator completion because the
+absolute call-2 response timestamp was not retained; it is not the selected
+end-to-end result.
 
 ## Native checkpoint disposition
 

@@ -85,13 +85,13 @@ in-Pod restore trigger, not target-create T0.
 | ProteinMPNN | production-shaped n=3; exact total pending | buffered, fully prewarmed | 3 | 9.399878 [9.344406–15.038357] | 10.034350 [9.349036–15.769759] | 0.601493 [0.597288–0.601640] | 0.266078 [0.265235–0.270993] | — |
 | DiffDock | production-shaped n=3; exact total pending | buffered, fully prewarmed | 3 | 11.773042 [11.604310–11.860136] | 12.453577 [12.426498–12.634546] | 1.323664 [1.322778–1.350125] | 0.550279 [0.522857–0.558473] | — |
 | OpenFold3 | production-shaped n=3; exact total pending | buffered, fully prewarmed | 3 | 12.142147 [12.010717–12.331491] | 12.815803 [12.732474–13.396096] | 8.604078 [8.556568–8.620226] | 8.530700 [8.524887–8.645413] | — |
-| MSA Search PDB70 | production-shaped conventional n=3; exact total pending | cache volume, fully prewarmed | 3 | 5.071461 [5.000388–5.128253] | 4.704828 [4.687398–4.831026] | 0.040720 [0.040700–0.040840] | 0.031058 [0.030818–0.031083] | — |
+| MSA Search PDB70 | exact response-boundary conventional n=3 | cache volume, fully prewarmed | 3 | 4.872400 [4.830585–4.962104] | 4.687717 [4.545373–4.982360] | 0.040644 [0.039441–0.041808] | 0.029920 [0.028986–0.030188] | **4.942788 [4.901161–5.035089]** |
 | Evo2-40B | manual/provisional H200 restore trigger | direct, legacy artifact | 3 | 65.377 [63.052–65.696] | — | 1.181 [1.163–1.213] | 0.796 [0.795–0.819] | — |
 | GenMol | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 10.400351 [10.217778–10.478343] | 10.319216 [10.219599–11.051287] | 1.198462 [1.186065–1.205458] | 0.575554 [0.574723–0.585800] | **12.177434 [11.981694–12.272754]** |
 | RFdiffusion | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 17.662044 [17.456876–17.965447] | 19.609357 [19.532522–21.124378] | 7.892573 [7.792848–7.980680] | 5.584081 [5.552619–5.726694] | **31.379359 [30.843879–31.420852]** |
 | MolMIM | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 10.520799 [10.446875–10.522802] | 11.735781 [11.706764–11.862442] | 2.839590 [2.812727–2.854831] | 2.099549 [2.082203–2.109474] | **15.431630 [15.414674–15.464302]** |
 
-The four production-shaped rows with an unavailable exact total retain the
+The three production-shaped rows with an unavailable exact total retain the
 following later terminal timestamps. They are useful provenance, but are not
 call-2 response totals. The Evo2 and RFdiffusion manual histories are included
 in the same table only as explicitly non-selected comparators:
@@ -101,7 +101,6 @@ in the same table only as explicitly non-selected comparators:
 | ProteinMPNN | legacy T0 to validation complete | 10.265944 [10.215534–15.914672] |
 | DiffDock | legacy T0 to validation complete | 13.657086 [13.506684–13.707841] |
 | OpenFold3 | legacy T0 to validation complete | 29.345285 [29.162791–29.461653] |
-| MSA Search PDB70 | legacy T0 to validation complete | 5.144951 [5.073655–5.201905] |
 | Evo2-40B | manual restore trigger through two responses | 67.390 [65.080–67.780] |
 | RFdiffusion | legacy manual restore trigger through two responses; not selected | 24.593 [24.458–24.851] |
 
@@ -114,7 +113,7 @@ in the same table only as explicitly non-selected comparators:
 | ProteinMPNN | 1,867,046,505 bytes, 57 files, aggregate content SHA-256 `b2ce82dfbef1cbeb9c3ac35b94f5a2f97fccc19a98419e213d8c0d42a5c2c0e0` | 15.172730 | bytes/content/elapsed complete; holder Ready proves pre-T0 state, but receipt has no explicit completion timestamp |
 | DiffDock | 7,516,058,314 bytes, 122 files, tree SHA-256 `2d9e339392d6b4c5207ddbd4ef8f26465e324b2e165bd4cd9b43530f006e1b1d` | not retained | identity and byte receipt complete; elapsed missing |
 | OpenFold3 | 9,263,246,107 bytes, 148 files, tree SHA-256 `f488019348551f356a153ce17cd9568a9d59497ead375c81a84ddef3bc3972c2` | not retained | authoritative receipt SHA-256 `f780779202dcd93180b49c6d9e40e20044fd7fcb7ceea85b60c964ed8e994550`; elapsed missing |
-| MSA Search PDB70 | 112,682,799 bytes across 13 unique inodes, content-stream SHA-256 `416efa6571423414a0fb46e8739bfa1202b5885122ce2e6cb280a00607bd4062` | not retained | authoritative receipt SHA-256 `7d04ebeaa890d272545d613424058156e59c4c59118e9614cf3fa29467e9c3a0`; elapsed missing |
+| MSA Search PDB70 | 112,682,799 bytes across 13 unique inodes, content-stream SHA-256 `416efa6571423414a0fb46e8739bfa1202b5885122ce2e6cb280a00607bd4062` | 0.104987 | complete identity/timestamp/elapsed receipt SHA-256 `6aea481f44cd7d4ca05505c6bfd427a4353563ba2a3fb0c5c1fd09a92a98b98e` |
 | Evo2-40B | legacy direct 99,959,572,798-byte checkpoint | not applicable | no current manifest-bound artifact; manual evidence only |
 | GenMol | 4,781,347,930 bytes, 114 files, tree SHA-256 `8d847217744b84f2ddce4520bfaf83dec0285241fade9d9fb91b5b83d8c18198` | 6.328907 | complete identity and elapsed receipts |
 | RFdiffusion | artifact: 22,087,352,229 bytes/90 files/manifest `5d47f0fac7bba60bdab3e29843f2fd99150491e917f7f3758a84176aef8c7f9d`/aggregate SHA-256 `8f3b3f66b2b8e886b2b04880d6e511ee138b409bf55471849dfd9657a6df44fb`; cache: 2,590,162,178 bytes/674 files/tree `8b79aa4f4ca6a3121ca6d3d7e8083addd949a28a84b375bd5754580415eb80fd` | artifact 16.332096; cache 32.633541; total 48.965637 | complete refreshed holder receipt SHA-256 `17afc7961933a10cd7b1ab6d0d391a54f459bf1f5db67bbb51be61cae5d0920d` |
@@ -123,9 +122,13 @@ in the same table only as explicitly non-selected comparators:
 The authoritative OpenFold3 receipt is
 `/home/tux/.local/state/archvteams-2407/openfold3-native-f7-20260818T055003Z/artifact-buffered-receipt.json`.
 The authoritative MSA receipt is the unique-inode version at
-`/home/tux/.local/state/archvteams-2407/msa-search-native-f7-20260818T065544Z/conventional-n3-final-v2/cache-holder-receipt.json`;
+`/home/tux/.local/state/archvteams-2407/msa-search-response-requal-20260818T111418Z/cache-holder-receipt.json`;
 the older root-level cache receipt double-counted a symlink and its target and
-must not be used. RFdiffusion's selected aggregate is
+must not be used. Its selected response-boundary aggregate is
+`/home/tux/.local/state/archvteams-2407/msa-search-response-requal-20260818T111418Z/aggregate.json`,
+SHA-256
+`8b2e6a126d49ce49ed333d6e8b446d873856f66e9b9c3bf89e3b15eb94bbdb75`.
+RFdiffusion's selected aggregate is
 `/home/tux/.local/state/archvteams-2407/rfdiffusion-native-f7-20260818T080831Z/aggregates/rfd-f7-warm-buffered-n3.json`,
 SHA-256
 `5e27493276dfd1eda3eb640c1bfe4655e378060ceba8a77619abb3271f27f0b6`;
@@ -164,11 +167,11 @@ implementation footnote.
 ## Remaining measurement work
 
 Nine of the ten NIMs have production-shaped n=3 HTTP-ready and two-call
-evidence. OpenFold2, Boltz2, GenMol, RFdiffusion, and MolMIM have complete exact
-response-boundary n=3 totals. ProteinMPNN, DiffDock, OpenFold3, and MSA Search
-require one new n=3 run only to add the exact absolute T0-to-call-2 total;
-their published readiness and call latencies are already complete-body
-measurements.
+evidence. OpenFold2, Boltz2, MSA Search, GenMol, RFdiffusion, and MolMIM have
+complete exact response-boundary n=3 totals. ProteinMPNN, DiffDock, and
+OpenFold3 require one new n=3 run only to add the exact absolute
+T0-to-call-2 total; their published readiness and call latencies are already
+complete-body measurements.
 
 Evo2-40B is the only remaining non-production-shaped row. It is blocked on an
 explicit owner decision to release the only allowed H200 from the healthy

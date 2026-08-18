@@ -2,8 +2,8 @@
 
 This subtree contains production-shaped n=3 results for OpenFold2, Boltz2,
 ProteinMPNN, DiffDock, OpenFold3, MSA Search, GenMol, RFdiffusion, and MolMIM.
-OpenFold2, Boltz2, GenMol, RFdiffusion, and MolMIM retain exact
-T0-to-second-response boundaries; four older stable lanes retain exact
+OpenFold2, Boltz2, MSA Search, GenMol, RFdiffusion, and MolMIM retain exact
+T0-to-second-response boundaries; three older stable lanes retain exact
 HTTP-ready and complete-body call latencies but still need an absolute call-2
 timestamp rerun. Evo2-40B is
 the only remaining non-production-shaped row and remains blocked on release of
@@ -34,7 +34,10 @@ after the response-boundary audit are in
 - `openfold3-native/` contains the completed native capture, direct canary, and
   winning fully prewarmed buffered n=3 result;
 - `msa-search-native/` contains the selected cache-attached, fully prewarmed
-  conventional n=3 result plus the excluded topology-mismatched native capture;
+  conventional response-boundary n=3 result plus the excluded
+  topology-mismatched native capture. The selected route reaches HTTP
+  readiness in 4.872400 seconds and the second complete response in 4.942788
+  seconds from T0;
 - `evo2-native/` pins the exact Evo2 image and single-H200 profile, native
   capture workflow, direct/buffered artifact candidates, early external
   two-call semantic probe, and n=3 runner. Capture requires explicit owner

@@ -30,7 +30,10 @@ spec:
           import os
           import pathlib
           import time
+          from datetime import UTC, datetime
 
+          prewarm_started_at = datetime.now(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
+          prewarm_started_ns = time.monotonic_ns()
           cache_root = pathlib.Path("/cache").resolve(strict=True)
           root = pathlib.Path(
               "/cache/ngc/hub/models--nim--colabfold--msa-search/"
@@ -65,11 +68,15 @@ spec:
                               break
                           total += len(block)
                           digest.update(block)
+          prewarm_completed_at = datetime.now(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
           receipt = {
               "schema": "archvteams.nebius.ai/msa-search-conventional-cache-holder/v1",
               "status": "PASS",
               "storage_attached": True,
               "prewarm_outside_t0": True,
+              "prewarm_started_at": prewarm_started_at,
+              "prewarm_completed_at": prewarm_completed_at,
+              "prewarm_elapsed_seconds": round((time.monotonic_ns() - prewarm_started_ns) / 1_000_000_000, 6),
               "regular_file_count": len(paths),
               "prewarm_bytes": total,
               "content_stream_sha256": digest.hexdigest(),

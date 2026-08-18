@@ -42,7 +42,15 @@ class CaptureManifestTests(unittest.TestCase):
         holder_script = holder_container["args"][0]
         self.assertIn("seen = set()", holder_script)
         self.assertIn('"prewarm_outside_t0": True', holder_script)
+        self.assertIn('"prewarm_elapsed_seconds"', holder_script)
+        self.assertIn('"prewarm_completed_at"', holder_script)
         self.assertTrue(holder["spec"]["volumes"][0]["persistentVolumeClaim"]["readOnly"])
+
+        preloader = documents("conventional-image-preload.yaml.tmpl")[0]
+        preload_container = preloader["spec"]["containers"][0]
+        self.assertEqual(preloader["spec"]["nodeName"], "computeinstance-e00hf93cfnsgaxygn3")
+        self.assertEqual(preload_container["image"], IMAGE)
+        self.assertNotIn("nvidia.com/gpu", preload_container["resources"]["requests"])
 
         job = documents("conventional-job.yaml.tmpl")[0]
         container = job["spec"]["template"]["spec"]["containers"][0]
@@ -72,6 +80,10 @@ class CaptureManifestTests(unittest.TestCase):
         self.assertIn("get pods --all-namespaces", runner)
         self.assertIn('"demand_to_kubernetes_ready_seconds"', runner)
         self.assertIn('"unique_prewarm_bytes": holder["prewarm_bytes"]', runner)
+        self.assertIn('preloaded_outside_t0:true', runner)
+        self.assertIn('"cleanup-receipt.json"', runner)
+        self.assertIn('.reason=="Pulling"', runner)
+        self.assertIn('--context "$allowed_context"', runner)
         self.assertIn('for run in 1 2 3', runner)
 
     def test_results_record_matches_counted_submit_edge_receipt(self) -> None:
@@ -83,11 +95,12 @@ class CaptureManifestTests(unittest.TestCase):
         self.assertEqual(selected["semantic_call_count"], 6)
         self.assertEqual(selected["mmseqs_pipe_pass_count"], 3)
         expected = {
-            "demand_to_http_ready_seconds": [5.128253, 5.000388, 5.071461],
-            "semantic_request_1_seconds": [0.04084, 0.04072, 0.0407],
-            "semantic_request_2_seconds": [0.031083, 0.030818, 0.031058],
-            "legacy_demand_to_validation_complete_seconds": [5.201905, 5.073655, 5.144951],
-            "demand_to_kubernetes_ready_seconds": [4.831026, 4.687398, 4.704828],
+            "demand_to_http_ready_seconds": [4.830585, 4.962104, 4.8724],
+            "semantic_request_1_seconds": [0.040644, 0.041808, 0.039441],
+            "semantic_request_2_seconds": [0.028986, 0.030188, 0.02992],
+            "demand_to_call2_response_seconds": [4.901161, 5.035089, 4.942788],
+            "demand_to_validation_complete_seconds": [4.901863, 5.035818, 4.943544],
+            "demand_to_kubernetes_ready_seconds": [4.98236, 4.545373, 4.687717],
         }
         for name, values in expected.items():
             recorded = selected[name]
@@ -97,9 +110,16 @@ class CaptureManifestTests(unittest.TestCase):
             self.assertEqual(recorded["max"], max(values))
         self.assertTrue(selected["storage"]["prewarm_outside_t0"])
         self.assertEqual(selected["storage"]["unique_prewarm_bytes"], 112682799)
+        self.assertEqual(selected["storage"]["prewarm_elapsed_seconds"], 0.104987)
+        self.assertEqual(selected["target_image_residency"]["target_event_pulling_count"], 0)
         self.assertEqual(
             results["response_boundary_requalification"]["status"],
-            "RERUN_REQUIRED_FOR_T0_TO_SECOND_RESPONSE",
+            "PASS",
+        )
+        legacy = results["legacy_conventional_cached_n3"]
+        self.assertEqual(legacy["batch_id"], "msa-conv-f7c")
+        self.assertEqual(
+            legacy["demand_to_validation_complete_seconds"]["median"], 5.144951
         )
         self.assertEqual(results["native_checkpoint"]["counted_trials"], 0)
 
