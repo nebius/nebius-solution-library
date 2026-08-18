@@ -26,12 +26,12 @@ and a new explicit handoff.
 
 ## Current audit blockers
 
-- Six shared-pipeline SHA checks are stale. Diagnostic prefix changes are
-  renderer `95ef0a... -> b041c0...`, linter `79ad4c... -> f5b22e...`, evidence
-  `2372b5... -> c86a7e...`, restore template `717e22... -> b04b31...`, probe
-  template `918a41... -> b3de3f...`, and live contract
-  `3dd377... -> 67fa28...`. These are audit diagnostics, not approved pins to
-  copy into the runner.
+- Seven of nine shared-pipeline SHA checks are stale. The current full-hash
+  diagnostics are recorded in `CURRENT_STATUS.json`: renderer, linter,
+  evidence, restore template, probe template, live contract, and validator
+  differ. Only `dynamo/bind_target.py` and
+  `dynamo/manifests/target.yaml.tmpl` still match their archived pins. These
+  are audit diagnostics, not approved pins to copy into the runner.
 - The current shared evidence CLI requires a target-submit timestamp, a target
   create-return proxy, and qualification receipts; v1 supplies none. Its warm
   qualifier also requires the exact image to be present before T0, which is

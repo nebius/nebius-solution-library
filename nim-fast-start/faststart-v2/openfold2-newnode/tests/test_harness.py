@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -749,6 +750,45 @@ class FrozenPipelineIntegrationTests(unittest.TestCase):
         self.assertTrue(
             status["v1_blockers"]["shared_pipeline_pin_drift_diagnostics_only"]
         )
+        drift = status["v1_blockers"][
+            "shared_pipeline_pin_drift_diagnostics_only"
+        ]
+        self.assertEqual(len(drift), 7)
+        self.assertEqual(
+            {item.split(" ", 1)[0] for item in drift},
+            {
+                "dynamo/render.py",
+                "dynamo/lint_manifest.py",
+                "dynamo/evidence.py",
+                "dynamo/manifests/restore-worker.yaml.tmpl",
+                "dynamo/manifests/semantic-probe.yaml.tmpl",
+                "dynamo/restore-interface.live.json",
+                "validate_openfold2.py",
+            },
+        )
+        for item in drift:
+            label, digests = item.split(" ", 1)
+            _archived, current = digests.split(" -> ", 1)
+            self.assertEqual(
+                hashlib.sha256((HARNESS.parent / label).read_bytes()).hexdigest(),
+                current,
+            )
+        matching = status["v1_blockers"][
+            "shared_pipeline_matching_pins_diagnostics_only"
+        ]
+        self.assertEqual(
+            {item.split(" ", 1)[0] for item in matching},
+            {
+                "dynamo/bind_target.py",
+                "dynamo/manifests/target.yaml.tmpl",
+            },
+        )
+        for item in matching:
+            label, expected = item.split(" ", 1)
+            self.assertEqual(
+                hashlib.sha256((HARNESS.parent / label).read_bytes()).hexdigest(),
+                expected,
+            )
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

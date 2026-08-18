@@ -81,12 +81,17 @@
   ],
   "v1_blockers": {
     "shared_pipeline_pin_drift_diagnostics_only": [
-      "renderer 95ef0a... -> b041c0...",
-      "linter 79ad4c... -> f5b22e...",
-      "evidence 2372b5... -> c86a7e...",
-      "restore template 717e22... -> b04b31...",
-      "probe template 918a41... -> b3de3f...",
-      "live contract 3dd377... -> 67fa28..."
+      "dynamo/render.py 95ef0a86aee8022d8fa301c98097115ebeef2dc13a86813558811e61ae748ffc -> 6c7bd7614cf907fd5c121b4d89fe622b3da727f16a2392be6559da2dda3038d5",
+      "dynamo/lint_manifest.py 79ad4c714933d434920f7e2092853f090707adda8d5c422044fbf212ab9285ae -> 07790e4747e710db0eeddd7e126cae10c495611ed1021c6fa3597e9a182c5169",
+      "dynamo/evidence.py 2372b5ace1ac4e515dc45f4b45443bb486087e8c375de949ee35f33d3c313b2b -> 92638eeb2cfcf13b96ebf246bfe83e746412de752ee947e3baac99f893b43975",
+      "dynamo/manifests/restore-worker.yaml.tmpl 717e22f17a2eb5d2792d3e55753ecf0ade8e46a3ce956964dbb24898f89cfe41 -> b04b31eb7e1f10ce2958d75bb31ca3f1d6e45a283a1ac89ea9cce514737d615d",
+      "dynamo/manifests/semantic-probe.yaml.tmpl 918a412f90c1923fac03c13b6ad2fabd84db589e32277c0bb0e854312f7e503e -> b3de3f8d0dc3a74013904642a3ffe12422f731be50193c1eb3abdd110af4916e",
+      "dynamo/restore-interface.live.json 3dd37721a990176d5ed37fe0c4435c2f6057e81db06b51a1b93f5053618d8a3f -> 9e138442a52a3ca9775d4e09f64af273383feb4286247356f528288d3f070bac",
+      "validate_openfold2.py 4f3e70ef29ea9cd3113c09e6f63bd15b4d9826bf64d7d16972c6c3d0eef3090e -> 66c75652e7f17b35ff569a59cc6a21bc09416329d9fbf30178041aed9006a9ed"
+    ],
+    "shared_pipeline_matching_pins_diagnostics_only": [
+      "dynamo/bind_target.py 88613cdc726fe01a3be9aed38a8b2624677aea5b73d69b410905bc57f985cc97",
+      "dynamo/manifests/target.yaml.tmpl 04d68f1d7d7eb723443bada5e651986c0b21fb4ce343eb0793a8fdf3b07f9826"
     ],
     "evidence_cli": [
       "current evidence requires target-submit-at, a target-create-return proxy, and qualification receipts that the v1 runner does not supply",
