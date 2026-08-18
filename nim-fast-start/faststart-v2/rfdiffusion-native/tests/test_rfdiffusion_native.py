@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import io
 import json
+import statistics
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -55,7 +58,7 @@ def run_config(mode: str = "direct", run_id: str = "rfd-offline-1") -> dict[str,
         "target_node": render.TARGET_NODE,
         "checkpoint_id": artifact["checkpoint_id"],
         "artifact_version": artifact["artifact_version"],
-        "artifact_manifest_sha256": MANIFEST_SHA256,
+        "artifact_manifest_sha256": artifact["manifest_sha256"],
         "artifact_pvc": render.PROFILE["storage"]["artifact_pvc"],
         "cache_pvc": render.PROFILE["storage"]["cache_pvc"],
         "image_io_mode": mode,
@@ -124,6 +127,27 @@ def live_target() -> dict[str, Any]:
 
 
 def trial_summary(index: int, mode: str = "direct") -> dict[str, Any]:
+    t0 = datetime(2026, 8, 18, tzinfo=timezone.utc)
+    http_ready = t0 + timedelta(seconds=40 + index)
+    kubernetes_ready = t0 + timedelta(seconds=41 + index)
+    request_1 = 1.0 + index / 10
+    request_2 = 0.2 + index / 10
+    case_1_started = http_ready + timedelta(milliseconds=10)
+    case_1_received = case_1_started + timedelta(seconds=request_1)
+    case_1_validated = case_1_received + timedelta(milliseconds=2)
+    case_2_started = case_1_validated + timedelta(milliseconds=1)
+    case_2_received = case_2_started + timedelta(seconds=request_2)
+    case_2_validated = case_2_received + timedelta(milliseconds=2)
+    semantic_started = t0 + timedelta(seconds=1)
+    validation_total = round((case_2_validated - semantic_started).total_seconds(), 6)
+
+    def stamp(value: datetime) -> str:
+        return value.isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+    case_times = (
+        (case_1_started, case_1_received, case_1_validated, request_1),
+        (case_2_started, case_2_received, case_2_validated, request_2),
+    )
     return {
         "schema": "archvteams.nebius.ai/rfdiffusion-native-trial-summary/v1",
         "run_id": f"run-{index}",
@@ -133,18 +157,69 @@ def trial_summary(index: int, mode: str = "direct") -> dict[str, Any]:
         "gpu_topology": "1x NVIDIA H100, full GPU, non-MIG",
         "image_io_mode": mode,
         "checkpoint_id": render.PROFILE["artifacts"][mode]["checkpoint_id"],
-        "artifact_manifest_sha256": MANIFEST_SHA256,
+        "artifact_manifest_sha256": render.PROFILE["artifacts"][mode]["manifest_sha256"],
         "pod_uid": f"11111111-1111-4111-8111-{index:012d}",
         "pod_spec_sha256": f"{index}" * 64,
         "semantic_request_count": 2,
+        "response_timing_contract": "request-dispatch-to-complete-http-body/v1",
+        "t0_basis": "target-submit-at immediately before kubectl create",
+        "target_submit_at": stamp(t0),
+        "prepared_at": stamp(t0 - timedelta(seconds=1)),
+        "call_2_response_received_at": stamp(case_2_received),
+        "semantic_validation_finished_at": stamp(case_2_validated),
+        "demand_to_semantic_validation_seconds": round(
+            (case_2_validated - t0).total_seconds(), 6
+        ),
+        "semantic_validation_overhang_seconds": round(
+            (case_2_validated - case_2_received).total_seconds(), 6
+        ),
+        "storage_state": {
+            "schema": "archvteams.nebius.ai/rfdiffusion-storage-state/v1",
+            "state": (
+                "buffered_fully_prewarmed"
+                if mode == "buffered"
+                else "direct_o_direct_no_artifact_payload_prewarm"
+            ),
+            "image_io_mode": mode,
+            "storage_attached_before_t0": True,
+            "image_present_before_t0": True,
+            "image_holder": {
+                "schema": "archvteams.nebius.ai/rfdiffusion-image-cache-holder/v1",
+                "status": "PASS",
+                "image": render.NIM_IMAGE,
+                "image_digest": render.NIM_IMAGE.split("@", 1)[1],
+                "live_image_id": render.NIM_IMAGE,
+            },
+            "prewarm_outside_t0": True,
+            "artifact_payload_read": mode == "buffered",
+            "artifact_regular_bytes": 23_000_000_000,
+            "artifact_prewarm_seconds": 12.5 if mode == "buffered" else 0.01,
+            "cache_payload_read": True,
+            "cache_regular_bytes": 2_590_172_418,
+            "cache_prewarm_seconds": 2.5,
+            "total_pre_t0_full_read_seconds": 15.0 if mode == "buffered" else 2.51,
+        },
         "semantic_response_sha256": ["c" * 64, "d" * 64],
         "worker_receipt": {"status": "succeeded", "duration_ms": 50_000 + index * 100},
         "semantic": {
             "status": "PASS",
+            "ok": True,
+            "base_url": "http://rfd.test",
+            "response_timing_contract": "request-dispatch-to-complete-http-body/v1",
             "request_count": 2,
             "passed_case_count": 2,
             "failed_case_count": 0,
-            "total_elapsed_seconds": 1.5 + index / 10,
+            "started_at": stamp(semantic_started),
+            "finished_at": stamp(case_2_validated),
+            "validation_finished_at": stamp(case_2_validated),
+            "total_elapsed_seconds": validation_total,
+            "validation_total_elapsed_seconds": validation_total,
+            "ready": {
+                "status": "PASS",
+                "endpoint": "http://rfd.test/v1/health/ready",
+                "started_at": stamp(semantic_started),
+                "finished_at": stamp(http_ready),
+            },
             "cases": [
                 {
                     "status": "PASS",
@@ -153,6 +228,11 @@ def trial_summary(index: int, mode: str = "direct") -> dict[str, Any]:
                     "elapsed_seconds": (
                         1.0 + index / 10 if offset == 0 else 0.2 + index / 10
                     ),
+                    "started_at": stamp(case_times[offset][0]),
+                    "request_started_at": stamp(case_times[offset][0]),
+                    "response_received_at": stamp(case_times[offset][1]),
+                    "validation_finished_at": stamp(case_times[offset][2]),
+                    "finished_at": stamp(case_times[offset][2]),
                     "run_id": f"run-{index}-semantic-{offset + 1}",
                     "request_sha256": request_sha256,
                     "response_sha256": response_sha256,
@@ -181,13 +261,20 @@ def trial_summary(index: int, mode: str = "direct") -> dict[str, Any]:
         "demand_to_kubernetes_ready_seconds": 41.0 + index,
         "semantic_request_1_seconds": 1.0 + index / 10,
         "semantic_request_2_seconds": 0.2 + index / 10,
-        "demand_to_two_semantic_seconds": 65.0 + index,
+        "demand_to_two_semantic_seconds": round(
+            (case_2_received - t0).total_seconds(), 6
+        ),
         "timing_evidence": {
-            "demand_at": "2026-08-18T00:00:00Z",
-            "http_ready_at": "2026-08-18T00:00:41Z",
-            "kubernetes_ready_at": "2026-08-18T00:00:42Z",
-            "semantic_started_at": "2026-08-18T00:00:01Z",
-            "semantic_finished_at": "2026-08-18T00:01:06Z",
+            "demand_at": stamp(t0),
+            "t0_at": stamp(t0),
+            "t0_source": "target-submit-at.txt",
+            "setup_demand_at": stamp(t0 - timedelta(seconds=1)),
+            "http_ready_at": stamp(http_ready),
+            "kubernetes_ready_at": stamp(kubernetes_ready),
+            "semantic_started_at": stamp(t0 + timedelta(seconds=1)),
+            "semantic_response_1_received_at": stamp(case_1_received),
+            "semantic_response_2_received_at": stamp(case_2_received),
+            "validation_finished_at": stamp(case_2_validated),
         },
     }
 
@@ -244,6 +331,46 @@ class RFdiffusionSemanticTests(unittest.TestCase):
         self.assertTrue(validator.readiness_is_ready(b'{"status":"ready"}'))
         for body in (b"false", b'{"status":"loading"}', b"ready", b"{}"):
             self.assertFalse(validator.readiness_is_ready(body))
+
+    def test_call_latency_stops_when_the_http_body_is_received(self) -> None:
+        fixture = (MODULE_DIR / "fixtures/1UBQ.pdb").read_bytes()
+        probe = validator.build_probes(("body-a", "body-b"), fixture)[0]
+        endpoint = "http://rfd.test" + validator.INFERENCE_PATH
+        body = validator.json_bytes(response_for(probe))
+
+        class Response(io.BytesIO):
+            status = 200
+            headers: dict[str, str] = {}
+
+            def geturl(self) -> str:
+                return endpoint
+
+            def __enter__(self) -> "Response":
+                return self
+
+            def __exit__(self, *_: object) -> None:
+                self.close()
+
+        class Opener:
+            def open(self, request: object, timeout: float) -> Response:
+                self.request = request
+                self.timeout = timeout
+                return Response(body)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            result = validator.run_probe(
+                Opener(), "http://rfd.test", probe, 30.0, Path(temporary)
+            )
+        received = datetime.fromisoformat(
+            result["response_received_at"].replace("Z", "+00:00")
+        )
+        validated = datetime.fromisoformat(
+            result["validation_finished_at"].replace("Z", "+00:00")
+        )
+        self.assertLessEqual(received, validated)
+        self.assertEqual(result["started_at"], result["request_started_at"])
+        self.assertEqual(result["validation_finished_at"], result["finished_at"])
+        self.assertGreater(result["elapsed_seconds"], 0)
 
 
 class RFdiffusionRenderAndBindingTests(unittest.TestCase):
@@ -302,6 +429,14 @@ class RFdiffusionRenderAndBindingTests(unittest.TestCase):
         expected = bind_target.base_bind.pod_spec_sha256(pod["spec"])
         self.assertEqual(expected, binding["pod_spec_sha256"])
         self.assertEqual(render.NIM_IMAGE, binding["image_id"])
+        self.assertNotIn(":2.2.0@", render.NIM_IMAGE)
+        self.assertEqual(
+            pod["spec"]["containers"][0]["image"],
+            pod["status"]["containerStatuses"][0]["imageID"],
+        )
+        self.assertEqual(
+            pod["status"]["containerStatuses"][0]["imageID"], binding["image_id"]
+        )
         self.assertEqual(render.TARGET_NODE, binding["node"])
         self.assertEqual(
             "/kubepods.slice/kubepods-pod11111111_1111_4111_8111_111111111111.slice/"
@@ -314,6 +449,8 @@ class RFdiffusionRenderAndBindingTests(unittest.TestCase):
     def test_binding_rejects_image_and_node_drift(self) -> None:
         run = render.validate_run(run_config())
         approved = render.validate_contract(contract())
+        actual_runtime = live_target()
+        bind_target.build_binding(actual_runtime, run, approved, "2026-08-18T06:00:02Z")
         wrong_image = live_target()
         wrong_image["spec"]["containers"][0]["image"] = "example.test/rfdiffusion@sha256:" + "0" * 64
         with self.assertRaisesRegex(bind_target.base_bind.BindingError, "pinned RFdiffusion image"):
@@ -334,6 +471,10 @@ class RFdiffusionRenderAndBindingTests(unittest.TestCase):
         mismatch["target_node"] = "different-node"
         with self.assertRaises(render.RenderError):
             render.validate_run(mismatch)
+        mismatch = run_config("direct")
+        mismatch["artifact_manifest_sha256"] = "0" * 64
+        with self.assertRaisesRegex(render.RenderError, "selected pinned profile"):
+            render.validate_run(mismatch)
 
 
 class RFdiffusionCaptureAndArtifactTests(unittest.TestCase):
@@ -347,12 +488,21 @@ class RFdiffusionCaptureAndArtifactTests(unittest.TestCase):
         donor_documents = render_capture.render_donor("h100-r1")
         render_capture.validate_documents(donor_documents)
         donor = next(item for item in donor_documents if item["kind"] == "Job")
-        donor_config = next(item for item in donor_documents if item["kind"] == "ConfigMap")
+        self.assertFalse(any(item["kind"] == "ConfigMap" for item in donor_documents))
         container = donor["spec"]["template"]["spec"]["containers"][0]
         self.assertEqual(render.NIM_IMAGE, container["image"])
         self.assertEqual(2, container["args"][0].count("--run-id"))
         self.assertIn("--fixture /validator/1UBQ.pdb", container["args"][0])
-        cache_verifier = donor["spec"]["template"]["spec"]["initContainers"][0]
+        materializer, cache_verifier = donor["spec"]["template"]["spec"]["initContainers"]
+        self.assertEqual("materialize-validator", materializer["name"])
+        self.assertEqual(
+            hashlib.sha256(materializer["args"][2].encode()).hexdigest(),
+            render_capture.VALIDATOR_SHA256,
+        )
+        self.assertEqual(
+            hashlib.sha256(materializer["args"][3].encode("ascii")).hexdigest(),
+            validator.FIXTURE_SHA256,
+        )
         self.assertFalse(render._contains_gpu(cache_verifier["resources"]))
         self.assertEqual(
             cache_verifier["resources"]["requests"],
@@ -363,9 +513,18 @@ class RFdiffusionCaptureAndArtifactTests(unittest.TestCase):
             render.PROFILE["retained_evidence"]["cache_tree_sha256"],
             cache_verifier["args"],
         )
+        donor_volumes = donor["spec"]["template"]["spec"]["volumes"]
+        self.assertTrue(
+            all((set(item) - {"name"}) in ({"emptyDir"}, {"persistentVolumeClaim"}) for item in donor_volumes)
+        )
         self.assertEqual(
-            validator.FIXTURE_SHA256,
-            hashlib.sha256(donor_config["data"]["1UBQ.pdb"].encode("ascii")).hexdigest(),
+            {
+                "name": "validator",
+                "emptyDir": {
+                    "sizeLimit": render.PROFILE["runtime_topology"]["validator_size_limit"]
+                },
+            },
+            next(item for item in donor_volumes if item["name"] == "validator"),
         )
         self.assertNotIn("nodeName", donor["spec"]["template"]["spec"])
         agent = render_capture.render_agent("h100-r1")[0]
@@ -387,6 +546,45 @@ class RFdiffusionCaptureAndArtifactTests(unittest.TestCase):
         holder_args = holder["spec"]["containers"][0]["args"]
         self.assertIn("--cache-tree-sha256", holder_args)
         self.assertIn(render.PROFILE["retained_evidence"]["cache_tree_sha256"], holder_args)
+        builder_documents = render_capture.render_variant_builder(
+            "h100-r1", MANIFEST_SHA256, 92, 23_364_237_452
+        )
+        render_capture.validate_documents(builder_documents)
+        builder = next(item for item in builder_documents if item["kind"] == "Job")
+        builder_spec = builder["spec"]["template"]["spec"]
+        self.assertFalse(render._contains_gpu(builder_spec["containers"][0]["resources"]))
+        self.assertEqual(
+            render.PROFILE["storage"]["artifact_pvc"],
+            next(
+                item for item in builder_spec["volumes"] if item["name"] == "checkpoints"
+            )["persistentVolumeClaim"]["claimName"],
+        )
+        target_documents = render.render_target(run_config(), contract())
+        target = next(item for item in target_documents if item["kind"] == "Pod")
+        target_container = target["spec"]["containers"][0]
+        self.assertIn(
+            {
+                "name": "validator",
+                "mountPath": render.PROFILE["runtime_topology"]["validator_mount_path"],
+                "readOnly": True,
+            },
+            target_container["volumeMounts"],
+        )
+        self.assertIn(
+            {
+                "name": "validator",
+                "emptyDir": {
+                    "sizeLimit": render.PROFILE["runtime_topology"]["validator_size_limit"],
+                },
+            },
+            target["spec"]["volumes"],
+        )
+        self.assertTrue(
+            all(
+                (set(item) - {"name"}) in ({"emptyDir"}, {"persistentVolumeClaim"})
+                for item in target["spec"]["volumes"]
+            )
+        )
 
     def _create_direct_artifact(self, root: Path) -> tuple[Path, str, int, int]:
         artifact = root / artifact_variant.SOURCE_ID / "versions" / "1"
@@ -469,6 +667,27 @@ class RFdiffusionCaptureAndArtifactTests(unittest.TestCase):
             )
             self.assertTrue(result["payload_read"])
             self.assertEqual("PASS", result["status"])
+            link = cache / "models/model-link.bin"
+            link.symlink_to("model.bin")
+            linked_result = prewarm_artifact.verify_cache(
+                cache,
+                tree.hexdigest(),
+                len(members),
+                sum(size for _, size, _ in members),
+                render.PROFILE["retained_evidence"]["critical_cache_file"],
+            )
+            self.assertEqual(1, linked_result["safe_internal_symlink_count"])
+            link.unlink()
+            link.symlink_to(root / "outside")
+            (root / "outside").write_bytes(b"outside")
+            with self.assertRaises(prewarm_artifact.PrewarmError):
+                prewarm_artifact.verify_cache(
+                    cache,
+                    tree.hexdigest(),
+                    len(members),
+                    sum(size for _, size, _ in members),
+                    render.PROFILE["retained_evidence"]["critical_cache_file"],
+                )
             with self.assertRaises(prewarm_artifact.PrewarmError):
                 prewarm_artifact.verify_cache(
                     cache,
@@ -498,7 +717,15 @@ class RFdiffusionAggregateAndProvenanceTests(unittest.TestCase):
             )
             self.assertEqual(1.2, result["semantic_request_1_seconds"]["median"])
             self.assertEqual(0.4, result["semantic_request_2_seconds"]["median"])
-            self.assertEqual(67.0, result["demand_to_two_semantic_seconds"]["median"])
+            self.assertEqual(43.613, result["demand_to_two_semantic_seconds"]["median"])
+            self.assertEqual(
+                43.615,
+                result["demand_to_semantic_validation_seconds"]["median"],
+            )
+            self.assertEqual(
+                0.002,
+                result["semantic_validation_overhang_seconds"]["median"],
+            )
             self.assertEqual(50.2, result["worker_restore_seconds"]["median"])
 
             drifted = json.loads(paths[2].read_text())
@@ -511,6 +738,15 @@ class RFdiffusionAggregateAndProvenanceTests(unittest.TestCase):
             del missing_metric["demand_to_http_ready_seconds"]
             paths[2].write_text(json.dumps(missing_metric), encoding="utf-8")
             with self.assertRaisesRegex(aggregate_results.AggregateError, "HTTP ready"):
+                aggregate_results.aggregate(paths, "direct")
+
+            wrong_manifest = trial_summary(3)
+            wrong_manifest["artifact_manifest_sha256"] = "0" * 64
+            paths[2].write_text(json.dumps(wrong_manifest), encoding="utf-8")
+            with self.assertRaisesRegex(
+                aggregate_results.AggregateError,
+                "artifact_manifest_sha256 does not match the n=3 contract",
+            ):
                 aggregate_results.aggregate(paths, "direct")
 
     def test_worker_gate_matches_checked_in_provenance_and_is_not_release_ready(self) -> None:
@@ -553,6 +789,100 @@ class RFdiffusionAggregateAndProvenanceTests(unittest.TestCase):
         )
         self.assertEqual(gate["provenance_sha256"], contract()["approval"]["evidence_sha256"])
 
+    def test_aggregate_recomputes_all_metrics_from_target_submit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            paths = []
+            for index in range(1, 4):
+                path = root / f"trial-{index}.json"
+                path.write_text(json.dumps(trial_summary(index)), encoding="utf-8")
+                paths.append(path)
+
+            drifted = json.loads(paths[2].read_text(encoding="utf-8"))
+            drifted["target_submit_at"] = "2026-08-18T00:00:01.000000Z"
+            paths[2].write_text(json.dumps(drifted), encoding="utf-8")
+            with self.assertRaisesRegex(
+                aggregate_results.AggregateError, "rooted at target-submit-at"
+            ):
+                aggregate_results.aggregate(paths, "direct")
+
+            paths[2].write_text(json.dumps(trial_summary(3)), encoding="utf-8")
+            drifted = json.loads(paths[2].read_text(encoding="utf-8"))
+            drifted["demand_to_two_semantic_seconds"] += 1
+            paths[2].write_text(json.dumps(drifted), encoding="utf-8")
+            with self.assertRaisesRegex(
+                aggregate_results.AggregateError, "differs from absolute timestamps"
+            ):
+                aggregate_results.aggregate(paths, "direct")
+
+            paths[2].write_text(json.dumps(trial_summary(3)), encoding="utf-8")
+            drifted = json.loads(paths[2].read_text(encoding="utf-8"))
+            drifted["timing_evidence"]["semantic_response_1_received_at"] = drifted[
+                "timing_evidence"
+            ]["semantic_response_2_received_at"]
+            paths[2].write_text(json.dumps(drifted), encoding="utf-8")
+            with self.assertRaisesRegex(
+                aggregate_results.AggregateError,
+                "call 1 body-received provenance is inconsistent",
+            ):
+                aggregate_results.aggregate(paths, "direct")
+
+            paths[2].write_text(json.dumps(trial_summary(3)), encoding="utf-8")
+            drifted = json.loads(paths[2].read_text(encoding="utf-8"))
+            drifted["semantic_validation_finished_at"] = drifted["call_2_response_received_at"]
+            paths[2].write_text(json.dumps(drifted), encoding="utf-8")
+            with self.assertRaisesRegex(
+                aggregate_results.AggregateError,
+                "semantic validation-finish provenance is inconsistent",
+            ):
+                aggregate_results.aggregate(paths, "direct")
+
+            paths[2].write_text(json.dumps(trial_summary(3)), encoding="utf-8")
+            drifted = json.loads(paths[2].read_text(encoding="utf-8"))
+            drifted["timing_evidence"]["t0_source"] = "run.json:demand_at"
+            paths[2].write_text(json.dumps(drifted), encoding="utf-8")
+            with self.assertRaisesRegex(
+                aggregate_results.AggregateError, "rooted at target-submit-at"
+            ):
+                aggregate_results.aggregate(paths, "direct")
+
+            paths[2].write_text(json.dumps(trial_summary(3)), encoding="utf-8")
+            drifted = json.loads(paths[2].read_text(encoding="utf-8"))
+            drifted["semantic_validation_overhang_seconds"] += 1
+            paths[2].write_text(json.dumps(drifted), encoding="utf-8")
+            with self.assertRaisesRegex(
+                aggregate_results.AggregateError, "differs from absolute timestamps"
+            ):
+                aggregate_results.aggregate(paths, "direct")
+
+    def test_runner_gates_image_and_captures_t0_on_the_create_edge(self) -> None:
+        runner = (MODULE_DIR / "run_one_provisioned_trial.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("--image-cache-holder READY_POD", runner)
+        self.assertIn("image-holder-receipt.json", runner)
+        self.assertIn("runtime-topology.json", runner)
+        lines = runner.splitlines()
+        create = lines.index(
+            '"${trial_kubectl[@]}" create -f "$run_dir/target.yaml"'
+        )
+        self.assertEqual(
+            'date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$run_dir/target-submit-at.txt"',
+            lines[create - 1],
+        )
+        self.assertIn(
+            'call_2_response_received_at = semantic["cases"][1]["response_received_at"]',
+            runner,
+        )
+        self.assertIn("target_submit_at=target_submit_at", runner)
+        self.assertIn(
+            'artifact_manifest_sha256 == "$profile_artifact_manifest_sha256"',
+            runner,
+        )
+        self.assertIn('"demand_to_semantic_validation_seconds"', runner)
+        self.assertIn('"semantic_validation_overhang_seconds"', runner)
+        self.assertNotIn('timing_semantic = {**semantic, "finished_at"', runner)
+
     def test_runner_pins_contract_and_validator_bytes(self) -> None:
         runner = (MODULE_DIR / "run_one_provisioned_trial.sh").read_text(encoding="utf-8")
         contract_sha256 = hashlib.sha256(
@@ -565,21 +895,64 @@ class RFdiffusionAggregateAndProvenanceTests(unittest.TestCase):
         self.assertIn(f'expected_validator_sha256="{validator_sha256}"', runner)
         self.assertEqual(validator_sha256, contract()["validator_sha256"])
 
-    def test_profile_preserves_retained_evidence_and_defers_new_manifests(self) -> None:
+    def test_profile_preserves_retained_evidence_and_pins_live_manifests(self) -> None:
         profile = render.PROFILE
         self.assertEqual(23_364_237_452, profile["retained_evidence"]["legacy_checkpoint_regular_file_bytes"])
         self.assertEqual(24.593, profile["retained_evidence"]["legacy_buffered_n3_median_seconds"])
         self.assertEqual(
             "18f827dcb8c2f8ffbd27f2b4f396fcb9d5df07b492965764a5ecd5f1d57a9e4e",
+            profile["retained_evidence"]["legacy_cache_tree_sha256"],
+        )
+        self.assertEqual(
+            "8b79aa4f4ca6a3121ca6d3d7e8083addd949a28a84b375bd5754580415eb80fd",
             profile["retained_evidence"]["cache_tree_sha256"],
         )
         self.assertEqual(1, profile["hardware"]["gpu_count"])
         self.assertFalse(profile["hardware"]["mig_allowed"])
-        self.assertIsNone(profile["artifacts"]["direct"]["manifest_sha256"])
-        self.assertIsNone(profile["artifacts"]["buffered"]["manifest_sha256"])
+        self.assertEqual(
+            "21c83eaa10facc54f9483f5f47528a19cacb6d568bd46224ecfe013af5f68608",
+            profile["artifacts"]["direct"]["manifest_sha256"],
+        )
+        self.assertEqual(
+            "5d47f0fac7bba60bdab3e29843f2fd99150491e917f7f3758a84176aef8c7f9d",
+            profile["artifacts"]["buffered"]["manifest_sha256"],
+        )
         prior = json.loads((MODULE_DIR / "prior-evidence.json").read_text())
         self.assertFalse(prior["production_native_qualified"])
         self.assertFalse(prior["durable_artifacts"]["checkpoint"]["eligible_as_native_artifact"])
+
+    def test_checked_in_result_preserves_the_selected_coherent_n3(self) -> None:
+        result = json.loads((MODULE_DIR / "results.json").read_text(encoding="utf-8"))
+        selected = result["selected_n3"]
+        self.assertEqual("PASS", result["status"])
+        self.assertEqual("buffered", selected["image_io_mode"])
+        self.assertEqual("buffered_fully_prewarmed", selected["storage_state"])
+        self.assertEqual(3, len(set(selected["run_ids"])))
+        self.assertEqual(6, selected["semantic_pass_count"])
+        for key in (
+            "demand_to_http_ready_seconds",
+            "demand_to_kubernetes_ready_seconds",
+            "semantic_request_1_seconds",
+            "semantic_request_2_seconds",
+            "demand_to_two_semantic_seconds",
+            "demand_to_semantic_validation_seconds",
+            "semantic_validation_overhang_seconds",
+            "worker_restore_seconds",
+        ):
+            block = selected[key]
+            values = block["values"]
+            self.assertEqual(3, len(values))
+            self.assertEqual(statistics.median(values), block["median"])
+            self.assertEqual(min(values), block["minimum"])
+            self.assertEqual(max(values), block["maximum"])
+        self.assertEqual(
+            render.PROFILE["artifacts"]["buffered"]["manifest_sha256"],
+            result["artifacts"]["buffered"]["manifest_sha256"],
+        )
+        self.assertEqual(
+            render.PROFILE["retained_evidence"]["cache_tree_sha256"],
+            result["artifacts"]["cache"]["tree_sha256"],
+        )
 
 
 if __name__ == "__main__":

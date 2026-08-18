@@ -103,6 +103,7 @@ def verify_cache(
     total_bytes: int,
     required_relative_path: str,
 ) -> dict[str, Any]:
+    started = time.monotonic()
     if not root.is_absolute() or not root.is_dir() or root.is_symlink():
         raise PrewarmError("cache root must be an existing absolute non-symlink directory")
     if SHA256.fullmatch(tree_sha256) is None:
@@ -115,17 +116,34 @@ def verify_cache(
         raise PrewarmError("required cache path must be a safe relative path")
     members: list[tuple[str, int, Path]] = []
     observed_bytes = 0
+    symlink_count = 0
+    resolved_root = root.resolve(strict=True)
+
+    def validate_symlink(path: Path) -> None:
+        nonlocal symlink_count
+        try:
+            target = path.resolve(strict=True)
+            target.relative_to(resolved_root)
+        except (OSError, ValueError) as exc:
+            raise PrewarmError(f"cache symlink escapes or is broken: {path}") from exc
+        if not target.is_file():
+            raise PrewarmError(f"cache symlink target is not a regular file: {path}")
+        symlink_count += 1
+
     for directory, names, entries in os.walk(root, followlinks=False):
         names.sort()
         entries.sort()
         for name in names:
             path = Path(directory) / name
             if path.is_symlink():
-                raise PrewarmError(f"cache directory is a symlink: {path}")
+                validate_symlink(path)
         for name in entries:
             path = Path(directory) / name
             metadata = path.lstat()
-            if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
+            if path.is_symlink():
+                validate_symlink(path)
+                continue
+            if not stat.S_ISREG(metadata.st_mode):
                 raise PrewarmError(f"cache member is not regular: {path}")
             relative = path.relative_to(root).as_posix()
             members.append((relative, metadata.st_size, path))
@@ -157,8 +175,10 @@ def verify_cache(
         "tree_sha256": observed_tree_sha256,
         "regular_file_count": len(members),
         "regular_bytes": observed_bytes,
+        "safe_internal_symlink_count": symlink_count,
         "required_relative_path": required_relative_path,
         "payload_read": True,
+        "elapsed_seconds": round(time.monotonic() - started, 6),
     }
 
 

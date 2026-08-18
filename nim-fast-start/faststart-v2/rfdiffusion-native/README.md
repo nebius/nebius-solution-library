@@ -1,135 +1,149 @@
 # RFdiffusion native H100 fast-start lane
 
-This directory is the offline-prepared, production-shaped lane for measuring
-RFdiffusion demand-to-two-semantic-inferences on the retained single-H100
-resource. It does not claim a new native result. The retained 2026-08-17
-benchmark establishes the exact workload and the buffered-page-cache
-hypothesis; this lane requires a new UID-bound, manifest-bound native capture
-before either candidate can be counted.
+This lane now has a production-shaped live result for RFdiffusion on a warm
+single-H100 instance with its image, cache, and checkpoint storage attached.
+The selected route is a native CRIU checkpoint with buffered image I/O and an
+explicit full read of both the NIM cache and checkpoint outside the measured
+window.
 
-## Exact workload contract
+## Result
 
-- NIM image: `nvcr.io/nim/ipd/rfdiffusion:2.2.0@sha256:15e40e466d8ebe9a53f1feea599373720428c9de65da750bf4271c96ec35ceb4`
+The selected `rfd-f7-warm` cohort passed 3/3 fresh target restores and 6/6
+strict RF backbone generations. Times are seconds; ranges are minimum to
+maximum.
+
+| Metric | Median | Range |
+|---|---:|---:|
+| T0 to semantic HTTP Ready | 17.662044 | 17.456876–17.965447 |
+| T0 to Kubernetes Pod Ready | 19.609357 | 19.532522–21.124378 |
+| first inference response body | 7.892573 | 7.792848–7.980680 |
+| second inference response body | 5.584081 | 5.552619–5.726694 |
+| T0 through second inference body | 31.379359 | 30.843879–31.420852 |
+| T0 through semantic validation | 31.383563 | 30.849501–31.430252 |
+| validation after the second body | 0.005622 | 0.004204–0.009400 |
+| native restore worker | 11.521 | 11.487–11.554 |
+
+Trial-order arrays and evidence paths are in `results.json`. The authoritative
+aggregate is
+`/home/tux/.local/state/archvteams-2407/rfdiffusion-native-f7-20260818T080831Z/aggregates/rfd-f7-warm-buffered-n3.json`,
+SHA-256
+`5e27493276dfd1eda3eb640c1bfe4655e378060ceba8a77619abb3271f27f0b6`.
+
+A direct-I/O compatibility canary also passed two strict calls. It took
+199.036267 seconds to semantic HTTP Ready, 8.323738 seconds for call 1,
+5.639307 seconds for call 2, and 213.009981 seconds from T0 through the second
+response body. Its restore worker took 193.032 seconds. It is a canary, not a
+direct n=3, and is not mixed into the selected buffered cohort.
+
+## Metric boundary
+
+`T0` is the timestamp persisted on the line immediately before `kubectl
+create` submits the inert target Pod. The H100 instance is already running,
+the exact image is resident, both PVCs are attached, and the selected storage
+holder is Ready before T0. Image pull, capture, artifact construction, PVC
+attachment, and full-read prewarming are setup measurements outside T0.
+
+HTTP Ready means the first successful semantic application response from
+`GET /v1/health/ready`. Kubernetes Pod Ready is retained as a separate
+diagnostic timestamp. Each call latency starts immediately before request
+dispatch and ends immediately after the complete HTTP response body arrives;
+semantic validation completion is recorded separately. T0 through call 2
+therefore includes target creation, native restore, readiness, and exactly two
+inferences, but excludes validation performed after the second body arrived.
+
+The selected pre-T0 refresh read and hashed 674 cache files totaling
+2,590,162,178 bytes in 32.633541 seconds and 90 buffered checkpoint files
+totaling 22,087,352,229 bytes in 16.332096 seconds. Total full-read work was
+48.965637 seconds; Pod create to Ready was 50.644535 seconds. Its receipt is
+`setup/buffered-holder-r7-refresh-receipt.json` in the evidence root, SHA-256
+`17afc7961933a10cd7b1ab6d0d391a54f459bf1f5db67bbb51be61cae5d0920d`.
+
+## Exact workload
+
+- image: `nvcr.io/nim/ipd/rfdiffusion@sha256:15e40e466d8ebe9a53f1feea599373720428c9de65da750bf4271c96ec35ceb4`
+- node: `computeinstance-e00nkpcb5a3w1wy49q`
 - hardware: one full, non-MIG NVIDIA H100, compute capability 9.0
-- retained node: `computeinstance-e00rvx892g3q63zws1`
-- resources: 12 CPU, 128 GiB memory, one GPU, Guaranteed QoS, and 64 GiB `/dev/shm`
-- cache mount and `NIM_CACHE_PATH`: `/home/user/.cache/nim`
-- readiness: `GET /v1/health/ready`
-- inference: `POST /biology/ipd/rfdiffusion/generate`
-- fixed input: checked-in `fixtures/1UBQ.pdb`, SHA-256 `d4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161`
-- calls: contigs `A20-60/0 20-30`, 15 diffusion steps, seeds 2370 and 2371
-- exact canonical request SHA-256 values: `da696caf8aba3511e63df5a293622e91b4c063f1593c60038bedca16d4865b2d` and `8fa20730e48a66c62fc5d095b4d26afac00cf7c4768e59300b95e447bc200c3c`
+- target resources: 12 CPU, 128 GiB memory, one GPU, Guaranteed QoS, and a
+  64 GiB `/dev/shm`
+- cache and `NIM_CACHE_PATH`: `/home/user/.cache/nim`
+- inference endpoint: `POST /biology/ipd/rfdiffusion/generate`
+- fixture: `fixtures/1UBQ.pdb`, SHA-256
+  `d4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161`
+- request: contigs `A20-60/0 20-30`, 15 diffusion steps, seeds 2370 and 2371
+- request SHA-256 values:
+  `da696caf8aba3511e63df5a293622e91b4c063f1593c60038bedca16d4865b2d`
+  and
+  `8fa20730e48a66c62fc5d095b4d26afac00cf7c4768e59300b95e447bc200c3c`
 
-`profile.json` is the machine-readable source of these values. The target is
-created through the scheduler with required hostname affinity; `nodeName` is
-not written into the submitted Pod. Binding happens only after the API server
-has assigned a fresh Pod UID, container ID, Pod IP, image ID, node, and
-canonical PodSpec digest. Guaranteed-QoS cgroup binding is explicit rather
-than inherited from the older Burstable OpenFold2 scaffold.
+The validator requires exactly two distinct 200 responses and checks the
+generated PDB backbone, complete N/CA/C atoms, residue bounds, coordinates,
+adjacent CA geometry, fixed request hashes, seeds, and response distinctness.
+There are no inference retries.
 
-## Prior evidence versus production evidence
+## Native capture and artifacts
 
-The retained evidence is rooted at
-`/home/tux/.local/state/archvteams-2407/rfdiffusion-h100-perf-20260817T231936Z`.
-All six counted trials passed two strict backbone generations. The cold
-four-lane-prefetch median through call two was 189.969 seconds; the retained
-page-cache median was 24.593 seconds, with a 9.824-second CRIU median.
-`prior-evidence.json` preserves the exact measurements and lineage.
+The final capture is `f7-r7` / `PodSnapshotContent` `rfd-f7-r7`, sourced from
+Pod UID `49cbad66-fa3c-4b51-9d36-2e8058c31b9e`. Its validator is materialized
+into a bounded `1Mi` `/validator` `emptyDir`, so capture and restore reproduce
+the same d5ce-compatible emptyDir/PVC topology. The donor passed two strict
+calls in 5.678462 and 5.565097 seconds before capture. Capture wall time was
+270.512581880 seconds, including 264.621051939 seconds in CRIU.
 
-The durable bundle is rooted at
-`/sfs/archvteams-2407/rfdiffusion/h100-faststart-20260817T234500Z`:
+The immutable artifacts are:
 
-- legacy checkpoint: 92 files, 23,364,237,452 regular-file bytes, tree SHA-256 `b929134e9d59e7f0df011b36f0830f7e030a02d457c930b8c62853be5a92b3f5`;
-- NIM cache: 675 files, 2,590,172,418 regular-file bytes, tree SHA-256 `18f827dcb8c2f8ffbd27f2b4f396fcb9d5df07b492965764a5ecd5f1d57a9e4e`; and
-- JIT archive SHA-256 `84ff92691f909a05b224e1c56abb4864f01b4f8e3c854e4bb4c7baf1d3f6d652`.
+- direct `rfdiffusion-native-h100-v2`, version 1: 90 files,
+  22,087,352,218 bytes, manifest SHA-256
+  `21c83eaa10facc54f9483f5f47528a19cacb6d568bd46224ecfe013af5f68608`;
+- buffered `rfdiffusion-native-h100-v2-buffered`, version 1: 90 files,
+  22,087,352,229 bytes, manifest SHA-256
+  `5d47f0fac7bba60bdab3e29843f2fd99150491e917f7f3758a84176aef8c7f9d`;
+  and
+- pinned NIM cache: 674 files, 2,590,162,178 bytes, three safe internal
+  symlinks, tree SHA-256
+  `8b79aa4f4ca6a3121ca6d3d7e8083addd949a28a84b375bd5754580415eb80fd`.
 
-The cache is an eligible pinned input. The legacy host-managed checkpoint is
-not a native artifact and is never accepted by the runner, holder, or variant
-builder. A new capture must generate `rfdiffusion-native-h100-v1`, version
-`1`, and its exact post-capture manifest digest and inventory must be recorded
-as execution evidence.
+The buffered variant changes only checkpoint identity and `imageIoMode`; all
+89 payload files, totaling 22,087,346,372 bytes, are hard-linked to the direct
+artifact. It is a true buffered CRIU artifact, not a separate read-ahead
+process around direct I/O.
 
-## Capture and candidates
+## Cohort integrity
 
-`render_capture.py` emits isolated storage, the current exact snapshot agent,
-the exact-digest donor, UID-bound `PodSnapshotContent`, and artifact holders.
-Before the donor starts, a CPU-only init container recursively hashes the
-read-only cache and requires the retained cache tree plus the critical
-`igso/T_50_omega_1000_min_sigma_0_02_min_b_1_5_max_b_2_5_schedule_linear.pkl`
-member. The donor then performs exactly two strict seeded generations before
-exposing `ready-for-snapshot`.
+The first exploratory buffered sequence is retained but excluded. Its first
+restore took 175.616 seconds and its second took 11.999 seconds, proving that
+the earlier holder receipt no longer described live page-cache residency after
+the direct canary. The selected holder was recreated and performed a fresh
+full read after all direct activity; only the three subsequent `rfd-f7-warm`
+trials share that byte-identical receipt and storage state.
 
-`artifact_variant.py` validates the captured direct artifact, hard-links every
-payload file, changes only the checkpoint identity and the single CRIU
-`imageIoMode` field, and publishes
-`rfdiffusion-native-h100-v1-buffered` without overwriting any path. This is a
-true legacy-buffered CRIU candidate, not a read-ahead process layered over
-direct I/O.
+Setup-only cache population failures, the provider reboot, and five presemantic
+direct topology/identity canaries are also preserved as exclusions. None is
+included in the aggregate. The provider reboot happened before a benchmark T0
+and produced boot ID `7edc8540-3fe9-4753-ba5a-f56afd6f21ba`.
 
-The mode-specific holder always re-hashes the pinned NIM cache. It inventories
-the direct artifact without reading its payload into ordinary page cache. For
-the buffered candidate it reads every artifact byte before becoming Ready.
-Thus the only intended measured difference is native direct I/O versus a
-fully resident legacy-buffered artifact.
+## Runner behavior
 
-## Measured provisioned-node path
+`run_one_provisioned_trial.sh` rejects a mismatched API server, node/GPU
+topology, active GPU request, image holder, live imageID, artifact holder,
+manifest, cache tree, runtime topology, worker, validator, or fixture before
+creating a run directory and target. It saves the exact image-holder receipt,
+storage receipt, target-submit timestamp, API-defaulted Pod, UID/container/IP
+binding, worker receipt, semantic receipt, EndpointSlice, and final timestamps.
 
-`run_one_provisioned_trial.sh` implements one demand edge:
+`aggregate_results.py` accepts exactly three passing fresh UIDs with one
+immutable storage state. It recomputes T0-to-HTTP, T0-to-Kubernetes Ready,
+T0-to-call-2, T0-to-validation, call body timings, and validation overhang from
+absolute timestamps, and requires exact `target-submit-at.txt` provenance.
 
-1. reject a different API server, image, node topology, artifact, cache,
-   worker, validator, fixture, active GPU request, or non-Ready holder;
-2. record demand and submit the scheduler-created inert target plus two
-   run-scoped ClusterIP Services;
-3. bind the live UID, full container ID, exact digest, Guaranteed cgroup, Pod
-   IP, node, and canonical PodSpec digest;
-4. start a separate tokenless CPU probe before the restore worker;
-5. let the probe poll the run-scoped canary ClusterIP while the one-shot
-   worker restores; and
-6. require exactly two distinct semantic backbone responses, Kubernetes
-   Ready, the exact EndpointSlice UID/IP, and a successful worker receipt.
+After the run, all run-scoped GPU targets, workers, probes, Services, RBAC, and
+policies were removed. The selected image/direct/buffered CPU holders, both
+PVCs, and captured `PodSnapshotContent` evidence remain. Active run GPU
+requests are zero. The post-cleanup read-only receipt is
+`/home/tux/.local/state/archvteams-2407/rfdiffusion-native-f7-20260818T080831Z/final-cluster-state.json`,
+SHA-256
+`153db897876cbb7a748758db8e5fe74418cddeb3eef478f192f2bab2c2f5e77c`.
 
-The validator rejects redirects and proxies, request drift, retries,
-non-200/invalid JSON, error fields, missing or non-finite elapsed time,
-anything outside 61-71 residues, missing N/CA/C atoms, non-finite or
-degenerate coordinates, implausible adjacent CA geometry, too few sequential
-CA pairs, identical responses, or any request count other than two.
-
-`run_provisioned_n3.sh` runs three fresh target UIDs serially for one I/O mode
-and fails closed unless all three share the exact image, checkpoint, manifest,
-cache, topology, request digests, and six strict semantic passes. Direct and
-buffered are separate n=3 sets; compare medians, never the fastest trial. The
-n=3 runner requires `--cleanup` so each completed target releases the single
-GPU before the next fresh UID is submitted; immutable evidence remains on disk.
-
-Each trial and aggregate exposes demand to successful semantic HTTP readiness,
-demand to Kubernetes Pod Ready, the first inference call, the immediate warm
-second call, and demand to completion of call 2. `T0` is before target creation
-on the already provisioned H100 with storage attached. The HTTP timestamp comes
-from the validator's successful readiness receipt; worker receipt and probe
-events remain independent concurrent timelines.
-
-## Worker gate
-
-The exact current eight-patch worker is
-`snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28`.
-Its restore-worker SHA-256 is
-`941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651`
-and its tool-manifest SHA-256 is
-`c0d638100c03fa35973e82859d15b9c8dd1bcbf0fe9cb185b58cc21fae7ead1e`.
-It supports direct, writeback, and buffered CRIU modes with a GLIBC 2.35
-ceiling. The eighth source patch builds `ns-bind-mount` against the
-Jammy/GLIBC-2.35 worker runtime.
-
-`worker-gate.json` deliberately sets `release_ready` to false. The image is
-approved only for performance validation because the full compliance target
-still lacks the exact Jammy CUDA base baseline SBOM. Live timing therefore
-requires `--allow-performance-validation-worker`; production promotion must
-replace the worker and reviewed gate rather than bypass this condition.
-
-No cluster, cloud, registry, or network operation was performed while
-preparing this lane.
-
-## Offline verification
+## Verification
 
 ```console
 python3 -m unittest discover -s tests -v

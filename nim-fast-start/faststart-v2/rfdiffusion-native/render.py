@@ -36,7 +36,7 @@ base = _load_module("openfold2_dynamo_render_for_rfdiffusion", BASE_DYNAMO / "re
 NAMESPACE = "nim-fast-start"
 RUN_SCHEMA = "archvteams.nebius.ai/rfdiffusion-faststart-run/v1"
 BINDING_SCHEMA = "archvteams.nebius.ai/rfdiffusion-target-binding/v1"
-VALIDATOR_SHA256 = "e750bc6f45ce2d97a6f94038946c37a72080031a787c7941bc7882d8991f63be"
+VALIDATOR_SHA256 = "691ee7d60aaf22f32cb05bb7c67fa0552b656f0d549015f3297516e1dd7b2317"
 OPENFOLD_IMAGE = base.NIM_IMAGE
 PROFILE = json.loads((HERE / "profile.json").read_text(encoding="utf-8"))
 WORKER_GATE = json.loads((HERE / "worker-gate.json").read_text(encoding="utf-8"))
@@ -127,6 +127,10 @@ def validate_run(value: dict[str, Any]) -> dict[str, Any]:
     digest = value.get("artifact_manifest_sha256")
     if not isinstance(digest, str) or SHA256.fullmatch(digest) is None:
         raise RenderError("artifact_manifest_sha256 must be lowercase SHA-256")
+    if digest != artifact.get("manifest_sha256"):
+        raise RenderError(
+            "artifact_manifest_sha256 does not match the selected pinned profile"
+        )
     if value.get("artifact_pvc") != PROFILE["storage"]["artifact_pvc"]:
         raise RenderError("artifact_pvc does not match the profile")
     if value.get("cache_pvc") != PROFILE["storage"]["cache_pvc"]:
@@ -270,9 +274,28 @@ def render_target(run: dict[str, Any], contract: dict[str, Any]) -> list[dict[st
     container["resources"] = copy.deepcopy(PROFILE["pod_profile"])
     container["resources"].pop("shared_memory", None)
     container["resources"].pop("qos_class", None)
+    container["securityContext"]["runAsUser"] = 1000
+    container["securityContext"]["runAsGroup"] = 1000
+    pod["spec"]["securityContext"]["fsGroup"] = 1000
+    pod["spec"]["securityContext"]["fsGroupChangePolicy"] = "OnRootMismatch"
     for mount in container["volumeMounts"]:
         if mount.get("name") == "nim-cache":
             mount["mountPath"] = PROFILE["model"]["cache_path"]
+    container["volumeMounts"].append(
+        {
+            "name": "validator",
+            "mountPath": PROFILE["runtime_topology"]["validator_mount_path"],
+            "readOnly": True,
+        }
+    )
+    pod["spec"]["volumes"].append(
+        {
+            "name": "validator",
+            "emptyDir": {
+                "sizeLimit": PROFILE["runtime_topology"]["validator_size_limit"],
+            },
+        }
+    )
     for item in container.get("env", []):
         if item.get("name") == "NIM_CACHE_PATH":
             item["value"] = PROFILE["model"]["nim_cache_path"]
@@ -423,6 +446,18 @@ def lint_documents(documents: list[dict[str, Any]]) -> list[str]:
         else:
             pod = pods[0]
             spec = pod.get("spec", {})
+            for volume in spec.get("volumes", []):
+                sources = set(volume) - {"name"}
+                if sources == {"emptyDir"}:
+                    if not volume["emptyDir"].get("sizeLimit"):
+                        errors.append(f"target emptyDir {volume.get('name')} is unbounded")
+                elif sources == {"persistentVolumeClaim"}:
+                    if not volume["persistentVolumeClaim"].get("claimName"):
+                        errors.append(f"target PVC {volume.get('name')} has no claim")
+                else:
+                    errors.append(
+                        f"target volume {volume.get('name')} is not d5ce-compatible emptyDir/PVC"
+                    )
             containers = spec.get("containers", [])
             if len(containers) != 1:
                 errors.append("target must contain one container")
@@ -442,6 +477,31 @@ def lint_documents(documents: list[dict[str, Any]]) -> list[str]:
                 ]
                 if len(cache_mounts) != 1 or cache_mounts[0].get("mountPath") != PROFILE["model"]["cache_path"]:
                     errors.append("target cache mount does not match the captured rootfs")
+                validator_mounts = [
+                    item
+                    for item in container.get("volumeMounts", [])
+                    if item.get("name") == "validator"
+                ]
+                if validator_mounts != [
+                    {
+                        "name": "validator",
+                        "mountPath": PROFILE["runtime_topology"]["validator_mount_path"],
+                        "readOnly": True,
+                    }
+                ]:
+                    errors.append("target validator mount does not match the captured topology")
+                validator_volumes = [
+                    item for item in spec.get("volumes", []) if item.get("name") == "validator"
+                ]
+                if validator_volumes != [
+                    {
+                        "name": "validator",
+                        "emptyDir": {
+                            "sizeLimit": PROFILE["runtime_topology"]["validator_size_limit"],
+                        },
+                    }
+                ]:
+                    errors.append("target validator volume does not match the captured topology")
             if "nodeName" in spec or _hostname_affinity(spec) != [TARGET_NODE]:
                 errors.append("target must use scheduler affinity for the exact H100 node")
             if spec.get("automountServiceAccountToken") is not False:

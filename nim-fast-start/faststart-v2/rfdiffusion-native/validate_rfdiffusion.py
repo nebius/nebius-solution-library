@@ -35,6 +35,7 @@ RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 FIXTURE_SHA256 = "d4a6812d8951cf6594e6a0763f089e35f5a80b62acb3c117b2c5565228a7b161"
 CONTIGS = "A20-60/0 20-30"
 DIFFUSION_STEPS = 15
+RESPONSE_TIMING_CONTRACT = "request-dispatch-to-complete-http-body/v1"
 
 FIXED_CASES = (
     {
@@ -459,13 +460,17 @@ def run_probe(
     result = request_http(
         opener, endpoint, timeout, body=request_body, request_id=probe.run_id
     )
-    elapsed_seconds = (time.monotonic_ns() - started_ns) / 1_000_000_000
+    response_received_at = utc_now()
+    response_received_ns = time.monotonic_ns()
+    elapsed_seconds = (response_received_ns - started_ns) / 1_000_000_000
     write_private(receipt / f"response-{probe.index}.body", result.body)
     write_private(
         receipt / f"response-{probe.index}.metadata.json",
         json_bytes(
             {
                 "elapsed_seconds": round(elapsed_seconds, 6),
+                "request_started_at": started_at,
+                "response_received_at": response_received_at,
                 "final_url": result.final_url,
                 "headers": result.headers,
                 "status": result.status,
@@ -481,6 +486,7 @@ def run_probe(
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise SemanticFailure(f"inference {probe.index} returned invalid JSON") from exc
     invariant = validate_response(decoded, probe)
+    validation_finished_at = utc_now()
     return {
         "status": "PASS",
         "ok": True,
@@ -488,7 +494,10 @@ def run_probe(
         "run_id": probe.run_id,
         "endpoint": endpoint,
         "started_at": started_at,
-        "finished_at": utc_now(),
+        "request_started_at": started_at,
+        "response_received_at": response_received_at,
+        "validation_finished_at": validation_finished_at,
+        "finished_at": validation_finished_at,
         "elapsed_seconds": round(elapsed_seconds, 6),
         "http_status": result.status,
         "request_sha256": sha256(request_body),
@@ -528,18 +537,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         cases = [run_probe(opener, origin, probe, args.timeout, receipt) for probe in probes]
         if cases[0]["response_sha256"] == cases[1]["response_sha256"]:
             raise SemanticFailure("the two seeded calls returned identical responses")
+        validation_finished_at = utc_now()
+        validation_total_elapsed_seconds = round(
+            (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
+        )
         summary = {
             "schema": "archvteams.nebius.ai/rfdiffusion-semantic-probe/v1",
             "validator": "rfdiffusion-strict-generate-v1",
+            "response_timing_contract": RESPONSE_TIMING_CONTRACT,
             "status": "PASS",
             "ok": True,
             "base_url": origin,
             "ready": ready,
             "started_at": started_at,
-            "finished_at": utc_now(),
-            "total_elapsed_seconds": round(
-                (time.monotonic_ns() - started_ns) / 1_000_000_000, 6
-            ),
+            "finished_at": validation_finished_at,
+            "validation_finished_at": validation_finished_at,
+            "total_elapsed_seconds": validation_total_elapsed_seconds,
+            "validation_total_elapsed_seconds": validation_total_elapsed_seconds,
             "passed_case_count": 2,
             "failed_case_count": 0,
             "request_count": 2,

@@ -10,6 +10,7 @@ import os
 import statistics
 import sys
 import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -41,6 +42,49 @@ def finite_positive(value: Any, label: str) -> float:
     return float(value)
 
 
+def finite_nonnegative(value: Any, label: str) -> float:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+        or float(value) < 0
+    ):
+        raise AggregateError(f"{label} must be a finite nonnegative number")
+    return float(value)
+
+
+def timestamp(value: Any, label: str) -> datetime:
+    if not isinstance(value, str) or not value:
+        raise AggregateError(f"{label} timestamp is missing")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise AggregateError(f"{label} timestamp is invalid") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise AggregateError(f"{label} timestamp lacks a UTC offset")
+    return parsed
+
+
+def assert_seconds(reported: Any, start: datetime, finish: datetime, label: str) -> None:
+    observed = finite_positive(reported, label)
+    recomputed = round((finish - start).total_seconds(), 6)
+    if recomputed <= 0 or abs(observed - recomputed) > 0.002:
+        raise AggregateError(
+            f"{label} differs from absolute timestamps: reported={observed} recomputed={recomputed}"
+        )
+
+
+def assert_nonnegative_seconds(
+    reported: Any, start: datetime, finish: datetime, label: str
+) -> None:
+    observed = finite_nonnegative(reported, label)
+    recomputed = round((finish - start).total_seconds(), 6)
+    if recomputed < 0 or abs(observed - recomputed) > 0.002:
+        raise AggregateError(
+            f"{label} differs from absolute timestamps: reported={observed} recomputed={recomputed}"
+        )
+
+
 def statistics_block(values: list[float]) -> dict[str, Any]:
     return {
         "values": values,
@@ -65,11 +109,59 @@ def load_summary(path: Path, mode: str) -> dict[str, Any]:
         "gpu_topology": "1x NVIDIA H100, full GPU, non-MIG",
         "image_io_mode": mode,
         "checkpoint_id": PROFILE["artifacts"][mode]["checkpoint_id"],
+        "artifact_manifest_sha256": PROFILE["artifacts"][mode]["manifest_sha256"],
         "semantic_request_count": 2,
     }
     for key, expected in exact.items():
         if value.get(key) != expected:
             raise AggregateError(f"{path}: {key} does not match the n=3 contract")
+    if value.get("t0_basis") != "target-submit-at immediately before kubectl create":
+        raise AggregateError(f"{path}: T0 is not the target-submit edge")
+    storage = value.get("storage_state")
+    expected_state = (
+        "buffered_fully_prewarmed"
+        if mode == "buffered"
+        else "direct_o_direct_no_artifact_payload_prewarm"
+    )
+    if (
+        not isinstance(storage, dict)
+        or storage.get("schema")
+        != "archvteams.nebius.ai/rfdiffusion-storage-state/v1"
+        or storage.get("state") != expected_state
+        or storage.get("image_io_mode") != mode
+        or storage.get("storage_attached_before_t0") is not True
+        or storage.get("image_present_before_t0") is not True
+        or storage.get("prewarm_outside_t0") is not True
+        or storage.get("cache_payload_read") is not True
+        or storage.get("artifact_payload_read") != (mode == "buffered")
+        or not isinstance(storage.get("image_holder"), dict)
+        or storage["image_holder"].get("schema")
+        != "archvteams.nebius.ai/rfdiffusion-image-cache-holder/v1"
+        or storage["image_holder"].get("status") != "PASS"
+        or storage["image_holder"].get("image") != PROFILE["model"]["image"]
+        or storage["image_holder"].get("image_digest")
+        != PROFILE["model"]["image"].split("@", 1)[1]
+        or str(storage["image_holder"].get("live_image_id", "")).removeprefix(
+            "docker-pullable://"
+        )
+        != PROFILE["model"]["image"]
+    ):
+        raise AggregateError(f"{path}: pre-T0 storage state is invalid")
+    for key in (
+        "artifact_regular_bytes",
+        "cache_regular_bytes",
+        "cache_prewarm_seconds",
+        "total_pre_t0_full_read_seconds",
+    ):
+        finite_positive(storage.get(key), f"{path}: storage {key}")
+    artifact_prewarm = storage.get("artifact_prewarm_seconds")
+    if (
+        isinstance(artifact_prewarm, bool)
+        or not isinstance(artifact_prewarm, (int, float))
+        or not math.isfinite(float(artifact_prewarm))
+        or float(artifact_prewarm) < 0
+    ):
+        raise AggregateError(f"{path}: artifact prewarm duration is invalid")
     semantic = value.get("semantic")
     if (
         not isinstance(semantic, dict)
@@ -115,6 +207,11 @@ def load_summary(path: Path, mode: str) -> dict[str, Any]:
             or backbone["adjacent_ca_pair_count"] < 15
         ):
             raise AggregateError(f"{path}: semantic backbone invariant is invalid")
+    target_submit_raw = value.get("target_submit_at")
+    target_submit = timestamp(target_submit_raw, f"{path}: target submit")
+    prepared = timestamp(value.get("prepared_at"), f"{path}: preparation")
+    if prepared > target_submit:
+        raise AggregateError(f"{path}: preparation timestamp follows T0")
     finite_positive(value.get("demand_to_two_semantic_seconds"), f"{path}: end-to-end")
     finite_positive(value.get("demand_to_http_ready_seconds"), f"{path}: HTTP ready")
     finite_positive(
@@ -126,25 +223,177 @@ def load_summary(path: Path, mode: str) -> dict[str, Any]:
     request_2 = finite_positive(
         value.get("semantic_request_2_seconds"), f"{path}: request 2"
     )
+    finite_positive(
+        value.get("demand_to_semantic_validation_seconds"),
+        f"{path}: T0 through semantic validation",
+    )
+    finite_nonnegative(
+        value.get("semantic_validation_overhang_seconds"),
+        f"{path}: semantic validation overhang",
+    )
     case_elapsed = [
         finite_positive(case.get("elapsed_seconds"), f"{path}: semantic case elapsed")
         for case in semantic["cases"]
     ]
     if [request_1, request_2] != case_elapsed:
         raise AggregateError(f"{path}: request timings differ from semantic evidence")
+    response_contract = "request-dispatch-to-complete-http-body/v1"
+    if (
+        value.get("response_timing_contract") != response_contract
+        or semantic.get("response_timing_contract") != response_contract
+    ):
+        raise AggregateError(f"{path}: response timing contract is invalid")
     timestamps = value.get("timing_evidence")
     if not isinstance(timestamps, dict) or any(
         not isinstance(timestamps.get(key), str) or not timestamps[key]
         for key in (
             "demand_at",
+            "t0_at",
+            "t0_source",
+            "setup_demand_at",
             "http_ready_at",
             "kubernetes_ready_at",
             "semantic_started_at",
-            "semantic_finished_at",
+            "semantic_response_1_received_at",
+            "semantic_response_2_received_at",
+            "validation_finished_at",
         )
     ):
         raise AggregateError(f"{path}: timing evidence timestamps are incomplete")
-    finite_positive(semantic.get("total_elapsed_seconds"), f"{path}: semantic duration")
+    if (
+        timestamps["demand_at"] != target_submit_raw
+        or timestamps["t0_at"] != target_submit_raw
+        or timestamps["t0_source"] != "target-submit-at.txt"
+        or timestamps["setup_demand_at"] != value.get("prepared_at")
+    ):
+        raise AggregateError(f"{path}: timing evidence is not rooted at target-submit-at")
+    http_ready = timestamp(timestamps["http_ready_at"], f"{path}: HTTP ready")
+    kubernetes_ready = timestamp(
+        timestamps["kubernetes_ready_at"], f"{path}: Kubernetes Ready"
+    )
+    semantic_started_raw = semantic.get("started_at")
+    if timestamps["semantic_started_at"] != semantic_started_raw:
+        raise AggregateError(f"{path}: semantic-start provenance is inconsistent")
+    semantic_started = timestamp(semantic_started_raw, f"{path}: semantic start")
+    ready = semantic.get("ready_wait", semantic.get("ready"))
+    if (
+        not isinstance(ready, dict)
+        or ready.get("status") != "PASS"
+        or ready.get("endpoint")
+        != str(semantic.get("base_url", "")).rstrip("/") + "/v1/health/ready"
+        or ready.get("finished_at") != timestamps["http_ready_at"]
+    ):
+        raise AggregateError(f"{path}: semantic HTTP readiness provenance is invalid")
+    ready_started = timestamp(ready.get("started_at"), f"{path}: readiness start")
+    call_2_received_raw = value.get("call_2_response_received_at")
+    if (
+        call_2_received_raw != semantic["cases"][1].get("response_received_at")
+        or call_2_received_raw != timestamps["semantic_response_2_received_at"]
+    ):
+        raise AggregateError(f"{path}: call-2 body-received provenance is inconsistent")
+    call_2_received = timestamp(call_2_received_raw, f"{path}: call 2 response received")
+    assert_seconds(
+        value.get("demand_to_http_ready_seconds"),
+        target_submit,
+        http_ready,
+        f"{path}: HTTP ready",
+    )
+    kubernetes_reported = finite_nonnegative(
+        value.get("demand_to_kubernetes_ready_seconds"),
+        f"{path}: Kubernetes Ready",
+    )
+    kubernetes_seconds = round((kubernetes_ready - target_submit).total_seconds(), 6)
+    if kubernetes_seconds < 0:
+        if abs(kubernetes_seconds) >= 1:
+            raise AggregateError(f"{path}: Kubernetes Ready precedes T0 by at least one second")
+        kubernetes_seconds = 0.0
+    if abs(kubernetes_reported - kubernetes_seconds) > 0.002:
+        raise AggregateError(f"{path}: Kubernetes Ready metric differs from absolute timestamps")
+    assert_seconds(
+        value.get("demand_to_two_semantic_seconds"),
+        target_submit,
+        call_2_received,
+        f"{path}: T0 through call 2 body",
+    )
+    previous_received: datetime | None = None
+    for index, case in enumerate(semantic["cases"], 1):
+        request_started_raw = case.get("request_started_at")
+        if request_started_raw != case.get("started_at"):
+            raise AggregateError(
+                f"{path}: call {index} request-start compatibility alias is inconsistent"
+            )
+        started = timestamp(request_started_raw, f"{path}: call {index} start")
+        expected_received_raw = timestamps[f"semantic_response_{index}_received_at"]
+        if case.get("response_received_at") != expected_received_raw:
+            raise AggregateError(
+                f"{path}: call {index} body-received provenance is inconsistent"
+            )
+        received = timestamp(
+            case.get("response_received_at"), f"{path}: call {index} response received"
+        )
+        if case.get("validation_finished_at") != case.get("finished_at"):
+            raise AggregateError(
+                f"{path}: call {index} validation-finish compatibility alias is inconsistent"
+            )
+        validated = timestamp(
+            case.get("validation_finished_at"), f"{path}: call {index} validation finish"
+        )
+        if not (
+            target_submit
+            <= semantic_started
+            <= ready_started
+            <= http_ready
+            <= started
+            <= received
+            <= validated
+        ):
+            raise AggregateError(f"{path}: call {index} absolute timestamps are out of order")
+        if previous_received is not None and started < previous_received:
+            raise AggregateError(f"{path}: call 2 started before call 1 body completed")
+        assert_seconds(
+            value.get(f"semantic_request_{index}_seconds"),
+            started,
+            received,
+            f"{path}: call {index} body latency",
+        )
+        previous_received = received
+    validation_finished = timestamp(
+        value.get("semantic_validation_finished_at"), f"{path}: semantic validation finish"
+    )
+    if (
+        value.get("semantic_validation_finished_at")
+        != semantic.get("validation_finished_at")
+        or value.get("semantic_validation_finished_at") != semantic.get("finished_at")
+        or value.get("semantic_validation_finished_at")
+        != timestamps["validation_finished_at"]
+        or validation_finished < timestamp(
+            semantic["cases"][1].get("validation_finished_at"),
+            f"{path}: call 2 validation finish",
+        )
+    ):
+        raise AggregateError(f"{path}: semantic validation-finish provenance is inconsistent")
+    assert_seconds(
+        semantic.get("validation_total_elapsed_seconds"),
+        semantic_started,
+        validation_finished,
+        f"{path}: semantic validation duration",
+    )
+    if semantic.get("total_elapsed_seconds") != semantic.get(
+        "validation_total_elapsed_seconds"
+    ):
+        raise AggregateError(f"{path}: semantic duration compatibility alias is inconsistent")
+    assert_seconds(
+        value.get("demand_to_semantic_validation_seconds"),
+        target_submit,
+        validation_finished,
+        f"{path}: T0 through semantic validation",
+    )
+    assert_nonnegative_seconds(
+        value.get("semantic_validation_overhang_seconds"),
+        call_2_received,
+        validation_finished,
+        f"{path}: semantic validation overhang",
+    )
     worker = value.get("worker_receipt")
     if not isinstance(worker, dict) or worker.get("status") != "succeeded":
         raise AggregateError(f"{path}: worker receipt did not succeed")
@@ -177,6 +426,9 @@ def aggregate(paths: Sequence[Path], mode: str) -> dict[str, Any]:
         or not sha256_digest(next(iter(manifests)))
     ):
         raise AggregateError("the three runs did not use one immutable artifact manifest")
+    storage_states = [item["storage_state"] for item in summaries]
+    if any(item != storage_states[0] for item in storage_states[1:]):
+        raise AggregateError("the three runs did not use one immutable pre-T0 storage state")
     e2e = [float(item["demand_to_two_semantic_seconds"]) for item in summaries]
     http_ready = [float(item["demand_to_http_ready_seconds"]) for item in summaries]
     kubernetes_ready = [
@@ -186,6 +438,12 @@ def aggregate(paths: Sequence[Path], mode: str) -> dict[str, Any]:
     request_2 = [float(item["semantic_request_2_seconds"]) for item in summaries]
     restore = [float(item["worker_receipt"]["duration_ms"]) / 1000 for item in summaries]
     semantic = [float(item["semantic"]["total_elapsed_seconds"]) for item in summaries]
+    validation = [
+        float(item["demand_to_semantic_validation_seconds"]) for item in summaries
+    ]
+    validation_overhang = [
+        float(item["semantic_validation_overhang_seconds"]) for item in summaries
+    ]
     return {
         "schema": "archvteams.nebius.ai/rfdiffusion-native-n3/v1",
         "status": "PASS",
@@ -195,6 +453,10 @@ def aggregate(paths: Sequence[Path], mode: str) -> dict[str, Any]:
         "image_io_mode": mode,
         "checkpoint_id": PROFILE["artifacts"][mode]["checkpoint_id"],
         "artifact_manifest_sha256": next(iter(manifests)),
+        "t0_basis": "target-submit-at immediately before kubectl create",
+        "ready_definition": "first successful semantic application HTTP readiness response",
+        "call_definition": "two immediate distinct strict RF backbone inferences after readiness",
+        "storage_state": storage_states[0],
         "trial_count": 3,
         "semantic_pass_count": 6,
         "run_ids": run_ids,
@@ -204,6 +466,8 @@ def aggregate(paths: Sequence[Path], mode: str) -> dict[str, Any]:
         "semantic_request_1_seconds": statistics_block(request_1),
         "semantic_request_2_seconds": statistics_block(request_2),
         "demand_to_two_semantic_seconds": statistics_block(e2e),
+        "demand_to_semantic_validation_seconds": statistics_block(validation),
+        "semantic_validation_overhang_seconds": statistics_block(validation_overhang),
         "worker_restore_seconds": statistics_block(restore),
         "semantic_probe_seconds": statistics_block(semantic),
         "source_summaries": [str(path) for path in paths],

@@ -12,6 +12,7 @@ artifact_manifest_sha256=""
 evidence_root=""
 kubeconfig=""
 artifact_holder=""
+image_cache_holder=""
 cleanup=0
 allow_performance_worker=0
 
@@ -24,6 +25,7 @@ usage: run_provisioned_n3.sh \
   --evidence-root ABSOLUTE_DIRECTORY \
   --kubeconfig ABSOLUTE_FILE \
   --artifact-holder READY_POD \
+  --image-cache-holder READY_POD \
   --allow-performance-validation-worker [--cleanup]
 USAGE
 }
@@ -56,6 +58,10 @@ while (($# > 0)); do
     --artifact-holder)
       (($# >= 2)) || die_usage "--artifact-holder requires a value"
       set_once --artifact-holder "$artifact_holder" "$2"; artifact_holder=$2; shift 2 ;;
+    --image-cache-holder)
+      (($# >= 2)) || die_usage "--image-cache-holder requires a value"
+      set_once --image-cache-holder "$image_cache_holder" "$2"
+      image_cache_holder=$2; shift 2 ;;
     --allow-performance-validation-worker)
       ((allow_performance_worker == 0)) || die_usage "worker override supplied twice"
       allow_performance_worker=1; shift ;;
@@ -70,7 +76,7 @@ while (($# > 0)); do
 done
 
 [[ -n $run_prefix && -n $image_io_mode && -n $artifact_manifest_sha256 ]] || die_usage "run prefix, mode, and manifest digest are required"
-[[ -n $evidence_root && -n $kubeconfig && -n $artifact_holder ]] || die_usage "evidence root, kubeconfig, and holder are required"
+[[ -n $evidence_root && -n $kubeconfig && -n $artifact_holder && -n $image_cache_holder ]] || die_usage "evidence root, kubeconfig, artifact holder, and image holder are required"
 [[ $run_prefix =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ && ${#run_prefix} -le 27 ]] || die_usage "run prefix must be a DNS label of at most 27 characters"
 ((allow_performance_worker == 1)) || die_usage "the current worker requires the explicit performance-validation override"
 ((cleanup == 1)) || die_usage "n=3 requires --cleanup so each fresh target releases the single GPU"
@@ -81,6 +87,7 @@ common=(
   --evidence-root "$evidence_root"
   --kubeconfig "$kubeconfig"
   --artifact-holder "$artifact_holder"
+  --image-cache-holder "$image_cache_holder"
   --allow-performance-validation-worker
 )
 common+=(--cleanup)

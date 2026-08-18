@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import re
@@ -25,6 +26,10 @@ FIXTURE_SHA256 = hashlib.sha256(FIXTURE_SOURCE.encode("ascii")).hexdigest()
 PREWARM_SOURCE = (HERE / "prewarm_artifact.py").read_text(encoding="utf-8") if (
     HERE / "prewarm_artifact.py"
 ).exists() else ""
+VARIANT_SOURCE = (HERE / "artifact_variant.py").read_text(encoding="utf-8") if (
+    HERE / "artifact_variant.py"
+).exists() else ""
+PROFILE_SOURCE = (HERE / "profile.json").read_text(encoding="utf-8")
 NAMESPACE = "nim-fast-start"
 DNS_LABEL = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -269,25 +274,21 @@ def render_donor(capture_id: str) -> list[dict[str, Any]]:
         "requests": PROFILE["pod_profile"]["requests"],
         "limits": PROFILE["pod_profile"]["limits"],
     }
+    materializer = (
+        "from pathlib import Path\n"
+        "import os\n"
+        "import sys\n"
+        "root = Path('/validator')\n"
+        "for name, value, encoding in ((\n"
+        "    'validate_rfdiffusion.py', sys.argv[1], 'utf-8'),\n"
+        "    ('1UBQ.pdb', sys.argv[2], 'ascii'),\n"
+        "    ('prewarm_artifact.py', sys.argv[3], 'utf-8'),\n"
+        "):\n"
+        "    path = root / name\n"
+        "    path.write_text(value, encoding=encoding)\n"
+        "    os.chmod(path, 0o444)\n"
+    )
     return [
-        {
-            "apiVersion": "v1",
-            "kind": "ConfigMap",
-            "metadata": {
-                "name": name,
-                "namespace": NAMESPACE,
-                "labels": labels,
-                "annotations": {
-                    "archvteams.nebius.ai/validator-sha256": VALIDATOR_SHA256,
-                },
-            },
-            "immutable": True,
-            "data": {
-                "validate_rfdiffusion.py": VALIDATOR_SOURCE,
-                "1UBQ.pdb": FIXTURE_SOURCE,
-                "prewarm_artifact.py": PREWARM_SOURCE,
-            },
-        },
         {
             "apiVersion": "batch/v1",
             "kind": "Job",
@@ -318,12 +319,41 @@ def render_donor(capture_id: str) -> list[dict[str, Any]]:
                         "affinity": _hostname_affinity(),
                         "imagePullSecrets": [{"name": "nvcrio-cred"}],
                         "securityContext": {
+                            "fsGroup": 1000,
+                            "fsGroupChangePolicy": "OnRootMismatch",
                             "seccompProfile": {
                                 "type": "Localhost",
                                 "localhostProfile": "profiles/block-iouring.json",
                             }
                         },
                         "initContainers": [
+                            {
+                                "name": "materialize-validator",
+                                "image": "docker.io/library/python@sha256:356b0d18f9385f4bdcc673af60e1e64c9d1504952e4ec36ee32044c722a6bc4e",
+                                "imagePullPolicy": "IfNotPresent",
+                                "command": ["/usr/local/bin/python3"],
+                                "args": [
+                                    "-c",
+                                    materializer,
+                                    VALIDATOR_SOURCE,
+                                    FIXTURE_SOURCE,
+                                    PREWARM_SOURCE,
+                                ],
+                                "resources": {
+                                    "requests": {"cpu": "100m", "memory": "64Mi"},
+                                    "limits": {"cpu": "1", "memory": "256Mi"},
+                                },
+                                "securityContext": {
+                                    "allowPrivilegeEscalation": False,
+                                    "capabilities": {"drop": ["ALL"]},
+                                    "readOnlyRootFilesystem": True,
+                                    "runAsUser": 1000,
+                                    "runAsGroup": 1000,
+                                },
+                                "volumeMounts": [
+                                    {"name": "validator", "mountPath": "/validator"},
+                                ],
+                            },
                             {
                                 "name": "verify-pinned-cache",
                                 "image": "docker.io/library/python@sha256:356b0d18f9385f4bdcc673af60e1e64c9d1504952e4ec36ee32044c722a6bc4e",
@@ -355,8 +385,8 @@ def render_donor(capture_id: str) -> list[dict[str, Any]]:
                                     "allowPrivilegeEscalation": False,
                                     "capabilities": {"drop": ["ALL"]},
                                     "readOnlyRootFilesystem": True,
-                                    "runAsUser": 0,
-                                    "runAsGroup": 0,
+                                    "runAsUser": 1000,
+                                    "runAsGroup": 1000,
                                 },
                                 "volumeMounts": [
                                     {"name": "validator", "mountPath": "/validator", "readOnly": True},
@@ -407,8 +437,8 @@ def render_donor(capture_id: str) -> list[dict[str, Any]]:
                                     "privileged": False,
                                     "allowPrivilegeEscalation": False,
                                     "capabilities": {"drop": ["ALL"]},
-                                    "runAsUser": 0,
-                                    "runAsGroup": 0,
+                                    "runAsUser": 1000,
+                                    "runAsGroup": 1000,
                                 },
                                 "readinessProbe": {
                                     "exec": {"command": ["/bin/cat", "/snapshot-control/ready-for-snapshot"]},
@@ -436,7 +466,12 @@ def render_donor(capture_id: str) -> list[dict[str, Any]]:
                             }
                         ],
                         "volumes": [
-                            {"name": "validator", "configMap": {"name": name, "defaultMode": 292}},
+                            {
+                                "name": "validator",
+                                "emptyDir": {
+                                    "sizeLimit": PROFILE["runtime_topology"]["validator_size_limit"]
+                                },
+                            },
                             {
                                 "name": "dshm",
                                 "emptyDir": {
@@ -468,6 +503,84 @@ def render_donor(capture_id: str) -> list[dict[str, Any]]:
             },
         },
     ]
+
+
+def render_cache_populator(capture_id: str) -> list[dict[str, Any]]:
+    """Render a one-shot conventional run that materializes the pinned NIM cache.
+
+    This setup Job is deliberately not a snapshot source. It completes two strict
+    semantic calls, verifies the exact retained cache tree, and exits so the GPU
+    is released before the exact-topology donor is created.
+    """
+
+    documents = copy.deepcopy(render_donor(capture_id))
+    name = f"rfd-cache-{capture_id}"
+    job = next(item for item in documents if item["kind"] == "Job")
+    for document in documents:
+        document["metadata"]["name"] = name
+        labels = document["metadata"].get("labels", {})
+        labels["app.kubernetes.io/component"] = "cache-populator"
+        labels.pop("nvidia.com/snapshot-checkpoint-id", None)
+    pod_template = job["spec"]["template"]
+    pod_template["metadata"]["labels"]["app.kubernetes.io/component"] = "cache-populator"
+    for key in (
+        "nvidia.com/snapshot-checkpoint-id",
+        "nvidia.com/snapshot-is-checkpoint-source",
+    ):
+        pod_template["metadata"]["labels"].pop(key, None)
+    for key in (
+        "nvidia.com/snapshot-artifact-version",
+        "nvidia.com/snapshot-target-containers",
+        "nvidia.com/snapshot-storage-type",
+        "nvidia.com/snapshot-storage-base-path",
+    ):
+        pod_template["metadata"]["annotations"].pop(key, None)
+    spec = pod_template["spec"]
+    spec["initContainers"] = [
+        item
+        for item in spec["initContainers"]
+        if item["name"] == "materialize-validator"
+    ]
+    container = spec["containers"][0]
+    container["args"] = [
+        "set -Eeuo pipefail\n"
+        "bash /opt/nim/start_server.sh &\n"
+        "server_pid=$!\n"
+        "trap 'kill \"$server_pid\" 2>/dev/null || true' EXIT TERM INT\n"
+        "python3 /validator/validate_rfdiffusion.py "
+        "--fixture /validator/1UBQ.pdb "
+        "--base-url http://127.0.0.1:8000 "
+        "--receipt-dir /tmp/rfdiffusion-cache-semantic "
+        f"--run-id {capture_id}-cache-a --run-id {capture_id}-cache-b "
+        "--ready-timeout 1800 --timeout 300\n"
+        "python3 /validator/prewarm_artifact.py --cache-only "
+        "--cache-root /home/user/.cache/nim "
+        f"--cache-tree-sha256 {PROFILE['retained_evidence']['cache_tree_sha256']} "
+        f"--cache-file-count {PROFILE['retained_evidence']['cache_file_count']} "
+        f"--cache-total-bytes {PROFILE['retained_evidence']['cache_regular_file_bytes']} "
+        f"--required-cache-relative-path {PROFILE['retained_evidence']['critical_cache_file']} "
+        "--receipt /tmp/cache-receipt.json --ready-marker /tmp/cache-ready\n"
+    ]
+    container.pop("readinessProbe", None)
+    container["env"] = [
+        item for item in container["env"] if item.get("name") != "DYN_SNAPSHOT_CONTROL_DIR"
+    ]
+    container["volumeMounts"] = [
+        item
+        for item in container["volumeMounts"]
+        if item["name"] not in {"snapshot-control", "checkpoints"}
+    ]
+    for mount in container["volumeMounts"]:
+        if mount["name"] == "nim-cache":
+            mount.pop("readOnly", None)
+    spec["volumes"] = [
+        item
+        for item in spec["volumes"]
+        if item["name"] not in {"snapshot-control", "checkpoints", "cache-verify-tmp"}
+    ]
+    cache_volume = next(item for item in spec["volumes"] if item["name"] == "nim-cache")
+    cache_volume["persistentVolumeClaim"].pop("readOnly", None)
+    return documents
 
 
 def render_content(capture_id: str, source_pod: str, source_uid: str) -> list[dict[str, Any]]:
@@ -635,6 +748,115 @@ def render_holder(
         },
     ]
 
+def render_variant_builder(
+    capture_id: str,
+    source_manifest_sha256: str,
+    source_file_count: int,
+    source_total_bytes: int,
+) -> list[dict[str, Any]]:
+    """Render the CPU-only, write-once direct-to-buffered artifact builder."""
+
+    if not VARIANT_SOURCE:
+        raise CaptureRenderError("artifact_variant.py is unavailable")
+    if SHA256.fullmatch(source_manifest_sha256) is None:
+        raise CaptureRenderError("source manifest SHA-256 is invalid")
+    if source_file_count < 2 or source_total_bytes <= 0:
+        raise CaptureRenderError("source artifact inventory must be positive")
+    name = f"rfd-buffered-builder-{capture_id}"
+    return [
+        {
+            "apiVersion": "v1",
+            "kind": "ConfigMap",
+            "metadata": {"name": name, "namespace": NAMESPACE},
+            "immutable": True,
+            "data": {
+                "artifact_variant.py": VARIANT_SOURCE,
+                "profile.json": PROFILE_SOURCE,
+            },
+        },
+        {
+            "apiVersion": "batch/v1",
+            "kind": "Job",
+            "metadata": {
+                "name": name,
+                "namespace": NAMESPACE,
+                "labels": {
+                    "app.kubernetes.io/name": "rfdiffusion",
+                    "app.kubernetes.io/component": "artifact-variant-builder",
+                    "archvteams.nebius.ai/capture-id": capture_id,
+                },
+            },
+            "spec": {
+                "backoffLimit": 0,
+                "activeDeadlineSeconds": 600,
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "app.kubernetes.io/name": "rfdiffusion",
+                            "app.kubernetes.io/component": "artifact-variant-builder",
+                            "archvteams.nebius.ai/capture-id": capture_id,
+                        }
+                    },
+                    "spec": {
+                        "restartPolicy": "Never",
+                        "automountServiceAccountToken": False,
+                        "enableServiceLinks": False,
+                        "affinity": _hostname_affinity(),
+                        "securityContext": {
+                            "runAsUser": 0,
+                            "runAsGroup": 0,
+                        },
+                        "containers": [
+                            {
+                                "name": "builder",
+                                "image": "docker.io/library/python@sha256:356b0d18f9385f4bdcc673af60e1e64c9d1504952e4ec36ee32044c722a6bc4e",
+                                "imagePullPolicy": "IfNotPresent",
+                                "command": ["/usr/local/bin/python3"],
+                                "args": [
+                                    "/builder/artifact_variant.py",
+                                    "--checkpoints-root",
+                                    "/checkpoints",
+                                    "--source-manifest-sha256",
+                                    source_manifest_sha256,
+                                    "--source-file-count",
+                                    str(source_file_count),
+                                    "--source-total-bytes",
+                                    str(source_total_bytes),
+                                    "--receipt",
+                                    "/tmp/buffered-build-receipt.json",
+                                ],
+                                "resources": {
+                                    "requests": {"cpu": "1", "memory": "256Mi"},
+                                    "limits": {"cpu": "2", "memory": "1Gi"},
+                                },
+                                "securityContext": {
+                                    "allowPrivilegeEscalation": False,
+                                    "capabilities": {"drop": ["ALL"]},
+                                    "readOnlyRootFilesystem": True,
+                                },
+                                "volumeMounts": [
+                                    {"name": "builder", "mountPath": "/builder", "readOnly": True},
+                                    {"name": "checkpoints", "mountPath": "/checkpoints"},
+                                    {"name": "tmp", "mountPath": "/tmp"},
+                                ],
+                            }
+                        ],
+                        "volumes": [
+                            {"name": "builder", "configMap": {"name": name, "defaultMode": 292}},
+                            {
+                                "name": "checkpoints",
+                                "persistentVolumeClaim": {
+                                    "claimName": PROFILE["storage"]["artifact_pvc"]
+                                },
+                            },
+                            {"name": "tmp", "emptyDir": {"sizeLimit": "16Mi"}},
+                        ],
+                    },
+                },
+            },
+        },
+    ]
+
 
 def validate_documents(documents: list[dict[str, Any]]) -> None:
     rendered = json.dumps(documents, sort_keys=True)
@@ -649,6 +871,39 @@ def validate_documents(documents: list[dict[str, Any]]) -> None:
     for pod in [item for item in documents if item.get("kind") == "Pod"]:
         if "nodeName" in pod.get("spec", {}):
             raise CaptureRenderError("capture Pods must use scheduler affinity")
+    for job in [item for item in documents if item.get("kind") == "Job"]:
+        if (
+            job.get("metadata", {}).get("labels", {}).get("app.kubernetes.io/component")
+            != "checkpoint-donor"
+        ):
+            continue
+        spec = job["spec"]["template"]["spec"]
+        volumes = {item["name"]: item for item in spec.get("volumes", [])}
+        for name, volume in volumes.items():
+            sources = set(volume) - {"name"}
+            if sources == {"emptyDir"}:
+                if not volume["emptyDir"].get("sizeLimit"):
+                    raise CaptureRenderError(f"donor emptyDir {name} is unbounded")
+            elif sources == {"persistentVolumeClaim"}:
+                if not volume["persistentVolumeClaim"].get("claimName"):
+                    raise CaptureRenderError(f"donor PVC {name} has no claim")
+            else:
+                raise CaptureRenderError(
+                    f"donor volume {name} is not d5ce-compatible emptyDir/PVC"
+                )
+        main = spec["containers"][0]
+        validator_mounts = [
+            item for item in main.get("volumeMounts", []) if item.get("name") == "validator"
+        ]
+        if validator_mounts != [
+            {"name": "validator", "mountPath": "/validator", "readOnly": True}
+        ]:
+            raise CaptureRenderError("donor validator mount is not exact")
+        if volumes.get("validator") != {
+            "name": "validator",
+            "emptyDir": {"sizeLimit": PROFILE["runtime_topology"]["validator_size_limit"]},
+        }:
+            raise CaptureRenderError("donor validator volume is not the exact bounded emptyDir")
 
 
 def dump_documents(documents: Iterable[dict[str, Any]]) -> None:
@@ -661,7 +916,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="mode", required=True)
     subparsers.add_parser("storage")
-    for mode in ("agent", "donor"):
+    for mode in ("agent", "donor", "cache-populator"):
         child = subparsers.add_parser(mode)
         child.add_argument("--capture-id", required=True)
     content = subparsers.add_parser("content")
@@ -674,6 +929,11 @@ def main(argv: list[str] | None = None) -> int:
     holder.add_argument("--manifest-sha256", required=True)
     holder.add_argument("--file-count", type=int, required=True)
     holder.add_argument("--total-bytes", type=int, required=True)
+    builder = subparsers.add_parser("variant-builder")
+    builder.add_argument("--capture-id", required=True)
+    builder.add_argument("--source-manifest-sha256", required=True)
+    builder.add_argument("--source-file-count", type=int, required=True)
+    builder.add_argument("--source-total-bytes", type=int, required=True)
     args = parser.parse_args(argv)
     try:
         if args.mode == "storage":
@@ -684,8 +944,17 @@ def main(argv: list[str] | None = None) -> int:
                 documents = render_agent(capture_id)
             elif args.mode == "donor":
                 documents = render_donor(capture_id)
+            elif args.mode == "cache-populator":
+                documents = render_cache_populator(capture_id)
             elif args.mode == "content":
                 documents = render_content(capture_id, args.source_pod, args.source_uid)
+            elif args.mode == "variant-builder":
+                documents = render_variant_builder(
+                    capture_id,
+                    args.source_manifest_sha256,
+                    args.source_file_count,
+                    args.source_total_bytes,
+                )
             else:
                 documents = render_holder(
                     capture_id,

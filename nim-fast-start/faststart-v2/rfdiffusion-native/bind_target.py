@@ -73,6 +73,20 @@ def _guaranteed_systemd_cgroup(pod_uid: str, container_id: str) -> str:
     )
 
 
+def _canonical_repository_digest(image: str) -> str:
+    value = image.removeprefix("docker-pullable://")
+    if value.count("@") != 1:
+        raise base_bind.BindingError("live image ID is not a repository digest")
+    name, digest = value.rsplit("@", 1)
+    slash = name.rfind("/")
+    colon = name.rfind(":")
+    if colon > slash:
+        name = name[:colon]
+    if not name or not digest.startswith("sha256:") or len(digest) != 71:
+        raise base_bind.BindingError("live image ID is not a repository digest")
+    return f"{name}@{digest}"
+
+
 def build_binding(
     pod: dict[str, Any],
     run: dict[str, Any],
@@ -93,8 +107,8 @@ def build_binding(
     matches = [item for item in statuses if item.get("name") == render.CONTAINER_NAME]
     if len(matches) != 1:
         raise base_bind.BindingError("live Pod does not have one RFdiffusion container status")
-    image_id = str(matches[0].get("imageID", "")).removeprefix("docker-pullable://")
-    if image_id != render.NIM_IMAGE:
+    image_id = str(matches[0].get("imageID", ""))
+    if _canonical_repository_digest(image_id) != _canonical_repository_digest(render.NIM_IMAGE):
         raise base_bind.BindingError("live image ID is not the pinned RFdiffusion digest")
 
     base_run = copy.deepcopy(run)
