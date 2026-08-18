@@ -139,7 +139,10 @@ class RenderTests(unittest.TestCase):
 
     def test_binding_requires_exact_image_digest(self) -> None:
         bad = target_binding()
-        bad["image_id"] = "nvcr.io/nim/openfold/openfold2@sha256:" + "0" * 64
+        bad["image_id"] = (
+            "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/"
+            "archvteams-2407-k301ud/openfold2@sha256:" + "0" * 64
+        )
         with self.assertRaisesRegex(render.RenderError, "exact pinned OpenFold2"):
             render.validate_binding(bad, self.run)
 
@@ -177,7 +180,10 @@ class UnsafeMutationTests(unittest.TestCase):
     def test_rejects_mutable_image_tag(self) -> None:
         documents = copy.deepcopy(self.target)
         pod = find_document(documents, "Pod", "restore-target")
-        pod["spec"]["containers"][0]["image"] = "nvcr.io/nim/openfold/openfold2:1.0"
+        pod["spec"]["containers"][0]["image"] = (
+            "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/"
+            "archvteams-2407-k301ud/openfold2:1.0"
+        )
         self.assert_rejected(documents, "not pinned by @sha256")
 
     def test_rejects_privileged_target(self) -> None:

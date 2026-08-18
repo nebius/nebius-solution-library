@@ -15,7 +15,7 @@ import yaml
 
 RUN_ID = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 RUN_LABEL = "archvteams.nebius.ai/run-id"
-TARGET_SECRET = "nvcrio-cred"
+TARGET_SECRET = "archvteams-2407-registry-pull"
 WORKER_SECRET = "archvteams-2407-registry-pull"
 
 

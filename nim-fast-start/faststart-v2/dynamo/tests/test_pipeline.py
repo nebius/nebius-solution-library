@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover - package discovery path
 POD_UID = "11111111-1111-4111-8111-111111111111"
 CONTAINER_ID = "containerd://" + "a" * 64
 CROSS_LANGUAGE_SPEC_SHA256 = (
-    "9aa7d72a034cb9b3146c12d28738698b73041322d9a2cde08d4db8a31eb5cf84"
+    "7b009b3d55e7309877d700f24df7f111ed101b87389527d3045ecd62cb6afd8a"
 )
 
 

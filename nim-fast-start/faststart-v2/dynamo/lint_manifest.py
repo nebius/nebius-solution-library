@@ -18,7 +18,8 @@ except ImportError as exc:  # pragma: no cover - environment failure
 
 NAMESPACE = "nim-fast-start"
 NIM_IMAGE = (
-    "nvcr.io/nim/openfold/openfold2@sha256:"
+    "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/"
+    "archvteams-2407-k301ud/openfold2@sha256:"
     "fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4"
 )
 RUN_LABEL = "archvteams.nebius.ai/run-id"

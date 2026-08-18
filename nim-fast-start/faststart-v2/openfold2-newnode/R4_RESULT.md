@@ -16,8 +16,11 @@ lifecycle receipt at `PASS`. The true demand edge was the exact node-group
 | Benchmark PASS recorded | 621.948 |
 | Full cleanup and holder restoration | 810.310 |
 
-The exact 10,698,531,042-byte OpenFold2 image took 251.094 seconds to cold-pull.
-That registry transfer is the dominant avoidable portion of the current result.
+The exact 10,698,531,042-byte OpenFold2 image took 251.094 seconds to cold-pull
+from the original NGC registry. That registry transfer is the dominant
+avoidable portion of the current result. A byte-identical regional mirror is
+now qualified in [`REGIONAL_MIRROR_RESULT.md`](REGIONAL_MIRROR_RESULT.md), but
+has not yet been timed in a second true new-node lifecycle.
 The native restore itself took 4.083 seconds; the two semantic requests took
 1.917 seconds and 1.055 seconds.
 

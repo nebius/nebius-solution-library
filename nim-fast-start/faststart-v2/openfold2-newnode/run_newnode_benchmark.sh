@@ -657,12 +657,11 @@ require_run_resource_absent job "$worker_name"
 require_run_resource_absent configmap "$probe_name"
 require_run_resource_absent job "$probe_name"
 
-for secret in nvcrio-cred archvteams-2407-registry-pull; do
-  "${kubectl_cmd[@]}" -n "$namespace" get secret "$secret" -o json |
-    jq '{apiVersion,kind,metadata:{name:.metadata.name,namespace:.metadata.namespace,uid:.metadata.uid,resourceVersion:.metadata.resourceVersion},type}' \
-    > "$run_dir/secret-ref-$secret.json"
-  jq -e '.type=="kubernetes.io/dockerconfigjson"' "$run_dir/secret-ref-$secret.json" >/dev/null
-done
+secret=archvteams-2407-registry-pull
+"${kubectl_cmd[@]}" -n "$namespace" get secret "$secret" -o json |
+  jq '{apiVersion,kind,metadata:{name:.metadata.name,namespace:.metadata.namespace,uid:.metadata.uid,resourceVersion:.metadata.resourceVersion},type}' \
+  > "$run_dir/secret-ref-$secret.json"
+jq -e '.type=="kubernetes.io/dockerconfigjson"' "$run_dir/secret-ref-$secret.json" >/dev/null
 
 require_sha256 "$seccomp_installer_tool" "69ecec504eb049720f606e8de88d0bb9600a6bce11b37f38532dc6dee2d8c3b8" "new-node seccomp installer"
 "${kubectl_cmd[@]}" -n "$namespace" get configmap archvteams-2407-native-snapshot-seccomp -o json \
@@ -700,11 +699,11 @@ sha256sum \
   "$pipeline_root/manifests/semantic-probe.yaml.tmpl" \
   "$pipeline_root/restore-interface.live.json" \
   "$pipeline_root/../validate_openfold2.py" > "$run_dir/frozen-pipeline.sha256"
-require_sha256 "$pipeline_root/render.py" "1a0cec8020ec2f2a389ab79c7c02bd73fe66c04708a835147349718c16e43258" "frozen renderer"
-require_sha256 "$pipeline_root/lint_manifest.py" "0e29b780fc6034f991db9e29d0ece8ac8bd591e0c0a58bb62623c3c91c8dc551" "frozen manifest linter"
+require_sha256 "$pipeline_root/render.py" "95ef0a86aee8022d8fa301c98097115ebeef2dc13a86813558811e61ae748ffc" "frozen renderer"
+require_sha256 "$pipeline_root/lint_manifest.py" "79ad4c714933d434920f7e2092853f090707adda8d5c422044fbf212ab9285ae" "frozen manifest linter"
 require_sha256 "$pipeline_root/bind_target.py" "88613cdc726fe01a3be9aed38a8b2624677aea5b73d69b410905bc57f985cc97" "frozen target binder"
 require_sha256 "$pipeline_root/evidence.py" "2372b5ace1ac4e515dc45f4b45443bb486087e8c375de949ee35f33d3c313b2b" "frozen evidence validator"
-require_sha256 "$pipeline_root/manifests/target.yaml.tmpl" "beef61230ab38f16edd6380fc13ba0e31c194314ed198c2a09aa36b9fc8311ed" "frozen target template"
+require_sha256 "$pipeline_root/manifests/target.yaml.tmpl" "04d68f1d7d7eb723443bada5e651986c0b21fb4ce343eb0793a8fdf3b07f9826" "frozen target template"
 require_sha256 "$pipeline_root/manifests/restore-worker.yaml.tmpl" "717e22f17a2eb5d2792d3e55753ecf0ade8e46a3ce956964dbb24898f89cfe41" "frozen restore template"
 require_sha256 "$pipeline_root/manifests/semantic-probe.yaml.tmpl" "918a412f90c1923fac03c13b6ad2fabd84db589e32277c0bb0e854312f7e503e" "frozen probe template"
 require_sha256 "$pipeline_root/restore-interface.live.json" "3dd37721a990176d5ed37fe0c4435c2f6057e81db06b51a1b93f5053618d8a3f" "frozen live contract"
@@ -876,7 +875,7 @@ create_run_resource "$run_dir/target-pull-serviceaccount.yaml" 0 serviceaccount 
   > "$run_dir/target-pull-serviceaccount-live.json"
 jq -e --arg name "$target_pull_sa" --arg run "$run_id" '
   .metadata.name==$name and .metadata.labels["archvteams.nebius.ai/run-id"]==$run and
-  .automountServiceAccountToken==false and .imagePullSecrets==[{"name":"nvcrio-cred"}]
+  .automountServiceAccountToken==false and .imagePullSecrets==[{"name":"archvteams-2407-registry-pull"}]
 ' "$run_dir/target-pull-serviceaccount-live.json" >/dev/null
 create_run_resource "$run_dir/target.yaml" 1 service "$canary_name" canary-service
 create_run_resource "$run_dir/target.yaml" 2 service "$qualified_name" qualified-service
@@ -889,7 +888,7 @@ create_run_resource "$run_dir/target.yaml" 0 pod "$target_name" target
 "${kubectl_cmd[@]}" -n "$namespace" get pod "$target_name" -o json > "$run_dir/target-before-binding.json"
 jq -e --arg node "$new_node" '
   .spec.nodeName==$node and .spec.serviceAccountName==("of2-target-pull-"+.metadata.labels["archvteams.nebius.ai/run-id"]) and
-  .spec.imagePullSecrets==[{"name":"nvcrio-cred"}] and
+  .spec.imagePullSecrets==[{"name":"archvteams-2407-registry-pull"}] and
   .status.phase=="Running" and .status.containerStatuses[0].state.running!=null
 ' "$run_dir/target-before-binding.json" >/dev/null
 wait_attachments_on_node "$new_node" "$run_dir/volumeattachments-target-attached.json"

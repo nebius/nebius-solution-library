@@ -25,7 +25,7 @@ or `/health`. It refuses incomplete, failed, cross-run, or wrong-UID evidence.
 The exact OpenFold2 target image remains:
 
 ```text
-nvcr.io/nim/openfold/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4
+cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4
 ```
 
 ## Inputs

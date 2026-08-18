@@ -433,7 +433,7 @@ class SeccompInstallerTests(unittest.TestCase):
 
 
 class PullReferenceTests(unittest.TestCase):
-    def test_target_uses_run_scoped_service_account_with_only_nvcr_reference(self) -> None:
+    def test_target_uses_run_scoped_service_account_with_only_regional_reference(self) -> None:
         documents = [
             {
                 "apiVersion": "v1",
@@ -452,7 +452,7 @@ class PullReferenceTests(unittest.TestCase):
         )
         self.assertNotIn("imagePullSecrets", overlaid[0]["spec"])
         self.assertEqual(
-            account[0]["imagePullSecrets"], [{"name": "nvcrio-cred"}]
+            account[0]["imagePullSecrets"], [{"name": "archvteams-2407-registry-pull"}]
         )
 
     def test_worker_uses_only_existing_nebius_registry_reference(self) -> None:
@@ -736,7 +736,7 @@ class FrozenPipelineIntegrationTests(unittest.TestCase):
                 "cgroup": "/kubepods.slice/test.scope",
                 "pod_ip": "10.2.3.4",
                 "node": new["metadata"]["name"],
-                "image_id": "nvcr.io/nim/openfold/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4",
+                "image_id": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4",
                 "pod_spec_sha256": "5" * 64,
             }
             binding_path = root / "binding.json"

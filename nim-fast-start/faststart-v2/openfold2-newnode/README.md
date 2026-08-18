@@ -1,7 +1,9 @@
 # OpenFold2 new-node benchmark harness
 
-Status: **LIVE BENCHMARK PASS; POST-RUN SECCOMP AUTOMATION VERIFIED OFFLINE.**
+Status: **LIVE BENCHMARK PASS; REGIONAL EXACT-DIGEST MIRROR QUALIFIED.**
 Run `of2-newnode-r4-0418` completed the true new-node benchmark and full cleanup.
+The next run uses the byte-identical regional OpenFold2 mirror documented in
+[`REGIONAL_MIRROR_RESULT.md`](REGIONAL_MIRROR_RESULT.md).
 The runner retains a fail-closed coordination gate
 (`OPENFOLD2_NEWNODE_COORDINATED=YES`) in addition to its required `--execute`
 argument. Do not use that gate without a new explicit live handoff.
@@ -60,10 +62,11 @@ The one-shot sequence is:
    the admitted node using digest-pinned BusyBox, prove the installed profile
    hash and live Pod UID, and retain it until the target starts. The installer
    has no image-pull-secret reference and is deleted by UID afterward.
-7. Start the pinned NIM target with only `nvcrio-cred`, observe the placeholder
-   and both PVC attachments, bind its live Pod UID/spec hash, and create the CPU
-   readiness-waiting probe before the one-shot native restore worker. The worker
-   uses only `archvteams-2407-registry-pull`.
+7. Start the pinned regional NIM target with only
+   `archvteams-2407-registry-pull`, observe the placeholder and both PVC
+   attachments, bind its live Pod UID/spec hash, and create the CPU
+   readiness-waiting probe before the one-shot native restore worker. The
+   worker uses only `archvteams-2407-registry-pull`.
 8. Require two unique strict semantic calls through the run-scoped ClusterIP and
    separate probe, then produce frozen validator evidence.
 9. In the EXIT/INT/TERM trap, delete only run-labelled objects with server-side
