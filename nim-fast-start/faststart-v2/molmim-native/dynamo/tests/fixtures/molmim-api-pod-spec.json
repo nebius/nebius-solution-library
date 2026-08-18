@@ -9,7 +9,7 @@
                 "key": "kubernetes.io/hostname",
                 "operator": "In",
                 "values": [
-                  "computeinstance-e00hf93cfnsgaxygn3"
+                  "computeinstance-e00t12crqg6tw0kz65"
                 ]
               }
             ]
@@ -132,7 +132,7 @@
   ],
   "dnsPolicy": "ClusterFirst",
   "enableServiceLinks": false,
-  "nodeName": "computeinstance-e00hf93cfnsgaxygn3",
+  "nodeName": "computeinstance-e00t12crqg6tw0kz65",
   "restartPolicy": "Never",
   "runtimeClassName": "nvidia",
   "schedulerName": "default-scheduler",

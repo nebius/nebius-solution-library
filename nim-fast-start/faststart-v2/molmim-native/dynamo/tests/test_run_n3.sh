@@ -19,15 +19,29 @@ printf 'apiVersion: v1\nkind: Config\n' > "$test_tmp/kubeconfig"
 args=(
   --run-prefix molmim-ut
   --evidence-root "$test_tmp/evidence"
-  --node computeinstance-e00hf93cfnsgaxygn3
+  --node computeinstance-e00t12crqg6tw0kz65
   --kubeconfig "$test_tmp/kubeconfig"
-  --artifact-holder molmim-native-f7-holder-hf93
+  --artifact-holder molmim-native-f7-holder-t12
   --checkpoint-id molmim-native-f7-v1
   --target-glibc-version 2.35
   --image-io-mode direct
   --artifact-manifest-sha256 "$(printf 'a%.0s' {1..64})"
+  --allow-performance-validation-worker
   --cleanup
 )
+
+args_without_cleanup=()
+for argument in "${args[@]}"; do
+  [[ $argument == --cleanup ]] || args_without_cleanup+=("$argument")
+done
+if "$test_tmp/lane/run_n3.sh" "${args_without_cleanup[@]}" \
+  > /dev/null 2> "$test_tmp/missing-cleanup.stderr"; then
+  printf 'n=3 runner accepted trials without cleanup\n' >&2
+  exit 1
+fi
+rg -q -- '--cleanup is required between every counted n=3 trial' \
+  "$test_tmp/missing-cleanup.stderr"
+[[ $(wc -l < "$FAKE_N3_LOG") == 0 ]]
 
 "$test_tmp/lane/run_n3.sh" "${args[@]}" > "$test_tmp/stdout"
 summary="$test_tmp/evidence/n3-molmim-ut-direct.json"

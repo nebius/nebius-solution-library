@@ -28,7 +28,7 @@ WORKER_JOB_UID = "22222222-2222-4222-8222-222222222222"
 PROBE_JOB_UID = "44444444-4444-4444-8444-444444444444"
 CONTAINER_ID = "containerd://" + "a" * 64
 CROSS_LANGUAGE_SPEC_SHA256 = (
-    "f9ec1d125c3f3d1d876f05a6beff51baea35490eef895aa4a35e2a29899fdfbe"
+    "1340a63eef8658a9a56aedf27e0b286ba3f675113c662903f3cd4811c937d18c"
 )
 
 
@@ -47,7 +47,7 @@ def live_target() -> dict:
     # deliberately part of the canonical hash rather than the source template.
     pod["spec"].update(
         {
-            "nodeName": "computeinstance-e00hf93cfnsgaxygn3",
+            "nodeName": "computeinstance-e00t12crqg6tw0kz65",
             "dnsPolicy": "ClusterFirst",
             "schedulerName": "default-scheduler",
             "serviceAccountName": "default",
@@ -296,6 +296,7 @@ def evidence_inputs() -> dict:
         "started_at": "2026-08-17T20:00:08.100000Z",
         "ready_at": "2026-08-17T20:00:08.500000Z",
         "finished_at": "2026-08-17T20:00:09.900000Z",
+        "validation_completed_at": "2026-08-17T20:00:09.900000Z",
         "total_elapsed_seconds": 1.8,
         "cases": [
             {
@@ -306,6 +307,7 @@ def evidence_inputs() -> dict:
                 "status": "PASS",
                 "exit_code": 0,
                 "elapsed_seconds": 0.8,
+                "response_received_at": "2026-08-17T20:00:09.100000Z",
                 "request_sha256": evidence.EXPECTED_SEMANTIC_CASES[0][1],
                 "response_bytes": 96,
                 "response_sha256": "1" * 64,
@@ -325,6 +327,7 @@ def evidence_inputs() -> dict:
                 "status": "PASS",
                 "exit_code": 0,
                 "elapsed_seconds": 0.9,
+                "response_received_at": "2026-08-17T20:00:09.700000Z",
                 "request_sha256": evidence.EXPECTED_SEMANTIC_CASES[1][1],
                 "response_bytes": 101,
                 "response_sha256": "2" * 64,
@@ -337,6 +340,72 @@ def evidence_inputs() -> dict:
                 },
             },
         ],
+    }
+    cache_holder = {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": "molmim-native-f7-cache-holder-t12",
+            "namespace": render.NAMESPACE,
+            "uid": "44444444-4444-4444-8444-444444444444",
+        },
+        "spec": {
+            "nodeName": run["target_node"],
+            "volumes": [{"name": "cache", "persistentVolumeClaim": {
+                "claimName": "molmim-native-f7-cache", "readOnly": True
+            }}],
+        },
+        "status": {
+            "conditions": [{"type": "Ready", "status": "True", "lastTransitionTime": "2026-08-17T19:59:58Z"}],
+            "containerStatuses": [{"name": "holder", "ready": True}],
+        },
+    }
+    cache_receipt = {
+        "schema": "archvteams.nebius.ai/molmim-cache-holder-receipt/v1",
+        "status": "PASS",
+        "mode": "cache-full-read",
+        "unique_bytes": 284_497_920,
+        "prewarm_bytes": 284_497_920,
+        "tree_sha256": "5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c",
+        "full_read_elapsed_seconds": 0.25,
+    }
+    artifact_holder = {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": "molmim-native-f7-holder-t12",
+            "namespace": render.NAMESPACE,
+            "uid": "55555555-5555-4555-8555-555555555555",
+        },
+        "spec": {
+            "nodeName": run["target_node"],
+            "volumes": [
+                {"name": "artifacts", "persistentVolumeClaim": {
+                    "claimName": "molmim-native-f7-artifacts", "readOnly": True
+                }},
+                {"name": "nim-cache", "persistentVolumeClaim": {
+                    "claimName": "molmim-native-f7-cache", "readOnly": True
+                }},
+            ],
+        },
+        "status": {
+            "conditions": [{"type": "Ready", "status": "True", "lastTransitionTime": "2026-08-17T19:59:58Z"}],
+            "containerStatuses": [{"name": "holder", "ready": True}],
+        },
+    }
+    artifact_receipt = {
+        "schema": "archvteams.nebius.ai/molmim-native-artifact-receipt/v1",
+        "status": "PASS",
+        "checkpoint_id": run["checkpoint_id"],
+        "artifact_version": run["artifact_version"],
+        "source_node": run["target_node"],
+        "image_io_mode": run["image_io_mode"],
+        "manifest_sha256": run["artifact_manifest_sha256"],
+        "regular_file_bytes": 5_214_934_444,
+        "unique_bytes": 5_214_934_444,
+        "prewarm_bytes": 5_214_934_444,
+        "tree_sha256": "6" * 64,
+        "full_read_elapsed_seconds": 3.25,
     }
     return {
         "contract": approved_contract(),
@@ -351,6 +420,11 @@ def evidence_inputs() -> dict:
         "probe_job": probe_job,
         "probe_pod": probe_pod,
         "semantic_summary": semantic,
+        "cache_holder": cache_holder,
+        "cache_receipt": cache_receipt,
+        "artifact_holder": artifact_holder,
+        "artifact_receipt": artifact_receipt,
+        "prewarm_captured_at": "2026-08-17T19:59:59Z",
     }
 
 
@@ -466,13 +540,17 @@ class BindingTests(unittest.TestCase):
 
 
 class EvidenceTests(unittest.TestCase):
-    def test_nonrelease_worker_cannot_produce_production_evidence(self) -> None:
+    def test_performance_worker_evidence_retains_nonrelease_classification(self) -> None:
         inputs = evidence_inputs()
         inputs["contract"]["release_ready"] = False
         inputs["contract"]["release_blocker"] = "performance validation only"
         inputs["contract"]["worker_classification"] = "performance-validation-only"
-        with self.assertRaisesRegex(evidence.EvidenceError, "worker release gate is closed"):
-            evidence.build_evidence(**inputs)
+        receipt = evidence.build_evidence(**inputs)
+        self.assertFalse(receipt["evidence"]["release_ready"])
+        self.assertEqual(
+            receipt["evidence"]["worker_classification"],
+            "performance-validation-only",
+        )
 
     def test_worker_cannot_evidence_an_undeclared_image_io_mode(self) -> None:
         inputs = evidence_inputs()
@@ -502,13 +580,27 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 5.5)
         self.assertEqual(receipt["timings_seconds"]["demand_to_restore_receipt"], 5.9)
 
+    def test_target_submit_timestamp_is_authoritative_t0(self) -> None:
+        inputs = evidence_inputs()
+        receipt = evidence.build_evidence(
+            **inputs,
+            target_submit_at="2026-08-17T20:00:00.500000Z",
+        )
+        self.assertEqual(receipt["demand_at"], "2026-08-17T20:00:00.500000Z")
+        self.assertEqual(receipt["measurement"]["planned_demand_at"], inputs["run"]["demand_at"])
+        self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 8.0)
+
     def test_two_semantic_responses_produce_demand_timing(self) -> None:
         receipt = evidence.build_evidence(**evidence_inputs())
         self.assertEqual(receipt["status"], "PASS")
         self.assertEqual(receipt["request_count"], 2)
         self.assertEqual(
-            receipt["timings_seconds"]["demand_to_two_semantic_responses"], 9.9
+            receipt["timings_seconds"]["demand_to_two_semantic_responses"], 9.7
         )
+        self.assertEqual(
+            receipt["timings_seconds"]["demand_to_validation_complete"], 9.9
+        )
+        self.assertEqual(receipt["storage_prewarm"]["artifact"]["mode"], "direct")
         self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 8.5)
         self.assertEqual(
             receipt["timings_seconds"]["demand_to_kubernetes_ready"], 7.0
@@ -532,6 +624,58 @@ class EvidenceTests(unittest.TestCase):
             receipt["evidence"]["tool_bundle_glibc_compatibility_sha256"],
             approved_contract()["tool_bundle"]["glibc_compatibility_sha256"],
         )
+
+    def test_kubernetes_omitted_false_host_boole_are_accepted(self) -> None:
+        inputs = evidence_inputs()
+        for object_name in ("worker_job", "probe_job"):
+            spec = inputs[object_name]["spec"]["template"]["spec"]
+            for field in ("hostIPC", "hostNetwork", "hostPID"):
+                if spec.get(field) is False:
+                    del spec[field]
+        for object_name in ("worker_pod", "probe_pod"):
+            spec = inputs[object_name]["spec"]
+            for field in ("hostIPC", "hostNetwork", "hostPID"):
+                if spec.get(field) is False:
+                    del spec[field]
+        self.assertEqual(evidence.build_evidence(**inputs)["status"], "PASS")
+
+    def test_other_omitted_false_fields_remain_rejected(self) -> None:
+        inputs = evidence_inputs()
+        del inputs["probe_job"]["spec"]["template"]["spec"]["enableServiceLinks"]
+        with self.assertRaisesRegex(evidence.EvidenceError, "enableServiceLinks is absent"):
+            evidence.build_evidence(**inputs)
+
+    def test_api_injected_service_account_projection_is_normalized(self) -> None:
+        inputs = evidence_inputs()
+        pod_spec = inputs["worker_pod"]["spec"]
+        name = "kube-api-access-abc12"
+        pod_spec["volumes"].append(
+            {
+                "name": name,
+                "projected": {
+                    "defaultMode": 420,
+                    "sources": [
+                        {"serviceAccountToken": {"expirationSeconds": 3607, "path": "token"}},
+                        {"configMap": {"items": [{"key": "ca.crt", "path": "ca.crt"}], "name": "kube-root-ca.crt"}},
+                        {"downwardAPI": {"items": [{"fieldRef": {"apiVersion": "v1", "fieldPath": "metadata.namespace"}, "path": "namespace"}]}},
+                    ],
+                },
+            }
+        )
+        pod_spec["containers"][0]["volumeMounts"].append(
+            {
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                "name": name,
+                "readOnly": True,
+            }
+        )
+        self.assertEqual(evidence.build_evidence(**inputs)["status"], "PASS")
+
+        inputs = evidence_inputs()
+        pod_spec = inputs["worker_pod"]["spec"]
+        pod_spec["volumes"].append({"name": name, "emptyDir": {}})
+        with self.assertRaisesRegex(evidence.EvidenceError, "invalid service-account projection"):
+            evidence.build_evidence(**inputs)
 
     def test_endpoint_uid_mismatch_is_rejected(self) -> None:
         inputs = evidence_inputs()
@@ -637,6 +781,10 @@ class EvidenceTests(unittest.TestCase):
             "probe_job": "probe-job.json",
             "probe_pod": "probe-pod.json",
             "semantic_summary": "semantic.json",
+            "cache_holder": "cache-holder.json",
+            "cache_receipt": "cache-receipt.json",
+            "artifact_holder": "artifact-holder.json",
+            "artifact_receipt": "artifact-receipt.json",
         }
         flags = {
             "contract": "--contract",
@@ -651,6 +799,10 @@ class EvidenceTests(unittest.TestCase):
             "probe_job": "--probe-job",
             "probe_pod": "--probe-pod",
             "semantic_summary": "--semantic-summary",
+            "cache_holder": "--cache-holder-pod",
+            "cache_receipt": "--cache-holder-receipt",
+            "artifact_holder": "--artifact-holder-pod",
+            "artifact_receipt": "--artifact-holder-receipt",
         }
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -659,6 +811,14 @@ class EvidenceTests(unittest.TestCase):
                 path = root / filename
                 path.write_text(json.dumps(values[key]), encoding="utf-8")
                 argv.extend([flags[key], str(path)])
+            submit_path = root / "target-submit-at.txt"
+            submit_path.write_text(values["run"]["demand_at"] + "\n", encoding="utf-8")
+            argv.extend(["--target-submit-at", str(submit_path)])
+            prewarm_path = root / "prewarm-captured-at.txt"
+            prewarm_path.write_text(
+                values["prewarm_captured_at"] + "\n", encoding="utf-8"
+            )
+            argv.extend(["--prewarm-captured-at", str(prewarm_path)])
             stdout, stderr = StringIO(), StringIO()
             with redirect_stdout(stdout), redirect_stderr(stderr):
                 status = evidence.main(argv)

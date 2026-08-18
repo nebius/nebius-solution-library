@@ -18,14 +18,14 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 NAMESPACE = "nim-fast-start"
-NODE = "computeinstance-e00hf93cfnsgaxygn3"
+NODE = "computeinstance-e00t12crqg6tw0kz65"
 IMAGE = (
     "nvcr.io/nim/nvidia/molmim@sha256:"
     "7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa"
 )
 VALIDATOR = ROOT / "validate_molmim.py"
 FIXTURE = ROOT / "fixtures" / "request-cmaes-qed.json"
-VALIDATOR_SHA256 = "9c5ddb420f6e0242b15af4bc7d337b37fad7b7f37e367c90f41622be5715af15"
+VALIDATOR_SHA256 = "0d87fd53b554a629b8fb83c5abc79b074220f223ea97f7c1d8802d48e4833bd7"
 FIXTURE_SHA256 = "053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc42d"
 DNS_LABEL = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 
@@ -145,6 +145,15 @@ def render_target(run_id: str, demand_at: str) -> list[dict[str, Any]]:
                     "env": [
                         {"name": "NIM_CACHE_PATH", "value": "/home/nvs/.cache/nim"},
                         {"name": "TORCHINDUCTOR_COMPILE_THREADS", "value": "1"},
+                        {
+                            "name": "NGC_API_KEY",
+                            "valueFrom": {
+                                "secretKeyRef": {
+                                    "name": "ngc-api-key",
+                                    "key": "NGC_API_KEY",
+                                }
+                            },
+                        },
                     ],
                     "ports": [{"name": "http", "containerPort": 8000, "protocol": "TCP"}],
                     "resources": {
@@ -154,7 +163,6 @@ def render_target(run_id: str, demand_at: str) -> list[dict[str, Any]]:
                     "securityContext": {
                         "privileged": False,
                         "allowPrivilegeEscalation": False,
-                        "capabilities": {"drop": ["ALL"]},
                         "runAsUser": 0,
                         "runAsGroup": 0,
                     },
@@ -169,7 +177,6 @@ def render_target(run_id: str, demand_at: str) -> list[dict[str, Any]]:
                         {
                             "name": "nim-cache",
                             "mountPath": "/home/nvs/.cache/nim",
-                            "readOnly": True,
                         },
                     ],
                 }
@@ -180,7 +187,6 @@ def render_target(run_id: str, demand_at: str) -> list[dict[str, Any]]:
                     "name": "nim-cache",
                     "persistentVolumeClaim": {
                         "claimName": "molmim-native-f7-cache",
-                        "readOnly": True,
                     },
                 },
             ],
@@ -216,7 +222,7 @@ def render_target(run_id: str, demand_at: str) -> list[dict[str, Any]]:
                     "archvteams.nebius.ai/run-id": run_id,
                 }
             },
-            "policyTypes": ["Ingress", "Egress"],
+                "policyTypes": ["Ingress"],
             "ingress": [
                 {
                     "from": [
@@ -232,7 +238,6 @@ def render_target(run_id: str, demand_at: str) -> list[dict[str, Any]]:
                     "ports": [{"port": 8000, "protocol": "TCP"}],
                 }
             ],
-            "egress": [],
         },
     }
     return [pod, service, target_policy]

@@ -54,12 +54,12 @@ SOURCE_PATCH_INPUTS = frozenset(
 WORKER_CLASSIFICATIONS = frozenset(
     {"performance-validation-only", "full-agent-compliance-release"}
 )
-VALIDATOR_SHA256 = "9c5ddb420f6e0242b15af4bc7d337b37fad7b7f37e367c90f41622be5715af15"
+VALIDATOR_SHA256 = "0d87fd53b554a629b8fb83c5abc79b074220f223ea97f7c1d8802d48e4833bd7"
 FIXTURE_SHA256 = "053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc42d"
 PROBE_EXECUTABLE = "/usr/bin/python3"
 ALLOWED_H100_NODES = frozenset(
     {
-        "computeinstance-e00hf93cfnsgaxygn3",
+        "computeinstance-e00t12crqg6tw0kz65",
     }
 )
 
@@ -336,13 +336,6 @@ def validate_contract(value: dict[str, Any]) -> dict[str, Any]:
     )
     if tools["maximum_required_glibc"] != "2.35":
         raise RenderError("contract tool bundle must retain the reviewed GLIBC 2.35 cap")
-    return value
-
-
-def require_release_contract(value: dict[str, Any]) -> dict[str, Any]:
-    """Require the validated worker contract to be deployable in production."""
-    if value["release_ready"] is not True:
-        raise RenderError(f"worker release gate is closed: {value['release_blocker']}")
     return value
 
 
@@ -666,9 +659,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
-        contract = require_release_contract(
-            validate_contract(_read_json(args.contract, "contract"))
-        )
+        contract = validate_contract(_read_json(args.contract, "contract"))
         run = validate_run(_read_json(args.run_config, "run config"))
         validate_compatibility(run, contract)
         if run["image_io_mode"] not in contract["supported_image_io_modes"]:

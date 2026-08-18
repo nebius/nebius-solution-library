@@ -13,7 +13,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -48,7 +48,11 @@ HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}), _RejectRedir
 
 
 def _now() -> str:
-    return datetime.now(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
+    return (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="microseconds")
+        .replace("+00:00", "Z")
+    )
 
 
 def _reject_constant(value: str) -> None:
@@ -231,7 +235,9 @@ def _validate_response(value: Any) -> dict[str, Any]:
     }
 
 
-def _post(base_url: str, payload: dict[str, Any], run_id: str, timeout: float) -> tuple[bytes, float]:
+def _post(
+    base_url: str, payload: dict[str, Any], run_id: str, timeout: float
+) -> tuple[bytes, float, str]:
     data = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     request = urllib.request.Request(
         base_url.rstrip("/") + ENDPOINT,
@@ -247,6 +253,8 @@ def _post(base_url: str, payload: dict[str, Any], run_id: str, timeout: float) -
     try:
         with HTTP.open(request, timeout=timeout) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)
+            response_received_at = _now()
+            elapsed = round(time.monotonic() - started, 6)
             content_type = response.headers.get_content_type()
             if response.status != 200:
                 raise ValidationError(f"semantic request returned HTTP {response.status}")
@@ -258,7 +266,7 @@ def _post(base_url: str, payload: dict[str, Any], run_id: str, timeout: float) -
         raise ValidationError(f"semantic request failed: {type(exc).__name__}") from exc
     if len(raw) > MAX_RESPONSE_BYTES:
         raise ValidationError("semantic response exceeded 16 MiB")
-    return raw, round(time.monotonic() - started, 6)
+    return raw, elapsed, response_received_at
 
 
 def _arguments() -> argparse.Namespace:
@@ -318,7 +326,9 @@ def main() -> int:
         ready_at = _wait_ready(args.base_url, args.ready_timeout)
         for index, (fixture_case, run_id) in enumerate(zip(fixture_cases, args.run_id), 1):
             payload = fixture_case["payload"]
-            raw, elapsed = _post(args.base_url, payload, run_id, args.timeout)
+            raw, elapsed, response_received_at = _post(
+                args.base_url, payload, run_id, args.timeout
+            )
             response_path = args.receipt_dir / f"response-{index}.json"
             response_path.write_bytes(raw)
             try:
@@ -334,6 +344,7 @@ def main() -> int:
                 "status": "PASS",
                 "exit_code": 0,
                 "elapsed_seconds": elapsed,
+                "response_received_at": response_received_at,
                 "request_sha256": hashlib.sha256(
                     json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
                 ).hexdigest(),
@@ -373,6 +384,7 @@ def main() -> int:
         "started_at": started_at,
         "ready_at": ready_at,
         "finished_at": finished_at,
+        "validation_completed_at": finished_at,
         "total_elapsed_seconds": round(time.monotonic() - monotonic_started, 6),
         "cases": cases,
     }

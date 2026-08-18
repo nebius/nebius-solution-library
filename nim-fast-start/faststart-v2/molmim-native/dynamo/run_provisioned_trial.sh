@@ -4,7 +4,7 @@ set -euo pipefail
 umask 077
 
 readonly allowed_server="https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebius.cloud:443"
-readonly expected_validator_sha256="9c5ddb420f6e0242b15af4bc7d337b37fad7b7f37e367c90f41622be5715af15"
+readonly expected_validator_sha256="0d87fd53b554a629b8fb83c5abc79b074220f223ea97f7c1d8802d48e4833bd7"
 readonly expected_fixture_sha256="053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc42d"
 readonly trial_namespace="nim-fast-start"
 
@@ -24,6 +24,7 @@ trial_target_glibc_version=""
 trial_image_io_mode=""
 trial_artifact_manifest_sha256=""
 trial_cleanup=0
+trial_allow_performance_validation=0
 
 usage() {
   cat >&2 <<'USAGE'
@@ -36,7 +37,8 @@ usage: run_provisioned_trial.sh \
   --checkpoint-id molmim-native-f7-v1|molmim-native-f7-v2-buffered \
   --target-glibc-version MAJOR.MINOR \
   --image-io-mode direct|buffered \
-  --artifact-manifest-sha256 CAPTURED_64_HEX_SHA256 [--cleanup]
+  --artifact-manifest-sha256 CAPTURED_64_HEX_SHA256 \
+  [--allow-performance-validation-worker] [--cleanup]
 USAGE
 }
 
@@ -119,6 +121,12 @@ while (($# > 0)); do
       trial_cleanup=1
       shift
       ;;
+    --allow-performance-validation-worker)
+      ((trial_allow_performance_validation == 0)) || \
+        die_usage "--allow-performance-validation-worker may be supplied only once"
+      trial_allow_performance_validation=1
+      shift
+      ;;
     --help|-h)
       usage
       exit 0
@@ -146,9 +154,9 @@ if [[ ! $trial_holder =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ || ${#trial_holder} -gt
   die_usage "--artifact-holder must be a DNS label of at most 63 characters"
 fi
 case "${trial_image_io_mode}:${trial_checkpoint_id}:${trial_holder}" in
-  direct:molmim-native-f7-v1:molmim-native-f7-holder-hf93)
+  direct:molmim-native-f7-v1:molmim-native-f7-holder-t12)
     ;;
-  buffered:molmim-native-f7-v2-buffered:molmim-native-f7-buffered-holder-hf93)
+  buffered:molmim-native-f7-v2-buffered:molmim-native-f7-buffered-holder-t12)
     ;;
   *)
     die_usage "image I/O mode, checkpoint, and artifact holder are not an exact prepared tuple"
@@ -163,7 +171,7 @@ if ((trial_glibc_major < 2 || (trial_glibc_major == 2 && trial_glibc_minor < 35)
   die_usage "--target-glibc-version is older than the worker tool bundle requirement 2.35"
 fi
 case "$trial_node" in
-  computeinstance-e00hf93cfnsgaxygn3)
+  computeinstance-e00t12crqg6tw0kz65)
     ;;
   *)
     die_usage "--node is not an allowlisted H100 hostname"
@@ -197,17 +205,19 @@ if [[ $actual_fixture_sha256 != "$expected_fixture_sha256" ]]; then
   printf 'semantic fixture digest mismatch\n' >&2
   exit 78
 fi
-jq -e --arg validator "$expected_validator_sha256" --arg mode "$trial_image_io_mode" '
-  .approved == true and
-  .release_ready == true and
-  .release_blocker == "" and
-  .worker_classification == "full-agent-compliance-release" and
-  .validator_sha256 == $validator and
-  (.supported_image_io_modes | index($mode)) != null and
-  .tool_bundle.maximum_required_glibc == "2.35" and
-  (.worker_image | test("@sha256:[0-9a-f]{64}$")) and
-  (.probe_image | test("@sha256:[0-9a-f]{64}$"))
-' "$contract_path" >/dev/null || {
+if ((trial_allow_performance_validation == 1)); then
+  contract_gate='.approved == true and .release_ready == false and (.release_blocker | type == "string" and length > 0) and .worker_classification == "performance-validation-only"'
+else
+  contract_gate='.approved == true and .release_ready == true and .release_blocker == "" and .worker_classification == "full-agent-compliance-release"'
+fi
+jq -e --arg validator "$expected_validator_sha256" --arg mode "$trial_image_io_mode" "
+  ${contract_gate} and
+  .validator_sha256 == \$validator and
+  (.supported_image_io_modes | index(\$mode)) != null and
+  .tool_bundle.maximum_required_glibc == \"2.35\" and
+  (.worker_image | test(\"@sha256:[0-9a-f]{64}$\")) and
+  (.probe_image | test(\"@sha256:[0-9a-f]{64}$\"))
+" "$contract_path" >/dev/null || {
   printf 'immutable restore contract is not deployable\n' >&2
   exit 78
 }
@@ -232,9 +242,9 @@ fi
 
 trial_kubectl=(kubectl --kubeconfig "$trial_kubeconfig" -n "$trial_namespace")
 cache_holder_json=$("${trial_kubectl[@]}" get pod \
-  molmim-native-f7-cache-holder-hf93 -o json)
+  molmim-native-f7-cache-holder-t12 -o json)
 if ! jq -e --arg node "$trial_node" '
-  .metadata.name == "molmim-native-f7-cache-holder-hf93" and
+  .metadata.name == "molmim-native-f7-cache-holder-t12" and
   .spec.nodeName == $node and
   any(.status.conditions[]?; .type == "Ready" and .status == "True") and
   ((.status.containerStatuses // []) | length == 1) and
@@ -248,10 +258,10 @@ if ! jq -e --arg node "$trial_node" '
   exit 69
 fi
 image_holder_json=$("${trial_kubectl[@]}" get pod \
-  molmim-native-f7-image-holder-hf93 -o json)
+  molmim-native-f7-image-holder-t12 -o json)
 if ! jq -e --arg node "$trial_node" \
   --arg image 'nvcr.io/nim/nvidia/molmim@sha256:7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa' '
-  .metadata.name == "molmim-native-f7-image-holder-hf93" and
+  .metadata.name == "molmim-native-f7-image-holder-t12" and
   .spec.nodeName == $node and
   (.spec.containers | length) == 1 and
   .spec.containers[0].name == "holder" and
@@ -288,6 +298,39 @@ mkdir -m 0700 -- "$trial_dir" || {
   printf 'could not create new run directory: %s\n' "$trial_dir" >&2
   exit 73
 }
+printf '%s\n' "$cache_holder_json" > "$trial_dir/cache-holder-pod.json"
+printf '%s\n' "$image_holder_json" > "$trial_dir/image-holder-pod.json"
+printf '%s\n' "$holder_json" > "$trial_dir/artifact-holder-pod.json"
+"${trial_kubectl[@]}" logs molmim-native-f7-cache-holder-t12 | tail -1 \
+  > "$trial_dir/cache-holder-receipt.json"
+"${trial_kubectl[@]}" logs "$trial_holder" | tail -1 \
+  > "$trial_dir/artifact-holder-receipt.json"
+jq -e '
+  .schema == "archvteams.nebius.ai/molmim-cache-holder-receipt/v1" and
+  .status == "PASS" and .mode == "cache-full-read" and
+  .unique_bytes == 284497920 and .prewarm_bytes == 284497920 and
+  .tree_sha256 == "5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c" and
+  (.full_read_elapsed_seconds | type == "number" and isfinite and . > 0)
+' "$trial_dir/cache-holder-receipt.json" >/dev/null || {
+  printf 'cache holder log did not prove a full read before T0\n' >&2
+  exit 69
+}
+jq -e --arg checkpoint "$trial_checkpoint_id" --arg mode "$trial_image_io_mode" \
+  --arg manifest "$trial_artifact_manifest_sha256" '
+  .schema == "archvteams.nebius.ai/molmim-native-artifact-receipt/v1" and
+  .status == "PASS" and .checkpoint_id == $checkpoint and
+  .artifact_version == "1" and .image_io_mode == $mode and
+  .manifest_sha256 == $manifest and
+  (.regular_file_bytes | type == "number" and . > 1000000000) and
+  .unique_bytes == .regular_file_bytes and
+  .prewarm_bytes == .regular_file_bytes and
+  (.tree_sha256 | test("^[0-9a-f]{64}$")) and
+  (.full_read_elapsed_seconds | type == "number" and isfinite and . > 0)
+' "$trial_dir/artifact-holder-receipt.json" >/dev/null || {
+  printf 'artifact holder log did not prove the selected full-read mode before T0\n' >&2
+  exit 69
+}
+date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$trial_dir/prewarm-captured-at.txt"
 install -m 0600 -- "$contract_path" "$trial_dir/restore-interface.json"
 (
   cd -- "$trial_dir"
@@ -433,6 +476,12 @@ python3 "$script_dir/evidence.py" \
   --probe-job "$trial_dir/probe-job.json" \
   --probe-pod "$trial_dir/probe-pod.json" \
   --semantic-summary "$trial_dir/semantic-summary.json" \
+  --target-submit-at "$trial_dir/target-submit-at.txt" \
+  --cache-holder-pod "$trial_dir/cache-holder-pod.json" \
+  --cache-holder-receipt "$trial_dir/cache-holder-receipt.json" \
+  --artifact-holder-pod "$trial_dir/artifact-holder-pod.json" \
+  --artifact-holder-receipt "$trial_dir/artifact-holder-receipt.json" \
+  --prewarm-captured-at "$trial_dir/prewarm-captured-at.txt" \
   > "$trial_dir/canary-evidence.json"
 
 jq -e 'select(.status=="PASS" and .request_count==2 and .semantic_pass_count==2)' \
@@ -447,6 +496,7 @@ if ((trial_cleanup == 1)); then
     "${trial_kubectl[@]}" delete -f "$trial_dir/target.yaml" \
       --ignore-not-found --wait=true --timeout=180s
   } >> "$trial_dir/cleanup.log" 2>&1
+  date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$trial_dir/cleanup-verified-at.txt"
 fi
 
 jq '{run_id,status,timings_seconds}' "$trial_dir/canary-evidence.json"

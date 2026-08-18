@@ -61,7 +61,7 @@ def run_config() -> dict:
         "schema": render.RUN_SCHEMA,
         "demand_at": "2026-08-17T20:00:00Z",
         "run_id": "ut-a1b2c3",
-        "target_node": "computeinstance-e00hf93cfnsgaxygn3",
+        "target_node": "computeinstance-e00t12crqg6tw0kz65",
         "target_glibc_version": "2.39",
         "image_io_mode": "direct",
         "checkpoint_id": "molmim-native-f7-v1",
@@ -88,7 +88,7 @@ def target_binding() -> dict:
             "cri-containerd-" + "a" * 64 + ".scope"
         ),
         "pod_ip": "10.50.42.7",
-        "node": "computeinstance-e00hf93cfnsgaxygn3",
+        "node": "computeinstance-e00t12crqg6tw0kz65",
         "image_id": render.NIM_IMAGE,
         "pod_spec_sha256": "6" * 64,
     }
@@ -127,22 +127,18 @@ class RenderTests(unittest.TestCase):
         with self.assertRaisesRegex(render.RenderError, "not explicitly approved"):
             render.validate_contract(example)
 
-    def test_shipped_performance_contract_cannot_render_deployable_yaml(self) -> None:
-        stdout = StringIO()
-        stderr = StringIO()
-        with redirect_stdout(stdout), redirect_stderr(stderr):
-            status = render.main(
-                [
-                    "target",
-                    "--contract",
-                    str(MODULE_DIR / "restore-interface.live.json"),
-                    "--run-config",
-                    str(MODULE_DIR / "run.example.json"),
-                ]
+    def test_shipped_performance_contract_retains_nonrelease_identity(self) -> None:
+        contract = render.validate_contract(
+            json.loads(
+                (MODULE_DIR / "restore-interface.live.json").read_text(
+                    encoding="utf-8"
+                )
             )
-        self.assertEqual(status, 2)
-        self.assertEqual(stdout.getvalue(), "")
-        self.assertIn("worker release gate is closed", stderr.getvalue())
+        )
+        self.assertFalse(contract["release_ready"])
+        self.assertEqual(
+            contract["worker_classification"], "performance-validation-only"
+        )
 
     def test_cli_refuses_shipped_placeholders_without_yaml(self) -> None:
         stdout = StringIO()
@@ -285,7 +281,7 @@ class UnsafeMutationTests(unittest.TestCase):
     def test_rejects_target_node_name(self) -> None:
         documents = copy.deepcopy(self.target)
         pod = find_document(documents, "Pod", "restore-target")
-        pod["spec"]["nodeName"] = "computeinstance-e00hf93cfnsgaxygn3"
+        pod["spec"]["nodeName"] = "computeinstance-e00t12crqg6tw0kz65"
         self.assert_rejected(documents, "must not set spec.nodeName")
 
     def test_rejects_privileged_target_init_container(self) -> None:
@@ -428,7 +424,7 @@ class UnsafeMutationTests(unittest.TestCase):
         values = spec["affinity"]["nodeAffinity"][
             "requiredDuringSchedulingIgnoredDuringExecution"
         ]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"]
-        self.assertEqual(values, ["computeinstance-e00hf93cfnsgaxygn3"])
+        self.assertEqual(values, ["computeinstance-e00t12crqg6tw0kz65"])
         stager = spec["initContainers"][0]
         self.assertEqual(stager["name"], "stage-validator")
         self.assertIn("not stat.S_ISREG", stager["args"][1])
@@ -441,7 +437,7 @@ class UnsafeMutationTests(unittest.TestCase):
         documents = copy.deepcopy(self.probe)
         job = find_document(documents, "Job", "semantic-probe")
         del job["spec"]["template"]["spec"]["affinity"]
-        self.assert_rejected(documents, "stable hf93 hostname")
+        self.assert_rejected(documents, "stable t12 hostname")
 
     def test_rejects_probe_using_projected_fixture_directly(self) -> None:
         documents = copy.deepcopy(self.probe)

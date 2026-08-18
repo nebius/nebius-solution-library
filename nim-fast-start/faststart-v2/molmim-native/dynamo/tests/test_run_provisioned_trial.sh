@@ -29,8 +29,8 @@ readonly runner="${dynamo_dir}/run_provisioned_trial.sh"
 export PATH="${fixture_bin}:${PATH}"
 export FAKE_CALL_LOG="${test_tmp}/calls.log"
 export FAKE_EXPECTED_KUBECONFIG="${test_tmp}/kubeconfig.yaml"
-export FAKE_NODE="computeinstance-e00hf93cfnsgaxygn3"
-export FAKE_HOLDER_NAME="molmim-native-f7-holder-hf93"
+export FAKE_NODE="computeinstance-e00t12crqg6tw0kz65"
+export FAKE_HOLDER_NAME="molmim-native-f7-holder-t12"
 export FAKE_SERVER="https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebius.cloud:443"
 export FAKE_HOLDER_READY=true
 export FAKE_CACHE_HOLDER_READY=true
@@ -78,6 +78,21 @@ fi
 rg -q 'not deployable' "${test_tmp}/unreleased.stderr" || \
   fail "release-gate refusal was not explicit"
 pass "shipped performance-validation candidate is blocked before any Kubernetes call"
+
+: > "$FAKE_CALL_LOG"
+"$source_runner" --run-id acknowledged-performance "${runner_args[@]}" \
+  --allow-performance-validation-worker --cleanup \
+  > "${test_tmp}/acknowledged.stdout" 2> "${test_tmp}/acknowledged.stderr" || {
+    sed -n '1,160p' "${test_tmp}/acknowledged.stderr" >&2
+    fail "explicitly acknowledged performance-validation run failed"
+  }
+acknowledged_dir="${test_tmp}/evidence/runs/acknowledged-performance"
+[[ $(/usr/bin/jq -r '.release_ready' "$acknowledged_dir/restore-interface.json") == "false" ]] || \
+  fail "acknowledged run did not retain release_ready=false"
+[[ $(/usr/bin/jq -r '.worker_classification' "$acknowledged_dir/restore-interface.json") == \
+   "performance-validation-only" ]] || \
+  fail "acknowledged run did not retain the performance-only classification"
+pass "explicit acknowledgement runs only the pinned performance-validation contract"
 
 bad_glibc_args=("${runner_args[@]}")
 for ((argument_index = 0; argument_index < ${#bad_glibc_args[@]}; argument_index++)); do

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: molmim-native-f7-buffered-holder-hf93
+  name: molmim-native-f7-buffered-holder-t12
   namespace: nim-fast-start
   labels:
     app.kubernetes.io/name: molmim
@@ -11,7 +11,7 @@ spec:
   automountServiceAccountToken: false
   enableServiceLinks: false
   restartPolicy: Never
-  nodeName: computeinstance-e00hf93cfnsgaxygn3
+  nodeName: computeinstance-e00t12crqg6tw0kz65
   terminationGracePeriodSeconds: 1
   containers:
     - name: holder
@@ -27,6 +27,7 @@ spec:
           import json
           import os
           import stat
+          import time
           from concurrent.futures import ThreadPoolExecutor
           from pathlib import Path
 
@@ -36,6 +37,8 @@ spec:
               raise SystemExit("native artifact root is absent or symlinked")
           files = []
           total = 0
+          unique_bytes = 0
+          seen_inodes = set()
           for directory, names, entries in os.walk(root, followlinks=False):
               for name in names:
                   path = Path(directory) / name
@@ -49,6 +52,10 @@ spec:
                   relative = path.relative_to(root).as_posix()
                   files.append((relative, info.st_size, path))
                   total += info.st_size
+                  identity = (info.st_dev, info.st_ino)
+                  if identity not in seen_inodes:
+                      seen_inodes.add(identity)
+                      unique_bytes += info.st_size
           present = {name for name, _, _ in files}
           if not required <= present or not any(name.startswith("pages-") for name in present):
               raise SystemExit("native artifact is missing required CRIU files")
@@ -61,8 +68,10 @@ spec:
                   while chunk := source.read(8 * 1024 * 1024):
                       digest.update(chunk)
               return relative, size, digest.hexdigest()
+          full_read_started = time.monotonic()
           with ThreadPoolExecutor(max_workers=4) as pool:
               hashed = sorted(pool.map(digest_file, files))
+          full_read_elapsed_seconds = round(time.monotonic() - full_read_started, 6)
           tree = hashlib.sha256()
           for relative, size, digest in hashed:
               tree.update(f"{relative}\0{size}\0{digest}\n".encode("utf-8"))
@@ -71,7 +80,7 @@ spec:
           text = raw.decode("utf-8")
           for marker in (
               "checkpointId: molmim-native-f7-v2-buffered",
-              "sourceNode: computeinstance-e00hf93cfnsgaxygn3",
+              "sourceNode: computeinstance-e00t12crqg6tw0kz65",
               "podNamespace: nim-fast-start",
               "cudaRestore:",
               "imageIoMode: buffered",
@@ -80,12 +89,15 @@ spec:
                   raise SystemExit("native artifact manifest identity mismatch")
           receipt = {
               "schema": "archvteams.nebius.ai/molmim-native-artifact-receipt/v1",
+              "status": "PASS",
               "checkpoint_id": "molmim-native-f7-v2-buffered",
               "artifact_version": "1",
-              "source_node": "computeinstance-e00hf93cfnsgaxygn3",
+              "source_node": "computeinstance-e00t12crqg6tw0kz65",
               "regular_file_count": len(files),
               "regular_file_bytes": total,
+              "unique_bytes": unique_bytes,
               "prewarm_bytes": total,
+              "full_read_elapsed_seconds": full_read_elapsed_seconds,
               "tree_sha256": tree.hexdigest(),
               "manifest_sha256": hashlib.sha256(raw).hexdigest(),
               "image_io_mode": "buffered",
@@ -107,9 +119,9 @@ spec:
           drop:
             - ALL
         readOnlyRootFilesystem: true
-        runAsNonRoot: true
-        runAsUser: 65534
-        runAsGroup: 65534
+        runAsNonRoot: false
+        runAsUser: 0
+        runAsGroup: 0
         seccompProfile:
           type: RuntimeDefault
       readinessProbe:

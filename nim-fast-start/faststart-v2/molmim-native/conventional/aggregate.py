@@ -31,8 +31,12 @@ def aggregate(values: list[dict[str, Any]]) -> dict[str, Any]:
     run_ids: list[str] = []
     demand: list[float] = []
     ready: list[float] = []
+    kubernetes_ready: list[float] = []
     call_1: list[float] = []
     call_2: list[float] = []
+    validation_complete: list[float] = []
+    prewarm_elapsed: list[float] = []
+    prewarm_values: list[dict[str, Any]] = []
     for value in values:
         if (
             value.get("schema")
@@ -57,8 +61,35 @@ def aggregate(values: list[dict[str, Any]]) -> dict[str, Any]:
         ready.append(
             _positive_timing(timings.get("demand_to_http_ready"), "HTTP-ready timing")
         )
+        kubernetes_ready.append(
+            _positive_timing(
+                timings.get("demand_to_kubernetes_ready"),
+                "Kubernetes-ready timing",
+            )
+        )
         call_1.append(_positive_timing(timings.get("call_1"), "first-call timing"))
         call_2.append(_positive_timing(timings.get("call_2"), "second-call timing"))
+        validation_complete.append(
+            _positive_timing(
+                timings.get("demand_to_validation_complete"),
+                "demand-to-validation-complete timing",
+            )
+        )
+        prewarm = value.get("storage_prewarm")
+        if (
+            not isinstance(prewarm, dict)
+            or prewarm.get("mode") != "cache-full-read"
+            or prewarm.get("unique_bytes") != 284_497_920
+            or prewarm.get("tree_sha256")
+            != "5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c"
+        ):
+            raise AggregateError("trial does not contain the exact cache full-read receipt")
+        prewarm_elapsed.append(
+            _positive_timing(
+                prewarm.get("full_read_elapsed_seconds"), "cache full-read timing"
+            )
+        )
+        prewarm_values.append(prewarm)
     if len(set(run_ids)) != 3:
         raise AggregateError("trial run IDs must be unique")
     return {
@@ -71,16 +102,43 @@ def aggregate(values: list[dict[str, Any]]) -> dict[str, Any]:
         "run_ids": run_ids,
         "demand_to_two_semantic_seconds": demand,
         "demand_to_http_ready_seconds": ready,
+        "demand_to_kubernetes_ready_seconds": kubernetes_ready,
         "call_1_seconds": call_1,
         "call_2_seconds": call_2,
+        "demand_to_validation_complete_seconds": validation_complete,
+        "storage_prewarm": {
+            "mode": "cache-full-read",
+            "unique_bytes": 284_497_920,
+            "tree_sha256": "5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c",
+            "holder_uids": [value["holder_uid"] for value in prewarm_values],
+            "captured_at": [value["captured_at"] for value in prewarm_values],
+            "full_read_elapsed_seconds": prewarm_elapsed,
+            "full_read_elapsed_median_seconds": statistics.median(prewarm_elapsed),
+        },
         "statistics_seconds": {
             "demand_to_two_semantic_min": min(demand),
             "demand_to_two_semantic_median": statistics.median(demand),
             "demand_to_two_semantic_max": max(demand),
             "demand_to_two_semantic_mean": statistics.mean(demand),
             "demand_to_http_ready_median": statistics.median(ready),
+            "demand_to_http_ready_min": min(ready),
+            "demand_to_http_ready_max": max(ready),
+            "demand_to_kubernetes_ready_median": statistics.median(
+                kubernetes_ready
+            ),
+            "demand_to_kubernetes_ready_min": min(kubernetes_ready),
+            "demand_to_kubernetes_ready_max": max(kubernetes_ready),
             "call_1_median": statistics.median(call_1),
+            "call_1_min": min(call_1),
+            "call_1_max": max(call_1),
             "call_2_median": statistics.median(call_2),
+            "call_2_min": min(call_2),
+            "call_2_max": max(call_2),
+            "demand_to_validation_complete_median": statistics.median(
+                validation_complete
+            ),
+            "demand_to_validation_complete_min": min(validation_complete),
+            "demand_to_validation_complete_max": max(validation_complete),
         },
     }
 

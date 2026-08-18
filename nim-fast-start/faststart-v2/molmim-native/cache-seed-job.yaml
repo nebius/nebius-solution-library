@@ -19,7 +19,8 @@ spec:
       automountServiceAccountToken: false
       enableServiceLinks: false
       restartPolicy: Never
-      nodeName: computeinstance-e00hf93cfnsgaxygn3
+      nodeSelector:
+        kubernetes.io/hostname: computeinstance-e00hf93cfnsgaxygn3
       terminationGracePeriodSeconds: 1
       containers:
         - name: seed
@@ -63,7 +64,7 @@ spec:
                       source_bytes += info.st_size
                       if info.st_size == 281589760:
                           checkpoint_count += 1
-              if not source_files or source_bytes != 281612288:
+              if not source_files or source_bytes != 284497920:
                   raise SystemExit("retained cache byte identity does not match the pinned source")
               if checkpoint_count != 1:
                   raise SystemExit("retained cache does not contain exactly one 281589760-byte checkpoint")

@@ -16,7 +16,7 @@ IMAGE = (
     "nvcr.io/nim/nvidia/molmim@sha256:"
     "7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa"
 )
-VALIDATOR_SHA256 = "9c5ddb420f6e0242b15af4bc7d337b37fad7b7f37e367c90f41622be5715af15"
+VALIDATOR_SHA256 = "0d87fd53b554a629b8fb83c5abc79b074220f223ea97f7c1d8802d48e4833bd7"
 FIXTURE_SHA256 = "053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc42d"
 WORKER_IMAGE = (
     "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/"
@@ -43,13 +43,13 @@ class CaptureManifestTests(unittest.TestCase):
         container = donor["spec"]["template"]["spec"]["containers"][0]
         script = container["args"][0]
         self.assertEqual(container["image"], IMAGE)
-        self.assertNotIn("secretKeyRef", json.dumps(donor["spec"]["template"]["spec"]))
-        self.assertFalse(
-            any(
-                token in item["name"].upper()
-                for item in container["env"]
-                for token in ("PASSWORD", "SECRET", "TOKEN", "API_KEY")
-            )
+        environment = {
+            item["name"]: item
+            for item in donor["spec"]["template"]["spec"]["containers"][0]["env"]
+        }
+        self.assertEqual(
+            environment["NGC_API_KEY"]["valueFrom"]["secretKeyRef"],
+            {"name": "ngc-api-key", "key": "NGC_API_KEY"},
         )
         self.assertIn("/opt/nvidia/nvidia_entrypoint.sh start_server", script)
         self.assertNotIn("uvloop", script)
@@ -66,8 +66,9 @@ class CaptureManifestTests(unittest.TestCase):
         volumes = {item["name"]: item for item in donor["spec"]["template"]["spec"]["volumes"]}
         self.assertEqual(volumes["dshm"]["emptyDir"], {"medium": "Memory", "sizeLimit": "16Gi"})
         mounts = {item["name"]: item for item in container["volumeMounts"]}
-        self.assertTrue(mounts["nim-cache"]["readOnly"])
-        self.assertTrue(volumes["nim-cache"]["persistentVolumeClaim"]["readOnly"])
+        self.assertNotIn("readOnly", mounts["nim-cache"])
+        self.assertNotIn("readOnly", volumes["nim-cache"]["persistentVolumeClaim"])
+        self.assertNotIn("capabilities", container["securityContext"])
 
     def test_storage_and_artifact_modes_are_isolated(self) -> None:
         storage = documents("storage.yaml")
@@ -75,7 +76,7 @@ class CaptureManifestTests(unittest.TestCase):
         claims = {item["metadata"]["name"]: item for item in storage}
         self.assertEqual(
             claims["molmim-native-f7-artifacts"]["spec"]["resources"]["requests"]["storage"],
-            "24Gi",
+            "93Gi",
         )
         self.assertEqual(
             claims["molmim-native-f7-artifacts"]["spec"]["storageClassName"],
@@ -103,7 +104,11 @@ class CaptureManifestTests(unittest.TestCase):
     def test_retained_cache_is_write_once_and_fully_prewarmed(self) -> None:
         seed = documents("cache-seed-job.yaml")[0]
         seed_spec = seed["spec"]["template"]["spec"]
-        self.assertEqual(seed_spec["nodeName"], "computeinstance-e00hf93cfnsgaxygn3")
+        self.assertEqual(
+            seed_spec["nodeSelector"]["kubernetes.io/hostname"],
+            "computeinstance-e00hf93cfnsgaxygn3",
+        )
+        self.assertNotIn("nodeName", seed_spec)
         volumes = {item["name"]: item for item in seed_spec["volumes"]}
         self.assertEqual(
             volumes["retained-cache"]["hostPath"],
@@ -115,14 +120,14 @@ class CaptureManifestTests(unittest.TestCase):
         )
         seed_script = seed_spec["containers"][0]["args"][0]
         self.assertIn("281589760", seed_script)
-        self.assertIn("source_bytes != 281612288", seed_script)
+        self.assertIn("source_bytes != 284497920", seed_script)
         self.assertIn("O_EXCL", seed_script)
         self.assertIn("tree_sha256", seed_script)
 
         holder = documents("cache-holder.yaml")[0]
-        self.assertEqual(holder["metadata"]["name"], "molmim-native-f7-cache-holder-hf93")
+        self.assertEqual(holder["metadata"]["name"], "molmim-native-f7-cache-holder-t12")
         holder_script = holder["spec"]["containers"][0]["args"][0]
-        self.assertIn('receipt.get("regular_file_bytes") != 281612288', holder_script)
+        self.assertIn('receipt.get("regular_file_bytes") != 284497920', holder_script)
         self.assertIn("prewarm_bytes", holder_script)
         self.assertIn("tree.hexdigest()", holder_script)
         resources = holder["spec"]["containers"][0]["resources"]

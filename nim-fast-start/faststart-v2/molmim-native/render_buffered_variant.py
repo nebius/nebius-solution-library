@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -15,7 +16,7 @@ import yaml
 
 SOURCE_ID = "molmim-native-f7-v1"
 DESTINATION_ID = "molmim-native-f7-v2-buffered"
-NODE = "computeinstance-e00hf93cfnsgaxygn3"
+NODE = "computeinstance-e00t12crqg6tw0kz65"
 PVC = "molmim-native-f7-artifacts"
 PYTHON_IMAGE = (
     "docker.io/library/python@sha256:"
@@ -35,12 +36,15 @@ def read_receipt(path: Path) -> dict[str, Any]:
         raise VariantError(f"cannot read artifact receipt: {type(exc).__name__}") from exc
     expected_keys = {
         "schema",
+        "status",
         "checkpoint_id",
         "artifact_version",
         "source_node",
         "regular_file_count",
         "regular_file_bytes",
+        "unique_bytes",
         "prewarm_bytes",
+        "full_read_elapsed_seconds",
         "tree_sha256",
         "manifest_sha256",
         "image_io_mode",
@@ -49,6 +53,7 @@ def read_receipt(path: Path) -> dict[str, Any]:
         raise VariantError("artifact receipt has the wrong shape")
     if (
         value["schema"] != "archvteams.nebius.ai/molmim-native-artifact-receipt/v1"
+        or value["status"] != "PASS"
         or value["checkpoint_id"] != SOURCE_ID
         or value["artifact_version"] != "1"
         or value["source_node"] != NODE
@@ -65,6 +70,11 @@ def read_receipt(path: Path) -> dict[str, Any]:
         or isinstance(size, bool)
         or size < 1_000_000_000
         or value["prewarm_bytes"] != size
+        or value["unique_bytes"] != size
+        or isinstance(value["full_read_elapsed_seconds"], bool)
+        or not isinstance(value["full_read_elapsed_seconds"], (int, float))
+        or not math.isfinite(float(value["full_read_elapsed_seconds"]))
+        or value["full_read_elapsed_seconds"] <= 0
     ):
         raise VariantError("artifact receipt does not prove a complete prewarm")
     for field in ("tree_sha256", "manifest_sha256"):

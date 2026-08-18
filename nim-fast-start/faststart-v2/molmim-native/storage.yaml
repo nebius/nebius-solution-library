@@ -12,7 +12,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 24Gi
+      storage: 93Gi
   storageClassName: mlspec-archvteams-2407-io-m3
 ---
 apiVersion: v1

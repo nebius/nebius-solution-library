@@ -26,7 +26,7 @@ shift 2
 case "${1:-}:${2:-}" in
   get:pod)
     pod_name=${3:?pod name is required}
-    if [[ $pod_name == "molmim-native-f7-cache-holder-hf93" ]]; then
+    if [[ $pod_name == "molmim-native-f7-cache-holder-t12" ]]; then
       printf '%s\n' "cache-holder-get" >> "$FAKE_CALL_LOG"
       if [[ ${FAKE_CACHE_HOLDER_READY:-true} == "true" ]]; then
         holder_status=True
@@ -40,7 +40,7 @@ case "${1:-}:${2:-}" in
         --arg status "$holder_status" \
         --argjson container_ready "$container_ready" \
         '{
-          metadata:{name:"molmim-native-f7-cache-holder-hf93"},
+          metadata:{name:"molmim-native-f7-cache-holder-t12"},
           spec:{
             nodeName:$node,
             volumes:[
@@ -52,7 +52,7 @@ case "${1:-}:${2:-}" in
             containerStatuses:[{name:"holder",ready:$container_ready}]
           }
         }'
-    elif [[ $pod_name == "molmim-native-f7-image-holder-hf93" ]]; then
+    elif [[ $pod_name == "molmim-native-f7-image-holder-t12" ]]; then
       printf '%s\n' "image-holder-get" >> "$FAKE_CALL_LOG"
       if [[ ${FAKE_IMAGE_HOLDER_READY:-true} == "true" ]]; then
         holder_status=True
@@ -66,7 +66,7 @@ case "${1:-}:${2:-}" in
         --arg status "$holder_status" \
         --argjson container_ready "$container_ready" \
         '{
-          metadata:{name:"molmim-native-f7-image-holder-hf93"},
+          metadata:{name:"molmim-native-f7-image-holder-t12"},
           spec:{
             nodeName:$node,
             containers:[{
@@ -163,7 +163,11 @@ case "${1:-}:${2:-}" in
   logs:*)
     pod_name=${2:?log pod name is required}
     printf '%s\n' "logs:$pod_name" >> "$FAKE_CALL_LOG"
-    if [[ $pod_name == molmim-restore-* ]]; then
+    if [[ $pod_name == molmim-native-f7-cache-holder-t12 ]]; then
+      printf '%s\n' '{"schema":"archvteams.nebius.ai/molmim-cache-holder-receipt/v1","status":"PASS","mode":"cache-full-read","regular_file_count":2,"regular_file_bytes":284497920,"unique_bytes":284497920,"prewarm_bytes":284497920,"tree_sha256":"5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c","full_read_elapsed_seconds":0.25}'
+    elif [[ $pod_name == "${FAKE_HOLDER_NAME:?}" ]]; then
+      printf '%s\n' '{"schema":"archvteams.nebius.ai/molmim-native-artifact-receipt/v1","status":"PASS","checkpoint_id":"molmim-native-f7-v1","artifact_version":"1","source_node":"computeinstance-e00t12crqg6tw0kz65","regular_file_count":42,"regular_file_bytes":5214934444,"unique_bytes":5214934444,"prewarm_bytes":5214934444,"tree_sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","manifest_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","image_io_mode":"direct","full_read_elapsed_seconds":3.25}'
+    elif [[ $pod_name == molmim-restore-* ]]; then
       printf '%s\n' '{"status":"succeeded"}'
     elif [[ $pod_name == molmim-semantic-* ]]; then
       printf '%s\n' '{"status":"PASS","passed_case_count":2}'

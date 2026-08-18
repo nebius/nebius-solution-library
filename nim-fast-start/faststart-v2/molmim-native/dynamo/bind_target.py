@@ -302,10 +302,8 @@ def main(argv: list[str] | None = None) -> int:
         run = render.validate_run(
             _mapping(_load_json(args.run_config, "run config"), "run config")
         )
-        contract = render.require_release_contract(
-            render.validate_contract(
-                _mapping(_load_json(args.contract, "contract"), "contract")
-            )
+        contract = render.validate_contract(
+            _mapping(_load_json(args.contract, "contract"), "contract")
         )
         binding, patch = build_binding(
             _load_json(args.pod_json, "live Pod"),

@@ -1,8 +1,13 @@
-# Deferred MolMIM production qualification
+# Executed MolMIM performance qualification
 
-Nothing in this plan was executed during offline preparation. Use one shell so
-`set -Eeuo pipefail` makes an identity, scheduling, semantic, or cleanup error
-terminal. Never delete another lane's objects to make capacity available.
+This plan was executed on 2026-08-18 against the exact allowed cluster and t12
+H100. Evidence is retained at
+`/home/tux/.local/state/archvteams-2407/molmim-native-f7-20260818T073602Z`.
+Buffered native won the strict response-boundary comparison: 15.431630 seconds
+median versus 24.147146 seconds conventional cached, 36.0934% faster. The
+commands below remain the reproducible runbook. Use one shell so an identity,
+scheduling, semantic, or cleanup error is terminal. Never delete another
+lane's objects to make capacity available.
 
 ## 1. Establish the exact boundary
 
@@ -10,14 +15,14 @@ terminal. Never delete another lane's objects to make capacity available.
 set -Eeuo pipefail
 umask 077
 
-export MM_LANE=/home/tux/worktrees/archvteams-2407-molmim-native-prep/nim-fast-start/faststart-v2/molmim-native
+export MM_LANE=/home/tux/worktrees/archvteams-2407-faststart-production/nim-fast-start/faststart-v2/molmim-native
 export MM_KUBECONFIG=/home/tux/.local/state/archvteams-2407/openfold2-snapshot/private/kubeconfig
-export MM_NODE=computeinstance-e00hf93cfnsgaxygn3
+export MM_NODE=computeinstance-e00t12crqg6tw0kz65
 export MM_EVIDENCE=/home/tux/.local/state/archvteams-2407/molmim-native-f7-$(date -u +%Y%m%dT%H%M%SZ)
 install -d -m 0700 "$MM_EVIDENCE" "$MM_EVIDENCE/runs"
 
 test "$(sha256sum "$MM_LANE/validate_molmim.py" | cut -d' ' -f1)" = \
-  9c5ddb420f6e0242b15af4bc7d337b37fad7b7f37e367c90f41622be5715af15
+  0d87fd53b554a629b8fb83c5abc79b074220f223ea97f7c1d8802d48e4833bd7
 test "$(sha256sum "$MM_LANE/fixtures/request-cmaes-qed.json" | cut -d' ' -f1)" = \
   053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc42d
 
@@ -52,6 +57,12 @@ Stop if this is not the exact Ready H100 or any active Pod requests its GPU.
 
 All resources are created under new, exact names. A collision is an error.
 
+The live run could not attach another volume to hf93. It therefore streamed the
+exact 284,497,920-byte source through a private local evidence file, verified
+its tree hash, populated the already-attached t12 claim, and verified the same
+tree there. The direct `cache-seed-job.yaml` sequence below remains valid only
+when hf93 has attachment capacity.
+
 ```console
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start create \
   -f "$MM_LANE/storage.yaml"
@@ -78,9 +89,9 @@ jq -e '
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start create \
   -f "$MM_LANE/cache-holder.yaml"
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start wait \
-  --for=condition=Ready pod/molmim-native-f7-cache-holder-hf93 --timeout=900s
+  --for=condition=Ready pod/molmim-native-f7-cache-holder-t12 --timeout=900s
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start logs \
-  molmim-native-f7-cache-holder-hf93 | tail -n 1 \
+  molmim-native-f7-cache-holder-t12 | tail -n 1 \
   > "$MM_EVIDENCE/cache-holder-receipt.json"
 test "$(jq -er .tree_sha256 "$MM_EVIDENCE/cache-holder-receipt.json")" = \
   "$(jq -er .tree_sha256 "$MM_EVIDENCE/cache-seed-receipt.json")"
@@ -88,9 +99,9 @@ test "$(jq -er .tree_sha256 "$MM_EVIDENCE/cache-holder-receipt.json")" = \
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start create \
   -f "$MM_LANE/conventional/image-cache-holder.yaml"
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start wait \
-  --for=condition=Ready pod/molmim-native-f7-image-holder-hf93 --timeout=1800s
+  --for=condition=Ready pod/molmim-native-f7-image-holder-t12 --timeout=1800s
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start get pod \
-  molmim-native-f7-image-holder-hf93 -o json \
+  molmim-native-f7-image-holder-t12 -o json \
   > "$MM_EVIDENCE/image-holder.json"
 jq -e '
   (.status.containerStatuses | length) == 1 and
@@ -108,7 +119,7 @@ must also have a `Pulled` Event stating the image was already present.
 
 ```console
 "$MM_LANE/conventional/run_cached_n3.sh" \
-  --run-prefix mm-cached \
+  --run-prefix mm-rx \
   --evidence-root "$MM_EVIDENCE" \
   --node "$MM_NODE" \
   --kubeconfig "$MM_KUBECONFIG" \
@@ -116,24 +127,24 @@ must also have a `Pulled` Event stating the image was already present.
 ```
 
 This produces
-`$MM_EVIDENCE/n3-mm-cached-conventional-cached.json`. It requires three
+`$MM_EVIDENCE/n3-mm-rx-conventional-cached.json`. It requires three
 scheduler-created real NIM starts, three cached-image Event proofs, and six
 strict CMA-ES/QED responses. Do not continue if any trial fails.
 
-## 4. Open the native worker gate
+## 4. Open the native performance-worker gate
 
-The checked-in contract deliberately has `release_ready: false`. Before any
-native capture or restore, replace only
-`dynamo/restore-interface.live.json` with the final immutable full `agent`
-compliance release and its receipts. The contract must preserve direct and
-buffered support and the reviewed one-shot interface.
+The checked-in d5ce contract deliberately has `release_ready: false` and is
+classified `performance-validation-only`. These measurements explicitly used
+`--allow-performance-validation-worker`; omitting that flag still fails before
+mutation. Replace the contract with a full compliance release before making a
+release-readiness claim.
 
 ```console
 jq -e '
   .approved == true and
-  .release_ready == true and
-  .release_blocker == "" and
-  .worker_classification == "full-agent-compliance-release" and
+  .release_ready == false and
+  (.release_blocker | type == "string" and length > 0) and
+  .worker_classification == "performance-validation-only" and
   (.supported_image_io_modes | index("direct")) != null and
   (.supported_image_io_modes | index("buffered")) != null and
   .worker_executable_sha256 ==
@@ -215,8 +226,9 @@ for value, kind, name, data_key, digest in expected:
 PY
 ```
 
-The current `d5ce1ea...` performance-validation image cannot open this gate;
-the missing exact-base compliance baseline must be resolved first.
+The current `d5ce1ea...` image opens only the explicitly acknowledged
+performance gate; the missing exact-base compliance baseline remains outside
+this timing qualification.
 
 ## 5. Capture one UID-bound direct artifact
 
@@ -224,7 +236,7 @@ the missing exact-base compliance baseline must be resolved first.
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start create \
   -f "$MM_EVIDENCE/snapshot-agent.yaml"
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start wait \
-  --for=condition=Ready pod/molmim-native-f7-snapshot-agent-hf93 --timeout=300s
+  --for=condition=Ready pod/molmim-native-f7-snapshot-agent-t12 --timeout=300s
 
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start create configmap \
   molmim-native-f7-validator-r1 \
@@ -265,11 +277,11 @@ kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start create \
   -f "$MM_EVIDENCE/podsnapshotcontent.yaml"
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start wait \
   --for=condition=Ready \
-  podsnapshotcontent/molmim-native-f7-v1-direct-hf93 --timeout=1800s
+  podsnapshotcontent/molmim-native-f7-v1-direct-t12 --timeout=1800s
 ```
 
-The donor becomes Ready only after starting from the fully prewarmed read-only
-cache without an in-container registry credential, using
+The donor becomes Ready only after starting from the fully prewarmed cache,
+using the exact NIM-required writable-cache and NGC bootstrap contract,
 `TORCHINDUCTOR_COMPILE_THREADS=1`, and passing both strict loopback calls. The
 capture renderer binds the captured Job UID and exact rendered PodSpec as well
 as the Pod name, UID, image, container, node, and Ready state. Any artifact made
@@ -285,9 +297,9 @@ validator ConfigMap, and the snapshot-agent Pod to release the GPU.
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start create \
   -f "$MM_LANE/artifact-holder.yaml"
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start wait \
-  --for=condition=Ready pod/molmim-native-f7-holder-hf93 --timeout=1800s
+  --for=condition=Ready pod/molmim-native-f7-holder-t12 --timeout=1800s
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start logs \
-  molmim-native-f7-holder-hf93 | tail -n 1 \
+  molmim-native-f7-holder-t12 | tail -n 1 \
   > "$MM_EVIDENCE/artifact-direct-receipt.json"
 MM_DIRECT_MANIFEST=$(jq -er '
   select(.schema == "archvteams.nebius.ai/molmim-native-artifact-receipt/v1") |
@@ -310,9 +322,9 @@ kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start logs \
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start create \
   -f "$MM_LANE/artifact-holder-buffered.yaml"
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start wait \
-  --for=condition=Ready pod/molmim-native-f7-buffered-holder-hf93 --timeout=1800s
+  --for=condition=Ready pod/molmim-native-f7-buffered-holder-t12 --timeout=1800s
 kubectl --kubeconfig "$MM_KUBECONFIG" -n nim-fast-start logs \
-  molmim-native-f7-buffered-holder-hf93 | tail -n 1 \
+  molmim-native-f7-buffered-holder-t12 | tail -n 1 \
   > "$MM_EVIDENCE/artifact-buffered-receipt.json"
 MM_BUFFERED_MANIFEST=$(jq -er '
   select(.schema == "archvteams.nebius.ai/molmim-native-artifact-receipt/v1") |
@@ -330,31 +342,33 @@ existing destination, hard-links immutable payload files, and writes a new
 manifest inode with the buffered mode. This is the generic worker's actual
 legacy buffered path, not a writeback alias.
 
-## 7. Smoke and measure buffered native first
+## 7. Run the direct canary and buffered native n=3
 
 ```console
 "$MM_LANE/dynamo/run_provisioned_trial.sh" \
-  --run-id mm-buffered-smoke \
+  --run-id mm-direct-canary3 \
   --evidence-root "$MM_EVIDENCE" \
   --node "$MM_NODE" \
   --kubeconfig "$MM_KUBECONFIG" \
-  --artifact-holder molmim-native-f7-buffered-holder-hf93 \
-  --checkpoint-id molmim-native-f7-v2-buffered \
+  --artifact-holder molmim-native-f7-holder-t12 \
+  --checkpoint-id molmim-native-f7-v1 \
   --target-glibc-version "$MM_GLIBC" \
-  --image-io-mode buffered \
-  --artifact-manifest-sha256 "$MM_BUFFERED_MANIFEST" \
+  --image-io-mode direct \
+  --artifact-manifest-sha256 "$MM_DIRECT_MANIFEST" \
+  --allow-performance-validation-worker \
   --cleanup
 
 "$MM_LANE/dynamo/run_n3.sh" \
-  --run-prefix mm-buffered \
+  --run-prefix mm-bufrx \
   --evidence-root "$MM_EVIDENCE" \
   --node "$MM_NODE" \
   --kubeconfig "$MM_KUBECONFIG" \
-  --artifact-holder molmim-native-f7-buffered-holder-hf93 \
+  --artifact-holder molmim-native-f7-buffered-holder-t12 \
   --checkpoint-id molmim-native-f7-v2-buffered \
   --target-glibc-version "$MM_GLIBC" \
   --image-io-mode buffered \
   --artifact-manifest-sha256 "$MM_BUFFERED_MANIFEST" \
+  --allow-performance-validation-worker \
   --cleanup
 ```
 
@@ -367,27 +381,28 @@ probe before the restore worker, and requires two strict ClusterIP calls.
 ```console
 set +e
 python3 "$MM_LANE/conventional/compare.py" \
-  --conventional "$MM_EVIDENCE/n3-mm-cached-conventional-cached.json" \
-  --buffered-native "$MM_EVIDENCE/n3-mm-buffered-buffered.json" \
-  > "$MM_EVIDENCE/startup-decision.json.partial"
+  --conventional "$MM_EVIDENCE/n3-mm-rx-conventional-cached.json" \
+  --buffered-native "$MM_EVIDENCE/n3-mm-bufrx-buffered.json" \
+  > "$MM_EVIDENCE/startup-decision-response-boundary.json.partial"
 MM_DECISION_STATUS=$?
 set -e
-mv "$MM_EVIDENCE/startup-decision.json.partial" \
-  "$MM_EVIDENCE/startup-decision.json"
+mv "$MM_EVIDENCE/startup-decision-response-boundary.json.partial" \
+  "$MM_EVIDENCE/startup-decision-response-boundary.json"
 
 if [[ $MM_DECISION_STATUS -eq 3 ]]; then
-  jq . "$MM_EVIDENCE/startup-decision.json"
+  jq . "$MM_EVIDENCE/startup-decision-response-boundary.json"
   echo 'Buffered native did not beat conventional cached; stop MolMIM restore work.'
   exit 3
 fi
 test "$MM_DECISION_STATUS" -eq 0
 ```
 
-Exit `3` is the expected outcome if the retained 38.184-second behavior holds.
-It means keep the conventional-cached serving path and move GPU time to the
-next BioNeMo model.
+The live status was `PASS` with
+`PROMOTE_BUFFERED_NATIVE_FOR_FURTHER_QUALIFICATION`: buffered native was
+8.715516 seconds faster at the median.
 
-Only if buffered native wins should direct-mode n=3 be run for attribution:
+Direct-mode n=3 is optional attribution work; the required direct canary was
+already slower and the requested selection is fully determined:
 
 ```console
 "$MM_LANE/dynamo/run_n3.sh" \
@@ -395,20 +410,21 @@ Only if buffered native wins should direct-mode n=3 be run for attribution:
   --evidence-root "$MM_EVIDENCE" \
   --node "$MM_NODE" \
   --kubeconfig "$MM_KUBECONFIG" \
-  --artifact-holder molmim-native-f7-holder-hf93 \
+  --artifact-holder molmim-native-f7-holder-t12 \
   --checkpoint-id molmim-native-f7-v1 \
   --target-glibc-version "$MM_GLIBC" \
   --image-io-mode direct \
   --artifact-manifest-sha256 "$MM_DIRECT_MANIFEST" \
+  --allow-performance-validation-worker \
   --cleanup
 ```
 
 ## 9. Final ownership-scoped cleanup
 
-Preserve every JSON/log receipt first. Delete only the exact MolMIM Jobs,
-Pods, ConfigMaps, and PodSnapshotContent created above, with UID preconditions
-if any name was observed before this run. Delete the two PVCs only after all
-MolMIM evidence has been copied and no holder mounts them. Re-run the node Pod
-inventory and require zero remaining MolMIM GPU requests. Do not remove shared
-snapshot ServiceAccounts, ConfigMaps, storage classes, or another model's
-objects.
+Preserve every JSON/log receipt first. Delete only exact run-scoped MolMIM
+targets, workers, probes, donor, and snapshot-agent resources, with UID
+preconditions if any name was observed before this run. The live result retains
+the selected buffered holder, cache/image holders, both PVCs, and direct
+PodSnapshotContent; none request a GPU. Re-run the node Pod inventory and
+require zero remaining MolMIM GPU requests. Do not remove shared snapshot
+ServiceAccounts, ConfigMaps, storage classes, or another model's objects.

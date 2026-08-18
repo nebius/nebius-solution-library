@@ -25,10 +25,10 @@ RUN_LABEL = "archvteams.nebius.ai/run-id"
 COMPONENT_LABEL = "app.kubernetes.io/component"
 QUALIFIED_LABEL = "archvteams.nebius.ai/semantic-qualified"
 POD_SPEC_HASH_KEY = "archvteams.nebius.ai/target-pod-spec-sha256"
-VALIDATOR_SHA256 = "9c5ddb420f6e0242b15af4bc7d337b37fad7b7f37e367c90f41622be5715af15"
+VALIDATOR_SHA256 = "0d87fd53b554a629b8fb83c5abc79b074220f223ea97f7c1d8802d48e4833bd7"
 FIXTURE_SHA256 = "053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc42d"
 PROBE_EXECUTABLE = "/usr/bin/python3"
-STAGER_SHA256 = "27e8ebe57bab3cfa7a90cdfc4379a7bef788073af2d25192fe2c54dc9cc92225"
+STAGER_SHA256 = "887323894f0b4731ad28df00dc9215d8ec4b357a822431ee438df6b191af1ad9"
 PINNED_IMAGE = re.compile(r"^[^\s@]+@sha256:[0-9a-f]{64}$")
 UUID = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
@@ -41,7 +41,7 @@ ALLOWED_HOST_PATHS = {
     "/var/lib/kubelet/pod-resources/kubelet.sock",
 }
 ALLOWED_H100_NODES = {
-    "computeinstance-e00hf93cfnsgaxygn3",
+    "computeinstance-e00t12crqg6tw0kz65",
 }
 FORBIDDEN_ENV_VALUE_MARKERS = ("nvapi-", "NGC_API_KEY=", "NVIDIA_API_KEY=")
 KNOWN_NON_WORKER_EXECUTABLES = {
@@ -738,8 +738,8 @@ def _check_probe(documents: list[dict[str, Any]], run_id: str, errors: list[str]
         if spec.get(field) is not False:
             errors.append(f"{location} must set {field}: false")
     hostnames = _hostname_values(spec)
-    if hostnames != ["computeinstance-e00hf93cfnsgaxygn3"]:
-        errors.append(f"{location} must select the stable hf93 hostname")
+    if hostnames != ["computeinstance-e00t12crqg6tw0kz65"]:
+        errors.append(f"{location} must select the stable t12 hostname")
     init_containers = spec.get("initContainers")
     stager: dict[str, Any] = {}
     if not isinstance(init_containers, list) or len(init_containers) != 1:

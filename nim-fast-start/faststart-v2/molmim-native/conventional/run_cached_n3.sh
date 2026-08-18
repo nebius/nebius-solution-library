@@ -15,7 +15,7 @@ cleanup=0
 usage() {
   cat >&2 <<'USAGE'
 usage: run_cached_n3.sh --run-prefix DNS_LABEL --evidence-root ABSOLUTE_DIRECTORY \
-  --node computeinstance-e00hf93cfnsgaxygn3 --kubeconfig ABSOLUTE_FILE [--cleanup]
+  --node computeinstance-e00t12crqg6tw0kz65 --kubeconfig ABSOLUTE_FILE [--cleanup]
 USAGE
 }
 
@@ -50,6 +50,7 @@ done
 for required in run_prefix evidence_root node kubeconfig; do
   [[ -n ${!required} ]] || die_usage "--${required//_/-} is required"
 done
+((cleanup == 1)) || die_usage "--cleanup is required between every counted n=3 trial"
 if [[ ! $run_prefix =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ || ${#run_prefix} -gt 25 ]]; then
   die_usage "--run-prefix must be a DNS label of at most 25 characters"
 fi
@@ -69,6 +70,10 @@ paths=()
 for repetition in 1 2 3; do
   run_id="${run_prefix}-r${repetition}"
   "$script_dir/run_cached_trial.sh" --run-id "$run_id" "${arguments[@]}"
+  [[ -s $evidence_root/runs/$run_id/cleanup-verified-at.txt ]] || {
+    printf 'trial cleanup was not verified: %s\n' "$run_id" >&2
+    exit 69
+  }
   paths+=("$evidence_root/runs/$run_id/conventional-evidence.json")
 done
 

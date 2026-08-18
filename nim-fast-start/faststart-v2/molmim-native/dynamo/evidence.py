@@ -9,9 +9,11 @@ the same UID- and PodSpec-bound MolMIM target before reporting latency.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import math
+import re
 import sys
 import uuid
 from datetime import UTC, datetime
@@ -27,6 +29,7 @@ except ImportError:  # pragma: no cover - package import path
 RECEIPT_SCHEMA = "archvteams.nebius.ai/molmim-production-canary-evidence/v1"
 WORKER_RECEIPT_SCHEMA = "archvteams.nebius.ai/dynamo-one-shot-restore-receipt/v1"
 POD_SPEC_HASH_KEY = "archvteams.nebius.ai/target-pod-spec-sha256"
+NODE = "computeinstance-e00t12crqg6tw0kz65"
 EXPECTED_SEMANTIC_CASES = (
     (
         "caffeine",
@@ -37,6 +40,7 @@ EXPECTED_SEMANTIC_CASES = (
         "98ac4fccf35f4a9c3cbb3666b8d98218b24e7f2d5cff9cb174c76b2d242927da",
     ),
 )
+KUBERNETES_OMITTED_FALSE_POD_FIELDS = frozenset({"hostIPC", "hostNetwork", "hostPID"})
 
 
 class EvidenceError(ValueError):
@@ -50,6 +54,15 @@ def _require_expected(actual: Any, expected: Any, label: str) -> None:
             raise EvidenceError(f"{label} is not an object")
         for key, expected_value in expected.items():
             if key not in actual:
+                # Kubernetes' JSON serialization omits these PodSpec booleans
+                # when they are false. Their API default is also false, so an
+                # omitted live value is equivalent to the explicit reviewed
+                # manifest value; do not weaken any other required field.
+                if (
+                    expected_value is False
+                    and key in KUBERNETES_OMITTED_FALSE_POD_FIELDS
+                ):
+                    continue
                 raise EvidenceError(f"{label}.{key} is absent")
             _require_expected(actual[key], expected_value, f"{label}.{key}")
         return
@@ -65,6 +78,107 @@ def _require_expected(actual: Any, expected: Any, label: str) -> None:
         raise EvidenceError(f"{label} does not match the rendered contract")
 
 
+def _without_default_service_account_projection(
+    pod_spec: dict[str, Any], expected_spec: dict[str, Any], label: str
+) -> dict[str, Any]:
+    """Remove only the API-injected bound service-account projection.
+
+    Job Pod templates do not contain the generated ``kube-api-access-*``
+    volume, while their live Pods do when token automount is enabled. Validate
+    its exact shape before normalizing it out for the rendered-contract match.
+    """
+    expected_volume_names = {
+        item.get("name")
+        for item in expected_spec.get("volumes", [])
+        if isinstance(item, dict)
+    }
+    actual_volumes = pod_spec.get("volumes", [])
+    if not isinstance(actual_volumes, list):
+        return pod_spec
+    extras = [
+        item
+        for item in actual_volumes
+        if isinstance(item, dict) and item.get("name") not in expected_volume_names
+    ]
+    if not extras:
+        return pod_spec
+    if len(extras) != 1:
+        raise EvidenceError(f"{label} has unexpected injected volumes")
+    volume = extras[0]
+    name = volume.get("name")
+    projected = volume.get("projected")
+    if (
+        not isinstance(name, str)
+        or re.fullmatch(r"kube-api-access-[a-z0-9]{5}", name) is None
+        or not isinstance(projected, dict)
+        or projected.get("defaultMode") != 420
+    ):
+        raise EvidenceError(f"{label} has an invalid service-account projection")
+    sources = projected.get("sources")
+    if not isinstance(sources, list) or len(sources) != 3:
+        raise EvidenceError(f"{label} has an invalid service-account projection")
+    token = sources[0].get("serviceAccountToken") if isinstance(sources[0], dict) else None
+    root_ca = sources[1].get("configMap") if isinstance(sources[1], dict) else None
+    namespace = sources[2].get("downwardAPI") if isinstance(sources[2], dict) else None
+    expiration = token.get("expirationSeconds") if isinstance(token, dict) else None
+    if (
+        not isinstance(expiration, int)
+        or isinstance(expiration, bool)
+        or not 600 <= expiration <= 7200
+        or token.get("path") != "token"
+        or root_ca
+        != {
+            "items": [{"key": "ca.crt", "path": "ca.crt"}],
+            "name": "kube-root-ca.crt",
+        }
+        or namespace
+        != {
+            "items": [
+                {
+                    "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace",
+                    },
+                    "path": "namespace",
+                }
+            ]
+        }
+    ):
+        raise EvidenceError(f"{label} has an invalid service-account projection")
+
+    normalized = copy.deepcopy(pod_spec)
+    normalized["volumes"] = [
+        item for item in normalized["volumes"] if item.get("name") != name
+    ]
+    expected_container_names = {
+        item.get("name")
+        for kind in ("containers", "initContainers")
+        for item in expected_spec.get(kind, [])
+        if isinstance(item, dict)
+    }
+    found_mounts = 0
+    for kind in ("containers", "initContainers"):
+        for container in normalized.get(kind, []):
+            if not isinstance(container, dict) or container.get("name") not in expected_container_names:
+                continue
+            mounts = container.get("volumeMounts", [])
+            if not isinstance(mounts, list):
+                raise EvidenceError(f"{label} has malformed volume mounts")
+            injected = [mount for mount in mounts if isinstance(mount, dict) and mount.get("name") == name]
+            for mount in injected:
+                if mount != {
+                    "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+                    "name": name,
+                    "readOnly": True,
+                }:
+                    raise EvidenceError(f"{label} has an invalid service-account mount")
+            found_mounts += len(injected)
+            container["volumeMounts"] = [mount for mount in mounts if mount.get("name") != name]
+    if found_mounts != len(expected_container_names):
+        raise EvidenceError(f"{label} does not mount the service-account projection exactly once")
+    return normalized
+
+
 def _load(path: Path, label: str) -> Any:
     if path.is_symlink() or not path.is_file():
         raise EvidenceError(f"{label} must be a regular non-symlink file")
@@ -72,6 +186,17 @@ def _load(path: Path, label: str) -> Any:
         return json.loads(path.read_bytes())
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise EvidenceError(f"cannot read {label} JSON: {type(exc).__name__}") from exc
+
+
+def _measurement_timestamp(path: Path) -> str:
+    if path.is_symlink() or not path.is_file():
+        raise EvidenceError("target submit timestamp must be a regular non-symlink file")
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise EvidenceError("cannot read target submit timestamp") from exc
+    _timestamp(value, "target_submit_at")
+    return value
 
 
 def _object(value: Any, label: str) -> dict[str, Any]:
@@ -98,6 +223,174 @@ def _seconds(start: datetime, finish: datetime, label: str) -> float:
     if result < 0:
         raise EvidenceError(f"{label} has reversed timestamps")
     return round(result, 6)
+
+
+def _normalize_kubernetes_time(
+    observed: datetime, measurement_start: datetime, label: str
+) -> datetime:
+    if observed >= measurement_start:
+        return observed
+    if (measurement_start - observed).total_seconds() < 1:
+        return measurement_start
+    raise EvidenceError(f"{label} precedes authoritative target submission")
+
+
+def _holder_identity(
+    holder: dict[str, Any], expected_name: str, captured: datetime, label: str
+) -> str:
+    metadata = _object(holder.get("metadata"), f"{label} metadata")
+    spec = _object(holder.get("spec"), f"{label} spec")
+    status = _object(holder.get("status"), f"{label} status")
+    uid = metadata.get("uid")
+    try:
+        if str(uuid.UUID(str(uid))) != uid:
+            raise ValueError
+    except ValueError as exc:
+        raise EvidenceError(f"{label} UID is not canonical") from exc
+    ready = [
+        _timestamp(item.get("lastTransitionTime"), f"{label} Ready")
+        for item in status.get("conditions", [])
+        if isinstance(item, dict)
+        and item.get("type") == "Ready"
+        and item.get("status") == "True"
+    ]
+    if (
+        holder.get("apiVersion") != "v1"
+        or holder.get("kind") != "Pod"
+        or metadata.get("name") != expected_name
+        or metadata.get("namespace") != render.NAMESPACE
+        or spec.get("nodeName") != NODE
+        or len(ready) != 1
+        or ready[0] > captured
+        or not all(
+            isinstance(item, dict) and item.get("ready") is True
+            for item in status.get("containerStatuses", [])
+        )
+    ):
+        raise EvidenceError(f"{label} was not Ready on the exact node before capture")
+    return uid
+
+
+def _positive_receipt_seconds(value: Any, label: str) -> float:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+        or value <= 0
+    ):
+        raise EvidenceError(f"{label} must be positive and finite")
+    return round(float(value), 6)
+
+
+def _storage_prewarm(
+    *,
+    run: dict[str, Any],
+    cache_holder: dict[str, Any],
+    cache_receipt: dict[str, Any],
+    artifact_holder: dict[str, Any],
+    artifact_receipt: dict[str, Any],
+    captured_at: str,
+    demand: datetime,
+) -> dict[str, Any]:
+    captured = _timestamp(captured_at, "storage prewarm capture")
+    if captured > demand:
+        raise EvidenceError("storage prewarm receipts were captured after authoritative T0")
+    cache_uid = _holder_identity(
+        cache_holder,
+        "molmim-native-f7-cache-holder-t12",
+        captured,
+        "cache holder Pod",
+    )
+    artifact_name = (
+        "molmim-native-f7-holder-t12"
+        if run["image_io_mode"] == "direct"
+        else "molmim-native-f7-buffered-holder-t12"
+    )
+    artifact_uid = _holder_identity(
+        artifact_holder, artifact_name, captured, "artifact holder Pod"
+    )
+    cache_volumes = cache_holder.get("spec", {}).get("volumes", [])
+    if not any(
+        isinstance(item, dict)
+        and item.get("name") == "cache"
+        and item.get("persistentVolumeClaim", {}).get("claimName")
+        == "molmim-native-f7-cache"
+        and item.get("persistentVolumeClaim", {}).get("readOnly") is True
+        for item in cache_volumes
+    ):
+        raise EvidenceError("cache holder does not mount the exact cache read-only")
+    artifact_volumes = artifact_holder.get("spec", {}).get("volumes", [])
+    required_claims = {
+        "artifacts": "molmim-native-f7-artifacts",
+        "nim-cache": "molmim-native-f7-cache",
+    }
+    for volume_name, claim_name in required_claims.items():
+        if not any(
+            isinstance(item, dict)
+            and item.get("name") == volume_name
+            and item.get("persistentVolumeClaim", {}).get("claimName") == claim_name
+            and item.get("persistentVolumeClaim", {}).get("readOnly") is True
+            for item in artifact_volumes
+        ):
+            raise EvidenceError("artifact holder does not mount both exact PVCs read-only")
+    if (
+        cache_receipt.get("schema")
+        != "archvteams.nebius.ai/molmim-cache-holder-receipt/v1"
+        or cache_receipt.get("status") != "PASS"
+        or cache_receipt.get("mode") != "cache-full-read"
+        or cache_receipt.get("unique_bytes") != 284_497_920
+        or cache_receipt.get("prewarm_bytes") != 284_497_920
+        or cache_receipt.get("tree_sha256")
+        != "5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c"
+    ):
+        raise EvidenceError("cache holder log is not the exact full-read receipt")
+    artifact_tree = artifact_receipt.get("tree_sha256")
+    artifact_bytes = artifact_receipt.get("regular_file_bytes")
+    if (
+        artifact_receipt.get("schema")
+        != "archvteams.nebius.ai/molmim-native-artifact-receipt/v1"
+        or artifact_receipt.get("status") != "PASS"
+        or artifact_receipt.get("checkpoint_id") != run["checkpoint_id"]
+        or artifact_receipt.get("artifact_version") != run["artifact_version"]
+        or artifact_receipt.get("source_node") != NODE
+        or artifact_receipt.get("image_io_mode") != run["image_io_mode"]
+        or artifact_receipt.get("manifest_sha256")
+        != run["artifact_manifest_sha256"]
+        or not isinstance(artifact_bytes, int)
+        or isinstance(artifact_bytes, bool)
+        or artifact_bytes < 1_000_000_000
+        or artifact_receipt.get("unique_bytes") != artifact_bytes
+        or artifact_receipt.get("prewarm_bytes") != artifact_bytes
+        or not isinstance(artifact_tree, str)
+        or len(artifact_tree) != 64
+        or any(character not in "0123456789abcdef" for character in artifact_tree)
+    ):
+        raise EvidenceError("artifact holder log is not the exact full-read receipt")
+    return {
+        "captured_at": captured_at,
+        "cache": {
+            "holder_pod": "molmim-native-f7-cache-holder-t12",
+            "holder_uid": cache_uid,
+            "mode": cache_receipt["mode"],
+            "unique_bytes": cache_receipt["unique_bytes"],
+            "tree_sha256": cache_receipt["tree_sha256"],
+            "full_read_elapsed_seconds": _positive_receipt_seconds(
+                cache_receipt.get("full_read_elapsed_seconds"), "cache full-read elapsed"
+            ),
+        },
+        "artifact": {
+            "holder_pod": artifact_name,
+            "holder_uid": artifact_uid,
+            "mode": artifact_receipt["image_io_mode"],
+            "unique_bytes": artifact_receipt["unique_bytes"],
+            "tree_sha256": artifact_tree,
+            "manifest_sha256": artifact_receipt["manifest_sha256"],
+            "full_read_elapsed_seconds": _positive_receipt_seconds(
+                artifact_receipt.get("full_read_elapsed_seconds"),
+                "artifact full-read elapsed",
+            ),
+        },
+    }
 
 
 def _condition_time(pod: dict[str, Any], kind: str, required_status: str = "True") -> datetime:
@@ -200,7 +493,10 @@ def _validate_job_pod(
             template["metadata"]["annotations"],
             f"{label} Pod annotations",
         )
-    _require_expected(pod_spec, template["spec"], f"{label} Pod spec")
+    normalized_pod_spec = _without_default_service_account_projection(
+        pod_spec, template["spec"], f"{label} Pod spec"
+    )
+    _require_expected(normalized_pod_spec, template["spec"], f"{label} Pod spec")
     statuses = pod.get("status", {}).get("containerStatuses")
     matches = (
         [item for item in statuses if isinstance(item, dict) and item.get("name") == container_name]
@@ -233,7 +529,7 @@ def _only_job_container(job: dict[str, Any], name: str, label: str) -> dict[str,
 
 def _validate_semantics(
     summary: dict[str, Any], run_id: str
-) -> tuple[datetime, datetime, datetime, list[float]]:
+) -> tuple[datetime, datetime, datetime, datetime, list[float]]:
     if (
         summary.get("schema_version") != 1
         or summary.get("validator") != "molmim-faststart-semantic-v1"
@@ -259,6 +555,7 @@ def _validate_semantics(
     elapsed: list[float] = []
     response_hashes: list[str] = []
     generated_smiles: list[str] = []
+    response_received: list[datetime] = []
     for index, (case, expected_case, expected_run_id) in enumerate(
         zip(cases, EXPECTED_SEMANTIC_CASES, expected_run_ids, strict=True), 1
     ):
@@ -320,6 +617,12 @@ def _validate_semantics(
         ):
             raise EvidenceError(f"semantic case {index} has invalid elapsed time")
         elapsed.append(round(float(value), 6))
+        response_received.append(
+            _timestamp(
+                case.get("response_received_at"),
+                f"semantic case {index} response_received_at",
+            )
+        )
         response_hashes.append(response_hash)
         generated_smiles.append(smiles)
     if len(set(response_hashes)) != 2 or len(set(generated_smiles)) != 2:
@@ -327,9 +630,19 @@ def _validate_semantics(
     started = _timestamp(summary.get("started_at"), "semantic probe start")
     ready = _timestamp(summary.get("ready_at"), "direct HTTP readiness")
     finished = _timestamp(summary.get("finished_at"), "second semantic completion")
-    if not started <= ready <= finished:
+    validation_completed = _timestamp(
+        summary.get("validation_completed_at"), "semantic validation completion"
+    )
+    if not (
+        started
+        <= ready
+        <= response_received[0]
+        <= response_received[1]
+        <= validation_completed
+        and finished == validation_completed
+    ):
         raise EvidenceError("semantic start, direct readiness, and completion are not ordered")
-    return started, ready, finished, elapsed
+    return started, ready, response_received[1], validation_completed, elapsed
 
 
 def build_evidence(
@@ -346,9 +659,15 @@ def build_evidence(
     probe_job: dict[str, Any],
     probe_pod: dict[str, Any],
     semantic_summary: dict[str, Any],
+    target_submit_at: str | None = None,
+    cache_holder: dict[str, Any] | None = None,
+    cache_receipt: dict[str, Any] | None = None,
+    artifact_holder: dict[str, Any] | None = None,
+    artifact_receipt: dict[str, Any] | None = None,
+    prewarm_captured_at: str | None = None,
 ) -> dict[str, Any]:
     try:
-        contract = render.require_release_contract(render.validate_contract(contract))
+        contract = render.validate_contract(contract)
         run = render.validate_run(run)
         render.validate_compatibility(run, contract)
         binding = render.validate_binding(binding, run)
@@ -395,11 +714,46 @@ def build_evidence(
     ):
         raise EvidenceError("target container identity changed after binding")
 
-    demand = _timestamp(run["demand_at"], "demand_at")
-    target_created = _timestamp(target_metadata.get("creationTimestamp"), "target creation")
-    scheduled = _condition_time(target, "PodScheduled")
-    kubernetes_ready = _condition_time(target, "Ready")
+    planned_demand = _timestamp(run["demand_at"], "planned demand_at")
+    measurement_start_raw = target_submit_at or run["demand_at"]
+    demand = _timestamp(measurement_start_raw, "target_submit_at")
+    if demand < planned_demand:
+        raise EvidenceError("authoritative target submission precedes planned demand")
+    if any(
+        value is None
+        for value in (
+            cache_holder,
+            cache_receipt,
+            artifact_holder,
+            artifact_receipt,
+            prewarm_captured_at,
+        )
+    ):
+        raise EvidenceError("pre-T0 cache/artifact holder Pod and log receipts are required")
+    storage_prewarm = _storage_prewarm(
+        run=run,
+        cache_holder=cache_holder,
+        cache_receipt=cache_receipt,
+        artifact_holder=artifact_holder,
+        artifact_receipt=artifact_receipt,
+        captured_at=prewarm_captured_at,
+        demand=demand,
+    )
+    target_created = _normalize_kubernetes_time(
+        _timestamp(target_metadata.get("creationTimestamp"), "target creation"),
+        demand,
+        "target creation",
+    )
+    scheduled = _normalize_kubernetes_time(
+        _condition_time(target, "PodScheduled"), demand, "target scheduling"
+    )
+    kubernetes_ready = _normalize_kubernetes_time(
+        _condition_time(target, "Ready"), demand, "Kubernetes readiness"
+    )
     placeholder_started, _ = _container_times(target, "molmim", "target Pod")
+    placeholder_started = _normalize_kubernetes_time(
+        placeholder_started, demand, "placeholder start"
+    )
 
     service_name = f"molmim-canary-{run_id}"
     service_metadata = _object(service.get("metadata"), "Service metadata")
@@ -557,7 +911,7 @@ def build_evidence(
     probe_started, probe_finished = _container_times(probe_pod, "semantic-probe", "probe Pod")
     if probe_finished is None:
         raise EvidenceError("semantic probe container has not completed")
-    semantic_started, semantic_ready, semantic_finished, case_elapsed = (
+    semantic_started, semantic_ready, semantic_response_2, validation_completed, case_elapsed = (
         _validate_semantics(semantic_summary, run_id)
     )
     expected_origin = f"http://{service_name}:8000"
@@ -599,7 +953,8 @@ def build_evidence(
         probe_started,
         semantic_started,
         semantic_ready,
-        semantic_finished,
+        semantic_response_2,
+        validation_completed,
     ]
     if any(
         later < earlier
@@ -621,7 +976,13 @@ def build_evidence(
         "run_id": run_id,
         "request_count": 2,
         "semantic_pass_count": 2,
-        "demand_at": run["demand_at"],
+        "demand_at": measurement_start_raw,
+        "measurement": {
+            "t0": measurement_start_raw,
+            "t0_definition": "timestamp immediately before target Pod create",
+            "planned_demand_at": run["demand_at"],
+            "storage_state": "attached artifact/cache PVCs fully read before T0; exact image present on node",
+        },
         "artifact": {
             "checkpoint_id": run["checkpoint_id"],
             "version": run["artifact_version"],
@@ -629,6 +990,7 @@ def build_evidence(
             "target_glibc_version": run["target_glibc_version"],
             "image_io_mode": run["image_io_mode"],
         },
+        "storage_prewarm": storage_prewarm,
         "target": {
             "namespace": render.NAMESPACE,
             "name": target_name,
@@ -656,7 +1018,10 @@ def build_evidence(
                 demand, semantic_ready, "direct HTTP readiness"
             ),
             "demand_to_two_semantic_responses": _seconds(
-                demand, semantic_finished, "two semantic responses"
+                demand, semantic_response_2, "two semantic responses"
+            ),
+            "demand_to_validation_complete": _seconds(
+                demand, validation_completed, "semantic validation completion"
             ),
             "worker_restore": round(duration_ms / 1000, 6),
             "semantic_probe_total": round(
@@ -684,6 +1049,12 @@ def build_evidence(
             "probe_job_completed_at": probe_completed.isoformat(),
             "semantic_ready_at": semantic_summary["ready_at"],
             "semantic_finished_at": semantic_summary["finished_at"],
+            "semantic_response_2_received_at": semantic_summary["cases"][1][
+                "response_received_at"
+            ],
+            "semantic_validation_completed_at": semantic_summary[
+                "validation_completed_at"
+            ],
             "validator": semantic_summary["validator"],
         },
     }
@@ -704,6 +1075,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "probe-job",
         "probe-pod",
         "semantic-summary",
+        "target-submit-at",
+        "cache-holder-pod",
+        "cache-holder-receipt",
+        "artifact-holder-pod",
+        "artifact-holder-receipt",
+        "prewarm-captured-at",
     ):
         parser.add_argument(f"--{name}", type=Path, required=True)
     return parser.parse_args(argv)
@@ -731,6 +1108,23 @@ def main(argv: list[str] | None = None) -> int:
             semantic_summary=_object(
                 _load(args.semantic_summary, "semantic summary"), "semantic summary"
             ),
+            target_submit_at=_measurement_timestamp(args.target_submit_at),
+            cache_holder=_object(
+                _load(args.cache_holder_pod, "cache holder Pod"), "cache holder Pod"
+            ),
+            cache_receipt=_object(
+                _load(args.cache_holder_receipt, "cache holder receipt"),
+                "cache holder receipt",
+            ),
+            artifact_holder=_object(
+                _load(args.artifact_holder_pod, "artifact holder Pod"),
+                "artifact holder Pod",
+            ),
+            artifact_receipt=_object(
+                _load(args.artifact_holder_receipt, "artifact holder receipt"),
+                "artifact holder receipt",
+            ),
+            prewarm_captured_at=_measurement_timestamp(args.prewarm_captured_at),
         )
     except (EvidenceError, render.RenderError) as exc:
         print(f"evidence: refused: {exc}", file=sys.stderr)

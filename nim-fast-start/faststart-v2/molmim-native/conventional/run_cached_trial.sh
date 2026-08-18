@@ -4,7 +4,7 @@ set -euo pipefail
 umask 077
 
 readonly allowed_server="https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebius.cloud:443"
-readonly expected_validator_sha256="9c5ddb420f6e0242b15af4bc7d337b37fad7b7f37e367c90f41622be5715af15"
+readonly expected_validator_sha256="0d87fd53b554a629b8fb83c5abc79b074220f223ea97f7c1d8802d48e4833bd7"
 readonly expected_fixture_sha256="053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc42d"
 readonly expected_image="nvcr.io/nim/nvidia/molmim@sha256:7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa"
 readonly namespace="nim-fast-start"
@@ -25,7 +25,7 @@ usage() {
 usage: run_cached_trial.sh \
   --run-id DNS_LABEL \
   --evidence-root ABSOLUTE_DIRECTORY \
-  --node computeinstance-e00hf93cfnsgaxygn3 \
+  --node computeinstance-e00t12crqg6tw0kz65 \
   --kubeconfig ABSOLUTE_FILE [--cleanup]
 USAGE
 }
@@ -72,7 +72,7 @@ done
 if [[ ! $run_id =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ || ${#run_id} -gt 28 ]]; then
   die_usage "--run-id must be a DNS label of at most 28 characters"
 fi
-[[ $node == "computeinstance-e00hf93cfnsgaxygn3" ]] || die_usage "--node is not the exact qualification H100"
+[[ $node == "computeinstance-e00t12crqg6tw0kz65" ]] || die_usage "--node is not the exact qualification H100"
 [[ $evidence_root == /* && -d $evidence_root/runs && ! -L $evidence_root/runs ]] || \
   die_usage "--evidence-root/runs must be an existing absolute non-symlink directory"
 [[ $kubeconfig == /* && -f $kubeconfig && ! -L $kubeconfig ]] || \
@@ -92,9 +92,9 @@ server=$(kubectl --kubeconfig "$kubeconfig" config view --minify \
 [[ $server == "$allowed_server" ]] || { printf 'kubeconfig is not bound to the allowed cluster\n' >&2; exit 78; }
 
 kc=(kubectl --kubeconfig "$kubeconfig" -n "$namespace")
-cache_holder=$("${kc[@]}" get pod molmim-native-f7-cache-holder-hf93 -o json)
+cache_holder=$("${kc[@]}" get pod molmim-native-f7-cache-holder-t12 -o json)
 jq -e --arg node "$node" '
-  .metadata.name == "molmim-native-f7-cache-holder-hf93" and
+  .metadata.name == "molmim-native-f7-cache-holder-t12" and
   .spec.nodeName == $node and
   any(.status.conditions[]?; .type == "Ready" and .status == "True") and
   all(.status.containerStatuses[]?; .ready == true) and
@@ -105,9 +105,9 @@ jq -e --arg node "$node" '
   printf 'fully prewarmed MolMIM cache holder is not Ready\n' >&2
   exit 69
 }
-image_holder=$("${kc[@]}" get pod molmim-native-f7-image-holder-hf93 -o json)
+image_holder=$("${kc[@]}" get pod molmim-native-f7-image-holder-t12 -o json)
 jq -e --arg node "$node" --arg image "$expected_image" '
-  .metadata.name == "molmim-native-f7-image-holder-hf93" and
+  .metadata.name == "molmim-native-f7-image-holder-t12" and
   .spec.nodeName == $node and
   any(.status.conditions[]?; .type == "Ready" and .status == "True") and
   (.status.containerStatuses | length) == 1 and
@@ -121,6 +121,23 @@ jq -e --arg node "$node" --arg image "$expected_image" '
 readonly run_dir="${evidence_root}/runs/${run_id}"
 [[ ! -e $run_dir && ! -L $run_dir ]] || { printf 'run directory already exists\n' >&2; exit 73; }
 mkdir -m 0700 -- "$run_dir"
+
+printf '%s\n' "$cache_holder" > "$run_dir/prewarm-holder-pod.json"
+printf '%s\n' "$image_holder" > "$run_dir/image-holder-pod.json"
+"${kc[@]}" logs molmim-native-f7-cache-holder-t12 | tail -1 \
+  > "$run_dir/prewarm-holder-receipt.json"
+jq -e '
+  .schema == "archvteams.nebius.ai/molmim-cache-holder-receipt/v1" and
+  .status == "PASS" and .mode == "cache-full-read" and
+  .regular_file_count == 2 and .regular_file_bytes == 284497920 and
+  .unique_bytes == 284497920 and .prewarm_bytes == 284497920 and
+  .tree_sha256 == "5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c" and
+  (.full_read_elapsed_seconds | type == "number" and isfinite and . > 0)
+' "$run_dir/prewarm-holder-receipt.json" >/dev/null || {
+  printf 'cache holder log did not prove a full read before T0\n' >&2
+  exit 69
+}
+date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$run_dir/prewarm-captured-at.txt"
 
 demand_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
 jq -n \
@@ -180,6 +197,10 @@ python3 "$script_dir/evidence.py" \
   --probe-job "$run_dir/probe-job.json" \
   --probe-pod "$run_dir/probe-pod.json" \
   --semantic-summary "$run_dir/semantic-summary.json" \
+  --target-submit-at "$run_dir/target-submit-at.txt" \
+  --prewarm-holder-pod "$run_dir/prewarm-holder-pod.json" \
+  --prewarm-holder-receipt "$run_dir/prewarm-holder-receipt.json" \
+  --prewarm-captured-at "$run_dir/prewarm-captured-at.txt" \
   --events "$run_dir/target-events.json" \
   > "$run_dir/conventional-evidence.json"
 jq -e 'select(.status=="PASS" and .request_count==2 and .semantic_pass_count==2)' \
@@ -190,6 +211,7 @@ if ((cleanup == 1)); then
     "${kc[@]}" delete -f "$run_dir/probe.yaml" --ignore-not-found --wait=true --timeout=120s
     "${kc[@]}" delete -f "$run_dir/target.yaml" --ignore-not-found --wait=true --timeout=180s
   } >> "$run_dir/cleanup.log" 2>&1
+  date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$run_dir/cleanup-verified-at.txt"
 fi
 
 jq '{run_id,status,timings_seconds}' "$run_dir/conventional-evidence.json"

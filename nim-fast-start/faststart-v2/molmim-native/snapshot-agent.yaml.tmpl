@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: molmim-native-f7-snapshot-agent-hf93
+  name: molmim-native-f7-snapshot-agent-t12
   namespace: nim-fast-start
   labels:
     app.kubernetes.io/name: molmim
@@ -17,7 +17,7 @@ spec:
   hostIPC: true
   hostNetwork: true
   nodeSelector:
-    kubernetes.io/hostname: computeinstance-e00hf93cfnsgaxygn3
+    kubernetes.io/hostname: computeinstance-e00t12crqg6tw0kz65
   tolerations:
     - operator: Exists
   imagePullSecrets:

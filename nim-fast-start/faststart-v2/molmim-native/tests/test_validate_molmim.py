@@ -256,6 +256,17 @@ class EndToEndTests(unittest.TestCase):
                     summary["cases"][0]["invariant"]["smiles"],
                     summary["cases"][1]["invariant"]["smiles"],
                 )
+                self.assertLessEqual(
+                    summary["cases"][0]["response_received_at"],
+                    summary["cases"][1]["response_received_at"],
+                )
+                self.assertLessEqual(
+                    summary["cases"][1]["response_received_at"],
+                    summary["validation_completed_at"],
+                )
+                self.assertEqual(
+                    summary["finished_at"], summary["validation_completed_at"]
+                )
                 self.assertEqual(_StrictHandler.errors, [])
                 self.assertTrue((receipts / "response-1.json").is_file())
                 self.assertTrue((receipts / "response-2.json").is_file())

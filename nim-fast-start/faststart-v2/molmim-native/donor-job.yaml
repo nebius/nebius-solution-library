@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: archvteams-2407-faststart
     nvidia.com/snapshot-checkpoint-id: molmim-native-f7-v1
   annotations:
-    archvteams.nebius.ai/validator-sha256: 9c5ddb420f6e0242b15af4bc7d337b37fad7b7f37e367c90f41622be5715af15
+    archvteams.nebius.ai/validator-sha256: 0d87fd53b554a629b8fb83c5abc79b074220f223ea97f7c1d8802d48e4833bd7
     archvteams.nebius.ai/fixture-sha256: 053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc42d
 spec:
   backoffLimit: 0
@@ -35,7 +35,7 @@ spec:
       enableServiceLinks: false
       runtimeClassName: nvidia
       nodeSelector:
-        kubernetes.io/hostname: computeinstance-e00hf93cfnsgaxygn3
+        kubernetes.io/hostname: computeinstance-e00t12crqg6tw0kz65
       imagePullSecrets:
         - name: nvcrio-cred
       securityContext:
@@ -68,7 +68,7 @@ spec:
               import subprocess
 
               expected = {
-                  "validate_molmim.py": "9c5ddb420f6e0242b15af4bc7d337b37fad7b7f37e367c90f41622be5715af15",
+                  "validate_molmim.py": "0d87fd53b554a629b8fb83c5abc79b074220f223ea97f7c1d8802d48e4833bd7",
                   "request-cmaes-qed.json": "053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc42d",
               }
               root = pathlib.Path("/output/donor-validation")
@@ -99,7 +99,7 @@ spec:
                   {
                       "schema": "archvteams.nebius.ai/target-runtime/v1",
                       "image": "nvcr.io/nim/nvidia/molmim@sha256:7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa",
-                      "node": "computeinstance-e00hf93cfnsgaxygn3",
+                      "node": "computeinstance-e00t12crqg6tw0kz65",
                       "glibc_version": match.group(1),
                       "getconf_gnu_libc_version": getconf,
                       "ldd_version_line": ldd,
@@ -141,6 +141,11 @@ spec:
               value: /home/nvs/.cache/nim
             - name: TORCHINDUCTOR_COMPILE_THREADS
               value: "1"
+            - name: NGC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ngc-api-key
+                  key: NGC_API_KEY
             - name: VALIDATOR_SOURCE
               valueFrom:
                 configMapKeyRef:
@@ -167,9 +172,6 @@ spec:
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
             runAsUser: 0
             runAsGroup: 0
           readinessProbe:
@@ -185,7 +187,6 @@ spec:
               mountPath: /dev/shm
             - name: nim-cache
               mountPath: /home/nvs/.cache/nim
-              readOnly: true
             - name: workspace
               mountPath: /opt/nim/workspace
             - name: output
@@ -204,7 +205,6 @@ spec:
         - name: nim-cache
           persistentVolumeClaim:
             claimName: molmim-native-f7-cache
-            readOnly: true
         - name: workspace
           emptyDir:
             sizeLimit: 8Gi

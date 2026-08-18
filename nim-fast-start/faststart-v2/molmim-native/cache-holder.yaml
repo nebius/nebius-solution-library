@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: molmim-native-f7-cache-holder-hf93
+  name: molmim-native-f7-cache-holder-t12
   namespace: nim-fast-start
   labels:
     app.kubernetes.io/name: molmim
@@ -11,7 +11,7 @@ spec:
   automountServiceAccountToken: false
   enableServiceLinks: false
   restartPolicy: Never
-  nodeName: computeinstance-e00hf93cfnsgaxygn3
+  nodeName: computeinstance-e00t12crqg6tw0kz65
   terminationGracePeriodSeconds: 1
   containers:
     - name: holder
@@ -26,6 +26,7 @@ spec:
           import json
           import os
           import stat
+          import time
           from pathlib import Path
 
           root = Path("/cache")
@@ -35,14 +36,15 @@ spec:
               receipt.get("schema") != "archvteams.nebius.ai/molmim-cache-receipt/v1"
               or receipt.get("source_host_path") != "/snapshots/nim-caches/molmim"
               or receipt.get("checkpoint_file_bytes") != 281589760
-              or receipt.get("regular_file_bytes") != 281612288
-              or receipt.get("prewarm_bytes") != 281612288
+              or receipt.get("regular_file_bytes") != 284497920
+              or receipt.get("prewarm_bytes") != 284497920
               or receipt.get("status") != "PASS"
           ):
               raise SystemExit("MolMIM cache receipt identity mismatch")
           files = []
           total = 0
           checkpoint_count = 0
+          full_read_started = time.monotonic()
           for directory, names, entries in os.walk(root, followlinks=False):
               for name in names:
                   path = Path(directory) / name
@@ -75,7 +77,19 @@ spec:
               or receipt.get("prewarm_bytes") != total
           ):
               raise SystemExit("MolMIM cache content does not match its write-once receipt")
-          print(json.dumps(receipt, sort_keys=True, separators=(",", ":")), flush=True)
+          holder_receipt = {
+              "schema": "archvteams.nebius.ai/molmim-cache-holder-receipt/v1",
+              "status": "PASS",
+              "mode": "cache-full-read",
+              "source_receipt_schema": receipt["schema"],
+              "regular_file_count": len(files),
+              "regular_file_bytes": total,
+              "unique_bytes": total,
+              "prewarm_bytes": total,
+              "tree_sha256": tree.hexdigest(),
+              "full_read_elapsed_seconds": round(time.monotonic() - full_read_started, 6),
+          }
+          print(json.dumps(holder_receipt, sort_keys=True, separators=(",", ":")), flush=True)
           Path("/state/cache-verified").touch()
           while True:
               import time

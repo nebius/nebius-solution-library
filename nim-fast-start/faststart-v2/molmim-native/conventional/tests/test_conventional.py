@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import copy
 import json
+import subprocess
 import sys
+import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
@@ -37,10 +39,17 @@ def valid_inputs() -> dict:
     target = next(item for item in render.render_target(RUN_ID, DEMAND) if item["kind"] == "Pod")
     target = copy.deepcopy(target)
     target["metadata"]["uid"] = UID
+    target["metadata"]["creationTimestamp"] = "2026-08-18T06:00:00Z"
     target["spec"]["nodeName"] = render.NODE
     target["status"] = {
         "phase": "Running",
-        "conditions": [{"type": "Ready", "status": "True"}],
+        "conditions": [
+            {
+                "type": "Ready",
+                "status": "True",
+                "lastTransitionTime": "2026-08-18T06:00:17Z",
+            }
+        ],
         "containerStatuses": [
             {
                 "name": "molmim",
@@ -102,6 +111,7 @@ def valid_inputs() -> dict:
             "status": "PASS",
             "exit_code": 0,
             "elapsed_seconds": 2.9,
+            "response_received_at": "2026-08-18T06:00:21.500000Z",
             "request_sha256": evidence.REQUEST_SHA256[0],
             "response_bytes": 512,
             "response_sha256": "a" * 64,
@@ -121,6 +131,7 @@ def valid_inputs() -> dict:
             "status": "PASS",
             "exit_code": 0,
             "elapsed_seconds": 2.0,
+            "response_received_at": "2026-08-18T06:00:23.500000Z",
             "request_sha256": evidence.REQUEST_SHA256[1],
             "response_bytes": 512,
             "response_sha256": "b" * 64,
@@ -149,6 +160,7 @@ def valid_inputs() -> dict:
         "started_at": "2026-08-18T06:00:03Z",
         "ready_at": "2026-08-18T06:00:18Z",
         "finished_at": "2026-08-18T06:00:24Z",
+        "validation_completed_at": "2026-08-18T06:00:24Z",
         "total_elapsed_seconds": 21.0,
         "cases": cases,
     }
@@ -173,6 +185,49 @@ def valid_inputs() -> dict:
         "image": render.IMAGE,
         "mode": "conventional-cached",
     }
+    prewarm_holder = {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": "molmim-native-f7-cache-holder-t12",
+            "namespace": render.NAMESPACE,
+            "uid": "33333333-3333-4333-8333-333333333333",
+        },
+        "spec": {
+            "nodeName": render.NODE,
+            "volumes": [
+                {
+                    "name": "cache",
+                    "persistentVolumeClaim": {
+                        "claimName": "molmim-native-f7-cache",
+                        "readOnly": True,
+                    },
+                }
+            ],
+        },
+        "status": {
+            "conditions": [
+                {
+                    "type": "Ready",
+                    "status": "True",
+                    "lastTransitionTime": "2026-08-18T05:59:58Z",
+                }
+            ],
+            "containerStatuses": [{"name": "holder", "ready": True}],
+        },
+    }
+    prewarm_receipt = {
+        "schema": "archvteams.nebius.ai/molmim-cache-holder-receipt/v1",
+        "status": "PASS",
+        "mode": "cache-full-read",
+        "source_receipt_schema": "archvteams.nebius.ai/molmim-cache-receipt/v1",
+        "regular_file_count": 2,
+        "regular_file_bytes": 284_497_920,
+        "unique_bytes": 284_497_920,
+        "prewarm_bytes": 284_497_920,
+        "tree_sha256": "5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c",
+        "full_read_elapsed_seconds": 0.25,
+    }
     return {
         "run": run,
         "target": target,
@@ -180,6 +235,9 @@ def valid_inputs() -> dict:
         "probe_pod": probe_pod,
         "semantic": semantic,
         "events": events,
+        "prewarm_holder": prewarm_holder,
+        "prewarm_receipt": prewarm_receipt,
+        "prewarm_captured_at": "2026-08-18T05:59:59Z",
     }
 
 
@@ -199,9 +257,15 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(environment["TORCHINDUCTOR_COMPILE_THREADS"]["value"], "1")
         self.assertEqual(environment["NIM_CACHE_PATH"]["value"], "/home/nvs/.cache/nim")
         self.assertEqual(
-            pod["spec"]["volumes"][1]["persistentVolumeClaim"],
-            {"claimName": "molmim-native-f7-cache", "readOnly": True},
+            environment["NGC_API_KEY"]["valueFrom"]["secretKeyRef"],
+            {"name": "ngc-api-key", "key": "NGC_API_KEY"},
         )
+        self.assertEqual(
+            pod["spec"]["volumes"][1]["persistentVolumeClaim"],
+            {"claimName": "molmim-native-f7-cache"},
+        )
+        self.assertNotIn("readOnly", container["volumeMounts"][1])
+        self.assertNotIn("capabilities", container["securityContext"])
 
     def test_probe_is_separate_cpu_only_exactly_two_call_job(self) -> None:
         documents = render.render_probe(RUN_ID, DEMAND, UID)
@@ -259,6 +323,9 @@ class EvidenceTests(unittest.TestCase):
             values["probe_pod"],
             values["semantic"],
             values["events"],
+            prewarm_holder=values["prewarm_holder"],
+            prewarm_receipt=values["prewarm_receipt"],
+            prewarm_captured_at=values["prewarm_captured_at"],
         )
 
     def test_valid_cached_trial_produces_demand_to_two_semantics(self) -> None:
@@ -266,8 +333,30 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(receipt["status"], "PASS")
         self.assertEqual(receipt["request_count"], 2)
         self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 18.0)
-        self.assertEqual(receipt["timings_seconds"]["demand_to_two_semantic_responses"], 24.0)
+        self.assertEqual(
+            receipt["timings_seconds"]["demand_to_kubernetes_ready"], 17.0
+        )
+        self.assertEqual(receipt["timings_seconds"]["demand_to_two_semantic_responses"], 23.5)
+        self.assertEqual(receipt["timings_seconds"]["demand_to_validation_complete"], 24.0)
+        self.assertEqual(receipt["storage_prewarm"]["mode"], "cache-full-read")
         self.assertEqual(receipt["execution_identity"]["image_already_present_event_count"], 1)
+
+    def test_target_submit_timestamp_is_authoritative_t0(self) -> None:
+        values = valid_inputs()
+        receipt = evidence.build(
+            values["run"],
+            values["target"],
+            values["probe_job"],
+            values["probe_pod"],
+            values["semantic"],
+            values["events"],
+            target_submit_at="2026-08-18T06:00:00.500000Z",
+            prewarm_holder=values["prewarm_holder"],
+            prewarm_receipt=values["prewarm_receipt"],
+            prewarm_captured_at=values["prewarm_captured_at"],
+        )
+        self.assertEqual(receipt["measurement"]["t0"], "2026-08-18T06:00:00.500000Z")
+        self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 17.5)
 
     def test_missing_cached_image_event_is_rejected(self) -> None:
         values = valid_inputs()
@@ -295,7 +384,7 @@ class EvidenceTests(unittest.TestCase):
         values = valid_inputs()
         values["target"]["spec"]["volumes"][1]["persistentVolumeClaim"][
             "readOnly"
-        ] = False
+        ] = True
         with self.assertRaisesRegex(evidence.EvidenceError, "target Pod"):
             self.build(values)
 
@@ -350,6 +439,32 @@ class EvidenceTests(unittest.TestCase):
 
 
 class AggregationTests(unittest.TestCase):
+    def test_n3_runner_requires_cleanup_before_trial_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "runs").mkdir()
+            result = subprocess.run(
+                [
+                    "/bin/bash",
+                    str(MODULE_DIR / "run_cached_n3.sh"),
+                    "--run-prefix",
+                    "cached-cleanup-ut",
+                    "--evidence-root",
+                    str(root),
+                    "--node",
+                    render.NODE,
+                    "--kubeconfig",
+                    str(root / "unused-kubeconfig"),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(result.returncode, 64)
+        self.assertIn(
+            "--cleanup is required between every counted n=3 trial", result.stderr
+        )
+
     def _receipt(self, suffix: int, elapsed: float) -> dict:
         values = valid_inputs()
         value = self.build_from(values)
@@ -361,7 +476,10 @@ class AggregationTests(unittest.TestCase):
     def build_from(values: dict) -> dict:
         return evidence.build(
             values["run"], values["target"], values["probe_job"], values["probe_pod"],
-            values["semantic"], values["events"]
+            values["semantic"], values["events"],
+            prewarm_holder=values["prewarm_holder"],
+            prewarm_receipt=values["prewarm_receipt"],
+            prewarm_captured_at=values["prewarm_captured_at"],
         )
 
     def test_n3_median_and_restore_rejection(self) -> None:

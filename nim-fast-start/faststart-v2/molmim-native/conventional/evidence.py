@@ -22,7 +22,7 @@ IMAGE = (
     "nvcr.io/nim/nvidia/molmim@sha256:"
     "7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa"
 )
-NODE = "computeinstance-e00hf93cfnsgaxygn3"
+NODE = "computeinstance-e00t12crqg6tw0kz65"
 NAMESPACE = "nim-fast-start"
 REQUEST_SHA256 = (
     "3a59acaf04e18fc5a7ed37b27ffdeee05f2542f23734d204bf487cc5f172a55e",
@@ -80,6 +80,101 @@ def _time(value: Any, label: str) -> datetime:
     return result
 
 
+def _measurement_timestamp(path: Path) -> str:
+    if path.is_symlink() or not path.is_file():
+        raise EvidenceError("target submit timestamp must be a regular non-symlink file")
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise EvidenceError("cannot read target submit timestamp") from exc
+    _time(value, "target_submit_at")
+    return value
+
+
+def _normalize_kubernetes_time(
+    observed: datetime, measurement_start: datetime, label: str
+) -> datetime:
+    if observed >= measurement_start:
+        return observed
+    if (measurement_start - observed).total_seconds() < 1:
+        return measurement_start
+    raise EvidenceError(f"{label} precedes authoritative target submission")
+
+
+def _cache_prewarm(
+    holder: dict[str, Any], receipt: dict[str, Any], captured_at: str, demand: datetime
+) -> dict[str, Any]:
+    metadata = holder.get("metadata", {})
+    spec = holder.get("spec", {})
+    status = holder.get("status", {})
+    if not all(isinstance(item, dict) for item in (metadata, spec, status)):
+        raise EvidenceError("cache holder Pod is malformed")
+    try:
+        holder_uid = str(uuid.UUID(str(metadata.get("uid"))))
+    except ValueError as exc:
+        raise EvidenceError("cache holder Pod UID is not canonical") from exc
+    if (
+        holder_uid != metadata.get("uid")
+        or metadata.get("name") != "molmim-native-f7-cache-holder-t12"
+        or metadata.get("namespace") != NAMESPACE
+        or spec.get("nodeName") != NODE
+        or not any(
+            isinstance(item, dict)
+            and item.get("type") == "Ready"
+            and item.get("status") == "True"
+            for item in status.get("conditions", [])
+        )
+        or not any(
+            isinstance(item, dict)
+            and item.get("name") == "cache"
+            and item.get("persistentVolumeClaim", {}).get("claimName")
+            == "molmim-native-f7-cache"
+            and item.get("persistentVolumeClaim", {}).get("readOnly") is True
+            for item in spec.get("volumes", [])
+        )
+    ):
+        raise EvidenceError("cache holder Pod does not prove the attached read-only cache")
+    captured = _time(captured_at, "cache prewarm capture")
+    if captured > demand:
+        raise EvidenceError("cache prewarm receipt was captured after authoritative T0")
+    ready_times = [
+        _time(item.get("lastTransitionTime"), "cache holder Ready")
+        for item in status.get("conditions", [])
+        if isinstance(item, dict)
+        and item.get("type") == "Ready"
+        and item.get("status") == "True"
+    ]
+    if len(ready_times) != 1 or ready_times[0] > captured:
+        raise EvidenceError("cache holder Ready state was not established before capture")
+    elapsed = receipt.get("full_read_elapsed_seconds")
+    if (
+        receipt.get("schema")
+        != "archvteams.nebius.ai/molmim-cache-holder-receipt/v1"
+        or receipt.get("status") != "PASS"
+        or receipt.get("mode") != "cache-full-read"
+        or receipt.get("regular_file_count") != 2
+        or receipt.get("regular_file_bytes") != 284_497_920
+        or receipt.get("unique_bytes") != 284_497_920
+        or receipt.get("prewarm_bytes") != 284_497_920
+        or receipt.get("tree_sha256")
+        != "5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c"
+        or isinstance(elapsed, bool)
+        or not isinstance(elapsed, (int, float))
+        or not math.isfinite(float(elapsed))
+        or elapsed <= 0
+    ):
+        raise EvidenceError("cache holder log is not a complete full-read receipt")
+    return {
+        "holder_pod": metadata["name"],
+        "holder_uid": holder_uid,
+        "captured_at": captured_at,
+        "mode": receipt["mode"],
+        "unique_bytes": receipt["unique_bytes"],
+        "tree_sha256": receipt["tree_sha256"],
+        "full_read_elapsed_seconds": round(float(elapsed), 6),
+    }
+
+
 def _case(value: Any, index: int, run_id: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise EvidenceError(f"semantic case {index} is malformed")
@@ -98,6 +193,7 @@ def _case(value: Any, index: int, run_id: str) -> dict[str, Any]:
     elapsed = value.get("elapsed_seconds")
     if isinstance(elapsed, bool) or not isinstance(elapsed, (int, float)) or not math.isfinite(elapsed) or elapsed <= 0:
         raise EvidenceError(f"semantic case {index} elapsed time is invalid")
+    _time(value.get("response_received_at"), f"semantic case {index} response_received_at")
     response_bytes = value.get("response_bytes")
     response_hash = value.get("response_sha256")
     if (
@@ -142,6 +238,10 @@ def build(
     probe_pod: dict[str, Any],
     semantic: dict[str, Any],
     events: dict[str, Any],
+    target_submit_at: str | None = None,
+    prewarm_holder: dict[str, Any] | None = None,
+    prewarm_receipt: dict[str, Any] | None = None,
+    prewarm_captured_at: str | None = None,
 ) -> dict[str, Any]:
     if set(run) != {"schema", "run_id", "demand_at", "node", "image", "mode"}:
         raise EvidenceError("run receipt has the wrong fields")
@@ -150,7 +250,16 @@ def build(
         raise EvidenceError("run receipt schema/mode mismatch")
     if run.get("node") != NODE or run.get("image") != IMAGE or not isinstance(run_id, str):
         raise EvidenceError("run receipt execution identity mismatch")
-    demand = _time(run.get("demand_at"), "demand_at")
+    planned_demand = _time(run.get("demand_at"), "planned demand_at")
+    measurement_start_raw = target_submit_at or run["demand_at"]
+    demand = _time(measurement_start_raw, "target_submit_at")
+    if demand < planned_demand:
+        raise EvidenceError("authoritative target submission precedes planned demand")
+    if prewarm_holder is None or prewarm_receipt is None or prewarm_captured_at is None:
+        raise EvidenceError("cache prewarm Pod/log capture is required")
+    storage_prewarm = _cache_prewarm(
+        prewarm_holder, prewarm_receipt, prewarm_captured_at, demand
+    )
 
     try:
         expected_target = lane_render.render_target(run_id, run["demand_at"])[0]
@@ -175,6 +284,11 @@ def build(
         or spec.get("nodeName") != NODE
     ):
         raise EvidenceError("target Pod name/namespace/node mismatch")
+    target_created = _normalize_kubernetes_time(
+        _time(metadata.get("creationTimestamp"), "target creationTimestamp"),
+        demand,
+        "target creationTimestamp",
+    )
     labels = metadata.get("labels", {})
     if (
         not isinstance(labels, dict)
@@ -194,6 +308,24 @@ def build(
         or container.get("args") != ["start_server"]
     ):
         raise EvidenceError("target Pod is not the exact conventional MolMIM process")
+    cache_mounts = [
+        item
+        for item in container.get("volumeMounts", [])
+        if isinstance(item, dict) and item.get("name") == "nim-cache"
+    ]
+    cache_volumes = [
+        item
+        for item in spec.get("volumes", [])
+        if isinstance(item, dict) and item.get("name") == "nim-cache"
+    ]
+    if (
+        len(cache_mounts) != 1
+        or cache_mounts[0].get("readOnly", False) is not False
+        or len(cache_volumes) != 1
+        or cache_volumes[0].get("persistentVolumeClaim", {}).get("readOnly", False)
+        is not False
+    ):
+        raise EvidenceError("target Pod cache is not writable")
     env = container.get("env", [])
     if not any(
         isinstance(item, dict)
@@ -212,9 +344,28 @@ def build(
         container_started_raw = target_status["state"]["running"]["startedAt"]
     except (KeyError, TypeError) as exc:
         raise EvidenceError("target container did not remain running") from exc
-    container_started = _time(container_started_raw, "target container startedAt")
-    if container_started < demand:
-        raise EvidenceError("target container started before demand")
+    container_started = _normalize_kubernetes_time(
+        _time(container_started_raw, "target container startedAt"),
+        demand,
+        "target container startedAt",
+    )
+    ready_conditions = [
+        item
+        for item in status.get("conditions", [])
+        if isinstance(item, dict)
+        and item.get("type") == "Ready"
+        and item.get("status") == "True"
+    ]
+    if len(ready_conditions) != 1:
+        raise EvidenceError("target Pod lacks one successful Kubernetes Ready condition")
+    kubernetes_ready = _normalize_kubernetes_time(
+        _time(
+            ready_conditions[0].get("lastTransitionTime"),
+            "Kubernetes Ready lastTransitionTime",
+        ),
+        demand,
+        "Kubernetes Ready",
+    )
 
     try:
         expected_probe_job = next(
@@ -348,8 +499,22 @@ def build(
     started_at = _time(semantic.get("started_at"), "semantic started_at")
     ready_at = _time(semantic.get("ready_at"), "semantic ready_at")
     finished = _time(semantic.get("finished_at"), "semantic finished_at")
+    validation_completed = _time(
+        semantic.get("validation_completed_at"), "semantic validation_completed_at"
+    )
+    response_received = [
+        _time(case.get("response_received_at"), f"semantic case {index} response")
+        for index, case in enumerate(cases, 1)
+    ]
     if not (
-        demand <= container_started <= ready_at <= finished
+        demand
+        <= target_created
+        <= container_started
+        <= ready_at
+        <= response_received[0]
+        <= response_received[1]
+        <= validation_completed
+        and finished == validation_completed
         and demand <= started_at <= ready_at
     ):
         raise EvidenceError("demand, container, readiness, and semantic times are not ordered")
@@ -378,6 +543,12 @@ def build(
         "run_id": run_id,
         "request_count": 2,
         "semantic_pass_count": 2,
+        "measurement": {
+            "t0": measurement_start_raw,
+            "t0_definition": "timestamp immediately before target Pod create",
+            "planned_demand_at": run["demand_at"],
+            "storage_state": "attached cache PVC fully read before T0; exact image present on node",
+        },
         "execution_identity": {
             "node": NODE,
             "image": IMAGE,
@@ -388,12 +559,24 @@ def build(
             "torchinductor_compile_threads": 1,
             "image_already_present_event_count": len(cached_events),
         },
+        "storage_prewarm": storage_prewarm,
         "timings_seconds": {
+            "demand_to_target_created": round(
+                (target_created - demand).total_seconds(), 6
+            ),
             "demand_to_container_started": round((container_started - demand).total_seconds(), 6),
+            "demand_to_kubernetes_ready": round(
+                (kubernetes_ready - demand).total_seconds(), 6
+            ),
             "demand_to_http_ready": round((ready_at - demand).total_seconds(), 6),
             "call_1": float(cases[0]["elapsed_seconds"]),
             "call_2": float(cases[1]["elapsed_seconds"]),
-            "demand_to_two_semantic_responses": round((finished - demand).total_seconds(), 6),
+            "demand_to_two_semantic_responses": round(
+                (response_received[1] - demand).total_seconds(), 6
+            ),
+            "demand_to_validation_complete": round(
+                (validation_completed - demand).total_seconds(), 6
+            ),
         },
         "semantic": semantic,
     }
@@ -407,6 +590,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--probe-pod", type=Path, required=True)
     parser.add_argument("--semantic-summary", type=Path, required=True)
     parser.add_argument("--events", type=Path, required=True)
+    parser.add_argument("--target-submit-at", type=Path, required=True)
+    parser.add_argument("--prewarm-holder-pod", type=Path, required=True)
+    parser.add_argument("--prewarm-holder-receipt", type=Path, required=True)
+    parser.add_argument("--prewarm-captured-at", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
         value = build(
@@ -416,6 +603,10 @@ def main(argv: list[str] | None = None) -> int:
             _load(args.probe_pod, "probe Pod"),
             _load(args.semantic_summary, "semantic summary"),
             _load(args.events, "target Events"),
+            _measurement_timestamp(args.target_submit_at),
+            _load(args.prewarm_holder_pod, "cache prewarm holder Pod"),
+            _load(args.prewarm_holder_receipt, "cache prewarm holder receipt"),
+            _measurement_timestamp(args.prewarm_captured_at),
         )
     except EvidenceError as exc:
         print(f"conventional evidence refused: {exc}", file=sys.stderr)

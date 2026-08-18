@@ -24,12 +24,15 @@ SPEC.loader.exec_module(module)
 def receipt() -> dict:
     return {
         "schema": "archvteams.nebius.ai/molmim-native-artifact-receipt/v1",
+        "status": "PASS",
         "checkpoint_id": module.SOURCE_ID,
         "artifact_version": "1",
         "source_node": module.NODE,
         "regular_file_count": 154,
         "regular_file_bytes": 9_346_630_368,
+        "unique_bytes": 9_346_630_368,
         "prewarm_bytes": 9_346_630_368,
+        "full_read_elapsed_seconds": 4.25,
         "tree_sha256": "a" * 64,
         "manifest_sha256": "b" * 64,
         "image_io_mode": "direct",
@@ -42,7 +45,7 @@ class BufferedVariantTests(unittest.TestCase):
         source.mkdir(parents=True)
         manifest = (
             f"checkpointId: {module.SOURCE_ID}\n"
-            "sourceNode: computeinstance-e00hf93cfnsgaxygn3\n"
+            "sourceNode: computeinstance-e00t12crqg6tw0kz65\n"
             "        imageIoMode: direct\n"
         ).encode()
         (source / "manifest.yaml").write_bytes(manifest)
@@ -65,6 +68,7 @@ class BufferedVariantTests(unittest.TestCase):
             {
                 "regular_file_count": len(members),
                 "regular_file_bytes": total,
+                "unique_bytes": total,
                 "prewarm_bytes": total,
                 "tree_sha256": tree.hexdigest(),
                 "manifest_sha256": hashlib.sha256(manifest).hexdigest(),

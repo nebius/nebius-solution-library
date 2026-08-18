@@ -1,17 +1,20 @@
 # MolMIM production-shaped startup qualification
 
-Status: offline implementation complete; no cluster, cloud, or registry action
-was performed by this branch. The retained result says CRIU is slower than a
-cached conventional start, so this lane measures the conventional comparator
-first and stops restore work unless the new true buffered candidate wins.
+Status: live performance qualification complete on 2026-08-18. The true
+buffered native path is the selected fast-start route: its strict
+T0-to-second-response median is 15.431630 seconds versus 24.147146 seconds for
+an exact-image cached conventional start, an 8.715516-second (36.0934%) win.
 
 ## Frozen identity
 
 - Image: `nvcr.io/nim/nvidia/molmim@sha256:7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa`
   (retained size: 13,998,727,508 bytes).
-- Qualification node: `computeinstance-e00hf93cfnsgaxygn3`, one NVIDIA H100.
-- Retained cache source: `/snapshots/nim-caches/molmim`, 281,612,288 bytes,
-  including exactly one 281,589,760-byte MolMIM v1.3 checkpoint.
+- Qualification node: `computeinstance-e00t12crqg6tw0kz65`, one NVIDIA H100.
+- Retained cache source on hf93: `/snapshots/nim-caches/molmim`, 284,497,920
+  bytes, including exactly one 281,589,760-byte MolMIM v1.3 checkpoint and
+  the 2,908,160-byte H100 JIT archive. Because hf93 had no remaining volume
+  attachment, the exact tree was streamed through private local evidence to a
+  t12-attached PVC and verified at both boundaries.
 - Production cache claim: `molmim-native-f7-cache`.
 - Direct checkpoint: `molmim-native-f7-v1`, artifact version `1`.
 - True legacy-buffered checkpoint: `molmim-native-f7-v2-buffered`, artifact
@@ -20,19 +23,16 @@ first and stops restore work unless the new true buffered candidate wins.
 - Fixture: `fixtures/request-cmaes-qed.json`, 696 bytes, SHA-256
   `053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc42d`.
 - Validator SHA-256:
-  `9c5ddb420f6e0242b15af4bc7d337b37fad7b7f37e367c90f41622be5715af15`.
+  `0d87fd53b554a629b8fb83c5abc79b074220f223ea97f7c1d8802d48e4833bd7`.
 
-`cache-seed-job.yaml` is a write-once migration from the retained node path to
-the production claim. It rejects a nonempty destination, rejects links and
-non-regular source objects, requires the exact large checkpoint size, hashes
-every copied byte, fsyncs the result, and records an immutable tree receipt.
-`cache-holder.yaml` independently rehashes and fully reads that claim before
-either measured path can run. The donor and both measured targets mount the
-verified claim read-only, so capture cannot mutate the cache between the
-conventional and native comparisons. Both start from that complete cache
-without injecting `NGC_API_KEY`; a checkpoint produced by an older donor that
-received the key is credential-bearing and must be discarded after credential
-rotation.
+The retained tree has SHA-256
+`5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c`.
+`cache-holder.yaml` independently rehashes and fully reads it before any T0;
+its receipt records tree identity, 284,497,920 unique bytes, and full-read
+elapsed time. The exact MolMIM container requires a writable cache and its NGC
+bootstrap secret even when the payload is already present, so the prime,
+donor, and conventional target use that runtime contract. The holder mounts
+the resulting cache read-only and proves the pre-measurement state.
 
 ## Strict semantic contract
 
@@ -54,27 +54,50 @@ preparation.
 
 ## Retained performance evidence and decision
 
-`prior-evidence.json` binds the retained raw files by path, byte count, and
-SHA-256. The important results are:
+The counted runs used one warm provisioned H100 node, the exact image already
+present, and attached storage fully read before T0. T0 is the timestamp on the
+line immediately before target Pod creation. Application HTTP readiness and
+Kubernetes Ready are independent measurements. Call latency ends immediately
+after the HTTP body is received; response validation finishes a few
+milliseconds later and is retained separately. All prewarm work is outside T0.
 
-| Path | Measurement |
-|---|---:|
-| Conventional cached demand to direct HTTP Ready, n=3 median | 18.501839540 s |
-| Conventional semantic calls | about 2.92 s / 2.01 s |
-| Default 16-worker CRIU restore to Ready | 106.656 s |
-| `TORCHINDUCTOR_COMPILE_THREADS=1` artifact | 5,214,934,444 bytes |
-| Optimized v6 CRIU restore to Ready | 34.018 s |
-| Optimized v6 trigger through two strict calls | 38.184 s |
+| Path / metric | Median seconds | Range seconds |
+|---|---:|---:|
+| Conventional cached HTTP Ready | 18.912118 | 18.511612–18.928866 |
+| Conventional cached Kubernetes Ready | 18.935902 | 18.831836–19.121639 |
+| Conventional call 1 | 3.100931 | 3.057201–3.109182 |
+| Conventional call 2 | 2.144578 | 2.139924–2.183543 |
+| Conventional T0 to call-2 response | 24.147146 | 23.764785–24.214850 |
+| Conventional T0 to validation complete | 24.149750 | 23.767309–24.217246 |
+| Buffered native HTTP Ready | 10.520799 | 10.446875–10.522802 |
+| Buffered native Kubernetes Ready | 11.735781 | 11.706764–11.862442 |
+| Buffered native call 1 | 2.839590 | 2.812727–2.854831 |
+| Buffered native call 2 | 2.099549 | 2.082203–2.109474 |
+| Buffered native T0 to call-2 response | 15.431630 | 15.414674–15.464302 |
+| Buffered native T0 to validation complete | 15.434133 | 15.416983–15.466200 |
+| Buffered native worker restore | 3.229000 | 3.228000–3.329000 |
 
-Setting `TORCHINDUCTOR_COMPILE_THREADS=1` removed 16 idle TorchInductor compile
-workers and reduced the functional checkpoint from 14.26 GB to 5.21 GB. It did
-not make restore competitive: restore-to-ready remained 15.516160460 seconds,
-83.862799%, slower than the conventional cached median. The prior verdict was
-therefore `REJECT_NATIVE_RESTORE_KEEP_CONVENTIONAL_CACHED`.
+The pre-T0 cache holder fully read 284,497,920 unique bytes in 17.524894
+seconds. The selected buffered holder fully read 5,220,755,473 bytes in
+4.194605 seconds, with tree SHA-256
+`19c9d2eafb62887aa6dd1e71c0bcd4b4ea73522da5235ea19c4812d9a5c5ac20`
+and manifest SHA-256
+`3305ed17be7b332dd46b084155aadcc59e281e06240e6a62477d165b6ec644a0`.
 
-That comparison mixed old instrumentation. This lane repeats all contenders
-under one production metric: demand immediately before scheduler-created
-target submission through the second strict semantic response.
+The required direct-mode canary also passed: HTTP Ready 52.675188 seconds,
+Kubernetes Ready 53.899638 seconds, call 1 2.893734 seconds, call 2 2.094551
+seconds, and T0 to the second response 57.667891 seconds. Direct mode is not the
+selected route.
+
+The retained raw evidence root is
+`/home/tux/.local/state/archvteams-2407/molmim-native-f7-20260818T073602Z`.
+The conventional and buffered summaries have SHA-256
+`dfdc7eb43b83766825972690805808f1bcf18519ca0024812b042381512cfa86` and
+`97dd239b440b2f0c2d22ac20e925192d653fd9f38808cb85cade9870393e9cdd`.
+Every counted n=3 trial has a separate cleanup receipt. The comparison result
+is `PROMOTE_BUFFERED_NATIVE_FOR_FURTHER_QUALIFICATION`. The final retained
+cluster-state receipt has SHA-256
+`9324a5706e000b983f19d1de410dcde15099ca3827ef6f957ab8880c166fc804`.
 
 ## Prepared paths
 
@@ -128,11 +151,11 @@ cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-age
 The build is classified `performance-validation-only`. The exact Jammy CUDA
 base still lacks the required baseline SBOM for a full `agent` compliance
 release, so `release_ready` is deliberately `false`. Native render/run entry
-points stop before any Kubernetes command until that one contract is replaced
-with an approved full-compliance release. This documents the performance
-candidate without claiming production release evidence.
+points stop by default; the live measurements used the explicit
+`--allow-performance-validation-worker` acknowledgement. The timing result is
+therefore a performance qualification, not a full compliance-release claim.
 
-## Offline verification
+## Verification
 
 Run from this directory:
 
@@ -146,4 +169,4 @@ python3 -m py_compile *.py dynamo/*.py conventional/*.py
 bash -n dynamo/*.sh dynamo/tests/*.sh conventional/*.sh
 ```
 
-The deferred live order and exact commands are in `EXECUTION_PLAN.md`.
+The executed live order and reproducible commands are in `EXECUTION_PLAN.md`.

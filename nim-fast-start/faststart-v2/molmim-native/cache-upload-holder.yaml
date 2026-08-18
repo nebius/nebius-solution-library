@@ -1,53 +1,41 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: molmim-native-f7-image-holder-t12
+  name: molmim-native-f7-cache-upload-t12
   namespace: nim-fast-start
   labels:
     app.kubernetes.io/name: molmim
-    app.kubernetes.io/component: image-cache-holder
+    app.kubernetes.io/component: cache-upload
     app.kubernetes.io/part-of: archvteams-2407-faststart
 spec:
   automountServiceAccountToken: false
   enableServiceLinks: false
   restartPolicy: Never
-  nodeName: computeinstance-e00t12crqg6tw0kz65
-  imagePullSecrets:
-    - name: nvcrio-cred
+  nodeSelector:
+    kubernetes.io/hostname: computeinstance-e00t12crqg6tw0kz65
   terminationGracePeriodSeconds: 1
   containers:
-    - name: holder
-      image: nvcr.io/nim/nvidia/molmim@sha256:7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa
+    - name: upload
+      image: docker.io/library/python@sha256:356b0d18f9385f4bdcc673af60e1e64c9d1504952e4ec36ee32044c722a6bc4e
       imagePullPolicy: IfNotPresent
       command:
-        - /usr/bin/python3
+        - /bin/sh
         - -c
-      args:
-        - |
-          from rdkit import Chem
-          from rdkit.Chem import QED
-          molecule = Chem.MolFromSmiles("CCO")
-          assert molecule is not None and 0.0 <= QED.qed(molecule) <= 1.0
-          open("/state/rdkit-ready", "x", encoding="utf-8").close()
-          while True:
-              import time
-              time.sleep(3600)
+        - touch /state/ready; exec sleep 86400
       resources:
         requests:
           cpu: 100m
-          memory: 256Mi
+          memory: 64Mi
         limits:
-          cpu: "1"
-          memory: 2Gi
+          cpu: "2"
+          memory: 1Gi
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:
           drop:
             - ALL
-        readOnlyRootFilesystem: true
-        runAsNonRoot: true
-        runAsUser: 65534
-        runAsGroup: 65534
+        runAsUser: 0
+        runAsGroup: 0
         seccompProfile:
           type: RuntimeDefault
       readinessProbe:
@@ -55,14 +43,19 @@ spec:
           command:
             - /usr/bin/test
             - -f
-            - /state/rdkit-ready
+            - /state/ready
         periodSeconds: 1
         timeoutSeconds: 1
         failureThreshold: 300
       volumeMounts:
+        - name: cache
+          mountPath: /cache
         - name: state
           mountPath: /state
   volumes:
+    - name: cache
+      persistentVolumeClaim:
+        claimName: molmim-native-f7-cache
     - name: state
       emptyDir:
         sizeLimit: 1Mi
