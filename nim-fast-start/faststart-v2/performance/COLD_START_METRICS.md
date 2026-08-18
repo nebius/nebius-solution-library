@@ -74,8 +74,8 @@ having a duration inferred.
 
 All values are seconds and use `median [minimum–maximum]`. The exact-total
 column is intentionally blank where an absolute call-2 response timestamp was
-not retained. Kubernetes condition timestamps are diagnostic only. In the two
-manual rows, the value shown in the HTTP-ready column is measured from the
+not retained. Kubernetes condition timestamps are diagnostic only. In the
+manual row, the value shown in the HTTP-ready column is measured from the
 in-Pod restore trigger, not target-create T0.
 
 | NIM | Evidence | Selected storage | n | T0 to HTTP ready | T0 to Kubernetes Ready | Call 1: dispatch to body | Call 2: dispatch to body | Exact T0 to call-2 body |
