@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: openfold3-native-f7-donor-r2
+  name: openfold3-native-f7-donor-r3
   namespace: nim-fast-start
   labels:
     app.kubernetes.io/name: openfold3
@@ -53,9 +53,9 @@ spec:
             - |
               set -Eeuo pipefail
               umask 077
-              install -d -m 0700 /output/donor-validation
-              printf '%s' "$VALIDATOR_SOURCE" > /output/donor-validation/validate_openfold3.py
-              printf '%s' "$REQUEST_JSON" > /output/donor-validation/request-20aa.json
+              install -d -m 0700 /opt/nim/output/donor-validation
+              printf '%s' "$VALIDATOR_SOURCE" > /opt/nim/output/donor-validation/validate_openfold3.py
+              printf '%s' "$REQUEST_JSON" > /opt/nim/output/donor-validation/request-20aa.json
               unset VALIDATOR_SOURCE REQUEST_JSON
 
               python3 - <<'PY'
@@ -71,7 +71,7 @@ spec:
                   "validate_openfold3.py": "c7ec22a6107d0fff36e17c4c9d1b8a6cf3f4efcc592215da05521f2b43d9cd4a",
                   "request-20aa.json": "09b30bf2132e3764f99d4f417b47713cd6350bd332fe3100cceb1be11589f8ae",
               }
-              root = pathlib.Path("/output/donor-validation")
+              root = pathlib.Path("/opt/nim/output/donor-validation")
               for name, digest in expected.items():
                   path = root / name
                   mode = path.lstat().st_mode
@@ -125,10 +125,10 @@ spec:
               server_pid=$!
               trap 'kill "$server_pid" 2>/dev/null || true' TERM INT EXIT
 
-              python3 /output/donor-validation/validate_openfold3.py \
+              python3 /opt/nim/output/donor-validation/validate_openfold3.py \
                 --base-url http://127.0.0.1:8000 \
-                --request-file /output/donor-validation/request-20aa.json \
-                --receipt-dir /output/donor-validation/receipts \
+                --request-file /opt/nim/output/donor-validation/request-20aa.json \
+                --receipt-dir /opt/nim/output/donor-validation/receipts \
                 --run-id native-f7-donor-a \
                 --run-id native-f7-donor-b \
                 --ready-timeout 900 \
@@ -149,12 +149,12 @@ spec:
             - name: VALIDATOR_SOURCE
               valueFrom:
                 configMapKeyRef:
-                  name: openfold3-native-f7-validator-r2
+                  name: openfold3-native-f7-validator-r3
                   key: VALIDATOR_SOURCE
             - name: REQUEST_JSON
               valueFrom:
                 configMapKeyRef:
-                  name: openfold3-native-f7-validator-r2
+                  name: openfold3-native-f7-validator-r3
                   key: REQUEST_JSON
           ports:
             - name: http
@@ -193,7 +193,7 @@ spec:
             - name: workspace
               mountPath: /opt/nim/workspace
             - name: output
-              mountPath: /output
+              mountPath: /opt/nim/output
             - name: snapshot-control
               mountPath: /snapshot-control
               subPath: openfold3

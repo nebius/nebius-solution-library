@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent
 TEMPLATE = ROOT / "podsnapshotcontent.yaml.tmpl"
 NAMESPACE = "nim-fast-start"
 NODE = "computeinstance-e00hf93cfnsgaxygn3"
-DONOR_PREFIX = "openfold3-native-f7-donor-r2-"
+DONOR_PREFIX = "openfold3-native-f7-donor-r3-"
 IMAGE = (
     "nvcr.io/nim/openfold/openfold3@sha256:"
     "6286cc7c02247ed3efe42f0f1af6c2f6f6a680b1e5cae669512c44b636aa42d2"

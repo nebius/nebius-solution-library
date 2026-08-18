@@ -360,7 +360,7 @@ def _check_target(document: dict[str, Any], errors: list[str]) -> None:
         ("dshm", "/dev/shm", None, False),
         ("nim-cache", "/opt/nim/.cache", None, True),
         ("workspace", "/opt/nim/workspace", None, False),
-        ("output", "/output", None, False),
+        ("output", "/opt/nim/output", None, False),
         ("snapshot-control", "/snapshot-control", "openfold3", False),
         ("checkpoints", "/checkpoints", None, True),
     }
