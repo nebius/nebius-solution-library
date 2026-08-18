@@ -1,15 +1,10 @@
 # DiffDock production-shaped native fast start
 
-Status: complete on the provisioned H100 lane. The production-shaped buffered
-checkpoint passed three repeated runs and six strict 1UBQ-plus-aspirin
-dockings.
-
-Response-boundary requalification is required for the end-to-end total. HTTP
-ready and both call values remain valid because the call timer stopped when the
-complete body was read. The retained terminal timestamp is validator
-completion, so the historical total is relabeled and cannot be corrected
-without a rerun. The rerun validator SHA-256 is
-`245ae98a98db09c34924cd7a499b99da9eb35742667043aaee3e497c33268008`.
+Status: exact response-boundary requalification is complete on the provisioned
+H100 lane. The selected fully prewarmed buffered checkpoint passed three fresh
+runs and six strict 1UBQ-plus-aspirin dockings. The exact end-to-end boundary is
+the persisted pre-create `T0` through the second call's
+`response_received_at`; validator completion is not included.
 
 ## Winning result
 
@@ -28,25 +23,26 @@ without a rerun. The rerun validator SHA-256 is
 - Injected tool manifest:
   `fc22c423deca17b4175ab42c23a66310c8e2c4d8c4b63a24c33894300020943b`
 
-| mode | run | HTTP ready (s) | Kubernetes Ready (s) | call 1 HTTP response (s) | call 2 HTTP response (s) | legacy demand to validation complete (s) | restore (s) |
+| mode | run | HTTP ready (s) | Kubernetes Ready (s) | call 1 HTTP response (s) | call 2 HTTP response (s) | exact T0 to call 2 body (s) | restore (s) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| direct/O_DIRECT | `dd-direct-smoke` | 72.594545 | 73.883823 | 1.321248 | 0.545055 | 74.462790 | 65.016 |
-| buffered | `dd-buf-p1` | 11.773042 | 12.634546 | 1.323664 | 0.558473 | 13.657086 | 4.139 |
-| buffered | `dd-buf-p2` | 11.604310 | 12.426498 | 1.350125 | 0.550279 | 13.506684 | 4.043 |
-| buffered | `dd-buf-p3` | 11.860136 | 12.453577 | 1.322778 | 0.522857 | 13.707841 | 4.010 |
+| buffered | `dd-rb-1209-r1` | 12.127239 | 12.858719 | 1.462333 | 0.599702 | 14.190621 | 4.463 |
+| buffered | `dd-rb-1209-r2` | 12.057153 | 12.702105 | 1.456961 | 0.588161 | 14.103816 | 4.366 |
+| buffered | `dd-rb-1209-r3` | 12.181481 | 12.674250 | 1.456592 | 0.578353 | 14.217744 | 4.405 |
+| **median** | n=3 | **12.127239** | **12.702105** | **1.456961** | **0.588161** | **14.190621** | **4.405** |
 
-The buffered n=3 legacy T0-to-validation median is **13.657086 seconds** and
-**4.043 seconds** in the restore worker. All three runs passed two independent
-strict semantic calls through a run-scoped ClusterIP: 6/6 requests passed.
-Compared with the production-shaped direct canary, buffered I/O is 5.452x
-faster end to end (81.7% lower) and 16.081x faster in restore (93.8% lower).
+All three runs passed two distinct strict semantic calls through a run-scoped
+ClusterIP: 6/6 requests passed. The ranges are 12.057153–12.181481 seconds for
+HTTP readiness, 12.674250–12.858719 for Kubernetes Ready,
+1.456592–1.462333 for call 1, 0.578353–0.599702 for call 2, and
+14.103816–14.217744 for the exact end-to-end total.
 
 Here HTTP ready is the validator's first successful semantic readiness
 response. Kubernetes Pod Ready is retained as a separate diagnostic. `T0` is
-captured before target creation on the provisioned H100 with storage attached;
-the two call columns are the first and immediate warm semantic inference
-latencies, and the retained demand-to-validation interval is only a legacy
-timeline cross-check.
+captured immediately before target creation on the provisioned H100 with both
+PVCs already attached. The call timers run from request dispatch through the
+complete HTTP body. The first call includes any deferred model work; the second
+is the immediate warm inference. The older `dd-buf-p*` cohort remains only as a
+legacy validation-completion comparator.
 
 ## Artifact construction
 
@@ -59,13 +55,15 @@ seconds in CUDA checkpointing.
 `artifact-buffered-variant.yaml` publishes the winning variant atomically. It
 hard-links all 121 payload files (7,516,052,518 bytes), preserves the exact
 184,320-byte rootfs delta, and changes only the checkpoint identity and
-`imageIoMode` from `direct` to `buffered`. The holder verifies and reads all
-7.516 GB before becoming Ready, so every measured buffered run starts after a
-full page-cache prewarm.
+`imageIoMode` from `direct` to `buffered`. Immediately before the selected
+cohort, the unchanged holder freshly hashed all 122 files and
+7,516,058,314 bytes in 5.931160 seconds. The receipt binds tree SHA-256
+`2d9e339392d6b4c5207ddbd4ef8f26465e324b2e165bd4cd9b43530f006e1b1d`.
 
-The first model image pull was 17,047,526,597 bytes and took 369.395 seconds;
-that is provisioning/setup evidence and is not included in the provisioned-node
-demand timing.
+The exact target, restore-worker, and probe images were preloaded with zero GPU
+requests, their resolved image IDs were captured, and the setup Pod was
+UID-precondition deleted before `T0`. The setup-only target pull transferred
+17,047,526,597 bytes in 277.895 seconds; it is explicitly excluded.
 
 ## Semantic and cleanup contract
 
@@ -77,26 +75,29 @@ Every response must preserve the submitted receptor and ligand, contain one
 finite 13-atom V2000 pose, one finite confidence, and a trajectory.
 
 All target, probe, worker, Service, RBAC, ConfigMap, and NetworkPolicy objects
-from the four canaries were removed. The immutable DiffDock artifact, cache
-PVC, and fully prewarmed holder remain on hf93 for subsequent use. ProteinMPNN
-objects on the node were not changed.
+from the three selected runs were removed using exact object UID preconditions.
+Each cleanup receipt proves zero run-scoped objects and zero active GPU requests.
+The immutable DiffDock artifact, cache PVC, and holder remain on hf93. The
+ProteinMPNN, MSA Search, OpenFold3, and unrelated holders were preserved.
 
 The excluded setup attempts are retained in raw evidence: donor r1 executed no
 request because Python 3.10 lacks `datetime.UTC`; holder r1 used no GPU and
-could not traverse the capture worker's mode-0700 artifact tree. Both were
-fixed before any measured buffered run.
+could not traverse the capture worker's mode-0700 artifact tree. The later
+`dd-image-api-test-1201` was a setup-only image pull and UID-delete rehearsal
+with no demand T0 and no inference. None contributes to the selected cohort.
 
 Exact machine-readable results are in `results.json`. Raw receipts are retained
 outside Git at
-`/home/tux/.local/state/archvteams-2407/diffdock-native-f7-20260818T045804Z`.
-Each counted directory also contains immutable
-`corrected-submit-edge-timings.json`. The retained raw
-`canary-evidence.json` mislabeled Kubernetes Ready as HTTP ready; the sidecar
-supersedes that stale field without modifying the raw receipt.
+`/home/tux/.local/state/archvteams-2407/diffdock-native-f7-response-20260818T1209Z`.
+The aggregate SHA-256 is
+`1e582f6c571e5d9af36e362b2f75df43fef035b7a7265780a5052e2531e88f24`;
+the prewarm, image-residency, and final-state receipt digests are recorded in
+`results.json`.
 
 `compatibility-evidence.json` also remains byte-for-byte hash-bound to its
 historical review. Its old `demand_to_two_semantic_responses_seconds` key names
-a validation-complete value; `results.json` carries the authoritative relabel.
+a validation-complete value; it is not selected. `results.json` v3 carries the
+authoritative exact response-boundary result.
 
 ## Verification
 
@@ -105,6 +106,9 @@ python3 -m unittest discover -s tests -p 'test_*.py' -v
 python3 -m unittest discover -s dynamo/tests -p 'test_*.py' -v
 bash dynamo/tests/test_run_provisioned_trial.sh
 python3 -m py_compile validate_diffdock.py render_capture.py \
-  rootfs_variant.py render_rootfs_variant.py dynamo/*.py
-bash -n dynamo/run_provisioned_trial.sh dynamo/tests/test_run_provisioned_trial.sh
+  rootfs_variant.py render_rootfs_variant.py prewarm_buffered_artifact.py \
+  dynamo/*.py
+bash -n dynamo/run_provisioned_trial.sh dynamo/run_response_n3.sh \
+  dynamo/tests/test_run_provisioned_trial.sh
+shellcheck dynamo/run_provisioned_trial.sh dynamo/run_response_n3.sh
 ```

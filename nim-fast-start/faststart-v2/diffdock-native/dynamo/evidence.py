@@ -67,6 +67,17 @@ def _seconds(start: datetime, finish: datetime, label: str) -> float:
     return round(result, 6)
 
 
+def _kubernetes_not_before(
+    value: datetime, floor: datetime, label: str
+) -> datetime:
+    """Normalize only a sub-second inversion from Kubernetes second precision."""
+    if value >= floor:
+        return value
+    if (floor - value).total_seconds() < 1:
+        return floor
+    raise EvidenceError(f"{label} precedes its required phase by at least one second")
+
+
 def _kubernetes_seconds(demand: datetime, transition: datetime) -> float:
     result = (transition - demand).total_seconds()
     if result < 0:
@@ -289,6 +300,15 @@ def build_evidence(
     scheduled = _condition_time(target, "PodScheduled")
     ready = _condition_time(target, "Ready")
     placeholder_started, _ = _container_times(target, "diffdock", "target Pod")
+    target_created_for_order = _kubernetes_not_before(
+        target_created, demand, "target creation"
+    )
+    scheduled_for_order = _kubernetes_not_before(
+        scheduled, target_created_for_order, "Pod scheduling"
+    )
+    placeholder_started_for_order = _kubernetes_not_before(
+        placeholder_started, scheduled_for_order, "placeholder start"
+    )
 
     service_name = f"dd-canary-{run_id}"
     service_metadata = _object(service.get("metadata"), "Service metadata")
@@ -427,6 +447,9 @@ def build_evidence(
     http_ready, second_response_received, validation_finished, case_elapsed = _validate_semantics(
         semantic_summary, run_id
     )
+    probe_finished_for_order = _kubernetes_not_before(
+        probe_finished, validation_finished, "probe container finish"
+    )
     expected_origin = f"http://{service_name}:8000"
     expected_path = "/molecular-docking/diffdock/generate"
     if (
@@ -440,22 +463,22 @@ def build_evidence(
 
     target_order = [
         demand,
-        target_created,
-        scheduled,
-        placeholder_started,
+        target_created_for_order,
+        scheduled_for_order,
+        placeholder_started_for_order,
     ]
     restore_order = [
-        placeholder_started,
+        placeholder_started_for_order,
         worker_started,
         receipt_completed,
     ]
     probe_order = [
-        placeholder_started,
+        placeholder_started_for_order,
         probe_started,
         http_ready,
         second_response_received,
         validation_finished,
-        probe_finished,
+        probe_finished_for_order,
     ]
     if any(
         later < earlier
@@ -494,10 +517,14 @@ def build_evidence(
             "cluster_ip": service_spec["clusterIP"],
         },
         "timings_seconds": {
-            "demand_to_target_created": _seconds(demand, target_created, "target creation"),
-            "demand_to_scheduled": _seconds(demand, scheduled, "scheduling"),
+            "demand_to_target_created": _seconds(
+                demand, target_created_for_order, "target creation"
+            ),
+            "demand_to_scheduled": _seconds(
+                demand, scheduled_for_order, "scheduling"
+            ),
             "demand_to_placeholder_running": _seconds(
-                demand, placeholder_started, "placeholder start"
+                demand, placeholder_started_for_order, "placeholder start"
             ),
             "demand_to_worker_started": _seconds(demand, worker_started, "worker start"),
             "demand_to_restore_receipt": _seconds(

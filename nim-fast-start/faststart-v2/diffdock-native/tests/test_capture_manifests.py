@@ -42,6 +42,45 @@ def only_container(spec: dict[str, Any]) -> dict[str, Any]:
 
 
 class CaptureManifestTests(unittest.TestCase):
+    def test_response_requalification_preloader_pins_three_zero_gpu_images(self) -> None:
+        preloader = documents("dynamo/image-preload.yaml.tmpl")[0]
+        self.assertEqual(
+            preloader["spec"]["nodeSelector"], {"kubernetes.io/hostname": NODE}
+        )
+        containers = {item["name"]: item for item in preloader["spec"]["containers"]}
+        self.assertEqual(containers["target"]["image"], IMAGE)
+        self.assertEqual(containers["restore-worker"]["image"], WORKER_IMAGE)
+        self.assertRegex(containers["semantic-probe"]["image"], r"@sha256:[0-9a-f]{64}$")
+        self.assertTrue(
+            all(
+                "nvidia.com/gpu" not in item["resources"]["requests"]
+                and "nvidia.com/gpu" not in item["resources"]["limits"]
+                for item in containers.values()
+            )
+        )
+
+    def test_response_requalification_runner_is_cluster_and_uid_fail_closed(self) -> None:
+        runner = (ROOT / "dynamo" / "run_response_n3.sh").read_text(encoding="utf-8")
+        self.assertIn("mk8scluster-e00en4dkk80w2d09c0", runner)
+        self.assertEqual(runner.count("mk8scluster-"), 1)
+        self.assertIn('preconditions:{uid:$uid}', runner)
+        self.assertIn("worker_cpu_request_mcpu:1000", runner)
+        self.assertIn("candidate_headroom>=400", runner)
+        self.assertIn("perturbing_artifact_setup_after_prewarm:0", runner)
+
+    def test_selected_response_result_has_exact_absolute_boundary(self) -> None:
+        results = json.loads((ROOT / "results.json").read_bytes())
+        selected = results["selected_response_boundary_n3"]
+        self.assertEqual(selected["status"], "PASS")
+        self.assertEqual(selected["semantic_passes"], 6)
+        self.assertEqual(
+            selected["demand_to_two_semantic_responses_seconds"]["median"],
+            14.190621,
+        )
+        self.assertEqual(len(selected["t0_at"]), 3)
+        self.assertEqual(len(selected["second_response_received_at"]), 3)
+        self.assertTrue(results["cleanup"]["uid_preconditions_enforced"])
+
     def test_compatibility_review_records_measured_diffdock_glibc(self) -> None:
         review = json.loads((ROOT / "compatibility-evidence.json").read_bytes())
         self.assertTrue(review["live_mutations_performed"])

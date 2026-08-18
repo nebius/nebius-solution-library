@@ -481,6 +481,11 @@ def _check_worker(document: dict[str, Any], errors: list[str]) -> None:
         errors.append(f"{location} has no canonical worker executable digest")
 
     resources = container.get("resources", {})
+    if resources != {
+        "requests": {"cpu": "1", "memory": "1Gi"},
+        "limits": {"cpu": "4", "memory": "4Gi"},
+    }:
+        errors.append(f"{location} restore-worker resources are not the exact 1CPU contract")
     for group in ("requests", "limits"):
         if isinstance(resources, dict) and "nvidia.com/gpu" in resources.get(group, {}):
             errors.append(f"{location} worker must not reserve the target GPU")

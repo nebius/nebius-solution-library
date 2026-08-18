@@ -312,6 +312,14 @@ class UnsafeMutationTests(unittest.TestCase):
         }
         self.assert_rejected(documents, "unapproved hostPath")
 
+    def test_rejects_restore_worker_cpu_request_drift(self) -> None:
+        documents = copy.deepcopy(self.worker)
+        job = find_document(documents, "Job", "restore-worker")
+        job["spec"]["template"]["spec"]["containers"][0]["resources"][
+            "requests"
+        ]["cpu"] = "500m"
+        self.assert_rejected(documents, "exact 1CPU contract")
+
     def test_rejects_missing_uid_binding(self) -> None:
         documents = copy.deepcopy(self.worker)
         job = find_document(documents, "Job", "restore-worker")

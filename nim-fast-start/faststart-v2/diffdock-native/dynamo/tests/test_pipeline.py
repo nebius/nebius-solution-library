@@ -435,6 +435,46 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(evidence.EvidenceError, "reversed timestamps"):
             evidence._kubernetes_seconds(demand, previous_second)
 
+    def test_target_creation_subsecond_quantization_is_normalized(self) -> None:
+        inputs = evidence_inputs()
+        inputs["target_submit_at"] = "2026-08-17T20:00:00.135000Z"
+        inputs["target"]["metadata"]["creationTimestamp"] = "2026-08-17T20:00:00Z"
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["timings_seconds"]["demand_to_target_created"], 0.0)
+
+    def test_target_creation_one_second_inversion_is_rejected(self) -> None:
+        inputs = evidence_inputs()
+        inputs["target_submit_at"] = "2026-08-17T20:00:01Z"
+        inputs["target"]["metadata"]["creationTimestamp"] = "2026-08-17T20:00:00Z"
+        with self.assertRaisesRegex(evidence.EvidenceError, "at least one second"):
+            evidence.build_evidence(**inputs)
+
+    def test_probe_finish_subsecond_quantization_is_normalized(self) -> None:
+        inputs = evidence_inputs()
+        inputs["semantic_summary"]["validation_finished_at"] = (
+            "2026-08-17T20:00:09.900000Z"
+        )
+        inputs["semantic_summary"]["finished_at"] = "2026-08-17T20:00:09.900000Z"
+        terminated = inputs["probe_pod"]["status"]["containerStatuses"][0]["state"][
+            "terminated"
+        ]
+        terminated["finishedAt"] = "2026-08-17T20:00:09Z"
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["status"], "PASS")
+
+    def test_probe_finish_one_second_inversion_is_rejected(self) -> None:
+        inputs = evidence_inputs()
+        inputs["semantic_summary"]["validation_finished_at"] = (
+            "2026-08-17T20:00:09.900000Z"
+        )
+        inputs["semantic_summary"]["finished_at"] = "2026-08-17T20:00:09.900000Z"
+        terminated = inputs["probe_pod"]["status"]["containerStatuses"][0]["state"][
+            "terminated"
+        ]
+        terminated["finishedAt"] = "2026-08-17T20:00:08Z"
+        with self.assertRaisesRegex(evidence.EvidenceError, "at least one second"):
+            evidence.build_evidence(**inputs)
+
     def test_endpoint_uid_mismatch_is_rejected(self) -> None:
         inputs = evidence_inputs()
         inputs["endpoint_slices"]["items"][0]["endpoints"][0]["targetRef"]["uid"] = (

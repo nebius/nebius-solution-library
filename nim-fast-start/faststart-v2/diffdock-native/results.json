@@ -1,22 +1,24 @@
 {
-  "schema": "archvteams.nebius.ai/diffdock-native-results/v2",
-  "measured_at": "2026-08-18T05:34:00Z",
+  "schema": "archvteams.nebius.ai/diffdock-native-results/v3",
+  "measured_at": "2026-08-18T12:13:25Z",
   "cluster": "mk8scluster-e00en4dkk80w2d09c0",
   "node": "computeinstance-e00hf93cfnsgaxygn3",
   "nim_image": "nvcr.io/nim/mit/diffdock@sha256:300696eb8331d78face40f84d835cc1e278c7d3c391c5aabbbee5884366da480",
   "target_glibc_version": "2.35",
   "timing_correction": {
     "t0_source": "target-submit-at.txt",
-    "method": "legacy sidecar subtracts retained submit timestamp from HTTP, Kubernetes Ready, and validator-finished timestamps",
-    "sidecar_filename": "corrected-submit-edge-timings.json",
-    "raw_canary_timing_label_superseded": true
+    "method": "subtract persisted pre-create T0 directly from independent HTTP readiness, Kubernetes Ready, and call-2 response_received_at",
+    "response_timing_contract": "request-dispatch-to-complete-http-body/v1",
+    "kubernetes_subsecond_normalization": "accept only an inversion below one second from whole-second Kubernetes timestamps; reject one second or more"
   },
   "response_boundary_requalification": {
-    "status": "RERUN_REQUIRED_FOR_T0_TO_SECOND_RESPONSE",
-    "http_ready_values_preserved": true,
-    "call_values_status": "pure HTTP response latency; captured before response persistence and semantic validation",
-    "legacy_total_semantics": "T0 to validation completion, not T0 to receipt of the second HTTP body",
-    "required_validator_sha256": "245ae98a98db09c34924cd7a499b99da9eb35742667043aaee3e497c33268008"
+    "status": "PASS",
+    "selected_batch_id": "dd-rb-1209",
+    "trial_count": 3,
+    "semantic_request_count": 6,
+    "validator_sha256": "245ae98a98db09c34924cd7a499b99da9eb35742667043aaee3e497c33268008",
+    "exact_total_boundary": "T0 through the second semantic response_received_at",
+    "validation_completion_excluded_from_exact_total": true
   },
   "worker": {
     "image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:063286a3a1354d1c5969fa80f445bb5fbd2a96bc0999c7b6897495f0b4c2fd4d",
@@ -58,8 +60,82 @@
     "rootfs_diff_bytes": 184320,
     "image_io_mode": "buffered"
   },
-  "buffered_n3": {
+  "setup_outside_t0": {
+    "storage_attached": true,
+    "artifact_full_read_file_count": 122,
+    "artifact_full_read_bytes": 7516058314,
+    "artifact_full_read_seconds": 5.931160,
+    "artifact_full_read_started_at": "2026-08-18T12:09:19.234653387Z",
+    "artifact_full_read_completed_at": "2026-08-18T12:09:26.425914477Z",
+    "artifact_holder_uid": "d8bfcf54-f69a-4e1f-ae77-0e38a95a67ff",
+    "target_worker_and_probe_images_resident": true,
+    "setup_preloader_absent_before_t0": true,
+    "post_t0_pulling_event_count": 0,
+    "worker_cpu_request_mcpu": 1000,
+    "worker_cpu_limit_mcpu": 4000,
+    "candidate_headroom_mcpu": 1970,
+    "minimum_required_headroom_mcpu": 400
+  },
+  "selected_response_boundary_n3": {
     "status": "PASS",
+    "batch_id": "dd-rb-1209",
+    "runs": ["dd-rb-1209-r1", "dd-rb-1209-r2", "dd-rb-1209-r3"],
+    "semantic_requests": 6,
+    "semantic_passes": 6,
+    "demand_to_http_ready_seconds": {
+      "values": [12.127239, 12.057153, 12.181481],
+      "min": 12.057153,
+      "median": 12.127239,
+      "max": 12.181481
+    },
+    "demand_to_kubernetes_ready_seconds": {
+      "values": [12.858719, 12.702105, 12.674250],
+      "min": 12.674250,
+      "median": 12.702105,
+      "max": 12.858719
+    },
+    "semantic_request_1_seconds": {
+      "values": [1.462333, 1.456961, 1.456592],
+      "min": 1.456592,
+      "median": 1.456961,
+      "max": 1.462333
+    },
+    "semantic_request_2_seconds": {
+      "values": [0.599702, 0.588161, 0.578353],
+      "min": 0.578353,
+      "median": 0.588161,
+      "max": 0.599702
+    },
+    "demand_to_two_semantic_responses_seconds": {
+      "values": [14.190621, 14.103816, 14.217744],
+      "min": 14.103816,
+      "median": 14.190621,
+      "max": 14.217744
+    },
+    "worker_restore_seconds": {
+      "values": [4.463, 4.366, 4.405],
+      "min": 4.366,
+      "median": 4.405,
+      "max": 4.463
+    },
+    "t0_at": [
+      "2026-08-18T12:09:29.141281890Z",
+      "2026-08-18T12:10:37.297895305Z",
+      "2026-08-18T12:11:45.325750714Z"
+    ],
+    "second_response_received_at": [
+      "2026-08-18T12:09:43.331902Z",
+      "2026-08-18T12:10:51.401711Z",
+      "2026-08-18T12:11:59.543494Z"
+    ],
+    "validation_finished_at": [
+      "2026-08-18T12:09:43.332661Z",
+      "2026-08-18T12:10:51.402730Z",
+      "2026-08-18T12:11:59.544288Z"
+    ]
+  },
+  "legacy_buffered_n3": {
+    "status": "PASS_LEGACY_NOT_SELECTED",
     "runs": ["dd-buf-p1", "dd-buf-p2", "dd-buf-p3"],
     "semantic_requests": 6,
     "semantic_passes": 6,
@@ -122,13 +198,36 @@
       "attempt": "holder-r1",
       "reason": "capture tree mode 0700 required a read-only uid-0 holder",
       "semantic_requests": 0
+    },
+    {
+      "attempt": "dd-image-api-test-1201",
+      "reason": "setup-only exact-image pull and UID-preconditioned deletion rehearsal; no demand T0",
+      "semantic_requests": 0,
+      "target_image_pull_bytes": 17047526597,
+      "target_image_pull_seconds": 277.895,
+      "evidence_root": "/home/tux/.local/state/archvteams-2407/diffdock-response-setup-excluded-20260818T120116Z"
     }
   ],
   "cleanup": {
     "measured_run_objects_remaining": 0,
+    "uid_preconditions_enforced": true,
+    "active_gpu_requests_after_each_trial": [0, 0, 0],
+    "active_gpu_requests_final": 0,
     "artifact_holder_retained": true,
     "artifact_pvc_retained": true,
-    "cache_pvc_retained": true
+    "cache_pvc_retained": true,
+    "unrelated_holders_preserved": true
   },
-  "raw_evidence_root": "/home/tux/.local/state/archvteams-2407/diffdock-native-f7-20260818T045804Z"
+  "raw_evidence_root": "/home/tux/.local/state/archvteams-2407/diffdock-native-f7-response-20260818T1209Z",
+  "legacy_raw_evidence_root": "/home/tux/.local/state/archvteams-2407/diffdock-native-f7-20260818T045804Z",
+  "evidence_sha256": {
+    "aggregate": "1e582f6c571e5d9af36e362b2f75df43fef035b7a7265780a5052e2531e88f24",
+    "artifact_prewarm": "aeb1af149e0d054af810d1f670fb339342aa4066b9fbd01d8bd2d0f2058be7e8",
+    "image_residency": "544bd6523f049e527b3f9a2f91b14d42fdc5bac69fcf82d9a339695ceb87a1c4",
+    "cohort_preflight": "a910b266f86f86286514a1063a9db681741e3921490e7c52abbf5605bfba0714",
+    "final_state": "79484885d564669cac88b1b3c21d2c396dc048cbc2da5b40a9d2428be4bd5a29",
+    "run_1": "7e792c7988c0b315dca854592fa510c1b110f7def70fe2c5e103591e19f51424",
+    "run_2": "9f6c5ef792c08d8fab20a987a75a10577505939ec377a5da8aa19f76a5e22c63",
+    "run_3": "65e307ce704c249b762cf36327bff8068c542ba21567140e16cd788547ef5f81"
+  }
 }

@@ -83,7 +83,7 @@ in-Pod restore trigger, not target-create T0.
 | OpenFold2 | exact response-boundary n=3 | direct | 3 | 11.365660 [11.238689–11.913086] | 12.311987 [11.542021–12.904340] | 1.851894 [1.844734–1.871146] | 0.992264 [0.984416–0.996515] | **14.236758 [14.087336–14.756378]** |
 | Boltz2 | exact response-boundary n=3 | direct | 3 | 25.484587 [24.698911–25.711837] | 26.391013 [25.741550–27.021134] | 1.400760 [1.399536–1.406047] | 0.278996 [0.273126–0.288888] | **27.342018 [26.639785–27.664935]** |
 | ProteinMPNN | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 9.460347 [9.401879–9.494261] | 9.872222 [9.784322–9.996060] | 0.589204 [0.390123–0.597313] | 0.248845 [0.244145–0.255925] | **10.249097 [10.096532–10.342388]** |
-| DiffDock | production-shaped n=3; exact total pending | buffered, fully prewarmed | 3 | 11.773042 [11.604310–11.860136] | 12.453577 [12.426498–12.634546] | 1.323664 [1.322778–1.350125] | 0.550279 [0.522857–0.558473] | — |
+| DiffDock | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 12.127239 [12.057153–12.181481] | 12.702105 [12.674250–12.858719] | 1.456961 [1.456592–1.462333] | 0.588161 [0.578353–0.599702] | **14.190621 [14.103816–14.217744]** |
 | OpenFold3 | production-shaped n=3; exact total pending | buffered, fully prewarmed | 3 | 12.142147 [12.010717–12.331491] | 12.815803 [12.732474–13.396096] | 8.604078 [8.556568–8.620226] | 8.530700 [8.524887–8.645413] | — |
 | MSA Search PDB70 | exact response-boundary conventional n=3 | cache volume, fully prewarmed | 3 | 4.872400 [4.830585–4.962104] | 4.687717 [4.545373–4.982360] | 0.040644 [0.039441–0.041808] | 0.029920 [0.028986–0.030188] | **4.942788 [4.901161–5.035089]** |
 | Evo2-40B | manual/provisional H200 restore trigger | direct, legacy artifact | 3 | 65.377 [63.052–65.696] | — | 1.181 [1.163–1.213] | 0.796 [0.795–0.819] | — |
@@ -91,10 +91,10 @@ in-Pod restore trigger, not target-create T0.
 | RFdiffusion | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 17.662044 [17.456876–17.965447] | 19.609357 [19.532522–21.124378] | 7.892573 [7.792848–7.980680] | 5.584081 [5.552619–5.726694] | **31.379359 [30.843879–31.420852]** |
 | MolMIM | exact response-boundary n=3 | buffered, fully prewarmed | 3 | 10.520799 [10.446875–10.522802] | 11.735781 [11.706764–11.862442] | 2.839590 [2.812727–2.854831] | 2.099549 [2.082203–2.109474] | **15.431630 [15.414674–15.464302]** |
 
-The two production-shaped rows with an unavailable exact total retain the
-following later terminal timestamps. They are useful provenance, but are not
-call-2 response totals. The Evo2 and RFdiffusion manual histories are included
-in the same table only as explicitly non-selected comparators:
+The one production-shaped row with an unavailable exact total retains a later
+terminal timestamp. It is useful provenance, but is not a call-2 response
+total. The older DiffDock validation-completion cohort and Evo2/RFdiffusion
+manual histories are included only as explicitly non-selected comparators:
 
 | NIM | Retained terminal evidence | Median [minimum–maximum], seconds |
 |---|---|---:|
@@ -110,7 +110,7 @@ in the same table only as explicitly non-selected comparators:
 | OpenFold2 | direct/O_DIRECT artifact; payload not page-preloaded | not applicable | direct-state evidence retained per run |
 | Boltz2 | direct/O_DIRECT, 16,241,056,616-byte artifact | not applicable | direct-state evidence retained per run |
 | ProteinMPNN | 1,867,046,505 bytes, 57 files, aggregate content SHA-256 `b2ce82dfbef1cbeb9c3ac35b94f5a2f97fccc19a98419e213d8c0d42a5c2c0e0` | 3.586695 | complete identity/elapsed receipt; read started `2026-08-18T11:42:32.791854148Z` and completed `2026-08-18T11:42:37.513367125Z`; receipt SHA-256 `f611a9457b7991a63cbbac40849398ebcd826b86186d7ddfc3742199ac210ee5` |
-| DiffDock | 7,516,058,314 bytes, 122 files, tree SHA-256 `2d9e339392d6b4c5207ddbd4ef8f26465e324b2e165bd4cd9b43530f006e1b1d` | not retained | identity and byte receipt complete; elapsed missing |
+| DiffDock | 7,516,058,314 bytes, 122 files, tree SHA-256 `2d9e339392d6b4c5207ddbd4ef8f26465e324b2e165bd4cd9b43530f006e1b1d` | 5.931160 | complete byte/tree/timestamp/elapsed receipt SHA-256 `aeb1af149e0d054af810d1f670fb339342aa4066b9fbd01d8bd2d0f2058be7e8` |
 | OpenFold3 | 9,263,246,107 bytes, 148 files, tree SHA-256 `f488019348551f356a153ce17cd9568a9d59497ead375c81a84ddef3bc3972c2` | not retained | authoritative receipt SHA-256 `f780779202dcd93180b49c6d9e40e20044fd7fcb7ceea85b60c964ed8e994550`; elapsed missing |
 | MSA Search PDB70 | 112,682,799 bytes across 13 unique inodes, content-stream SHA-256 `416efa6571423414a0fb46e8739bfa1202b5885122ce2e6cb280a00607bd4062` | 0.104987 | complete identity/timestamp/elapsed receipt SHA-256 `6aea481f44cd7d4ca05505c6bfd427a4353563ba2a3fb0c5c1fd09a92a98b98e` |
 | Evo2-40B | legacy direct 99,959,572,798-byte checkpoint | not applicable | no current manifest-bound artifact; manual evidence only |
@@ -131,6 +131,10 @@ ProteinMPNN's selected response-boundary aggregate is
 `/home/tux/.local/state/archvteams-2407/proteinmpnn-native-f7-response-20260818T114151Z/aggregate.json`,
 SHA-256
 `a19a7b8c618b771623c2f6df45267d125961d28a05b0e87eb8a40023ea5f88df`.
+DiffDock's selected aggregate is
+`/home/tux/.local/state/archvteams-2407/diffdock-native-f7-response-20260818T1209Z/aggregate.json`,
+SHA-256
+`1e582f6c571e5d9af36e362b2f75df43fef035b7a7265780a5052e2531e88f24`.
 RFdiffusion's selected aggregate is
 `/home/tux/.local/state/archvteams-2407/rfdiffusion-native-f7-20260818T080831Z/aggregates/rfd-f7-warm-buffered-n3.json`,
 SHA-256
@@ -153,7 +157,8 @@ image-residency setup rather than artifact full-read time.
   measured 3.586695-second artifact read. Its exact selected total through the
   second complete response is 10.249097 seconds.
 - DiffDock direct took 72.594545 seconds to HTTP readiness in its canary,
-  versus the selected 11.773042-second buffered median.
+  versus the selected exact-cohort 12.127239-second buffered median; the exact
+  selected T0-to-second-response median is 14.190621 seconds.
 - GenMol direct n=3 took 48.738868 seconds to HTTP readiness, versus the
   selected 10.400351-second buffered median. The selected exact
   response-boundary total is 12.177434 seconds; an exact direct total is not
@@ -171,10 +176,10 @@ implementation footnote.
 ## Remaining measurement work
 
 Nine of the ten NIMs have production-shaped n=3 HTTP-ready and two-call
-evidence. OpenFold2, Boltz2, ProteinMPNN, MSA Search, GenMol, RFdiffusion, and
-MolMIM have complete exact response-boundary n=3 totals. DiffDock and OpenFold3
-require one new n=3 run only to add the exact absolute
-T0-to-call-2 total; their published readiness and call latencies are already
+evidence. OpenFold2, Boltz2, ProteinMPNN, DiffDock, MSA Search, GenMol,
+RFdiffusion, and MolMIM have complete exact response-boundary n=3 totals.
+OpenFold3 requires one new n=3 run only to add the exact absolute
+T0-to-call-2 total; its published readiness and call latencies are already
 complete-body measurements.
 
 Evo2-40B is the only remaining non-production-shaped row. It is blocked on an
