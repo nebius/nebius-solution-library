@@ -1,8 +1,8 @@
 # BioNeMo NIM fast start v2
 
 This subtree contains live production-shaped OpenFold2, Boltz2, ProteinMPNN,
-DiffDock, and OpenFold3 results, plus offline-prepared MSA Search, Evo2-40B,
-GenMol, RFdiffusion, and MolMIM checkpoint/restore paths. The shared metric
+DiffDock, OpenFold3, and GenMol results, plus offline-prepared MSA Search,
+Evo2-40B, RFdiffusion, and MolMIM checkpoint/restore paths. The shared metric
 contract and current ten-model matrix are in
 `performance/COLD_START_METRICS.md`:
 
@@ -31,10 +31,10 @@ contract and current ten-model matrix are in
   capture workflow, direct/buffered artifact candidates, early external
   two-call semantic probe, and n=3 runner. H200 capture and live qualification
   remain explicitly deferred; and
-- `genmol-native/` contains the offline GenMol native-capture lane, frozen
-  RDKit QED/LogP two-call contract, scheduler-created target, direct and true
-  legacy-buffered candidates, and n=3 aggregation. Historical page-cache
-  timings are retained only as non-production-shaped comparators; and
+- `genmol-native/` contains the completed native capture, strict RDKit QED/LogP
+  two-call contract, direct n=3 comparator, and winning fully prewarmed
+  buffered n=3 result. Historical page-cache timings remain
+  non-production-shaped comparators; and
 - `rfdiffusion-native/` and `molmim-native/` contain the corresponding strict
   native capture, buffered/direct comparison, and production-shaped n=3 lanes
   pending live qualification.

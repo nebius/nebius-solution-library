@@ -51,14 +51,13 @@ until that model's production-shaped n=3 lane runs.
 | OpenFold3 | production-shaped | buffered, fully prewarmed | 3 | 12.281 (12.146–12.470) | 8.604 | 8.531 | 29.484 |
 | MSA Search PDB70 | manual restore | retained page cache | 3 | 3.117 (3.106–3.119) | 0.0358 | 0.0343 | 3.187 |
 | Evo2-40B | manual restore | direct, H200 | 3 | 65.377 (63.052–65.696) | 1.181 | 0.796 | 67.390 |
-| GenMol | manual restore | retained page cache | 3 | 3.732 (range not retained) | 0.545 | 0.560 | 4.831 |
+| GenMol | production-shaped | buffered, fully prewarmed | 3 | 10.688 (10.576–10.874) | 1.216 | 0.586 | 12.488 |
 | RFdiffusion | manual restore | retained page cache | 3 | 12.751 (12.630–12.902) | 5.881 | 5.945 | 24.593 |
 | MolMIM | conventional cached Pod | cached image/model volume | 3 | 18.502 (18.447–20.242) | 2.955 | 1.999 | not retained |
 
 OpenFold2's historical T0 was persisted at whole-second resolution, so its
-sub-second display values carry up to one second of T0 quantization. GenMol's
-retained evidence preserves only the medians, and MolMIM does not preserve a
-valid end-to-end total; neither value is reconstructed.
+sub-second display values carry up to one second of T0 quantization. MolMIM
+does not preserve a valid end-to-end total, so that value is not reconstructed.
 
 ## Storage sensitivity already demonstrated
 
@@ -73,8 +72,10 @@ valid end-to-end total; neither value is reconstructed.
   with 1.321 s and 0.545 s calls.
 - MSA's retained page-cache result was 3.117 s to readiness, versus 13.808 s
   for its manual direct-I/O path.
-- GenMol's retained page-cache result was 3.732 s to readiness, versus 36.508 s
-  for its manual direct-I/O path.
+- GenMol's production-shaped direct n=3 median was 48.877 s to readiness,
+  with 1.186 s and 0.592 s calls. Its selected fully prewarmed buffered median
+  is 10.688 s to readiness. The older 3.732 s retained-page-cache experiment
+  began at the restore trigger and remains a manual comparator only.
 - RFdiffusion's retained page-cache result was 12.751 s to readiness, versus
   170.368 s for its manual direct-I/O path.
 
@@ -83,11 +84,11 @@ an implementation footnote.
 
 ## Remaining measurement work
 
-Production-shaped HTTP-ready/call1/call2 n=3 evidence is complete for five of
-the ten NIMs. MSA Search, Evo2-40B, GenMol, RFdiffusion, and MolMIM still need
-their prepared native lanes executed under the same T0 contract. Until then,
-their rows above are useful engineering baselines but are not directly
-comparable to the first five.
+Production-shaped HTTP-ready/call1/call2 n=3 evidence is complete for six of
+the ten NIMs. MSA Search, Evo2-40B, RFdiffusion, and MolMIM still need their
+prepared native lanes executed under the same T0 contract. Until then, their
+rows above are useful engineering baselines but are not directly comparable to
+the first six.
 
 Primary evidence lives in the model lanes and the private run directories
 named by their checked-in compact receipts. Failed setup attempts are excluded
