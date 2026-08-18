@@ -137,6 +137,23 @@ the CUDA helper on Jammy, and used an external ELF audit. It is validation
 evidence, not byte provenance for the integrated patch above. A new immutable
 `agent` image must be built before release.
 
+The exact seven-patch materialization, including buffered I/O and the in-build
+GLIBC gate, produced this newer performance-validation image:
+
+```text
+cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:25d195c97ee2e62577475d5a97d3de8c9f694c3e2a7bcc06d3b5c48d88549a24
+```
+
+Its restore-worker SHA-256 is
+`941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651`,
+its tool-manifest SHA-256 is
+`c0d638100c03fa35973e82859d15b9c8dd1bcbf0fe9cb185b58cc21fae7ead1e`,
+and its GLIBC receipt SHA-256 is
+`f7af5b214cb963c4cf64910dfafe16987f0c5ec886af5d0e5d7aab5b634f6950`.
+The receipt covers 34 ELFs/files and caps required GLIBC at 2.35. This image
+uses `task-public-agent`; the full compliance `agent` build remains gated on a
+captured baseline SBOM for the exact Jammy CUDA runtime base.
+
 ## Offline verification
 
 ```console

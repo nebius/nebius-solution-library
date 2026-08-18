@@ -85,6 +85,34 @@
     "image_built": false,
     "image_pushed": false
   },
+  "integrated_performance_validation_image": {
+    "classification": "exact-seven-patch-task-public-agent-performance-validation",
+    "reference": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:25d195c97ee2e62577475d5a97d3de8c9f694c3e2a7bcc06d3b5c48d88549a24",
+    "local_image_id": "sha256:d2bc884ba537c16b672bf15740b0eb1280f24f3956c498543c58325a8574b850",
+    "image_size_bytes": 657638908,
+    "snapshot_agent_sha256": "eaf82aa012ec052d13b685de87c31996437e4f881cc25ce8494454008b3626a9",
+    "restore_worker_sha256": "941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651",
+    "nsrestore_sha256": "4772d8b9da454870e65dfab1e1f6b4bd49f3bc7deb3ef5bbeb42c61be78d020b",
+    "tool_bundle_manifest_sha256": "c0d638100c03fa35973e82859d15b9c8dd1bcbf0fe9cb185b58cc21fae7ead1e",
+    "tool_bundle_regular_files": 34,
+    "glibc_compatibility_receipt_sha256": "f7af5b214cb963c4cf64910dfafe16987f0c5ec886af5d0e5d7aab5b634f6950",
+    "maximum_required_glibc": "2.35",
+    "supports_image_io_modes": [
+      "direct",
+      "writeback",
+      "buffered"
+    ],
+    "pushed": true,
+    "release_qualification": "pending-full-agent-compliance-build"
+  },
+  "integrated_release_build": {
+    "classification": "blocked-before-image-publication",
+    "target": "agent",
+    "tomli_compatibility_fixed": true,
+    "remaining_blocker": "The exact Jammy CUDA runtime base has no captured baseline SBOM in the pinned compliance corpus; without subtraction, inherited base packages correctly fail the policy gate.",
+    "image_built": false,
+    "image_pushed": false
+  },
   "local_preclosure_compliance_build": {
     "reference": "archvteams-2407-restore-worker:f7f37be-criu91d552-compliant-base",
     "local_image_id": "sha256:b93b25b7790c3d225a200541c1033eaf2fc4b5bf718b999a945cefd7c4f8d1c6",
