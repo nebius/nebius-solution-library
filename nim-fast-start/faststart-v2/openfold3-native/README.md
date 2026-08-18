@@ -42,10 +42,14 @@ it is not the Kubernetes Pod `Ready` condition. The two semantic calls follow
 immediately, with distinct IDs and inputs. Call 1 therefore includes any
 deferred model/JIT work, while call 2 is the warm call.
 
-The selected buffered artifact was fully read before T0 so its 9.263 GB payload
-was page-resident. That prewarm is deliberately outside the measured interval
-and is reported as part of the storage state, not hidden as ordinary attached
-storage. The direct comparator bypasses the page cache.
+The selected buffered artifact was fully read before T0 so its exact
+9,263,246,107-byte payload across 148 regular files was page-resident. Its tree
+SHA-256 is
+`f488019348551f356a153ce17cd9568a9d59497ead375c81a84ddef3bc3972c2`.
+That prewarm is deliberately outside the measured interval and is reported as
+part of the storage state, not hidden as ordinary attached storage. The
+authoritative receipt did not retain the full-read elapsed time, so no prewarm
+duration is inferred. The direct comparator bypasses the page cache.
 
 | Path | n | T0 to HTTP ready | T0 to Kubernetes Ready | Call 1 HTTP response | Call 2 HTTP response | Legacy T0 through validation | Worker restore |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -60,13 +64,24 @@ digest-bound receipts are in `results.json`; raw private evidence remains under
 Each counted run has an immutable `corrected-submit-edge-timings.json` that
 rebases the already distinct HTTP and Kubernetes timestamps to submit-edge T0.
 
+The selected storage receipt is
+`/home/tux/.local/state/archvteams-2407/openfold3-native-f7-20260818T055003Z/artifact-buffered-receipt.json`,
+SHA-256
+`f780779202dcd93180b49c6d9e40e20044fd7fcb7ceea85b60c964ed8e994550`.
+It is authoritative for the selected artifact's byte count, file count,
+manifest, and tree identity.
+
 ## Retained H100 baseline
 
 `prior-evidence.json` is a digest-bound summary of the existing raw result.
 The raw evidence measured a conventional ready time of 202 seconds from Pod
-creation (181 seconds from container start). The captured checkpoint contained
-154 regular files and 9,346,630,368 bytes; the model cache contained
-3,305,746,737 bytes.
+creation (181 seconds from container start). The model cache contained
+3,305,746,737 bytes. The selected buffered checkpoint identity in that compact
+summary is sourced from the authoritative receipt above: 148 regular files,
+9,263,246,107 bytes, manifest SHA-256
+`5df221e0736a4c6f369781ea0dbc7c36783c26d3f35dcd874b4ced8f5f9e009f`,
+and tree SHA-256
+`f488019348551f356a153ce17cd9568a9d59497ead375c81a84ddef3bc3972c2`.
 
 The earlier retained-page-cache experiment reported these `n=3` medians:
 

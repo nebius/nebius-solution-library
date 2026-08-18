@@ -1,5 +1,5 @@
 {
-  "schema": "archvteams.nebius.ai/openfold3-retained-baseline/v1",
+  "schema": "archvteams.nebius.ai/openfold3-retained-baseline/v2",
   "status": "PASS",
   "source": {
     "path": "/home/tux/.local/state/archvteams-2407/openfold3-h100-faststart-20260817T231544Z/results.json",
@@ -27,8 +27,16 @@
     "uvloop_absent_before_capture": true
   },
   "checkpoint": {
-    "regular_file_count": 154,
-    "regular_file_bytes": 9346630368
+    "checkpoint_id": "openfold3-native-f7-v2-buffered",
+    "artifact_version": "1",
+    "manifest_sha256": "5df221e0736a4c6f369781ea0dbc7c36783c26d3f35dcd874b4ced8f5f9e009f",
+    "regular_file_count": 148,
+    "regular_file_bytes": 9263246107,
+    "tree_sha256": "f488019348551f356a153ce17cd9568a9d59497ead375c81a84ddef3bc3972c2",
+    "receipt_path": "/home/tux/.local/state/archvteams-2407/openfold3-native-f7-20260818T055003Z/artifact-buffered-receipt.json",
+    "receipt_sha256": "f780779202dcd93180b49c6d9e40e20044fd7fcb7ceea85b60c964ed8e994550",
+    "prewarm_elapsed_seconds": null,
+    "prewarm_elapsed_retained": false
   },
   "retained_page_cache_n3_medians_seconds": {
     "criu_restore": 4.249,
@@ -43,5 +51,5 @@
     "http_ready": 69.44,
     "restore_through_two_semantic_responses": 90.322516
   },
-  "qualification_note": "These are retained experimental baselines, not production-shaped Dynamo qualification results."
+  "qualification_note": "The timings are retained experimental baselines, not production-shaped Dynamo qualification results. The checkpoint identity is the authoritative selected buffered-artifact receipt; its full-read elapsed time was not retained and must not be inferred."
 }
