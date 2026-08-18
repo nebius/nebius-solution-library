@@ -45,8 +45,12 @@ check_xid_on_node() {
   local node="$1" dbg="" waited=0 phase="" out=""
   # `grep -c` exits 1 when the count is zero, which would mark the debugger pod
   # Failed on a HEALTHY node — so append `|| true` to keep the container clean.
+  # Count only genuine HARDWARE Xids: match the "NVRM: Xid (...): <code>," format
+  # and exclude app/process-caused codes (13/31/43/45/68). Xid 45 in particular
+  # (channel/process kill) accumulates in a shared node's dmesg from ordinary pod
+  # churn by other workloads — counting it would fail an otherwise-clean soak.
   kubectl debug node/"$node" --image=ubuntu --profile=sysadmin -q \
-    -- chroot /host sh -c 'dmesg 2>/dev/null | grep -ic xid || true' >/dev/null 2>&1 || true
+    -- chroot /host sh -c 'dmesg 2>/dev/null | grep "NVRM: Xid" | grep -vcE "\): (13|31|43|45|68)," || true' >/dev/null 2>&1 || true
   while [ "$waited" -lt 30 ]; do
     dbg=$(kubectl get pods --request-timeout=30s -n default -o name 2>/dev/null | grep "node-debugger-${node}" | tail -1)
     [ -n "$dbg" ] && break
