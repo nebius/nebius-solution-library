@@ -12,7 +12,7 @@ while (($# > 0)); do
     --evidence-root) evidence_root=$2; shift 2 ;;
     --checkpoint-id) checkpoint_id=$2; shift 2 ;;
     --image-io-mode) image_io_mode=$2; shift 2 ;;
-    --cleanup) shift ;;
+    --cleanup|--allow-performance-validation-worker) shift ;;
     *) shift 2 ;;
   esac
 done

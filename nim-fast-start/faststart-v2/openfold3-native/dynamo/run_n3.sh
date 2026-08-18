@@ -17,6 +17,7 @@ target_glibc_version=""
 image_io_mode=""
 artifact_manifest_sha256=""
 cleanup=0
+allow_performance_validation=0
 
 usage() {
   cat >&2 <<'USAGE'
@@ -29,7 +30,8 @@ usage: run_n3.sh \
   --checkpoint-id EXACT_CHECKPOINT_ID \
   --target-glibc-version MAJOR.MINOR \
   --image-io-mode direct|buffered \
-  --artifact-manifest-sha256 CAPTURED_64_HEX_SHA256 [--cleanup]
+  --artifact-manifest-sha256 CAPTURED_64_HEX_SHA256 \
+  [--allow-performance-validation-worker] [--cleanup]
 USAGE
 }
 
@@ -77,6 +79,10 @@ while (($# > 0)); do
     --cleanup)
       ((cleanup == 0)) || die_usage "--cleanup may be supplied only once"
       cleanup=1; shift ;;
+    --allow-performance-validation-worker)
+      ((allow_performance_validation == 0)) || \
+        die_usage "--allow-performance-validation-worker may be supplied only once"
+      allow_performance_validation=1; shift ;;
     --help|-h)
       usage; exit 0 ;;
     *)
@@ -114,6 +120,9 @@ common_args=(
 )
 if ((cleanup == 1)); then
   common_args+=(--cleanup)
+fi
+if ((allow_performance_validation == 1)); then
+  common_args+=(--allow-performance-validation-worker)
 fi
 
 run_ids=()

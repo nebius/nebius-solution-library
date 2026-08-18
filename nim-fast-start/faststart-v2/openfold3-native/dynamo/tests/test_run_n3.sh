@@ -26,6 +26,7 @@ args=(
   --target-glibc-version 2.35
   --image-io-mode direct
   --artifact-manifest-sha256 "$(printf 'a%.0s' {1..64})"
+  --allow-performance-validation-worker
   --cleanup
 )
 

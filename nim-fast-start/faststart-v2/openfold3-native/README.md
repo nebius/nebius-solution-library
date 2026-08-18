@@ -74,11 +74,13 @@ The image supports direct, writeback, and buffered I/O; this lane qualifies the
 explicit direct and buffered artifact identities.
 
 The current image is classified `performance-validation-only`, not as a full
-compliance release. Consequently `release_ready` is `false`, and both the
-capture-agent renderer and live trial runner stop before any Kubernetes
-command. Before a live run, update only that contract with the final full
-`agent` compliance image and receipts, formal approval, classification
-`full-agent-compliance-release`, an empty blocker, and `release_ready: true`.
+compliance release, so `release_ready` remains `false`. Capture and trial
+commands refuse it by default. Performance qualification may explicitly opt in
+with `--allow-performance-validation-worker`; the renderer and runner then
+require and retain that exact non-release classification and nonempty blocker.
+Production release still requires a final full `agent` compliance image and
+receipts, formal approval, classification `full-agent-compliance-release`, an
+empty blocker, and `release_ready: true`.
 
 ## Prepared implementation
 

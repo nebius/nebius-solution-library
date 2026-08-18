@@ -1,33 +1,24 @@
 # Deferred OpenFold3 native capture and qualification plan
 
-These commands were not executed during offline preparation. Run them only
-after `dynamo/restore-interface.live.json` has been replaced with an immutable
-full `agent` compliance release contract. The integrated portable-plus-buffered
-image currently pinned there is performance-validation-only because the exact
-Jammy CUDA base still needs a baseline SBOM. The shipped contract closes the
-gate, and the first renderer below fails before any Kubernetes command.
+These commands were not executed during offline preparation. The integrated
+portable-plus-buffered image is performance-validation-only because the exact
+Jammy CUDA base still needs a baseline SBOM. The default gate remains closed;
+the commands below explicitly acknowledge that classification for performance
+measurement without changing or misrepresenting the contract.
 
 Use one shell for the complete procedure so `set -Eeuo pipefail` makes every
 failed identity or semantic check terminal.
 
-## 1. Open the release gate and establish the boundary
+## 1. Establish the performance-validation boundary
 
-Update these fields in the single contract input before starting:
-
-- the final `worker_image`, `worker_executable_sha256`, and tool receipts;
-- the matching materialized-source inputs and formal approval receipt;
-- direct and buffered entries in `supported_image_io_modes`;
-- `worker_classification` to `full-agent-compliance-release`;
-- `release_blocker` to the empty string; and
-- `release_ready` to `true`.
-
-Do not open the gate on the performance-validation-only image. Then run:
+Do not edit the release fields. Require the shipped immutable performance
+contract and acknowledge it only on commands that execute the candidate:
 
 ```console
 set -Eeuo pipefail
 umask 077
 
-export OF3_LANE=/home/tux/worktrees/archvteams-2407-openfold3-native-prep/nim-fast-start/faststart-v2/openfold3-native
+export OF3_LANE=/home/tux/worktrees/archvteams-2407-faststart-production/nim-fast-start/faststart-v2/openfold3-native
 export OF3_KUBECONFIG=/home/tux/.local/state/archvteams-2407/openfold2-snapshot/private/kubeconfig
 export OF3_NODE=computeinstance-e00hf93cfnsgaxygn3
 export OF3_EVIDENCE=/home/tux/.local/state/archvteams-2407/openfold3-native-f7-$(date -u +%Y%m%dT%H%M%SZ)
@@ -35,9 +26,9 @@ install -d -m 0700 "$OF3_EVIDENCE" "$OF3_EVIDENCE/runs"
 
 jq -e '
   .approved == true and
-  .release_ready == true and
-  .release_blocker == "" and
-  .worker_classification == "full-agent-compliance-release" and
+  .release_ready == false and
+  (.release_blocker | type == "string" and length > 0) and
+  .worker_classification == "performance-validation-only" and
   (.supported_image_io_modes | index("direct")) != null and
   (.supported_image_io_modes | index("buffered")) != null and
   (.worker_image | test("@sha256:[0-9a-f]{64}$")) and
@@ -48,6 +39,7 @@ jq -e '
 ' "$OF3_LANE/dynamo/restore-interface.live.json" >/dev/null
 python3 "$OF3_LANE/render_snapshot_agent.py" \
   --contract "$OF3_LANE/dynamo/restore-interface.live.json" \
+  --allow-performance-validation-worker \
   > "$OF3_EVIDENCE/snapshot-agent.yaml"
 install -m 0600 "$OF3_LANE/dynamo/restore-interface.live.json" \
   "$OF3_EVIDENCE/restore-interface.json"
@@ -228,6 +220,7 @@ that run's target, worker, probe, Service, and binding objects.
   --target-glibc-version "$OF3_TARGET_GLIBC" \
   --image-io-mode direct \
   --artifact-manifest-sha256 "$OF3_DIRECT_MANIFEST" \
+  --allow-performance-validation-worker \
   --cleanup
 ```
 
@@ -289,6 +282,7 @@ test "$OF3_BUFFERED_MANIFEST" = \
   --target-glibc-version "$OF3_TARGET_GLIBC" \
   --image-io-mode buffered \
   --artifact-manifest-sha256 "$OF3_BUFFERED_MANIFEST" \
+  --allow-performance-validation-worker \
   --cleanup
 ```
 
@@ -308,6 +302,7 @@ reports `PASS`.
   --target-glibc-version "$OF3_TARGET_GLIBC" \
   --image-io-mode buffered \
   --artifact-manifest-sha256 "$OF3_BUFFERED_MANIFEST" \
+  --allow-performance-validation-worker \
   --cleanup
 
 jq -s '
