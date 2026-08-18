@@ -172,19 +172,21 @@ kubectl --kubeconfig "$kubeconfig" -n "$namespace" get service "$canary" -o json
 kubectl --kubeconfig "$kubeconfig" -n "$namespace" get endpointslices.discovery.k8s.io \
   -l "kubernetes.io/service-name=$canary" -o json > "$run_dir/canary-endpointslices.json"
 
-python3 - "$run_dir" <<'PY' > "$run_dir/trial-summary.json"
+python3 - "$run_dir" "$code_dir/.." <<'PY' > "$run_dir/trial-summary.json"
 import json
 import sys
-from datetime import datetime
 from pathlib import Path
 
 directory = Path(sys.argv[1])
+sys.path.insert(0, sys.argv[2])
+from timing_evidence import build_timing_evidence
+
 run = json.loads((directory / "run.json").read_text())
 binding = json.loads((directory / "binding.json").read_text())
 worker = json.loads((directory / "worker-receipt.json").read_text())
 semantic = json.loads((directory / "semantic-summary.json").read_text())
-parse = lambda value: datetime.fromisoformat(value.replace("Z", "+00:00"))
-demand_to_two = (parse(semantic["finished_at"]) - parse(run["demand_at"])).total_seconds()
+target = json.loads((directory / "target-final.json").read_text())
+timings = build_timing_evidence(run, semantic, target)
 result = {
     "schema": "archvteams.nebius.ai/boltz2-native-trial-summary/v1",
     "run_id": run["run_id"],
@@ -195,12 +197,14 @@ result = {
     "pod_spec_sha256": binding["pod_spec_sha256"],
     "worker_receipt": worker,
     "semantic": semantic,
-    "demand_to_two_semantic_seconds": round(demand_to_two, 6),
+    **timings,
 }
 print(json.dumps(result, sort_keys=True, indent=2))
 PY
 
-jq '{run_id,status,demand_to_two_semantic_seconds,restore_seconds:(.worker_receipt.duration_ms / 1000),semantic_seconds:.semantic.total_elapsed_seconds}' \
+jq '{run_id,status,demand_to_http_ready_seconds,demand_to_kubernetes_ready_seconds,
+     semantic_request_1_seconds,semantic_request_2_seconds,demand_to_two_semantic_seconds,
+     restore_seconds:(.worker_receipt.duration_ms / 1000)}' \
   "$run_dir/trial-summary.json"
 
 if [[ $cleanup == "--cleanup" ]]; then

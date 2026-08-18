@@ -19,8 +19,10 @@ The measured path is:
    run-scoped ClusterIP Service to that exact Pod UID; and
 7. make exactly two distinct, semantically validated OpenFold2 calls.
 
-`evidence.py` reports `demand_to_two_semantic_responses`, not merely Pod Ready
-or `/health`. It refuses incomplete, failed, cross-run, or wrong-UID evidence.
+`evidence.py` reports successful semantic HTTP readiness, each inference call,
+and `demand_to_two_semantic_responses`; Kubernetes Pod Ready and worker timing
+remain separate diagnostics. It refuses incomplete, failed, cross-run, or
+wrong-UID evidence.
 
 The exact OpenFold2 target image remains:
 
@@ -184,11 +186,12 @@ python3 evidence.py \
   > canary-evidence.json
 ```
 
-The result includes target creation, scheduling, placeholder start, worker
-start/restore completion, HTTP readiness, both request latencies, and the
-primary demand-to-two-semantic-responses measurement. Keep raw Kubernetes JSON
-and Job logs beside this derived receipt; repeat the measured run at least three
-times and report all runs rather than only the fastest.
+The v2 evidence receipt records successful semantic HTTP readiness from
+`ready_wait.finished_at`, Kubernetes Pod Ready under its own key, both request
+latencies, and demand-to-two-semantic-responses as a cross-check. Worker receipt
+and semantic probe are independent concurrent timelines; neither is ordered
+against the other. Keep raw Kubernetes JSON and Job logs beside this derived
+receipt; repeat the measured run at least three times and report every run.
 
 ## Offline verification
 

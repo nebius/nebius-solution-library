@@ -21,18 +21,24 @@ dockings.
 - Injected tool manifest:
   `fc22c423deca17b4175ab42c23a66310c8e2c4d8c4b63a24c33894300020943b`
 
-| mode | run | demand to two strict responses (s) | worker restore (s) |
-| --- | --- | ---: | ---: |
-| direct/O_DIRECT | `dd-direct-smoke` | 74.601431 | 65.016 |
-| buffered | `dd-buf-p1` | 13.798020 | 4.139 |
-| buffered | `dd-buf-p2` | 13.645122 | 4.043 |
-| buffered | `dd-buf-p3` | 13.844048 | 4.010 |
+| mode | run | HTTP ready (s) | Kubernetes Ready (s) | call 1 (s) | call 2 (s) | demand to call 2 (s) | restore (s) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| direct/O_DIRECT | `dd-direct-smoke` | 72.733186 | 74.022464 | 1.321248 | 0.545055 | 74.601431 | 65.016 |
+| buffered | `dd-buf-p1` | 11.913976 | 12.775480 | 1.323664 | 0.558473 | 13.798020 | 4.139 |
+| buffered | `dd-buf-p2` | 11.742748 | 12.564936 | 1.350125 | 0.550279 | 13.645122 | 4.043 |
+| buffered | `dd-buf-p3` | 11.996343 | 12.589784 | 1.322778 | 0.522857 | 13.844048 | 4.010 |
 
 The buffered n=3 median is **13.798020 seconds** demand-to-two and
 **4.043 seconds** in the restore worker. All three runs passed two independent
 strict semantic calls through a run-scoped ClusterIP: 6/6 requests passed.
 Compared with the production-shaped direct canary, buffered I/O is 5.407x
 faster end to end (81.5% lower) and 16.081x faster in restore (93.8% lower).
+
+Here HTTP ready is the validator's first successful semantic readiness
+response. Kubernetes Pod Ready is retained as a separate diagnostic. `T0` is
+captured before target creation on the provisioned H100 with storage attached;
+the two call columns are the first and immediate warm semantic inference
+latencies, and demand-to-call-2 is only a timeline cross-check.
 
 ## Artifact construction
 

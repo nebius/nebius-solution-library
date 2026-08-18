@@ -320,22 +320,22 @@ jq -e \
   exit 1
 }
 
-python3 - "$run_dir" "$nim_image" <<'PY' > "$run_dir/trial-summary.json"
+python3 - "$run_dir" "$nim_image" "$script_dir/.." <<'PY' > "$run_dir/trial-summary.json"
 import json
 import sys
-from datetime import datetime
 from pathlib import Path
 
 directory = Path(sys.argv[1])
 nim_image = sys.argv[2]
+sys.path.insert(0, sys.argv[3])
+from timing_evidence import build_timing_evidence
+
 run = json.loads((directory / "run.json").read_text())
 binding = json.loads((directory / "binding.json").read_text())
 worker = json.loads((directory / "worker-receipt.json").read_text())
 semantic = json.loads((directory / "semantic-summary.json").read_text())
-parse = lambda value: datetime.fromisoformat(value.replace("Z", "+00:00"))
-demand_to_two = (parse(semantic["finished_at"]) - parse(run["demand_at"])).total_seconds()
-if demand_to_two < 0 or semantic["request_count"] != 2 or len(semantic["cases"]) != 2:
-    raise SystemExit("invalid semantic timing or request count")
+target = json.loads((directory / "target-final.json").read_text())
+timings = build_timing_evidence(run, semantic, target)
 result = {
     "schema": "archvteams.nebius.ai/rfdiffusion-native-trial-summary/v1",
     "run_id": run["run_id"],
@@ -352,14 +352,15 @@ result = {
     "semantic_response_sha256": [case["response_sha256"] for case in semantic["cases"]],
     "worker_receipt": worker,
     "semantic": semantic,
-    "demand_to_two_semantic_seconds": round(demand_to_two, 6),
+    **timings,
 }
 print(json.dumps(result, sort_keys=True, indent=2))
 PY
 
-jq '{run_id,status,image_io_mode,demand_to_two_semantic_seconds,
-     restore_seconds:(.worker_receipt.duration_ms / 1000),
-     semantic_seconds:.semantic.total_elapsed_seconds}' "$run_dir/trial-summary.json"
+jq '{run_id,status,image_io_mode,demand_to_http_ready_seconds,
+     demand_to_kubernetes_ready_seconds,semantic_request_1_seconds,
+     semantic_request_2_seconds,demand_to_two_semantic_seconds,
+     restore_seconds:(.worker_receipt.duration_ms / 1000)}' "$run_dir/trial-summary.json"
 
 if ((cleanup == 1)); then
   "${trial_kubectl[@]}" delete -f "$run_dir/semantic-probe.yaml" --ignore-not-found --wait=true --timeout=180s

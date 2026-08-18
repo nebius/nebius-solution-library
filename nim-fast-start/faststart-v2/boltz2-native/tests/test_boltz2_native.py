@@ -184,6 +184,18 @@ class BoltzRequestAndSemanticTests(unittest.TestCase):
 
 
 class BoltzRenderAndBindingTests(unittest.TestCase):
+    def test_trial_runner_emits_aligned_timing_metrics(self) -> None:
+        runner = (MODULE_DIR / "run_one_native_trial.sh").read_text(encoding="utf-8")
+        self.assertIn("build_timing_evidence", runner)
+        for field in (
+            "demand_to_http_ready_seconds",
+            "demand_to_kubernetes_ready_seconds",
+            "semantic_request_1_seconds",
+            "semantic_request_2_seconds",
+            "demand_to_two_semantic_seconds",
+        ):
+            self.assertIn(field, runner)
+
     def test_target_restore_and_probe_render_smoke(self) -> None:
         run = render.validate_run(run_config())
         approved = render.validate_contract(contract())

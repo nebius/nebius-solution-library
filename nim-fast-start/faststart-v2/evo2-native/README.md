@@ -113,6 +113,13 @@ strict semantic passes, and have unique run and Pod IDs. Direct and buffered
 must be run as separate n=3 sets; compare their medians, not their fastest
 single trials.
 
+Each trial and aggregate exposes demand to successful semantic HTTP readiness,
+demand to Kubernetes Pod Ready, the first inference call, the immediate warm
+second call, and demand to completion of call 2. `T0` is before target creation
+on the already provisioned H200 with storage attached. The HTTP timestamp comes
+from the validator's successful readiness receipt; worker receipt and probe
+events remain independent concurrent timelines.
+
 ## Worker release gate
 
 The exact current eight-patch worker is

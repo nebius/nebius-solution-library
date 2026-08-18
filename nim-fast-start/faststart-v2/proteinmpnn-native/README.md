@@ -27,10 +27,16 @@ All six measured runs passed the exact Pod UID, worker receipt, eventual
 Kubernetes Ready, two-call, and strict ProteinMPNN sequence-structure gates.
 Both response hashes are deterministic and equal to the checkpoint donor.
 
-| mode | runs | demand to two responses (s) | worker restore (s) |
-| --- | --- | ---: | ---: |
-| direct/O_DIRECT | p6, p7, p8 | 24.581476, 25.028520, 24.776636 | 15.735, 15.723, 15.727 |
-| legacy buffered | p9, p10, p11 | 16.051279, 10.352323, 10.403079 | 6.988, 1.385, 1.361 |
+| mode | HTTP ready median (s) | Kubernetes Ready median (s) | call 1 median (s) | call 2 median (s) | demand to call 2 median (s) | worker restore median (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| direct/O_DIRECT | 23.898192 | 24.999470 | 0.605700 | 0.271714 | 24.776636 | 15.727 |
+| legacy buffered | **9.537013** | 10.171485 | 0.601493 | 0.266078 | **10.403079** | 1.385 |
+
+HTTP ready is the validator's first successful semantic readiness response,
+not the Kubernetes condition. `T0` is captured before target creation on the
+already provisioned H100 with storage attached. Kubernetes Ready is diagnostic;
+demand-to-call-2 is a cross-check, while the call columns are the individual
+first (potentially deferred-load) and immediate warm inference latencies.
 
 The buffered n=3 median is 10.403079 seconds demand-to-two, a 2.382x speedup
 and 58.0% reduction from the 24.776636-second direct median. Its median worker

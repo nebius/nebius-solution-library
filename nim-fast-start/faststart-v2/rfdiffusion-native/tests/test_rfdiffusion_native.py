@@ -150,6 +150,9 @@ def trial_summary(index: int, mode: str = "direct") -> dict[str, Any]:
                     "status": "PASS",
                     "ok": True,
                     "http_status": 200,
+                    "elapsed_seconds": (
+                        1.0 + index / 10 if offset == 0 else 0.2 + index / 10
+                    ),
                     "run_id": f"run-{index}-semantic-{offset + 1}",
                     "request_sha256": request_sha256,
                     "response_sha256": response_sha256,
@@ -174,7 +177,18 @@ def trial_summary(index: int, mode: str = "direct") -> dict[str, Any]:
                 )
             ],
         },
+        "demand_to_http_ready_seconds": 40.0 + index,
+        "demand_to_kubernetes_ready_seconds": 41.0 + index,
+        "semantic_request_1_seconds": 1.0 + index / 10,
+        "semantic_request_2_seconds": 0.2 + index / 10,
         "demand_to_two_semantic_seconds": 65.0 + index,
+        "timing_evidence": {
+            "demand_at": "2026-08-18T00:00:00Z",
+            "http_ready_at": "2026-08-18T00:00:41Z",
+            "kubernetes_ready_at": "2026-08-18T00:00:42Z",
+            "semantic_started_at": "2026-08-18T00:00:01Z",
+            "semantic_finished_at": "2026-08-18T00:01:06Z",
+        },
     }
 
 
@@ -478,6 +492,12 @@ class RFdiffusionAggregateAndProvenanceTests(unittest.TestCase):
             self.assertEqual("PASS", result["status"])
             self.assertEqual(3, result["trial_count"])
             self.assertEqual(6, result["semantic_pass_count"])
+            self.assertEqual(42.0, result["demand_to_http_ready_seconds"]["median"])
+            self.assertEqual(
+                43.0, result["demand_to_kubernetes_ready_seconds"]["median"]
+            )
+            self.assertEqual(1.2, result["semantic_request_1_seconds"]["median"])
+            self.assertEqual(0.4, result["semantic_request_2_seconds"]["median"])
             self.assertEqual(67.0, result["demand_to_two_semantic_seconds"]["median"])
             self.assertEqual(50.2, result["worker_restore_seconds"]["median"])
 
@@ -485,6 +505,12 @@ class RFdiffusionAggregateAndProvenanceTests(unittest.TestCase):
             drifted["semantic"]["cases"][1]["request_sha256"] = "0" * 64
             paths[2].write_text(json.dumps(drifted), encoding="utf-8")
             with self.assertRaises(aggregate_results.AggregateError):
+                aggregate_results.aggregate(paths, "direct")
+
+            missing_metric = trial_summary(3)
+            del missing_metric["demand_to_http_ready_seconds"]
+            paths[2].write_text(json.dumps(missing_metric), encoding="utf-8")
+            with self.assertRaisesRegex(aggregate_results.AggregateError, "HTTP ready"):
                 aggregate_results.aggregate(paths, "direct")
 
     def test_worker_gate_matches_checked_in_provenance_and_is_not_release_ready(self) -> None:

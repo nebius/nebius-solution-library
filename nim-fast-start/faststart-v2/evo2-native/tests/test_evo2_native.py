@@ -131,11 +131,29 @@ def trial_summary(index: int, mode: str = "direct") -> dict[str, Any]:
             "failed_case_count": 0,
             "total_elapsed_seconds": 1.5 + index / 10,
             "cases": [
-                {"invariant": {"output_sequence": sequence}}
-                for sequence in render.PROFILE["semantic_profile"]["expected_sequences"]
+                {
+                    "elapsed_seconds": elapsed,
+                    "invariant": {"output_sequence": sequence},
+                }
+                for sequence, elapsed in zip(
+                    render.PROFILE["semantic_profile"]["expected_sequences"],
+                    (1.0 + index / 10, 0.2 + index / 10),
+                    strict=True,
+                )
             ],
         },
+        "demand_to_http_ready_seconds": 40.0 + index,
+        "demand_to_kubernetes_ready_seconds": 41.0 + index,
+        "semantic_request_1_seconds": 1.0 + index / 10,
+        "semantic_request_2_seconds": 0.2 + index / 10,
         "demand_to_two_semantic_seconds": 65.0 + index,
+        "timing_evidence": {
+            "demand_at": "2026-08-18T00:00:00Z",
+            "http_ready_at": "2026-08-18T00:00:41Z",
+            "kubernetes_ready_at": "2026-08-18T00:00:42Z",
+            "semantic_started_at": "2026-08-18T00:00:01Z",
+            "semantic_finished_at": "2026-08-18T00:01:06Z",
+        },
     }
 
 
@@ -352,6 +370,12 @@ class Evo2AggregateAndProvenanceTests(unittest.TestCase):
             self.assertEqual("PASS", result["status"])
             self.assertEqual(3, result["trial_count"])
             self.assertEqual(6, result["semantic_pass_count"])
+            self.assertEqual(42.0, result["demand_to_http_ready_seconds"]["median"])
+            self.assertEqual(
+                43.0, result["demand_to_kubernetes_ready_seconds"]["median"]
+            )
+            self.assertEqual(1.2, result["semantic_request_1_seconds"]["median"])
+            self.assertEqual(0.4, result["semantic_request_2_seconds"]["median"])
             self.assertEqual(67.0, result["demand_to_two_semantic_seconds"]["median"])
             self.assertEqual(50.2, result["worker_restore_seconds"]["median"])
 
@@ -359,6 +383,12 @@ class Evo2AggregateAndProvenanceTests(unittest.TestCase):
             drifted["semantic"]["cases"][1]["invariant"]["output_sequence"] = "A" * 20
             paths[2].write_text(json.dumps(drifted), encoding="utf-8")
             with self.assertRaises(aggregate_results.AggregateError):
+                aggregate_results.aggregate(paths, "direct")
+
+            missing_metric = trial_summary(3)
+            del missing_metric["demand_to_http_ready_seconds"]
+            paths[2].write_text(json.dumps(missing_metric), encoding="utf-8")
+            with self.assertRaisesRegex(aggregate_results.AggregateError, "HTTP ready"):
                 aggregate_results.aggregate(paths, "direct")
 
     def test_worker_gate_matches_checked_in_provenance_and_is_not_release_ready(self) -> None:

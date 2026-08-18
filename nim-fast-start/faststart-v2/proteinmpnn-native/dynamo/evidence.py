@@ -23,7 +23,7 @@ except ImportError:  # pragma: no cover - package import path
     from . import render
 
 
-RECEIPT_SCHEMA = "archvteams.nebius.ai/proteinmpnn-production-canary-evidence/v1"
+RECEIPT_SCHEMA = "archvteams.nebius.ai/proteinmpnn-production-canary-evidence/v2"
 WORKER_RECEIPT_SCHEMA = "archvteams.nebius.ai/dynamo-one-shot-restore-receipt/v1"
 POD_SPEC_HASH_KEY = "archvteams.nebius.ai/target-pod-spec-sha256"
 
@@ -64,6 +64,15 @@ def _seconds(start: datetime, finish: datetime, label: str) -> float:
     result = (finish - start).total_seconds()
     if result < 0:
         raise EvidenceError(f"{label} has reversed timestamps")
+    return round(result, 6)
+
+
+def _kubernetes_seconds(demand: datetime, transition: datetime) -> float:
+    result = (transition - demand).total_seconds()
+    if result < 0:
+        if abs(result) >= 1:
+            raise EvidenceError("Kubernetes readiness has reversed timestamps")
+        return 0.0
     return round(result, 6)
 
 
@@ -128,7 +137,9 @@ def _only_job_container(job: dict[str, Any], name: str, label: str) -> dict[str,
     return matches[0]
 
 
-def _validate_semantics(summary: dict[str, Any], run_id: str) -> tuple[datetime, list[float]]:
+def _validate_semantics(
+    summary: dict[str, Any], run_id: str
+) -> tuple[datetime, datetime, list[float]]:
     if (
         summary.get("schema_version") != 1
         or summary.get("validator") != "proteinmpnn-faststart-semantic-v1"
@@ -172,7 +183,14 @@ def _validate_semantics(summary: dict[str, Any], run_id: str) -> tuple[datetime,
         ):
             raise EvidenceError(f"semantic case {index} has invalid elapsed time")
         elapsed.append(round(float(value), 6))
-    return _timestamp(summary.get("finished_at"), "second semantic completion"), elapsed
+    semantic_started = _timestamp(summary.get("started_at"), "semantic probe start")
+    http_ready = _timestamp(summary.get("ready_at"), "successful HTTP readiness")
+    semantic_finished = _timestamp(
+        summary.get("finished_at"), "second semantic completion"
+    )
+    if not semantic_started <= http_ready <= semantic_finished:
+        raise EvidenceError("semantic probe timestamps are not monotonically ordered")
+    return http_ready, semantic_finished, elapsed
 
 
 def build_evidence(
@@ -377,7 +395,9 @@ def build_evidence(
     probe_started, probe_finished = _container_times(probe_pod, "semantic-probe", "probe Pod")
     if probe_finished is None:
         raise EvidenceError("semantic probe container has not completed")
-    semantic_finished, case_elapsed = _validate_semantics(semantic_summary, run_id)
+    http_ready, semantic_finished, case_elapsed = _validate_semantics(
+        semantic_summary, run_id
+    )
     expected_origin = f"http://{service_name}:8000"
     expected_path = "/biology/ipd/proteinmpnn/predict"
     if (
@@ -416,11 +436,11 @@ def build_evidence(
         placeholder_started,
         worker_started,
         receipt_completed,
-        semantic_finished,
     ]
     probe_order = [
         placeholder_started,
         probe_started,
+        http_ready,
         semantic_finished,
     ]
     if any(
@@ -429,13 +449,7 @@ def build_evidence(
         for earlier, later in zip(ordered, ordered[1:])
     ):
         raise EvidenceError("canary phase timestamps are not monotonically ordered")
-    # The separate semantic probe deliberately polls the application faster
-    # than kubelet's readiness probe.  A strict semantic response may therefore
-    # complete just before Pod Ready.  Ready is still required above for this
-    # exact bound Pod and may lag semantic completion by at most ten seconds.
     ready_minus_semantic_seconds = (ready - semantic_finished).total_seconds()
-    if ready_minus_semantic_seconds > 10:
-        raise EvidenceError("Kubernetes Ready lags semantic completion by more than 10 seconds")
     if worker_completed < worker_finished or probe_completed < probe_finished:
         raise EvidenceError("Job completion precedes its successful container finish")
 
@@ -468,7 +482,8 @@ def build_evidence(
             "demand_to_restore_receipt": _seconds(
                 demand, receipt_completed, "restore receipt"
             ),
-            "demand_to_http_ready": _seconds(demand, ready, "HTTP readiness"),
+            "demand_to_http_ready": _seconds(demand, http_ready, "HTTP readiness"),
+            "demand_to_kubernetes_ready": _kubernetes_seconds(demand, ready),
             "demand_to_two_semantic_responses": _seconds(
                 demand, semantic_finished, "two semantic responses"
             ),
@@ -486,6 +501,8 @@ def build_evidence(
             "worker_completed_at": worker_receipt["completed_at"],
             "worker_job_completed_at": worker_completed.isoformat(),
             "probe_job_completed_at": probe_completed.isoformat(),
+            "http_ready_at": http_ready.isoformat(),
+            "kubernetes_ready_at": ready.isoformat(),
             "semantic_finished_at": semantic_summary["finished_at"],
             "validator": semantic_summary["validator"],
         },

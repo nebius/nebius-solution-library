@@ -6,7 +6,8 @@ consecutive clean restores passed on an already provisioned H100:
 
 | Measurement | Median | Range |
 |---|---:|---:|
-| Demand to HTTP ready | **12.000 s** | 12.000–13.000 s |
+| Demand to successful semantic HTTP ready | **11.521192 s** | 11.177979–11.751578 s |
+| Demand to Kubernetes Pod Ready | **12.000 s** | 12.000–13.000 s |
 | Worker restore | **3.570 s** | 3.568–3.584 s |
 | Demand to two semantic responses | **14.455925 s** | 14.157038–14.727526 s |
 | Semantic request 1 | 1.951462 s | 1.929074–1.955740 s |
@@ -22,6 +23,9 @@ without changing the 3.6-second native restore.
 
 The individual optimized runs are in `provisioned-early-probe-results.tsv`.
 The earlier sequential comparison is retained in `provisioned-results.tsv`.
+That older probe did not retain a successful HTTP-readiness timestamp, so its
+HTTP-ready cells are `NA`; its historical 11–12 second values are preserved in
+the separately named Kubernetes-Ready column.
 
 The exact model image was
 `nvcr.io/nim/openfold/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4`.
@@ -44,6 +48,9 @@ captures, and derived `canary-evidence.json`. Setup-only `p5-earlyprobe` is
 explicitly excluded because its first readiness matcher did not recognize the
 image's JSON-object health response and sent no inference requests.
 
-This is the provisioned-node result: the H100 node, exact images, model cache,
-native checkpoint, and attached storage already existed. Newly-created-node
-latency is measured and reported separately.
+This is the warm-instance cold-start result: `T0` is recorded immediately
+before target creation on an already provisioned H100 with the exact images,
+model cache, native checkpoint, and storage attached. The first and second
+request rows are the strict call latencies after successful semantic HTTP
+readiness; demand-to-two is retained only as a timeline cross-check.
+Newly-created-node latency is measured and reported separately.

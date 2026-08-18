@@ -101,6 +101,13 @@ buffered are separate n=3 sets; compare medians, never the fastest trial. The
 n=3 runner requires `--cleanup` so each completed target releases the single
 GPU before the next fresh UID is submitted; immutable evidence remains on disk.
 
+Each trial and aggregate exposes demand to successful semantic HTTP readiness,
+demand to Kubernetes Pod Ready, the first inference call, the immediate warm
+second call, and demand to completion of call 2. `T0` is before target creation
+on the already provisioned H100 with storage attached. The HTTP timestamp comes
+from the validator's successful readiness receipt; worker receipt and probe
+events remain independent concurrent timelines.
+
 ## Worker gate
 
 The exact current eight-patch worker is

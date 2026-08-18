@@ -249,6 +249,14 @@ def evidence_inputs() -> dict:
         "failed_case_count": 0,
         "exit_code": 0,
         "started_at": "2026-08-17T20:00:08.100000Z",
+        "ready_wait": {
+            "attempts": 3,
+            "elapsed_seconds": 0.1,
+            "endpoint": f"http://{service_name}:8000/v1/health/ready",
+            "finished_at": "2026-08-17T20:00:08.200000Z",
+            "started_at": "2026-08-17T20:00:08.100000Z",
+            "status": "PASS",
+        },
         "finished_at": "2026-08-17T20:00:09.900000Z",
         "total_elapsed_seconds": 1.8,
         "cases": [
@@ -390,7 +398,25 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(
             receipt["timings_seconds"]["demand_to_two_semantic_responses"], 9.9
         )
+        self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 8.2)
+        self.assertEqual(
+            receipt["timings_seconds"]["demand_to_kubernetes_ready"], 7.0
+        )
+        self.assertEqual(receipt["timings_seconds"]["semantic_request_1"], 0.8)
+        self.assertEqual(receipt["timings_seconds"]["semantic_request_2"], 0.9)
+        self.assertEqual(
+            receipt["evidence"]["http_ready_at"],
+            "2026-08-17T20:00:08.200000+00:00",
+        )
         self.assertEqual(receipt["timings_seconds"]["worker_restore"], 1.5)
+
+    def test_kubernetes_ready_duration_tolerates_only_subsecond_quantization(self) -> None:
+        demand = evidence._timestamp("2026-08-17T20:00:00.900000Z", "demand")
+        same_second = evidence._timestamp("2026-08-17T20:00:00Z", "Ready")
+        self.assertEqual(evidence._kubernetes_seconds(demand, same_second), 0.0)
+        previous_second = evidence._timestamp("2026-08-17T19:59:59Z", "Ready")
+        with self.assertRaisesRegex(evidence.EvidenceError, "reversed timestamps"):
+            evidence._kubernetes_seconds(demand, previous_second)
 
     def test_endpoint_uid_mismatch_is_rejected(self) -> None:
         inputs = evidence_inputs()
@@ -407,7 +433,7 @@ class EvidenceTests(unittest.TestCase):
         receipt = evidence.build_evidence(**inputs)
         self.assertEqual(receipt["status"], "PASS")
 
-    def test_ready_timestamp_subsecond_quantization_is_accepted(self) -> None:
+    def test_kubernetes_ready_before_worker_receipt_is_accepted(self) -> None:
         inputs = evidence_inputs()
         for condition in inputs["target"]["status"]["conditions"]:
             if condition["type"] == "Ready":
@@ -416,13 +442,36 @@ class EvidenceTests(unittest.TestCase):
         receipt = evidence.build_evidence(**inputs)
         self.assertEqual(receipt["status"], "PASS")
 
-    def test_ready_timestamp_one_second_before_receipt_is_rejected(self) -> None:
+    def test_kubernetes_ready_timeline_is_independent_of_worker_receipt(self) -> None:
         inputs = evidence_inputs()
         for condition in inputs["target"]["status"]["conditions"]:
             if condition["type"] == "Ready":
                 condition["lastTransitionTime"] = "2026-08-17T20:00:04Z"
         inputs["worker_receipt"]["completed_at"] = "2026-08-17T20:00:05.900000Z"
-        with self.assertRaisesRegex(evidence.EvidenceError, "monotonically ordered"):
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["timings_seconds"]["demand_to_kubernetes_ready"], 4.0)
+        self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 8.2)
+
+    def test_http_ready_may_precede_independent_worker_receipt(self) -> None:
+        inputs = evidence_inputs()
+        inputs["worker_receipt"]["completed_at"] = "2026-08-17T20:00:08.500000Z"
+        receipt = evidence.build_evidence(**inputs)
+        self.assertEqual(receipt["status"], "PASS")
+        self.assertEqual(receipt["timings_seconds"]["demand_to_http_ready"], 8.2)
+        self.assertEqual(receipt["timings_seconds"]["demand_to_restore_receipt"], 8.5)
+
+    def test_missing_successful_http_readiness_is_rejected(self) -> None:
+        inputs = evidence_inputs()
+        del inputs["semantic_summary"]["ready_wait"]
+        with self.assertRaisesRegex(evidence.EvidenceError, "HTTP readiness receipt"):
+            evidence.build_evidence(**inputs)
+
+    def test_http_readiness_after_semantic_completion_is_rejected(self) -> None:
+        inputs = evidence_inputs()
+        inputs["semantic_summary"]["ready_wait"]["finished_at"] = (
+            "2026-08-17T20:00:10Z"
+        )
+        with self.assertRaisesRegex(evidence.EvidenceError, "probe timestamps"):
             evidence.build_evidence(**inputs)
 
     def test_more_than_two_semantic_cases_is_rejected(self) -> None:
@@ -445,7 +494,7 @@ class EvidenceTests(unittest.TestCase):
     def test_semantic_summary_from_another_service_is_rejected(self) -> None:
         inputs = evidence_inputs()
         inputs["semantic_summary"]["base_url"] = "http://another-service:8000"
-        with self.assertRaisesRegex(evidence.EvidenceError, "exact canary Service"):
+        with self.assertRaisesRegex(evidence.EvidenceError, "canary Service"):
             evidence.build_evidence(**inputs)
 
     def test_evidence_cli_emits_one_pass_receipt(self) -> None:

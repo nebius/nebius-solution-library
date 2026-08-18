@@ -41,6 +41,15 @@ def finite_positive(value: Any, label: str) -> float:
     return float(value)
 
 
+def statistics_block(values: list[float]) -> dict[str, Any]:
+    return {
+        "values": values,
+        "median": statistics.median(values),
+        "minimum": min(values),
+        "maximum": max(values),
+    }
+
+
 def load_summary(path: Path, mode: str) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -107,6 +116,34 @@ def load_summary(path: Path, mode: str) -> dict[str, Any]:
         ):
             raise AggregateError(f"{path}: semantic backbone invariant is invalid")
     finite_positive(value.get("demand_to_two_semantic_seconds"), f"{path}: end-to-end")
+    finite_positive(value.get("demand_to_http_ready_seconds"), f"{path}: HTTP ready")
+    finite_positive(
+        value.get("demand_to_kubernetes_ready_seconds"), f"{path}: Kubernetes Ready"
+    )
+    request_1 = finite_positive(
+        value.get("semantic_request_1_seconds"), f"{path}: request 1"
+    )
+    request_2 = finite_positive(
+        value.get("semantic_request_2_seconds"), f"{path}: request 2"
+    )
+    case_elapsed = [
+        finite_positive(case.get("elapsed_seconds"), f"{path}: semantic case elapsed")
+        for case in semantic["cases"]
+    ]
+    if [request_1, request_2] != case_elapsed:
+        raise AggregateError(f"{path}: request timings differ from semantic evidence")
+    timestamps = value.get("timing_evidence")
+    if not isinstance(timestamps, dict) or any(
+        not isinstance(timestamps.get(key), str) or not timestamps[key]
+        for key in (
+            "demand_at",
+            "http_ready_at",
+            "kubernetes_ready_at",
+            "semantic_started_at",
+            "semantic_finished_at",
+        )
+    ):
+        raise AggregateError(f"{path}: timing evidence timestamps are incomplete")
     finite_positive(semantic.get("total_elapsed_seconds"), f"{path}: semantic duration")
     worker = value.get("worker_receipt")
     if not isinstance(worker, dict) or worker.get("status") != "succeeded":
@@ -141,6 +178,12 @@ def aggregate(paths: Sequence[Path], mode: str) -> dict[str, Any]:
     ):
         raise AggregateError("the three runs did not use one immutable artifact manifest")
     e2e = [float(item["demand_to_two_semantic_seconds"]) for item in summaries]
+    http_ready = [float(item["demand_to_http_ready_seconds"]) for item in summaries]
+    kubernetes_ready = [
+        float(item["demand_to_kubernetes_ready_seconds"]) for item in summaries
+    ]
+    request_1 = [float(item["semantic_request_1_seconds"]) for item in summaries]
+    request_2 = [float(item["semantic_request_2_seconds"]) for item in summaries]
     restore = [float(item["worker_receipt"]["duration_ms"]) / 1000 for item in summaries]
     semantic = [float(item["semantic"]["total_elapsed_seconds"]) for item in summaries]
     return {
@@ -156,24 +199,13 @@ def aggregate(paths: Sequence[Path], mode: str) -> dict[str, Any]:
         "semantic_pass_count": 6,
         "run_ids": run_ids,
         "pod_uids": pod_uids,
-        "demand_to_two_semantic_seconds": {
-            "values": e2e,
-            "median": statistics.median(e2e),
-            "minimum": min(e2e),
-            "maximum": max(e2e),
-        },
-        "worker_restore_seconds": {
-            "values": restore,
-            "median": statistics.median(restore),
-            "minimum": min(restore),
-            "maximum": max(restore),
-        },
-        "semantic_probe_seconds": {
-            "values": semantic,
-            "median": statistics.median(semantic),
-            "minimum": min(semantic),
-            "maximum": max(semantic),
-        },
+        "demand_to_http_ready_seconds": statistics_block(http_ready),
+        "demand_to_kubernetes_ready_seconds": statistics_block(kubernetes_ready),
+        "semantic_request_1_seconds": statistics_block(request_1),
+        "semantic_request_2_seconds": statistics_block(request_2),
+        "demand_to_two_semantic_seconds": statistics_block(e2e),
+        "worker_restore_seconds": statistics_block(restore),
+        "semantic_probe_seconds": statistics_block(semantic),
         "source_summaries": [str(path) for path in paths],
     }
 

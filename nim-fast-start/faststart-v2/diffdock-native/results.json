@@ -26,6 +26,10 @@
     "status": "PASS",
     "semantic_requests": 2,
     "semantic_passes": 2,
+    "demand_to_http_ready_seconds": 72.733186,
+    "demand_to_kubernetes_ready_seconds": 74.022464,
+    "semantic_request_1_seconds": 1.321248,
+    "semantic_request_2_seconds": 0.545055,
     "demand_to_two_semantic_responses_seconds": 74.601431,
     "worker_restore_seconds": 65.016
   },
@@ -46,6 +50,34 @@
     "runs": ["dd-buf-p1", "dd-buf-p2", "dd-buf-p3"],
     "semantic_requests": 6,
     "semantic_passes": 6,
+    "demand_to_http_ready_seconds": {
+      "values": [11.913976, 11.742748, 11.996343],
+      "min": 11.742748,
+      "median": 11.913976,
+      "max": 11.996343,
+      "mean": 11.884356
+    },
+    "demand_to_kubernetes_ready_seconds": {
+      "values": [12.77548, 12.564936, 12.589784],
+      "min": 12.564936,
+      "median": 12.589784,
+      "max": 12.77548,
+      "mean": 12.6434
+    },
+    "semantic_request_1_seconds": {
+      "values": [1.323664, 1.350125, 1.322778],
+      "min": 1.322778,
+      "median": 1.323664,
+      "max": 1.350125,
+      "mean": 1.332189
+    },
+    "semantic_request_2_seconds": {
+      "values": [0.558473, 0.550279, 0.522857],
+      "min": 0.522857,
+      "median": 0.550279,
+      "max": 0.558473,
+      "mean": 0.54387
+    },
     "demand_to_two_semantic_responses_seconds": {
       "values": [13.79802, 13.645122, 13.844048],
       "min": 13.645122,

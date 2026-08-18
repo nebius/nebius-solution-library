@@ -35,6 +35,10 @@ and pTM scores in `[0,1]`.
 | Measurement | Trial 1 | Trial 2 | Trial 3 | Median |
 |---|---:|---:|---:|---:|
 | Native restore | 17.017 s | 17.145 s | 17.753 s | **17.145 s** |
+| Demand to successful semantic HTTP ready | 23.827564 s | 24.362215 s | 24.591373 s | **24.362215 s** |
+| Demand to Kubernetes Pod Ready | 24.339213 s | 25.638808 s | 25.807746 s | **25.638808 s** |
+| First semantic inference call | 1.543270 s | 1.496779 s | 1.497235 s | **1.497235 s** |
+| Second warm semantic inference call | 0.443073 s | 0.282542 s | 0.287273 s | **0.287273 s** |
 | Demand to second semantic response | 25.983713 s | 26.160530 s | 26.523966 s | **26.160530 s** |
 | Validator total, including readiness wait | 19.134357 s | 18.771843 s | 19.636290 s | **19.134357 s** |
 
@@ -61,9 +65,13 @@ affinity to the approved, Ready t12 node.
 
 ## Scope
 
-These are process-cold, provisioned-node measurements. They include Kubernetes
-target creation, binding, worker scheduling/restore, service readiness, and two
-external semantic calls. They do not include H100 provisioning, the initial
+These are process-cold, warm-instance measurements. `T0` is recorded before
+target creation with the H100 provisioned and storage attached. Successful
+semantic HTTP readiness comes from the probe's strict 200/ready response;
+Kubernetes Pod Ready is retained separately. Worker receipt and semantic probe
+events are concurrent timelines and are not ordered against each other. The
+measurements include target creation, binding, worker scheduling/restore, and
+two external semantic calls. They do not include H100 provisioning, the initial
 image pull, model-cache construction, or artifact creation. The writeback
 prewarm cost is reported but excluded from its demand clock because it was an
 explicit provisioned-state experiment.
@@ -79,4 +87,3 @@ python3 -m unittest -v tests.test_boltz2_native
 The suite covers the actual-LF A3M regression, archived request nesting,
 malformed semantic results, exact image digest and canonical PodSpec binding,
 post-binding drift rejection, and target/restore/probe rendering.
-
