@@ -2,18 +2,18 @@
   "schema": "archvteams.nebius.ai/dynamo-restore-interface/v1",
   "approved": true,
   "approval": {
-    "reviewed_by": "codex-performance-run",
-    "reviewed_at": "2026-08-18T04:19:19Z",
-    "evidence_sha256": "dfb876fddcefc2afd51014e469e47329f08dbc0687893a89117bd7ac83a8a4fc"
+    "reviewed_by": "codex-diffdock-live-worker-verification",
+    "reviewed_at": "2026-08-18T05:34:00Z",
+    "evidence_sha256": "dba00eb79e5633c335984e2a5c87de5a93d17d117afcdab6faad7d63491cf4a0"
   },
   "source": {
     "repository": "https://github.com/ai-dynamo/dynamo",
     "commit": "f7f37be174d252590c4b56e25ff4262dd82466fd",
     "patch_sha256": "260c1d9a7f192b8c0b25c924ab26b43a95ad599d38d3f367383e3e984aecfd11"
   },
-  "worker_image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:500848fe4fa474ec71646bb4f089abbfb0bb7fda6f452b39a76083ff0eec63f7",
+  "worker_image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:063286a3a1354d1c5969fa80f445bb5fbd2a96bc0999c7b6897495f0b4c2fd4d",
   "worker_executable": "/usr/local/bin/restore-worker",
-  "worker_executable_sha256": "440a39b0a1d955f2d2ad918d8c216b6f75b37791424afbacb64960206f143a18",
+  "worker_executable_sha256": "941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651",
   "argument_template": [
     "restore",
     "--target-namespace", "{target_namespace}",
@@ -38,9 +38,9 @@
   ],
   "probe_image": "docker.io/library/python@sha256:356b0d18f9385f4bdcc673af60e1e64c9d1504952e4ec36ee32044c722a6bc4e",
   "probe_executable": "/usr/local/bin/python3",
-  "validator_sha256": "242db369ca6b0194789d307aa2c424c52d3728196976a138b2972289cb4452fd",
+  "validator_sha256": "e7c21e7d654518b410d2e549d167aad5035c306c7c649db073899380379b76f9",
   "tool_bundle": {
     "layout": "archvteams-public-dynamo-tools/v1",
-    "content_sha256": "c6cd314b4d61fdddecb0c0d7e2195f48197046e6ee6f30df63d89ab9e90a0162"
+    "content_sha256": "fc22c423deca17b4175ab42c23a66310c8e2c4d8c4b63a24c33894300020943b"
   }
 }

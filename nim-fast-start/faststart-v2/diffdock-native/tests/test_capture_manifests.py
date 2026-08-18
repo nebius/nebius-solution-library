@@ -20,10 +20,10 @@ IMAGE = (
 WORKER_IMAGE = (
     "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/"
     "archvteams-2407-k301ud/snapshot-agent@sha256:"
-    "500848fe4fa474ec71646bb4f089abbfb0bb7fda6f452b39a76083ff0eec63f7"
+    "063286a3a1354d1c5969fa80f445bb5fbd2a96bc0999c7b6897495f0b4c2fd4d"
 )
 NODE = "computeinstance-e00hf93cfnsgaxygn3"
-VALIDATOR_SHA256 = "242db369ca6b0194789d307aa2c424c52d3728196976a138b2972289cb4452fd"
+VALIDATOR_SHA256 = "e7c21e7d654518b410d2e549d167aad5035c306c7c649db073899380379b76f9"
 FIXTURE_SHA256 = "f58c2b74f534529a3b7e5cdd1410e8df33a25cee64a988a62170c5c69ca80977"
 
 
@@ -42,10 +42,11 @@ def only_container(spec: dict[str, Any]) -> dict[str, Any]:
 
 
 class CaptureManifestTests(unittest.TestCase):
-    def test_compatibility_review_keeps_unknown_diffdock_glibc_explicit(self) -> None:
+    def test_compatibility_review_records_measured_diffdock_glibc(self) -> None:
         review = json.loads((ROOT / "compatibility-evidence.json").read_bytes())
-        self.assertFalse(review["live_mutations_performed"])
-        self.assertIsNone(review["diffdock_target"]["glibc_version"])
+        self.assertTrue(review["live_mutations_performed"])
+        self.assertEqual(review["diffdock_target"]["glibc_version"], "2.35")
+        self.assertEqual(review["diffdock_target"]["status"], "measured-live-donor-r2")
         self.assertEqual(
             review["superseded_worker"]["rootfs_extractor_required_glibc"],
             "2.38",
@@ -53,11 +54,11 @@ class CaptureManifestTests(unittest.TestCase):
         self.assertEqual(review["portable_worker"]["image"], WORKER_IMAGE)
         self.assertEqual(
             review["portable_worker"]["tool_bundle_manifest_sha256"],
-            "c6cd314b4d61fdddecb0c0d7e2195f48197046e6ee6f30df63d89ab9e90a0162",
+            "fc22c423deca17b4175ab42c23a66310c8e2c4d8c4b63a24c33894300020943b",
         )
         self.assertEqual(
             review["portable_worker"]["restore_worker_sha256"],
-            "440a39b0a1d955f2d2ad918d8c216b6f75b37791424afbacb64960206f143a18",
+            "941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651",
         )
         self.assertEqual(
             review["portable_worker"]["rootfs_extractor"],
@@ -73,7 +74,7 @@ class CaptureManifestTests(unittest.TestCase):
         contract = json.loads(contract_bytes)
         compatibility_bytes = (ROOT / "compatibility-evidence.json").read_bytes()
         compatibility = json.loads(compatibility_bytes)
-        self.assertFalse(review["live_mutations_performed"])
+        self.assertTrue(review["live_mutations_performed"])
         self.assertEqual(
             contract["approval"]["evidence_sha256"],
             hashlib.sha256(review_bytes).hexdigest(),
@@ -128,7 +129,7 @@ class CaptureManifestTests(unittest.TestCase):
     def test_donor_pins_real_image_node_fixture_and_two_call_validator(self) -> None:
         donor = documents("donor-job.yaml")[0]
         self.assertEqual(donor["kind"], "Job")
-        self.assertEqual(donor["metadata"]["name"], "diffdock-native-f7-donor-r1")
+        self.assertEqual(donor["metadata"]["name"], "diffdock-native-f7-donor-r2")
         self.assertEqual(
             donor["metadata"]["annotations"],
             {
@@ -165,11 +166,11 @@ class CaptureManifestTests(unittest.TestCase):
         environment = {item["name"]: item for item in container["env"]}
         self.assertEqual(
             environment["VALIDATOR_SOURCE"]["valueFrom"]["configMapKeyRef"]["name"],
-            "diffdock-native-f7-validator-r1",
+            "diffdock-native-f7-validator-r2",
         )
         self.assertEqual(
             environment["REQUEST_JSON"]["valueFrom"]["configMapKeyRef"]["name"],
-            "diffdock-native-f7-validator-r1",
+            "diffdock-native-f7-validator-r2",
         )
         self.assertEqual(
             environment["NGC_API_KEY"]["valueFrom"]["secretKeyRef"],
@@ -207,10 +208,27 @@ class CaptureManifestTests(unittest.TestCase):
         self.assertNotIn("nvidia.com/gpu", resources["requests"])
         self.assertNotIn("nvidia.com/gpu", resources["limits"])
         self.assertEqual(resources["limits"]["memory"], "16Gi")
+        self.assertEqual(
+            container["securityContext"],
+            {
+                "allowPrivilegeEscalation": False,
+                "capabilities": {"drop": ["ALL"]},
+                "readOnlyRootFilesystem": True,
+                "runAsNonRoot": False,
+                "runAsUser": 0,
+                "runAsGroup": 0,
+                "seccompProfile": {"type": "RuntimeDefault"},
+            },
+        )
         self.assertIn("manifest_sha256", container["args"][0])
         self.assertIn("regular_file_bytes", container["args"][0])
         self.assertIn("prewarm_bytes", container["args"][0])
         self.assertIn("ThreadPoolExecutor(max_workers=4)", container["args"][0])
+        self.assertIn("diffdock-native-f7-v3-buffered", container["args"][0])
+        self.assertIn(
+            "93a83188fb0adcc89c1278f136595c6dbce1b3fe9c412c3ccf65f704745ec1fe",
+            container["args"][0],
+        )
         self.assertEqual(
             container["readinessProbe"]["exec"]["command"],
             ["/usr/bin/test", "-f", "/state/artifact-verified"],
@@ -233,6 +251,42 @@ class CaptureManifestTests(unittest.TestCase):
                 },
             },
         )
+
+    def test_buffered_variant_is_write_once_and_preserves_exact_payload(self) -> None:
+        config, pod = documents("artifact-buffered-variant.yaml")
+        self.assertTrue(config["immutable"])
+        self.assertEqual(config["metadata"]["name"], "diffdock-native-f7-v3-buffered-build")
+        source = config["data"]["build.py"]
+        self.assertIn('SOURCE_ID = "diffdock-native-f7-v1"', source)
+        self.assertIn('DESTINATION_ID = "diffdock-native-f7-v3-buffered"', source)
+        self.assertIn(
+            'SOURCE_MANIFEST_SHA256 = "b1c477efdfc6bcb8e253462524cef24fef6e059f43c97a1fcb94b85dca81e0b8"',
+            source,
+        )
+        self.assertIn('old_mode = b"        imageIoMode: direct\\n"', source)
+        self.assertIn('new_mode = b"        imageIoMode: buffered\\n"', source)
+        self.assertIn("os.link(source, destination, follow_symlinks=False)", source)
+        self.assertIn("refusing to overwrite", source)
+        spec = pod["spec"]
+        self.assertFalse(spec["automountServiceAccountToken"])
+        container = only_container(spec)
+        self.assertNotIn("nvidia.com/gpu", container["resources"]["requests"])
+        self.assertEqual(
+            next(
+                item for item in spec["volumes"] if item["name"] == "checkpoints"
+            )["persistentVolumeClaim"]["claimName"],
+            "diffdock-native-f7-artifacts",
+        )
+
+    def test_source_holder_is_separate_from_winning_buffered_holder(self) -> None:
+        source = only_container(documents("artifact-source-holder.yaml")[0]["spec"])
+        buffered = only_container(documents("artifact-holder.yaml")[0]["spec"])
+        self.assertIn("diffdock-native-f7-v1", source["args"][0])
+        self.assertIn(
+            "b1c477efdfc6bcb8e253462524cef24fef6e059f43c97a1fcb94b85dca81e0b8",
+            source["args"][0],
+        )
+        self.assertIn("diffdock-native-f7-v3-buffered", buffered["args"][0])
 
 
 if __name__ == "__main__":

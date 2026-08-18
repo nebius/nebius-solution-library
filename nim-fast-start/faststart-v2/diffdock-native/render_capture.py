@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent
 TEMPLATE = ROOT / "podsnapshotcontent.yaml.tmpl"
 NAMESPACE = "nim-fast-start"
 NODE = "computeinstance-e00hf93cfnsgaxygn3"
-DONOR_PREFIX = "diffdock-native-f7-donor-r1-"
+DONOR_PREFIX = "diffdock-native-f7-donor-r2-"
 IMAGE = (
     "nvcr.io/nim/mit/diffdock@sha256:"
     "300696eb8331d78face40f84d835cc1e278c7d3c391c5aabbbee5884366da480"

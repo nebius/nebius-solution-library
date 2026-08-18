@@ -25,10 +25,10 @@ RUN_LABEL = "archvteams.nebius.ai/run-id"
 COMPONENT_LABEL = "app.kubernetes.io/component"
 QUALIFIED_LABEL = "archvteams.nebius.ai/semantic-qualified"
 POD_SPEC_HASH_KEY = "archvteams.nebius.ai/target-pod-spec-sha256"
-VALIDATOR_SHA256 = "242db369ca6b0194789d307aa2c424c52d3728196976a138b2972289cb4452fd"
+VALIDATOR_SHA256 = "e7c21e7d654518b410d2e549d167aad5035c306c7c649db073899380379b76f9"
 FIXTURE_SHA256 = "f58c2b74f534529a3b7e5cdd1410e8df33a25cee64a988a62170c5c69ca80977"
 PROBE_EXECUTABLE = "/usr/local/bin/python3"
-STAGER_SHA256 = "9ebdfefdd515d2a6186f711ab7d7100d239331430abae8355bf7337d1658c696"
+STAGER_SHA256 = "9c64bad3c25fb98da3bc3e0db1011524b6633eea4ecc643ce03cbecbf35ea14f"
 PINNED_IMAGE = re.compile(r"^[^\s@]+@sha256:[0-9a-f]{64}$")
 UUID = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"

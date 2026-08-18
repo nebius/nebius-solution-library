@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: diffdock-native-f7-donor-r1
+  name: diffdock-native-f7-donor-r2
   namespace: nim-fast-start
   labels:
     app.kubernetes.io/name: diffdock
@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/part-of: archvteams-2407-faststart
     nvidia.com/snapshot-checkpoint-id: diffdock-native-f7-v1
   annotations:
-    archvteams.nebius.ai/validator-sha256: 242db369ca6b0194789d307aa2c424c52d3728196976a138b2972289cb4452fd
+    archvteams.nebius.ai/validator-sha256: e7c21e7d654518b410d2e549d167aad5035c306c7c649db073899380379b76f9
     archvteams.nebius.ai/fixture-sha256: f58c2b74f534529a3b7e5cdd1410e8df33a25cee64a988a62170c5c69ca80977
 spec:
   backoffLimit: 0
@@ -68,7 +68,7 @@ spec:
               import subprocess
 
               expected = {
-                  "validate_diffdock.py": "242db369ca6b0194789d307aa2c424c52d3728196976a138b2972289cb4452fd",
+                  "validate_diffdock.py": "e7c21e7d654518b410d2e549d167aad5035c306c7c649db073899380379b76f9",
                   "1ubq-aspirin-request.json": "f58c2b74f534529a3b7e5cdd1410e8df33a25cee64a988a62170c5c69ca80977",
               }
               root = pathlib.Path("/output/donor-validation")
@@ -147,12 +147,12 @@ spec:
             - name: VALIDATOR_SOURCE
               valueFrom:
                 configMapKeyRef:
-                  name: diffdock-native-f7-validator-r1
+                  name: diffdock-native-f7-validator-r2
                   key: VALIDATOR_SOURCE
             - name: REQUEST_JSON
               valueFrom:
                 configMapKeyRef:
-                  name: diffdock-native-f7-validator-r1
+                  name: diffdock-native-f7-validator-r2
                   key: REQUEST_JSON
           ports:
             - name: http

@@ -39,7 +39,7 @@ BINDING_SCHEMA = "archvteams.nebius.ai/diffdock-target-binding/v1"
 TOOL_LAYOUT = "archvteams-public-dynamo-tools/v1"
 SOURCE_REPOSITORY = "https://github.com/ai-dynamo/dynamo"
 SOURCE_COMMIT = "f7f37be174d252590c4b56e25ff4262dd82466fd"
-VALIDATOR_SHA256 = "242db369ca6b0194789d307aa2c424c52d3728196976a138b2972289cb4452fd"
+VALIDATOR_SHA256 = "e7c21e7d654518b410d2e549d167aad5035c306c7c649db073899380379b76f9"
 FIXTURE_SHA256 = "f58c2b74f534529a3b7e5cdd1410e8df33a25cee64a988a62170c5c69ca80977"
 PROBE_EXECUTABLES = frozenset({"/usr/local/bin/python3", "/usr/bin/python3"})
 ALLOWED_H100_NODES = frozenset(
@@ -288,6 +288,7 @@ def validate_run(value: dict[str, Any]) -> dict[str, Any]:
     if checkpoint_id not in {
         "diffdock-native-f7-v1",
         "diffdock-native-f7-v2-rootfsless",
+        "diffdock-native-f7-v3-buffered",
     }:
         raise RenderError("checkpoint_id is not an exact prepared DiffDock artifact")
     artifact_version = _non_placeholder(value["artifact_version"], "artifact_version")

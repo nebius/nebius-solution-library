@@ -168,6 +168,14 @@ class RenderTests(unittest.TestCase):
             "2.35",
         )
 
+    def test_buffered_candidate_is_an_exact_allowed_artifact(self) -> None:
+        candidate = run_config()
+        candidate["checkpoint_id"] = "diffdock-native-f7-v3-buffered"
+        self.assertEqual(
+            render.validate_run(candidate)["checkpoint_id"],
+            "diffdock-native-f7-v3-buffered",
+        )
+
     def test_contract_requires_worker_executable_digest(self) -> None:
         bad = approved_contract()
         bad["worker_executable_sha256"] = "not-a-digest"

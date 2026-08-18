@@ -47,7 +47,7 @@ spec:
           mountPath: /host-seccomp
   containers:
     - name: agent
-      image: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:500848fe4fa474ec71646bb4f089abbfb0bb7fda6f452b39a76083ff0eec63f7
+      image: cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:063286a3a1354d1c5969fa80f445bb5fbd2a96bc0999c7b6897495f0b4c2fd4d
       imagePullPolicy: IfNotPresent
       args:
         - --runtime

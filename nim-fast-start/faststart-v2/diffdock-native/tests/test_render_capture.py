@@ -24,7 +24,7 @@ def donor() -> dict:
         "apiVersion": "v1",
         "kind": "Pod",
         "metadata": {
-            "name": "diffdock-native-f7-donor-r1-abc12",
+            "name": "diffdock-native-f7-donor-r2-abc12",
             "namespace": capture.NAMESPACE,
             "uid": "11111111-1111-4111-8111-111111111111",
             "labels": {
@@ -63,7 +63,7 @@ class CaptureRenderTests(unittest.TestCase):
         value = capture.render(donor())[0]
         source = value["spec"]["source"]
         self.assertEqual(source["nodeName"], capture.NODE)
-        self.assertEqual(source["podRef"]["name"], "diffdock-native-f7-donor-r1-abc12")
+        self.assertEqual(source["podRef"]["name"], "diffdock-native-f7-donor-r2-abc12")
         self.assertEqual(
             source["podRef"]["uid"],
             "11111111-1111-4111-8111-111111111111",

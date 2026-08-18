@@ -4,8 +4,8 @@ set -euo pipefail
 umask 077
 
 readonly allowed_server="https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebius.cloud:443"
-readonly expected_contract_sha256="17118030539466a256202ca39c41ec9b27c2a24e1a39c2837fa6f4d802b556ba"
-readonly expected_validator_sha256="242db369ca6b0194789d307aa2c424c52d3728196976a138b2972289cb4452fd"
+readonly expected_contract_sha256="be3e0b5ca62660f462e088346556cdf732046e09d12ce608c07648a693788360"
+readonly expected_validator_sha256="e7c21e7d654518b410d2e549d167aad5035c306c7c649db073899380379b76f9"
 readonly expected_fixture_sha256="f58c2b74f534529a3b7e5cdd1410e8df33a25cee64a988a62170c5c69ca80977"
 readonly trial_namespace="nim-fast-start"
 
@@ -33,7 +33,7 @@ usage: run_provisioned_trial.sh \
   --node ALLOWED_H100_HOSTNAME \
   --kubeconfig ABSOLUTE_FILE \
   --artifact-holder READY_POD \
-  --checkpoint-id diffdock-native-f7-v1|diffdock-native-f7-v2-rootfsless \
+  --checkpoint-id diffdock-native-f7-v1|diffdock-native-f7-v2-rootfsless|diffdock-native-f7-v3-buffered \
   --target-glibc-version MAJOR.MINOR \
   --artifact-manifest-sha256 CAPTURED_64_HEX_SHA256 [--cleanup]
 USAGE
@@ -141,7 +141,7 @@ if [[ $trial_holder != "diffdock-native-f7-holder-hf93" ]]; then
   die_usage "--artifact-holder must name the pinned DiffDock artifact holder"
 fi
 case "$trial_checkpoint_id" in
-  diffdock-native-f7-v1|diffdock-native-f7-v2-rootfsless)
+  diffdock-native-f7-v1|diffdock-native-f7-v2-rootfsless|diffdock-native-f7-v3-buffered)
     ;;
   *)
     die_usage "--checkpoint-id is not an exact prepared DiffDock artifact"
