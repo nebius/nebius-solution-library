@@ -1,9 +1,10 @@
 # BioNeMo NIM fast start v2
 
 This subtree contains live production-shaped OpenFold2, Boltz2, ProteinMPNN,
-and DiffDock results, plus offline-prepared OpenFold3, MSA Search, Evo2-40B,
-and GenMol
-checkpoint/restore paths:
+DiffDock, and OpenFold3 results, plus offline-prepared MSA Search, Evo2-40B,
+GenMol, RFdiffusion, and MolMIM checkpoint/restore paths. The shared metric
+contract and current ten-model matrix are in
+`performance/COLD_START_METRICS.md`:
 
 - `native-capture/` creates the qualified native Dynamo artifact;
 - `phase2-agent/` reproduces the generic one-shot restore-worker image;
@@ -22,9 +23,10 @@ checkpoint/restore paths:
   retained-page-cache buffered n=3 result; and
 - `diffdock-native/` contains the DiffDock capture inputs, strict 1UBQ+aspirin
   validator, direct canary, and winning buffered n=3 result;
-- `openfold3-native/` and `msa-search-native/` contain complete offline capture,
-  direct/buffered, early-probe, and n=3 execution lanes pending live slots and
-  the final worker-release receipt; and
+- `openfold3-native/` contains the completed native capture, direct canary, and
+  winning fully prewarmed buffered n=3 result;
+- `msa-search-native/` contains the complete offline capture, direct/buffered,
+  early-probe, and n=3 execution lane pending live qualification; and
 - `evo2-native/` pins the exact Evo2 image and single-H200 profile, native
   capture workflow, direct/buffered artifact candidates, early external
   two-call semantic probe, and n=3 runner. H200 capture and live qualification
@@ -32,7 +34,10 @@ checkpoint/restore paths:
 - `genmol-native/` contains the offline GenMol native-capture lane, frozen
   RDKit QED/LogP two-call contract, scheduler-created target, direct and true
   legacy-buffered candidates, and n=3 aggregation. Historical page-cache
-  timings are retained only as non-production-shaped comparators.
+  timings are retained only as non-production-shaped comparators; and
+- `rfdiffusion-native/` and `molmim-native/` contain the corresponding strict
+  native capture, buffered/direct comparison, and production-shaped n=3 lanes
+  pending live qualification.
 
 All renderer and verifier entry points are offline. Live work requires an
 explicit invocation of either `dynamo/run_provisioned_trial.sh` or
