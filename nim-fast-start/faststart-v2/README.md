@@ -1,7 +1,8 @@
 # BioNeMo NIM fast start v2
 
 This subtree contains live production-shaped OpenFold2, Boltz2, ProteinMPNN,
-and DiffDock results, plus offline-prepared OpenFold3, MSA Search, and Evo2-40B
+and DiffDock results, plus offline-prepared OpenFold3, MSA Search, Evo2-40B,
+and GenMol
 checkpoint/restore paths:
 
 - `native-capture/` creates the qualified native Dynamo artifact;
@@ -27,7 +28,11 @@ checkpoint/restore paths:
 - `evo2-native/` pins the exact Evo2 image and single-H200 profile, native
   capture workflow, direct/buffered artifact candidates, early external
   two-call semantic probe, and n=3 runner. H200 capture and live qualification
-  remain explicitly deferred.
+  remain explicitly deferred; and
+- `genmol-native/` contains the offline GenMol native-capture lane, frozen
+  RDKit QED/LogP two-call contract, scheduler-created target, direct and true
+  legacy-buffered candidates, and n=3 aggregation. Historical page-cache
+  timings are retained only as non-production-shaped comparators.
 
 All renderer and verifier entry points are offline. Live work requires an
 explicit invocation of either `dynamo/run_provisioned_trial.sh` or
