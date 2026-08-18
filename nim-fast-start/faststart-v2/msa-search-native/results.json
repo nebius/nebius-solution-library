@@ -1,0 +1,108 @@
+{
+  "schema": "archvteams.nebius.ai/msa-search-faststart-results/v1",
+  "status": "PASS",
+  "measured_at": "2026-08-18",
+  "cluster": "mk8scluster-e00en4dkk80w2d09c0",
+  "node": "computeinstance-e00hf93cfnsgaxygn3",
+  "gpu": "NVIDIA H100",
+  "nim_image": "nvcr.io/nim/colabfold/msa-search@sha256:944f3cf845761be8e42b33147ae08b68c61eca7cad67bf5251e1708d03c0165c",
+  "selected_route": "conventional-cache-attached-prewarmed",
+  "measurement_contract": {
+    "t0": "timestamp written on the line immediately before target creation on an already provisioned H100 with storage attached",
+    "readiness": "first successful application HTTP readiness response",
+    "call_1": "first strict PDB70 inference after application readiness, including deferred loading",
+    "call_2": "immediate second strict, distinct PDB70 inference",
+    "through_call_2": "T0 through completion of the second inference",
+    "kubernetes_ready": "separate diagnostic; never substituted for application HTTP readiness"
+  },
+  "conventional_cached_n3": {
+    "batch_id": "msa-conv-f7c",
+    "status": "PASS",
+    "trial_count": 3,
+    "semantic_call_count": 6,
+    "strict_semantic_calls_per_trial": 2,
+    "distinct_pdb70_queries_per_trial": true,
+    "mmseqs_pipe_pass_count": 3,
+    "storage": {
+      "pvc": "msa-search-native-f7-cache",
+      "state_at_t0": "Bound, attached on the target node, and held by a CPU-only Pod",
+      "prewarm_outside_t0": true,
+      "unique_regular_file_count": 13,
+      "unique_prewarm_bytes": 112682799,
+      "pdb70_index_bytes": 69500928,
+      "content_stream_sha256": "416efa6571423414a0fb46e8739bfa1202b5885122ce2e6cb280a00607bd4062"
+    },
+    "demand_to_http_ready_seconds": {
+      "values": [5.128253, 5.000388, 5.071461],
+      "min": 5.000388,
+      "median": 5.071461,
+      "max": 5.128253
+    },
+    "semantic_request_1_seconds": {
+      "values": [0.04084, 0.04072, 0.0407],
+      "min": 0.0407,
+      "median": 0.04072,
+      "max": 0.04084
+    },
+    "semantic_request_2_seconds": {
+      "values": [0.031083, 0.030818, 0.031058],
+      "min": 0.030818,
+      "median": 0.031058,
+      "max": 0.031083
+    },
+    "demand_to_second_response_seconds": {
+      "values": [5.201905, 5.073655, 5.144951],
+      "min": 5.073655,
+      "median": 5.144951,
+      "max": 5.201905
+    },
+    "demand_to_kubernetes_ready_seconds": {
+      "values": [4.831026, 4.687398, 4.704828],
+      "min": 4.687398,
+      "median": 4.704828,
+      "max": 4.831026
+    }
+  },
+  "native_checkpoint": {
+    "status": "EXCLUDED_NON_PROMOTABLE",
+    "checkpoint_id": "msa-search-native-f7-v1",
+    "artifact_version": "1",
+    "manifest_sha256": "e2d2b9f44e5f3c75c5504b45b2872ff6e04f0edb84839eb64eeedff5116d280e",
+    "regular_file_count": 70,
+    "regular_file_bytes": 1720415425,
+    "restore_worker_seconds_observed": [14.472, 14.429, 14.422],
+    "counted_trials": 0,
+    "reason": "The donor captured /opt/nim/workspace as emptyDir, while the qualified target used the final cache PVC. MMseqs shared-memory identity is derived from the canonical database path; a compatibility symlink changed the token and caused ungappedprefilter to wait on a different server. No native attempt passed strict inference semantics.",
+    "required_fix": "Capture a fresh checkpoint with the final cache PVC mounted identically at /opt/nim/.cache and /opt/nim/workspace, then qualify with identical target mounts."
+  },
+  "setup_exclusions": [
+    "14-CPU donor and target requests were unschedulable; requests were aligned to the tested 10 CPUs",
+    "initial non-root holders could not traverse the root-owned 0700 capture tree",
+    "an initial conventional ConfigMap fixture was a projected symlink and was replaced by a regular-file staging copy",
+    "native missing-path, symlink-token, and CPU-capacity attempts produced no counted timing"
+  ],
+  "cleanup": {
+    "audited_at": "2026-08-18T08:02:44Z",
+    "temporary_conventional_cache_holder_removed": true,
+    "counted_run_jobs_remaining": 0,
+    "active_gpu_request_total_on_node": 0,
+    "retained": [
+      "PodSnapshotContent/msa-search-native-f7-v1-direct-hf93 Ready",
+      "Pod/msa-search-native-f7-holder-root-hf93 Running",
+      "PersistentVolumeClaim/msa-search-native-f7-artifacts Bound",
+      "PersistentVolumeClaim/msa-search-native-f7-cache Bound"
+    ]
+  },
+  "evidence": {
+    "raw_root": "/home/tux/.local/state/archvteams-2407/msa-search-native-f7-20260818T065544Z",
+    "aggregate_path": "/home/tux/.local/state/archvteams-2407/msa-search-native-f7-20260818T065544Z/conventional-n3-final-v2/aggregate.json",
+    "aggregate_sha256": "2695626bd973b1a2dd7a55055a90bbba6e58593d09fdd5ea808af104805b2f7e",
+    "cache_holder_receipt_sha256": "7d04ebeaa890d272545d613424058156e59c4c59118e9614cf3fa29467e9c3a0",
+    "trial_result_sha256": {
+      "msa-conv-f7c-r1": "5eca7a529547aa48e71266f9aa371f3d39d6f3339e37cad395aeaae5932bfa92",
+      "msa-conv-f7c-r2": "c47ec8a67379d4a832a57c050c89817f8293d5c98d8e44c22d2e96e7b1c40eed",
+      "msa-conv-f7c-r3": "7e58b097493c1ed48bd4aabe05ce2fca64b7e7e67dc01dcd4c5a76af923b3d92"
+    },
+    "native_artifact_receipt_sha256": "d59eb0d962d49a8584b249340b8dc4e357db38b8fe5fdae62d1190c5f1050b06"
+  }
+}

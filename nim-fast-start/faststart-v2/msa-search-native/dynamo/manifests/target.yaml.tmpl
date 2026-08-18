@@ -68,7 +68,7 @@ spec:
           protocol: TCP
       resources:
         requests:
-          cpu: "14"
+          cpu: "10"
           memory: 128Gi
           nvidia.com/gpu: "1"
         limits:
@@ -105,8 +105,9 @@ spec:
         - name: nim-cache
           mountPath: /opt/nim/.cache
           readOnly: true
-        - name: workspace
+        - name: nim-cache
           mountPath: /opt/nim/workspace
+          readOnly: true
         - name: output
           mountPath: /output
         - name: snapshot-control
@@ -124,9 +125,6 @@ spec:
       persistentVolumeClaim:
         claimName: "@@CACHE_PVC@@"
         readOnly: true
-    - name: workspace
-      emptyDir:
-        sizeLimit: 8Gi
     - name: output
       emptyDir:
         sizeLimit: 1Gi

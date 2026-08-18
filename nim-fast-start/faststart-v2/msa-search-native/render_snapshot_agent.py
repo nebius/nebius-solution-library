@@ -54,9 +54,26 @@ def render(contract: dict[str, Any], *, require_release: bool = True) -> dict[st
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--contract", type=Path, required=True)
+    parser.add_argument(
+        "--allow-performance-validation-worker",
+        action="store_true",
+        help="explicitly allow the pinned performance-validation-only worker",
+    )
     args = parser.parse_args()
     try:
-        document = render(_contract(args.contract), require_release=True)
+        contract = _contract(args.contract)
+        if args.allow_performance_validation_worker:
+            if (
+                contract["release_ready"] is not False
+                or contract["worker_classification"] != "performance-validation-only"
+                or not contract["release_blocker"]
+            ):
+                raise RenderError(
+                    "performance-validation acknowledgement does not match the contract"
+                )
+            document = render(contract, require_release=False)
+        else:
+            document = render(contract, require_release=True)
     except RenderError as exc:
         print(f"render_snapshot_agent: refused: {exc}", file=sys.stderr)
         return 2

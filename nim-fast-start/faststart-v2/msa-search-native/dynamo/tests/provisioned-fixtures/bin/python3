@@ -43,6 +43,8 @@ case "$script_name" in
     ;;
   evidence.py)
     run_config=$(option_value --run-config "$@")
+    target_submit_at=$(option_value --target-submit-at "$@")
+    [[ -s $target_submit_at ]] || exit 96
     run_id=$(/usr/bin/jq -er '.run_id' "$run_config")
     printf '%s\n' "python-evidence" >> "$FAKE_CALL_LOG"
     /usr/bin/jq -n --arg run_id "$run_id" '{

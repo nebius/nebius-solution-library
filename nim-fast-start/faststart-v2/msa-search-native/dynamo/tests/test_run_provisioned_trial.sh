@@ -31,7 +31,7 @@ export PATH="${fixture_bin}:${PATH}"
 export FAKE_CALL_LOG="${test_tmp}/calls.log"
 export FAKE_EXPECTED_KUBECONFIG="${test_tmp}/kubeconfig.yaml"
 export FAKE_NODE="computeinstance-e00hf93cfnsgaxygn3"
-export FAKE_HOLDER_NAME="msa-search-native-f7-holder-hf93"
+export FAKE_HOLDER_NAME="msa-search-native-f7-holder-root-hf93"
 export FAKE_SERVER="https://pu.mk8scluster-e00en4dkk80w2d09c0.mk8s.eu-north1.nebius.cloud:443"
 export FAKE_HOLDER_READY=true
 export FAKE_PIPE_OK=true
@@ -78,6 +78,21 @@ fi
 rg -q 'not deployable' "${test_tmp}/unreleased.stderr" || \
   fail "release-gate refusal was not explicit"
 pass "shipped performance-validation candidate is blocked before any Kubernetes call"
+
+: > "$FAKE_CALL_LOG"
+"$source_runner" --run-id acknowledged-performance "${runner_args[@]}" \
+  --allow-performance-validation-worker --cleanup \
+  > "${test_tmp}/acknowledged.stdout" 2> "${test_tmp}/acknowledged.stderr" || {
+    sed -n '1,160p' "${test_tmp}/acknowledged.stderr" >&2
+    fail "explicitly acknowledged performance-validation run failed"
+  }
+acknowledged_dir="${test_tmp}/evidence/runs/acknowledged-performance"
+[[ $(/usr/bin/jq -r '.release_ready' "$acknowledged_dir/restore-interface.json") == "false" ]] || \
+  fail "acknowledged run did not retain release_ready=false"
+[[ $(/usr/bin/jq -r '.worker_classification' "$acknowledged_dir/restore-interface.json") == \
+   "performance-validation-only" ]] || \
+  fail "acknowledged run did not retain the performance-only classification"
+pass "explicit acknowledgement runs only the pinned performance-validation contract"
 
 bad_glibc_args=("${runner_args[@]}")
 for ((argument_index = 0; argument_index < ${#bad_glibc_args[@]}; argument_index++)); do
@@ -166,6 +181,18 @@ ready_wait_line=$(rg -n '^wait-target-ready$' "$FAKE_CALL_LOG" | cut -d: -f1)
   fail "target namespace pipe check was not executed exactly once"
 [[ $(rg -c '^python-evidence$' "$FAKE_CALL_LOG") == "1" ]] || \
   fail "evidence was not generated exactly once"
+[[ -s $run_dir/target-submit-at.txt ]] || fail "submit-edge timestamp was not retained"
+target_submit_line=$(rg -n '^create:target.yaml$' "$FAKE_CALL_LOG" | cut -d: -f1)
+[[ -n $target_submit_line ]] || fail "target create was not logged"
+rg -q -- '--target-submit-at' "$runner" || \
+  fail "evidence collector does not receive the submit-edge timestamp"
+source_submit_line=$(rg -n 'target-submit-at\.txt"$' "$source_runner" | cut -d: -f1)
+source_create_line=$(rg -n '^"\$\{trial_kubectl\[@\]\}" create -f "\$trial_dir/target\.yaml"$' \
+  "$source_runner" | cut -d: -f1)
+[[ -n $source_submit_line && -n $source_create_line ]] || \
+  fail "source runner lacks the submit-edge/create pair"
+((source_create_line == source_submit_line + 1)) || \
+  fail "submit-edge timestamp is not immediately adjacent to target creation"
 pass "probe creation overlaps restore and evidence is generated once"
 
 expected_cleanup=$'delete:semantic-probe.yaml\ndelete:restore-worker.yaml\ndelete:target.yaml'

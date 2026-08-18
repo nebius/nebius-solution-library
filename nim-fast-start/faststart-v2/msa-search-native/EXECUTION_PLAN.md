@@ -1,11 +1,21 @@
-# Deferred MSA Search native capture and qualification plan
+# MSA Search native recapture and qualification plan
 
-These commands were not executed during offline preparation. Run them only
-after `dynamo/restore-interface.live.json` has been replaced with an immutable
-full `agent` compliance release contract. The integrated portable-plus-buffered
-image currently pinned there is performance-validation-only because the exact
-Jammy CUDA base still needs a baseline SBOM. The shipped contract closes the
-gate, and the first renderer below fails before any Kubernetes command.
+The 2026-08-18 live lane selected the cached conventional route recorded in
+`results.json`. Checkpoint `msa-search-native-f7-v1` is non-promotable: its
+donor used an `emptyDir` workspace, so it cannot be qualified against the final
+cache-PVC topology. Do not retry, buffer, or promote v1. The commands below are
+the retained procedure for a **fresh checkpoint ID** after donor and target use
+identical final mounts at `/opt/nim/.cache` and `/opt/nim/workspace`.
+The literal v1 names below document the completed attempt and are retained for
+auditability; they must be replaced consistently with new run-scoped names
+before a recapture. Do not run this file verbatim against the retained v1
+objects.
+
+The integrated portable-plus-buffered worker pinned in
+`dynamo/restore-interface.live.json` remains performance-validation-only. The
+normal release gate stays closed; an explicitly acknowledged performance run
+uses `--allow-performance-validation-worker` and cannot establish release
+approval.
 
 Use one shell for the complete procedure so `set -Eeuo pipefail` makes every
 failed identity or semantic check terminal.
@@ -27,7 +37,7 @@ Do not open the gate on the performance-validation-only image. Then run:
 set -Eeuo pipefail
 umask 077
 
-export MSA_LANE=/home/tux/worktrees/archvteams-2407-msa-native-prep/nim-fast-start/faststart-v2/msa-search-native
+export MSA_LANE=/home/tux/worktrees/archvteams-2407-faststart-production/nim-fast-start/faststart-v2/msa-search-native
 export MSA_KUBECONFIG=/home/tux/.local/state/archvteams-2407/openfold2-snapshot/private/kubeconfig
 export MSA_NODE=computeinstance-e00hf93cfnsgaxygn3
 export MSA_EVIDENCE=/home/tux/.local/state/archvteams-2407/msa-search-native-f7-$(date -u +%Y%m%dT%H%M%SZ)
@@ -197,9 +207,9 @@ artifact.
 kubectl --kubeconfig "$MSA_KUBECONFIG" -n nim-fast-start create \
   -f "$MSA_LANE/artifact-holder.yaml"
 kubectl --kubeconfig "$MSA_KUBECONFIG" -n nim-fast-start wait \
-  --for=condition=Ready pod/msa-search-native-f7-holder-hf93 --timeout=1800s
+  --for=condition=Ready pod/msa-search-native-f7-holder-root-hf93 --timeout=1800s
 kubectl --kubeconfig "$MSA_KUBECONFIG" -n nim-fast-start logs \
-  msa-search-native-f7-holder-hf93 | tail -n 1 \
+  msa-search-native-f7-holder-root-hf93 | tail -n 1 \
   > "$MSA_EVIDENCE/artifact-direct-receipt.json"
 MSA_DIRECT_MANIFEST=$(jq -er '
   select(.schema == "archvteams.nebius.ai/msa-search-native-artifact-receipt/v1") |
@@ -227,7 +237,7 @@ and binding objects.
   --evidence-root "$MSA_EVIDENCE" \
   --node "$MSA_NODE" \
   --kubeconfig "$MSA_KUBECONFIG" \
-  --artifact-holder msa-search-native-f7-holder-hf93 \
+  --artifact-holder msa-search-native-f7-holder-root-hf93 \
   --checkpoint-id msa-search-native-f7-v1 \
   --target-glibc-version "$MSA_TARGET_GLIBC" \
   --image-io-mode direct \
@@ -268,10 +278,10 @@ jq -e '
 kubectl --kubeconfig "$MSA_KUBECONFIG" -n nim-fast-start create \
   -f "$MSA_LANE/artifact-holder-buffered.yaml"
 kubectl --kubeconfig "$MSA_KUBECONFIG" -n nim-fast-start wait \
-  --for=condition=Ready pod/msa-search-native-f7-buffered-holder-hf93 \
+  --for=condition=Ready pod/msa-search-native-f7-buffered-holder-root-hf93 \
   --timeout=1800s
 kubectl --kubeconfig "$MSA_KUBECONFIG" -n nim-fast-start logs \
-  msa-search-native-f7-buffered-holder-hf93 | tail -n 1 \
+  msa-search-native-f7-buffered-holder-root-hf93 | tail -n 1 \
   > "$MSA_EVIDENCE/artifact-buffered-receipt.json"
 MSA_BUFFERED_MANIFEST=$(jq -er '
   select(.schema == "archvteams.nebius.ai/msa-search-native-artifact-receipt/v1") |
@@ -288,7 +298,7 @@ test "$MSA_BUFFERED_MANIFEST" = \
   --evidence-root "$MSA_EVIDENCE" \
   --node "$MSA_NODE" \
   --kubeconfig "$MSA_KUBECONFIG" \
-  --artifact-holder msa-search-native-f7-buffered-holder-hf93 \
+  --artifact-holder msa-search-native-f7-buffered-holder-root-hf93 \
   --checkpoint-id msa-search-native-f7-v2-buffered \
   --target-glibc-version "$MSA_TARGET_GLIBC" \
   --image-io-mode buffered \
@@ -307,7 +317,7 @@ reports `PASS`.
   --evidence-root "$MSA_EVIDENCE" \
   --node "$MSA_NODE" \
   --kubeconfig "$MSA_KUBECONFIG" \
-  --artifact-holder msa-search-native-f7-buffered-holder-hf93 \
+  --artifact-holder msa-search-native-f7-buffered-holder-root-hf93 \
   --checkpoint-id msa-search-native-f7-v2-buffered \
   --target-glibc-version "$MSA_TARGET_GLIBC" \
   --image-io-mode buffered \

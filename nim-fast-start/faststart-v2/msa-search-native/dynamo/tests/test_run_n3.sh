@@ -21,11 +21,12 @@ args=(
   --evidence-root "$test_tmp/evidence"
   --node computeinstance-e00hf93cfnsgaxygn3
   --kubeconfig "$test_tmp/kubeconfig"
-  --artifact-holder msa-search-native-f7-holder-hf93
+  --artifact-holder msa-search-native-f7-holder-root-hf93
   --checkpoint-id msa-search-native-f7-v1
   --target-glibc-version 2.35
   --image-io-mode direct
   --artifact-manifest-sha256 "$(printf 'a%.0s' {1..64})"
+  --allow-performance-validation-worker
   --cleanup
 )
 
@@ -36,6 +37,14 @@ summary="$test_tmp/evidence/n3-msa-ut-direct.json"
 [[ $(jq -r '.request_count' "$summary") == 6 ]]
 [[ $(jq -r '.mmseqs_pipe_pass_count' "$summary") == 3 ]]
 [[ $(jq -r '.statistics_seconds.demand_to_two_semantic_median' "$summary") == 20.0 ]]
+[[ $(jq -r '.statistics_seconds.demand_to_http_ready_median' "$summary") == 15.0 ]]
+[[ $(jq -r '.statistics_seconds.demand_to_http_ready_min' "$summary") == 14.0 ]]
+[[ $(jq -r '.statistics_seconds.demand_to_http_ready_max' "$summary") == 16.0 ]]
+[[ $(jq -r '.statistics_seconds.demand_to_kubernetes_ready_median' "$summary") == 13.0 ]]
+[[ $(jq -r '.statistics_seconds.demand_to_kubernetes_ready_min' "$summary") == 12.0 ]]
+[[ $(jq -r '.statistics_seconds.demand_to_kubernetes_ready_max' "$summary") == 14.0 ]]
+[[ $(jq -r '.statistics_seconds.semantic_request_1_median' "$summary") == 3.0 ]]
+[[ $(jq -r '.statistics_seconds.semantic_request_2_median' "$summary") == 2.0 ]]
 [[ $(jq -r '.statistics_seconds.worker_restore_median' "$summary") == 4.0 ]]
 [[ $(wc -l < "$FAKE_N3_LOG") == 3 ]]
 [[ $(cut -d' ' -f1 "$FAKE_N3_LOG" | paste -sd, -) == msa-ut-r1,msa-ut-r2,msa-ut-r3 ]]

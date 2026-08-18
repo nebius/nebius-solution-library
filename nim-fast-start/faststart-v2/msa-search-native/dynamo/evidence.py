@@ -42,6 +42,17 @@ def _load(path: Path, label: str) -> Any:
         raise EvidenceError(f"cannot read {label} JSON: {type(exc).__name__}") from exc
 
 
+def _load_timestamp_text(path: Path, label: str) -> str:
+    if path.is_symlink() or not path.is_file():
+        raise EvidenceError(f"{label} must be a regular non-symlink file")
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise EvidenceError(f"cannot read {label}: {type(exc).__name__}") from exc
+    _timestamp(value, label)
+    return value
+
+
 def _object(value: Any, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise EvidenceError(f"{label} must be a JSON object")
@@ -66,6 +77,17 @@ def _seconds(start: datetime, finish: datetime, label: str) -> float:
     if result < 0:
         raise EvidenceError(f"{label} has reversed timestamps")
     return round(result, 6)
+
+
+def _kubernetes_not_before(
+    value: datetime, floor: datetime, label: str
+) -> datetime:
+    """Normalize only a sub-second inversion from Kubernetes second precision."""
+    if value >= floor:
+        return value
+    if (floor - value).total_seconds() < 1:
+        return floor
+    raise EvidenceError(f"{label} precedes its required phase by at least one second")
 
 
 def _condition_time(pod: dict[str, Any], kind: str, required_status: str = "True") -> datetime:
@@ -129,7 +151,9 @@ def _only_job_container(job: dict[str, Any], name: str, label: str) -> dict[str,
     return matches[0]
 
 
-def _validate_semantics(summary: dict[str, Any], run_id: str) -> tuple[datetime, list[float]]:
+def _validate_semantics(
+    summary: dict[str, Any], run_id: str
+) -> tuple[datetime, datetime, list[float]]:
     if (
         summary.get("schema_version") != 1
         or summary.get("validator") != "msa-search-pdb70-faststart-semantic-v1"
@@ -201,13 +225,21 @@ def _validate_semantics(summary: dict[str, Any], run_id: str) -> tuple[datetime,
         response_sha256.append(case["response_sha256"])
     if len(set(response_sha256)) != 2:
         raise EvidenceError("distinct PDB70 queries returned an identical response")
-    return _timestamp(summary.get("finished_at"), "second semantic completion"), elapsed
+    semantic_started = _timestamp(summary.get("started_at"), "semantic probe start")
+    http_ready = _timestamp(summary.get("ready_at"), "successful HTTP readiness")
+    semantic_finished = _timestamp(
+        summary.get("finished_at"), "second semantic completion"
+    )
+    if not semantic_started <= http_ready <= semantic_finished:
+        raise EvidenceError("HTTP readiness is outside the semantic probe interval")
+    return http_ready, semantic_finished, elapsed
 
 
 def build_evidence(
     *,
     contract: dict[str, Any],
     run: dict[str, Any],
+    target_submit_at: str,
     binding: dict[str, Any],
     target: dict[str, Any],
     service: dict[str, Any],
@@ -266,11 +298,25 @@ def build_evidence(
     ):
         raise EvidenceError("target container identity changed after binding")
 
-    demand = _timestamp(run["demand_at"], "demand_at")
+    orchestration_started = _timestamp(
+        run["demand_at"], "run orchestration timestamp"
+    )
+    demand = _timestamp(target_submit_at, "target submit timestamp")
+    if demand < orchestration_started:
+        raise EvidenceError("target submit timestamp precedes run orchestration")
     target_created = _timestamp(target_metadata.get("creationTimestamp"), "target creation")
     scheduled = _condition_time(target, "PodScheduled")
     ready = _condition_time(target, "Ready")
     placeholder_started, _ = _container_times(target, "msa-search", "target Pod")
+    target_created_for_order = _kubernetes_not_before(
+        target_created, demand, "target creation"
+    )
+    scheduled_for_order = _kubernetes_not_before(
+        scheduled, target_created_for_order, "Pod scheduling"
+    )
+    placeholder_started_for_order = _kubernetes_not_before(
+        placeholder_started, scheduled_for_order, "placeholder start"
+    )
 
     service_name = f"msa-canary-{run_id}"
     service_metadata = _object(service.get("metadata"), "Service metadata")
@@ -410,7 +456,9 @@ def build_evidence(
     probe_started, probe_finished = _container_times(probe_pod, "semantic-probe", "probe Pod")
     if probe_finished is None:
         raise EvidenceError("semantic probe container has not completed")
-    semantic_finished, case_elapsed = _validate_semantics(semantic_summary, run_id)
+    http_ready, semantic_finished, case_elapsed = _validate_semantics(
+        semantic_summary, run_id
+    )
     expected_origin = f"http://{service_name}:8000"
     expected_path = "/biology/colabfold/msa-search/predict"
     if (
@@ -422,33 +470,21 @@ def build_evidence(
     ):
         raise EvidenceError("semantic summary is not bound to the exact canary Service endpoint")
 
-    # Kubernetes condition timestamps are serialized to whole seconds, while
-    # the worker receipt retains nanoseconds.  If readiness flips later in the
-    # same wall-clock second as restore completion, its truncated timestamp can
-    # appear slightly earlier.  Tolerate only that sub-second quantization; a
-    # gap of one second or more remains an ordering failure.
-    ready_for_order = ready
-    if ready < receipt_completed:
-        if (receipt_completed - ready).total_seconds() >= 1:
-            raise EvidenceError("canary phase timestamps are not monotonically ordered")
-        ready_for_order = receipt_completed
-
     target_order = [
         demand,
-        target_created,
-        scheduled,
-        placeholder_started,
+        target_created_for_order,
+        scheduled_for_order,
+        placeholder_started_for_order,
     ]
     restore_order = [
-        placeholder_started,
+        placeholder_started_for_order,
         worker_started,
         receipt_completed,
-        ready_for_order,
-        semantic_finished,
     ]
     probe_order = [
-        placeholder_started,
+        placeholder_started_for_order,
         probe_started,
+        http_ready,
         semantic_finished,
     ]
     if any(
@@ -466,7 +502,9 @@ def build_evidence(
         "run_id": run_id,
         "request_count": 2,
         "semantic_pass_count": 2,
-        "demand_at": run["demand_at"],
+        "demand_at": target_submit_at,
+        "demand_clock_source": "target-submit-at-immediately-before-create",
+        "orchestration_started_at": run["demand_at"],
         "artifact": {
             "checkpoint_id": run["checkpoint_id"],
             "version": run["artifact_version"],
@@ -485,16 +523,23 @@ def build_evidence(
             "cluster_ip": service_spec["clusterIP"],
         },
         "timings_seconds": {
-            "demand_to_target_created": _seconds(demand, target_created, "target creation"),
-            "demand_to_scheduled": _seconds(demand, scheduled, "scheduling"),
+            "demand_to_target_created": _seconds(
+                demand, target_created_for_order, "target creation"
+            ),
+            "demand_to_scheduled": _seconds(
+                demand, scheduled_for_order, "scheduling"
+            ),
             "demand_to_placeholder_running": _seconds(
-                demand, placeholder_started, "placeholder start"
+                demand, placeholder_started_for_order, "placeholder start"
             ),
             "demand_to_worker_started": _seconds(demand, worker_started, "worker start"),
             "demand_to_restore_receipt": _seconds(
                 demand, receipt_completed, "restore receipt"
             ),
-            "demand_to_http_ready": _seconds(demand, ready, "HTTP readiness"),
+            "demand_to_http_ready": _seconds(demand, http_ready, "HTTP readiness"),
+            "demand_to_kubernetes_ready": _seconds(
+                demand, ready, "Kubernetes Pod readiness"
+            ),
             "demand_to_two_semantic_responses": _seconds(
                 demand, semantic_finished, "two semantic responses"
             ),
@@ -523,6 +568,7 @@ def build_evidence(
             "worker_job_completed_at": worker_completed.isoformat(),
             "probe_job_completed_at": probe_completed.isoformat(),
             "semantic_finished_at": semantic_summary["finished_at"],
+            "http_ready_at": semantic_summary["ready_at"],
             "validator": semantic_summary["validator"],
         },
     }
@@ -530,6 +576,7 @@ def build_evidence(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--target-submit-at", type=Path, required=True)
     for name in (
         "run-config",
         "contract",
@@ -554,6 +601,9 @@ def main(argv: list[str] | None = None) -> int:
         receipt = build_evidence(
             contract=_object(_load(args.contract, "contract"), "contract"),
             run=_object(_load(args.run_config, "run config"), "run config"),
+            target_submit_at=_load_timestamp_text(
+                args.target_submit_at, "target submit timestamp"
+            ),
             binding=_object(_load(args.binding, "binding"), "binding"),
             target=_object(_load(args.target_pod, "target Pod"), "target Pod"),
             service=_object(_load(args.service, "Service"), "Service"),

@@ -1,126 +1,108 @@
-# MSA Search production-shaped native fast-start lane
+# MSA Search fast-start lane
 
-Status: the offline implementation is complete. Native capture and live
-qualification have not run. The checked-in worker contract deliberately closes
-the live gate until a full `agent` compliance release is built after the exact
-Jammy CUDA base receives a baseline SBOM.
+Status: **qualified** on 2026-08-18. The selected route is a conventional NIM
+start from an already attached, fully prewarmed cache PVC. It passed three
+independent H100 trials and six strict PDB70 calls. The first native checkpoint
+was captured successfully but is explicitly excluded as non-promotable because
+its donor and restore-target database topologies differed.
 
-## Frozen MSA Search identity
+The machine-readable record is `results.json`. Raw evidence is retained under
+`/home/tux/.local/state/archvteams-2407/msa-search-native-f7-20260818T065544Z`.
+
+## Selected result
+
+The measurement ran on the already provisioned H100 node
+`computeinstance-e00hf93cfnsgaxygn3`. T0 is the timestamp written on the line
+immediately before creating each target. Storage attachment and cache prewarm
+are deliberately outside T0. Application readiness is the first successful
+HTTP readiness response; Kubernetes Ready is reported separately and is never
+used as a substitute.
+
+| Metric, seconds | Median | Min | Max |
+|---|---:|---:|---:|
+| T0 to application HTTP ready | 5.071461 | 5.000388 | 5.128253 |
+| First strict inference | 0.040720 | 0.040700 | 0.040840 |
+| Second strict inference | 0.031058 | 0.030818 | 0.031083 |
+| T0 through second inference | 5.144951 | 5.073655 | 5.201905 |
+| T0 to Kubernetes Ready, diagnostic | 4.704828 | 4.687398 | 4.831026 |
+
+The retained storage receipt proves that `msa-search-native-f7-cache` was
+Bound, attached on the target node, and held by a CPU-only Pod before every
+T0. The holder read 112,682,799 bytes across 13 unique regular inodes before
+the trials. This unique-inode count avoids double-counting the NGC snapshot
+symlink and blob target. The PDB70 index itself is 69,500,928 bytes.
+
+Every counted trial used exactly two distinct requests against
+`/biology/colabfold/msa-search/predict`. A PASS required HTTP 200, database
+`pdb70_220313`, search type `colabfold`, A3M output, exactly 128 records,
+exactly 127 non-query homologs, exact query echo, distinct response digests,
+and an in-target proof that MMseqs fd 1 and API-worker fd 24 referred to the
+same pipe. All three trials passed these checks.
+
+## Frozen identity
 
 - NIM image:
   `nvcr.io/nim/colabfold/msa-search@sha256:944f3cf845761be8e42b33147ae08b68c61eca7cad67bf5251e1708d03c0165c`
-- Qualification node: `computeinstance-e00hf93cfnsgaxygn3`, one NVIDIA H100.
-- Direct checkpoint: `msa-search-native-f7-v1`, artifact version `1`.
-- Buffered candidate: `msa-search-native-f7-v2-buffered`, artifact version `1`.
-- Prediction route: `/biology/colabfold/msa-search/predict`.
-- Fixture: `fixtures/request-pdb70.json`, 213 bytes, SHA-256
-  `874b0e5e3be9776ea289fb46444032e04b63875d9d4110f1560e5435de72686a`.
-- Validator SHA-256:
-  `4ac58960c881f748dd1340288d1fa97f6d722a1be26c71c321f681a2c252bdee`.
+- Model profile:
+  `ad5086cc67393792e71fa57444f13eaff8425658e8fb5feea07070ca3b2d34bb`
+- Fixture: `fixtures/request-pdb70.json`, SHA-256
+  `874b0e5e3be9776ea289fb46444032e04b63875d9d4110f1560e5435de72686a`
+- Strict validator SHA-256:
+  `4ac58960c881f748dd1340288d1fa97f6d722a1be26c71c321f681a2c252bdee`
+- MMseqs pipe validator SHA-256:
+  `29f45a3c0d7197b5ad0757174666b1f6a8e11f2e3dd7cc54d63fc71fb030ad23`
 
-The fixture is the retained 76-residue PDB70 request. Every qualification
-trial makes exactly two actual HTTP calls: the retained query beginning `M`
-and the retained one-residue mutant beginning `A`. A PASS requires HTTP 200,
-the exact `pdb70_220313`/`colabfold` response shape, exactly 128 A3M records,
-exactly 127 non-query homologs, and exact query echo for each distinct input.
-The two response digests must differ, ruling out a stale reply. The live plan
-also rechecks the restored process topology: MMseqs fd 1 and the API worker fd
-24 must resolve to the same pipe before promotion.
+`run_conventional_n3.sh` implements the selected measurement. It checks the
+exact cluster and H100 identity, requires a Bound cache PVC, prewarms through a
+CPU-only holder, performs a fresh all-namespace zero-GPU-request preflight
+before every target, bounds every wait, stages the fixture as a regular file,
+and cleans only its three Jobs and input ConfigMap.
 
-## Retained H100 baseline
+## Native checkpoint disposition
 
-`prior-evidence.json` is a digest-bound summary of the existing raw result.
-The raw evidence measured a cached conventional Kubernetes-ready interval of
-6.000 seconds and an application log-to-ready interval of 3.862 seconds. The
-captured checkpoint contained 73 regular files and 1,589,852,856 bytes; the
-model cache contained 112,748,012 bytes.
+Checkpoint `msa-search-native-f7-v1` was captured and verified with manifest
+SHA-256
+`e2d2b9f44e5f3c75c5504b45b2872ff6e04f0edb84839eb64eeedff5116d280e`.
+It contains 70 regular files and 1,720,415,425 bytes. Three successful worker
+restore operations took 14.472, 14.429, and 14.422 seconds, but none produced
+a qualifying semantic trial, so none is reported as model-ready latency.
 
-The earlier retained-page-cache experiment reported these `n=3` medians:
+The captured donor used an `emptyDir` at `/opt/nim/workspace`; the final target
+used the persisted cache PVC. The restored MMseqs server retained the shared
+memory token derived from the donor's short canonical database path. A
+compatibility symlink resolved to the longer NGC cache path, causing a newly
+spawned `ungappedprefilter` process to derive a different token and wait on a
+different server. Missing-path attempts failed with HTTP 500; the symlink
+attempt hung in `ungappedprefilter`. These are setup exclusions, not timing
+samples.
 
-| Measurement | Median |
-|---|---:|
-| CRIU restore | 1.210 s |
-| HTTP ready | 3.117 s |
-| First semantic response | 0.035843 s |
-| Second semantic response | 0.034294 s |
-| Restore through two responses | 3.186845 s |
+A future native qualification must capture a fresh checkpoint with the final
+cache PVC mounted identically at both `/opt/nim/.cache` and
+`/opt/nim/workspace`, then restore with exactly the same topology. The checked
+in donor and target templates now express that aligned topology. Native v1
+must not be promoted or converted into a buffered candidate.
 
-A disk-cold `n=3` median took 12.035 seconds in CRIU and 14.610180 seconds
-through two responses. These values are experimental baselines, not the new
-production-shaped number. The new runner begins its demand clock before target
-creation and requires a UID/PodSpec-bound worker, a run-scoped ClusterIP, and
-two strict semantic responses.
-
-The retained donor evidence also proves that `uvloop` was absent at capture.
-The new donor therefore explicitly uninstalls `uvloop` before starting the
-server and performs two strict loopback predictions before becoming Ready.
-
-## Release contract and current blocker
-
-`dynamo/restore-interface.live.json` is the single source for the immutable
-capture/restore worker image, executable and tool receipts, exact eight-patch
-source inputs, argument contract, supported image-I/O modes, classification,
-and release approval. Its current candidate is the integrated, exact-source
-portable-plus-buffered performance-validation build:
+The pinned d5ce worker remains classified `performance-validation-only`:
 
 ```text
 cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28
 ```
 
-Its restore-worker SHA-256 is
-`941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651`,
-its 34-file tool-manifest SHA-256 is
-`c0d638100c03fa35973e82859d15b9c8dd1bcbf0fe9cb185b58cc21fae7ead1e`,
-and its GLIBC-2.35 compatibility receipt SHA-256 is
-`f7af5b214cb963c4cf64910dfafe16987f0c5ec886af5d0e5d7aab5b634f6950`.
-The image supports direct, writeback, and buffered I/O; this lane qualifies the
-explicit direct and buffered artifact identities.
+The native runner requires an explicit
+`--allow-performance-validation-worker` acknowledgement for this contract.
+Without it, the release gate remains closed.
 
-The current image is classified `performance-validation-only`, not as a full
-compliance release. Consequently `release_ready` is `false`, and both the
-capture-agent renderer and live trial runner stop before any Kubernetes
-command. Before a live run, update only that contract with the final full
-`agent` compliance image and receipts, formal approval, classification
-`full-agent-compliance-release`, an empty blocker, and `release_ready: true`.
+## Metric integrity
 
-## Prepared implementation
+`dynamo/run_provisioned_trial.sh` keeps the earlier run-orchestration timestamp
+for manifest binding but passes `target-submit-at.txt` separately to the
+evidence collector. The latter is the authoritative demand clock and is
+written immediately before `kubectl create`. Receipts expose the source as
+`target-submit-at-immediately-before-create`. Native `n=3` aggregation retains
+T0-to-HTTP-ready, both semantic calls, T0-through-call-2, worker restore, and
+T0-to-Kubernetes-Ready as distinct fields.
 
-- `donor-job.yaml` and `storage.yaml`: exact-image donor, two distinct PDB70
-  warm-up calls, measured target glibc receipt, 16 GiB `/dev/shm`, and isolated cache/artifact
-  PVCs.
-- `render_snapshot_agent.py`, `snapshot-agent.yaml.tmpl`,
-  `render_capture.py`, and `podsnapshotcontent.yaml.tmpl`: release-gated worker
-  selection plus exact Pod name, UID, image, node, and Ready-state capture.
-- `artifact-holder.yaml`: four-reader hash and full prewarm of the immutable
-  direct artifact.
-- `render_buffered_variant.py` and `artifact-holder-buffered.yaml`: a
-  receipt-authorized, write-once, hard-linked variant whose distinct manifest
-  explicitly selects buffered image I/O.
-- `validate_msa_search.py`: strict two-distinct-query, 128-record PDB70
-  semantic validation through a plain-HTTP ClusterIP origin with proxies and
-  redirects disabled.
-- `verify_mmseqs_pipe.py`: digest-pinned in-target qualification of the
-  retained MMseqs fd 1 / API worker fd 24 shared pipe.
-- `dynamo/`: scheduler-created inert GPU target, live UID/container/cgroup/IP
-  and canonical PodSpec binding, early CPU probe submitted before the worker,
-  exact direct/buffered artifact tuples, evidence construction, and an `n=3`
-  aggregator covering six semantic calls.
-
-The exact deferred live procedure is in `EXECUTION_PLAN.md`.
-
-## Deferred live blockers
-
-- The pinned worker is performance-validation-only; the checked-in contract
-  intentionally blocks all live rendering until a full compliance release is
-  substituted with matching receipts.
-- The direct checkpoint and its manifest digest do not exist yet. They are
-  produced only by the UID-bound donor capture, then supplied explicitly to
-  the trial runner.
-- The qualification H100 must be free, and the existing snapshot
-  ServiceAccount, snapshot ConfigMaps, registry pull objects, and NGC runtime
-  input must be present. None was queried during this offline-only task.
-
-## Offline verification
+## Verification
 
 Run from this directory:
 
@@ -131,7 +113,9 @@ bash dynamo/tests/test_run_provisioned_trial.sh
 bash dynamo/tests/test_run_n3.sh
 python3 -m py_compile validate_msa_search.py render_capture.py \
   render_snapshot_agent.py render_buffered_variant.py dynamo/*.py
-bash -n dynamo/run_provisioned_trial.sh dynamo/run_n3.sh dynamo/tests/*.sh
+bash -n run_conventional_n3.sh dynamo/run_provisioned_trial.sh \
+  dynamo/run_n3.sh dynamo/tests/*.sh
 ```
 
-These checks make no Kubernetes, cloud, registry, or external-network call.
+These verification commands make no Kubernetes, cloud, registry, or external
+network call.

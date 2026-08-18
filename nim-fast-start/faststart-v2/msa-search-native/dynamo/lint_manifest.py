@@ -328,7 +328,7 @@ def _check_target(document: dict[str, Any], errors: list[str]) -> None:
     resources = container.get("resources", {})
     requests = resources.get("requests", {}) if isinstance(resources, dict) else {}
     limits = resources.get("limits", {}) if isinstance(resources, dict) else {}
-    if requests != {"cpu": "14", "memory": "128Gi", "nvidia.com/gpu": "1"}:
+    if requests != {"cpu": "10", "memory": "128Gi", "nvidia.com/gpu": "1"}:
         errors.append(f"{location} target requests do not match the capture envelope")
     if limits != {"cpu": "15", "memory": "180Gi", "nvidia.com/gpu": "1"}:
         errors.append(f"{location} target limits do not match the capture envelope")
@@ -357,14 +357,14 @@ def _check_target(document: dict[str, Any], errors: list[str]) -> None:
         if isinstance(volume, dict) and "hostPath" in volume:
             errors.append(f"{location} target must not use hostPath volumes")
     expected_volume_names = {
-        "dshm", "nim-cache", "workspace", "output", "snapshot-control", "checkpoints"
+        "dshm", "nim-cache", "output", "snapshot-control", "checkpoints"
     }
     if set(_volume_names(spec, location, errors)) != expected_volume_names:
         errors.append(f"{location} target volume set is not exact")
     expected_mounts = {
         ("dshm", "/dev/shm", None, False),
         ("nim-cache", "/opt/nim/.cache", None, True),
-        ("workspace", "/opt/nim/workspace", None, False),
+        ("nim-cache", "/opt/nim/workspace", None, True),
         ("output", "/output", None, False),
         ("snapshot-control", "/snapshot-control", "msa-search", False),
         ("checkpoints", "/checkpoints", None, True),

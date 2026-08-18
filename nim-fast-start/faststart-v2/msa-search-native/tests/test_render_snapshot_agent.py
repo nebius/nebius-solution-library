@@ -39,6 +39,17 @@ class SnapshotAgentRendererTests(unittest.TestCase):
         self.assertEqual(container["image"], contract["worker_image"])
         self.assertNotIn("@@", json.dumps(document))
 
+    def test_explicit_performance_validation_render_is_honest(self) -> None:
+        document = module.render(self.contract, require_release=False)
+        self.assertEqual(
+            document["spec"]["containers"][0]["image"],
+            self.contract["worker_image"],
+        )
+        self.assertFalse(self.contract["release_ready"])
+        self.assertEqual(
+            self.contract["worker_classification"], "performance-validation-only"
+        )
+
     def test_contract_without_direct_capture_support_is_rejected(self) -> None:
         contract = copy.deepcopy(self.contract)
         contract["release_ready"] = True

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import statistics
 import unittest
 from pathlib import Path
 
@@ -32,6 +33,72 @@ def documents(name: str) -> list[dict]:
 
 
 class CaptureManifestTests(unittest.TestCase):
+    def test_selected_conventional_lane_measures_submit_edge_and_strict_n3(self) -> None:
+        holder = documents("conventional-cache-holder.yaml")[0]
+        self.assertEqual(
+            holder["spec"]["nodeName"], "computeinstance-e00hf93cfnsgaxygn3"
+        )
+        holder_container = holder["spec"]["containers"][0]
+        holder_script = holder_container["args"][0]
+        self.assertIn("seen = set()", holder_script)
+        self.assertIn('"prewarm_outside_t0": True', holder_script)
+        self.assertTrue(holder["spec"]["volumes"][0]["persistentVolumeClaim"]["readOnly"])
+
+        job = documents("conventional-job.yaml.tmpl")[0]
+        container = job["spec"]["template"]["spec"]["containers"][0]
+        script = container["args"][0]
+        self.assertEqual(script.count('--run-id "@@RUN_ID@@-semantic-'), 2)
+        self.assertIn("--ready-timeout 120", script)
+        self.assertIn("--timeout 30", script)
+        self.assertIn("verify_mmseqs_pipe.py", script)
+        self.assertEqual(
+            container["resources"]["requests"],
+            {"cpu": "10", "memory": "128Gi", "nvidia.com/gpu": "1"},
+        )
+
+        runner_lines = (ROOT / "run_conventional_n3.sh").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        submit_index = next(
+            index
+            for index, line in enumerate(runner_lines)
+            if 'target-submit-at.txt"' in line and line.lstrip().startswith("date ")
+        )
+        self.assertEqual(
+            runner_lines[submit_index + 1].strip(),
+            '"${kubectl[@]}" create -f "$run_dir/job.yaml"',
+        )
+        runner = "\n".join(runner_lines)
+        self.assertIn("get pods --all-namespaces", runner)
+        self.assertIn('"demand_to_kubernetes_ready_seconds"', runner)
+        self.assertIn('"unique_prewarm_bytes": holder["prewarm_bytes"]', runner)
+        self.assertIn('for run in 1 2 3', runner)
+
+    def test_results_record_matches_counted_submit_edge_receipt(self) -> None:
+        results = json.loads((ROOT / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual(results["status"], "PASS")
+        self.assertEqual(results["selected_route"], "conventional-cache-attached-prewarmed")
+        selected = results["conventional_cached_n3"]
+        self.assertEqual(selected["trial_count"], 3)
+        self.assertEqual(selected["semantic_call_count"], 6)
+        self.assertEqual(selected["mmseqs_pipe_pass_count"], 3)
+        expected = {
+            "demand_to_http_ready_seconds": [5.128253, 5.000388, 5.071461],
+            "semantic_request_1_seconds": [0.04084, 0.04072, 0.0407],
+            "semantic_request_2_seconds": [0.031083, 0.030818, 0.031058],
+            "demand_to_second_response_seconds": [5.201905, 5.073655, 5.144951],
+            "demand_to_kubernetes_ready_seconds": [4.831026, 4.687398, 4.704828],
+        }
+        for name, values in expected.items():
+            recorded = selected[name]
+            self.assertEqual(recorded["values"], values)
+            self.assertEqual(recorded["min"], min(values))
+            self.assertEqual(recorded["median"], statistics.median(values))
+            self.assertEqual(recorded["max"], max(values))
+        self.assertTrue(selected["storage"]["prewarm_outside_t0"])
+        self.assertEqual(selected["storage"]["unique_prewarm_bytes"], 112682799)
+        self.assertEqual(results["native_checkpoint"]["counted_trials"], 0)
+
     def test_input_digests_and_donor_warmup_are_exact(self) -> None:
         validator = (ROOT / "validate_msa_search.py").read_bytes()
         fixture = (ROOT / "fixtures" / "request-pdb70.json").read_bytes()
@@ -53,7 +120,7 @@ class CaptureManifestTests(unittest.TestCase):
         self.assertEqual(
             container["resources"],
             {
-                "requests": {"cpu": "14", "memory": "128Gi", "nvidia.com/gpu": "1"},
+                "requests": {"cpu": "10", "memory": "128Gi", "nvidia.com/gpu": "1"},
                 "limits": {"cpu": "15", "memory": "180Gi", "nvidia.com/gpu": "1"},
             },
         )
@@ -65,6 +132,14 @@ class CaptureManifestTests(unittest.TestCase):
         self.assertEqual(env["NIM_GLOBAL_MAX_MSA_DEPTH"], "500")
         volumes = {item["name"]: item for item in donor["spec"]["template"]["spec"]["volumes"]}
         self.assertEqual(volumes["dshm"]["emptyDir"], {"medium": "Memory", "sizeLimit": "16Gi"})
+        self.assertNotIn("workspace", volumes)
+        mounts = [
+            item for item in container["volumeMounts"] if item["name"] == "nim-cache"
+        ]
+        self.assertEqual(
+            {item["mountPath"] for item in mounts},
+            {"/opt/nim/.cache", "/opt/nim/workspace"},
+        )
         runner = (ROOT / "dynamo" / "run_provisioned_trial.sh").read_text(
             encoding="utf-8"
         )

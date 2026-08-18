@@ -165,7 +165,7 @@ spec:
               protocol: TCP
           resources:
             requests:
-              cpu: "14"
+              cpu: "10"
               memory: 128Gi
               nvidia.com/gpu: "1"
             limits:
@@ -193,7 +193,7 @@ spec:
               mountPath: /dev/shm
             - name: nim-cache
               mountPath: /opt/nim/.cache
-            - name: workspace
+            - name: nim-cache
               mountPath: /opt/nim/workspace
             - name: output
               mountPath: /output
@@ -211,9 +211,6 @@ spec:
         - name: nim-cache
           persistentVolumeClaim:
             claimName: msa-search-native-f7-cache
-        - name: workspace
-          emptyDir:
-            sizeLimit: 8Gi
         - name: output
           emptyDir:
             sizeLimit: 1Gi

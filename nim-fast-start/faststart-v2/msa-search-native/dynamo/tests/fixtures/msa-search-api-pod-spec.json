@@ -75,7 +75,7 @@
           "nvidia.com/gpu": "1"
         },
         "requests": {
-          "cpu": "14",
+          "cpu": "10",
           "memory": "128Gi",
           "nvidia.com/gpu": "1"
         }
@@ -115,7 +115,8 @@
         },
         {
           "mountPath": "/opt/nim/workspace",
-          "name": "workspace"
+          "name": "nim-cache",
+          "readOnly": true
         },
         {
           "mountPath": "/output",
@@ -161,12 +162,6 @@
         "claimName": "msa-search-nim-cache",
         "readOnly": true
       }
-    },
-    {
-      "emptyDir": {
-        "sizeLimit": "8Gi"
-      },
-      "name": "workspace"
     },
     {
       "emptyDir": {
