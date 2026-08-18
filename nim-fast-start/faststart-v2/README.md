@@ -1,6 +1,7 @@
 # BioNeMo NIM fast start v2
 
-This subtree contains the production-native OpenFold2 checkpoint/restore path:
+This subtree contains production-native OpenFold2 and Boltz2 checkpoint/restore
+paths:
 
 - `native-capture/` creates the qualified native Dynamo artifact;
 - `phase2-agent/` reproduces the generic one-shot restore-worker image;
@@ -8,7 +9,11 @@ This subtree contains the production-native OpenFold2 checkpoint/restore path:
   derived evidence objects, and provides the explicit provisioned-node runner;
   and
 - `performance/openfold2/` records the provisioned-node result without storing
-  raw cluster evidence or credentials in Git.
+  raw cluster evidence or credentials in Git; and
+- `boltz2-native/` contains the Boltz2 capture inputs, strict validator,
+  model adapter, provisioned-node runner, n=3 result, and rejected writeback
+  comparison.
 
-All renderer and verifier entry points are offline. The only live-capable entry
-point is the explicitly invoked `dynamo/run_provisioned_trial.sh`.
+All renderer and verifier entry points are offline. Live work requires an
+explicit invocation of either `dynamo/run_provisioned_trial.sh` or
+`boltz2-native/run_one_native_trial.sh`.
