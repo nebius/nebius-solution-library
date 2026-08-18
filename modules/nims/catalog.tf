@@ -63,20 +63,25 @@ locals {
   }
 
   model_defaults = {
-    kind               = "nim"
-    enabled            = false
-    replicas           = 1
-    container_port     = 8000
-    service_port       = 8000
-    service_type       = "ClusterIP"
-    cache_mount_path   = "/opt/nim/.cache"
-    cache_sub_path     = "nim"
-    mount_cache        = true
-    shared_memory_size = "16Gi"
-    command            = null
-    security_context   = null
-    env                = {}
-    labels             = {}
+    kind                      = "nim"
+    enabled                   = false
+    replicas                  = 1
+    container_port            = 8000
+    service_port              = 8000
+    service_type              = "ClusterIP"
+    cache_mount_path          = "/opt/nim/.cache"
+    cache_sub_path            = "nim"
+    mount_cache               = true
+    shared_memory_size        = "16Gi"
+    command                   = null
+    security_context          = null
+    update_strategy           = "RollingUpdate"
+    progress_deadline_seconds = null
+    startup_probe             = null
+    readiness_probe           = null
+    liveness_probe            = null
+    env                       = {}
+    labels                    = {}
     resources = {
       limits   = {}
       requests = {}
@@ -184,15 +189,37 @@ locals {
     }
 
     openfold2 = {
-      display_name       = "OpenFold2"
-      deployment_name    = "openfold2"
-      app                = "openfold2"
-      service_name       = "openfold2-svc"
-      container_name     = "openfold2"
-      image              = "nvcr.io/nim/openfold/openfold2"
-      version            = "latest"
-      command            = local.nim_start_command
-      security_context   = local.root_security_context
+      display_name     = "OpenFold2"
+      deployment_name  = "openfold2"
+      app              = "openfold2"
+      service_name     = "openfold2-svc"
+      container_name   = "openfold2"
+      image            = "nvcr.io/nim/openfold/openfold2"
+      version          = "latest"
+      command          = local.nim_start_command
+      security_context = local.root_security_context
+      # OpenFold2 is a singleton GPU workload. Recreate terminates the old pod
+      # before scheduling its replacement, so a rollout never needs a surge GPU.
+      update_strategy           = "Recreate"
+      progress_deadline_seconds = 2100
+      startup_probe = {
+        path              = "/v1/health/ready"
+        period_seconds    = 10
+        timeout_seconds   = 5
+        failure_threshold = 180
+      }
+      readiness_probe = {
+        path              = "/v1/health/ready"
+        period_seconds    = 10
+        timeout_seconds   = 5
+        failure_threshold = 3
+      }
+      liveness_probe = {
+        path              = "/v1/health/live"
+        period_seconds    = 30
+        timeout_seconds   = 5
+        failure_threshold = 3
+      }
       resources          = local.resources_1gpu_16cpu_128gi
       shared_memory_size = "64Gi"
       lb_group           = "protein-apps"

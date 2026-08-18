@@ -9,7 +9,12 @@ resource "kubernetes_deployment_v1" "nims" {
   }
 
   spec {
-    replicas = each.value.enabled ? (each.value.scaling.enabled ? each.value.scaling.min_replicas : each.value.replicas) : 0
+    replicas                  = each.value.enabled ? (each.value.scaling.enabled ? each.value.scaling.min_replicas : each.value.replicas) : 0
+    progress_deadline_seconds = each.value.progress_deadline_seconds
+
+    strategy {
+      type = each.value.update_strategy
+    }
 
     selector {
       match_labels = {
@@ -90,6 +95,51 @@ resource "kubernetes_deployment_v1" "nims" {
           port {
             name           = "http"
             container_port = each.value.container_port
+          }
+
+          dynamic "startup_probe" {
+            for_each = each.value.startup_probe == null ? [] : [each.value.startup_probe]
+            content {
+              failure_threshold = startup_probe.value.failure_threshold
+              period_seconds    = startup_probe.value.period_seconds
+              timeout_seconds   = startup_probe.value.timeout_seconds
+
+              http_get {
+                path   = startup_probe.value.path
+                port   = "http"
+                scheme = "HTTP"
+              }
+            }
+          }
+
+          dynamic "readiness_probe" {
+            for_each = each.value.readiness_probe == null ? [] : [each.value.readiness_probe]
+            content {
+              failure_threshold = readiness_probe.value.failure_threshold
+              period_seconds    = readiness_probe.value.period_seconds
+              timeout_seconds   = readiness_probe.value.timeout_seconds
+
+              http_get {
+                path   = readiness_probe.value.path
+                port   = "http"
+                scheme = "HTTP"
+              }
+            }
+          }
+
+          dynamic "liveness_probe" {
+            for_each = each.value.liveness_probe == null ? [] : [each.value.liveness_probe]
+            content {
+              failure_threshold = liveness_probe.value.failure_threshold
+              period_seconds    = liveness_probe.value.period_seconds
+              timeout_seconds   = liveness_probe.value.timeout_seconds
+
+              http_get {
+                path   = liveness_probe.value.path
+                port   = "http"
+                scheme = "HTTP"
+              }
+            }
           }
 
           resources {

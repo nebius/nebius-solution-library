@@ -68,6 +68,64 @@ run "default_catalog_is_disabled_and_state_stable" {
   }
 }
 
+run "enabled_openfold2_has_singleton_recovery_contract" {
+  command = plan
+
+  variables {
+    model_catalog = {
+      openfold2 = {
+        enabled = true
+      }
+    }
+  }
+
+  assert {
+    condition     = kubernetes_deployment_v1.nims["openfold2"].spec[0].replicas == "1"
+    error_message = "OpenFold2 must remain a one-replica GPU singleton."
+  }
+
+  assert {
+    condition     = kubernetes_deployment_v1.nims["openfold2"].spec[0].strategy[0].type == "Recreate"
+    error_message = "OpenFold2 must use a no-surge Recreate rollout because it is a singleton GPU workload."
+  }
+
+  assert {
+    condition     = kubernetes_deployment_v1.nims["openfold2"].spec[0].progress_deadline_seconds == 2100
+    error_message = "OpenFold2's deployment progress deadline must cover its slow-start probe budget."
+  }
+
+  assert {
+    condition = (
+      kubernetes_deployment_v1.nims["openfold2"].spec[0].template[0].spec[0].container[0].startup_probe[0].http_get[0].path == "/v1/health/ready" &&
+      kubernetes_deployment_v1.nims["openfold2"].spec[0].template[0].spec[0].container[0].startup_probe[0].failure_threshold == 180 &&
+      kubernetes_deployment_v1.nims["openfold2"].spec[0].template[0].spec[0].container[0].startup_probe[0].period_seconds == 10
+    )
+    error_message = "OpenFold2 startup must allow 30 minutes for the documented NIM readiness endpoint."
+  }
+
+  assert {
+    condition = (
+      kubernetes_deployment_v1.nims["openfold2"].spec[0].template[0].spec[0].container[0].readiness_probe[0].http_get[0].path == "/v1/health/ready" &&
+      kubernetes_deployment_v1.nims["openfold2"].spec[0].template[0].spec[0].container[0].readiness_probe[0].failure_threshold == 3
+    )
+    error_message = "OpenFold2 readiness must use the model-aware NIM readiness endpoint."
+  }
+
+  assert {
+    condition = (
+      kubernetes_deployment_v1.nims["openfold2"].spec[0].template[0].spec[0].container[0].liveness_probe[0].http_get[0].path == "/v1/health/live" &&
+      kubernetes_deployment_v1.nims["openfold2"].spec[0].template[0].spec[0].container[0].liveness_probe[0].failure_threshold == 3 &&
+      kubernetes_deployment_v1.nims["openfold2"].spec[0].template[0].spec[0].container[0].liveness_probe[0].period_seconds == 30
+    )
+    error_message = "OpenFold2 liveness must use the documented NIM liveness endpoint with a tolerant restart window."
+  }
+
+  assert {
+    condition     = length(kubernetes_horizontal_pod_autoscaler_v2.nims) == 0
+    error_message = "The singleton OpenFold2 deployment must not create an HPA."
+  }
+}
+
 run "enabled_llm_gets_custom_metric_hpa" {
   command = plan
 

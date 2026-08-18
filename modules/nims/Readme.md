@@ -201,6 +201,33 @@ Fixed-replica catalog entries:
 These entries stay fixed until their backend exposes a validated request or
 inference metric that is useful for per-pod HPA decisions.
 
+## OpenFold2 recovery semantics
+
+OpenFold2 is configured as a one-GPU singleton and uses the Deployment
+`Recreate` strategy. Kubernetes terminates the old pod before scheduling the
+replacement, so an update cannot require a second, surge GPU. This deliberately
+trades availability during an update for schedulability on a fully allocated
+GPU node group.
+
+The container uses NVIDIA's documented NIM health endpoints:
+
+- Startup: `/v1/health/ready`, with a 30-minute failure budget for model
+  download, compilation, and loading.
+- Readiness: `/v1/health/ready`, so the Service only routes to a model-ready pod.
+- Liveness: `/v1/health/live`, with three 30-second-spaced failures required
+  before Kubernetes restarts the container.
+
+The upstream liveness contract only reports that the container is running; it
+does not promise that a previous CUDA failure left the model capable of another
+inference. This module does not wrap or modify the opaque NVIDIA NIM process, so
+it intentionally does not add a log-pattern watchdog or an inference request as
+a liveness probe. Either approach would be an unvalidated failure detector and
+could restart a healthy pod. A model-level fatal-error watchdog belongs in a
+versioned image whose process and failure contract this repository owns.
+
+OpenFold2 API reference:
+https://docs.nvidia.com/nim/bionemo/openfold2/latest/api-reference.html
+
 ## Validation Notes
 
 For this change, local validation must include:
