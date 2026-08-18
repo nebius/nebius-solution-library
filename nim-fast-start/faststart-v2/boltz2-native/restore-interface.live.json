@@ -37,7 +37,7 @@
   ],
   "probe_image": "docker.io/library/python@sha256:356b0d18f9385f4bdcc673af60e1e64c9d1504952e4ec36ee32044c722a6bc4e",
   "probe_executable": "/usr/local/bin/python3",
-  "validator_sha256": "fad2b524739d699f7417fb083048431b3a87c4c2686010cc253ad8eb6057b958",
+  "validator_sha256": "4b4e04b62cd8aff2027844f75002012439d7cb5d44f91f4ac514a99abf2217c8",
   "tool_bundle": {
     "layout": "archvteams-public-dynamo-tools/v1",
     "content_sha256": "04214d6f4d72fa59d5daa6168d8c63024b6ebe34c4876394e47e80319ef00c39"

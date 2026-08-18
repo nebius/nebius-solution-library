@@ -231,7 +231,7 @@ def evidence_inputs() -> dict:
         ],
     }
     semantic = {
-        "schema_version": 1,
+        "schema_version": 2,
         "validator": "openfold2-faststart-semantic-v1",
         "base_url": f"http://{service_name}:8000",
         "endpoint": (
@@ -304,7 +304,7 @@ def evidence_inputs() -> dict:
         "target_submit_at": "2026-08-17T20:00:00Z",
         "target_create_response_at": "2026-08-17T20:00:00.200000Z",
         "qualification_receipt": {
-            "schema": "archvteams.nebius.ai/warm-instance-qualification/v1",
+            "schema": "archvteams.nebius.ai/warm-instance-qualification/v3",
             "status": "PASS",
             "model": "openfold2",
             "run_id": run_id,
@@ -329,6 +329,18 @@ def evidence_inputs() -> dict:
             "gpu_health": {
                 "status": "PASS",
                 "host_xid_check": {"status": "unavailable"},
+            },
+            "boot_time_alignment": {
+                "status": "PASS",
+                "conservative_upper_bounds": {
+                    "http_ready_complete_body": {"upper_bound_seconds": 8.2},
+                    "first_semantic_response_complete_body": {
+                        "upper_bound_seconds": 9.0
+                    },
+                    "two_semantic_responses_complete_body": {
+                        "upper_bound_seconds": 9.6
+                    },
+                },
             },
         },
     }

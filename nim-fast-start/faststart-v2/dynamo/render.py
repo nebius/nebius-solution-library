@@ -40,7 +40,7 @@ BINDING_SCHEMA = "archvteams.nebius.ai/openfold2-target-binding/v1"
 TOOL_LAYOUT = "archvteams-public-dynamo-tools/v1"
 SOURCE_REPOSITORY = "https://github.com/ai-dynamo/dynamo"
 SOURCE_COMMIT = "f7f37be174d252590c4b56e25ff4262dd82466fd"
-VALIDATOR_SHA256 = "4f3e70ef29ea9cd3113c09e6f63bd15b4d9826bf64d7d16972c6c3d0eef3090e"
+VALIDATOR_SHA256 = "66c75652e7f17b35ff569a59cc6a21bc09416329d9fbf30178041aed9006a9ed"
 PROBE_EXECUTABLES = frozenset({"/usr/local/bin/python3", "/usr/bin/python3"})
 ALLOWED_H100_NODES = frozenset(
     {

@@ -146,6 +146,12 @@ ledger="$cohort_root/attempts.ndjson"
 install -m 0600 /dev/null "$ledger"
 runner_sha256=$(sha256sum "$runner")
 runner_sha256=${runner_sha256%% *}
+instrumentation_receipt="$cohort_root/instrumentation-contract.json"
+python3 "$script_dir/instrumentation_contract.py" --model "$model" \
+  > "$instrumentation_receipt"
+instrumentation_contract_sha256=$(jq -er \
+  '.instrumentation_contract_sha256 | select(test("^[0-9a-f]{64}$"))' \
+  "$instrumentation_receipt")
 started_at=$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)
 jq -nc \
   --arg schema "archvteams.nebius.ai/fresh-cohort-ledger-event/v1" \
@@ -156,11 +162,13 @@ jq -nc \
   --arg evidence_root "$evidence_root" \
   --arg started_at "$started_at" \
   --arg runner_sha256 "$runner_sha256" \
+  --arg instrumentation_contract_sha256 "$instrumentation_contract_sha256" \
   --argjson requested_attempt_count "$attempt_count" \
   --argjson maximum_scheduled_attempts "$maximum_scheduled_attempts" \
   '{schema:$schema,event:$event,cohort_id:$cohort_id,model:$model,
     run_prefix:$run_prefix,evidence_root:$evidence_root,started_at:$started_at,
     runner_sha256:$runner_sha256,
+    instrumentation_contract_sha256:$instrumentation_contract_sha256,
     requested_attempt_count:$requested_attempt_count,
     maximum_scheduled_attempts:$maximum_scheduled_attempts}' >> "$ledger"
 
@@ -258,6 +266,7 @@ while ((admitted_count < attempt_count && scheduled_count < maximum_scheduled_at
     --cohort-id "$cohort_id"
     --attempt-index "$next_attempt_index"
     --attempt-ledger "$ledger"
+    --instrumentation-contract-sha256 "$instrumentation_contract_sha256"
   )
   if [[ $model == boltz2 ]]; then
     common+=(--cache-holder "$cache_holder")

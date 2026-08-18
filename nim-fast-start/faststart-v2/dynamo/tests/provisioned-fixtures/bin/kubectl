@@ -59,9 +59,11 @@ case "${1:-}:${2:-}" in
         --arg name "$pod_name" \
         --arg uid "$holder_uid" \
         --arg status "$holder_status" \
+        --arg holder_image "docker.io/library/python@sha256:356b0d18f9385f4bdcc673af60e1e64c9d1504952e4ec36ee32044c722a6bc4e" \
         --argjson container_ready "$container_ready" \
         '{
-          metadata:{name:$name,uid:$uid},
+          apiVersion:"v1",kind:"Pod",
+          metadata:{name:$name,namespace:"nim-fast-start",uid:$uid},
           spec:{nodeName:$node,
             volumes:(if ($name|contains("cache")) then
               [{name:"storage",persistentVolumeClaim:{claimName:"boltz2-nim-cache-native-f7-r3"}}]
@@ -69,15 +71,17 @@ case "${1:-}:${2:-}" in
               [{name:"artifacts",persistentVolumeClaim:{claimName:"mlspec-archvteams-2407-ckpt-m3"}},
                {name:"openfold-cache",persistentVolumeClaim:{claimName:"openfold2-nim-cache"}}]
             end),
-            containers:[{name:"holder",volumeMounts:(if ($name|contains("cache")) then
+            containers:[{name:"holder",image:$holder_image,resources:{},volumeMounts:(if ($name|contains("cache")) then
               [{name:"storage",mountPath:"/storage",readOnly:true}]
             else
               [{name:"artifacts",mountPath:"/artifacts",readOnly:true},
                {name:"openfold-cache",mountPath:"/cache",readOnly:true}]
             end)}]},
           status:{
+            phase:"Running",
             conditions:[{type:"Ready",status:$status}],
-            containerStatuses:[{name:"holder",ready:$container_ready,restartCount:0}]
+            containerStatuses:[{name:"holder",image:"sha256:content",imageID:$holder_image,
+              ready:$container_ready,restartCount:0,state:{running:{startedAt:"2026-08-17T23:00:00Z"}}}]
           }
         }'
     else
@@ -225,6 +229,9 @@ case "${1:-}:${2:-}" in
   exec:*)
     if [[ " $* " == *" /bin/test -d "* ]]; then
       printf '%s\n' "holder-mount-check" >> "$FAKE_CALL_LOG"
+    elif [[ " $* " == *" python3 -c "* ]]; then
+      printf '%s\n' "holder-boottime-anchor" >> "$FAKE_CALL_LOG"
+      printf '%s\n' '{"schema":"archvteams.nebius.ai/semantic-node-boottime/v1","clock_id":"CLOCK_BOOTTIME","boottime_ns":5000000000000,"clock_resolution_ns":1,"boot_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","timens_offsets":[{"clock":"monotonic","seconds":0,"nanoseconds":0},{"clock":"boottime","seconds":0,"nanoseconds":0}]}'
     elif [[ " $* " == *" /bin/date "* ]]; then
       printf '%s\n' "target-clock" >> "$FAKE_CALL_LOG"
       /bin/date -u +%Y-%m-%dT%H:%M:%S.%NZ

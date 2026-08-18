@@ -19,12 +19,13 @@ if str(FASTSTART_ROOT) not in sys.path:
     sys.path.insert(0, str(FASTSTART_ROOT))
 
 import qualification_receipt as qualification_builder
+import instrumentation_contract as instrumentation_builder
 from dynamo import evidence as openfold2_evidence
 
 
 LEDGER_SCHEMA = "archvteams.nebius.ai/fresh-cohort-ledger-event/v1"
-AGGREGATE_SCHEMA = "archvteams.nebius.ai/fresh-warm-node-cohort/v1"
-QUALIFICATION_SCHEMA = "archvteams.nebius.ai/warm-instance-qualification/v1"
+AGGREGATE_SCHEMA = "archvteams.nebius.ai/fresh-warm-node-cohort/v2"
+QUALIFICATION_SCHEMA = "archvteams.nebius.ai/warm-instance-qualification/v3"
 RESPONSE_CONTRACT = "request-dispatch-to-complete-http-body/v1"
 PROXY_LABEL = "client-observed-api-create-response-return/v1"
 MINIMUM_ATTEMPTS = 20
@@ -41,7 +42,7 @@ APPROVED_CONTRACTS: dict[str, dict[str, str]] = {
         "artifact_pvc": "mlspec-archvteams-2407-ckpt-m3",
         "cache_pvc": "openfold2-nim-cache",
         "restore_contract_sha256": (
-            "67fa2849db9f258ace42a55e1763481370292ec3b040910e82ab9e950dff0d52"
+            "9e138442a52a3ca9775d4e09f64af273383feb4286247356f528288d3f070bac"
         ),
         "target_image": (
             "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/"
@@ -58,7 +59,7 @@ APPROVED_CONTRACTS: dict[str, dict[str, str]] = {
         "artifact_pvc": "mlspec-archvteams-2407-ckpt-m3",
         "cache_pvc": "boltz2-nim-cache-native-f7-r3",
         "restore_contract_sha256": (
-            "c7e852ac8b63ae793391904b094293a8cedb1dc91bca30f3c96fb2700374308b"
+            "73c5d13e40122474451ae06a22c2a46b1e793bb408ac53565e29f08fa2e2f8b4"
         ),
         "target_image": (
             "nvcr.io/nim/mit/boltz2@sha256:"
@@ -192,7 +193,7 @@ def _validate_semantics(path: Path, run_id: str, model: str) -> dict[str, Any]:
         inference_path = "/biology/mit/boltz2/predict"
     base_url = f"http://{service_name}:8000"
     if (
-        semantic.get("schema_version") != 1
+        semantic.get("schema_version") != qualification_builder.SEMANTIC_SCHEMA_VERSION
         or semantic.get("validator") != validator
         or semantic.get("status") != "PASS"
         or semantic.get("ok") is not True
@@ -251,7 +252,7 @@ def _validate_qualification(
     warm = value.get("warm_instance")
     pod_health = value.get("pod_health")
     gpu = value.get("gpu_health")
-    clock = value.get("clock_alignment")
+    boot = value.get("boot_time_alignment")
     boundaries = value.get("timing_boundaries")
     source_hashes = value.get("source_sha256")
     expected_health_phases = {
@@ -302,23 +303,23 @@ def _validate_qualification(
         or gpu.get("host_xid_check", {}).get("status") != "unavailable"
         or not isinstance(gpu.get("host_xid_check", {}).get("reason"), str)
         or not gpu["host_xid_check"]["reason"]
-        or not isinstance(clock, dict)
-        or clock.get("status") != "PASS"
-        or clock.get("scope") != "controller-to-target-node"
-        or clock.get("worker_and_probe_must_share_target_node") is not True
-        or clock.get("maximum_allowed_absolute_offset_seconds") != 1.0
-        or clock.get("maximum_allowed_sample_round_trip_seconds") != 1.0
-        or isinstance(clock.get("absolute_offset_upper_bound_seconds"), bool)
-        or not isinstance(
-            clock.get("absolute_offset_upper_bound_seconds"), (int, float)
-        )
-        or not 0 <= float(clock["absolute_offset_upper_bound_seconds"]) <= 1.0
-        or not isinstance(clock.get("samples"), list)
-        or len(clock["samples"]) != 2
-        or [
-            item.get("phase") for item in clock["samples"] if isinstance(item, dict)
-        ]
-        != ["before-semantic", "after-semantic"]
+        or not isinstance(boot, dict)
+        or boot.get("status") != "PASS"
+        or boot.get("method")
+        != "pre-t0-ready-holder-clock-boottime-anchor/v1"
+        or boot.get("worker_and_probe_must_share_target_node") is not True
+        or not isinstance(boot.get("holder"), dict)
+        or not isinstance(boot.get("node_clock_identity"), dict)
+        or not isinstance(boot.get("anchor"), dict)
+        or not isinstance(boot.get("controller_boundaries"), dict)
+        or not isinstance(boot.get("semantic_boottime"), dict)
+        or not isinstance(boot.get("conservative_upper_bounds"), dict)
+        or set(boot["conservative_upper_bounds"])
+        != {
+            "http_ready_complete_body",
+            "first_semantic_response_complete_body",
+            "two_semantic_responses_complete_body",
+        }
         or not isinstance(boundaries, dict)
         or boundaries.get("primary", {}).get("label")
         != "client-target-create-dispatch/v1"
@@ -326,6 +327,11 @@ def _validate_qualification(
             "conservative_relative_to_api_acceptance"
         )
         is not True
+        or isinstance(boundaries.get("primary", {}).get("controller_monotonic_ns"), bool)
+        or not isinstance(
+            boundaries.get("primary", {}).get("controller_monotonic_ns"), int
+        )
+        or boundaries["primary"]["controller_monotonic_ns"] <= 0
         or boundaries.get("acceptance_response_proxy", {}).get("label") != PROXY_LABEL
         or boundaries.get("acceptance_response_proxy", {}).get(
             "is_exact_server_acceptance"
@@ -335,15 +341,19 @@ def _validate_qualification(
         or set(source_hashes)
         != {
             "capture_agent_absence",
-            "clock_sample_end",
-            "clock_sample_start",
+            "admission_boundary",
+            "anchor_holder",
+            "boot_time_anchor",
             "probe_pod",
+            "semantic_summary",
+            "target_submit_clock",
             "target_create_response",
             "target_events",
             "target_nvidia_smi_xml",
             "target_nvidia_smi_stderr",
             "target_pod",
             "worker_pod",
+            "worker_receipt",
         }
     ):
         raise AggregateError(f"{run_id} warm-instance qualification is incomplete")
@@ -359,7 +369,22 @@ def _validate_qualification(
     events = warm.get("target_events")
     if (
         not isinstance(events, dict)
-        or events.get("warning_event_count") != 0
+        or isinstance(events.get("warning_event_count"), bool)
+        or not isinstance(events.get("warning_event_count"), int)
+        or events["warning_event_count"] < 0
+        or events.get("unexpected_warning_event_count") != 0
+        or events.get("expected_startup_probe_warning_event_count")
+        != events["warning_event_count"]
+        or isinstance(
+            events.get("expected_startup_probe_warning_occurrence_count"), bool
+        )
+        or not isinstance(
+            events.get("expected_startup_probe_warning_occurrence_count"), int
+        )
+        or events["expected_startup_probe_warning_occurrence_count"]
+        < events["expected_startup_probe_warning_event_count"]
+        or events.get("maximum_expected_startup_probe_warning_window_seconds")
+        != qualification_builder.MAX_EXPECTED_STARTUP_PROBE_WARNING_WINDOW_SECONDS
         or events.get("pulling_event_count") != 0
         or not isinstance(events.get("exact_image_already_present_event_count"), int)
         or events["exact_image_already_present_event_count"] < 1
@@ -514,96 +539,261 @@ def _validate_capture_agent_absence(
         raise AggregateError(f"{run_id} does not prove capture-agent absence")
 
 
-def _validate_clock_alignment(
+def _strict_ns(value: Any, label: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise AggregateError(f"{label} must be a positive integer")
+    return value
+
+
+def _validate_boot_time_alignment(
     trial_dir: Path,
     *,
     run_id: str,
     qualification: dict[str, Any],
-    target_name: str,
-    target_uid: str,
+    admitted_at: datetime,
     target_node: str,
-    target_container: str,
     holder_name: str,
     holder_uid: str,
-) -> tuple[float, datetime, datetime, datetime, datetime]:
-    receipt = qualification.get("clock_alignment")
-    if not isinstance(receipt, dict):
-        raise AggregateError(f"{run_id} clock alignment receipt is missing")
-    receipt_samples = receipt.get("samples")
-    if not isinstance(receipt_samples, list) or len(receipt_samples) != 2:
-        raise AggregateError(f"{run_id} clock alignment samples are missing")
-    intervals: list[tuple[float, float]] = []
-    node_times: list[datetime] = []
-    controller_times: list[tuple[datetime, datetime]] = []
-    for index, phase in enumerate(("before-semantic", "after-semantic")):
-        suffix = "start" if index == 0 else "end"
-        sampled_name = holder_name if index == 0 else target_name
-        sampled_uid = holder_uid if index == 0 else target_uid
-        sampled_container = "" if index == 0 else target_container
-        raw = _load_json(
-            trial_dir / f"clock-sample-{suffix}.json",
-            f"{run_id} {phase} clock sample",
-        )
-        if (
-            raw.get("schema") != "archvteams.nebius.ai/node-clock-sample/v1"
-            or raw.get("phase") != phase
-            or raw.get("sampled_pod_name") != sampled_name
-            or raw.get("sampled_pod_uid") != sampled_uid
-            or raw.get("target_node") != target_node
-            or raw.get("sampled_container") != sampled_container
-        ):
-            raise AggregateError(f"{run_id} {phase} clock identity is inconsistent")
-        before = _timestamp(raw.get("controller_before"), f"{run_id} clock before")
-        node = _timestamp(raw.get("node_observed"), f"{run_id} node clock")
-        after = _timestamp(raw.get("controller_after"), f"{run_id} clock after")
-        if after < before:
-            raise AggregateError(f"{run_id} controller clock moved backwards")
-        round_trip = (after - before).total_seconds()
-        lower = (node - after).total_seconds()
-        upper = (node - before).total_seconds()
-        absolute = max(abs(lower), abs(upper))
-        expected = {
-            "phase": phase,
-            "controller_before": raw["controller_before"],
-            "node_observed": raw["node_observed"],
-            "controller_after": raw["controller_after"],
-            "round_trip_seconds": round(round_trip, 6),
-            "node_minus_controller_lower_seconds": round(lower, 6),
-            "node_minus_controller_upper_seconds": round(upper, 6),
-            "absolute_offset_upper_bound_seconds": round(absolute, 6),
-        }
-        if (
-            receipt_samples[index] != expected
-            or round_trip > 1.0
-            or absolute > 1.0
-        ):
-            raise AggregateError(f"{run_id} {phase} clock bound is invalid")
-        intervals.append((lower, upper))
-        node_times.append(node)
-        controller_times.append((before, after))
-    overall_lower = min(item[0] for item in intervals)
-    overall_upper = max(item[1] for item in intervals)
-    overall_absolute = round(max(abs(overall_lower), abs(overall_upper)), 6)
-    expected_top_level = {
-        "status": "PASS",
-        "scope": "controller-to-target-node",
-        "worker_and_probe_must_share_target_node": True,
-        "absolute_offset_upper_bound_seconds": overall_absolute,
-        "node_minus_controller_lower_seconds": round(overall_lower, 6),
-        "node_minus_controller_upper_seconds": round(overall_upper, 6),
-        "maximum_allowed_absolute_offset_seconds": 1.0,
-        "maximum_allowed_sample_round_trip_seconds": 1.0,
-        "samples": receipt_samples,
-    }
-    if receipt != expected_top_level:
-        raise AggregateError(f"{run_id} clock receipt differs from raw samples")
-    return (
-        overall_absolute,
-        node_times[0],
-        node_times[1],
-        controller_times[0][0],
-        controller_times[1][1],
+) -> dict[str, float]:
+    admission = _load_json(
+        trial_dir / "admission-boundary.json", f"{run_id} admission boundary"
     )
+    submit = _load_json(
+        trial_dir / "target-submit-clock.json", f"{run_id} target-submit boundary"
+    )
+    anchor = _load_json(
+        trial_dir / "boot-time-anchor.json", f"{run_id} BOOTTIME anchor"
+    )
+    anchor_holder = _load_json(
+        trial_dir / "anchor-holder.json", f"{run_id} anchor holder"
+    )
+    semantic = _load_json(
+        trial_dir / "semantic-summary.json", f"{run_id} semantic summary"
+    )
+    if (
+        admission.get("schema")
+        != qualification_builder.CONTROLLER_CLOCK_BOUNDARY_SCHEMA
+        or admission.get("phase") != "cohort-admission"
+        or submit.get("schema")
+        != qualification_builder.CONTROLLER_CLOCK_BOUNDARY_SCHEMA
+        or submit.get("phase") != "target-submit"
+        or _timestamp(admission.get("utc"), f"{run_id} admission UTC")
+        != admitted_at
+        or submit.get("utc")
+        != _read_text(trial_dir / "target-submit-at.txt", f"{run_id} target T0")
+        or qualification.get("timing_boundaries", {}).get("primary", {}).get(
+            "controller_monotonic_ns"
+        )
+        != submit.get("monotonic_ns")
+    ):
+        raise AggregateError(f"{run_id} controller BOOTTIME boundaries are inconsistent")
+    admission_mono = _strict_ns(admission.get("monotonic_ns"), f"{run_id} admission")
+    t0_mono = _strict_ns(submit.get("monotonic_ns"), f"{run_id} T0")
+    before = anchor.get("controller_before")
+    after = anchor.get("controller_after")
+    node = anchor.get("node_observed")
+    if (
+        anchor.get("schema") != qualification_builder.BOOT_TIME_ANCHOR_SCHEMA
+        or anchor.get("phase") != "pre-t0-anchor"
+        or anchor.get("sampled_pod_name") != holder_name
+        or anchor.get("sampled_pod_uid") != holder_uid
+        or anchor.get("sampled_container") != "holder"
+        or anchor.get("target_node") != target_node
+        or anchor.get("expected_holder_image")
+        != qualification_builder.BOOT_TIME_ANCHOR_HOLDER_IMAGE
+        or not isinstance(before, dict)
+        or not isinstance(after, dict)
+        or not isinstance(node, dict)
+    ):
+        raise AggregateError(f"{run_id} BOOTTIME anchor identity is inconsistent")
+    before_mono = _strict_ns(before.get("monotonic_ns"), f"{run_id} anchor before")
+    after_mono = _strict_ns(after.get("monotonic_ns"), f"{run_id} anchor after")
+    _timestamp(before.get("utc"), f"{run_id} anchor before UTC")
+    _timestamp(after.get("utc"), f"{run_id} anchor after UTC")
+    maximum_ns = int(
+        qualification_builder.MAX_ANCHOR_TO_T0_CONTROLLER_MONOTONIC_SECONDS
+        * 1_000_000_000
+    )
+    if not (
+        admission_mono <= before_mono <= after_mono <= t0_mono
+        and t0_mono - before_mono <= maximum_ns
+    ):
+        raise AggregateError(f"{run_id} controller admission/anchor/T0 order is invalid")
+
+    holder_meta = anchor_holder.get("metadata", {})
+    holder_spec = anchor_holder.get("spec", {})
+    holder_status = anchor_holder.get("status", {})
+    holder_containers = holder_spec.get("containers", [])
+    holder_statuses = holder_status.get("containerStatuses", [])
+    if (
+        holder_meta.get("name") != holder_name
+        or holder_meta.get("uid") != holder_uid
+        or holder_meta.get("deletionTimestamp") is not None
+        or holder_spec.get("nodeName") != target_node
+        or holder_status.get("phase") != "Running"
+        or not isinstance(holder_containers, list)
+        or len(holder_containers) != 1
+        or holder_containers[0].get("name") != "holder"
+        or holder_containers[0].get("image")
+        != qualification_builder.BOOT_TIME_ANCHOR_HOLDER_IMAGE
+        or not isinstance(holder_statuses, list)
+        or len(holder_statuses) != 1
+        or holder_statuses[0].get("name") != "holder"
+        or holder_statuses[0].get("imageID")
+        != qualification_builder.BOOT_TIME_ANCHOR_HOLDER_IMAGE
+        or holder_statuses[0].get("ready") is not True
+        or isinstance(holder_statuses[0].get("restartCount"), bool)
+        or holder_statuses[0].get("restartCount") != 0
+    ):
+        raise AggregateError(f"{run_id} BOOTTIME anchor holder is not exact")
+
+    node_identity_keys = {
+        "schema",
+        "clock_id",
+        "boot_id",
+        "clock_resolution_ns",
+        "timens_offsets",
+    }
+    semantic_identity = semantic.get("node_clock")
+    if (
+        set(node) != node_identity_keys | {"boottime_ns"}
+        or not isinstance(semantic_identity, dict)
+        or set(semantic_identity) != node_identity_keys
+        or {key: node[key] for key in node_identity_keys} != semantic_identity
+        or node.get("schema") != qualification_builder.SEMANTIC_NODE_BOOTTIME_SCHEMA
+        or node.get("clock_id") != "CLOCK_BOOTTIME"
+        or semantic.get("schema_version")
+        != qualification_builder.SEMANTIC_SCHEMA_VERSION
+    ):
+        raise AggregateError(f"{run_id} semantic probe boot identity differs from anchor")
+    anchor_boot = _strict_ns(node.get("boottime_ns"), f"{run_id} anchor BOOTTIME")
+    resolution = _strict_ns(
+        node.get("clock_resolution_ns"), f"{run_id} CLOCK_BOOTTIME resolution"
+    )
+    if resolution > qualification_builder.MAX_CLOCK_RESOLUTION_NS:
+        raise AggregateError(f"{run_id} CLOCK_BOOTTIME resolution is unbounded")
+    offsets = node.get("timens_offsets")
+    if (
+        not isinstance(offsets, list)
+        or len(offsets) != 2
+        or [item.get("clock") for item in offsets if isinstance(item, dict)]
+        != ["monotonic", "boottime"]
+        or any(
+            set(item) != {"clock", "seconds", "nanoseconds"}
+            or isinstance(item.get("seconds"), bool)
+            or not isinstance(item.get("seconds"), int)
+            or isinstance(item.get("nanoseconds"), bool)
+            or not isinstance(item.get("nanoseconds"), int)
+            for item in offsets
+            if isinstance(item, dict)
+        )
+    ):
+        raise AggregateError(f"{run_id} time namespace offsets are malformed")
+
+    ready = semantic.get("ready_wait")
+    cases = semantic.get("cases")
+    if not isinstance(ready, dict) or not isinstance(cases, list) or len(cases) != 2:
+        raise AggregateError(f"{run_id} semantic BOOTTIME events are missing")
+    points = {
+        "validation_start": _strict_ns(
+            semantic.get("started_boottime_ns"), f"{run_id} validation start"
+        ),
+        "ready_start": _strict_ns(
+            ready.get("started_boottime_ns"), f"{run_id} ready start"
+        ),
+        "ready_dispatch": _strict_ns(
+            ready.get("request_dispatched_boottime_ns"), f"{run_id} ready dispatch"
+        ),
+        "ready_body": _strict_ns(
+            ready.get("response_body_received_boottime_ns"), f"{run_id} ready body"
+        ),
+        "ready_finish": _strict_ns(
+            ready.get("finished_boottime_ns"), f"{run_id} ready finish"
+        ),
+        "call1_dispatch": _strict_ns(
+            cases[0].get("request_dispatched_boottime_ns"), f"{run_id} call1 dispatch"
+        ),
+        "call1_body": _strict_ns(
+            cases[0].get("response_body_received_boottime_ns"), f"{run_id} call1 body"
+        ),
+        "call2_dispatch": _strict_ns(
+            cases[1].get("request_dispatched_boottime_ns"), f"{run_id} call2 dispatch"
+        ),
+        "call2_body": _strict_ns(
+            cases[1].get("response_body_received_boottime_ns"), f"{run_id} call2 body"
+        ),
+        "validation_finish": _strict_ns(
+            semantic.get("validation_finished_boottime_ns"),
+            f"{run_id} validation finish",
+        ),
+    }
+    ordered = [anchor_boot, *points.values()]
+    if anchor_boot >= points["validation_start"] or ordered != sorted(ordered):
+        raise AggregateError(f"{run_id} semantic BOOTTIME event order is invalid")
+
+    def reproduce(start: int, finish: int, recorded: Any, label: str) -> None:
+        expected = round((finish - start) / 1_000_000_000, 6)
+        if (
+            isinstance(recorded, bool)
+            or not isinstance(recorded, (int, float))
+            or not math.isfinite(float(recorded))
+            or float(recorded) != expected
+        ):
+            raise AggregateError(f"{run_id} {label} is not reproduced by BOOTTIME")
+
+    reproduce(
+        points["ready_start"],
+        points["ready_finish"],
+        ready.get("elapsed_seconds"),
+        "readiness elapsed",
+    )
+    reproduce(
+        points["call1_dispatch"],
+        points["call1_body"],
+        cases[0].get("elapsed_seconds"),
+        "call1 elapsed",
+    )
+    reproduce(
+        points["call2_dispatch"],
+        points["call2_body"],
+        cases[1].get("elapsed_seconds"),
+        "call2 elapsed",
+    )
+
+    source_points = {
+        "demand_to_http_ready_boottime_upper_seconds": (
+            "http_ready_complete_body",
+            points["ready_body"],
+        ),
+        "demand_to_first_semantic_boottime_upper_seconds": (
+            "first_semantic_response_complete_body",
+            points["call1_body"],
+        ),
+        "demand_to_two_semantic_boottime_upper_seconds": (
+            "two_semantic_responses_complete_body",
+            points["call2_body"],
+        ),
+    }
+    receipt_upper = qualification.get("boot_time_alignment", {}).get(
+        "conservative_upper_bounds"
+    )
+    if not isinstance(receipt_upper, dict):
+        raise AggregateError(f"{run_id} BOOTTIME upper-bound receipt is missing")
+    result: dict[str, float] = {}
+    for metric_name, (receipt_name, event_boot) in source_points.items():
+        upper_ns = event_boot - anchor_boot + 2 * resolution
+        expected_receipt = {
+            "event_boottime_ns": event_boot,
+            "anchor_boottime_ns": anchor_boot,
+            "event_minus_anchor_ns": event_boot - anchor_boot,
+            "resolution_padding_ns": 2 * resolution,
+            "upper_bound_ns": upper_ns,
+            "upper_bound_seconds": math.ceil(upper_ns / 1_000) / 1_000_000,
+        }
+        if receipt_upper.get(receipt_name) != expected_receipt:
+            raise AggregateError(f"{run_id} BOOTTIME upper bound differs from raw clocks")
+        result[metric_name] = expected_receipt["upper_bound_seconds"]
+    return result
 
 
 def _validate_boltz_binding(
@@ -936,13 +1126,17 @@ def _successful_attempt(
         )
     qualification_sources = {
         "capture_agent_absence": trial_dir / "capture-agent-absence.json",
-        "clock_sample_start": trial_dir / "clock-sample-start.json",
-        "clock_sample_end": trial_dir / "clock-sample-end.json",
+        "admission_boundary": trial_dir / "admission-boundary.json",
+        "target_submit_clock": trial_dir / "target-submit-clock.json",
+        "boot_time_anchor": trial_dir / "boot-time-anchor.json",
+        "anchor_holder": trial_dir / "anchor-holder.json",
         "target_create_response": trial_dir / "target-create-response.json",
         "target_pod": trial_dir / "target-final.json",
         "target_events": trial_dir / "target-events.json",
         "worker_pod": trial_dir / "worker-pod.json",
+        "worker_receipt": trial_dir / "worker-receipt.json",
         "probe_pod": trial_dir / "probe-pod.json",
+        "semantic_summary": trial_dir / "semantic-summary.json",
         "target_nvidia_smi_xml": trial_dir / "target-nvidia-smi.xml",
         "target_nvidia_smi_stderr": trial_dir / "target-nvidia-smi.stderr",
     }
@@ -982,16 +1176,30 @@ def _successful_attempt(
                 trial_dir / "target-events.json", f"{run_id} target Events"
             ),
             worker_pod=worker_pod,
+            worker_receipt=_load_json(
+                trial_dir / "worker-receipt.json", f"{run_id} worker receipt"
+            ),
             worker_container="restore-worker",
             probe_pod=probe_pod,
             probe_container="semantic-probe",
+            semantic_summary=_load_json(
+                trial_dir / "semantic-summary.json", f"{run_id} semantic summary"
+            ),
             gpu_health_xml=trial_dir / "target-nvidia-smi.xml",
             gpu_health_stderr=trial_dir / "target-nvidia-smi.stderr",
-            clock_sample_start=_load_json(
-                trial_dir / "clock-sample-start.json", f"{run_id} start clock sample"
+            admission_boundary=_load_json(
+                trial_dir / "admission-boundary.json",
+                f"{run_id} admission boundary",
             ),
-            clock_sample_end=_load_json(
-                trial_dir / "clock-sample-end.json", f"{run_id} end clock sample"
+            target_submit_clock=_load_json(
+                trial_dir / "target-submit-clock.json",
+                f"{run_id} target-submit boundary",
+            ),
+            boot_time_anchor=_load_json(
+                trial_dir / "boot-time-anchor.json", f"{run_id} BOOTTIME anchor"
+            ),
+            anchor_holder=_load_json(
+                trial_dir / "anchor-holder.json", f"{run_id} anchor holder"
             ),
             source_paths=qualification_sources,
         )
@@ -999,25 +1207,15 @@ def _successful_attempt(
         raise AggregateError(f"{run_id} raw qualification sources fail: {exc}") from exc
     if rebuilt_qualification != qualification:
         raise AggregateError(f"{run_id} qualification was not rebuilt from raw sources")
-    (
-        clock_absolute_bound,
-        clock_start_node,
-        clock_end_node,
-        clock_start_controller,
-        clock_end_controller,
-    ) = _validate_clock_alignment(
+    boot_upper_metrics = _validate_boot_time_alignment(
         trial_dir,
         run_id=run_id,
         qualification=qualification,
-        target_name=target_name,
-        target_uid=binding["pod_uid"],
+        admitted_at=admitted_at,
         target_node=run["target_node"],
-        target_container=target_container,
         holder_name=artifact_holder["name"],
         holder_uid=artifact_holder["uid"],
     )
-    if not 0 <= (primary_t0 - clock_start_controller).total_seconds() <= 300:
-        raise AggregateError(f"{run_id} pre-T0 clock bracket is missing or stale")
     embedded = summary.get("qualification")
     if embedded != qualification:
         raise AggregateError(f"{run_id} summary does not embed the exact qualification")
@@ -1082,7 +1280,8 @@ def _successful_attempt(
 
     if model == "openfold2":
         timings = summary.get("timings_seconds")
-        if not isinstance(timings, dict):
+        upper_timings = summary.get("timings_upper_bound_seconds")
+        if not isinstance(timings, dict) or not isinstance(upper_timings, dict):
             raise AggregateError(f"{run_id} OpenFold2 timings are missing")
         fields = {
             "demand_to_http_ready_seconds": timings.get("demand_to_http_ready"),
@@ -1214,10 +1413,6 @@ def _successful_attempt(
         <= response_2
     ):
         raise AggregateError(f"{run_id} raw HTTP timing boundaries are not monotonic")
-    if clock_start_node > semantic_started or response_2 > clock_end_node:
-        raise AggregateError(f"{run_id} semantic calls fall outside node clock brackets")
-    if clock_end_controller < clock_start_controller:
-        raise AggregateError(f"{run_id} controller clock brackets are reversed")
     kubernetes_ready = _timestamp(
         ready_conditions[0].get("lastTransitionTime"), f"{run_id} Kubernetes Ready"
     )
@@ -1265,37 +1460,25 @@ def _successful_attempt(
     }
     if normalized != expected_metrics:
         raise AggregateError(f"{run_id} summary metrics differ from raw timestamps")
-    for raw_name in (
-        "demand_to_http_ready_seconds",
-        "demand_to_kubernetes_ready_seconds",
-        "demand_to_first_semantic_seconds",
-        "demand_to_two_semantic_seconds",
-        "acceptance_response_proxy_to_http_ready_seconds",
-        "acceptance_response_proxy_to_kubernetes_ready_seconds",
-        "acceptance_response_proxy_to_first_semantic_seconds",
-        "acceptance_response_proxy_to_two_semantic_seconds",
-    ):
-        upper_name = raw_name.removesuffix("_seconds") + "_clock_upper_bound_seconds"
-        normalized[upper_name] = round(
-            normalized[raw_name] + clock_absolute_bound, 6
-        )
-    # Kubernetes condition timestamps are serialized at whole-second precision.
-    # Keep the clock-only values above, but also report the actually conservative
-    # readiness bounds with that independent quantization uncertainty included.
-    for raw_name in (
-        "demand_to_kubernetes_ready_seconds",
-        "acceptance_response_proxy_to_kubernetes_ready_seconds",
-    ):
-        upper_name = (
-            raw_name.removesuffix("_seconds")
-            + "_clock_and_timestamp_upper_bound_seconds"
-        )
-        normalized[upper_name] = round(
-            normalized[raw_name] + clock_absolute_bound + 1.0, 6
-        )
-    normalized["controller_to_node_clock_absolute_bound_seconds"] = (
-        clock_absolute_bound
-    )
+    if model == "openfold2":
+        embedded_upper = {
+            "demand_to_http_ready_boottime_upper_seconds": upper_timings.get(
+                "demand_to_http_ready_boottime_upper"
+            ),
+            "demand_to_first_semantic_boottime_upper_seconds": upper_timings.get(
+                "demand_to_first_semantic_response_boottime_upper"
+            ),
+            "demand_to_two_semantic_boottime_upper_seconds": upper_timings.get(
+                "demand_to_two_semantic_responses_boottime_upper"
+            ),
+        }
+    else:
+        embedded_upper = {
+            name: summary.get(name) for name in boot_upper_metrics
+        }
+    if embedded_upper != boot_upper_metrics:
+        raise AggregateError(f"{run_id} summary BOOTTIME upper bounds differ from raw clocks")
+    normalized.update(boot_upper_metrics)
 
     contract_path = trial_dir / "restore-interface.sha256"
     if contract_path.is_symlink() or not contract_path.is_file():
@@ -1651,6 +1834,9 @@ def aggregate(ledger_path: Path, model: str) -> dict[str, Any]:
     run_prefix = start.get("run_prefix")
     evidence_root = Path(str(start.get("evidence_root", "")))
     runner_sha256 = start.get("runner_sha256")
+    instrumentation_contract_sha256 = start.get(
+        "instrumentation_contract_sha256"
+    )
     maximum_scheduled = start.get("maximum_scheduled_attempts")
     cohort_started = _timestamp(start.get("started_at"), "cohort start")
     cohort_finished = _timestamp(finish.get("finished_at"), "cohort finish")
@@ -1669,6 +1855,7 @@ def aggregate(ledger_path: Path, model: str) -> dict[str, Any]:
         or not (evidence_root / "runs").is_dir()
         or ledger_path != evidence_root / "cohorts" / str(cohort_id) / "attempts.ndjson"
         or SHA256_RE.fullmatch(str(runner_sha256)) is None
+        or SHA256_RE.fullmatch(str(instrumentation_contract_sha256)) is None
         or not isinstance(requested, int)
         or isinstance(requested, bool)
         or requested < MINIMUM_ATTEMPTS
@@ -1681,6 +1868,22 @@ def aggregate(ledger_path: Path, model: str) -> dict[str, Any]:
         or cohort_finished < cohort_started
     ):
         raise AggregateError("cohort header/footer does not meet the fresh n>=20 contract")
+    try:
+        expected_instrumentation = instrumentation_builder.build_contract(model)
+    except instrumentation_builder.InstrumentationContractError as exc:
+        raise AggregateError(f"cannot rebuild instrumentation contract: {exc}") from exc
+    instrumentation_path = (
+        evidence_root / "cohorts" / str(cohort_id) / "instrumentation-contract.json"
+    )
+    captured_instrumentation = _load_json(
+        instrumentation_path, "cohort instrumentation contract"
+    )
+    if (
+        captured_instrumentation != expected_instrumentation
+        or instrumentation_contract_sha256
+        != expected_instrumentation["instrumentation_contract_sha256"]
+    ):
+        raise AggregateError("cohort instrumentation contract drifted or is not current")
     if len(admitted) != requested or len(admitted) < MINIMUM_ATTEMPTS:
         raise AggregateError("cohort admission count differs from the fresh request")
     scheduled = finish.get("scheduled_attempt_count")
@@ -1769,6 +1972,8 @@ def aggregate(ledger_path: Path, model: str) -> dict[str, Any]:
             event.get("model") != model
             or event.get("cohort_id") != cohort_id
             or event.get("runner_sha256") != runner_sha256
+            or event.get("instrumentation_contract_sha256")
+            != instrumentation_contract_sha256
             or run_pattern.fullmatch(str(event.get("run_id", ""))) is None
             or not cohort_started
             <= _timestamp(event.get("admitted_at"), "attempt admission")
@@ -1833,6 +2038,14 @@ def aggregate(ledger_path: Path, model: str) -> dict[str, Any]:
             or not admission_time <= completion_time <= cohort_finished
         ):
             raise AggregateError(f"{run_id} trial directory/timeline is invalid")
+        run_instrumentation = _load_json(
+            trial_dir / "instrumentation-contract.json",
+            f"{run_id} instrumentation contract",
+        )
+        if run_instrumentation != captured_instrumentation:
+            raise AggregateError(
+                f"{run_id} does not share the homogeneous instrumentation contract"
+            )
         expected_summary = trial_dir / (
             "canary-evidence.json" if model == "openfold2" else "trial-summary.json"
         )
@@ -1900,17 +2113,9 @@ def aggregate(ledger_path: Path, model: str) -> dict[str, Any]:
         "acceptance_response_proxy_to_kubernetes_ready_seconds",
         "acceptance_response_proxy_to_first_semantic_seconds",
         "acceptance_response_proxy_to_two_semantic_seconds",
-        "demand_to_http_ready_clock_upper_bound_seconds",
-        "demand_to_kubernetes_ready_clock_upper_bound_seconds",
-        "demand_to_first_semantic_clock_upper_bound_seconds",
-        "demand_to_two_semantic_clock_upper_bound_seconds",
-        "acceptance_response_proxy_to_http_ready_clock_upper_bound_seconds",
-        "acceptance_response_proxy_to_kubernetes_ready_clock_upper_bound_seconds",
-        "acceptance_response_proxy_to_first_semantic_clock_upper_bound_seconds",
-        "acceptance_response_proxy_to_two_semantic_clock_upper_bound_seconds",
-        "demand_to_kubernetes_ready_clock_and_timestamp_upper_bound_seconds",
-        "acceptance_response_proxy_to_kubernetes_ready_clock_and_timestamp_upper_bound_seconds",
-        "controller_to_node_clock_absolute_bound_seconds",
+        "demand_to_http_ready_boottime_upper_seconds",
+        "demand_to_first_semantic_boottime_upper_seconds",
+        "demand_to_two_semantic_boottime_upper_seconds",
     )
     metrics = {
         name: _metric_block(name, attempts, successful) for name in metric_names
@@ -1918,7 +2123,7 @@ def aggregate(ledger_path: Path, model: str) -> dict[str, Any]:
     failure_count = sum(item["status"] == "FAIL" for item in attempts)
     primary_p95 = metrics["demand_to_two_semantic_seconds"]["p95"]["seconds"]
     primary_upper_p95 = metrics[
-        "demand_to_two_semantic_clock_upper_bound_seconds"
+        "demand_to_two_semantic_boottime_upper_seconds"
     ]["p95"]["seconds"]
     status = (
         "PASS"
@@ -1943,12 +2148,12 @@ def aggregate(ledger_path: Path, model: str) -> dict[str, Any]:
         "primary_target": {
             "metric": "client pre-dispatch to second complete semantic response body",
             "observed_p95_seconds": primary_p95,
-            "clock_uncertainty_upper_bound_p95_seconds": primary_upper_p95,
+            "boottime_conservative_upper_bound_p95_seconds": primary_upper_p95,
             "p95_under_30_seconds": (
                 primary_upper_p95 is not None and primary_upper_p95 < 30
             ),
             "requires_zero_runner_or_cleanup_failures": True,
-            "pass_uses_clock_uncertainty_upper_bound": True,
+            "pass_uses_boottime_conservative_upper_bound": True,
         },
         "timing_contract": {
             "primary_t0": "client-target-create-dispatch/v1",
@@ -1956,12 +2161,22 @@ def aggregate(ledger_path: Path, model: str) -> dict[str, Any]:
             "acceptance_response_proxy": PROXY_LABEL,
             "acceptance_response_proxy_is_exact_server_acceptance": False,
             "response_boundary": RESPONSE_CONTRACT,
-            "controller_to_target_node_clock_bound_seconds": 1.0,
+            "boot_time_anchor": "pre-t0-ready-holder-clock-boottime-anchor/v1",
+            "maximum_controller_anchor_before_to_t0_seconds": (
+                qualification_builder.MAX_ANCHOR_TO_T0_CONTROLLER_MONOTONIC_SECONDS
+            ),
+            "upper_bound_formula": (
+                "(event CLOCK_BOOTTIME - anchor CLOCK_BOOTTIME) + "
+                "2 * CLOCK_BOOTTIME resolution, rounded upward to microseconds"
+            ),
             "worker_and_probe_required_on_target_node": True,
             "percentile_estimator": (
                 "nearest-rank with failed attempts sorted after successful samples"
             ),
         },
+        "instrumentation_contract": captured_instrumentation,
+        "instrumentation_contract_receipt": str(instrumentation_path),
+        "instrumentation_contract_receipt_sha256": _sha256(instrumentation_path),
         "immutable_contract": immutable,
         "attempts": attempts,
         "successful_run_ids": [item["run_id"] for item in successful],
