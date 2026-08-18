@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: openfold3-native-f7-donor-r1
+  name: openfold3-native-f7-donor-r2
   namespace: nim-fast-start
   labels:
     app.kubernetes.io/name: openfold3
@@ -120,6 +120,7 @@ spec:
               PY
 
               python3 -m pip uninstall -y uvloop
+              cd /opt/nim/workspace
               bash /opt/nim/start_server.sh &
               server_pid=$!
               trap 'kill "$server_pid" 2>/dev/null || true' TERM INT EXIT
@@ -148,12 +149,12 @@ spec:
             - name: VALIDATOR_SOURCE
               valueFrom:
                 configMapKeyRef:
-                  name: openfold3-native-f7-validator-r1
+                  name: openfold3-native-f7-validator-r2
                   key: VALIDATOR_SOURCE
             - name: REQUEST_JSON
               valueFrom:
                 configMapKeyRef:
-                  name: openfold3-native-f7-validator-r1
+                  name: openfold3-native-f7-validator-r2
                   key: REQUEST_JSON
           ports:
             - name: http

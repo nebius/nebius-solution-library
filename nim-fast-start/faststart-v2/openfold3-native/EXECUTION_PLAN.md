@@ -111,7 +111,7 @@ copies both values to regular emptyDir files and rehashes them before use.
 
 ```console
 kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start create configmap \
-  openfold3-native-f7-validator-r1 \
+  openfold3-native-f7-validator-r2 \
   --from-file=VALIDATOR_SOURCE="$OF3_LANE/validate_openfold3.py" \
   --from-file=REQUEST_JSON="$OF3_LANE/fixtures/request-20aa.json" \
   --dry-run=client -o yaml > "$OF3_EVIDENCE/donor-configmap.yaml"
@@ -124,7 +124,7 @@ kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start wait \
   --timeout=600s
 
 OF3_DONOR_POD=$(kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start get pods \
-  -l job-name=openfold3-native-f7-donor-r1 -o json | \
+  -l job-name=openfold3-native-f7-donor-r2 -o json | \
   jq -er 'select((.items | length) == 1) | .items[0].metadata.name')
 kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start wait \
   --for=condition=Ready "pod/$OF3_DONOR_POD" --timeout=3600s
@@ -173,11 +173,11 @@ exact capture-stage objects:
 
 ```console
 kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start delete job \
-  openfold3-native-f7-donor-r1 --wait=true --timeout=300s
+  openfold3-native-f7-donor-r2 --wait=true --timeout=300s
 kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start delete pod \
   openfold3-native-f7-snapshot-agent-hf93 --wait=true --timeout=300s
 kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start delete configmap \
-  openfold3-native-f7-validator-r1 --wait=true --timeout=120s
+  openfold3-native-f7-validator-r2 --wait=true --timeout=120s
 ```
 
 ## 5. Verify and prewarm the direct artifact
