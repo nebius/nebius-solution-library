@@ -19,6 +19,9 @@ response-boundary audit is recorded in
 - `performance/openfold2/` records the corrected provisioned-node
   response-boundary n=3 result without storing raw cluster evidence or
   credentials in Git;
+- `performance/cost-ledger/` builds a fail-closed resource-usage ledger and
+  joins only explicit, effective-dated price snapshots; latency remains
+  distinct from billed cost;
 - `openfold2-newnode/` contains the archived scale-from-zero preemptible-node
   harness, lifecycle verifier, automated node bootstrap, and two historical
   lifecycle results. Both remain useful operational evidence but contribute
