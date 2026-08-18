@@ -55,7 +55,7 @@ jq -e --arg node "$OF3_NODE" '
   .metadata.name == $node and
   any(.status.conditions[]?; .type == "Ready" and .status == "True") and
   ((.status.allocatable["nvidia.com/gpu"] // "0") | tonumber) >= 1 and
-  ((.metadata.labels["nvidia.com/gpu.product"] // "") | test("H100"; "i"))
+  .metadata.labels["nebius.com/gpu-name"] == "H100"
 ' "$OF3_EVIDENCE/node-before.json" >/dev/null
 
 kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start get pods \
@@ -92,11 +92,11 @@ kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start get configmap \
 
 kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start create \
   -f "$OF3_LANE/storage.yaml"
-kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start wait \
-  --for=jsonpath='{.status.phase}'=Bound pvc/openfold3-native-f7-artifacts \
-  pvc/openfold3-native-f7-cache --timeout=600s
 kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start create \
   -f "$OF3_EVIDENCE/snapshot-agent.yaml"
+kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start wait \
+  --for=jsonpath='{.status.phase}'=Bound pvc/openfold3-native-f7-artifacts \
+  --timeout=600s
 kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start wait \
   --for=condition=Ready pod/openfold3-native-f7-snapshot-agent-hf93 \
   --timeout=300s
@@ -119,6 +119,9 @@ kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start create \
   -f "$OF3_EVIDENCE/donor-configmap.yaml"
 kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start create \
   -f "$OF3_LANE/donor-job.yaml"
+kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start wait \
+  --for=jsonpath='{.status.phase}'=Bound pvc/openfold3-native-f7-cache \
+  --timeout=600s
 
 OF3_DONOR_POD=$(kubectl --kubeconfig "$OF3_KUBECONFIG" -n nim-fast-start get pods \
   -l job-name=openfold3-native-f7-donor-r1 -o json | \
