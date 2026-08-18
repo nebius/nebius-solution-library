@@ -49,8 +49,9 @@ have immutable registry digests and the approval fields are completed.
 contains image and source digests, but no credential material. The current
 probe accepts the two observed successful `/v1/health/ready` JSON shapes:
 literal `true` or `{"status":"ready"}`. It then issues exactly two inference
-calls using the pinned full 1UBQ-plus-aspirin fixture. No production-shaped
-DiffDock measurement is claimed until the deferred `n=3` run completes.
+calls using the pinned full 1UBQ-plus-aspirin fixture. The production-shaped
+exact response-boundary `n=3` qualification is complete; selected metrics and
+evidence identities are recorded in `../results.json` and `../README.md`.
 
 The target is scheduler-created: its template uses required hostname affinity
 and never `spec.nodeName`. The worker and target use the previously measured

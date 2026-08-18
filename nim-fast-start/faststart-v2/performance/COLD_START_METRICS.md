@@ -108,12 +108,12 @@ manual histories are included only as explicitly non-selected comparators:
 |---|---|---:|---|
 | OpenFold2 | direct/O_DIRECT artifact; payload not page-preloaded | not applicable | direct-state evidence retained per run |
 | Boltz2 | direct/O_DIRECT, 16,241,056,616-byte artifact | not applicable | direct-state evidence retained per run |
-| ProteinMPNN | 1,867,046,505 bytes, 57 files, aggregate content SHA-256 `b2ce82dfbef1cbeb9c3ac35b94f5a2f97fccc19a98419e213d8c0d42a5c2c0e0` | 3.586695 | complete identity/elapsed receipt; read started `2026-08-18T11:42:32.791854148Z` and completed `2026-08-18T11:42:37.513367125Z`; receipt SHA-256 `f611a9457b7991a63cbbac40849398ebcd826b86186d7ddfc3742199ac210ee5` |
+| ProteinMPNN | 1,867,046,505 bytes, 57 files, aggregate content SHA-256 `b2ce82dfbef1cbeb9c3ac35b94f5a2f97fccc19a98419e213d8c0d42a5c2c0e0` | 3.586695 in-holder reader; 4.721513 outer `kubectl exec` wall interval | complete identity/elapsed receipt; outer command interval `2026-08-18T11:42:32.791854148Z`–`2026-08-18T11:42:37.513367125Z`; receipt SHA-256 `f611a9457b7991a63cbbac40849398ebcd826b86186d7ddfc3742199ac210ee5` |
 | DiffDock | 7,516,058,314 bytes, 122 files, tree SHA-256 `2d9e339392d6b4c5207ddbd4ef8f26465e324b2e165bd4cd9b43530f006e1b1d` | 5.931160 | complete byte/tree/timestamp/elapsed receipt SHA-256 `aeb1af149e0d054af810d1f670fb339342aa4066b9fbd01d8bd2d0f2058be7e8` |
 | OpenFold3 | 9,263,246,107 bytes, 148 files, tree SHA-256 `f488019348551f356a153ce17cd9568a9d59497ead375c81a84ddef3bc3972c2` | 7.386615 in-holder reader; 8.583788 outer `kubectl exec` wall interval | complete identity/timestamp/elapsed receipt SHA-256 `4e2ce483ed27d817f8e00fc26ef7f53fb9ad2b35f094b59ca44f97fb56abc7e9`; outer interval 12:35:15.138304811Z–12:35:23.722092736Z; holder UID retained |
 | MSA Search PDB70 | 112,682,799 bytes across 13 unique inodes, content-stream SHA-256 `416efa6571423414a0fb46e8739bfa1202b5885122ce2e6cb280a00607bd4062` | 0.104987 | complete identity/timestamp/elapsed receipt SHA-256 `6aea481f44cd7d4ca05505c6bfd427a4353563ba2a3fb0c5c1fd09a92a98b98e` |
 | Evo2-40B | legacy direct 99,959,572,798-byte checkpoint | not applicable | no current manifest-bound artifact; manual evidence only |
-| GenMol | 4,781,347,930 bytes, 114 files, tree SHA-256 `8d847217744b84f2ddce4520bfaf83dec0285241fade9d9fb91b5b83d8c18198` | 6.328907 | complete identity and elapsed receipts |
+| GenMol | 4,781,347,930 bytes, 114 files, tree SHA-256 `8d847217744b84f2ddce4520bfaf83dec0285241fade9d9fb91b5b83d8c18198` | 6.328907 | complete identity and elapsed receipt; the exact cohort reused the continuously Ready holder rather than performing a fresh immediately-before-cohort read, so page residency is expected rather than freshly reproven |
 | RFdiffusion | artifact: 22,087,352,229 bytes/90 files/manifest `5d47f0fac7bba60bdab3e29843f2fd99150491e917f7f3758a84176aef8c7f9d`/aggregate SHA-256 `8f3b3f66b2b8e886b2b04880d6e511ee138b409bf55471849dfd9657a6df44fb`; cache: 2,590,162,178 bytes/674 files/tree `8b79aa4f4ca6a3121ca6d3d7e8083addd949a28a84b375bd5754580415eb80fd` | artifact 16.332096; cache 32.633541; total 48.965637 | complete refreshed holder receipt SHA-256 `17afc7961933a10cd7b1ab6d0d391a54f459bf1f5db67bbb51be61cae5d0920d` |
 | MolMIM | artifact: 5,220,755,473 bytes/81 files/tree `19c9d2eafb62887aa6dd1e71c0bcd4b4ea73522da5235ea19c4812d9a5c5ac20`; cache: 284,497,920 bytes/2 files/tree `5ff815495b2b90ec6f4d9e5df24216b11a60d49f711e68999347036b0f43056c` | artifact 4.194605; cache 17.524894 | both bytes/tree/elapsed receipts complete; aggregate retains pre-T0 capture times |
 
@@ -149,6 +149,12 @@ because direct-canary activity followed its stale holder read; it never
 contributes to the selected median. OpenFold2 and Boltz2 exact-image preloads
 took 264.996 and 33.536 seconds respectively, occurred before T0, and are
 image-residency setup rather than artifact full-read time.
+
+MolMIM's selected call timers are monotonic dispatch-to-complete-body
+measurements and its exact total is independently derived from call 2's
+absolute `response_received_at`. Its retained per-case schema omits an absolute
+`request_started_at`; that is a receipt-schema gap, not a timing-arithmetic
+substitution. The later validation-completion timestamp remains separate.
 
 ## Storage sensitivity already demonstrated
 
