@@ -1,6 +1,93 @@
 # OpenFold2 production-native provisioned-node result
 
-The selected direct-AIO production path completed two distinct strict OpenFold2
+## Fresh fail-closed n=20 qualification
+
+The fresh homogeneous cohort `of2-n20-v3-20260818t1421z` is the selected
+qualification. All 20 scheduled attempts were admitted, completed strict
+semantic validation, and passed UID-bound cleanup: **20/20 qualified, 20/20
+cleanup, failed-attempt denominator 0/20**. The conservative CLOCK_BOOTTIME
+upper-bound nearest-rank p95 was **17.629887 seconds**, so OpenFold2 passes the
+strict `<30 s` T0-to-second-complete-body target.
+
+| Measurement | p50 | Nearest-rank p95 | Maximum |
+|---|---:|---:|---:|
+| T0 to successful semantic HTTP ready, observed UTC | 14.242080 s | 14.572160 s | 14.991581 s |
+| T0 to HTTP ready, conservative BOOTTIME upper | 14.342258 s | 14.671991 s | 15.099141 s |
+| T0 to Kubernetes Pod Ready, diagnostic | 15.387387 s | 16.109487 s | 16.124244 s |
+| First inference, dispatch through complete HTTP body | 1.938516 s | 1.973362 s | 1.975756 s |
+| Second inference, dispatch through complete HTTP body | 1.015083 s | 1.032614 s | 1.035316 s |
+| T0 through first complete inference body, observed UTC | 16.172968 s | 16.489561 s | 16.933596 s |
+| T0 through first complete inference body, conservative BOOTTIME upper | 16.273235 s | 16.586717 s | 17.041233 s |
+| T0 through second complete inference body, observed UTC | **17.202273 s** | **17.532731 s** | **17.955461 s** |
+| T0 through second complete inference body, conservative BOOTTIME upper | **17.302540 s** | **17.629887 s** | **18.063099 s** |
+
+The complete 20-element arrays and p50/p95/max rows for all 14 retained clocks,
+including the explicitly non-exact client API-return proxy, are in
+`fresh-cohort-n20-results.tsv`. The API-return-proxy-to-call-2 p50/p95/max is
+16.331869/16.670896/17.027670 seconds; it is diagnostic and is not substituted
+for the primary pre-dispatch T0 clock.
+
+Two evidence limitations apply to this qualification. Target-container GPU
+checks passed, but all 20 OpenFold2 qualification receipts record privileged
+host-driver Xid absence as unavailable/unproven because no task-scoped
+privileged node-log collector was present. The semantic summaries also
+reference 40 raw response bodies (two per attempt) that were not copied from
+the probe containers or retained controller-side; across the OpenFold2 and
+Boltz2 cohorts this is 80 unretained raw bodies. Response SHA-256 values, byte
+counts, complete-body timestamps, strict semantic invariants/receipts, and the
+pinned validator source are retained. Those retained checks do not substitute
+for host-driver logs or controller-side raw response bodies.
+
+This is a warm-instance cold start: t12 was already Ready with one H100; the
+exact target, restore-worker, and probe images were proven cached; and the M3
+artifact and cache PVCs were already attached. T0 remained immediately before
+client dispatch of target creation. The direct M3 artifact was not page-cache
+preloaded and no artifact page-cache claim is made. Image setup and the GPU-zero
+audit occurred before T0 and are excluded from every sample.
+
+The private evidence root is
+`/home/tux/.local/state/archvteams-2407/of2-boltz-n20-20260818T121158Z`.
+The source ledger SHA-256 is
+`cefad84839f1e1e1794715abcdffdd2b10cc2bb25867b4466e7d30ea5cabcd6a`;
+the aggregate SHA-256 is
+`803a4c139b99d3016e6b4a9ab922dfaf18a11acb51de0ed921a112d1f7a44587`;
+and the homogeneous-cohort classification receipt SHA-256 is
+`c5831b7413d6540b7c09e1f697c1b9ad45bf2ab05cad2309f857d591ce355d6f`.
+Acquisition was frozen at Git commit
+`e3b41aecc7b49d31914fa970aa58903feef4d5d9` (production-equivalent commit
+`77e4c6d5357a89321fa4f09d16392cdc1186c0db`) with the exact 18-source
+instrumentation-contract SHA-256
+`0661b8875e553da04581086178089be450327df949ce24b4b5019edec7357c4b`;
+its receipt SHA-256 is
+`ae2e330db2c67a94aa20d7a23f95e231f6a964e64997dabefb14e14c684d2c54`.
+The prelaunch, image-residency, and pre-T0 GPU-zero receipt SHA-256 values are
+`6b85e6cd73e6ac306c92af407c3ebc6e13af5caba0b8c3212a9fde59e5a67f20`,
+`081a0183afe5d0be5906eab31c53d60acf953c8c06c79fa042a4024ba09a7a85`,
+and `96534e434852c2101c06c8339421a7ba3741bacc47578967c23ce11b8a8d9a34`.
+The post-cohort final-state receipt SHA-256 is
+`d0436512a91c7ec6630678ae19c788c61147cf06ec92f30681c2447c6e216400`.
+Its UID-cleaned GPU-zero audit receipt SHA-256 is
+`705db22f54d08a02e06ff8c9663ab714b5ea61f9e7351c63653d52850f258e59`.
+Its immutable `source.tree_sha256` label was incorrect—the value was the
+40-hex Git SHA-1 tree object ID. The hash-bound correction sidecar SHA-256
+`296c15052074d9c8b8310f24e87d3af19e2841ed9ffcc763b1fe614131ba52f2`
+correctly names it `git_tree_oid` with algorithm SHA-1 and records no timing or
+source-contract effect.
+
+Two earlier admitted cohorts remain separate and contribute zero selected
+samples. `of2-n20-20260818t1250z` is preserved as 3/3
+`FAILED_INSTRUMENTATION` (ledger/classification SHA-256
+`c88ce3bd528a34774b96b6cf85fae65781bb7588d273b7b6d88ec1085f83c409` /
+`47875ceee14f7af20b7ed2ab5c093e04d5959f557689e539714e37af82702197`).
+`of2-n20-v2-20260818t1313z` is preserved as 3/3
+`FAILED_CLOCK_INSTRUMENTATION` (ledger/classification SHA-256
+`fe125713bbd6a3a49839afeedb96556cd46e04330970f7d54d1917e1b97dbecb` /
+`56cd6183f6db4b009896ff29f6f6b6f56dca10f020ac362702d42b3a6945e285`).
+Neither cohort is retried, relabeled, or pooled with v3.
+
+## Retained response-boundary n=3 result
+
+The earlier direct-AIO production path completed two distinct strict OpenFold2
 folds in a **14.236758-second median** from target submit through receipt of the
 second complete HTTP body. Three consecutive clean restores passed on an
 already provisioned H100 with storage attached and the exact image cached:
@@ -22,7 +109,7 @@ scheduling with restoration. The earlier sequential flow is retained as
 historical evidence but used an older clock and is not mixed into the corrected
 submit-edge comparison.
 
-The current response-boundary runs are in
+The retained n=3 response-boundary runs are in
 `provisioned-response-boundary-results.tsv`. The historical early-probe runs
 remain in `provisioned-early-probe-results.tsv`, and the earlier sequential
 comparison is retained in `provisioned-results.tsv`.

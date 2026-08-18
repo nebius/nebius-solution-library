@@ -1,9 +1,20 @@
 # BioNeMo NIM fast start v2
 
-This subtree contains production-shaped n=3 results for OpenFold2, Boltz2,
-ProteinMPNN, DiffDock, OpenFold3, MSA Search, GenMol, RFdiffusion, and MolMIM.
-OpenFold2, Boltz2, ProteinMPNN, DiffDock, OpenFold3, MSA Search, GenMol,
-RFdiffusion, and MolMIM retain exact T0-to-second-response boundaries.
+This subtree contains fresh fail-closed n=20 results for OpenFold2 and Boltz2,
+plus retained production-shaped n=3 results for OpenFold2, Boltz2, ProteinMPNN,
+DiffDock, OpenFold3, MSA Search, GenMol, RFdiffusion, and MolMIM. OpenFold2's
+n20 conservative-upper p95 is 17.629887 seconds and passes `<30 s`. Boltz2 had
+20/20 valid runs and cleanups but its 30.310246-second conservative-upper p95
+is an **SLO FAIL**, not an overall pass. All nine production-shaped model lanes
+retain exact T0-to-second-response boundaries.
+
+For the two fresh n20 cohorts, target-container GPU checks passed, but
+privileged host-driver Xid absence remains unavailable/unproven because no
+task-scoped privileged node-log collector was present. The 80 referenced raw
+response bodies were not copied from the probe containers or retained
+controller-side; response hashes, byte counts, body timestamps, semantic
+invariants/receipts, and pinned validator sources remain retained.
+
 Evo2-40B is the only remaining non-production-shaped row and remains blocked
 on release of the only allowed H200 from an owner-managed Deployment. The
 shared metric contract and current ten-model matrix are in
@@ -16,9 +27,9 @@ response-boundary audit is recorded in
 - `dynamo/` renders and validates target, binding, restore, semantic probe, and
   derived evidence objects, and provides the explicit provisioned-node runner;
   and
-- `performance/openfold2/` records the corrected provisioned-node
-  response-boundary n=3 result without storing raw cluster evidence or
-  credentials in Git;
+- `performance/openfold2/` records the fresh homogeneous n20 qualification,
+  its complete timing arrays, and the retained corrected provisioned-node n=3
+  result without storing raw cluster evidence or credentials in Git;
 - `performance/cost-ledger/` builds a fail-closed resource-usage ledger and
   joins only explicit, effective-dated price snapshots; latency remains
   distinct from billed cost;
@@ -26,9 +37,10 @@ response-boundary audit is recorded in
   harness, lifecycle verifier, automated node bootstrap, and two historical
   lifecycle results. Both remain useful operational evidence but contribute
   zero samples to the current complete-response metric;
-- `boltz2-native/` contains the Boltz2 capture inputs, strict validator,
-  model adapter, provisioned-node runner, corrected response-boundary n=3
-  result, and rejected writeback comparison;
+- `boltz2-native/` contains the Boltz2 capture inputs, strict validator, model
+  adapter, provisioned-node runner, the fresh n20 SLO-failing aggregate with
+  20/20 valid runs, the retained response-boundary n=3 result, and the rejected
+  writeback comparison;
 - `proteinmpnn-native/` contains the ProteinMPNN capture inputs, strict
   validator, exact response-boundary runner, direct-I/O comparator, and winning
   fully prewarmed buffered n=3 result. The selected route reaches HTTP
