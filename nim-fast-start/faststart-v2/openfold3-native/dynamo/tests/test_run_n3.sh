@@ -33,10 +33,12 @@ args=(
 "$test_tmp/lane/run_n3.sh" "${args[@]}" > "$test_tmp/stdout"
 summary="$test_tmp/evidence/n3-of3-ut-direct.json"
 [[ $(jq -r '.status' "$summary") == PASS ]]
+[[ $(jq -r '.t0_source' "$summary") == target-submit-at.txt ]]
 [[ $(jq -r '.trial_count' "$summary") == 3 ]]
 [[ $(jq -r '.request_count' "$summary") == 6 ]]
 [[ $(jq -r '.statistics_seconds.demand_to_two_semantic_median' "$summary") == 20.0 ]]
 [[ $(jq -r '.statistics_seconds.demand_to_http_ready_median' "$summary") == 15.0 ]]
+[[ $(jq -r '.statistics_seconds.demand_to_kubernetes_ready_median' "$summary") == 16.0 ]]
 [[ $(jq -r '.statistics_seconds.semantic_request_1_median' "$summary") == 3.0 ]]
 [[ $(jq -r '.statistics_seconds.semantic_request_2_median' "$summary") == 2.0 ]]
 [[ $(jq -r '.statistics_seconds.worker_restore_median' "$summary") == 4.0 ]]

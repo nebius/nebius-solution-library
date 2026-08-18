@@ -254,6 +254,7 @@ def build_evidence(
     probe_job: dict[str, Any],
     probe_pod: dict[str, Any],
     semantic_summary: dict[str, Any],
+    target_submit_at: str,
 ) -> dict[str, Any]:
     try:
         contract = render.validate_contract(contract)
@@ -302,7 +303,7 @@ def build_evidence(
     ):
         raise EvidenceError("target container identity changed after binding")
 
-    demand = _timestamp(run["demand_at"], "demand_at")
+    demand = _timestamp(target_submit_at, "target submit/T0")
     target_created = _timestamp(target_metadata.get("creationTimestamp"), "target creation")
     scheduled = _condition_time(target, "PodScheduled")
     ready = _condition_time(target, "Ready")
@@ -501,7 +502,10 @@ def build_evidence(
         "run_id": run_id,
         "request_count": 2,
         "semantic_pass_count": 2,
-        "demand_at": run["demand_at"],
+        "demand_at": target_submit_at,
+        "t0_at": target_submit_at,
+        "t0_source": "target-submit-at.txt",
+        "setup_demand_at": run["demand_at"],
         "artifact": {
             "checkpoint_id": run["checkpoint_id"],
             "version": run["artifact_version"],
@@ -588,6 +592,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "semantic-summary",
     ):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--target-submit-at", type=Path, required=True)
     return parser.parse_args(argv)
 
 
@@ -613,6 +618,7 @@ def main(argv: list[str] | None = None) -> int:
             semantic_summary=_object(
                 _load(args.semantic_summary, "semantic summary"), "semantic summary"
             ),
+            target_submit_at=args.target_submit_at.read_text(encoding="utf-8").strip(),
         )
     except (EvidenceError, render.RenderError) as exc:
         print(f"evidence: refused: {exc}", file=sys.stderr)

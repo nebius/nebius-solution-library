@@ -39,16 +39,18 @@ was page-resident. That prewarm is deliberately outside the measured interval
 and is reported as part of the storage state, not hidden as ordinary attached
 storage. The direct comparator bypasses the page cache.
 
-| Path | n | T0 to HTTP ready | Call 1 | Call 2 | T0 through call 2 | Worker restore |
-|---|---:|---:|---:|---:|---:|---:|
-| Buffered, attached storage, fully prewarmed | 3 | **12.280810 s** | **8.604078 s** | **8.530700 s** | **29.483948 s** | 4.717 s |
-| Direct I/O, attached storage | 1 | 87.422719 s | 8.611488 s | 8.548598 s | 104.584242 s | 79.997 s |
+| Path | n | T0 to HTTP ready | T0 to Kubernetes Ready | Call 1 | Call 2 | T0 through call 2 | Worker restore |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Buffered, attached storage, fully prewarmed | 3 | **12.142147 s** | 12.815803 s | **8.604078 s** | **8.530700 s** | **29.345285 s** | 4.717 s |
+| Direct I/O, attached storage | 1 | 87.284431 s | 88.224833 s | 8.611488 s | 8.548598 s | 104.445954 s | 79.997 s |
 
 The buffered row is the median of three strict PASS trials; its individual HTTP
-readiness values were 12.146076, 12.280810, and 12.469558 seconds. The direct row
+readiness values were 12.010717, 12.142147, and 12.331491 seconds. The direct row
 is a single storage-cold canary and is not presented as an n=3 median. Compact
 digest-bound receipts are in `results.json`; raw private evidence remains under
 `/home/tux/.local/state/archvteams-2407/openfold3-native-f7-20260818T055003Z`.
+Each counted run has an immutable `corrected-submit-edge-timings.json` that
+rebases the already distinct HTTP and Kubernetes timestamps to submit-edge T0.
 
 ## Retained H100 baseline
 

@@ -153,6 +153,8 @@ for run_id in run_ids:
         value.get("status") != "PASS"
         or value.get("request_count") != 2
         or value.get("semantic_pass_count") != 2
+        or value.get("t0_source") != "target-submit-at.txt"
+        or value.get("t0_at") != value.get("demand_at")
     ):
         raise SystemExit(f"trial is not a strict two-call PASS: {run_id}")
     artifact = value.get("artifact", {})
@@ -162,12 +164,14 @@ for run_id in run_ids:
 
 demand = [float(run["timings_seconds"]["demand_to_two_semantic_responses"]) for run in runs]
 http_ready = [float(run["timings_seconds"]["demand_to_http_ready"]) for run in runs]
+kubernetes_ready = [float(run["timings_seconds"]["demand_to_kubernetes_ready"]) for run in runs]
 call_1 = [float(run["timings_seconds"]["semantic_request_1"]) for run in runs]
 call_2 = [float(run["timings_seconds"]["semantic_request_2"]) for run in runs]
 restore = [float(run["timings_seconds"]["worker_restore"]) for run in runs]
 result = {
     "schema": "archvteams.nebius.ai/openfold3-native-n3/v1",
     "status": "PASS",
+    "t0_source": "target-submit-at.txt",
     "checkpoint_id": checkpoint_id,
     "image_io_mode": image_io_mode,
     "trial_count": 3,
@@ -176,6 +180,7 @@ result = {
     "run_ids": run_ids,
     "demand_to_two_semantic_seconds": demand,
     "demand_to_http_ready_seconds": http_ready,
+    "demand_to_kubernetes_ready_seconds": kubernetes_ready,
     "semantic_request_1_seconds": call_1,
     "semantic_request_2_seconds": call_2,
     "worker_restore_seconds": restore,
@@ -185,6 +190,7 @@ result = {
         "demand_to_two_semantic_max": max(demand),
         "demand_to_two_semantic_mean": statistics.mean(demand),
         "demand_to_http_ready_median": statistics.median(http_ready),
+        "demand_to_kubernetes_ready_median": statistics.median(kubernetes_ready),
         "semantic_request_1_median": statistics.median(call_1),
         "semantic_request_2_median": statistics.median(call_2),
         "worker_restore_median": statistics.median(restore),

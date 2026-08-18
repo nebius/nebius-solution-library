@@ -87,9 +87,17 @@ def _http_ready(semantic: dict[str, Any]) -> tuple[datetime, datetime, str]:
 
 
 def build_timing_evidence(
-    run: dict[str, Any], semantic: dict[str, Any], target: dict[str, Any]
+    run: dict[str, Any],
+    semantic: dict[str, Any],
+    target: dict[str, Any],
+    *,
+    target_submit_at: str | None = None,
 ) -> dict[str, Any]:
     """Return the standardized warm-instance benchmark timing fields.
+
+    Production-shaped callers pass the timestamp persisted immediately before
+    target creation as ``target_submit_at``.  The fallback exists only for
+    retained/manual callers that have not yet adopted the submit-edge contract.
 
     Worker timing is deliberately absent: worker receipt and semantic probing are
     independent concurrent timelines and must not be ordered against one another.
@@ -116,10 +124,14 @@ def build_timing_evidence(
             raise TimingEvidenceError(f"semantic request {index} did not pass")
         calls.append(_elapsed(case.get("elapsed_seconds"), f"semantic request {index}"))
 
-    demand_raw = run.get("demand_at")
+    setup_demand_raw = run.get("demand_at")
+    demand_raw = target_submit_at if target_submit_at is not None else setup_demand_raw
     semantic_started_raw = semantic.get("started_at")
     semantic_finished_raw = semantic.get("finished_at")
-    demand = _timestamp(demand_raw, "demand")
+    setup_demand = _timestamp(setup_demand_raw, "setup demand")
+    demand = _timestamp(demand_raw, "target submit/T0")
+    if demand < setup_demand:
+        raise TimingEvidenceError("target submit/T0 precedes setup demand")
     semantic_started = _timestamp(semantic_started_raw, "semantic probe start")
     semantic_finished = _timestamp(semantic_finished_raw, "second semantic completion")
     http_probe_started, http_ready, http_ready_raw = _http_ready(semantic)
@@ -156,6 +168,11 @@ def build_timing_evidence(
         "semantic_request_2_seconds": calls[1],
         "timing_evidence": {
             "demand_at": demand_raw,
+            "t0_at": demand_raw,
+            "t0_source": (
+                "target-submit-at.txt" if target_submit_at is not None else "run.json:demand_at"
+            ),
+            "setup_demand_at": setup_demand_raw,
             "http_ready_at": http_ready_raw,
             "kubernetes_ready_at": kubernetes_ready_raw,
             "semantic_started_at": semantic_started_raw,

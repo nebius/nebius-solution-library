@@ -23,16 +23,16 @@ dockings.
 
 | mode | run | HTTP ready (s) | Kubernetes Ready (s) | call 1 (s) | call 2 (s) | demand to call 2 (s) | restore (s) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| direct/O_DIRECT | `dd-direct-smoke` | 72.733186 | 74.022464 | 1.321248 | 0.545055 | 74.601431 | 65.016 |
-| buffered | `dd-buf-p1` | 11.913976 | 12.775480 | 1.323664 | 0.558473 | 13.798020 | 4.139 |
-| buffered | `dd-buf-p2` | 11.742748 | 12.564936 | 1.350125 | 0.550279 | 13.645122 | 4.043 |
-| buffered | `dd-buf-p3` | 11.996343 | 12.589784 | 1.322778 | 0.522857 | 13.844048 | 4.010 |
+| direct/O_DIRECT | `dd-direct-smoke` | 72.594545 | 73.883823 | 1.321248 | 0.545055 | 74.462790 | 65.016 |
+| buffered | `dd-buf-p1` | 11.773042 | 12.634546 | 1.323664 | 0.558473 | 13.657086 | 4.139 |
+| buffered | `dd-buf-p2` | 11.604310 | 12.426498 | 1.350125 | 0.550279 | 13.506684 | 4.043 |
+| buffered | `dd-buf-p3` | 11.860136 | 12.453577 | 1.322778 | 0.522857 | 13.707841 | 4.010 |
 
-The buffered n=3 median is **13.798020 seconds** demand-to-two and
+The buffered n=3 median is **13.657086 seconds** T0-to-two and
 **4.043 seconds** in the restore worker. All three runs passed two independent
 strict semantic calls through a run-scoped ClusterIP: 6/6 requests passed.
-Compared with the production-shaped direct canary, buffered I/O is 5.407x
-faster end to end (81.5% lower) and 16.081x faster in restore (93.8% lower).
+Compared with the production-shaped direct canary, buffered I/O is 5.452x
+faster end to end (81.7% lower) and 16.081x faster in restore (93.8% lower).
 
 Here HTTP ready is the validator's first successful semantic readiness
 response. Kubernetes Pod Ready is retained as a separate diagnostic. `T0` is
@@ -81,6 +81,10 @@ fixed before any measured buffered run.
 Exact machine-readable results are in `results.json`. Raw receipts are retained
 outside Git at
 `/home/tux/.local/state/archvteams-2407/diffdock-native-f7-20260818T045804Z`.
+Each counted directory also contains immutable
+`corrected-submit-edge-timings.json`. The retained raw
+`canary-evidence.json` mislabeled Kubernetes Ready as HTTP ready; the sidecar
+supersedes that stale field without modifying the raw receipt.
 
 ## Verification
 

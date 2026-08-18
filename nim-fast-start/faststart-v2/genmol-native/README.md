@@ -47,10 +47,10 @@ any deferred model/JIT load; call 2 is the immediate strict LogP warm call.
 
 | Storage state (`n=3`) | HTTP ready | Pod Ready | Call 1 | Call 2 | T0 through call 2 | Worker restore |
 |---|---:|---:|---:|---:|---:|---:|
-| Direct/O_DIRECT | 48.876871 s | 49.875618 s | 1.186392 s | 0.592471 s | 50.655451 s | 41.219 s |
-| Buffered + fully page-resident | **10.687875 s** | 11.697689 s | 1.215907 s | 0.585500 s | **12.487867 s** | **2.933 s** |
+| Direct/O_DIRECT | 48.738868 s | 49.737615 s | 1.186392 s | 0.592471 s | 50.517448 s | 41.219 s |
+| Buffered + fully page-resident | **10.548280 s** | 11.558094 s | 1.215907 s | 0.585500 s | **12.348272 s** | **2.933 s** |
 
-The buffered winner is 4.57x faster to application HTTP readiness and 4.06x
+The buffered winner is 4.62x faster to application HTTP readiness and 4.09x
 faster through the second response. Its 4,781,347,930-byte full pre-read took
 6.328907 seconds and occurred before T0. The direct holder also verified and
 read every artifact byte outside T0, but CRIU's direct mode bypasses the page
@@ -65,6 +65,8 @@ escaping) are preserved as excluded evidence and do not appear in the table.
 ## What the old numbers mean
 
 `prior-evidence.json` binds the retained raw sources and their exact hashes.
+Each counted run also has immutable `corrected-submit-edge-timings.json`, which
+rebases the existing distinct HTTP and Kubernetes timestamps to submit-edge T0.
 The prior H100 artifact was `/snapshots/genmol/criu42-h100-warm-v3`, a
 4,744,161,151-byte manual hostPID checkpoint. It produced these `n=3` medians:
 

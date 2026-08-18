@@ -29,6 +29,7 @@ jq -n --arg run "$run_id" --arg checkpoint "$checkpoint_id" --arg mode "$image_i
   --argjson call1 "$call1" --argjson call2 "$call2" --argjson receipt "$receipt" \
   --argjson restore "$restore" '{
     status:"PASS",run_id:$run,request_count:2,semantic_pass_count:2,
+    demand_at:"2026-08-18T00:00:00.500000Z",t0_at:"2026-08-18T00:00:00.500000Z",t0_source:"target-submit-at.txt",
     artifact:{checkpoint_id:$checkpoint,image_io_mode:$mode},
     timings_seconds:{
       demand_to_two_semantic_responses:$demand,

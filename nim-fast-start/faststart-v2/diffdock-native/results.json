@@ -5,6 +5,12 @@
   "node": "computeinstance-e00hf93cfnsgaxygn3",
   "nim_image": "nvcr.io/nim/mit/diffdock@sha256:300696eb8331d78face40f84d835cc1e278c7d3c391c5aabbbee5884366da480",
   "target_glibc_version": "2.35",
+  "timing_correction": {
+    "t0_source": "target-submit-at.txt",
+    "method": "subtract retained submit timestamp from absolute HTTP, Kubernetes Ready, and second-call completion timestamps",
+    "sidecar_filename": "corrected-submit-edge-timings.json",
+    "raw_canary_timing_label_superseded": true
+  },
   "worker": {
     "image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:063286a3a1354d1c5969fa80f445bb5fbd2a96bc0999c7b6897495f0b4c2fd4d",
     "executable_sha256": "941157dd1815acf6f3e26cbe9dea65ee1c9a398c719881d474e5d7c5c7e28651",
@@ -26,11 +32,11 @@
     "status": "PASS",
     "semantic_requests": 2,
     "semantic_passes": 2,
-    "demand_to_http_ready_seconds": 72.733186,
-    "demand_to_kubernetes_ready_seconds": 74.022464,
+    "demand_to_http_ready_seconds": 72.594545,
+    "demand_to_kubernetes_ready_seconds": 73.883823,
     "semantic_request_1_seconds": 1.321248,
     "semantic_request_2_seconds": 0.545055,
-    "demand_to_two_semantic_responses_seconds": 74.601431,
+    "demand_to_two_semantic_responses_seconds": 74.462790,
     "worker_restore_seconds": 65.016
   },
   "buffered_artifact": {
@@ -51,18 +57,18 @@
     "semantic_requests": 6,
     "semantic_passes": 6,
     "demand_to_http_ready_seconds": {
-      "values": [11.913976, 11.742748, 11.996343],
-      "min": 11.742748,
-      "median": 11.913976,
-      "max": 11.996343,
-      "mean": 11.884356
+      "values": [11.773042, 11.604310, 11.860136],
+      "min": 11.604310,
+      "median": 11.773042,
+      "max": 11.860136,
+      "mean": 11.745829333333333
     },
     "demand_to_kubernetes_ready_seconds": {
-      "values": [12.77548, 12.564936, 12.589784],
-      "min": 12.564936,
-      "median": 12.589784,
-      "max": 12.77548,
-      "mean": 12.6434
+      "values": [12.634546, 12.426498, 12.453577],
+      "min": 12.426498,
+      "median": 12.453577,
+      "max": 12.634546,
+      "mean": 12.504873666666667
     },
     "semantic_request_1_seconds": {
       "values": [1.323664, 1.350125, 1.322778],
@@ -79,11 +85,11 @@
       "mean": 0.54387
     },
     "demand_to_two_semantic_responses_seconds": {
-      "values": [13.79802, 13.645122, 13.844048],
-      "min": 13.645122,
-      "median": 13.79802,
-      "max": 13.844048,
-      "mean": 13.762396666666667
+      "values": [13.657086, 13.506684, 13.707841],
+      "min": 13.506684,
+      "median": 13.657086,
+      "max": 13.707841,
+      "mean": 13.623870333333333
     },
     "worker_restore_seconds": {
       "values": [4.139, 4.043, 4.01],
@@ -94,8 +100,8 @@
     }
   },
   "improvement_over_direct_canary": {
-    "demand_to_two_speedup": 5.406677,
-    "demand_to_two_reduction_percent": 81.504,
+    "demand_to_two_speedup": 5.452319,
+    "demand_to_two_reduction_percent": 81.659,
     "worker_restore_speedup": 16.081128,
     "worker_restore_reduction_percent": 93.782
   },

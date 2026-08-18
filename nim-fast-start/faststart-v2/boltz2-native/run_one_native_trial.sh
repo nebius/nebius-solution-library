@@ -77,6 +77,7 @@ jq -n \
 python3 "$code_dir/render.py" target \
   --contract "$run_dir/restore-interface.json" \
   --run-config "$run_dir/run.json" > "$run_dir/target.yaml"
+# Authoritative T0: keep this immediately adjacent to target creation.
 date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$run_dir/target-submit-at.txt"
 kubectl --kubeconfig "$kubeconfig" create -f "$run_dir/target.yaml"
 kubectl --kubeconfig "$kubeconfig" -n "$namespace" wait \
@@ -186,7 +187,10 @@ binding = json.loads((directory / "binding.json").read_text())
 worker = json.loads((directory / "worker-receipt.json").read_text())
 semantic = json.loads((directory / "semantic-summary.json").read_text())
 target = json.loads((directory / "target-final.json").read_text())
-timings = build_timing_evidence(run, semantic, target)
+target_submit_at = (directory / "target-submit-at.txt").read_text().strip()
+timings = build_timing_evidence(
+    run, semantic, target, target_submit_at=target_submit_at
+)
 result = {
     "schema": "archvteams.nebius.ai/boltz2-native-trial-summary/v1",
     "run_id": run["run_id"],

@@ -211,6 +211,7 @@ python3 "$script_dir/render.py" target \
   --contract "$trial_dir/restore-interface.json" \
   --run-config "$trial_dir/run.json" > "$trial_dir/target.yaml"
 python3 "$script_dir/lint_manifest.py" "$trial_dir/target.yaml"
+# Authoritative T0: keep this immediately adjacent to target creation.
 date -u +%Y-%m-%dT%H:%M:%S.%NZ > "$trial_dir/target-submit-at.txt"
 "${trial_kubectl[@]}" create -f "$trial_dir/target.yaml"
 "${trial_kubectl[@]}" wait \
@@ -323,6 +324,7 @@ python3 "$script_dir/evidence.py" \
   --probe-job "$trial_dir/probe-job.json" \
   --probe-pod "$trial_dir/probe-pod.json" \
   --semantic-summary "$trial_dir/semantic-summary.json" \
+  --target-submit-at "$trial_dir/target-submit-at.txt" \
   > "$trial_dir/canary-evidence.json"
 
 jq -e 'select(.status=="PASS" and .request_count==2 and .semantic_pass_count==2)' \

@@ -33,6 +33,7 @@ args=(
 "$test_tmp/lane/run_n3.sh" "${args[@]}" > "$test_tmp/stdout"
 summary="$test_tmp/evidence/n3-genmol-ut-direct.json"
 [[ $(jq -r '.status' "$summary") == PASS ]]
+[[ $(jq -r '.t0_source' "$summary") == target-submit-at.txt ]]
 [[ $(jq -r '.trial_count' "$summary") == 3 ]]
 [[ $(jq -r '.request_count' "$summary") == 6 ]]
 [[ $(jq -r '.statistics_seconds.demand_to_two_semantic_median' "$summary") == 20.0 ]]

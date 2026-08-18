@@ -1,6 +1,12 @@
 {
   "schema": "archvteams.nebius.ai/genmol-production-shaped-results/v1",
   "status": "PASS",
+  "timing_correction": {
+    "t0_source": "target-submit-at.txt",
+    "method": "subtract retained submit timestamp from absolute HTTP, Kubernetes Ready, and second-call completion timestamps",
+    "sidecar_filename": "corrected-submit-edge-timings.json",
+    "raw_evidence_hashes_below_are_retained_legacy_receipts": true
+  },
   "measured_at": "2026-08-18",
   "node": "computeinstance-e00t12crqg6tw0kz65",
   "gpu": "NVIDIA H100",
@@ -20,18 +26,18 @@
     "storage_state": "attached artifact PVC; direct/O_DIRECT restore; verification read occurred outside T0 but restore bypasses page cache",
     "trial_count": 3,
     "request_count": 6,
-    "demand_to_http_ready_seconds": [48.967941, 48.876871, 48.844697],
-    "demand_to_kubernetes_ready_seconds": [49.878735, 49.875618, 49.666353],
+    "demand_to_http_ready_seconds": [48.828020, 48.738868, 48.705011],
+    "demand_to_kubernetes_ready_seconds": [49.738814, 49.737615, 49.526667],
     "semantic_request_1_seconds": [1.13862, 1.188524, 1.186392],
     "semantic_request_2_seconds": [0.592471, 0.585748, 0.593281],
-    "demand_to_two_semantic_responses_seconds": [50.703184, 50.655451, 50.628864],
+    "demand_to_two_semantic_responses_seconds": [50.563263, 50.517448, 50.489178],
     "worker_restore_seconds": [41.227, 41.219, 41.198],
     "median_seconds": {
-      "demand_to_http_ready": 48.876871,
-      "demand_to_kubernetes_ready": 49.875618,
+      "demand_to_http_ready": 48.738868,
+      "demand_to_kubernetes_ready": 49.737615,
       "semantic_request_1": 1.186392,
       "semantic_request_2": 0.592471,
-      "demand_to_two_semantic_responses": 50.655451,
+      "demand_to_two_semantic_responses": 50.517448,
       "worker_restore": 41.219
     }
   },
@@ -42,24 +48,24 @@
     "prewarm_seconds_outside_t0": 6.328907,
     "trial_count": 3,
     "request_count": 6,
-    "demand_to_http_ready_seconds": [10.873901, 10.687875, 10.575621],
-    "demand_to_kubernetes_ready_seconds": [12.021111, 11.697689, 10.574327],
+    "demand_to_http_ready_seconds": [10.733755, 10.548280, 10.435267],
+    "demand_to_kubernetes_ready_seconds": [11.880965, 11.558094, 10.433973],
     "semantic_request_1_seconds": [1.215907, 1.211042, 1.230406],
     "semantic_request_2_seconds": [0.593163, 0.58451, 0.5855],
-    "demand_to_two_semantic_responses_seconds": [12.687165, 12.487867, 12.395646],
+    "demand_to_two_semantic_responses_seconds": [12.547019, 12.348272, 12.255292],
     "worker_restore_seconds": [2.933, 2.947, 2.932],
     "median_seconds": {
-      "demand_to_http_ready": 10.687875,
-      "demand_to_kubernetes_ready": 11.697689,
+      "demand_to_http_ready": 10.548280,
+      "demand_to_kubernetes_ready": 11.558094,
       "semantic_request_1": 1.215907,
       "semantic_request_2": 0.5855,
-      "demand_to_two_semantic_responses": 12.487867,
+      "demand_to_two_semantic_responses": 12.348272,
       "worker_restore": 2.933
     }
   },
   "speedup": {
-    "demand_to_http_ready": 4.573114019391133,
-    "demand_to_two_semantic_responses": 4.0563733582364385,
+    "demand_to_http_ready": 4.6205512178288775,
+    "demand_to_two_semantic_responses": 4.091054035738766,
     "worker_restore": 14.053528810092057
   },
   "evidence_sha256": {

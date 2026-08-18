@@ -63,6 +63,19 @@ class TimingEvidenceTests(unittest.TestCase):
         result = build_timing_evidence(run, semantic, target)
         self.assertEqual(result["demand_to_http_ready_seconds"], 2.0)
 
+    def test_explicit_submit_t0_excludes_pre_submit_setup_time(self) -> None:
+        run, semantic, target = fixtures()
+        result = build_timing_evidence(
+            run,
+            semantic,
+            target,
+            target_submit_at="2026-08-18T00:00:00.500000Z",
+        )
+        self.assertEqual(result["demand_to_http_ready_seconds"], 1.5)
+        self.assertEqual(result["demand_to_kubernetes_ready_seconds"], 2.5)
+        self.assertEqual(result["demand_to_two_semantic_seconds"], 4.5)
+        self.assertEqual(result["timing_evidence"]["t0_source"], "target-submit-at.txt")
+
     def test_rejects_failed_or_misbound_http_readiness(self) -> None:
         run, semantic, target = fixtures()
         for mutation in ("failed", "misbound"):

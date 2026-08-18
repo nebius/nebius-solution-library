@@ -187,6 +187,8 @@ class BoltzRenderAndBindingTests(unittest.TestCase):
     def test_trial_runner_emits_aligned_timing_metrics(self) -> None:
         runner = (MODULE_DIR / "run_one_native_trial.sh").read_text(encoding="utf-8")
         self.assertIn("build_timing_evidence", runner)
+        self.assertIn('directory / "target-submit-at.txt"', runner)
+        self.assertIn("target_submit_at=target_submit_at", runner)
         for field in (
             "demand_to_http_ready_seconds",
             "demand_to_kubernetes_ready_seconds",

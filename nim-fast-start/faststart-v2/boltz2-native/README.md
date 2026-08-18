@@ -2,7 +2,7 @@
 
 The production-shaped direct-AIO path passed three consecutive one-H100 trials.
 Median time was **17.145 seconds** for the UID/PodSpec-bound native restore and
-**26.160530 seconds** from demand to completion of the second strict semantic
+**26.086703 seconds** from target submit to completion of the second strict semantic
 HTTP response.
 
 ## Qualified path
@@ -35,14 +35,17 @@ and pTM scores in `[0,1]`.
 | Measurement | Trial 1 | Trial 2 | Trial 3 | Median |
 |---|---:|---:|---:|---:|
 | Native restore | 17.017 s | 17.145 s | 17.753 s | **17.145 s** |
-| Demand to successful semantic HTTP ready | 23.827564 s | 24.362215 s | 24.591373 s | **24.362215 s** |
-| Demand to Kubernetes Pod Ready | 24.339213 s | 25.638808 s | 25.807746 s | **25.638808 s** |
+| T0 to successful semantic HTTP ready | 23.753685 s | 24.288388 s | 24.517988 s | **24.288388 s** |
+| T0 to Kubernetes Pod Ready | 24.265334 s | 25.564981 s | 25.734361 s | **25.564981 s** |
 | First semantic inference call | 1.543270 s | 1.496779 s | 1.497235 s | **1.497235 s** |
 | Second warm semantic inference call | 0.443073 s | 0.282542 s | 0.287273 s | **0.287273 s** |
-| Demand to second semantic response | 25.983713 s | 26.160530 s | 26.523966 s | **26.160530 s** |
+| T0 to second semantic response | 25.909834 s | 26.086703 s | 26.450581 s | **26.086703 s** |
 | Validator total, including readiness wait | 19.134357 s | 18.771843 s | 19.636290 s | **19.134357 s** |
 
-The full per-run values and evidence locations are in `results.tsv`.
+The full per-run values and evidence locations are in `results.tsv`. Each
+counted run also has an immutable `corrected-submit-edge-timings.json` that
+promotes nested semantic HTTP/Kubernetes/call timestamps into explicit
+submit-edge fields; the original `trial-summary.json` remains unchanged.
 
 ## Capture baseline and experiments
 
@@ -54,7 +57,7 @@ An isolated `writeback` manifest variant used hard links for every immutable
 data file, a distinct manifest inode, and a deliberate full 16.241 GB buffered
 read into the node page cache. Prewarming took 16.292456 seconds. The variant
 remained functionally correct but regressed restore to 25.764 seconds and
-demand-to-two to 34.695959 seconds, so it is rejected. Direct-AIO v1 remains the
+T0-to-two to 34.620570 seconds, so it is rejected. Direct-AIO v1 remains the
 leader.
 
 `b2p1-0333` is not part of the sample. Its restore succeeded in 17.617 seconds,

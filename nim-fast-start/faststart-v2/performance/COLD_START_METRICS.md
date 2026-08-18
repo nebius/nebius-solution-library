@@ -42,39 +42,41 @@ All values are seconds. Production-shaped rows begin before target Pod creation
 on a warm instance. Manual rows begin at the restore trigger and are provisional
 until that model's production-shaped n=3 lane runs.
 
-| NIM | Evidence | Storage state | n | T0 to HTTP ready median (range) | Call 1 | Call 2 | T0 through call 2 |
-|---|---|---|---:|---:|---:|---:|---:|
-| OpenFold2 | production-shaped | direct | 3 | 11.521 (11.178–11.752) | 1.951 | 1.019 | 14.456 |
-| Boltz2 | production-shaped | direct | 3 | 24.362 (23.828–24.591) | 1.497 | 0.287 | 26.161 |
-| ProteinMPNN | production-shaped | buffered, fully prewarmed | 3 | 9.537 (9.481–15.175) | 0.601 | 0.266 | 10.403 |
-| DiffDock | production-shaped | buffered, fully prewarmed | 3 | 11.914 (11.743–11.996) | 1.324 | 0.550 | 13.798 |
-| OpenFold3 | production-shaped | buffered, fully prewarmed | 3 | 12.281 (12.146–12.470) | 8.604 | 8.531 | 29.484 |
-| MSA Search PDB70 | manual restore | retained page cache | 3 | 3.117 (3.106–3.119) | 0.0358 | 0.0343 | 3.187 |
-| Evo2-40B | manual restore | direct, H200 | 3 | 65.377 (63.052–65.696) | 1.181 | 0.796 | 67.390 |
-| GenMol | production-shaped | buffered, fully prewarmed | 3 | 10.688 (10.576–10.874) | 1.216 | 0.586 | 12.488 |
-| RFdiffusion | manual restore | retained page cache | 3 | 12.751 (12.630–12.902) | 5.881 | 5.945 | 24.593 |
-| MolMIM | conventional cached Pod | cached image/model volume | 3 | 18.502 (18.447–20.242) | 2.955 | 1.999 | not retained |
+| NIM | Evidence | Storage state | n | T0 to HTTP ready median (range) | T0 to Kubernetes Ready median (range) | Call 1 | Call 2 | T0 through call 2 |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| OpenFold2 | production-shaped | direct | 3 | 11.162 (10.840–11.341) | 11.662 (11.641–12.589) | 1.951 | 1.019 | 14.097 |
+| Boltz2 | production-shaped | direct | 3 | 24.288 (23.754–24.518) | 25.565 (24.265–25.734) | 1.497 | 0.287 | 26.087 |
+| ProteinMPNN | production-shaped | buffered, fully prewarmed | 3 | 9.400 (9.344–15.038) | 10.034 (9.349–15.770) | 0.601 | 0.266 | 10.266 |
+| DiffDock | production-shaped | buffered, fully prewarmed | 3 | 11.773 (11.604–11.860) | 12.454 (12.426–12.635) | 1.324 | 0.550 | 13.657 |
+| OpenFold3 | production-shaped | buffered, fully prewarmed | 3 | 12.142 (12.011–12.331) | 12.816 (12.732–13.396) | 8.604 | 8.531 | 29.345 |
+| MSA Search PDB70 | manual restore | retained page cache | 3 | 3.117 (3.106–3.119) | — | 0.0358 | 0.0343 | 3.187 |
+| Evo2-40B | manual restore | direct, H200 | 3 | 65.377 (63.052–65.696) | — | 1.181 | 0.796 | 67.390 |
+| GenMol | production-shaped | buffered, fully prewarmed | 3 | 10.548 (10.435–10.734) | 11.558 (10.434–11.881) | 1.216 | 0.586 | 12.348 |
+| RFdiffusion | manual restore | retained page cache | 3 | 12.751 (12.630–12.902) | — | 5.881 | 5.945 | 24.593 |
+| MolMIM | conventional cached Pod | cached image/model volume | 3 | 18.502 (18.447–20.242) | — | 2.955 | 1.999 | not retained |
 
-OpenFold2's historical T0 was persisted at whole-second resolution, so its
-sub-second display values carry up to one second of T0 quantization. MolMIM
-does not preserve a valid end-to-end total, so that value is not reconstructed.
+The six production-shaped rows were rederived losslessly from each retained
+`target-submit-at.txt` and absolute semantic timestamps. Earlier setup/render
+timestamps are preserved as provenance but are excluded from T0. Kubernetes
+condition timestamps have their native whole-second precision. MolMIM does not
+preserve a valid end-to-end total, so that value is not reconstructed.
 
 ## Storage sensitivity already demonstrated
 
 - OpenFold3 direct I/O: one production-shaped canary was HTTP-ready in
-  87.423 s, with 8.611 s and 8.549 s calls; T0 through call 2 was 104.584 s.
-  Its selected fully prewarmed buffered median is 12.281 s to HTTP readiness.
+  87.284 s, with 8.611 s and 8.549 s calls; T0 through call 2 was 104.446 s.
+  Its selected fully prewarmed buffered median is 12.142 s to HTTP readiness.
 - ProteinMPNN's selected buffered run excludes a measured 15.173 s full
   pre-read of its 1.867 GB artifact before T0. Its production-shaped direct
-  n=3 median was 23.898 s to HTTP readiness, with 0.606 s and 0.272 s calls.
+  n=3 median was 23.763 s to HTTP readiness, with 0.606 s and 0.272 s calls.
 - DiffDock's selected buffered run excludes a full 7.516 GB pre-read before
-  T0. Its production-shaped direct canary took 72.733 s to HTTP readiness,
+  T0. Its production-shaped direct canary took 72.595 s to HTTP readiness,
   with 1.321 s and 0.545 s calls.
 - MSA's retained page-cache result was 3.117 s to readiness, versus 13.808 s
   for its manual direct-I/O path.
-- GenMol's production-shaped direct n=3 median was 48.877 s to readiness,
+- GenMol's production-shaped direct n=3 median was 48.739 s to readiness,
   with 1.186 s and 0.592 s calls. Its selected fully prewarmed buffered median
-  is 10.688 s to readiness. The older 3.732 s retained-page-cache experiment
+  is 10.548 s to readiness. The older 3.732 s retained-page-cache experiment
   began at the restore trigger and remains a manual comparator only.
 - RFdiffusion's retained page-cache result was 12.751 s to readiness, versus
   170.368 s for its manual direct-I/O path.

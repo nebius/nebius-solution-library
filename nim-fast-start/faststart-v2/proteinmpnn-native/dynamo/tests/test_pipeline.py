@@ -281,6 +281,7 @@ def evidence_inputs() -> dict:
         "probe_job": probe_job,
         "probe_pod": probe_pod,
         "semantic_summary": semantic,
+        "target_submit_at": "2026-08-17T20:00:00Z",
     }
 
 
@@ -394,6 +395,14 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(receipt["timings_seconds"]["semantic_request_2"], 0.9)
         self.assertEqual(receipt["timings_seconds"]["worker_restore"], 1.5)
 
+    def test_pre_submit_render_time_is_excluded_from_startup_metrics(self) -> None:
+        inputs = evidence_inputs()
+        baseline = evidence.build_evidence(**inputs)
+        inputs["run"]["demand_at"] = "2026-08-17T19:59:50Z"
+        delayed_render = evidence.build_evidence(**inputs)
+        self.assertEqual(baseline["timings_seconds"], delayed_render["timings_seconds"])
+        self.assertEqual(delayed_render["t0_source"], "target-submit-at.txt")
+
     def test_kubernetes_ready_duration_tolerates_only_subsecond_quantization(self) -> None:
         demand = evidence._timestamp("2026-08-17T20:00:00.900000Z", "demand")
         same_second = evidence._timestamp("2026-08-17T20:00:00Z", "Ready")
@@ -487,20 +496,20 @@ class EvidenceTests(unittest.TestCase):
 
     def test_target_creation_timestamp_subsecond_quantization_is_accepted(self) -> None:
         inputs = evidence_inputs()
-        inputs["run"]["demand_at"] = "2026-08-17T20:00:01.900000Z"
+        inputs["target_submit_at"] = "2026-08-17T20:00:01.900000Z"
         receipt = evidence.build_evidence(**inputs)
         self.assertEqual(receipt["status"], "PASS")
         self.assertEqual(receipt["timings_seconds"]["demand_to_target_created"], 0.0)
 
     def test_target_creation_timestamp_one_second_before_demand_is_rejected(self) -> None:
         inputs = evidence_inputs()
-        inputs["run"]["demand_at"] = "2026-08-17T20:00:02Z"
+        inputs["target_submit_at"] = "2026-08-17T20:00:02Z"
         with self.assertRaisesRegex(evidence.EvidenceError, "monotonically ordered"):
             evidence.build_evidence(**inputs)
 
     def test_scheduled_timestamp_subsecond_quantization_is_accepted(self) -> None:
         inputs = evidence_inputs()
-        inputs["run"]["demand_at"] = "2026-08-17T20:00:01.900000Z"
+        inputs["target_submit_at"] = "2026-08-17T20:00:01.900000Z"
         inputs["target"]["metadata"]["creationTimestamp"] = "2026-08-17T20:00:01Z"
         for condition in inputs["target"]["status"]["conditions"]:
             if condition["type"] == "PodScheduled":
@@ -511,7 +520,7 @@ class EvidenceTests(unittest.TestCase):
 
     def test_scheduled_timestamp_one_second_before_predecessor_is_rejected(self) -> None:
         inputs = evidence_inputs()
-        inputs["run"]["demand_at"] = "2026-08-17T20:00:02.100000Z"
+        inputs["target_submit_at"] = "2026-08-17T20:00:02.100000Z"
         inputs["target"]["metadata"]["creationTimestamp"] = "2026-08-17T20:00:02Z"
         for condition in inputs["target"]["status"]["conditions"]:
             if condition["type"] == "PodScheduled":
@@ -566,6 +575,7 @@ class EvidenceTests(unittest.TestCase):
             "probe_job": "probe-job.json",
             "probe_pod": "probe-pod.json",
             "semantic_summary": "semantic.json",
+            "target_submit_at": "target-submit-at.txt",
         }
         flags = {
             "contract": "--contract",
@@ -580,13 +590,17 @@ class EvidenceTests(unittest.TestCase):
             "probe_job": "--probe-job",
             "probe_pod": "--probe-pod",
             "semantic_summary": "--semantic-summary",
+            "target_submit_at": "--target-submit-at",
         }
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             argv: list[str] = []
             for key, filename in filenames.items():
                 path = root / filename
-                path.write_text(json.dumps(values[key]), encoding="utf-8")
+                path.write_text(
+                    values[key] if key == "target_submit_at" else json.dumps(values[key]),
+                    encoding="utf-8",
+                )
                 argv.extend([flags[key], str(path)])
             stdout, stderr = StringIO(), StringIO()
             with redirect_stdout(stdout), redirect_stderr(stderr):

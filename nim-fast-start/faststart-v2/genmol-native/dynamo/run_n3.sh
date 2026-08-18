@@ -153,6 +153,8 @@ for run_id in run_ids:
         value.get("status") != "PASS"
         or value.get("request_count") != 2
         or value.get("semantic_pass_count") != 2
+        or value.get("t0_source") != "target-submit-at.txt"
+        or value.get("t0_at") != value.get("demand_at")
     ):
         raise SystemExit(f"trial is not a strict two-call PASS: {run_id}")
     artifact = value.get("artifact", {})
@@ -170,6 +172,7 @@ restore = [float(run["timings_seconds"]["worker_restore"]) for run in runs]
 result = {
     "schema": "archvteams.nebius.ai/genmol-native-n3/v1",
     "status": "PASS",
+    "t0_source": "target-submit-at.txt",
     "checkpoint_id": checkpoint_id,
     "image_io_mode": image_io_mode,
     "trial_count": 3,

@@ -303,6 +303,7 @@ def evidence_inputs() -> dict:
         "probe_job": probe_job,
         "probe_pod": probe_pod,
         "semantic_summary": semantic,
+        "target_submit_at": "2026-08-17T20:00:00Z",
     }
 
 
@@ -434,6 +435,14 @@ class EvidenceTests(unittest.TestCase):
             approved_contract()["tool_bundle"]["glibc_compatibility_sha256"],
         )
 
+    def test_pre_submit_render_time_is_excluded_from_startup_metrics(self) -> None:
+        inputs = evidence_inputs()
+        baseline = evidence.build_evidence(**inputs)
+        inputs["run"]["demand_at"] = "2026-08-17T19:59:50Z"
+        delayed_render = evidence.build_evidence(**inputs)
+        self.assertEqual(baseline["timings_seconds"], delayed_render["timings_seconds"])
+        self.assertEqual(delayed_render["t0_source"], "target-submit-at.txt")
+
     def test_endpoint_uid_mismatch_is_rejected(self) -> None:
         inputs = evidence_inputs()
         inputs["endpoint_slices"]["items"][0]["endpoints"][0]["targetRef"]["uid"] = (
@@ -469,14 +478,14 @@ class EvidenceTests(unittest.TestCase):
 
     def test_target_creation_subsecond_quantization_is_normalized(self) -> None:
         inputs = evidence_inputs()
-        inputs["run"]["demand_at"] = "2026-08-17T20:00:00.135000Z"
+        inputs["target_submit_at"] = "2026-08-17T20:00:00.135000Z"
         inputs["target"]["metadata"]["creationTimestamp"] = "2026-08-17T20:00:00Z"
         receipt = evidence.build_evidence(**inputs)
         self.assertEqual(receipt["timings_seconds"]["demand_to_target_created"], 0.0)
 
     def test_target_creation_one_second_inversion_is_rejected(self) -> None:
         inputs = evidence_inputs()
-        inputs["run"]["demand_at"] = "2026-08-17T20:00:01Z"
+        inputs["target_submit_at"] = "2026-08-17T20:00:01Z"
         inputs["target"]["metadata"]["creationTimestamp"] = "2026-08-17T20:00:00Z"
         with self.assertRaisesRegex(evidence.EvidenceError, "at least one second"):
             evidence.build_evidence(**inputs)
@@ -546,6 +555,7 @@ class EvidenceTests(unittest.TestCase):
             "probe_job": "probe-job.json",
             "probe_pod": "probe-pod.json",
             "semantic_summary": "semantic.json",
+            "target_submit_at": "target-submit-at.txt",
         }
         flags = {
             "contract": "--contract",
@@ -560,13 +570,17 @@ class EvidenceTests(unittest.TestCase):
             "probe_job": "--probe-job",
             "probe_pod": "--probe-pod",
             "semantic_summary": "--semantic-summary",
+            "target_submit_at": "--target-submit-at",
         }
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             argv: list[str] = []
             for key, filename in filenames.items():
                 path = root / filename
-                path.write_text(json.dumps(values[key]), encoding="utf-8")
+                path.write_text(
+                    values[key] if key == "target_submit_at" else json.dumps(values[key]),
+                    encoding="utf-8",
+                )
                 argv.extend([flags[key], str(path)])
             stdout, stderr = StringIO(), StringIO()
             with redirect_stdout(stdout), redirect_stderr(stderr):

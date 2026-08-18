@@ -29,8 +29,8 @@ Both response hashes are deterministic and equal to the checkpoint donor.
 
 | mode | HTTP ready median (s) | Kubernetes Ready median (s) | call 1 median (s) | call 2 median (s) | demand to call 2 median (s) | worker restore median (s) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| direct/O_DIRECT | 23.898192 | 24.999470 | 0.605700 | 0.271714 | 24.776636 | 15.727 |
-| legacy buffered | **9.537013** | 10.171485 | 0.601493 | 0.266078 | **10.403079** | 1.385 |
+| direct/O_DIRECT | 23.763006 | 24.864866 | 0.605700 | 0.271714 | 24.641450 | 15.727 |
+| legacy buffered | **9.399878** | 10.034350 | 0.601493 | 0.266078 | **10.265944** | 1.385 |
 
 HTTP ready is the validator's first successful semantic readiness response,
 not the Kubernetes condition. `T0` is captured before target creation on the
@@ -38,8 +38,8 @@ already provisioned H100 with storage attached. Kubernetes Ready is diagnostic;
 demand-to-call-2 is a cross-check, while the call columns are the individual
 first (potentially deferred-load) and immediate warm inference latencies.
 
-The buffered n=3 median is 10.403079 seconds demand-to-two, a 2.382x speedup
-and 58.0% reduction from the 24.776636-second direct median. Its median worker
+The buffered n=3 median is 10.265944 seconds T0-to-two, a 2.400x speedup
+and 58.3% reduction from the 24.641450-second direct median. Its median worker
 restore is 1.385 seconds, an 11.355x speedup and 91.2% reduction from the
 15.727-second direct median. The first buffered canary is included in n=3;
 p10/p11 show the retained-page-cache steady state.
@@ -51,6 +51,9 @@ The strict calls used seeds 2370 and 2371. Their response hashes are:
 
 Raw evidence is retained outside Git under
 `/home/tux/.local/state/archvteams-2407/proteinmpnn-native-f7-20260818T0336Z`.
+Each counted run has a new immutable `corrected-submit-edge-timings.json`.
+The retained raw `canary-evidence.json` mislabeled Kubernetes Ready as HTTP
+ready; the sidecar supersedes that field and preserves both clocks separately.
 The direct and buffered aggregate receipts are respectively
 `capture/direct-baseline-n3.json` and `capture/buffered-baseline-n3.json`.
 
