@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "purpose": "reproducible source, build, and validation provenance for the generic one-shot raw-NIM restore worker",
+  "dynamo": {
+    "repository": "https://github.com/ai-dynamo/dynamo",
+    "commit": "f7f37be174d252590c4b56e25ff4262dd82466fd"
+  },
+  "retained_phase2_image": {
+    "reference": "cr.uk-south1.nebius.cloud/e03dneryzh058ymkwb/dynamo/snapshot-agent@sha256:c9df66930fbe31c2910752c6601ca4798f422c048f4df6d200df1624357729d9",
+    "local_image_id": "sha256:22501fa2418190f559777dc15875c0e6590bec78a4c39ae93b9b044987e5888f",
+    "created": "2026-08-14T13:37:09.090427658Z",
+    "classification": "experimental-feasibility-only",
+    "source_patch_sha256": "d1625b04f216d939ad6e88ceda994a16fdedb423b46815a3e428d61700b3d16e",
+    "wrapper_dockerfile_sha256": "bd98ba11353ec7b2dba9e9b7fb348325a5f09cd4d6aa48270675a4edcc68d1d0"
+  },
+  "retained_phase2_toolchain": {
+    "criu_commit": "b47c692bb3a73ae45ee1c4ab215a8f6869d40efd",
+    "criu_version": "4.2",
+    "snapshot_agent_sha256": "d479604484dde77bb18c0447d134f0668032fef6d7568c975c0585532679bc84",
+    "ns_bind_mount_sha256": "9c87852505e24b111199aa3e52e484ee9668d56149d861b8befd053967dfef13",
+    "injected_nsrestore_sha256": "2e1a1fdd7454c3a34123c133d6c987217477ba0d8df0037309c7cd8c8a447b7a",
+    "injected_criu_sha256": "920b21bb333e1a4c8266e4724384aa3a53f4de7cd23dbf4aa75032cf6d5964b7",
+    "cuda_checkpoint_sha256": "707fa7f54136824d6c1d6dd724b9b1717610f831033c00d06da474de363a06db",
+    "cuda_checkpoint_source_note": "The Phase 2 Dockerfile cloned the default branch without a ref. Its shipped binary is byte-identical to the independently built Phase 1 binary pinned to 00d5cce84c628088d6caa203fc4af40c1538b6f7, but the retained image alone is not source-provenance proof."
+  },
+  "upgrade_toolchain": {
+    "criu_commit": "91d552257809d0e5c7148190e9aa0372f13b76a0",
+    "criu_contains": {
+      "native_aio_vma_restore_commit": "2b660dd2cd5fc9819d23822943bd700c516951a1",
+      "parallel_memfd_restore_commit": "e33b8559cc902c2bb344c6eece4ca26ab6f9bce3"
+    },
+    "cuda_checkpoint_commit": "00d5cce84c628088d6caa203fc4af40c1538b6f7",
+    "go_build_image": "golang:1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6",
+    "cuda_helper_build_image": "nvidia/cuda:13.0.3-devel-ubuntu24.04@sha256:7d56ebe2b7cd864a60dca3c8b2d0a39f8fc110417e8253e32505c3387f59119c",
+    "criu_build_image": "ubuntu:24.04@sha256:561618e2c15bf2397621dd04f96926663a3b5616c189cf7e38db7e82f5c538ea",
+    "agent_runtime_image": "nvidia/cuda:13.0.3-base-ubuntu24.04@sha256:7c7413a56200486f71f181cad9310f6fd31b6bb21816ade15fc9c1e1e927a5c1",
+    "public_operator_base": "gcr.io/distroless/static-debian12:nonroot@sha256:b7ebc675e6df3e26840de28a9d119969806b5542902111bfd111964d0930c08a",
+    "patch": "public-aio-toolchain.patch",
+    "patch_sha256": "de10a0609115589efb137186544c9d90a0fcc03616ef959376139c65ae9615bc",
+    "compliance_closure_patch": "compliance-closure.patch",
+    "compliance_closure_patch_sha256": "32493e5da929a993976148124699f8abf99240c4ba486e6a01fda453c682ae68",
+    "source_archive_fix_patch": "source-archive-fix.patch",
+    "source_archive_fix_patch_sha256": "5dd45d97596bbdf068f33f0532fc71da1754c9eeb7d91f0abe547ac29f30bf0e",
+    "dependency_snapshot": {
+      "go_mod_sha256": "7e8580094f486fe9e0f5dc37b9cd8ecf1ed153cdd1a6a2293cc53bb3530cebc1",
+      "go_sum_sha256": "cc3ffd4efe77d70fc65b5c47689931a18080d65619b093250ea3011e20675822",
+      "build_time_go_get": false
+    }
+  },
+  "local_preclosure_compliance_build": {
+    "reference": "archvteams-2407-restore-worker:f7f37be-criu91d552-compliant-base",
+    "local_image_id": "sha256:b93b25b7790c3d225a200541c1033eaf2fc4b5bf718b999a945cefd7c4f8d1c6",
+    "classification": "local-validation-only-precedes-compliance-closure-patch",
+    "policy_result": "passed",
+    "policy_package_count": 246,
+    "registry_digest": null,
+    "pushed": false,
+    "deployed": false,
+    "note": "This build validated that the pinned CUDA base can pass the upstream compliance target. It does not contain compliance-closure.patch and is not provenance for the current materialized candidate."
+  },
+  "one_shot_restore_worker": {
+    "classification": "built-and-validated-on-an-already-provisioned-h100",
+    "core_patch": "core-hardening.patch",
+    "core_patch_sha256": "260c1d9a7f192b8c0b25c924ab26b43a95ad599d38d3f367383e3e984aecfd11",
+    "compliance_closure_patch": "compliance-closure.patch",
+    "compliance_closure_patch_sha256": "32493e5da929a993976148124699f8abf99240c4ba486e6a01fda453c682ae68",
+    "source_archive_fix_patch": "source-archive-fix.patch",
+    "source_archive_fix_patch_sha256": "5dd45d97596bbdf068f33f0532fc71da1754c9eeb7d91f0abe547ac29f30bf0e",
+    "overlay_tree_sha256": "c5a443ad574f77011a7e330b2759b651399fef87c9ef40010750ab509f2c886f",
+    "pinned_binary_dockerfile": "Dockerfile.restore-worker",
+    "pinned_binary_dockerfile_sha256": "f0fb42c68ad7bf8dd39e27a5e070a1613953e7ec2cac0f19027cbea63a509570",
+    "interface": {
+      "scope": "generic single-container NIM restore target",
+      "run_label": "archvteams.nebius.ai/run-id",
+      "target_spec_annotation": "archvteams.nebius.ai/target-pod-spec-sha256",
+      "required_bindings": [
+        "namespace",
+        "name",
+        "uid",
+        "container name and full containerd ID",
+        "immutable image ID",
+        "cgroup",
+        "Pod IP",
+        "node",
+        "canonical PodSpec SHA-256",
+        "run ID",
+        "checkpoint and artifact version",
+        "artifact manifest SHA-256",
+        "tool-bundle manifest SHA-256"
+      ],
+      "checkpoint_manifest": "/checkpoints/<checkpoint-id>/versions/<artifact-version>/manifest.yaml",
+      "tool_manifest": "/snapshot-binaries.manifest"
+    },
+    "compliance_inventory": {
+      "restore_worker_go_sbom": "/sbom-restore-worker-go.cdx.json",
+      "go_sbom_inputs_are_deduplicated": true,
+      "native_revisions": {
+        "CRIU": "91d552257809d0e5c7148190e9aa0372f13b76a0",
+        "cuda-checkpoint": "00d5cce84c628088d6caa203fc4af40c1538b6f7",
+        "cuda-checkpoint-helper": "f7f37be174d252590c4b56e25ff4262dd82466fd",
+        "ns-bind-mount": "f7f37be174d252590c4b56e25ff4262dd82466fd",
+        "snapshot-inet-remap": "f7f37be174d252590c4b56e25ff4262dd82466fd"
+      }
+    },
+    "built_image": {
+      "reference": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:31e1dacd18b99aec1ab7e8ec8c933f260c9dcec687938b40c44c61274f930d86",
+      "local_image_id": "sha256:dc7806d8440c967fcf1efd713ec0a9bcb6496a7741f97fe65e28a66d66a91314",
+      "restore_worker_sha256": "8873c760a1760c0dc3b3e331c7aedf879e7737ad11aed7f028513f057bbbee6e",
+      "tool_bundle_manifest_sha256": "04214d6f4d72fa59d5daa6168d8c63024b6ebe34c4876394e47e80319ef00c39"
+    },
+    "verification_note": "The final upstream tester image target and full Go suite passed before the immutable image was used for three consecutive provisioned-node OpenFold2 restores. The retained offline verifier also materializes the exact Git object, four patches, and overlay without network access."
+  },
+  "openfold2_provisioned_evidence": {
+    "image": "nvcr.io/nim/openfold/openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4",
+    "artifact_id": "openfold2-native-f7-v1",
+    "artifact_version": "1",
+    "artifact_manifest_sha256": "78368af3e6f143d7dc681632c4150b29f6354717103638b56e776244d9631b04",
+    "artifact_bytes": 7290652785,
+    "artifact_file_count": 202,
+    "successful_restores": 3,
+    "attempted_restores": 3,
+    "run_ids": [
+      "p2-20260818t0249",
+      "p3-20260818t0251",
+      "p4-20260818t0252"
+    ],
+    "demand_to_http_ready_median_seconds": 11.0,
+    "demand_to_two_semantic_responses_median_seconds": 22.733563,
+    "worker_restore_median_seconds": 3.599,
+    "semantic_passes_per_run": 2,
+    "semantic_validator_sha256": "980540c9da007ad17b23fcd2edcc4db846110b1398a5ef45fcb003bbd79207d2",
+    "local_evidence_root": "/home/tux/.local/state/archvteams-2407/openfold2-native-f7-20260818T0221Z"
+  }
+}
