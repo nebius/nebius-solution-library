@@ -215,7 +215,7 @@ for value, kind, name, data_key, digest in expected:
 PY
 ```
 
-The current `25d195...` performance-validation image cannot open this gate;
+The current `d5ce1ea...` performance-validation image cannot open this gate;
 the missing exact-base compliance baseline must be resolved first.
 
 ## 5. Capture one UID-bound direct artifact

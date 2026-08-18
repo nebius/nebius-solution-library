@@ -21,7 +21,7 @@ FIXTURE_SHA256 = "053e8a5befb020695e4d27200d21b296e7171f480075125cfa6f7b5a71dbc4
 WORKER_IMAGE = (
     "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/"
     "snapshot-agent@sha256:"
-    "25d195c97ee2e62577475d5a97d3de8c9f694c3e2a7bcc06d3b5c48d88549a24"
+    "d5ce1eaad55378a93a9bf53b35effcbc378ed15ab7e5b7f6b41df6689cefdf28"
 )
 
 
@@ -150,9 +150,17 @@ class CaptureManifestTests(unittest.TestCase):
         )
         self.assertEqual(
             contract["source"]["materialized_tree_sha256"],
-            "ffa53eadaf37b40b260766e6a33c07268b76c8ee7f3a045db1e6327a0ca671b4",
+            "76838bc28fa641ba3d3165c1deb1f019c4f63ed9fce9571b38194ff65ef7b816",
         )
-        self.assertEqual(len(contract["source"]["patch_inputs"]), 7)
+        self.assertEqual(
+            contract["approval"]["evidence_sha256"],
+            contract["source"]["materialized_tree_sha256"],
+        )
+        self.assertEqual(len(contract["source"]["patch_inputs"]), 8)
+        self.assertEqual(
+            contract["source"]["patch_inputs"]["ns_bind_mount_glibc35"],
+            "4847d7d42aae570fc7f91351a8fbf3018f10dc6247d93c2c9696754861731366",
+        )
         self.assertEqual(
             contract["tool_bundle"]["content_sha256"],
             "c0d638100c03fa35973e82859d15b9c8dd1bcbf0fe9cb185b58cc21fae7ead1e",

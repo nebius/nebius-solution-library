@@ -275,15 +275,18 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(evidence.EvidenceError, "already cached"):
             self.build(values)
 
-    def test_unrelated_cached_init_image_event_is_rejected(self) -> None:
+    def test_cached_image_event_for_wrong_container_is_rejected(self) -> None:
         values = valid_inputs()
         values["events"]["items"][0]["involvedObject"]["fieldPath"] = (
             "spec.initContainers{setup}"
         )
+        with self.assertRaisesRegex(evidence.EvidenceError, "already cached"):
+            self.build(values)
+
+    def test_cached_image_event_with_nonexact_image_is_rejected(self) -> None:
+        values = valid_inputs()
         values["events"]["items"][0]["message"] = (
-            "Container image \"docker.io/library/busybox@sha256:"
-            + "f" * 64
-            + "\" already present on machine"
+            f'Container image "{render.IMAGE}-forged" already present on machine'
         )
         with self.assertRaisesRegex(evidence.EvidenceError, "already cached"):
             self.build(values)

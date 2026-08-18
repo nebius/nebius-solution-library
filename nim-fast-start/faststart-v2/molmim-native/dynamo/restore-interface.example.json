@@ -21,7 +21,8 @@
       "source_archive_fix": "REPLACE_WITH_64_HEX_DIGEST",
       "portable_glibc35_toolchain": "REPLACE_WITH_64_HEX_DIGEST",
       "buffered_criu_io": "REPLACE_WITH_64_HEX_DIGEST",
-      "jammy_compliance_tomli": "REPLACE_WITH_64_HEX_DIGEST"
+      "jammy_compliance_tomli": "REPLACE_WITH_64_HEX_DIGEST",
+      "ns_bind_mount_glibc35": "REPLACE_WITH_64_HEX_DIGEST"
     }
   },
   "worker_image": "REPLACE_WITH_IMMUTABLE_PUBLIC_WORKER_IMAGE_AT_SHA256",

@@ -357,6 +357,7 @@ def build(
     items = events.get("items")
     if not isinstance(items, list):
         raise EvidenceError("target EventList is malformed")
+    cached_image_message = f'Container image "{IMAGE}" already present on machine'
     cached_events = [
         item
         for item in items
@@ -365,8 +366,7 @@ def build(
         and item.get("involvedObject", {}).get("fieldPath")
         == "spec.containers{molmim}"
         and item.get("reason") == "Pulled"
-        and IMAGE in str(item.get("message", ""))
-        and "already present" in str(item.get("message", "")).lower()
+        and item.get("message") == cached_image_message
     ]
     if len(cached_events) < 1:
         raise EvidenceError("target Events do not prove that the exact image was already cached")
