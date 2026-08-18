@@ -171,7 +171,7 @@
     "final_state": "7823e7c864eb8b62e14abd871dd3ed91dd3087a01ab0fd8e1308b99480cb6c0a"
   },
   "cleanup": {
-    "uid_scoped_cleanup_succeeded_after_each_trial": true,
+    "run_id_scoped_exact_manifest_cleanup_succeeded_after_each_trial": true,
     "active_gpu_requests_after_each_trial": [0, 0, 0],
     "counted_run_resources_remaining": 0,
     "excluded_run_resources_remaining": 0,

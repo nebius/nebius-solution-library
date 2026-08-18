@@ -70,8 +70,9 @@ Ready-node, zero-GPU, exact 4,830m CPU baseline, holder/PVC/CSI attachment, and
 minimum 400m headroom gates. It proves all three exact images resident in a
 setup-only Pod, deletes that Pod, performs one fresh full artifact read in the
 existing holder, and then runs three trials without another artifact refresh.
-It requires zero post-T0 pulling events and UID-scoped cleanup plus zero GPU
-requests after every trial before `aggregate_response_n3.py` admits the cohort.
+It requires zero post-T0 pulling events and run-ID-scoped exact-manifest
+cleanup with retained resource-absence/GPU-zero receipts after every trial
+before `aggregate_response_n3.py` admits the cohort.
 
 ```console
 ./run_response_n3.sh \

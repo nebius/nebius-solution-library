@@ -71,10 +71,10 @@ The selected `aggregate.json` SHA-256 is
 the full-read and image-residency receipt SHA-256 values are respectively
 `f611a9457b7991a63cbbac40849398ebcd826b86186d7ddfc3742199ac210ee5`
 and `885ca3ed7f042575d32b7eac06dffc1f956dd74a1cbd68ce8e37ab1497a95b4c`.
-Each trial used UID-scoped cleanup and retained a zero-GPU receipt. The final
-state has no counted or excluded run resources, zero active GPU requests, the
-same Ready holder, both PVCs Bound, and all unrelated holders preserved; its
-receipt SHA-256 is
+Each trial used run-ID-scoped exact-manifest cleanup and retained a resource-
+absence/GPU-zero receipt. The final state has no counted or excluded run
+resources, zero active GPU requests, the same Ready holder, both PVCs Bound,
+and all unrelated holders preserved; its receipt SHA-256 is
 `7823e7c864eb8b62e14abd871dd3ed91dd3087a01ab0fd8e1308b99480cb6c0a`.
 
 One setup attempt, `pmp-rb-1131-r1`, is excluded because the original 1000m
