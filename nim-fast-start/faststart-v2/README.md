@@ -10,6 +10,8 @@ checkpoint/restore paths:
   and
 - `performance/openfold2/` records the provisioned-node result without storing
   raw cluster evidence or credentials in Git; and
+- `openfold2-newnode/` contains the scale-from-zero preemptible-node harness,
+  lifecycle verifier, automated node bootstrap, and first true new-node result;
 - `boltz2-native/` contains the Boltz2 capture inputs, strict validator,
   model adapter, provisioned-node runner, n=3 result, and rejected writeback
   comparison; and
