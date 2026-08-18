@@ -85,6 +85,13 @@ class CaptureManifestTests(unittest.TestCase):
         self.assertIn('"checkpoint_id": "openfold3-native-f7-v2-buffered"', buffered_script)
         self.assertIn('"image_io_mode": "buffered"', buffered_script)
         self.assertNotEqual(direct["metadata"]["name"], buffered["metadata"]["name"])
+        for holder in (direct, buffered):
+            security = holder["spec"]["containers"][0]["securityContext"]
+            self.assertEqual(security["runAsUser"], 0)
+            self.assertEqual(security["runAsGroup"], 0)
+            self.assertFalse(security["runAsNonRoot"])
+            self.assertFalse(security["allowPrivilegeEscalation"])
+            self.assertEqual(security["capabilities"]["drop"], ["ALL"])
 
     def test_worker_image_has_one_release_contract_source(self) -> None:
         contract = json.loads((ROOT / "dynamo" / "restore-interface.live.json").read_text())
