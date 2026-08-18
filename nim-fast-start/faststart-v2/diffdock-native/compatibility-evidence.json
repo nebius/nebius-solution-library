@@ -1,0 +1,35 @@
+{
+  "schema": "archvteams.nebius.ai/diffdock-restore-compatibility-review/v1",
+  "reviewed_at": "2026-08-18T04:18:05Z",
+  "diffdock_target": {
+    "image": "nvcr.io/nim/mit/diffdock@sha256:300696eb8331d78face40f84d835cc1e278c7d3c391c5aabbbee5884366da480",
+    "glibc_version": null,
+    "status": "not-present-in-retained-diffdock-evidence",
+    "required_capture_receipt": "archvteams.nebius.ai/target-runtime/v1"
+  },
+  "superseded_worker": {
+    "image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:31e1dacd18b99aec1ab7e8ec8c933f260c9dcec687938b40c44c61274f930d86",
+    "rootfs_extractor_required_glibc": "2.38",
+    "source": "cross-model retained ProteinMPNN restore failure",
+    "source_log_sha256": "bd0b8c1d143ca2cf65fb3076e91b97f890b65bf0afcba671214434c6b453bdaa",
+    "source_target_glibc": "2.35",
+    "source_target_glibc_receipt_sha256": "c7c5ac41b6a6746372adee0f7dd78c0f9049db6000d33e25274d336cb8ea57b6"
+  },
+  "portable_worker": {
+    "image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:500848fe4fa474ec71646bb4f089abbfb0bb7fda6f452b39a76083ff0eec63f7",
+    "tool_bundle_manifest_sha256": "c6cd314b4d61fdddecb0c0d7e2195f48197046e6ee6f30df63d89ab9e90a0162",
+    "restore_worker_sha256": "440a39b0a1d955f2d2ad918d8c216b6f75b37791424afbacb64960206f143a18",
+    "rootfs_extractor": "target-/bin/tar-without-inherited-LD_LIBRARY_PATH",
+    "worker_imposed_target_glibc_floor": null,
+    "local_verification_receipt_sha256": "95590f7e36d0f4dc35042738109892680cbe5533c51858af21bf30cac8db8c72",
+    "remote_digest_receipt_sha256": "4e1a1b21ad53330f180bcc2b074ff15c5791422fb814ab08bedc79de87393bb0",
+    "qualification": "immutable cross-model receipts verified; DiffDock strict two-call canary still required"
+  },
+  "rootfsless_policy": {
+    "cross_model_member_inventory_sha256": "ef5d55be503bb310c0730f1d05254cb3fddd20c98daee177b065dc54be72175f",
+    "candidate_only": true,
+    "promotion_gate": "strict two-call ClusterIP semantic canary",
+    "warning": "Cross-model rootfsless restore reached CRIU but did not pass semantics; omission alone is not assumed sufficient."
+  },
+  "live_mutations_performed": false
+}
