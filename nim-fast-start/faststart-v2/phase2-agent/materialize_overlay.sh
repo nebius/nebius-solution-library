@@ -49,6 +49,7 @@ apply_patch_file "${script_dir}/core-hardening.patch"
 apply_patch_file "${script_dir}/compliance-closure.patch"
 apply_patch_file "${script_dir}/source-archive-fix.patch"
 apply_patch_file "${script_dir}/portable-glibc35-toolchain.patch"
+apply_patch_file "${script_dir}/buffered-criu-io.patch"
 cp -a "${script_dir}/overlay/." "${destination}/"
 
 if find "${destination}" -type f \( -name '*.orig' -o -name '*.rej' \) -print -quit \

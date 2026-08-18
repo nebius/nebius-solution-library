@@ -44,6 +44,8 @@
     "source_archive_fix_patch_sha256": "5dd45d97596bbdf068f33f0532fc71da1754c9eeb7d91f0abe547ac29f30bf0e",
     "portable_toolchain_patch": "portable-glibc35-toolchain.patch",
     "portable_toolchain_patch_sha256": "62d584ea83770c62d090bbbc15f265a6fadda064ec8c6e6a4fd0abe8328780b9",
+    "buffered_io_patch": "buffered-criu-io.patch",
+    "buffered_io_patch_sha256": "6a59dcb524abd0d9596697efd28afb3bd9d4e543b193f687178494452cecac15",
     "injected_elf_gate": {
       "script": "deploy/snapshot/scripts/verify-bundle-glibc.sh",
       "script_sha256": "7849fea3931032dfa35c9d9cc0ecc577d94185160910ef37dc5b2573a08cc406",
@@ -64,13 +66,13 @@
   },
   "integrated_source_validation": {
     "classification": "offline-local-no-image-build",
-    "materialized_tree_sha256": "b52488a128a6f36091bf0fc6ffe9b7a2b932d4e94e3b0e3c4f986af880821900",
+    "materialized_tree_sha256": "8ea18c34140bbe034bc2a937f965d3442e7149ac371a7d627fcbee1925347f79",
     "materialized_tree_hash_algorithm": "SHA-256 of path-sorted sha256sum records for every regular file, relative to the materialization root",
     "independent_materializations_equal": true,
     "tester_image_id": "sha256:44c161e4bd6894ee223311c92c348dfdf5954a460b6c732e0dc6ae11b76f34a6",
     "go_test_network": "none",
     "go_test_result": "passed",
-    "go_test_log_sha256": "500c6d01b25a7ec5e058b45b9ec4e8758589ff2cb58821aa4d53901834cf7026",
+    "go_test_log_sha256": "8d8e576c49c9d9499d014fce40799df9863974557177b5730f6c090d9620aa04",
     "docker_build_check_targets": [
       "task-public-agent",
       "agent"
@@ -102,6 +104,8 @@
     "source_archive_fix_patch_sha256": "5dd45d97596bbdf068f33f0532fc71da1754c9eeb7d91f0abe547ac29f30bf0e",
     "portable_toolchain_patch": "portable-glibc35-toolchain.patch",
     "portable_toolchain_patch_sha256": "62d584ea83770c62d090bbbc15f265a6fadda064ec8c6e6a4fd0abe8328780b9",
+    "buffered_io_patch": "buffered-criu-io.patch",
+    "buffered_io_patch_sha256": "6a59dcb524abd0d9596697efd28afb3bd9d4e543b193f687178494452cecac15",
     "overlay_tree_sha256": "51dcf9f3f0d06360bd6806c0e6f9684861c0b244967f97e4bacc62874de3b1c9",
     "pinned_binary_dockerfile": "Dockerfile.restore-worker",
     "pinned_binary_dockerfile_sha256": "f0fb42c68ad7bf8dd39e27a5e070a1613953e7ec2cac0f19027cbea63a509570",
@@ -145,7 +149,7 @@
       "restore_worker_sha256": "8873c760a1760c0dc3b3e331c7aedf879e7737ad11aed7f028513f057bbbee6e",
       "tool_bundle_manifest_sha256": "04214d6f4d72fa59d5daa6168d8c63024b6ebe34c4876394e47e80319ef00c39"
     },
-    "verification_note": "The historical Noble image passed the upstream tester target and three provisioned-node OpenFold2 restores. The portable source verifier materializes the exact Git object, five patches, and overlay without network access; a new immutable compliance-target image is still required for byte provenance."
+    "verification_note": "The historical Noble image passed the upstream tester target and three provisioned-node OpenFold2 restores. The portable source verifier materializes the exact Git object, six patches, and overlay without network access; a new immutable compliance-target image is still required for byte provenance."
   },
   "jammy_compatibility_validation": {
     "classification": "pre-integration-task-public-agent-validation-only",
