@@ -1,0 +1,61 @@
+{
+  "$id": "https://nebius.ai/schemas/catalog-switch-ledger-event-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attempt_id": {"pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}$", "type": "string"},
+    "attempt_sequence": {"minimum": 0, "type": "integer"},
+    "data": {"type": "object"},
+    "event_id": {"pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}:[0-9]{6}$", "type": "string"},
+    "event_type": {
+      "enum": [
+        "request.accepted",
+        "phase.started",
+        "phase.finished",
+        "response.validated",
+        "attempt.failed",
+        "accounting.recorded",
+        "cleanup.finished"
+      ]
+    },
+    "ledger_id": {"pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}$", "type": "string"},
+    "ledger_sequence": {"minimum": 0, "type": "integer"},
+    "observed_at_utc": {
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z$",
+      "type": "string"
+    },
+    "observed_monotonic_ns": {"minimum": 1, "type": "integer"},
+    "recorder": {
+      "additionalProperties": false,
+      "properties": {
+        "boot_id": {"minLength": 1, "type": "string"},
+        "clock_id": {"minLength": 1, "type": "string"},
+        "max_error_ms": {"maximum": 100, "minimum": 0, "type": "number"},
+        "recorder_id": {"minLength": 1, "type": "string"},
+        "utc_sync_source": {"minLength": 1, "type": "string"}
+      },
+      "required": ["boot_id", "clock_id", "max_error_ms", "recorder_id", "utc_sync_source"],
+      "type": "object"
+    },
+    "request_id": {"pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}$", "type": "string"},
+    "schema": {"const": "archvteams.nebius.ai/catalog-switch-ledger-event/v1"},
+    "trace_id": {"pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}$", "type": "string"}
+  },
+  "required": [
+    "attempt_id",
+    "attempt_sequence",
+    "data",
+    "event_id",
+    "event_type",
+    "ledger_id",
+    "ledger_sequence",
+    "observed_at_utc",
+    "observed_monotonic_ns",
+    "recorder",
+    "request_id",
+    "schema",
+    "trace_id"
+  ],
+  "title": "Catalog switch canonical ledger event v1",
+  "type": "object"
+}
