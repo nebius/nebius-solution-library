@@ -1287,10 +1287,21 @@ def _verify_writer_exclusion_evidence(
     if not isinstance(attempt, dict):
         raise StateError("writer-exclusion donor get attempt must be an object")
     _exact_keys(attempt, {"argv", "exit_code", "stderr"}, "donor get attempt")
+    canonical_suffix = [
+        "get",
+        "pod",
+        donor["name"],
+        "-n",
+        namespace,
+        "-o",
+        "json",
+    ]
+    argv = attempt["argv"]
     if (
-        not isinstance(attempt["argv"], list)
-        or not all(isinstance(item, str) for item in attempt["argv"])
-        or donor["name"] not in attempt["argv"]
+        not isinstance(argv, list)
+        or not all(isinstance(item, str) for item in argv)
+        or len(argv) <= len(canonical_suffix)
+        or argv[-len(canonical_suffix):] != canonical_suffix
         or _strict_nonnegative_int(attempt["exit_code"], "donor get exit code") == 0
         or not isinstance(attempt["stderr"], str)
         or "NotFound" not in attempt["stderr"]
