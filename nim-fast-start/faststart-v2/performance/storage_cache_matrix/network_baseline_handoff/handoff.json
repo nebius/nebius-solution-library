@@ -1,0 +1,297 @@
+{
+  "approval_gate": {
+    "independent_reviewer_required": true,
+    "receipt_path": null,
+    "required_review_scope": [
+      "artifact_identity_and_external_t0",
+      "cost_ttl_and_exact_id_cleanup",
+      "dirty_generation_and_failure_retention",
+      "fresh_resource_isolation",
+      "network_ssd_and_object_store_labels"
+    ],
+    "resource_creation_permitted": false,
+    "status": "pending"
+  },
+  "bootstrap_candidate": {
+    "branch": "agent/catalog-switch-k8s-baseline",
+    "capability_contract": {
+      "path": "nim-fast-start/faststart-v2/performance/k8s_baseline/campaign/storage-cache-network-bootstrap.json",
+      "requirements": [
+        "exact model, artifact, payload, image, semantic-validator, storage-class, and disk-type identities",
+        "request-SLO events for post-T0 PVC create/attach/mount, Object Storage fetch, copy, hash, first read, restore/load, and semantic response",
+        "separate prepared-hit, request-attach/mount, remote-miss, concurrent-fetch, and corruption/repopulation cohorts",
+        "isolated mutable namespace and dirty-generation absence receipts joined by attempt_id"
+      ],
+      "sha256": null,
+      "status": "missing-awaiting-clean-commit"
+    },
+    "frozen_commit": "93309aa4a738c2fc42e123f1a550dc11dc7eacdd",
+    "kind": "kubernetes-external-t0-bootstrap-candidate",
+    "remote_branch": "origin/agent/catalog-switch-k8s-baseline",
+    "required_files": [
+      {
+        "path": "nim-fast-start/faststart-v2/performance/k8s_baseline/CAMPAIGN_PLAN.md",
+        "sha256": "2bdeb17695adc29560dd3903a8c315017438bf555e870895556e9c333848d78c"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/performance/k8s_baseline/campaign/broker-cluster-interface-required.json",
+        "sha256": "f0043070be38151cbcd9af415f76698ce84700afff9ef302eb2b524f7dd0fee6"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/performance/k8s_baseline/campaign/request-slo-freeze.json",
+        "sha256": "deb1e20022735bd958d3e832fb1a1e8faa036bd3be15cb07ee81a34f31a1eab3"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/performance/k8s_baseline/contract.py",
+        "sha256": "c7a02b4f87613465453822e7fe51ceb1bf82dfab7268de181cb9befa326c07b1"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/performance/k8s_baseline/kubernetes_backend.py",
+        "sha256": "52c4b0f88518a42760c6b15056ac5ff73770013bf78310a103c9ff92cd277a1d"
+      }
+    ],
+    "worktree": "/home/tux/dashboard/data/worktrees/catalog-switch-k8s-baseline"
+  },
+  "broker_candidate": {
+    "branch": "agent/catalog-switch-resource-broker",
+    "capability_contract": {
+      "path": "nim-fast-start/faststart-v2/resource-broker/storage-cache-network-baseline-interface.json",
+      "requirements": [
+        "storage-task-specific immutable request and lease with a unique prefix and no sibling lease or resource reuse",
+        "exact CSI PVC, PV, and provider Network SSD disk identity lifecycle in the lease and supervisor ledger",
+        "fresh private Object Storage bucket identity, task-scoped access, quota, publication, and cleanup contract",
+        "cost, TTL, interruption recovery, reverse exact-ID cleanup, provider-child reconciliation, and NotFound receipts"
+      ],
+      "sha256": null,
+      "status": "missing-awaiting-clean-commit"
+    },
+    "frozen_commit": "662666c785136b829535dc7fd64485a55f7f812a",
+    "kind": "catalog-switch-kubernetes-resource-lease/v2-candidate",
+    "remote_branch": "origin/agent/catalog-switch-resource-broker",
+    "required_files": [
+      {
+        "path": "nim-fast-start/faststart-v2/resource-broker/K8S_BASELINE_INTERFACE.md",
+        "sha256": "4d9357a01650d237b62122c31321a5c2154660fb7dad4dee9b71471c54c52d62"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/resource-broker/kubernetes-demand.schema.json",
+        "sha256": "438c15e86432446a0076c9eefc1de5b8f5ca7f068a9c0e2de4af56ac0c12f9b1"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/resource-broker/kubernetes-lease.schema.json",
+        "sha256": "55d6a55d98943a697096326f5514491abb902f0c19e3d53a3e3ba087eccef1c9"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/resource-broker/kubernetes-request.schema.json",
+        "sha256": "292462c322c02c660c3967ac63d0bd3d11de24d97c665f81396bad4666dbc2bb"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/resource-broker/kubernetes_broker.py",
+        "sha256": "efb2bcfffa29272545a9491df0f4bd5c621371a532973fe8e51b44b1cc688a3d"
+      }
+    ],
+    "worktree": "/home/tux/dashboard/data/worktrees/catalog-switch-resource-broker"
+  },
+  "created_at_utc": "2026-08-19T15:46:30.000000Z",
+  "evidence_classification": "execution-plan-only-no-performance-evidence",
+  "external_t0_contract": {
+    "files": [
+      {
+        "path": "nim-fast-start/faststart-v2/performance/request_slo/README.md",
+        "sha256": "7e8bb358e29b033eb7b7a1b425676d98b00ed14ccbe204f9bd6af74bffcd944f"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/performance/request_slo/cli.py",
+        "sha256": "1964323c904d1ea6dd48ee7d2743dc2c28e481391f03a4a11cdbb64c62121c1e"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/performance/request_slo/event.schema.json",
+        "sha256": "a8371e8f0e3713ccbf3db8658ae144e2c62b2ace223dbfd6ae7761d1a2cf3a52"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/performance/request_slo/harness.py",
+        "sha256": "f8f040ef43cc19fce595397903579fa96ad6750cb53cb0ddacda8887fd2e4649"
+      },
+      {
+        "path": "nim-fast-start/faststart-v2/performance/request_slo/trace.schema.json",
+        "sha256": "b25b9fdc1caacbf173e6575f687899f20c8ca8ad0d6701b1d656105182ec5c3a"
+      }
+    ],
+    "integrated_commit": "65e81b9d0c926dbd1897c512c88fc12cc328ddd5",
+    "request_specific_work_before_t0": "forbidden",
+    "reviewed_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
+    "t0_boundary": "external-client-request-accepted/v1",
+    "terminal_boundary": "first-complete-semantically-valid-response/v1"
+  },
+  "handoff_id": "network-ssd-object-store-baseline-20260819",
+  "measurement_plan": {
+    "artifact_and_payload_identity": "exactly-matched-and-digest-pinned",
+    "cells": [
+      {
+        "cell_id": "network-ssd-prepared-hit",
+        "cohort": "prepared_hit",
+        "required_phases": [
+          "hash",
+          "first_read",
+          "restore_or_conventional_load",
+          "semantic_response"
+        ],
+        "starting_state": "exact task-owned PVC already attached and mounted as declared, separately costed cache investment",
+        "tier_id": "network_ssd_pvc"
+      },
+      {
+        "cell_id": "network-ssd-request-attach-mount",
+        "cohort": "request_triggered_attach_mount",
+        "required_phases": [
+          "volume_attach",
+          "volume_mount",
+          "hash",
+          "first_read",
+          "restore_or_conventional_load",
+          "semantic_response"
+        ],
+        "starting_state": "exact task-owned Network SSD/PVC exists but request-triggered attach and mount have not started",
+        "tier_id": "network_ssd_pvc"
+      },
+      {
+        "cell_id": "object-store-remote-miss",
+        "cohort": "remote_artifact_miss",
+        "required_phases": [
+          "artifact_fetch",
+          "copy",
+          "hash",
+          "first_read",
+          "restore_or_conventional_load",
+          "semantic_response"
+        ],
+        "starting_state": "immutable task-owned publication exists; destination generation is absent",
+        "tier_id": "object_store_remote_fetch"
+      },
+      {
+        "cell_id": "object-store-concurrent-fetch",
+        "cohort": "two_model_concurrent_fetch",
+        "required_phases": [
+          "overlapping_artifact_fetch",
+          "isolated_mutable_namespaces",
+          "hash",
+          "first_read",
+          "restore_or_conventional_load",
+          "semantic_response"
+        ],
+        "starting_state": "one immutable read-only publication per exact artifact and two absent mutable generations",
+        "tier_id": "object_store_remote_fetch"
+      },
+      {
+        "cell_id": "object-store-corruption-repopulation",
+        "cohort": "corruption_repopulation",
+        "required_phases": [
+          "corruption_detection",
+          "dirty_generation_cleanup",
+          "artifact_fetch",
+          "hash",
+          "first_read",
+          "restore_or_conventional_load",
+          "semantic_response"
+        ],
+        "starting_state": "isolated corrupt generation exists and must never be reused",
+        "tier_id": "object_store_remote_fetch"
+      }
+    ],
+    "failures_retained": true,
+    "minimum_attempts_per_cell": 20,
+    "phase_percentile_summation": "forbidden",
+    "publication_boundary": "one-time immutable catalog publication may precede T0 and is costed separately",
+    "request_boundary": "all request-triggered create/attach/mount/fetch/copy/hash/first-read/load work starts at or after T0"
+  },
+  "required_outputs": [
+    "raw canonical request-SLO trace and ledger for every offered attempt",
+    "per-attempt causal phase receipt with bytes, cache age/version, GPU idle/active time, and cost",
+    "exact artifact, image, payload, model, storage-class, disk-type, and configuration digests",
+    "broker lease and bootstrap receipts joined by attempt_id",
+    "p50/p95 and p99 only when the shared sample threshold supports them",
+    "simulator distribution and router-locality exports labeled as the two measured tiers only",
+    "exact-ID cleanup and NotFound receipts plus dirty-generation absence proof",
+    "created-resource inventory with project, region, cluster/context, GPU type, preemptibility, and IDs"
+  ],
+  "resource_plan": {
+    "allowed_projects": {
+      "project-e00z6b02t8ddk96c49": "eu-north1",
+      "project-i00xz31gpr00xp9jhp982v": "me-west1",
+      "project-u00tds8vpr00jaxa76s22d": "us-central1"
+    },
+    "cleanup_owner": "catalog-switch-resource-broker",
+    "created_resource_ids": [],
+    "expected_duration_hours": 4,
+    "fresh_resources_only": true,
+    "hard_cost_cap_usd": 60,
+    "planned_resources": [
+      "fresh private network, subnet, isolation policy, and task identity",
+      "fresh Managed Kubernetes control plane and normal system node",
+      "fresh preemptible single-H100 GPU node group admitted by durable post-T0 demand where the cohort requires it",
+      "fresh exact-ID Network SSD/PVC and isolated mutable generation per attempt",
+      "fresh private immutable Object Storage bucket and task-scoped permit",
+      "fresh registry only for digest-pinned task images when no immutable public source is usable",
+      "no resource or lease from the Kubernetes baseline sibling task"
+    ],
+    "resource_prefix": "mlsp-csw-storage-cache-network-<immutable-request-hash>",
+    "reuse_forbidden": true,
+    "selected_project_id": "project-e00z6b02t8ddk96c49",
+    "selected_region": "eu-north1",
+    "ttl_hours": 24
+  },
+  "schema": "archvteams.nebius.ai/network-storage-baseline-handoff/v1",
+  "scope": {
+    "boltz_external_tmp_conclusion_claim": false,
+    "full_matrix_completion_claim": false,
+    "included_tiers": [
+      {
+        "claims_forbidden": [
+          "host-local or local-NVMe performance",
+          "attach or mount latency without exact CSI and provider timestamps",
+          "a full attached-block/PVC matrix beyond the listed cohorts"
+        ],
+        "label": "Fresh task-owned Nebius Network SSD exposed through an exact-ID PVC; prepared-hit and request-triggered attach/mount cohorts remain separate.",
+        "matrix_tier": "attached_block_pvc",
+        "measured_operations": [
+          "volume_attach",
+          "volume_mount",
+          "hash",
+          "first_read",
+          "restore_or_conventional_load",
+          "semantic_response"
+        ],
+        "status": "planned-unmeasured-requires-approved-bootstrap",
+        "tier_id": "network_ssd_pvc"
+      },
+      {
+        "claims_forbidden": [
+          "pure Network SSD performance for the fetch destination",
+          "Object Storage service-only latency without the request path",
+          "cache-hit performance when the destination generation was absent"
+        ],
+        "label": "Fresh private Object Storage immutable publication fetched after T0 into an isolated task-owned Network SSD/PVC generation.",
+        "matrix_tier": "remote_artifact",
+        "measured_operations": [
+          "artifact_fetch",
+          "copy",
+          "hash",
+          "first_read",
+          "restore_or_conventional_load",
+          "semantic_response"
+        ],
+        "status": "planned-unmeasured-requires-approved-bootstrap",
+        "tier_id": "object_store_remote_fetch"
+      }
+    ],
+    "local_nvme": {
+      "included_in_baseline": false,
+      "matrix_tier": "local_nvme",
+      "reason": "No host-local NVMe entitlement and device layout is verified in any authorized project/platform pair.",
+      "result_claim_permitted": false,
+      "status": "unavailable-unverified-entitlement",
+      "substituted_by": null
+    }
+  },
+  "status": "candidate-not-executed-awaiting-independent-approval",
+  "task_id": "catalog-switch-storage-cache-matrix"
+}

@@ -74,13 +74,25 @@ before creation. Cleanup deletes exact lease IDs in reverse dependency order,
 verifies `NotFound`, scans all three authorized projects for unknown task
 prefixes, and proves every dirty cache/clone generation absent.
 
-## Stop condition
+## Full-matrix stop condition and partial-baseline handoff
 
-Live execution is blocked before billable creation because the required
-allowed-project local-NVMe entitlement/platform is missing or unverified. To
-continue without violating the epic, an operator must provide an authorized
+The local-NVMe tier is blocked before billable creation because the required
+allowed-project entitlement/platform is missing or unverified. To measure that
+tier without violating the epic, an operator must provide an authorized
 project/platform combination in one of the three fixed projects and regions,
-enable host-local NVMe for it, and confirm its device layout. Alternatively,
-the task owner must explicitly revise the definition of done to remove the
-local-NVMe cohort. Until then, attached/remote-only runs would be incomplete
-and would not justify a finished matrix or a measured Boltz conclusion.
+enable host-local NVMe for it, and confirm its device layout. Network SSD is
+not a substitute and must never be labeled as local NVMe.
+
+This tier-specific blocker does not prevent a separately labeled Network
+SSD/Object Storage baseline. That candidate is defined in
+`network_baseline_handoff/` and remains execution-plan-only. Its preflight
+requires the exact broker and Kubernetes bootstrap candidates to be clean,
+pushed, storage-capability-complete, hash-pinned, and independently approved
+before any resource creation. At handoff preparation time those worktrees were
+not clean, neither frozen commit contained the required storage-specific
+broker/bootstrap capability file, and no independent approval receipt existed,
+so no resource was created.
+
+An attached/remote-only run is useful partial evidence, but remains incomplete
+for the full matrix and cannot justify a local-NVMe result or a measured Boltz
+external-`/tmp` conclusion.

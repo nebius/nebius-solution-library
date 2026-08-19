@@ -1,0 +1,39 @@
+{
+  "$id": "https://nebius.ai/schemas/network-storage-baseline-handoff-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "approval_gate": {"type": "object"},
+    "bootstrap_candidate": {"type": "object"},
+    "broker_candidate": {"type": "object"},
+    "created_at_utc": {"type": "string"},
+    "evidence_classification": {"const": "execution-plan-only-no-performance-evidence"},
+    "external_t0_contract": {"type": "object"},
+    "handoff_id": {"minLength": 1, "type": "string"},
+    "measurement_plan": {"type": "object"},
+    "required_outputs": {"items": {"type": "string"}, "minItems": 5, "type": "array"},
+    "resource_plan": {"type": "object"},
+    "schema": {"const": "archvteams.nebius.ai/network-storage-baseline-handoff/v1"},
+    "scope": {"type": "object"},
+    "status": {"const": "candidate-not-executed-awaiting-independent-approval"},
+    "task_id": {"const": "catalog-switch-storage-cache-matrix"}
+  },
+  "required": [
+    "schema",
+    "handoff_id",
+    "task_id",
+    "status",
+    "evidence_classification",
+    "created_at_utc",
+    "scope",
+    "external_t0_contract",
+    "broker_candidate",
+    "bootstrap_candidate",
+    "approval_gate",
+    "resource_plan",
+    "measurement_plan",
+    "required_outputs"
+  ],
+  "title": "Network SSD and Object Storage baseline handoff v1",
+  "type": "object"
+}

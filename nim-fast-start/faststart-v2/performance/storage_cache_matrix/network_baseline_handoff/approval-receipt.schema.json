@@ -1,0 +1,35 @@
+{
+  "$id": "https://nebius.ai/schemas/network-storage-baseline-approval-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bootstrap_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "broker_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "decision": {"const": "approved"},
+    "handoff_commit": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "handoff_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "notes": {"type": "string"},
+    "review_id": {"minLength": 1, "type": "string"},
+    "review_scope": {"type": "object"},
+    "reviewed_at_utc": {"type": "string"},
+    "reviewer_id": {"minLength": 1, "type": "string"},
+    "reviewer_role": {"minLength": 1, "type": "string"},
+    "schema": {"const": "archvteams.nebius.ai/network-storage-baseline-approval/v1"}
+  },
+  "required": [
+    "schema",
+    "decision",
+    "review_id",
+    "reviewer_id",
+    "reviewer_role",
+    "reviewed_at_utc",
+    "handoff_commit",
+    "handoff_sha256",
+    "broker_commit",
+    "bootstrap_commit",
+    "review_scope",
+    "notes"
+  ],
+  "title": "Independent approval receipt for Network SSD/Object Storage baseline",
+  "type": "object"
+}

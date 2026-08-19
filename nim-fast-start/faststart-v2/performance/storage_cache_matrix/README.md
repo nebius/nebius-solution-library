@@ -86,16 +86,24 @@ The router export preserves raw request-causal localization and product-latency
 samples plus failures, bytes, and cost per cell. Neither export invents p95 or
 p99 when the shared minimum sample counts (20 and 100) are unavailable.
 
-## Current live gate
+## Current live gates
 
 No live result is committed by this change. Read-only capability checks and the
-exact blocker are recorded in `LIVE_EXECUTION_PLAN.md`. The resource broker
-correctly refuses local NVMe for all three epic projects because no allowed
-project/platform entitlement has been verified. The known supported B300 path
-is in `uk-south1`, outside the epic's immutable project/region allowlist, so it
-must not be used as a workaround.
+full-matrix local-NVMe blocker are recorded in `LIVE_EXECUTION_PLAN.md`. The
+resource broker correctly refuses local NVMe for all three epic projects
+because no allowed project/platform entitlement has been verified. The known
+supported B300 path is in `uk-south1`, outside the epic's immutable
+project/region allowlist, so it must not be used as a workaround.
+
+That unavailable tier does not block a separately labeled partial baseline.
+`network_baseline_handoff/` now defines a Network SSD/PVC and Object Storage
+remote-fetch handoff that uses the same external-T0 contract. It contains no
+results and cannot claim the local-NVMe tier, a complete matrix, or a Boltz
+external-`/tmp` conclusion. Its read-only preflight forbids resource creation
+until the exact broker and bootstrap candidates are clean, pushed, and covered
+by an independent approval receipt.
 
 No service, endpoint, image, manifest, or shared deployment is created by this
-package. Live execution begins only after the local-NVMe gate is resolved and
-uses fresh broker-leased resources; it must not attach to any existing VM,
-cluster, disk, bucket, registry, service account, endpoint, or model artifact.
+package. Any later execution uses fresh broker-leased resources and must not
+attach to any existing VM, cluster, disk, bucket, registry, service account,
+endpoint, or model artifact.

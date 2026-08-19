@@ -40,8 +40,11 @@ response-boundary audit is recorded in
 - `performance/storage_cache_matrix/` binds detailed image, artifact, volume,
   cache, clone/COW, load/restore, byte, cost, and cleanup receipts to that
   canonical request ledger, then exports raw simulator distributions and router
-  locality costs. Its deterministic smoke is non-performance evidence; live
-  execution remains fail-closed on an allowed-project local-NVMe entitlement;
+  locality costs. Its deterministic smoke is non-performance evidence. Local
+  NVMe remains unavailable without an allowed-project entitlement; the
+  separately labeled `network_baseline_handoff/` prepares only Network SSD/PVC
+  and Object Storage evidence and stays non-executable until exact clean
+  broker/bootstrap commits receive independent approval;
 - `openfold2-newnode/` contains the archived scale-from-zero preemptible-node
   harness, lifecycle verifier, automated node bootstrap, and two historical
   lifecycle results. Both remain useful operational evidence but contribute
