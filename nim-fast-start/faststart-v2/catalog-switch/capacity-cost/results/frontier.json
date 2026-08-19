@@ -9,7 +9,7 @@
         "plan_standard_usd_per_month": "100"
       },
       "latency_seconds": null,
-      "notes": "Prices hash-bound to the archived payload. No per-request cost is computable fail-closed until the sibling benchmark produces measured request latency.",
+      "notes": "PENDING, not measured: Cerebrium has dated, hash-bound public prices only. No per-request cost or rank is computable fail-closed until the sibling benchmark produces measured request latency.",
       "per_request_cost_usd": null,
       "reason": "The sibling task catalog-switch-cerebrium-qwen3-glm52-benchmark is implemented but fail-closed at entitlement/capacity gates; no measured Cerebrium latency exists in this program as of 2026-08-19.",
       "status": "PENDING_MEASUREMENT"
@@ -151,11 +151,11 @@
               "p50": {
                 "on_demand": {
                   "gpu_usd": "0.018504",
-                  "gpu_usd_pessimistic": "0.021769"
+                  "gpu_usd_pessimistic": "0.021770"
                 },
                 "preemptible": {
                   "gpu_usd": "0.010333",
-                  "gpu_usd_pessimistic": "0.012156"
+                  "gpu_usd_pessimistic": "0.012157"
                 }
               },
               "p95": {
@@ -188,7 +188,7 @@
             "per_request_cost_usd": {
               "on_demand": {
                 "gpu_usd": "0.001086",
-                "gpu_usd_pessimistic": "0.001278"
+                "gpu_usd_pessimistic": "0.001277"
               },
               "preemptible": {
                 "gpu_usd": "0.000606",
@@ -211,18 +211,14 @@
                 "per_request_cost_usd": {
                   "on_demand": {
                     "gpu_usd": "0.484635",
-                    "gpu_usd_pessimistic": "0.570159"
+                    "gpu_usd_pessimistic": "0.570158"
                   },
                   "preemptible": {
                     "gpu_usd": "0.270640",
                     "gpu_usd_pessimistic": "0.318400"
                   }
                 },
-                "prep_reuse": 1,
-                "relocalization_traffic_usd": {
-                  "egress_billed": "0.413258",
-                  "egress_free": "0.000000"
-                }
+                "prep_reuse": 1
               },
               {
                 "amortized_gpu_seconds_p95": "241.737541",
@@ -236,11 +232,7 @@
                     "gpu_usd_pessimistic": "0.169848"
                   }
                 },
-                "prep_reuse": 2,
-                "relocalization_traffic_usd": {
-                  "egress_billed": "0.206629",
-                  "egress_free": "0.000000"
-                }
+                "prep_reuse": 2
               },
               {
                 "amortized_gpu_seconds_p95": "114.881164",
@@ -251,14 +243,10 @@
                   },
                   "preemptible": {
                     "gpu_usd": "0.068610",
-                    "gpu_usd_pessimistic": "0.080718"
+                    "gpu_usd_pessimistic": "0.080717"
                   }
                 },
-                "prep_reuse": 5,
-                "relocalization_traffic_usd": {
-                  "egress_billed": "0.082652",
-                  "egress_free": "0.000000"
-                }
+                "prep_reuse": 5
               },
               {
                 "amortized_gpu_seconds_p95": "72.595705",
@@ -272,11 +260,7 @@
                     "gpu_usd_pessimistic": "0.051007"
                   }
                 },
-                "prep_reuse": 10,
-                "relocalization_traffic_usd": {
-                  "egress_billed": "0.041326",
-                  "egress_free": "0.000000"
-                }
+                "prep_reuse": 10
               },
               {
                 "amortized_gpu_seconds_p95": "38.767338",
@@ -287,23 +271,26 @@
                   },
                   "preemptible": {
                     "gpu_usd": "0.023153",
-                    "gpu_usd_pessimistic": "0.027239"
+                    "gpu_usd_pessimistic": "0.027238"
                   }
                 },
-                "prep_reuse": 50,
-                "relocalization_traffic_usd": {
-                  "egress_billed": "0.008265",
-                  "egress_free": "0.000000"
-                }
+                "prep_reuse": 50
               }
             ],
             "evidence": "boltz2-pret0-cache-read + boltz2-n20-fresh",
-            "notes": "Lower bound: measured 422.854590 s pre-T0 cache full read; the M3 artifact is read O_DIRECT inside the T0 window (already charged) and image pull is excluded because residency was proven pre-T0. prep_reuse=1 is the fully request-triggered worst case; larger reuse amortizes one preparation over later switches, whose own latency is the prepared_switch class.",
+            "notes": "Lower bound: measured 422.854590 s pre-T0 cache full read from attached SFS; the M3 artifact is read O_DIRECT inside the T0 window (already charged) and image pull is excluded because residency was proven pre-T0. prep_reuse=1 is the fully request-triggered worst case; larger reuse amortizes one preparation over later switches, whose own latency is the prepared_switch class.",
             "prep_seconds": "422.854590",
-            "prep_traffic_gib": "27.550541",
             "status": "MEASURED_LOWER_BOUND",
             "triggering_request_latency_seconds_p95": "453.164836",
-            "understatement_vs_prepared": "14.951"
+            "understatement_vs_prepared": "14.951",
+            "unmeasured_relocation": {
+              "per_preparation_usd": {
+                "egress_billed": "0.413258",
+                "egress_free": "0.000000"
+              },
+              "provenance": "UNMEASURED scenario, kept separate from the measured lower-bound timing above: the measured preparation read the bytes from attached SFS, not from object storage. If the bytes must first move from object storage, this add-on prices the measured byte counts; its duration is unmeasured.",
+              "traffic_gib": "27.550541"
+            }
           },
           "model": "Boltz2",
           "node_provision_miss": {
@@ -327,7 +314,7 @@
               "p50": {
                 "on_demand": {
                   "gpu_usd": "0.030899",
-                  "gpu_usd_pessimistic": "0.036352"
+                  "gpu_usd_pessimistic": "0.036351"
                 },
                 "preemptible": {
                   "gpu_usd": "0.017255",
@@ -388,1516 +375,3304 @@
       },
       "fully_loaded": [
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": "0.162699",
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.010333",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "573.13",
+          "monthly_usd_pessimistic": "574.95",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.573128",
+          "per_success_usd_pessimistic": "0.574952",
+          "prep_reuse": null,
+          "requests_per_month": 1000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.162699",
+            "fixed_sfs_controller_share": "0.040010",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "2130.42",
+          "monthly_usd_pessimistic": "2148.65",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.213042",
+          "per_success_usd_pessimistic": "0.214865",
+          "prep_reuse": null,
+          "requests_per_month": 10000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.162699",
+            "fixed_sfs_controller_share": "0.008002",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "9051.71",
+          "monthly_usd_pessimistic": "9142.89",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.181034",
+          "per_success_usd_pessimistic": "0.182858",
+          "prep_reuse": null,
+          "requests_per_month": 50000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.162699",
+            "fixed_sfs_controller_share": "0.004001",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "17703.33",
+          "monthly_usd_pessimistic": "17885.68",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.177033",
+          "per_success_usd_pessimistic": "0.178857",
+          "prep_reuse": null,
+          "requests_per_month": 100000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.162699",
+            "fixed_sfs_controller_share": "0.000800",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "86916.26",
+          "monthly_usd_pessimistic": "87828.03",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.173833",
+          "per_success_usd_pessimistic": "0.175656",
+          "prep_reuse": null,
+          "requests_per_month": 500000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.162699",
+            "fixed_sfs_controller_share": "0.000400",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "173432.42",
+          "monthly_usd_pessimistic": "175255.97",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.173432",
+          "per_success_usd_pessimistic": "0.175256",
+          "prep_reuse": null,
+          "requests_per_month": 1000000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.016270",
+            "fixed_sfs_controller_share": "0.400096",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "426.70",
+          "monthly_usd_pessimistic": "428.52",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.426699",
+          "per_success_usd_pessimistic": "0.428523",
+          "prep_reuse": null,
+          "requests_per_month": 1000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.016270",
+            "fixed_sfs_controller_share": "0.040010",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "666.13",
+          "monthly_usd_pessimistic": "684.36",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.066613",
+          "per_success_usd_pessimistic": "0.068436",
+          "prep_reuse": null,
+          "requests_per_month": 10000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.016270",
+            "fixed_sfs_controller_share": "0.008002",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "1730.26",
+          "monthly_usd_pessimistic": "1821.44",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.034605",
+          "per_success_usd_pessimistic": "0.036429",
+          "prep_reuse": null,
+          "requests_per_month": 50000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.016270",
+            "fixed_sfs_controller_share": "0.004001",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "3060.43",
+          "monthly_usd_pessimistic": "3242.79",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.030604",
+          "per_success_usd_pessimistic": "0.032428",
+          "prep_reuse": null,
+          "requests_per_month": 100000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.016270",
+            "fixed_sfs_controller_share": "0.000800",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "13701.77",
+          "monthly_usd_pessimistic": "14613.55",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.027404",
+          "per_success_usd_pessimistic": "0.029227",
+          "prep_reuse": null,
+          "requests_per_month": 500000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.016270",
+            "fixed_sfs_controller_share": "0.000400",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "27003.44",
+          "monthly_usd_pessimistic": "28827.00",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.027003",
+          "per_success_usd_pessimistic": "0.028827",
+          "prep_reuse": null,
+          "requests_per_month": 1000000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.001627",
+            "fixed_sfs_controller_share": "0.400096",
+            "gpu_switch_p50": "0.010333"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
           "monthly_usd_nominal": "412.06",
+          "monthly_usd_pessimistic": "413.88",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
           "per_success_usd_nominal": "0.412056",
-          "per_success_usd_pessimistic": "0.413879",
+          "per_success_usd_pessimistic": "0.413880",
           "prep_reuse": null,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": "0.001627",
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.010333",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.010333"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
           "monthly_usd_nominal": "519.70",
+          "monthly_usd_pessimistic": "537.94",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
           "per_success_usd_nominal": "0.051970",
-          "per_success_usd_pessimistic": "0.053793",
+          "per_success_usd_pessimistic": "0.053794",
           "prep_reuse": null,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": "0.001627",
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.010333",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.010333"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
-          "monthly_usd_nominal": "998.10",
+          "monthly_usd_nominal": "998.12",
+          "monthly_usd_pessimistic": "1089.30",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
           "per_success_usd_nominal": "0.019962",
-          "per_success_usd_pessimistic": "0.021785",
+          "per_success_usd_pessimistic": "0.021786",
           "prep_reuse": null,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": "0.001627",
             "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.010333",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.010333"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
-          "monthly_usd_nominal": "1596.10",
+          "monthly_usd_nominal": "1596.14",
+          "monthly_usd_pessimistic": "1778.50",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
           "per_success_usd_nominal": "0.015961",
-          "per_success_usd_pessimistic": "0.017784",
+          "per_success_usd_pessimistic": "0.017785",
           "prep_reuse": null,
-          "requests_per_month": 100000
+          "requests_per_month": 100000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": "0.001627",
             "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.010333",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.010333"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
-          "monthly_usd_nominal": "6380.00",
+          "monthly_usd_nominal": "6380.32",
+          "monthly_usd_pessimistic": "7292.10",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.012760",
-          "per_success_usd_pessimistic": "0.014583",
+          "per_success_usd_nominal": "0.012761",
+          "per_success_usd_pessimistic": "0.014584",
           "prep_reuse": null,
-          "requests_per_month": 500000
+          "requests_per_month": 500000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": "0.001627",
             "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.010333",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.010333"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
-          "monthly_usd_nominal": "12360.00",
+          "monthly_usd_nominal": "12360.55",
+          "monthly_usd_pessimistic": "14184.10",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.012360",
-          "per_success_usd_pessimistic": "0.014183",
+          "per_success_usd_nominal": "0.012361",
+          "per_success_usd_pessimistic": "0.014184",
           "prep_reuse": null,
-          "requests_per_month": 1000000
+          "requests_per_month": 1000000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": "0.000163",
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.018504",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "410.59",
+          "monthly_usd_pessimistic": "412.42",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.410592",
+          "per_success_usd_pessimistic": "0.412416",
+          "prep_reuse": null,
+          "requests_per_month": 1000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.000163",
+            "fixed_sfs_controller_share": "0.040010",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "505.06",
+          "monthly_usd_pessimistic": "523.29",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.050506",
+          "per_success_usd_pessimistic": "0.052329",
+          "prep_reuse": null,
+          "requests_per_month": 10000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.000163",
+            "fixed_sfs_controller_share": "0.008002",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "924.90",
+          "monthly_usd_pessimistic": "1016.08",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.018498",
+          "per_success_usd_pessimistic": "0.020322",
+          "prep_reuse": null,
+          "requests_per_month": 50000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.000163",
+            "fixed_sfs_controller_share": "0.004001",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "1449.71",
+          "monthly_usd_pessimistic": "1632.07",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.014497",
+          "per_success_usd_pessimistic": "0.016321",
+          "prep_reuse": null,
+          "requests_per_month": 100000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.000163",
+            "fixed_sfs_controller_share": "0.000800",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "5648.18",
+          "monthly_usd_pessimistic": "6559.95",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.011296",
+          "per_success_usd_pessimistic": "0.013120",
+          "prep_reuse": null,
+          "requests_per_month": 500000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.000163",
+            "fixed_sfs_controller_share": "0.000400",
+            "gpu_switch_p50": "0.010333"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "10896.26",
+          "monthly_usd_pessimistic": "12719.81",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.010896",
+          "per_success_usd_pessimistic": "0.012720",
+          "prep_reuse": null,
+          "requests_per_month": 1000000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.291344",
+            "fixed_sfs_controller_share": "0.400096",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "709.94",
+          "monthly_usd_pessimistic": "713.21",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.709944",
+          "per_success_usd_pessimistic": "0.713210",
+          "prep_reuse": null,
+          "requests_per_month": 1000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.291344",
+            "fixed_sfs_controller_share": "0.040010",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "3498.58",
+          "monthly_usd_pessimistic": "3531.24",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.349858",
+          "per_success_usd_pessimistic": "0.353124",
+          "prep_reuse": null,
+          "requests_per_month": 10000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.291344",
+            "fixed_sfs_controller_share": "0.008002",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "15892.52",
+          "monthly_usd_pessimistic": "16055.80",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.317850",
+          "per_success_usd_pessimistic": "0.321116",
+          "prep_reuse": null,
+          "requests_per_month": 50000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.291344",
+            "fixed_sfs_controller_share": "0.004001",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "31384.95",
+          "monthly_usd_pessimistic": "31711.50",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.313850",
+          "per_success_usd_pessimistic": "0.317115",
+          "prep_reuse": null,
+          "requests_per_month": 100000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.291344",
+            "fixed_sfs_controller_share": "0.000800",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "155324.38",
+          "monthly_usd_pessimistic": "156957.10",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.310649",
+          "per_success_usd_pessimistic": "0.313914",
+          "prep_reuse": null,
+          "requests_per_month": 500000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.291344",
+            "fixed_sfs_controller_share": "0.000400",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "310248.67",
+          "monthly_usd_pessimistic": "313514.10",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.310249",
+          "per_success_usd_pessimistic": "0.313514",
+          "prep_reuse": null,
+          "requests_per_month": 1000000,
+          "restores_between_captures": 1
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.029134",
+            "fixed_sfs_controller_share": "0.400096",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "447.73",
+          "monthly_usd_pessimistic": "451.00",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.447734",
+          "per_success_usd_pessimistic": "0.451000",
+          "prep_reuse": null,
+          "requests_per_month": 1000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.029134",
+            "fixed_sfs_controller_share": "0.040010",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "876.48",
+          "monthly_usd_pessimistic": "909.14",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.087648",
+          "per_success_usd_pessimistic": "0.090914",
+          "prep_reuse": null,
+          "requests_per_month": 10000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.029134",
+            "fixed_sfs_controller_share": "0.008002",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "2782.02",
+          "monthly_usd_pessimistic": "2945.30",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.055640",
+          "per_success_usd_pessimistic": "0.058906",
+          "prep_reuse": null,
+          "requests_per_month": 50000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.029134",
+            "fixed_sfs_controller_share": "0.004001",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "5163.95",
+          "monthly_usd_pessimistic": "5490.49",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.051640",
+          "per_success_usd_pessimistic": "0.054905",
+          "prep_reuse": null,
+          "requests_per_month": 100000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.029134",
+            "fixed_sfs_controller_share": "0.000800",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "24219.37",
+          "monthly_usd_pessimistic": "25852.09",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.048439",
+          "per_success_usd_pessimistic": "0.051704",
+          "prep_reuse": null,
+          "requests_per_month": 500000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.029134",
+            "fixed_sfs_controller_share": "0.000400",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "48038.65",
+          "monthly_usd_pessimistic": "51304.08",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.048039",
+          "per_success_usd_pessimistic": "0.051304",
+          "prep_reuse": null,
+          "requests_per_month": 1000000,
+          "restores_between_captures": 10
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.002913",
+            "fixed_sfs_controller_share": "0.400096",
+            "gpu_switch_p50": "0.018504"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
           "monthly_usd_nominal": "421.51",
+          "monthly_usd_pessimistic": "424.78",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
           "per_success_usd_nominal": "0.421513",
-          "per_success_usd_pessimistic": "0.424778",
+          "per_success_usd_pessimistic": "0.424779",
           "prep_reuse": null,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": "0.002913",
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.018504",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.018504"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
           "monthly_usd_nominal": "614.27",
+          "monthly_usd_pessimistic": "646.93",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
           "per_success_usd_nominal": "0.061427",
-          "per_success_usd_pessimistic": "0.064692",
+          "per_success_usd_pessimistic": "0.064693",
           "prep_reuse": null,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": "0.002913",
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.018504",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.018504"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
-          "monthly_usd_nominal": "1470.95",
+          "monthly_usd_nominal": "1470.97",
+          "monthly_usd_pessimistic": "1634.24",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
           "per_success_usd_nominal": "0.029419",
-          "per_success_usd_pessimistic": "0.032684",
+          "per_success_usd_pessimistic": "0.032685",
           "prep_reuse": null,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": "0.002913",
             "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.018504",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.018504"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
-          "monthly_usd_nominal": "2541.80",
+          "monthly_usd_nominal": "2541.85",
+          "monthly_usd_pessimistic": "2868.39",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.025418",
-          "per_success_usd_pessimistic": "0.028683",
+          "per_success_usd_nominal": "0.025419",
+          "per_success_usd_pessimistic": "0.028684",
           "prep_reuse": null,
-          "requests_per_month": 100000
+          "requests_per_month": 100000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": "0.002913",
             "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.018504",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.018504"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
-          "monthly_usd_nominal": "11108.50",
+          "monthly_usd_nominal": "11108.87",
+          "monthly_usd_pessimistic": "12741.59",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.022217",
-          "per_success_usd_pessimistic": "0.025482",
+          "per_success_usd_nominal": "0.022218",
+          "per_success_usd_pessimistic": "0.025483",
           "prep_reuse": null,
-          "requests_per_month": 500000
+          "requests_per_month": 500000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": "0.002913",
             "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.018504",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.018504"
           },
           "cost_class": "prepared_switch",
           "model": "OpenFold2",
-          "monthly_usd_nominal": "21817.00",
+          "monthly_usd_nominal": "21817.65",
+          "monthly_usd_pessimistic": "25083.08",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.021817",
-          "per_success_usd_pessimistic": "0.025082",
+          "per_success_usd_nominal": "0.021818",
+          "per_success_usd_pessimistic": "0.025083",
           "prep_reuse": null,
-          "requests_per_month": 1000000
+          "requests_per_month": 1000000,
+          "restores_between_captures": 100
         },
         {
+          "capture_status": "APPLIED",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": "0.000291",
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.017255",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "418.89",
+          "monthly_usd_pessimistic": "422.16",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.418891",
+          "per_success_usd_pessimistic": "0.422157",
+          "prep_reuse": null,
+          "requests_per_month": 1000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.000291",
+            "fixed_sfs_controller_share": "0.040010",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "588.05",
+          "monthly_usd_pessimistic": "620.70",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.058805",
+          "per_success_usd_pessimistic": "0.062070",
+          "prep_reuse": null,
+          "requests_per_month": 10000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.000291",
+            "fixed_sfs_controller_share": "0.008002",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "1339.87",
+          "monthly_usd_pessimistic": "1503.14",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.026797",
+          "per_success_usd_pessimistic": "0.030063",
+          "prep_reuse": null,
+          "requests_per_month": 50000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": "0.000291",
+            "fixed_sfs_controller_share": "0.004001",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "2279.64",
+          "monthly_usd_pessimistic": "2606.18",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.022796",
+          "per_success_usd_pessimistic": "0.026062",
+          "prep_reuse": null,
+          "requests_per_month": 100000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.000291",
+            "fixed_sfs_controller_share": "0.000800",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "9797.82",
+          "monthly_usd_pessimistic": "11430.54",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.019596",
+          "per_success_usd_pessimistic": "0.022861",
+          "prep_reuse": null,
+          "requests_per_month": 500000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "APPLIED",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": "0.000291",
+            "fixed_sfs_controller_share": "0.000400",
+            "gpu_switch_p50": "0.018504"
+          },
+          "cost_class": "prepared_switch",
+          "model": "OpenFold2",
+          "monthly_usd_nominal": "19195.55",
+          "monthly_usd_pessimistic": "22460.98",
+          "offer": "on_demand",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.019196",
+          "per_success_usd_pessimistic": "0.022461",
+          "prep_reuse": null,
+          "requests_per_month": 1000000,
+          "restores_between_captures": 1000
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.400096",
+            "gpu_switch_p50": "0.017255"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "418.98",
+          "monthly_usd_nominal": "417.35",
+          "monthly_usd_pessimistic": "420.40",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.418978",
-          "per_success_usd_pessimistic": "0.422023",
+          "per_success_usd_nominal": "0.417351",
+          "per_success_usd_pessimistic": "0.420396",
           "prep_reuse": null,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.017255",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.017255"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "588.92",
+          "monthly_usd_nominal": "572.65",
+          "monthly_usd_pessimistic": "603.10",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.058892",
-          "per_success_usd_pessimistic": "0.061937",
+          "per_success_usd_nominal": "0.057265",
+          "per_success_usd_pessimistic": "0.060310",
           "prep_reuse": null,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.017255",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.017255"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "1344.20",
+          "monthly_usd_nominal": "1262.85",
+          "monthly_usd_pessimistic": "1415.10",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.026884",
-          "per_success_usd_pessimistic": "0.029929",
+          "per_success_usd_nominal": "0.025257",
+          "per_success_usd_pessimistic": "0.028302",
           "prep_reuse": null,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.017255",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.017255"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "2288.30",
+          "monthly_usd_nominal": "2125.60",
+          "monthly_usd_pessimistic": "2430.11",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.022883",
-          "per_success_usd_pessimistic": "0.025928",
+          "per_success_usd_nominal": "0.021256",
+          "per_success_usd_pessimistic": "0.024301",
           "prep_reuse": null,
-          "requests_per_month": 100000
+          "requests_per_month": 100000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.017255",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.017255"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "9841.00",
+          "monthly_usd_nominal": "9027.64",
+          "monthly_usd_pessimistic": "10550.15",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.019682",
-          "per_success_usd_pessimistic": "0.022727",
+          "per_success_usd_nominal": "0.018055",
+          "per_success_usd_pessimistic": "0.021100",
           "prep_reuse": null,
-          "requests_per_month": 500000
+          "requests_per_month": 500000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.017255",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.017255"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "19282.00",
+          "monthly_usd_nominal": "17655.18",
+          "monthly_usd_pessimistic": "20700.20",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.019282",
-          "per_success_usd_pessimistic": "0.022327",
+          "per_success_usd_nominal": "0.017655",
+          "per_success_usd_pessimistic": "0.020700",
           "prep_reuse": null,
-          "requests_per_month": 1000000
+          "requests_per_month": 1000000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.030899",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.030899"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "433.91",
+          "monthly_usd_nominal": "430.99",
+          "monthly_usd_pessimistic": "436.45",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.433908",
-          "per_success_usd_pessimistic": "0.439361",
+          "per_success_usd_nominal": "0.430995",
+          "per_success_usd_pessimistic": "0.436447",
           "prep_reuse": null,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.030899",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.030899"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "738.22",
+          "monthly_usd_nominal": "709.08",
+          "monthly_usd_pessimistic": "763.61",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.073822",
-          "per_success_usd_pessimistic": "0.079275",
+          "per_success_usd_nominal": "0.070908",
+          "per_success_usd_pessimistic": "0.076361",
           "prep_reuse": null,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.030899",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.030899"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "2090.70",
+          "monthly_usd_nominal": "1945.03",
+          "monthly_usd_pessimistic": "2217.66",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.041814",
-          "per_success_usd_pessimistic": "0.047267",
+          "per_success_usd_nominal": "0.038901",
+          "per_success_usd_pessimistic": "0.044353",
           "prep_reuse": null,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.030899",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.030899"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "3781.30",
+          "monthly_usd_nominal": "3489.96",
+          "monthly_usd_pessimistic": "4035.23",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.037813",
-          "per_success_usd_pessimistic": "0.043266",
+          "per_success_usd_nominal": "0.034900",
+          "per_success_usd_pessimistic": "0.040352",
           "prep_reuse": null,
-          "requests_per_month": 100000
+          "requests_per_month": 100000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.030899",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.030899"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "17306.00",
+          "monthly_usd_nominal": "15849.42",
+          "monthly_usd_pessimistic": "18575.77",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.034612",
-          "per_success_usd_pessimistic": "0.040065",
+          "per_success_usd_nominal": "0.031699",
+          "per_success_usd_pessimistic": "0.037152",
           "prep_reuse": null,
-          "requests_per_month": 500000
+          "requests_per_month": 500000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.030899",
-            "prep_traffic_egress_billed": "0.000000"
+            "gpu_switch_p50": "0.030899"
           },
           "cost_class": "prepared_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "34212.00",
+          "monthly_usd_nominal": "31298.74",
+          "monthly_usd_pessimistic": "36751.44",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.034212",
-          "per_success_usd_pessimistic": "0.039665",
+          "per_success_usd_nominal": "0.031299",
+          "per_success_usd_pessimistic": "0.036751",
           "prep_reuse": null,
-          "requests_per_month": 1000000
+          "requests_per_month": 1000000,
+          "restores_between_captures": null
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.269793",
-            "prep_traffic_egress_billed": "0.413258"
+            "gpu_switch_p50": "0.269793"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "1084.77",
+          "monthly_usd_nominal": "669.89",
+          "monthly_usd_pessimistic": "717.50",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "1.084774",
-          "per_success_usd_pessimistic": "1.132385",
+          "per_success_usd_nominal": "0.669889",
+          "per_success_usd_pessimistic": "0.717500",
           "prep_reuse": 1,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "1083.15",
+              "egress_free": "669.89"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "1.083147",
+              "egress_free": "0.669889"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.269793",
-            "prep_traffic_egress_billed": "0.413258"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "7246.88",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.724688",
-          "per_success_usd_pessimistic": "0.772299",
-          "prep_reuse": 1,
-          "requests_per_month": 10000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.269793",
-            "prep_traffic_egress_billed": "0.413258"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "34634.00",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.692680",
-          "per_success_usd_pessimistic": "0.740291",
-          "prep_reuse": 1,
-          "requests_per_month": 50000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.269793",
-            "prep_traffic_egress_billed": "0.413258"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "68867.90",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.688679",
-          "per_success_usd_pessimistic": "0.736290",
-          "prep_reuse": 1,
-          "requests_per_month": 100000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.269793",
-            "prep_traffic_egress_billed": "0.413258"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "342739.00",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.685478",
-          "per_success_usd_pessimistic": "0.733089",
-          "prep_reuse": 1,
-          "requests_per_month": 500000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.269793",
-            "prep_traffic_egress_billed": "0.413258"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "685078.00",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.685078",
-          "per_success_usd_pessimistic": "0.732689",
-          "prep_reuse": 1,
-          "requests_per_month": 1000000
-        },
-        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.040010",
+            "gpu_switch_p50": "0.269793"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "3098.03",
+          "monthly_usd_pessimistic": "3574.13",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.309803",
+          "per_success_usd_pessimistic": "0.357413",
+          "prep_reuse": 1,
+          "requests_per_month": 10000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "7230.61",
+              "egress_free": "3098.03"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.723061",
+              "egress_free": "0.309803"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.008002",
+            "gpu_switch_p50": "0.269793"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "13889.76",
+          "monthly_usd_pessimistic": "16270.29",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.277795",
+          "per_success_usd_pessimistic": "0.325406",
+          "prep_reuse": 1,
+          "requests_per_month": 50000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "34552.66",
+              "egress_free": "13889.76"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.691053",
+              "egress_free": "0.277795"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.004001",
+            "gpu_switch_p50": "0.269793"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "27379.42",
+          "monthly_usd_pessimistic": "32140.48",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.273794",
+          "per_success_usd_pessimistic": "0.321405",
+          "prep_reuse": 1,
+          "requests_per_month": 100000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "68705.23",
+              "egress_free": "27379.42"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.687052",
+              "egress_free": "0.273794"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.000800",
+            "gpu_switch_p50": "0.269793"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "135296.72",
+          "monthly_usd_pessimistic": "159102.00",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.270593",
+          "per_success_usd_pessimistic": "0.318204",
+          "prep_reuse": 1,
+          "requests_per_month": 500000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "341925.77",
+              "egress_free": "135296.72"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.683852",
+              "egress_free": "0.270593"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.000400",
+            "gpu_switch_p50": "0.269793"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "270193.34",
+          "monthly_usd_pessimistic": "317803.91",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.270193",
+          "per_success_usd_pessimistic": "0.317804",
+          "prep_reuse": 1,
+          "requests_per_month": 1000000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "683451.45",
+              "egress_free": "270193.34"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.683451",
+              "egress_free": "0.270193"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.483118",
-            "prep_traffic_egress_billed": "0.413258"
+            "gpu_switch_p50": "0.483118"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "1299.38",
+          "monthly_usd_nominal": "883.21",
+          "monthly_usd_pessimistic": "968.47",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "1.299385",
-          "per_success_usd_pessimistic": "1.384641",
+          "per_success_usd_nominal": "0.883214",
+          "per_success_usd_pessimistic": "0.968470",
           "prep_reuse": 1,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "1296.47",
+              "egress_free": "883.21"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "1.296472",
+              "egress_free": "0.883214"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.483118",
-            "prep_traffic_egress_billed": "0.413258"
+            "gpu_switch_p50": "0.483118"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "9392.99",
+          "monthly_usd_nominal": "5231.28",
+          "monthly_usd_pessimistic": "6083.84",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.939299",
-          "per_success_usd_pessimistic": "1.024555",
+          "per_success_usd_nominal": "0.523128",
+          "per_success_usd_pessimistic": "0.608384",
           "prep_reuse": 1,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "9363.86",
+              "egress_free": "5231.28"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.936386",
+              "egress_free": "0.523128"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.483118",
-            "prep_traffic_egress_billed": "0.413258"
+            "gpu_switch_p50": "0.483118"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "45364.55",
+          "monthly_usd_nominal": "24556.00",
+          "monthly_usd_pessimistic": "28818.81",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.907291",
-          "per_success_usd_pessimistic": "0.992547",
+          "per_success_usd_nominal": "0.491120",
+          "per_success_usd_pessimistic": "0.576376",
           "prep_reuse": 1,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "45218.91",
+              "egress_free": "24556.00"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.904378",
+              "egress_free": "0.491120"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.483118",
-            "prep_traffic_egress_billed": "0.413258"
+            "gpu_switch_p50": "0.483118"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "90329.00",
+          "monthly_usd_nominal": "48711.91",
+          "monthly_usd_pessimistic": "57237.52",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.903290",
-          "per_success_usd_pessimistic": "0.988546",
+          "per_success_usd_nominal": "0.487119",
+          "per_success_usd_pessimistic": "0.572375",
           "prep_reuse": 1,
-          "requests_per_month": 100000
+          "requests_per_month": 100000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "90037.72",
+              "egress_free": "48711.91"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.900377",
+              "egress_free": "0.487119"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.483118",
-            "prep_traffic_egress_billed": "0.413258"
+            "gpu_switch_p50": "0.483118"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "450044.50",
+          "monthly_usd_nominal": "241959.16",
+          "monthly_usd_pessimistic": "284587.23",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.900089",
-          "per_success_usd_pessimistic": "0.985345",
+          "per_success_usd_nominal": "0.483918",
+          "per_success_usd_pessimistic": "0.569174",
           "prep_reuse": 1,
-          "requests_per_month": 500000
+          "requests_per_month": 500000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "448588.22",
+              "egress_free": "241959.16"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.897176",
+              "egress_free": "0.483918"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.483118",
-            "prep_traffic_egress_billed": "0.413258"
+            "gpu_switch_p50": "0.483118"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "899689.00",
+          "monthly_usd_nominal": "483518.23",
+          "monthly_usd_pessimistic": "568774.37",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.899689",
-          "per_success_usd_pessimistic": "0.984945",
+          "per_success_usd_nominal": "0.483518",
+          "per_success_usd_pessimistic": "0.568774",
           "prep_reuse": 1,
-          "requests_per_month": 1000000
+          "requests_per_month": 1000000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "896776.34",
+              "egress_free": "483518.23"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.413258",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.896776",
+              "egress_free": "0.483518"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.143524",
-            "prep_traffic_egress_billed": "0.206629"
+            "gpu_switch_p50": "0.143524"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "751.88",
+          "monthly_usd_nominal": "543.62",
+          "monthly_usd_pessimistic": "568.95",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.751876",
-          "per_success_usd_pessimistic": "0.777204",
+          "per_success_usd_nominal": "0.543620",
+          "per_success_usd_pessimistic": "0.568948",
           "prep_reuse": 2,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "750.25",
+              "egress_free": "543.62"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.750249",
+              "egress_free": "0.543620"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.143524",
-            "prep_traffic_egress_billed": "0.206629"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "3917.90",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.391790",
-          "per_success_usd_pessimistic": "0.417118",
-          "prep_reuse": 2,
-          "requests_per_month": 10000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.143524",
-            "prep_traffic_egress_billed": "0.206629"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "17989.10",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.359782",
-          "per_success_usd_pessimistic": "0.385110",
-          "prep_reuse": 2,
-          "requests_per_month": 50000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.143524",
-            "prep_traffic_egress_billed": "0.206629"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "35578.10",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.355781",
-          "per_success_usd_pessimistic": "0.381109",
-          "prep_reuse": 2,
-          "requests_per_month": 100000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.143524",
-            "prep_traffic_egress_billed": "0.206629"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "176290.00",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.352580",
-          "per_success_usd_pessimistic": "0.377908",
-          "prep_reuse": 2,
-          "requests_per_month": 500000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.143524",
-            "prep_traffic_egress_billed": "0.206629"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "352180.00",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.352180",
-          "per_success_usd_pessimistic": "0.377508",
-          "prep_reuse": 2,
-          "requests_per_month": 1000000
-        },
-        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.040010",
+            "gpu_switch_p50": "0.143524"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "1835.34",
+          "monthly_usd_pessimistic": "2088.62",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.183534",
+          "per_success_usd_pessimistic": "0.208862",
+          "prep_reuse": 2,
+          "requests_per_month": 10000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "3901.63",
+              "egress_free": "1835.34"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.390163",
+              "egress_free": "0.183534"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.008002",
+            "gpu_switch_p50": "0.143524"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "7576.30",
+          "monthly_usd_pessimistic": "8842.69",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.151526",
+          "per_success_usd_pessimistic": "0.176854",
+          "prep_reuse": 2,
+          "requests_per_month": 50000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "17907.76",
+              "egress_free": "7576.30"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.358155",
+              "egress_free": "0.151526"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.004001",
+            "gpu_switch_p50": "0.143524"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "14752.51",
+          "monthly_usd_pessimistic": "17285.29",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.147525",
+          "per_success_usd_pessimistic": "0.172853",
+          "prep_reuse": 2,
+          "requests_per_month": 100000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "35415.42",
+              "egress_free": "14752.51"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.354154",
+              "egress_free": "0.147525"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.000800",
+            "gpu_switch_p50": "0.143524"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "72162.18",
+          "monthly_usd_pessimistic": "84826.07",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.144324",
+          "per_success_usd_pessimistic": "0.169652",
+          "prep_reuse": 2,
+          "requests_per_month": 500000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "175476.71",
+              "egress_free": "72162.18"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.350953",
+              "egress_free": "0.144324"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.000400",
+            "gpu_switch_p50": "0.143524"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "143924.26",
+          "monthly_usd_pessimistic": "169252.05",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.143924",
+          "per_success_usd_pessimistic": "0.169252",
+          "prep_reuse": 2,
+          "requests_per_month": 1000000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "350553.32",
+              "egress_free": "143924.26"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.350553",
+              "egress_free": "0.143924"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.257008",
-            "prep_traffic_egress_billed": "0.206629"
+            "gpu_switch_p50": "0.257008"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "866.65",
+          "monthly_usd_nominal": "657.10",
+          "monthly_usd_pessimistic": "702.46",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.866646",
-          "per_success_usd_pessimistic": "0.912000",
+          "per_success_usd_nominal": "0.657104",
+          "per_success_usd_pessimistic": "0.702459",
           "prep_reuse": 2,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "863.73",
+              "egress_free": "657.10"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.863733",
+              "egress_free": "0.657104"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
-          "cheaper_than_one_warm_gpu": false,
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.257008",
-            "prep_traffic_egress_billed": "0.206629"
+            "gpu_switch_p50": "0.257008"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "5065.60",
+          "monthly_usd_nominal": "2970.18",
+          "monthly_usd_pessimistic": "3423.72",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.506560",
-          "per_success_usd_pessimistic": "0.551914",
+          "per_success_usd_nominal": "0.297018",
+          "per_success_usd_pessimistic": "0.342372",
           "prep_reuse": 2,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "5036.47",
+              "egress_free": "2970.18"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.503647",
+              "egress_free": "0.297018"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.257008",
-            "prep_traffic_egress_billed": "0.206629"
+            "gpu_switch_p50": "0.257008"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "23727.60",
+          "monthly_usd_nominal": "13250.52",
+          "monthly_usd_pessimistic": "15518.24",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.474552",
-          "per_success_usd_pessimistic": "0.519906",
+          "per_success_usd_nominal": "0.265010",
+          "per_success_usd_pessimistic": "0.310365",
           "prep_reuse": 2,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "23581.97",
+              "egress_free": "13250.52"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.471639",
+              "egress_free": "0.265010"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.257008",
-            "prep_traffic_egress_billed": "0.206629"
+            "gpu_switch_p50": "0.257008"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "47055.10",
+          "monthly_usd_nominal": "26100.93",
+          "monthly_usd_pessimistic": "30636.38",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.470551",
-          "per_success_usd_pessimistic": "0.515905",
+          "per_success_usd_nominal": "0.261009",
+          "per_success_usd_pessimistic": "0.306364",
           "prep_reuse": 2,
-          "requests_per_month": 100000
+          "requests_per_month": 100000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "46763.84",
+              "egress_free": "26100.93"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.467638",
+              "egress_free": "0.261009"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.257008",
-            "prep_traffic_egress_billed": "0.206629"
+            "gpu_switch_p50": "0.257008"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "233675.00",
+          "monthly_usd_nominal": "128904.29",
+          "monthly_usd_pessimistic": "151581.50",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.467350",
-          "per_success_usd_pessimistic": "0.512704",
+          "per_success_usd_nominal": "0.257809",
+          "per_success_usd_pessimistic": "0.303163",
           "prep_reuse": 2,
-          "requests_per_month": 500000
+          "requests_per_month": 500000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "232218.82",
+              "egress_free": "128904.29"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.464438",
+              "egress_free": "0.257809"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.257008",
-            "prep_traffic_egress_billed": "0.206629"
+            "gpu_switch_p50": "0.257008"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "466950.00",
+          "monthly_usd_nominal": "257408.48",
+          "monthly_usd_pessimistic": "302762.90",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.466950",
-          "per_success_usd_pessimistic": "0.512304",
+          "per_success_usd_nominal": "0.257408",
+          "per_success_usd_pessimistic": "0.302763",
           "prep_reuse": 2,
-          "requests_per_month": 1000000
+          "requests_per_month": 1000000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "464037.54",
+              "egress_free": "257408.48"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.206629",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.464038",
+              "egress_free": "0.257408"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.067763",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.067763"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "552.14",
+          "monthly_usd_nominal": "467.86",
+          "monthly_usd_pessimistic": "479.82",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.552138",
-          "per_success_usd_pessimistic": "0.564096",
+          "per_success_usd_nominal": "0.467859",
+          "per_success_usd_pessimistic": "0.479817",
           "prep_reuse": 5,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "550.51",
+              "egress_free": "467.86"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.550510",
+              "egress_free": "0.467859"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.067763",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.067763"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "1920.52",
+          "monthly_usd_nominal": "1077.72",
+          "monthly_usd_pessimistic": "1197.30",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.192052",
-          "per_success_usd_pessimistic": "0.204010",
+          "per_success_usd_nominal": "0.107772",
+          "per_success_usd_pessimistic": "0.119730",
           "prep_reuse": 5,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "1904.24",
+              "egress_free": "1077.72"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.190424",
+              "egress_free": "0.107772"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.067763",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.067763"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "8002.20",
+          "monthly_usd_nominal": "3788.23",
+          "monthly_usd_pessimistic": "4386.14",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.160044",
-          "per_success_usd_pessimistic": "0.172002",
+          "per_success_usd_nominal": "0.075765",
+          "per_success_usd_pessimistic": "0.087723",
           "prep_reuse": 5,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "7920.81",
+              "egress_free": "3788.23"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.158416",
+              "egress_free": "0.075765"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.067763",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.067763"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "15604.30",
+          "monthly_usd_nominal": "7176.37",
+          "monthly_usd_pessimistic": "8372.18",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.156043",
-          "per_success_usd_pessimistic": "0.168001",
+          "per_success_usd_nominal": "0.071764",
+          "per_success_usd_pessimistic": "0.083722",
           "prep_reuse": 5,
-          "requests_per_month": 100000
+          "requests_per_month": 100000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "15441.53",
+              "egress_free": "7176.37"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.154415",
+              "egress_free": "0.071764"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.067763",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.067763"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "76421.00",
+          "monthly_usd_nominal": "34281.45",
+          "monthly_usd_pessimistic": "40260.52",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.152842",
-          "per_success_usd_pessimistic": "0.164800",
+          "per_success_usd_nominal": "0.068563",
+          "per_success_usd_pessimistic": "0.080521",
           "prep_reuse": 5,
-          "requests_per_month": 500000
+          "requests_per_month": 500000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "75607.27",
+              "egress_free": "34281.45"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.151215",
+              "egress_free": "0.068563"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.067763",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.067763"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "152442.00",
+          "monthly_usd_nominal": "68162.81",
+          "monthly_usd_pessimistic": "80120.94",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.152442",
-          "per_success_usd_pessimistic": "0.164400",
+          "per_success_usd_nominal": "0.068163",
+          "per_success_usd_pessimistic": "0.080121",
           "prep_reuse": 5,
-          "requests_per_month": 1000000
+          "requests_per_month": 1000000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "150814.44",
+              "egress_free": "68162.81"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.150814",
+              "egress_free": "0.068163"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.121343",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.121343"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "607.00",
+          "monthly_usd_nominal": "521.44",
+          "monthly_usd_pessimistic": "542.85",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.607004",
-          "per_success_usd_pessimistic": "0.628417",
+          "per_success_usd_nominal": "0.521438",
+          "per_success_usd_pessimistic": "0.542852",
           "prep_reuse": 5,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "604.09",
+              "egress_free": "521.44"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.604090",
+              "egress_free": "0.521438"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.121343",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.121343"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "2469.18",
+          "monthly_usd_nominal": "1613.52",
+          "monthly_usd_pessimistic": "1827.66",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.246918",
-          "per_success_usd_pessimistic": "0.268331",
+          "per_success_usd_nominal": "0.161352",
+          "per_success_usd_pessimistic": "0.182766",
           "prep_reuse": 5,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "2440.04",
+              "egress_free": "1613.52"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.244004",
+              "egress_free": "0.161352"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.121343",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.121343"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "10745.50",
+          "monthly_usd_nominal": "6467.22",
+          "monthly_usd_pessimistic": "7537.89",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.214910",
-          "per_success_usd_pessimistic": "0.236323",
+          "per_success_usd_nominal": "0.129344",
+          "per_success_usd_pessimistic": "0.150758",
           "prep_reuse": 5,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "10599.80",
+              "egress_free": "6467.22"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.211996",
+              "egress_free": "0.129344"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.121343",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.121343"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "21090.90",
+          "monthly_usd_nominal": "12534.35",
+          "monthly_usd_pessimistic": "14675.69",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.210909",
-          "per_success_usd_pessimistic": "0.232322",
+          "per_success_usd_nominal": "0.125343",
+          "per_success_usd_pessimistic": "0.146757",
           "prep_reuse": 5,
-          "requests_per_month": 100000
+          "requests_per_month": 100000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "20799.51",
+              "egress_free": "12534.35"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.207995",
+              "egress_free": "0.125343"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.121343",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.121343"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "103854.00",
+          "monthly_usd_nominal": "61071.37",
+          "monthly_usd_pessimistic": "71778.06",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.207708",
-          "per_success_usd_pessimistic": "0.229121",
+          "per_success_usd_nominal": "0.122143",
+          "per_success_usd_pessimistic": "0.143556",
           "prep_reuse": 5,
-          "requests_per_month": 500000
+          "requests_per_month": 500000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "102397.18",
+              "egress_free": "61071.37"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.204794",
+              "egress_free": "0.122143"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.121343",
-            "prep_traffic_egress_billed": "0.082652"
+            "gpu_switch_p50": "0.121343"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "207308.00",
+          "monthly_usd_nominal": "121742.63",
+          "monthly_usd_pessimistic": "143156.02",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.207308",
-          "per_success_usd_pessimistic": "0.228721",
+          "per_success_usd_nominal": "0.121743",
+          "per_success_usd_pessimistic": "0.143156",
           "prep_reuse": 5,
-          "requests_per_month": 1000000
+          "requests_per_month": 1000000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "204394.26",
+              "egress_free": "121742.63"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.082652",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.204394",
+              "egress_free": "0.121743"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.042509",
-            "prep_traffic_egress_billed": "0.041326"
+            "gpu_switch_p50": "0.042509"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "485.56",
+          "monthly_usd_nominal": "442.60",
+          "monthly_usd_pessimistic": "450.11",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.485558",
-          "per_success_usd_pessimistic": "0.493060",
+          "per_success_usd_nominal": "0.442605",
+          "per_success_usd_pessimistic": "0.450106",
           "prep_reuse": 10,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "483.93",
+              "egress_free": "442.60"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.483931",
+              "egress_free": "0.442605"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.042509",
-            "prep_traffic_egress_billed": "0.041326"
+            "gpu_switch_p50": "0.042509"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "1254.72",
+          "monthly_usd_nominal": "825.18",
+          "monthly_usd_pessimistic": "900.20",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.125472",
-          "per_success_usd_pessimistic": "0.132974",
+          "per_success_usd_nominal": "0.082518",
+          "per_success_usd_pessimistic": "0.090020",
           "prep_reuse": 10,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "1238.44",
+              "egress_free": "825.18"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.123844",
+              "egress_free": "0.082518"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.042509",
-            "prep_traffic_egress_billed": "0.041326"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "4673.20",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.093464",
-          "per_success_usd_pessimistic": "0.100966",
-          "prep_reuse": 10,
-          "requests_per_month": 50000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.042509",
-            "prep_traffic_egress_billed": "0.041326"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "8946.30",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.089463",
-          "per_success_usd_pessimistic": "0.096965",
-          "prep_reuse": 10,
-          "requests_per_month": 100000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.042509",
-            "prep_traffic_egress_billed": "0.041326"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "43131.00",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.086262",
-          "per_success_usd_pessimistic": "0.093764",
-          "prep_reuse": 10,
-          "requests_per_month": 500000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.042509",
-            "prep_traffic_egress_billed": "0.041326"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "85862.00",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.085862",
-          "per_success_usd_pessimistic": "0.093364",
-          "prep_reuse": 10,
-          "requests_per_month": 1000000
-        },
-        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.008002",
+            "gpu_switch_p50": "0.042509"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "2525.54",
+          "monthly_usd_pessimistic": "2900.62",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.050511",
+          "per_success_usd_pessimistic": "0.058012",
+          "prep_reuse": 10,
+          "requests_per_month": 50000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "4591.83",
+              "egress_free": "2525.54"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.091837",
+              "egress_free": "0.050511"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.004001",
+            "gpu_switch_p50": "0.042509"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "4650.99",
+          "monthly_usd_pessimistic": "5401.14",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.046510",
+          "per_success_usd_pessimistic": "0.054011",
+          "prep_reuse": 10,
+          "requests_per_month": 100000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "8783.57",
+              "egress_free": "4650.99"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.087836",
+              "egress_free": "0.046510"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.000800",
+            "gpu_switch_p50": "0.042509"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "21654.55",
+          "monthly_usd_pessimistic": "25405.33",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.043309",
+          "per_success_usd_pessimistic": "0.050811",
+          "prep_reuse": 10,
+          "requests_per_month": 500000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "42317.45",
+              "egress_free": "21654.55"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.084635",
+              "egress_free": "0.043309"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.000400",
+            "gpu_switch_p50": "0.042509"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "42909.00",
+          "monthly_usd_pessimistic": "50410.57",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.042909",
+          "per_success_usd_pessimistic": "0.050411",
+          "prep_reuse": 10,
+          "requests_per_month": 1000000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "84234.81",
+              "egress_free": "42909.00"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.084235",
+              "egress_free": "0.042909"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.076121",
-            "prep_traffic_egress_billed": "0.041326"
+            "gpu_switch_p50": "0.076121"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "520.46",
+          "monthly_usd_nominal": "476.22",
+          "monthly_usd_pessimistic": "489.65",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.520456",
-          "per_success_usd_pessimistic": "0.533889",
+          "per_success_usd_nominal": "0.476216",
+          "per_success_usd_pessimistic": "0.489650",
           "prep_reuse": 10,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "517.54",
+              "egress_free": "476.22"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.517542",
+              "egress_free": "0.476216"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.076121",
-            "prep_traffic_egress_billed": "0.041326"
+            "gpu_switch_p50": "0.076121"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "1603.70",
+          "monthly_usd_nominal": "1161.30",
+          "monthly_usd_pessimistic": "1295.63",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.160370",
-          "per_success_usd_pessimistic": "0.173803",
+          "per_success_usd_nominal": "0.116130",
+          "per_success_usd_pessimistic": "0.129563",
           "prep_reuse": 10,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "1574.56",
+              "egress_free": "1161.30"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.157456",
+              "egress_free": "0.116130"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.076121",
-            "prep_traffic_egress_billed": "0.041326"
+            "gpu_switch_p50": "0.076121"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "6418.10",
+          "monthly_usd_nominal": "4206.13",
+          "monthly_usd_pessimistic": "4877.78",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.128362",
-          "per_success_usd_pessimistic": "0.141795",
+          "per_success_usd_nominal": "0.084123",
+          "per_success_usd_pessimistic": "0.097556",
           "prep_reuse": 10,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "6272.42",
+              "egress_free": "4206.13"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.125448",
+              "egress_free": "0.084123"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.076121",
-            "prep_traffic_egress_billed": "0.041326"
+            "gpu_switch_p50": "0.076121"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "12436.10",
+          "monthly_usd_nominal": "8012.15",
+          "monthly_usd_pessimistic": "9355.46",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.124361",
-          "per_success_usd_pessimistic": "0.137794",
+          "per_success_usd_nominal": "0.080122",
+          "per_success_usd_pessimistic": "0.093555",
           "prep_reuse": 10,
-          "requests_per_month": 100000
+          "requests_per_month": 100000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "12144.74",
+              "egress_free": "8012.15"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.121447",
+              "egress_free": "0.080122"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.076121",
-            "prep_traffic_egress_billed": "0.041326"
+            "gpu_switch_p50": "0.076121"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "60580.00",
+          "monthly_usd_nominal": "38460.39",
+          "monthly_usd_pessimistic": "45176.91",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.121160",
-          "per_success_usd_pessimistic": "0.134593",
+          "per_success_usd_nominal": "0.076921",
+          "per_success_usd_pessimistic": "0.090354",
           "prep_reuse": 10,
-          "requests_per_month": 500000
+          "requests_per_month": 500000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "59123.30",
+              "egress_free": "38460.39"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.118247",
+              "egress_free": "0.076921"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.076121",
-            "prep_traffic_egress_billed": "0.041326"
+            "gpu_switch_p50": "0.076121"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "120760.00",
+          "monthly_usd_nominal": "76520.69",
+          "monthly_usd_pessimistic": "89953.73",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.120760",
-          "per_success_usd_pessimistic": "0.134193",
+          "per_success_usd_nominal": "0.076521",
+          "per_success_usd_pessimistic": "0.089954",
           "prep_reuse": 10,
-          "requests_per_month": 1000000
+          "requests_per_month": 1000000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "117846.50",
+              "egress_free": "76520.69"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.041326",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.117846",
+              "egress_free": "0.076521"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.022306",
-            "prep_traffic_egress_billed": "0.008265"
+            "gpu_switch_p50": "0.022306"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "432.29",
+          "monthly_usd_nominal": "422.40",
+          "monthly_usd_pessimistic": "426.34",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.432294",
-          "per_success_usd_pessimistic": "0.436230",
+          "per_success_usd_nominal": "0.422402",
+          "per_success_usd_pessimistic": "0.426338",
           "prep_reuse": 50,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "430.67",
+              "egress_free": "422.40"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.430667",
+              "egress_free": "0.422402"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.022306",
-            "prep_traffic_egress_billed": "0.008265"
+            "gpu_switch_p50": "0.022306"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "722.08",
+          "monthly_usd_nominal": "623.15",
+          "monthly_usd_pessimistic": "662.52",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.072208",
-          "per_success_usd_pessimistic": "0.076144",
+          "per_success_usd_nominal": "0.062315",
+          "per_success_usd_pessimistic": "0.066252",
           "prep_reuse": 50,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "705.81",
+              "egress_free": "623.15"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.070581",
+              "egress_free": "0.062315"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.001627",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.022306",
-            "prep_traffic_egress_billed": "0.008265"
+            "gpu_switch_p50": "0.022306"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "2010.00",
+          "monthly_usd_nominal": "1515.39",
+          "monthly_usd_pessimistic": "1712.20",
           "offer": "preemptible",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.040200",
-          "per_success_usd_pessimistic": "0.044136",
+          "per_success_usd_nominal": "0.030308",
+          "per_success_usd_pessimistic": "0.034244",
           "prep_reuse": 50,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "1928.65",
+              "egress_free": "1515.39"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.038573",
+              "egress_free": "0.030308"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.022306",
-            "prep_traffic_egress_billed": "0.008265"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "3619.90",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.036199",
-          "per_success_usd_pessimistic": "0.040135",
-          "prep_reuse": 50,
-          "requests_per_month": 100000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.022306",
-            "prep_traffic_egress_billed": "0.008265"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "16499.00",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.032998",
-          "per_success_usd_pessimistic": "0.036934",
-          "prep_reuse": 50,
-          "requests_per_month": 500000
-        },
-        {
-          "cheaper_than_one_warm_gpu": false,
-          "components_usd": {
-            "capture_amortized_r100": "0.001627",
-            "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.022306",
-            "prep_traffic_egress_billed": "0.008265"
-          },
-          "cost_class": "cold_switch",
-          "model": "Boltz2",
-          "monthly_usd_nominal": "32598.00",
-          "offer": "preemptible",
-          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.032598",
-          "per_success_usd_pessimistic": "0.036534",
-          "prep_reuse": 50,
-          "requests_per_month": 1000000
-        },
-        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.004001",
+            "gpu_switch_p50": "0.022306"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "2630.68",
+          "monthly_usd_pessimistic": "3024.31",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.026307",
+          "per_success_usd_pessimistic": "0.030243",
+          "prep_reuse": 50,
+          "requests_per_month": 100000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "3457.20",
+              "egress_free": "2630.68"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.034572",
+              "egress_free": "0.026307"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.000800",
+            "gpu_switch_p50": "0.022306"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "11553.02",
+          "monthly_usd_pessimistic": "13521.18",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.023106",
+          "per_success_usd_pessimistic": "0.027042",
+          "prep_reuse": 50,
+          "requests_per_month": 500000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "15685.60",
+              "egress_free": "11553.02"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.031371",
+              "egress_free": "0.023106"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": false,
+          "components_usd": {
+            "capture_amortized": null,
+            "fixed_sfs_controller_share": "0.000400",
+            "gpu_switch_p50": "0.022306"
+          },
+          "cost_class": "cold_switch",
+          "model": "Boltz2",
+          "monthly_usd_nominal": "22705.94",
+          "monthly_usd_pessimistic": "26642.27",
+          "offer": "preemptible",
+          "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
+          "per_success_usd_nominal": "0.022706",
+          "per_success_usd_pessimistic": "0.026642",
+          "prep_reuse": 50,
+          "requests_per_month": 1000000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "30971.11",
+              "egress_free": "22705.94"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.030971",
+              "egress_free": "0.022706"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
+        },
+        {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
+          "cheaper_than_one_warm_gpu": true,
+          "components_usd": {
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.400096",
-            "gpu_switch_p50": "0.039943",
-            "prep_traffic_egress_billed": "0.008265"
+            "gpu_switch_p50": "0.039943"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "451.22",
+          "monthly_usd_nominal": "440.04",
+          "monthly_usd_pessimistic": "447.09",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.451217",
-          "per_success_usd_pessimistic": "0.458266",
+          "per_success_usd_nominal": "0.440039",
+          "per_success_usd_pessimistic": "0.447088",
           "prep_reuse": 50,
-          "requests_per_month": 1000
+          "requests_per_month": 1000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "448.30",
+              "egress_free": "440.04"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.448304",
+              "egress_free": "0.440039"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.040010",
-            "gpu_switch_p50": "0.039943",
-            "prep_traffic_egress_billed": "0.008265"
+            "gpu_switch_p50": "0.039943"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "911.31",
+          "monthly_usd_nominal": "799.53",
+          "monthly_usd_pessimistic": "870.01",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.091131",
-          "per_success_usd_pessimistic": "0.098180",
+          "per_success_usd_nominal": "0.079953",
+          "per_success_usd_pessimistic": "0.087001",
           "prep_reuse": 50,
-          "requests_per_month": 10000
+          "requests_per_month": 10000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "882.18",
+              "egress_free": "799.53"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.088218",
+              "egress_free": "0.079953"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": true,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.008002",
-            "gpu_switch_p50": "0.039943",
-            "prep_traffic_egress_billed": "0.008265"
+            "gpu_switch_p50": "0.039943"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "2956.15",
+          "monthly_usd_nominal": "2397.25",
+          "monthly_usd_pessimistic": "2749.69",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.059123",
-          "per_success_usd_pessimistic": "0.066172",
+          "per_success_usd_nominal": "0.047945",
+          "per_success_usd_pessimistic": "0.054994",
           "prep_reuse": 50,
-          "requests_per_month": 50000
+          "requests_per_month": 50000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "2810.51",
+              "egress_free": "2397.25"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.056210",
+              "egress_free": "0.047945"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.004001",
-            "gpu_switch_p50": "0.039943",
-            "prep_traffic_egress_billed": "0.008265"
+            "gpu_switch_p50": "0.039943"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "5512.20",
+          "monthly_usd_nominal": "4394.40",
+          "monthly_usd_pessimistic": "5099.28",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.055122",
-          "per_success_usd_pessimistic": "0.062171",
+          "per_success_usd_nominal": "0.043944",
+          "per_success_usd_pessimistic": "0.050993",
           "prep_reuse": 50,
-          "requests_per_month": 100000
+          "requests_per_month": 100000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "5220.92",
+              "egress_free": "4394.40"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.052209",
+              "egress_free": "0.043944"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000800",
-            "gpu_switch_p50": "0.039943",
-            "prep_traffic_egress_billed": "0.008265"
+            "gpu_switch_p50": "0.039943"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "25960.50",
+          "monthly_usd_nominal": "20371.61",
+          "monthly_usd_pessimistic": "23896.00",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.051921",
-          "per_success_usd_pessimistic": "0.058970",
+          "per_success_usd_nominal": "0.040743",
+          "per_success_usd_pessimistic": "0.047792",
           "prep_reuse": 50,
-          "requests_per_month": 500000
+          "requests_per_month": 500000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "24504.19",
+              "egress_free": "20371.61"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.049008",
+              "egress_free": "0.040743"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         },
         {
+          "capture_status": "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption applies to OpenFold2 only; no Boltz2 capture duration exists in this program, so capture cost is excluded rather than borrowed.",
           "cheaper_than_one_warm_gpu": false,
           "components_usd": {
-            "capture_amortized_r100": "0.002913",
+            "capture_amortized": null,
             "fixed_sfs_controller_share": "0.000400",
-            "gpu_switch_p50": "0.039943",
-            "prep_traffic_egress_billed": "0.008265"
+            "gpu_switch_p50": "0.039943"
           },
           "cost_class": "cold_switch",
           "model": "Boltz2",
-          "monthly_usd_nominal": "51521.00",
+          "monthly_usd_nominal": "40343.13",
+          "monthly_usd_pessimistic": "47391.90",
           "offer": "on_demand",
           "one_warm_gpu_plus_fixed_monthly_usd": "3210.60",
-          "per_success_usd_nominal": "0.051521",
-          "per_success_usd_pessimistic": "0.058570",
+          "per_success_usd_nominal": "0.040343",
+          "per_success_usd_pessimistic": "0.047392",
           "prep_reuse": 50,
-          "requests_per_month": 1000000
+          "requests_per_month": 1000000,
+          "restores_between_captures": null,
+          "unmeasured_relocation_addon": {
+            "monthly_usd_nominal_with_addon": {
+              "egress_billed": "48608.29",
+              "egress_free": "40343.13"
+            },
+            "per_success_usd": {
+              "egress_billed": "0.008265",
+              "egress_free": "0.000000"
+            },
+            "per_success_usd_nominal_with_addon": {
+              "egress_billed": "0.048608",
+              "egress_free": "0.040343"
+            },
+            "provenance": "unmeasured relocation scenario; see cold_switch.unmeasured_relocation"
+          }
         }
       ],
       "gpu_platform": "gpu-h100-sxm 1gpu-16vcpu-200gb, eu-north1",
@@ -1924,8 +3699,9 @@
             "restores_between_captures": 1000
           }
         ],
+        "applies_to_model": "OpenFold2",
         "assumption": "snapshot_capture_seconds_of2",
-        "notes": "Per model-version capture, never on any request's critical path; assumption-flagged because the raw log lives on another branch.",
+        "notes": "Per model-version capture, never on any request's critical path. OpenFold2-only: no Boltz2 capture duration exists, so Boltz2 rows exclude capture cost (fail-closed) instead of borrowing this value.",
         "per_capture_usd": {
           "on_demand": "0.291344",
           "preemptible": "0.162699"
@@ -2033,7 +3809,7 @@
     ]
   },
   "generated_by": "catalog-switch/capacity-cost/costmodel/build_frontier.py",
-  "schema_version": "capacity-cost-frontier/v2",
+  "schema_version": "capacity-cost-frontier/v3",
   "simulation_frontier": {
     "cache_sweep": {
       "axis": "l1_capacity_gib",
@@ -8303,7 +10079,7 @@
       }
     }
   },
-  "statement": "Corrected candidate. Prepared versus request-triggered cost classes with explicit amortization; measured and placeholder-derived provenance separated end to end; preemption/regional-loss/fallback sweeps consume their assumption grids; per-success and monthly totals include GPU, capture amortization, traffic, fixed SFS/controller, and retry sensitivity. Cerebrium stays PENDING_MEASUREMENT and Modal documentation-only. Every USD value traces to a dated record in inputs/price_snapshot.json (public records hash-bound to archived payloads) and every latency to a checksum-pinned measured artifact; cost is always paired with the latency and goodput of the same evidence.",
+  "statement": "Corrected candidate v3. Prepared versus request-triggered cost classes with explicit amortization; model-scoped inputs stay model-scoped (the OpenFold2 capture assumption is never applied to Boltz2); unmeasured relocation is separated from the measured cold-switch lower bound and emitted under both egress variants; fully-loaded totals span the capture-reuse grid with nominal and pessimistic monthly values; the preemption sweep exposes its full grid, where the pre-then-on-demand fallback beats on-demand only below the break-even loss probability; public prices are hash-bound to archived payloads whose exact fetch timestamps are the recorded retrieval times; all composite arithmetic is exact with one quantization at emission. Cerebrium is PENDING_MEASUREMENT (prices only, never measured) and Modal documentation-only. Cost is always paired with the latency and goodput of the same evidence.",
   "sweeps": {
     "preemption": {
       "breakeven_loss_probability": {
@@ -8311,10 +10087,11 @@
         "gpu-h100-sxm": "0.44155844",
         "gpu-h200-sxm": "0.45555556"
       },
-      "fallback_model": "one preemptible attempt, then one on-demand attempt (on_demand_loss_negligible assumption); expected extra latency = p * attempt p95",
+      "fallback_model": "one preemptible attempt, then one on-demand attempt (on_demand_loss_negligible assumption); expected extra latency = p * attempt p95. The fallback is cheaper than on-demand-only ONLY below the platform break-even p* = 1 - pre/od; above p* (e.g. p=0.60 on H100) on-demand-only is the cheapest strategy and the fallback's remaining value is bounding latency to one extra attempt.",
       "grid_assumption": "preemption_loss_probability_grid",
       "points": [
         {
+          "cheapest_strategy": "fallback_pre_then_od",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "0.000000",
           "fallback_pre_then_od_usd_per_success": "0.010529",
@@ -8324,6 +10101,7 @@
           "preemptible_only_usd_per_success": "0.010529"
         },
         {
+          "cheapest_strategy": "preemptible_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "0.881494",
           "fallback_pre_then_od_usd_per_success": "0.011472",
@@ -8333,6 +10111,7 @@
           "preemptible_only_usd_per_success": "0.011083"
         },
         {
+          "cheapest_strategy": "preemptible_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "1.762989",
           "fallback_pre_then_od_usd_per_success": "0.012414",
@@ -8342,6 +10121,7 @@
           "preemptible_only_usd_per_success": "0.011699"
         },
         {
+          "cheapest_strategy": "preemptible_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "3.525977",
           "fallback_pre_then_od_usd_per_success": "0.014300",
@@ -8351,6 +10131,7 @@
           "preemptible_only_usd_per_success": "0.013161"
         },
         {
+          "cheapest_strategy": "preemptible_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "5.288966",
           "fallback_pre_then_od_usd_per_success": "0.016185",
@@ -8360,6 +10141,7 @@
           "preemptible_only_usd_per_success": "0.015041"
         },
         {
+          "cheapest_strategy": "fallback_pre_then_od",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "7.784625",
           "fallback_pre_then_od_usd_per_success": "0.018854",
@@ -8369,6 +10151,7 @@
           "preemptible_only_usd_per_success": "0.018854"
         },
         {
+          "cheapest_strategy": "on_demand_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "10.577932",
           "fallback_pre_then_od_usd_per_success": "0.021841",
@@ -8378,6 +10161,7 @@
           "preemptible_only_usd_per_success": "0.026322"
         },
         {
+          "cheapest_strategy": "fallback_pre_then_od",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "0.000000",
           "fallback_pre_then_od_usd_per_success": "0.018102",
@@ -8387,6 +10171,7 @@
           "preemptible_only_usd_per_success": "0.018102"
         },
         {
+          "cheapest_strategy": "preemptible_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "1.515512",
           "fallback_pre_then_od_usd_per_success": "0.019723",
@@ -8396,24 +10181,27 @@
           "preemptible_only_usd_per_success": "0.019055"
         },
         {
+          "cheapest_strategy": "preemptible_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "3.031025",
-          "fallback_pre_then_od_usd_per_success": "0.021344",
+          "fallback_pre_then_od_usd_per_success": "0.021343",
           "loss_probability": "0.10",
           "model": "Boltz2",
           "on_demand_usd_per_success": "0.032415",
           "preemptible_only_usd_per_success": "0.020113"
         },
         {
+          "cheapest_strategy": "preemptible_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "6.062049",
           "fallback_pre_then_od_usd_per_success": "0.024585",
           "loss_probability": "0.20",
           "model": "Boltz2",
           "on_demand_usd_per_success": "0.032415",
-          "preemptible_only_usd_per_success": "0.022628"
+          "preemptible_only_usd_per_success": "0.022627"
         },
         {
+          "cheapest_strategy": "preemptible_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "9.093074",
           "fallback_pre_then_od_usd_per_success": "0.027826",
@@ -8423,6 +10211,7 @@
           "preemptible_only_usd_per_success": "0.025860"
         },
         {
+          "cheapest_strategy": "fallback_pre_then_od",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "13.383745",
           "fallback_pre_then_od_usd_per_success": "0.032415",
@@ -8432,6 +10221,7 @@
           "preemptible_only_usd_per_success": "0.032415"
         },
         {
+          "cheapest_strategy": "on_demand_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "18.186148",
           "fallback_pre_then_od_usd_per_success": "0.037551",
@@ -8449,21 +10239,21 @@
           "availability_at_capture": "AVAILABILITY_LEVEL_HIGH,AVAILABILITY_LEVEL_LOW",
           "option": "same-region on-demand H100",
           "price_record": "nebius-h100-1g-od",
-          "relocalization": "none (same nodes/storage)",
+          "relocation": "none (same nodes/storage)",
           "usd_per_hour": "3.85"
         },
         {
           "availability_at_capture": "AVAILABILITY_LEVEL_HIGH",
           "option": "same-region H200 preemptible",
           "price_record": "nebius-h200-1g-pre",
-          "relocalization": "same region; storage reattach, no cross-region artifact transfer",
+          "relocation": "same region; storage reattach, no cross-region artifact transfer",
           "usd_per_hour": "2.45"
         },
         {
           "availability_at_capture": "AVAILABILITY_LEVEL_HIGH",
           "option": "cross-region B200 preemptible (us-central1)",
           "price_record": "nebius-b200-1g-pre",
-          "relocalization": "measured Boltz2 artifact+cache 27.550541 GiB; egress-billed 0.413258 USD, egress-free 0 USD, per node",
+          "relocation": "measured Boltz2 artifact+cache 27.550541 GiB; egress-billed 0.413258 USD, egress-free 0 USD, per node (unmeasured duration)",
           "usd_per_hour": "3.95"
         }
       ],

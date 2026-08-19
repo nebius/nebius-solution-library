@@ -86,8 +86,9 @@
       "name": "snapshot_capture_seconds_of2",
       "value": "272.426",
       "unit": "seconds",
+      "applies_to_model": "OpenFold2",
       "basis": "ARCHVTEAMS-2407 Phase 2 recorded measurement (agent checkpoint 272.426 s incl. CRIU 270.517 s) for OpenFold2 on H100",
-      "why_assumption": "The raw capture log lives on branch agent/archvteams-2407-p2, not on this branch, so it is consumed as a dated recorded value rather than a pinned artifact."
+      "why_assumption": "The raw capture log lives on branch agent/archvteams-2407-p2, not on this branch, so it is consumed as a dated recorded value rather than a pinned artifact. It is OpenFold2-specific and MUST NOT be applied to any other model; no Boltz2 capture duration exists in this program, so Boltz2 capture cost is UNAVAILABLE and fails closed."
     },
     {
       "name": "preemption_loss_probability_grid",

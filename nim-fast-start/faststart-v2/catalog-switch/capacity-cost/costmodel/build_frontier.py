@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Build the measured capacity/cost frontier (corrected candidate, v2).
+"""Build the measured capacity/cost frontier (corrected candidate, v3).
 
 Reads the committed snapshots and checksum-pinned artifacts, consumes the
-isolated top-K/cache sweeps and the legacy simulator reports as
+isolated top-K/cache sweeps and the legacy simulator matrix as
 placeholder-derived simulation (never measurement), and emits deterministic
 results:
 
@@ -16,9 +16,18 @@ Cost classes per model (prepared versus request-triggered, with amortization):
 - ``prepared_switch``: request-triggered switch on a node whose pre-T0
   preparation already happened; measured n=20 T0-to-second-response.
 - ``cold_switch``: request-triggered switch including pre-T0 preparation;
-  measured lower bound for Boltz2 (422.854590 s cache full read), amortized
-  over the prep_reuse_grid; fail-closed PENDING_MEASUREMENT for OpenFold2.
+  measured lower bound for Boltz2 (422.854590 s local cache full read),
+  amortized over the prep_reuse_grid; fail-closed PENDING_MEASUREMENT for
+  OpenFold2. Unmeasured relocation (moving the measured bytes from object
+  storage) is kept in a separate add-on block, never blended into the
+  measured lower-bound timing.
 - ``node_provision_miss``: declared, fail-closed PENDING_MEASUREMENT.
+
+Model-scoped inputs stay model-scoped: the OpenFold2-only capture-time
+assumption is applied to OpenFold2 alone; Boltz2 capture cost is UNAVAILABLE
+and fails closed. All composite arithmetic is exact (28-digit Decimal
+context) with a single quantization at emission; monthly totals are computed
+from unrounded per-success values.
 
 Run from the ``faststart-v2`` directory:
 
@@ -44,7 +53,15 @@ RESULTS = HERE.parent / "results"
 SLO_THRESHOLDS = (Decimal(20), Decimal(30), Decimal(60))
 WARM_POOL_K = (1, 2, 4, 8, 16)
 GIB = Decimal(2) ** 30
-CAPTURE_AMORT_HEADLINE_R = 100
+CENT2 = Decimal("0.01")
+
+
+def q6(value: Decimal) -> str:
+    return str(value.quantize(lib.CENT6))
+
+
+def q2(value: Decimal) -> str:
+    return str(value.quantize(CENT2))
 
 
 def _stats(values: list[Decimal]) -> dict:
@@ -66,10 +83,10 @@ def _gpu_costs(seconds: Decimal, od: Decimal, pre: Decimal,
                pess: Decimal) -> dict:
     out = {}
     for offer, hourly in (("on_demand", od), ("preemptible", pre)):
-        nominal = lib.gpu_seconds_cost(seconds, hourly)
+        exact = lib.gpu_seconds_cost_exact(seconds, hourly)
         out[offer] = {
-            "gpu_usd": str(nominal),
-            "gpu_usd_pessimistic": str((nominal * pess).quantize(lib.CENT6)),
+            "gpu_usd": q6(exact),
+            "gpu_usd_pessimistic": q6(exact * pess),
         }
     return out
 
@@ -94,6 +111,10 @@ class Ctx:
         self.demand_grid = inputs.assumption("monthly_demand_grid_requests")
         self.loss_grid = [Decimal(p) for p in inputs.assumption(
             "preemption_loss_probability_grid")]
+        capture = next(a for a in inputs.measured["assumptions"]
+                       if a["name"] == "snapshot_capture_seconds_of2")
+        self.capture_seconds = Decimal(capture["value"])
+        self.capture_model = capture["applies_to_model"]
 
 
 # --------------------------------------------------------------------------
@@ -107,7 +128,6 @@ def model_cost_classes(ctx: Ctx, entry_id: str) -> dict:
     warm_vals = lib.load_cohort_seconds(
         inputs, entry_id, metric=entry["warm_hit_metric"])
     switch_p95 = lib.nearest_rank(sorted(switch_vals), 95)
-    switch_p50 = lib.nearest_rank(sorted(switch_vals), 50)
 
     warm_hit = {
         "status": "MEASURED",
@@ -130,8 +150,9 @@ def model_cost_classes(ctx: Ctx, entry_id: str) -> dict:
         "latency_seconds": _stats(switch_vals),
         "slo_goodput": _goodput(switch_vals),
         "per_request_cost_usd": {
-            stat: _gpu_costs(secs, ctx.od, ctx.pre, ctx.pess)
-            for stat, secs in (("p50", switch_p50), ("p95", switch_p95))},
+            stat: _gpu_costs(
+                Decimal(_stats(switch_vals)[stat]), ctx.od, ctx.pre, ctx.pess)
+            for stat in ("p50", "p95")},
         "notes": ("Request-triggered switch on a prepared node (image "
                   "resident, storage attached, pre-T0 preparation already "
                   "done). GPU critical path T0 through second semantic "
@@ -147,40 +168,44 @@ def model_cost_classes(ctx: Ctx, entry_id: str) -> dict:
                             ).quantize(Decimal("0.000001"))
         rows = []
         for reuse in ctx.prep_reuse_grid:
-            s = Decimal(reuse)
-            amortized_seconds = (prep_s / s + switch_p95).quantize(
-                Decimal("0.000001"))
-            traffic_billed = (prep_traffic_gib * ctx.egress / s).quantize(
-                lib.CENT6)
-            row = {
+            amortized_seconds = prep_s / Decimal(reuse) + switch_p95
+            rows.append({
                 "prep_reuse": reuse,
-                "amortized_gpu_seconds_p95": str(amortized_seconds),
+                "amortized_gpu_seconds_p95": q6(amortized_seconds),
                 "per_request_cost_usd": _gpu_costs(
                     amortized_seconds, ctx.od, ctx.pre, ctx.pess),
-                "relocalization_traffic_usd": {
-                    "egress_billed": str(traffic_billed),
-                    "egress_free": "0.000000",
-                },
-            }
-            rows.append(row)
+            })
         cold = {
             "status": "MEASURED_LOWER_BOUND",
             "evidence": "boltz2-pret0-cache-read + " + entry_id,
             "prep_seconds": str(prep_s),
-            "prep_traffic_gib": str(prep_traffic_gib),
             "understatement_vs_prepared": str(
                 ((prep_s + switch_p95) / switch_p95).quantize(
                     Decimal("0.001"))),
-            "triggering_request_latency_seconds_p95": str(
-                (prep_s + switch_p95).quantize(Decimal("0.000001"))),
+            "triggering_request_latency_seconds_p95": q6(prep_s + switch_p95),
             "amortization": rows,
+            "unmeasured_relocation": {
+                "provenance": ("UNMEASURED scenario, kept separate from the "
+                               "measured lower-bound timing above: the "
+                               "measured preparation read the bytes from "
+                               "attached SFS, not from object storage. If "
+                               "the bytes must first move from object "
+                               "storage, this add-on prices the measured "
+                               "byte counts; its duration is unmeasured."),
+                "traffic_gib": str(prep_traffic_gib),
+                "per_preparation_usd": {
+                    "egress_billed": q6(prep_traffic_gib * ctx.egress),
+                    "egress_free": "0.000000",
+                },
+            },
             "notes": ("Lower bound: measured 422.854590 s pre-T0 cache full "
-                      "read; the M3 artifact is read O_DIRECT inside the T0 "
-                      "window (already charged) and image pull is excluded "
-                      "because residency was proven pre-T0. prep_reuse=1 is "
-                      "the fully request-triggered worst case; larger reuse "
-                      "amortizes one preparation over later switches, whose "
-                      "own latency is the prepared_switch class."),
+                      "read from attached SFS; the M3 artifact is read "
+                      "O_DIRECT inside the T0 window (already charged) and "
+                      "image pull is excluded because residency was proven "
+                      "pre-T0. prep_reuse=1 is the fully request-triggered "
+                      "worst case; larger reuse amortizes one preparation "
+                      "over later switches, whose own latency is the "
+                      "prepared_switch class."),
         }
     else:
         decl = inputs.unmeasured_cost_class("cold_switch", entry["model"])
@@ -207,68 +232,101 @@ def model_cost_classes(ctx: Ctx, entry_id: str) -> dict:
 def fully_loaded_rows(ctx: Ctx, classes: dict) -> list[dict]:
     """Complete per-success and monthly totals across the demand grid.
 
-    Components: switch GPU (p50 central), prep GPU+traffic amortized (cold
-    class), capture amortized at the headline R, fixed SFS+controller share,
-    retry sensitivity (nominal and rule-of-three pessimistic on the
-    attempt-scaled GPU components).
+    Measured-anchored components: switch GPU (p50 central), preparation GPU
+    amortized (cold class), capture amortized across the capture-reuse grid
+    (only for the model the capture assumption applies to; UNAVAILABLE and
+    excluded for others), fixed SFS+controller share. Retry sensitivity is
+    the nominal/rule-of-three pair on the GPU components. Unmeasured
+    relocation traffic is a separate add-on with both egress variants, never
+    blended into the measured totals. All arithmetic exact; every emitted
+    number quantized exactly once; monthly totals computed from unrounded
+    per-success values.
     """
-    inputs = ctx.inputs
-    capture_s = Decimal(inputs.assumption("snapshot_capture_seconds_of2"))
     model = classes["model"]
     prepared_p50 = Decimal(classes["prepared_switch"]["latency_seconds"]["p50"])
 
     variants = [("prepared_switch", None, prepared_p50, Decimal(0))]
     if classes["cold_switch"].get("status") == "MEASURED_LOWER_BOUND":
         prep_s = Decimal(classes["cold_switch"]["prep_seconds"])
-        traffic_gib = Decimal(classes["cold_switch"]["prep_traffic_gib"])
-        prepared_p50_cold = Decimal(
-            classes["prepared_switch"]["latency_seconds"]["p50"])
+        traffic_gib = Decimal(
+            classes["cold_switch"]["unmeasured_relocation"]["traffic_gib"])
         for reuse in ctx.prep_reuse_grid:
             s = Decimal(reuse)
-            variants.append((
-                "cold_switch", reuse,
-                (prep_s / s + prepared_p50_cold),
-                traffic_gib / s))
+            variants.append(("cold_switch", reuse,
+                             prep_s / s + prepared_p50, traffic_gib / s))
+
+    if model == ctx.capture_model:
+        capture_axis = [(r, lib.gpu_seconds_cost_exact(
+            ctx.capture_seconds, ctx.pre) / Decimal(r), lib.gpu_seconds_cost_exact(
+            ctx.capture_seconds, ctx.od) / Decimal(r))
+            for r in ctx.capture_r_grid]
+        capture_status = "APPLIED"
+    else:
+        capture_axis = [(None, None, None)]
+        capture_status = (
+            "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption "
+            "applies to %s only; no %s capture duration exists in this "
+            "program, so capture cost is excluded rather than borrowed."
+            % (ctx.capture_model, model))
 
     rows = []
-    for cls, reuse, gpu_seconds, traffic_gib in variants:
+    for cls, reuse, gpu_seconds, addon_traffic_gib in variants:
         for offer, hourly in (("preemptible", ctx.pre),
                               ("on_demand", ctx.od)):
-            gpu_usd = lib.gpu_seconds_cost(gpu_seconds, hourly)
-            capture_usd = (lib.gpu_seconds_cost(capture_s, hourly)
-                           / Decimal(CAPTURE_AMORT_HEADLINE_R)).quantize(
-                               lib.CENT6)
-            traffic_billed = (traffic_gib * ctx.egress).quantize(lib.CENT6)
-            for demand in ctx.demand_grid:
-                d = Decimal(demand)
-                fixed_share = (ctx.fixed_month / d).quantize(lib.CENT6)
-                nominal = (gpu_usd + capture_usd + traffic_billed
-                           + fixed_share).quantize(lib.CENT6)
-                pessimistic = ((gpu_usd * ctx.pess) + capture_usd
-                               + traffic_billed + fixed_share).quantize(
-                                   lib.CENT6)
-                monthly = (nominal * d).quantize(Decimal("0.01"))
-                rows.append({
-                    "model": model,
-                    "cost_class": cls,
-                    "prep_reuse": reuse,
-                    "offer": offer,
-                    "requests_per_month": demand,
-                    "components_usd": {
-                        "gpu_switch_p50": str(gpu_usd),
-                        "capture_amortized_r100": str(capture_usd),
-                        "prep_traffic_egress_billed": str(traffic_billed),
-                        "fixed_sfs_controller_share": str(fixed_share),
-                    },
-                    "per_success_usd_nominal": str(nominal),
-                    "per_success_usd_pessimistic": str(pessimistic),
-                    "monthly_usd_nominal": str(monthly),
-                    "one_warm_gpu_plus_fixed_monthly_usd": str(
-                        (ctx.warm_month + ctx.fixed_month).quantize(
-                            Decimal("0.01"))),
-                    "cheaper_than_one_warm_gpu": bool(
-                        monthly < ctx.warm_month + ctx.fixed_month),
-                })
+            gpu_exact = lib.gpu_seconds_cost_exact(gpu_seconds, hourly)
+            for r_value, cap_pre, cap_od in capture_axis:
+                cap_exact = (Decimal(0) if r_value is None
+                             else (cap_pre if offer == "preemptible"
+                                   else cap_od))
+                addon_exact = addon_traffic_gib * ctx.egress
+                for demand in ctx.demand_grid:
+                    d = Decimal(demand)
+                    fixed_exact = ctx.fixed_month / d
+                    nominal = gpu_exact + cap_exact + fixed_exact
+                    pessimistic = gpu_exact * ctx.pess + cap_exact + fixed_exact
+                    row = {
+                        "model": model,
+                        "cost_class": cls,
+                        "prep_reuse": reuse,
+                        "offer": offer,
+                        "restores_between_captures": r_value,
+                        "capture_status": capture_status,
+                        "requests_per_month": demand,
+                        "components_usd": {
+                            "gpu_switch_p50": q6(gpu_exact),
+                            "capture_amortized": (
+                                q6(cap_exact) if r_value is not None
+                                else None),
+                            "fixed_sfs_controller_share": q6(fixed_exact),
+                        },
+                        "per_success_usd_nominal": q6(nominal),
+                        "per_success_usd_pessimistic": q6(pessimistic),
+                        "monthly_usd_nominal": q2(nominal * d),
+                        "monthly_usd_pessimistic": q2(pessimistic * d),
+                        "one_warm_gpu_plus_fixed_monthly_usd": q2(
+                            ctx.warm_month + ctx.fixed_month),
+                        "cheaper_than_one_warm_gpu": bool(
+                            nominal * d < ctx.warm_month + ctx.fixed_month),
+                    }
+                    if cls == "cold_switch":
+                        row["unmeasured_relocation_addon"] = {
+                            "per_success_usd": {
+                                "egress_billed": q6(addon_exact),
+                                "egress_free": "0.000000",
+                            },
+                            "per_success_usd_nominal_with_addon": {
+                                "egress_billed": q6(nominal + addon_exact),
+                                "egress_free": q6(nominal),
+                            },
+                            "monthly_usd_nominal_with_addon": {
+                                "egress_billed": q2((nominal + addon_exact) * d),
+                                "egress_free": q2(nominal * d),
+                            },
+                            "provenance": ("unmeasured relocation scenario; "
+                                           "see cold_switch."
+                                           "unmeasured_relocation"),
+                        }
+                    rows.append(row)
     return rows
 
 
@@ -281,25 +339,33 @@ def preemption_sweep(ctx: Ctx, classes_list: list[dict]) -> dict:
     for classes in classes_list:
         p95 = Decimal(classes["prepared_switch"]["latency_seconds"]["p95"])
         for p in ctx.loss_grid:
-            pre_only = lib.expected_cost_per_success(
-                lib.gpu_seconds_cost(p95, ctx.pre), p)
+            pre_only = lib.preemptible_expected_cost(p95, ctx.pre, p)
             fallback = lib.fallback_blend_cost(p95, ctx.pre, ctx.od, p)
+            od_only = lib.gpu_seconds_cost(p95, ctx.od)
+            strategies = {"preemptible_only": pre_only,
+                          "fallback_pre_then_od": fallback,
+                          "on_demand_only": od_only}
+            cheapest = min(sorted(strategies), key=lambda k: strategies[k])
             points.append({
                 "model": classes["model"],
                 "cost_class": "prepared_switch",
                 "loss_probability": str(p),
                 "preemptible_only_usd_per_success": str(pre_only),
                 "fallback_pre_then_od_usd_per_success": str(fallback),
-                "on_demand_usd_per_success": str(
-                    lib.gpu_seconds_cost(p95, ctx.od)),
-                "expected_extra_latency_seconds": str(
-                    (p * p95).quantize(Decimal("0.000001"))),
+                "on_demand_usd_per_success": str(od_only),
+                "cheapest_strategy": cheapest,
+                "expected_extra_latency_seconds": q6(p * p95),
             })
     return {
         "grid_assumption": "preemption_loss_probability_grid",
-        "fallback_model": ("one preemptible attempt, then one on-demand "
-                           "attempt (on_demand_loss_negligible assumption); "
-                           "expected extra latency = p * attempt p95"),
+        "fallback_model": (
+            "one preemptible attempt, then one on-demand attempt "
+            "(on_demand_loss_negligible assumption); expected extra latency "
+            "= p * attempt p95. The fallback is cheaper than on-demand-only "
+            "ONLY below the platform break-even p* = 1 - pre/od; above p* "
+            "(e.g. p=0.60 on H100) on-demand-only is the cheapest strategy "
+            "and the fallback's remaining value is bounding latency to one "
+            "extra attempt."),
         "breakeven_loss_probability": {
             "gpu-h100-sxm": str(lib.preemption_breakeven(ctx.pre, ctx.od)),
             "gpu-h200-sxm": str(lib.preemption_breakeven(
@@ -319,7 +385,7 @@ def regional_loss_options(ctx: Ctx) -> dict:
     reloc_gib = ((Decimal(prep["cache_bytes"])
                   + Decimal(prep["artifact_bytes"])) / GIB).quantize(
                       Decimal("0.000001"))
-    reloc_billed = (reloc_gib * ctx.egress).quantize(lib.CENT6)
+    reloc_billed = q6(reloc_gib * ctx.egress)
 
     def level(region, platform, gpus, offer):
         try:
@@ -336,22 +402,22 @@ def regional_loss_options(ctx: Ctx) -> dict:
          "usd_per_hour": str(ctx.od),
          "availability_at_capture": level(
              "eu-north1", "gpu-h100-sxm", 1, "on_demand"),
-         "relocalization": "none (same nodes/storage)"},
+         "relocation": "none (same nodes/storage)"},
         {"option": "same-region H200 preemptible",
          "price_record": "nebius-h200-1g-pre",
          "usd_per_hour": str(inputs.unit_price("nebius-h200-1g-pre")),
          "availability_at_capture": level(
              "eu-north1", "gpu-h200-sxm", 1, "preemptible"),
-         "relocalization": "same region; storage reattach, no cross-region "
-                           "artifact transfer"},
+         "relocation": "same region; storage reattach, no cross-region "
+                       "artifact transfer"},
         {"option": "cross-region B200 preemptible (us-central1)",
          "price_record": "nebius-b200-1g-pre",
          "usd_per_hour": str(inputs.unit_price("nebius-b200-1g-pre")),
          "availability_at_capture": level(
              "us-central1", "gpu-b200-sxm", 1, "preemptible"),
-         "relocalization": f"measured Boltz2 artifact+cache {reloc_gib} GiB; "
-                           f"egress-billed {reloc_billed} USD, egress-free "
-                           f"0 USD, per node"},
+         "relocation": f"measured Boltz2 artifact+cache {reloc_gib} GiB; "
+                       f"egress-billed {reloc_billed} USD, egress-free "
+                       f"0 USD, per node (unmeasured duration)"},
     ]
     return {
         "scenario": ("eu-north1 preemptible H100 pool unavailable "
@@ -401,26 +467,27 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
     boltz2 = model_cost_classes(ctx, "boltz2-n20-fresh")
     classes_list = [of2, boltz2]
 
-    capture_s = Decimal(inputs.assumption("snapshot_capture_seconds_of2"))
     capture = {
         "assumption": "snapshot_capture_seconds_of2",
-        "seconds": str(capture_s),
+        "applies_to_model": ctx.capture_model,
+        "seconds": str(ctx.capture_seconds),
         "per_capture_usd": {
-            "on_demand": str(lib.gpu_seconds_cost(capture_s, ctx.od)),
-            "preemptible": str(lib.gpu_seconds_cost(capture_s, ctx.pre)),
+            "on_demand": str(lib.gpu_seconds_cost(
+                ctx.capture_seconds, ctx.od)),
+            "preemptible": str(lib.gpu_seconds_cost(
+                ctx.capture_seconds, ctx.pre)),
         },
         "amortization": [{
             "restores_between_captures": r,
-            "per_restore_usd_preemptible": str(
-                (lib.gpu_seconds_cost(capture_s, ctx.pre) / Decimal(r))
-                .quantize(lib.CENT6)),
-            "per_restore_usd_on_demand": str(
-                (lib.gpu_seconds_cost(capture_s, ctx.od) / Decimal(r))
-                .quantize(lib.CENT6)),
+            "per_restore_usd_preemptible": q6(lib.gpu_seconds_cost_exact(
+                ctx.capture_seconds, ctx.pre) / Decimal(r)),
+            "per_restore_usd_on_demand": q6(lib.gpu_seconds_cost_exact(
+                ctx.capture_seconds, ctx.od) / Decimal(r)),
         } for r in ctx.capture_r_grid],
         "notes": ("Per model-version capture, never on any request's "
-                  "critical path; assumption-flagged because the raw log "
-                  "lives on another branch."),
+                  "critical path. OpenFold2-only: no Boltz2 capture "
+                  "duration exists, so Boltz2 rows exclude capture cost "
+                  "(fail-closed) instead of borrowing this value."),
     }
 
     internal = {
@@ -462,9 +529,10 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
         },
         "per_request_cost_usd": None,
         "latency_seconds": None,
-        "notes": ("Prices hash-bound to the archived payload. No per-request "
-                  "cost is computable fail-closed until the sibling "
-                  "benchmark produces measured request latency."),
+        "notes": ("PENDING, not measured: Cerebrium has dated, hash-bound "
+                  "public prices only. No per-request cost or rank is "
+                  "computable fail-closed until the sibling benchmark "
+                  "produces measured request latency."),
     }
     nl = inputs.unmeasured("internal-node-local-vm")
     node_local = {
@@ -545,30 +613,32 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
 
     warm_pool = [{
         "k_warm_gpus": k,
-        "monthly_usd_on_demand": str(
-            (ctx.warm_month * k + ctx.fixed_month).quantize(Decimal("0.01"))),
+        "monthly_usd_on_demand": q2(ctx.warm_month * k + ctx.fixed_month),
         "includes": "K warm H100 + 4 TiB SFS + controller",
         "simulated_counterpart": ("k_sweep curves at warm_top_k=%d "
                                   "(placeholder-derived)" % k),
     } for k in WARM_POOL_K]
 
     frontier = {
-        "schema_version": "capacity-cost-frontier/v2",
+        "schema_version": "capacity-cost-frontier/v3",
         "as_of_date": inputs.price["as_of_date"],
         "generated_by": "catalog-switch/capacity-cost/costmodel/build_frontier.py",
         "statement": (
-            "Corrected candidate. Prepared versus request-triggered cost "
-            "classes with explicit amortization; measured and "
-            "placeholder-derived provenance separated end to end; "
-            "preemption/regional-loss/fallback sweeps consume their "
-            "assumption grids; per-success and monthly totals include GPU, "
-            "capture amortization, traffic, fixed SFS/controller, and retry "
-            "sensitivity. Cerebrium stays PENDING_MEASUREMENT and Modal "
-            "documentation-only. Every USD value traces to a dated record "
-            "in inputs/price_snapshot.json (public records hash-bound to "
-            "archived payloads) and every latency to a checksum-pinned "
-            "measured artifact; cost is always paired with the latency and "
-            "goodput of the same evidence."),
+            "Corrected candidate v3. Prepared versus request-triggered cost "
+            "classes with explicit amortization; model-scoped inputs stay "
+            "model-scoped (the OpenFold2 capture assumption is never applied "
+            "to Boltz2); unmeasured relocation is separated from the "
+            "measured cold-switch lower bound and emitted under both egress "
+            "variants; fully-loaded totals span the capture-reuse grid with "
+            "nominal and pessimistic monthly values; the preemption sweep "
+            "exposes its full grid, where the pre-then-on-demand fallback "
+            "beats on-demand only below the break-even loss probability; "
+            "public prices are hash-bound to archived payloads whose exact "
+            "fetch timestamps are the recorded retrieval times; all "
+            "composite arithmetic is exact with one quantization at "
+            "emission. Cerebrium is PENDING_MEASUREMENT (prices only, never "
+            "measured) and Modal documentation-only. Cost is always paired "
+            "with the latency and goodput of the same evidence."),
         "backends": {
             "internal-k8s-snapshot": internal,
             "internal-node-local-vm": node_local,
@@ -605,7 +675,7 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
 def render_markdown(f: dict) -> str:
     internal = f["backends"]["internal-k8s-snapshot"]
     lines = [
-        "# Capacity/cost frontier v2 (as of %s)" % f["as_of_date"],
+        "# Capacity/cost frontier v3 (as of %s)" % f["as_of_date"],
         "",
         f["statement"],
         "",
@@ -642,75 +712,94 @@ def render_markdown(f: dict) -> str:
                 cost["preemptible"]["gpu_usd"],
                 cost["on_demand"]["gpu_usd"]))
     boltz_cold = internal["cost_classes"][1]["cold_switch"]
+    reloc = boltz_cold["unmeasured_relocation"]
     lines += [
         "",
-        "Boltz2 cold switch is a measured LOWER BOUND: %s s preparation + "
-        "%s s p95 switch = %sx the prepared-switch cost at reuse=1; the "
-        "amortization grid (reuse 1/2/5/10/50) is in frontier.json." % (
+        "Boltz2 cold switch is a measured LOWER BOUND: %s s preparation "
+        "(local SFS cache read) + %s s p95 switch = %sx the prepared-switch "
+        "cost at reuse=1; the amortization grid (reuse 1/2/5/10/50) is in "
+        "frontier.json. Relocating the measured %s GiB from object storage "
+        "is a SEPARATE UNMEASURED add-on: %s USD egress-billed / 0 USD "
+        "egress-free per preparation, duration unmeasured." % (
             boltz_cold["prep_seconds"],
             internal["cost_classes"][1]["prepared_switch"]
             ["latency_seconds"]["p95"],
-            boltz_cold["understatement_vs_prepared"]),
+            boltz_cold["understatement_vs_prepared"],
+            reloc["traffic_gib"],
+            reloc["per_preparation_usd"]["egress_billed"]),
         "OpenFold2 cold switch and all node-provision-miss rows are "
-        "fail-closed PENDING_MEASUREMENT.",
+        "fail-closed PENDING_MEASUREMENT. Snapshot capture cost "
+        "(%s s, %s) applies to %s only; Boltz2 rows exclude it fail-closed." % (
+            internal["snapshot_capture_cost"]["seconds"],
+            internal["snapshot_capture_cost"]["assumption"],
+            internal["snapshot_capture_cost"]["applies_to_model"]),
         "",
         "## Fully-loaded per-success cost (sample: 100k req/month, "
-        "preemptible, nominal)",
+        "preemptible, nominal; OpenFold2 at R=100)",
         "",
-        "| Model | Class | GPU p50 | Capture(R=100) | Traffic | Fixed share | Total | Monthly |",
-        "|---|---|---:|---:|---:|---:|---:|---:|",
+        "| Model | Class | GPU p50 | Capture | Fixed share | Total | Monthly nom/pess | +Relocation (billed/free) |",
+        "|---|---|---:|---:|---:|---:|---:|---|",
     ]
     for row in internal["fully_loaded"]:
         if (row["requests_per_month"] != 100000
                 or row["offer"] != "preemptible"
+                or row["restores_between_captures"] not in (None, 100)
                 or (row["cost_class"] == "cold_switch"
                     and row["prep_reuse"] not in (1, 10))):
             continue
         label = row["cost_class"] + (
             f" (reuse={row['prep_reuse']})" if row["prep_reuse"] else "")
         comp = row["components_usd"]
-        lines.append("| %s | %s | %s | %s | %s | %s | %s | %s |" % (
+        addon = row.get("unmeasured_relocation_addon")
+        addon_cell = ("%s / %s" % (
+            addon["per_success_usd_nominal_with_addon"]["egress_billed"],
+            addon["per_success_usd_nominal_with_addon"]["egress_free"])
+            if addon else "n/a")
+        lines.append("| %s | %s | %s | %s | %s | %s | %s / %s | %s |" % (
             row["model"], label, comp["gpu_switch_p50"],
-            comp["capture_amortized_r100"],
-            comp["prep_traffic_egress_billed"],
+            comp["capture_amortized"] or "excluded",
             comp["fixed_sfs_controller_share"],
-            row["per_success_usd_nominal"], row["monthly_usd_nominal"]))
+            row["per_success_usd_nominal"],
+            row["monthly_usd_nominal"], row["monthly_usd_pessimistic"],
+            addon_cell))
     pe = f["sweeps"]["preemption"]
     lines += [
         "",
-        "Retry sensitivity: pessimistic totals apply the rule-of-three "
-        "x1.176 bound to the GPU components (full grid in frontier.json).",
+        "Full grids (capture-reuse 1/10/100/1000, demand, reuse, both "
+        "offers, pessimistic monthly, both egress variants for the "
+        "relocation add-on) are in frontier.json and breakeven.tsv.",
         "",
-        "## Preemption / fallback sweep (prepared switch, per success)",
+        "## Preemption / fallback sweep (prepared switch, per success, "
+        "full grid)",
+        "",
+        pe["fallback_model"],
         "",
         "Break-even loss probability: " + ", ".join(
             "%s %s" % (k, v) for k, v in sorted(
                 pe["breakeven_loss_probability"].items())),
         "",
-        "| Model | p(loss) | Preemptible-only | Pre-then-OD fallback | On-demand |",
-        "|---|---:|---:|---:|---:|",
+        "| Model | p(loss) | Preemptible-only | Pre-then-OD fallback | On-demand | Cheapest |",
+        "|---|---:|---:|---:|---:|---|",
     ]
     for pt in pe["points"]:
-        if pt["loss_probability"] not in ("0.00", "0.10", "0.30",
-                                          "0.44155844"):
-            continue
-        lines.append("| %s | %s | %s | %s | %s |" % (
+        lines.append("| %s | %s | %s | %s | %s | %s |" % (
             pt["model"], pt["loss_probability"],
             pt["preemptible_only_usd_per_success"],
             pt["fallback_pre_then_od_usd_per_success"],
-            pt["on_demand_usd_per_success"]))
+            pt["on_demand_usd_per_success"],
+            pt["cheapest_strategy"]))
     rl = f["sweeps"]["regional_loss"]
     lines += [
         "",
         "## Regional capacity loss fallbacks (%s)" % rl["scenario"],
         "",
-        "| Option | USD/h | Availability at capture | Relocalization |",
+        "| Option | USD/h | Availability at capture | Relocation |",
         "|---|---:|---|---|",
     ]
     for opt in rl["options"]:
         lines.append("| %s | %s | %s | %s |" % (
             opt["option"], opt["usd_per_hour"],
-            opt["availability_at_capture"], opt["relocalization"]))
+            opt["availability_at_capture"], opt["relocation"]))
     lines += [
         "",
         rl["latency"] + ".",
@@ -749,7 +838,8 @@ def render_markdown(f: dict) -> str:
         "",
         "| Backend | Status |",
         "|---|---|",
-        "| Cerebrium | %s |" % f["backends"]["cerebrium"]["status"],
+        "| Cerebrium | %s (prices only, never measured) |" % (
+            f["backends"]["cerebrium"]["status"]),
         "| Node-local VM | %s |" % (
             f["backends"]["internal-node-local-vm"]["status"]),
         "| Modal | %s |" % f["backends"]["modal"]["status"],
@@ -777,18 +867,31 @@ def render_tsv(f: dict) -> str:
             r["breakeven_requests_per_month"], r["per_switch_usd_p95"],
             r["warm_gpu_month_usd_on_demand"]))
     for r in internal["fully_loaded"]:
-        key = "D=%s,offer=%s,reuse=%s" % (
-            r["requests_per_month"], r["offer"], r["prep_reuse"])
+        key = "D=%s,offer=%s,reuse=%s,R=%s" % (
+            r["requests_per_month"], r["offer"], r["prep_reuse"],
+            r["restores_between_captures"])
         rows.append("fully_loaded\t%s\t%s\t%s\t%s\t%s\t%s" % (
             r["model"], r["cost_class"], key, r["per_success_usd_nominal"],
-            r["monthly_usd_nominal"],
+            "%s/%s" % (r["monthly_usd_nominal"],
+                       r["monthly_usd_pessimistic"]),
             "cheaper_than_warm" if r["cheaper_than_one_warm_gpu"]
             else "warm_cheaper"))
+        addon = r.get("unmeasured_relocation_addon")
+        if addon:
+            rows.append(
+                "fully_loaded_relocation_addon\t%s\t%s\t%s\t%s\t%s\t"
+                "unmeasured-scenario" % (
+                    r["model"], r["cost_class"], key,
+                    addon["per_success_usd_nominal_with_addon"]
+                    ["egress_billed"],
+                    addon["per_success_usd_nominal_with_addon"]
+                    ["egress_free"]))
     for pt in f["sweeps"]["preemption"]["points"]:
-        rows.append("preemption_sweep\t%s\tp=%s\tpre_only\t%s\t%s\t-" % (
-            pt["model"], pt["loss_probability"],
+        rows.append("preemption_sweep\t%s\tp=%s\tcheapest=%s\t%s\t%s\t%s" % (
+            pt["model"], pt["loss_probability"], pt["cheapest_strategy"],
             pt["preemptible_only_usd_per_success"],
-            pt["fallback_pre_then_od_usd_per_success"]))
+            pt["fallback_pre_then_od_usd_per_success"],
+            pt["on_demand_usd_per_success"]))
     for block in (f["simulation_frontier"]["top_k_sweep"],
                   f["simulation_frontier"]["cache_sweep"]):
         for family, curve in sorted(block["curves"].items()):

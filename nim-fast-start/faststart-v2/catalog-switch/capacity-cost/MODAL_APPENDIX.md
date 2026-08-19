@@ -1,12 +1,11 @@
 # Modal documented-reference appendix (documentation-only)
 
 Dated: 2026-08-19. Source: https://modal.com/pricing, retrieved
-2026-08-19T15:20Z (public page, no account, no CLI, no credentials).
-Archived payload for offline verification:
-`inputs/raw/sources/modal-pricing.html`, SHA-256
-`62792057ed20b18b1994a1695243560fbc8ed1b732a0f5a9fd38d594ccf587d2`,
-fetched 2026-08-19T15:33:50Z; every per-second price below is literally
-present in that payload.
+2026-08-19T15:33:50Z (public page, no account, no CLI, no credentials) —
+the retrieval time of the archived payload, which is the authoritative
+evidence: `inputs/raw/sources/modal-pricing.html`, SHA-256
+`62792057ed20b18b1994a1695243560fbc8ed1b732a0f5a9fd38d594ccf587d2`; every
+per-second price below is literally present in that payload.
 
 **Scope statement.** Per the program scope correction of 2026-08-19, Modal is
 a documentation-only architecture reference. This appendix records its

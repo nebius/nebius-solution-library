@@ -35,7 +35,7 @@
           "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:50Z",
         "url": "https://www.cerebrium.ai/pricing"
       },
       "unit": "USD/GPU-second",
@@ -74,7 +74,7 @@
           "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:50Z",
         "url": "https://www.cerebrium.ai/pricing"
       },
       "unit": "USD/GPU-second",
@@ -113,7 +113,7 @@
           "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:50Z",
         "url": "https://www.cerebrium.ai/pricing"
       },
       "unit": "USD/GPU-second",
@@ -134,7 +134,7 @@
           "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:50Z",
         "url": "https://www.cerebrium.ai/pricing"
       },
       "unit": "USD/vCPU-second",
@@ -173,7 +173,7 @@
           "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:50Z",
         "url": "https://www.cerebrium.ai/pricing"
       },
       "unit": "USD/GPU-second",
@@ -212,7 +212,7 @@
           "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:50Z",
         "url": "https://www.cerebrium.ai/pricing"
       },
       "unit": "USD/GPU-second",
@@ -251,7 +251,7 @@
           "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:50Z",
         "url": "https://www.cerebrium.ai/pricing"
       },
       "unit": "USD/GPU-second",
@@ -272,7 +272,7 @@
           "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:50Z",
         "url": "https://www.cerebrium.ai/pricing"
       },
       "unit": "USD/GB-second",
@@ -293,7 +293,7 @@
           "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:50Z",
         "url": "https://www.cerebrium.ai/pricing"
       },
       "unit": "USD/month",
@@ -314,7 +314,7 @@
           "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:50Z",
         "url": "https://www.cerebrium.ai/pricing"
       },
       "unit": "USD/GB-month",
@@ -333,6 +333,7 @@
         "evidence_file": "inputs/raw/quote-gpu-b200-sxm-1gpu-20vcpu-224gb-ondemand.json",
         "kind": "tenant_calculator_quote",
         "project": "project-u00tds8vpr00jaxa76s22d",
+        "region": "us-central1",
         "retrieved_at_utc": "2026-08-19T15:08:12Z"
       },
       "unit": "USD/instance-hour",
@@ -351,6 +352,7 @@
         "evidence_file": "inputs/raw/quote-gpu-b200-sxm-1gpu-20vcpu-224gb-preemptible.json",
         "kind": "tenant_calculator_quote",
         "project": "project-u00tds8vpr00jaxa76s22d",
+        "region": "us-central1",
         "retrieved_at_utc": "2026-08-19T15:08:12Z"
       },
       "unit": "USD/instance-hour",
@@ -369,6 +371,7 @@
         "evidence_file": "inputs/raw/quote-cpu-d3-4vcpu-16gb-ondemand.json",
         "kind": "tenant_calculator_quote",
         "project": "project-e00z6b02t8ddk96c49",
+        "region": "eu-north1",
         "retrieved_at_utc": "2026-08-19T15:07:36Z"
       },
       "unit": "USD/instance-hour",
@@ -387,6 +390,7 @@
         "evidence_file": "inputs/raw/quote-disk-network-ssd-nonreplicated-930gib.json",
         "kind": "tenant_calculator_quote",
         "project": "project-e00z6b02t8ddk96c49",
+        "region": "eu-north1",
         "retrieved_at_utc": "2026-08-19T15:07:37Z"
       },
       "unit": "USD/disk-hour",
@@ -405,6 +409,7 @@
         "evidence_file": "inputs/raw/quote-disk-network-ssd-200gib.json",
         "kind": "tenant_calculator_quote",
         "project": "project-e00z6b02t8ddk96c49",
+        "region": "eu-north1",
         "retrieved_at_utc": "2026-08-19T15:07:37Z"
       },
       "unit": "USD/disk-hour",
@@ -423,6 +428,7 @@
         "evidence_file": "inputs/raw/quote-gpu-h100-sxm-1gpu-16vcpu-200gb-ondemand.json",
         "kind": "tenant_calculator_quote",
         "project": "project-e00z6b02t8ddk96c49",
+        "region": "eu-north1",
         "retrieved_at_utc": "2026-08-19T15:07:35Z"
       },
       "unit": "USD/instance-hour",
@@ -441,6 +447,7 @@
         "evidence_file": "inputs/raw/quote-gpu-h100-sxm-1gpu-16vcpu-200gb-preemptible.json",
         "kind": "tenant_calculator_quote",
         "project": "project-e00z6b02t8ddk96c49",
+        "region": "eu-north1",
         "retrieved_at_utc": "2026-08-19T15:07:35Z"
       },
       "unit": "USD/instance-hour",
@@ -459,6 +466,7 @@
         "evidence_file": "inputs/raw/quote-gpu-h200-sxm-1gpu-16vcpu-200gb-ondemand.json",
         "kind": "tenant_calculator_quote",
         "project": "project-e00z6b02t8ddk96c49",
+        "region": "eu-north1",
         "retrieved_at_utc": "2026-08-19T15:07:35Z"
       },
       "unit": "USD/instance-hour",
@@ -477,6 +485,7 @@
         "evidence_file": "inputs/raw/quote-gpu-h200-sxm-1gpu-16vcpu-200gb-preemptible.json",
         "kind": "tenant_calculator_quote",
         "project": "project-e00z6b02t8ddk96c49",
+        "region": "eu-north1",
         "retrieved_at_utc": "2026-08-19T15:07:35Z"
       },
       "unit": "USD/instance-hour",
@@ -497,7 +506,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GPU-hour",
@@ -518,7 +527,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GPU-hour",
@@ -539,7 +548,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GPU-hour",
@@ -560,7 +569,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GPU-hour",
@@ -581,7 +590,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GPU-hour",
@@ -602,7 +611,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GPU-hour",
@@ -623,7 +632,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GPU-hour",
@@ -644,7 +653,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GPU-hour",
@@ -665,7 +674,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GiB",
@@ -686,7 +695,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GiB-month",
@@ -707,7 +716,7 @@
           "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
         },
         "kind": "public_list_price",
-        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "retrieved_at_utc": "2026-08-19T15:33:48Z",
         "url": "https://nebius.com/prices"
       },
       "unit": "USD/GiB-month",
@@ -726,6 +735,7 @@
         "evidence_file": "inputs/raw/quote-filesystem-network-ssd-1024gib.json",
         "kind": "tenant_calculator_quote",
         "project": "project-e00z6b02t8ddk96c49",
+        "region": "eu-north1",
         "retrieved_at_utc": "2026-08-19T15:07:36Z"
       },
       "unit": "USD/filesystem-hour",
@@ -744,6 +754,7 @@
         "evidence_file": "inputs/raw/quote-filesystem-network-ssd-4096gib.json",
         "kind": "tenant_calculator_quote",
         "project": "project-e00z6b02t8ddk96c49",
+        "region": "eu-north1",
         "retrieved_at_utc": "2026-08-19T15:07:37Z"
       },
       "unit": "USD/filesystem-hour",

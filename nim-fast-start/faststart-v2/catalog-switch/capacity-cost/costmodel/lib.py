@@ -178,8 +178,17 @@ def goodput_within(values: list[Decimal], threshold_s: Decimal) -> Decimal:
 
 # ---- cost primitives ----------------------------------------------------
 
+def gpu_seconds_cost_exact(seconds: Decimal, hourly_usd: Decimal) -> Decimal:
+    """Unrounded (28-significant-digit context) GPU-seconds cost.
+
+    Use this inside composite computations (sums, amortizations, monthly
+    scaling) and quantize exactly once at emission, so intermediate rounding
+    never drifts into totals."""
+    return seconds * hourly_usd / SECONDS_PER_HOUR
+
+
 def gpu_seconds_cost(seconds: Decimal, hourly_usd: Decimal) -> Decimal:
-    return (seconds * hourly_usd / SECONDS_PER_HOUR).quantize(CENT6)
+    return gpu_seconds_cost_exact(seconds, hourly_usd).quantize(CENT6)
 
 
 def retry_multiplier(failure_probability: Decimal) -> Decimal:
@@ -199,16 +208,29 @@ def expected_cost_per_success(attempt_cost: Decimal,
     return (attempt_cost * retry_multiplier(loss_probability)).quantize(CENT6)
 
 
+def preemptible_expected_cost(attempt_seconds: Decimal, pre_hourly: Decimal,
+                              loss_probability: Decimal) -> Decimal:
+    """Preemptible-only expected cost per success, exact until one final
+    quantization (attempt cost x geometric retry multiplier)."""
+    exact = (gpu_seconds_cost_exact(attempt_seconds, pre_hourly)
+             * retry_multiplier(loss_probability))
+    return exact.quantize(CENT6)
+
+
 def fallback_blend_cost(attempt_seconds: Decimal, pre_hourly: Decimal,
                         od_hourly: Decimal, loss_probability: Decimal) -> Decimal:
     """Expected cost per success for 'one preemptible attempt, then on-demand'.
 
     The first attempt always pays the preemptible rate; with probability p it
     is lost and one on-demand attempt (assumed loss-free per the
-    on_demand_loss_negligible assumption) completes the request.
+    on_demand_loss_negligible assumption) completes the request. This blend
+    is cheaper than on-demand only below the platform break-even loss
+    probability p* = 1 - pre/od; above p* on-demand-only wins on cost, and
+    the blend's value is bounding latency to at most one extra attempt.
+    Exact arithmetic inside, one final quantization.
     """
-    pre_cost = gpu_seconds_cost(attempt_seconds, pre_hourly)
-    od_cost = gpu_seconds_cost(attempt_seconds, od_hourly)
+    pre_cost = gpu_seconds_cost_exact(attempt_seconds, pre_hourly)
+    od_cost = gpu_seconds_cost_exact(attempt_seconds, od_hourly)
     return (pre_cost + loss_probability * od_cost).quantize(CENT6)
 
 

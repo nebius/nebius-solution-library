@@ -34,6 +34,31 @@ class PriceSnapshotTest(unittest.TestCase):
                          "capacity-cost-price-snapshot/v1")
         self.assertEqual(self.snap["as_of_date"], "2026-08-19")
 
+    def test_public_retrieved_at_is_the_archive_fetch_time(self):
+        """Adversary: transcription-time guesses must not survive; the only
+        retrieval timestamp on a public record is its archive's fetch time."""
+        for rec in self.snap["records"]:
+            if rec["source"]["kind"] != "public_list_price":
+                continue
+            self.assertEqual(
+                rec["source"]["retrieved_at_utc"],
+                rec["source"]["archived_payload"]["retrieved_at_utc"],
+                rec["record_id"])
+            self.assertNotIn(rec["source"]["retrieved_at_utc"],
+                             ("2026-08-19T15:05:00Z", "2026-08-19T15:20:00Z"))
+
+    def test_tenant_records_bind_region_from_project(self):
+        expected = {"project-e00z6b02t8ddk96c49": "eu-north1",
+                    "project-u00tds8vpr00jaxa76s22d": "us-central1"}
+        for rec in self.snap["records"]:
+            if rec["source"]["kind"] != "tenant_calculator_quote":
+                continue
+            project = rec["source"]["project"]
+            self.assertEqual(rec["source"]["region"], expected[project],
+                             rec["record_id"])
+            self.assertEqual(rec["region_scope"], expected[project],
+                             rec["record_id"])
+
     def test_records_unique_sourced_and_usd(self):
         ids = [r["record_id"] for r in self.snap["records"]]
         self.assertEqual(len(ids), len(set(ids)))
@@ -138,14 +163,31 @@ class CaptureScriptConsistencyTest(unittest.TestCase):
         script = (CC / "inputs/raw/capture_quotes.sh").read_text()
         self.assertIn('PROJECT_EU="${PROJECT_EU:-%s}"' % PROJECT_EU, script)
         self.assertIn('PROJECT_US="${PROJECT_US:-%s}"' % PROJECT_US, script)
-        self.assertIn("gpu-b200-sxm 1gpu-20vcpu-224gb $PROJECT_US", script)
-        self.assertIn("gpu-h100-sxm 1gpu-16vcpu-200gb $PROJECT_EU", script)
-        # No hardcoded bare project IDs outside the overridable defaults.
-        body = script.replace(
+        self.assertIn('REGION_EU="${REGION_EU:-eu-north1}"', script)
+        self.assertIn('REGION_US="${REGION_US:-us-central1}"', script)
+        self.assertIn(
+            "gpu-b200-sxm 1gpu-20vcpu-224gb $PROJECT_US $REGION_US", script)
+        self.assertIn(
+            "gpu-h100-sxm 1gpu-16vcpu-200gb $PROJECT_EU $REGION_EU", script)
+        # No hardcoded bare project IDs outside the overridable defaults
+        # (comment lines documenting the defaults are allowed).
+        body = "\n".join(
+            line for line in script.splitlines()
+            if not line.lstrip().startswith("#")).replace(
             'PROJECT_EU="${PROJECT_EU:-%s}"' % PROJECT_EU, "").replace(
             'PROJECT_US="${PROJECT_US:-%s}"' % PROJECT_US, "")
         self.assertNotIn(PROJECT_EU, body)
         self.assertNotIn(PROJECT_US, body)
+
+    def test_script_emits_region_project_parameters_metadata(self):
+        """Adversary: overriding PROJECT_* must flow into the evidence.
+        Future captures embed an explicit parameters block; downstream
+        generation reads it (or, for the committed pre-block files, parses
+        the command) and maps region through one attested table."""
+        script = (CC / "inputs/raw/capture_quotes.sh").read_text()
+        self.assertIn('"parameters": {"profile": profile, "project": project',
+                      script)
+        self.assertIn('"region": region, "tenant": tenant', script)
 
     def test_capacity_capture_used_the_scripted_tenant(self):
         raw = json.loads(
@@ -210,6 +252,13 @@ class MeasuredInputsTest(unittest.TestCase):
         self.assertEqual(
             inputs.unmeasured_cost_class("node_provision_miss", "Boltz2")
             ["status"], "PENDING_MEASUREMENT")
+
+    def test_capture_assumption_is_model_scoped(self):
+        inputs = lib.Inputs(ROOT)
+        cap = next(a for a in inputs.measured["assumptions"]
+                   if a["name"] == "snapshot_capture_seconds_of2")
+        self.assertEqual(cap["applies_to_model"], "OpenFold2")
+        self.assertIn("MUST NOT", cap["why_assumption"])
 
     def test_assumptions_are_labeled(self):
         inputs = lib.Inputs(ROOT)

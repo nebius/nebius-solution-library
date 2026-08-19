@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 from decimal import Decimal
 from pathlib import Path
@@ -60,9 +61,19 @@ def _archive_binding(url: str, unit_price: str) -> dict:
     }
 
 NEBIUS_PRICES_URL = "https://nebius.com/prices"
-NEBIUS_PRICES_RETRIEVED = "2026-08-19T15:05:00Z"
 CEREBRIUM_PRICES_URL = "https://www.cerebrium.ai/pricing"
-CEREBRIUM_PRICES_RETRIEVED = "2026-08-19T15:05:00Z"
+
+# Regions are bound to projects here, in exactly one place. A tenant quote's
+# region is derived from the project recorded in its raw command, never
+# hardcoded per record, so a re-capture with overridden PROJECT_* variables
+# cannot silently keep a stale region label.
+PROJECT_REGION = {
+    "project-e00z6b02t8ddk96c49": "eu-north1",
+    "project-u00tds8vpr00jaxa76s22d": "us-central1",
+    # project-i00xz31gpr00xp9jhp982v is allowlisted for the epic but its
+    # region is unattested here; a quote captured in it fails closed until
+    # this map is extended with verified evidence.
+}
 
 HOURS_PER_MONTH = Decimal("730")
 
@@ -72,18 +83,39 @@ def _quote(name: str) -> dict:
     if doc["exit_code"] != 0 or doc["response"] is None:
         raise SystemExit(f"raw quote {name} is not a successful capture")
     resp = doc["response"]
+    # Bind project/region from the evidence itself: prefer the explicit
+    # parameters block emitted by current capture_quotes.sh; fall back to
+    # parsing the recorded command for captures that predate the block.
+    params = doc.get("parameters")
+    if params:
+        project = params["project"]
+        if params["region"] != PROJECT_REGION.get(project):
+            raise SystemExit(
+                f"{name}: emitted region {params['region']} contradicts the "
+                f"attested region map for {project}")
+    else:
+        m = re.search(r"parent-id (\S+)", doc["command"])
+        if not m:
+            raise SystemExit(f"{name}: no parent-id in recorded command")
+        project = m.group(1)
+    region = PROJECT_REGION.get(project)
+    if region is None:
+        raise SystemExit(
+            f"{name}: project {project} has no attested region; extend "
+            f"PROJECT_REGION with verified evidence before pricing it")
     return {
         "hourly": resp["hourly_cost"]["general"]["total"]["cost"],
         "monthly": resp["monthly_cost"]["general"]["total"]["cost"],
         "captured_at_utc": doc["captured_at_utc"],
         "command": doc["command"],
+        "project": project,
+        "region": region,
         "evidence_file": f"inputs/raw/{name}.json",
     }
 
 
 def tenant_record(record_id: str, name: str, sku: str, unit: str,
-                  offer_class: str, region_scope: str, project: str,
-                  notes: str = "") -> dict:
+                  offer_class: str, notes: str = "") -> dict:
     q = _quote(name)
     return {
         "record_id": record_id,
@@ -93,11 +125,12 @@ def tenant_record(record_id: str, name: str, sku: str, unit: str,
         "unit_price": q["hourly"],
         "monthly_price": q["monthly"],
         "offer_class": offer_class,
-        "region_scope": region_scope,
+        "region_scope": q["region"],
         "source": {
             "kind": "tenant_calculator_quote",
             "command": q["command"],
-            "project": project,
+            "project": q["project"],
+            "region": q["region"],
             "retrieved_at_utc": q["captured_at_utc"],
             "evidence_file": q["evidence_file"],
         },
@@ -106,8 +139,9 @@ def tenant_record(record_id: str, name: str, sku: str, unit: str,
 
 
 def public_record(record_id: str, sku: str, unit: str, unit_price: str,
-                  offer_class: str, url: str, retrieved: str,
+                  offer_class: str, url: str,
                   notes: str = "") -> dict:
+    binding = _archive_binding(url, unit_price)
     return {
         "record_id": record_id,
         "sku": sku,
@@ -120,8 +154,8 @@ def public_record(record_id: str, sku: str, unit: str, unit_price: str,
         "source": {
             "kind": "public_list_price",
             "url": url,
-            "retrieved_at_utc": retrieved,
-            "archived_payload": _archive_binding(url, unit_price),
+            "retrieved_at_utc": binding["retrieved_at_utc"],
+            "archived_payload": binding,
         },
         "notes": notes,
     }
@@ -152,46 +186,40 @@ def build_price_snapshot() -> dict:
     records: list[dict] = []
 
     # --- Nebius tenant-effective calculator quotes (authoritative here) ---
-    eu = "project-e00z6b02t8ddk96c49"
-    us = "project-u00tds8vpr00jaxa76s22d"
     gpu_quotes = [
         ("nebius-h100-1g-od", "quote-gpu-h100-sxm-1gpu-16vcpu-200gb-ondemand",
-         "gpu-h100-sxm/1gpu-16vcpu-200gb", "on_demand", "eu-north1", eu),
+         "gpu-h100-sxm/1gpu-16vcpu-200gb", "on_demand"),
         ("nebius-h100-1g-pre", "quote-gpu-h100-sxm-1gpu-16vcpu-200gb-preemptible",
-         "gpu-h100-sxm/1gpu-16vcpu-200gb", "preemptible", "eu-north1", eu),
+         "gpu-h100-sxm/1gpu-16vcpu-200gb", "preemptible"),
         ("nebius-h200-1g-od", "quote-gpu-h200-sxm-1gpu-16vcpu-200gb-ondemand",
-         "gpu-h200-sxm/1gpu-16vcpu-200gb", "on_demand", "eu-north1", eu),
+         "gpu-h200-sxm/1gpu-16vcpu-200gb", "on_demand"),
         ("nebius-h200-1g-pre", "quote-gpu-h200-sxm-1gpu-16vcpu-200gb-preemptible",
-         "gpu-h200-sxm/1gpu-16vcpu-200gb", "preemptible", "eu-north1", eu),
+         "gpu-h200-sxm/1gpu-16vcpu-200gb", "preemptible"),
         ("nebius-b200-1g-od", "quote-gpu-b200-sxm-1gpu-20vcpu-224gb-ondemand",
-         "gpu-b200-sxm/1gpu-20vcpu-224gb", "on_demand", "us-central1", us),
+         "gpu-b200-sxm/1gpu-20vcpu-224gb", "on_demand"),
         ("nebius-b200-1g-pre", "quote-gpu-b200-sxm-1gpu-20vcpu-224gb-preemptible",
-         "gpu-b200-sxm/1gpu-20vcpu-224gb", "preemptible", "us-central1", us),
+         "gpu-b200-sxm/1gpu-20vcpu-224gb", "preemptible"),
         ("nebius-cpu-d3-4v16g-od", "quote-cpu-d3-4vcpu-16gb-ondemand",
-         "cpu-d3/4vcpu-16gb", "on_demand", "eu-north1", eu),
+         "cpu-d3/4vcpu-16gb", "on_demand"),
     ]
-    for rid, raw_name, sku, offer, region, project in gpu_quotes:
+    for rid, raw_name, sku, offer in gpu_quotes:
         records.append(tenant_record(
-            rid, raw_name, sku, "USD/instance-hour", offer, region, project,
+            rid, raw_name, sku, "USD/instance-hour", offer,
             notes="Whole-instance quote; the GPU platform bundles vCPU/RAM."))
 
     records.append(tenant_record(
         "nebius-sfs-1024gib", "quote-filesystem-network-ssd-1024gib",
-        "filesystem/network_ssd/1024GiB", "USD/filesystem-hour", "committed",
-        "eu-north1", eu))
+        "filesystem/network_ssd/1024GiB", "USD/filesystem-hour", "committed"))
     records.append(tenant_record(
         "nebius-sfs-4096gib", "quote-filesystem-network-ssd-4096gib",
         "filesystem/network_ssd/4096GiB", "USD/filesystem-hour", "committed",
-        "eu-north1", eu,
         notes="4 TiB matches the SFS size used by the measured artifact tier."))
     records.append(tenant_record(
         "nebius-disk-nssd-200gib", "quote-disk-network-ssd-200gib",
-        "disk/network_ssd/200GiB", "USD/disk-hour", "committed",
-        "eu-north1", eu))
+        "disk/network_ssd/200GiB", "USD/disk-hour", "committed"))
     records.append(tenant_record(
         "nebius-disk-nrd-930gib", "quote-disk-network-ssd-nonreplicated-930gib",
-        "disk/network_ssd_non_replicated/930GiB", "USD/disk-hour", "committed",
-        "eu-north1", eu))
+        "disk/network_ssd_non_replicated/930GiB", "USD/disk-hour", "committed"))
 
     # Derived per-GiB-month storage rates from tenant quotes.
     sfs = _quote("quote-filesystem-network-ssd-4096gib")
@@ -206,44 +234,36 @@ def build_price_snapshot() -> dict:
     records += [
         public_record("nebius-list-h100-od", "gpu-h100-sxm", "USD/GPU-hour",
                       "3.85", "on_demand", NEBIUS_PRICES_URL,
-                      NEBIUS_PRICES_RETRIEVED,
                       "Matches tenant quote nebius-h100-1g-od."),
         public_record("nebius-list-h100-pre", "gpu-h100-sxm", "USD/GPU-hour",
                       "2.15", "preemptible", NEBIUS_PRICES_URL,
-                      NEBIUS_PRICES_RETRIEVED,
                       "Matches tenant quote nebius-h100-1g-pre."),
         public_record("nebius-list-h200-od", "gpu-h200-sxm", "USD/GPU-hour",
                       "4.50", "on_demand", NEBIUS_PRICES_URL,
-                      NEBIUS_PRICES_RETRIEVED,
                       "Matches tenant quote nebius-h200-1g-od."),
         public_record("nebius-list-h200-pre", "gpu-h200-sxm", "USD/GPU-hour",
                       "2.45", "preemptible", NEBIUS_PRICES_URL,
-                      NEBIUS_PRICES_RETRIEVED,
                       "Matches tenant quote nebius-h200-1g-pre."),
         public_record("nebius-list-b200-od", "gpu-b200-sxm", "USD/GPU-hour",
                       "7.15", "on_demand", NEBIUS_PRICES_URL,
-                      NEBIUS_PRICES_RETRIEVED,
                       "Matches tenant quote nebius-b200-1g-od."),
         public_record("nebius-list-b200-pre", "gpu-b200-sxm", "USD/GPU-hour",
                       "3.95", "preemptible", NEBIUS_PRICES_URL,
-                      NEBIUS_PRICES_RETRIEVED,
                       "Matches tenant quote nebius-b200-1g-pre."),
         public_record("nebius-list-b300-od", "gpu-b300-sxm", "USD/GPU-hour",
-                      "7.85", "on_demand", NEBIUS_PRICES_URL,
-                      NEBIUS_PRICES_RETRIEVED, "No tenant quote captured."),
+                      "7.85", "on_demand", NEBIUS_PRICES_URL, "No tenant quote captured."),
         public_record("nebius-list-b300-pre", "gpu-b300-sxm", "USD/GPU-hour",
-                      "4.30", "preemptible", NEBIUS_PRICES_URL,
-                      NEBIUS_PRICES_RETRIEVED, "No tenant quote captured."),
+                      "4.30", "preemptible", NEBIUS_PRICES_URL, "No tenant quote captured."),
         public_record("nebius-list-sfs", "filesystem/network_ssd",
                       "USD/GiB-month", "0.08", "committed",
-                      NEBIUS_PRICES_URL, NEBIUS_PRICES_RETRIEVED,
+                      NEBIUS_PRICES_URL,
                       "Matches derived nebius-sfs-gib-month within rounding."),
         public_record("nebius-list-object-volume", "object-storage/standard",
                       "USD/GiB-month", "0.0147", "committed",
-                      NEBIUS_PRICES_URL, NEBIUS_PRICES_RETRIEVED, ""),
+                      NEBIUS_PRICES_URL, ""),
         public_record("nebius-list-object-egress", "object-storage/egress",
                       "USD/GiB", "0.0150", "usage",
-                      NEBIUS_PRICES_URL, NEBIUS_PRICES_RETRIEVED,
+                      NEBIUS_PRICES_URL,
                       "Object Storage egress. VPC networking egress/ingress "
                       "and public IPs are listed as free on the same page."),
     ]
@@ -260,7 +280,7 @@ def build_price_snapshot() -> dict:
     for rid, sku, price in per_second:
         records.append(public_record(
             rid, f"cerebrium/{sku}", "USD/GPU-second", price, "on_demand",
-            CEREBRIUM_PRICES_URL, CEREBRIUM_PRICES_RETRIEVED,
+            CEREBRIUM_PRICES_URL,
             "Per-second metered; GPU price excludes CPU/memory add-ons."))
         hourly = (Decimal(price) * Decimal(3600)).normalize()
         records.append(derived_record(
@@ -268,18 +288,16 @@ def build_price_snapshot() -> dict:
             format(hourly, "f"), "on_demand", [rid], "per-second price * 3600"))
     records += [
         public_record("cerebrium-cpu-s", "cerebrium/vCPU", "USD/vCPU-second",
-                      "0.00000655", "on_demand", CEREBRIUM_PRICES_URL,
-                      CEREBRIUM_PRICES_RETRIEVED, ""),
+                      "0.00000655", "on_demand", CEREBRIUM_PRICES_URL, ""),
         public_record("cerebrium-mem-s", "cerebrium/memory", "USD/GB-second",
-                      "0.00000222", "on_demand", CEREBRIUM_PRICES_URL,
-                      CEREBRIUM_PRICES_RETRIEVED, ""),
+                      "0.00000222", "on_demand", CEREBRIUM_PRICES_URL, ""),
         public_record("cerebrium-storage", "cerebrium/storage",
                       "USD/GB-month", "0.05", "committed",
-                      CEREBRIUM_PRICES_URL, CEREBRIUM_PRICES_RETRIEVED,
+                      CEREBRIUM_PRICES_URL,
                       "First 100 GB free."),
         public_record("cerebrium-plan-standard", "cerebrium/plan-standard",
                       "USD/month", "100", "committed",
-                      CEREBRIUM_PRICES_URL, CEREBRIUM_PRICES_RETRIEVED,
+                      CEREBRIUM_PRICES_URL,
                       "Standard plan platform fee, plus metered compute."),
     ]
 
