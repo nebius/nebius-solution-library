@@ -16,6 +16,7 @@ from state_machine import (  # noqa: E402
     InMemoryStateStore,
     InvalidTransition,
     JsonFileStateStore,
+    LEDGER_GATE_SCHEMA,
     LedgerGateReceipt,
     LedgerStage,
     MachineSnapshot,
@@ -30,11 +31,18 @@ from state_machine import (  # noqa: E402
 
 class MachineFixture(unittest.TestCase):
     def setUp(self) -> None:
+        self.acceptance_temp = tempfile.TemporaryDirectory()
+        (
+            self.acceptance_receipt,
+            self.ledger_verifier,
+            self.acceptance_bridge,
+        ) = exact_acceptance_gate(Path(self.acceptance_temp.name))  # noqa: F405
         self.authority = node_authority()  # noqa: F405
-        self.clock = FakeClock()  # noqa: F405
+        self.clock = FakeClock(self.acceptance_receipt.accepted_t0_ns + 1_000)  # noqa: F405
         self.machine = DrainReclaimStateMachine(
             InMemoryStateStore(MachineSnapshot.initial(self.authority, GPU_UUID)),  # noqa: F405
             evidence_trust=trust_store(authority=self.authority),  # noqa: F405
+            ledger_verifier=self.ledger_verifier,
             clock_ns=self.clock,
         )
         self.fence = self.machine.claim_controller("controller-1")
@@ -42,6 +50,9 @@ class MachineFixture(unittest.TestCase):
             MODEL_A, 1, operation_id="bootstrap-a", suffix="a", authority=self.authority  # noqa: F405
         )
         self.machine.install_serving_a(self.fence, self.runtime_a)
+
+    def tearDown(self) -> None:
+        self.acceptance_temp.cleanup()
 
     def begin_switch(self, *, timeout: int = 1_000) -> None:
         self.machine.begin_switch(
@@ -52,7 +63,7 @@ class MachineFixture(unittest.TestCase):
             attempt_id="switch-attempt-1",
             target=MODEL_B,  # noqa: F405
             validator=VALIDATOR_B,  # noqa: F405
-            accepted_t0_ns=self.clock.value,
+            acceptance_receipt=self.acceptance_receipt,
             drain_timeout_ns=timeout,
         )
 
@@ -464,7 +475,7 @@ class LaunchReservationTests(MachineFixture):
             launch_receipt=launch_receipt,
         )
         payload = {
-            "schema": "archvteams.nebius.ai/catalog-switch-ledger-gate/v2",
+            "schema": LEDGER_GATE_SCHEMA,
             "stage": LedgerStage.TARGET_QUALIFIED,
             "switch_id": "switch-1",
             "trace_id": "switch-trace-1",
@@ -492,7 +503,7 @@ class LaunchReservationTests(MachineFixture):
         serializable = dict(payload)
         serializable["stage"] = LedgerStage.TARGET_QUALIFIED.value
         receipt = LedgerGateReceipt(**payload, receipt_sha256=canonical_sha256(serializable))
-        with self.assertRaisesRegex(ProofRejected, "no canonical ledger verifier"):
+        with self.assertRaisesRegex(ProofRejected, "binding differs"):
             self.machine.accept_b(
                 self.fence, switch_id="switch-1", ledger_receipt=receipt
             )
@@ -667,6 +678,7 @@ class QuarantineAndDurabilityTests(MachineFixture):
             machine = DrainReclaimStateMachine(
                 store,
                 evidence_trust=trust_store(authority=self.authority),  # noqa: F405
+                ledger_verifier=self.ledger_verifier,
                 clock_ns=self.clock,
             )
             fence = machine.claim_controller("controller-file")
@@ -688,6 +700,7 @@ class QuarantineAndDurabilityTests(MachineFixture):
                     path, MachineSnapshot.initial(self.authority, GPU_UUID)  # noqa: F405
                 ),
                 evidence_trust=trust_store(authority=self.authority),  # noqa: F405
+                ledger_verifier=self.ledger_verifier,
                 clock_ns=self.clock,
             )
             old_fence = first.claim_controller("controller-old")
@@ -704,6 +717,7 @@ class QuarantineAndDurabilityTests(MachineFixture):
             restarted = DrainReclaimStateMachine(
                 JsonFileStateStore(path),
                 evidence_trust=trust_store(authority=self.authority),  # noqa: F405
+                ledger_verifier=self.ledger_verifier,
                 clock_ns=self.clock,
             )
             new_fence = restarted.claim_controller("controller-new")
@@ -723,8 +737,6 @@ class QuarantineAndDurabilityTests(MachineFixture):
 class ConcurrencyTests(MachineFixture):
     def test_concurrent_duplicate_switch_is_idempotent(self) -> None:
         outcomes: list[Exception] = []
-        t0 = self.clock.value
-
         def worker() -> None:
             try:
                 self.machine.begin_switch(
@@ -735,7 +747,7 @@ class ConcurrencyTests(MachineFixture):
                     attempt_id="switch-attempt-1",
                     target=MODEL_B,  # noqa: F405
                     validator=VALIDATOR_B,  # noqa: F405
-                    accepted_t0_ns=t0,
+                    acceptance_receipt=self.acceptance_receipt,
                     drain_timeout_ns=1_000,
                 )
             except Exception as exc:  # pragma: no cover
@@ -791,46 +803,55 @@ class PropertyScheduleTests(unittest.TestCase):
                     node_id=f"node-{seed}",
                     node_uid=f"node-uid-{seed}",
                 )
-                clock = FakeClock(1_000_000 + seed * 100_000)  # noqa: F405
-                machine = DrainReclaimStateMachine(
-                    InMemoryStateStore(
-                        MachineSnapshot.initial(authority, GPU_UUID)  # noqa: F405
-                    ),
-                    evidence_trust=trust_store(authority=authority),  # noqa: F405
-                    clock_ns=clock,
-                )
-                fence = machine.claim_controller(f"controller-{seed}")
-                active_a = runtime(  # noqa: F405
-                    MODEL_A,
-                    1,
-                    operation_id=f"bootstrap-{seed}",
-                    suffix=f"a-{seed}",
-                    authority=authority,
-                )
-                machine.install_serving_a(fence, active_a)
-                leases = [
-                    machine.admit_request(
-                        fence,
-                        lease_id=f"lease-{seed}-{index}",
-                        request_id=f"request-{seed}-{index}",
-                        attempt_id=f"attempt-{seed}-{index}",
-                        model=MODEL_A,  # noqa: F405
-                        deadline_ns=clock.value + 50_000,
+                with tempfile.TemporaryDirectory() as gate_directory:
+                    switch_id = f"switch-{seed}"
+                    acceptance, verifier, _ = exact_acceptance_gate(  # noqa: F405
+                        Path(gate_directory),
+                        switch_id=switch_id,
+                        trace_id=f"trace-{seed}",
+                        request_id=f"switch-request-{seed}",
+                        attempt_id=f"switch-attempt-{seed}",
                     )
-                    for index in range(rng.randrange(5))
-                ]
-                switch_id = f"switch-{seed}"
-                machine.begin_switch(
-                    fence,
-                    switch_id=switch_id,
-                    trace_id=f"trace-{seed}",
-                    request_id=f"switch-request-{seed}",
-                    attempt_id=f"switch-attempt-{seed}",
-                    target=MODEL_B,  # noqa: F405
-                    validator=VALIDATOR_B,  # noqa: F405
-                    accepted_t0_ns=clock.value,
-                    drain_timeout_ns=500,
-                )
+                    clock = FakeClock(acceptance.accepted_t0_ns + 1_000)  # noqa: F405
+                    machine = DrainReclaimStateMachine(
+                        InMemoryStateStore(
+                            MachineSnapshot.initial(authority, GPU_UUID)  # noqa: F405
+                        ),
+                        evidence_trust=trust_store(authority=authority),  # noqa: F405
+                        ledger_verifier=verifier,
+                        clock_ns=clock,
+                    )
+                    fence = machine.claim_controller(f"controller-{seed}")
+                    active_a = runtime(  # noqa: F405
+                        MODEL_A,
+                        1,
+                        operation_id=f"bootstrap-{seed}",
+                        suffix=f"a-{seed}",
+                        authority=authority,
+                    )
+                    machine.install_serving_a(fence, active_a)
+                    leases = [
+                        machine.admit_request(
+                            fence,
+                            lease_id=f"lease-{seed}-{index}",
+                            request_id=f"request-{seed}-{index}",
+                            attempt_id=f"attempt-{seed}-{index}",
+                            model=MODEL_A,  # noqa: F405
+                            deadline_ns=clock.value + 50_000,
+                        )
+                        for index in range(rng.randrange(5))
+                    ]
+                    machine.begin_switch(
+                        fence,
+                        switch_id=switch_id,
+                        trace_id=f"trace-{seed}",
+                        request_id=f"switch-request-{seed}",
+                        attempt_id=f"switch-attempt-{seed}",
+                        target=MODEL_B,  # noqa: F405
+                        validator=VALIDATOR_B,  # noqa: F405
+                        acceptance_receipt=acceptance,
+                        drain_timeout_ns=500,
+                    )
                 for lease in leases:
                     disposition = rng.randrange(3)
                     if disposition == 0:

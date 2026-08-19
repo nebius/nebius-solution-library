@@ -25,13 +25,16 @@ from pathlib import Path
 from typing import Any, Callable, Protocol, TypeVar
 
 
-STATE_SCHEMA = "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v2"
+STATE_SCHEMA = "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v3"
 ABSENCE_SCHEMA = "archvteams.nebius.ai/catalog-switch-runtime-absence/v2"
 OPERATION_ABSENCE_SCHEMA = "archvteams.nebius.ai/catalog-switch-operation-absence/v1"
 GPU_RELEASE_SCHEMA = "archvteams.nebius.ai/catalog-switch-gpu-release/v2"
 SCRUB_SCHEMA = "archvteams.nebius.ai/catalog-switch-gpu-scrub/v2"
 ACTION_RECEIPT_SCHEMA = "archvteams.nebius.ai/catalog-switch-action-receipt/v1"
-LEDGER_GATE_SCHEMA = "archvteams.nebius.ai/catalog-switch-ledger-gate/v2"
+LEDGER_GATE_SCHEMA = "archvteams.nebius.ai/catalog-switch-ledger-gate/v3"
+ACCEPTANCE_GATE_SCHEMA = (
+    "archvteams.nebius.ai/catalog-switch-request-acceptance-gate/v1"
+)
 RECYCLE_SCHEMA = "archvteams.nebius.ai/catalog-switch-node-recycle/v1"
 REQUALIFICATION_SCHEMA = "archvteams.nebius.ai/catalog-switch-requalification/v1"
 PLACEMENT_REVOCATION_SCHEMA = (
@@ -758,6 +761,86 @@ class LedgerGateReceipt:
 
 
 @dataclass(frozen=True)
+class RequestAcceptanceReceipt:
+    """Canonical external-T0 evidence required before admission can close."""
+
+    schema: str
+    switch_id: str
+    trace_id: str
+    request_id: str
+    attempt_id: str
+    accepted_t0_ns: int
+    trace_request_sha256: str
+    accepted_event_sha256: str
+    model_id: str
+    model_version: str
+    artifact_sha256: str
+    shared_ledger_sha256: str
+    audit_segment_sha256: str
+    audit_sequence_start: int
+    audit_sequence_end: int
+    audit_chain_head_sha256: str
+    offnode_durability_receipt_sha256: str
+    receipt_sha256: str
+
+    def payload(self) -> dict[str, Any]:
+        value = asdict(self)
+        value.pop("receipt_sha256")
+        return value
+
+    def validate_self(self) -> None:
+        if self.schema != ACCEPTANCE_GATE_SCHEMA:
+            raise ProofRejected("request acceptance receipt schema differs")
+        for value, label in (
+            (self.switch_id, "acceptance switch_id"),
+            (self.trace_id, "acceptance trace_id"),
+            (self.request_id, "acceptance request_id"),
+            (self.attempt_id, "acceptance attempt_id"),
+            (self.model_id, "acceptance model_id"),
+            (self.model_version, "acceptance model_version"),
+        ):
+            _require_id(value, label)
+        for value, label in (
+            (self.trace_request_sha256, "acceptance trace request"),
+            (self.accepted_event_sha256, "acceptance event"),
+            (self.artifact_sha256, "acceptance artifact"),
+            (self.shared_ledger_sha256, "acceptance shared ledger"),
+            (self.audit_segment_sha256, "acceptance audit segment"),
+            (self.audit_chain_head_sha256, "acceptance audit head"),
+            (
+                self.offnode_durability_receipt_sha256,
+                "acceptance off-node durability",
+            ),
+            (self.receipt_sha256, "acceptance receipt"),
+        ):
+            _require_digest(value, label)
+        if self.accepted_t0_ns < 1 or self.audit_sequence_start < 0:
+            raise ProofRejected("acceptance T0/sequence is invalid")
+        if self.audit_sequence_end < self.audit_sequence_start:
+            raise ProofRejected("acceptance audit segment is empty/reversed")
+        if self.receipt_sha256 != canonical_sha256(self.payload()):
+            raise ProofRejected("request acceptance receipt self-digest differs")
+
+
+@dataclass(frozen=True)
+class AcceptanceExpectation:
+    switch_id: str
+    trace_id: str
+    request_id: str
+    attempt_id: str
+    target: ModelRef
+
+
+@dataclass(frozen=True)
+class VerifiedRequestAcceptance:
+    receipt_sha256: str
+    accepted_t0_ns: int
+    trace_request_sha256: str
+    accepted_event_sha256: str
+    audit_chain_head_sha256: str
+
+
+@dataclass(frozen=True)
 class LedgerExpectation:
     stage: LedgerStage
     switch_id: str
@@ -781,6 +864,12 @@ class VerifiedLedgerGate:
 
 
 class LedgerReceiptVerifier(Protocol):
+    def verify_acceptance(
+        self,
+        receipt: RequestAcceptanceReceipt,
+        expectation: AcceptanceExpectation,
+    ) -> VerifiedRequestAcceptance: ...
+
     def verify(
         self, receipt: LedgerGateReceipt, expectation: LedgerExpectation
     ) -> VerifiedLedgerGate: ...
@@ -1000,6 +1089,10 @@ class SwitchRecord:
     source_runtime_uid: str
     source_runtime_generation: int
     accepted_t0_ns: int
+    acceptance_receipt_sha256: str
+    acceptance_trace_request_sha256: str
+    acceptance_event_sha256: str
+    acceptance_audit_chain_head_sha256: str
     initiated_at_ns: int
     drain_deadline_ns: int
     target_runtime_generation: int | None = None
@@ -1266,10 +1359,16 @@ class DrainReclaimStateMachine:
         store: StateStore,
         *,
         evidence_trust: EvidenceTrustStore,
-        ledger_verifier: LedgerReceiptVerifier | None = None,
+        ledger_verifier: LedgerReceiptVerifier,
         clock_ns: Callable[[], int] = time.monotonic_ns,
         max_cas_attempts: int = 32,
     ):
+        if ledger_verifier is None:
+            raise ValueError("a canonical ledger verifier is mandatory")
+        if not callable(getattr(ledger_verifier, "verify_acceptance", None)) or not callable(
+            getattr(ledger_verifier, "verify", None)
+        ):
+            raise ValueError("ledger verifier lacks canonical acceptance/success gates")
         self.store = store
         self.evidence_trust = evidence_trust
         self.ledger_verifier = ledger_verifier
@@ -1455,7 +1554,7 @@ class DrainReclaimStateMachine:
         attempt_id: str,
         target: ModelRef,
         validator: ValidatorRef,
-        accepted_t0_ns: int,
+        acceptance_receipt: RequestAcceptanceReceipt,
         drain_timeout_ns: int,
     ) -> SwitchRecord:
         for value, label in (
@@ -1467,13 +1566,36 @@ class DrainReclaimStateMachine:
             _require_id(value, label)
         target.validate()
         validator.validate()
-        if accepted_t0_ns < 1 or drain_timeout_ns < 1:
-            raise ValueError("T0 and drain timeout must be positive")
+        if drain_timeout_ns < 1:
+            raise ValueError("drain timeout must be positive")
+        acceptance_receipt.validate_self()
+        acceptance = self.ledger_verifier.verify_acceptance(
+            acceptance_receipt,
+            AcceptanceExpectation(
+                switch_id=switch_id,
+                trace_id=trace_id,
+                request_id=request_id,
+                attempt_id=attempt_id,
+                target=target,
+            ),
+        )
+        if acceptance.receipt_sha256 != acceptance_receipt.receipt_sha256:
+            raise ProofRejected("acceptance verifier returned a different receipt")
+        accepted_t0_ns = acceptance.accepted_t0_ns
 
         def mutate(snapshot: MachineSnapshot, now_ns: int) -> SwitchRecord:
             existing = snapshot.active_switch
             if existing is not None:
-                expected = (switch_id, trace_id, request_id, attempt_id, target, validator, accepted_t0_ns)
+                expected = (
+                    switch_id,
+                    trace_id,
+                    request_id,
+                    attempt_id,
+                    target,
+                    validator,
+                    accepted_t0_ns,
+                    acceptance.receipt_sha256,
+                )
                 actual = (
                     existing.switch_id,
                     existing.trace_id,
@@ -1482,6 +1604,7 @@ class DrainReclaimStateMachine:
                     existing.target_model,
                     existing.target_validator,
                     existing.accepted_t0_ns,
+                    existing.acceptance_receipt_sha256,
                 )
                 if actual == expected:
                     return copy.deepcopy(existing)
@@ -1503,6 +1626,10 @@ class DrainReclaimStateMachine:
                 source_runtime_uid=snapshot.active_runtime.runtime_uid,
                 source_runtime_generation=snapshot.active_runtime.runtime_generation,
                 accepted_t0_ns=accepted_t0_ns,
+                acceptance_receipt_sha256=acceptance.receipt_sha256,
+                acceptance_trace_request_sha256=acceptance.trace_request_sha256,
+                acceptance_event_sha256=acceptance.accepted_event_sha256,
+                acceptance_audit_chain_head_sha256=acceptance.audit_chain_head_sha256,
                 initiated_at_ns=now_ns,
                 drain_deadline_ns=now_ns + drain_timeout_ns,
             )
@@ -2312,6 +2439,40 @@ class DrainReclaimStateMachine:
         lifecycle = set(SwitchState) - {SwitchState.IDLE, SwitchState.SERVING_A}
         if snapshot.state in lifecycle and snapshot.active_switch is None:
             raise StateMachineError("switch lifecycle state lacks switch identity")
+        if snapshot.active_switch is not None:
+            switch = snapshot.active_switch
+            for value, label in (
+                (switch.switch_id, "active switch_id"),
+                (switch.trace_id, "active trace_id"),
+                (switch.request_id, "active request_id"),
+                (switch.attempt_id, "active attempt_id"),
+                (switch.source_runtime_uid, "active source runtime UID"),
+            ):
+                _require_id(value, label)
+            switch.source_model.validate()
+            switch.target_model.validate()
+            switch.target_validator.validate()
+            if (
+                switch.source_model == switch.target_model
+                or switch.source_runtime_generation < 1
+                or switch.accepted_t0_ns < 1
+                or switch.initiated_at_ns < switch.accepted_t0_ns
+                or switch.drain_deadline_ns <= switch.initiated_at_ns
+            ):
+                raise StateMachineError("active switch causal/model fields are invalid")
+            for digest, label in (
+                (switch.acceptance_receipt_sha256, "acceptance receipt"),
+                (
+                    switch.acceptance_trace_request_sha256,
+                    "acceptance trace request",
+                ),
+                (switch.acceptance_event_sha256, "acceptance event"),
+                (
+                    switch.acceptance_audit_chain_head_sha256,
+                    "acceptance audit chain head",
+                ),
+            ):
+                _require_digest(digest, label)
         active_generations = {
             lease.runtime_generation
             for lease in snapshot.request_leases.values()

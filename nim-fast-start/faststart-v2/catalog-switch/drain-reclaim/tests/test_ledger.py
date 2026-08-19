@@ -53,15 +53,14 @@ class LedgerFixture(unittest.TestCase):
         self.trace = make_trace(RAW_B_REQUEST_1)  # noqa: F405
         write_acceptance(self.ledger_path, self.trace)  # noqa: F405
         self.authority = node_authority()  # noqa: F405
-        self.validator_b = ValidatorRuntime(  # noqa: F405
-            VALIDATOR_B, validator_replay(MODEL_B), VALIDATOR_B_SOURCE
-        )
+        self.validator_b = ValidatorRuntime(VALIDATOR_B, VALIDATOR_B_SOURCE)  # noqa: F405
         self.sink = FileOffNodeSink(
             self.root / "offnode",
             sink_id="offnode-test-sink",
             key=SINK_KEY,  # noqa: F405
         )
         self.bridge = self.make_bridge()
+        self.acceptance_receipt = self.bridge.acceptance_receipt()
         self.fence = ControllerFence("controller-1", 1)  # noqa: F405
         self.reservation = LaunchReservation(  # noqa: F405
             "switch-1",
@@ -183,6 +182,56 @@ class LedgerFixture(unittest.TestCase):
 
 
 class LedgerGateTests(LedgerFixture):
+    def test_state_machine_requires_canonical_verifier_at_construction(self) -> None:
+        with self.assertRaisesRegex(ValueError, "canonical ledger verifier"):
+            DrainReclaimStateMachine(
+                InMemoryStateStore(
+                    MachineSnapshot.initial(self.authority, GPU_UUID)  # noqa: F405
+                ),
+                evidence_trust=trust_store(authority=self.authority),  # noqa: F405
+                ledger_verifier=None,
+            )
+
+    def test_begin_switch_rejects_fabricated_acceptance_without_state_change(self) -> None:
+        machine = DrainReclaimStateMachine(
+            InMemoryStateStore(
+                MachineSnapshot.initial(self.authority, GPU_UUID)  # noqa: F405
+            ),
+            evidence_trust=trust_store(authority=self.authority),  # noqa: F405
+            ledger_verifier=self.verifier(),
+            clock_ns=FakeClock(self.bridge.accepted_t0_ns + 1_000),  # noqa: F405
+        )
+        fence = machine.claim_controller("controller-1")
+        machine.install_serving_a(
+            fence,
+            runtime(  # noqa: F405
+                MODEL_A,
+                1,
+                operation_id="bootstrap-a",
+                suffix="a",
+                authority=self.authority,
+            ),
+        )
+        fabricated = replace(
+            self.acceptance_receipt, accepted_event_sha256="f" * 64
+        )
+        fabricated = replace(
+            fabricated, receipt_sha256=canonical_sha256(fabricated.payload())
+        )
+        with self.assertRaisesRegex(ProofRejected, "trace/event/target binding"):
+            machine.begin_switch(
+                fence,
+                switch_id="switch-1",
+                trace_id="switch-trace-1",
+                request_id="switch-request-1",
+                attempt_id="switch-attempt-1",
+                target=MODEL_B,  # noqa: F405
+                validator=VALIDATOR_B,  # noqa: F405
+                acceptance_receipt=fabricated,
+                drain_timeout_ns=1_000,
+            )
+        self.assertEqual(machine.snapshot().state, SwitchState.SERVING_A)
+
     def test_bridge_refuses_work_before_external_t0(self) -> None:
         missing = self.root / "missing.jsonl"
         with self.assertRaises(Exception):
@@ -388,7 +437,6 @@ class LedgerGateTests(LedgerFixture):
             with self.assertRaisesRegex(ValueError, "executable source differs"):
                 ValidatorRuntime(
                     VALIDATOR_B,  # noqa: F405
-                    validator_replay(MODEL_B),  # noqa: F405
                     VALIDATOR_A_SOURCE,  # noqa: F405
                 )
 
@@ -478,6 +526,22 @@ class LedgerGateTests(LedgerFixture):
                 ),
             )
 
+    def test_pinned_validator_artifact_rejects_raw_false_response(self) -> None:
+        self.bridge.record_launch_reservation(self.reservation)
+        self.bridge.bind_runtime(self.runtime_b, self.launch_receipt)
+        raw_false = (
+            b'{"model_id":"model-b","model_version":"2",'
+            b'"valid":false,"value":"self-asserted-pass"}\n'
+        )
+        with self.assertRaisesRegex(
+            ProofRejected, "validator rejected semantic response"
+        ):
+            self.bridge.execute_semantic_call(
+                sequence=1,
+                raw_request=RAW_B_REQUEST_1,
+                inference=fixed_inference(raw_false),
+            )
+
     def test_admission_and_seal_each_require_fresh_complete_durable_segment(self) -> None:
         # Build state first so the bridge and state consume the exact same
         # durable reservation and signed launch receipt.
@@ -485,6 +549,7 @@ class LedgerGateTests(LedgerFixture):
         machine = DrainReclaimStateMachine(
             InMemoryStateStore(MachineSnapshot.initial(self.authority, GPU_UUID)),  # noqa: F405
             evidence_trust=trust_store(authority=self.authority),  # noqa: F405
+            ledger_verifier=self.verifier(),
             clock_ns=clock,
         )
         fence = machine.claim_controller("controller-1")
@@ -498,7 +563,7 @@ class LedgerGateTests(LedgerFixture):
             attempt_id="switch-attempt-1",
             target=MODEL_B,  # noqa: F405
             validator=VALIDATOR_B,  # noqa: F405
-            accepted_t0_ns=self.bridge.accepted_t0_ns,
+            acceptance_receipt=self.acceptance_receipt,
             drain_timeout_ns=1_000,
         )
         machine.advance_drain(fence, switch_id="switch-1")
@@ -698,6 +763,7 @@ class RollbackTraceTests(LedgerFixture):
         machine = DrainReclaimStateMachine(
             InMemoryStateStore(MachineSnapshot.initial(self.authority, GPU_UUID)),  # noqa: F405
             evidence_trust=trust_store(authority=self.authority),  # noqa: F405
+            ledger_verifier=self.verifier(),
             clock_ns=state_clock,
         )
         fence = machine.claim_controller("controller-1")
@@ -711,7 +777,7 @@ class RollbackTraceTests(LedgerFixture):
             attempt_id="switch-attempt-1",
             target=MODEL_B,  # noqa: F405
             validator=VALIDATOR_B,  # noqa: F405
-            accepted_t0_ns=self.bridge.accepted_t0_ns,
+            acceptance_receipt=self.acceptance_receipt,
             drain_timeout_ns=1_000,
         )
         machine.advance_drain(fence, switch_id="switch-1")
@@ -742,9 +808,7 @@ class RollbackTraceTests(LedgerFixture):
             cleanup=no_cleanup(),  # noqa: F405
         )
         failure_receipt = self.bridge.failure_receipt()
-        validator_a = ValidatorRuntime(  # noqa: F405
-            VALIDATOR_A, validator_replay(MODEL_A), VALIDATOR_A_SOURCE
-        )
+        validator_a = ValidatorRuntime(VALIDATOR_A, VALIDATOR_A_SOURCE)  # noqa: F405
         recovery_path = self.root / "rollback-shared.jsonl"
         recovery_trace = make_trace(  # noqa: F405
             RAW_A_REQUEST_1,

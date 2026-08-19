@@ -74,6 +74,26 @@ class ContractEquivalenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "GPU release exact gates"):
             validate(contract, threat)
 
+    def test_acceptance_validator_and_receiver_occupancy_gates_are_exact(self) -> None:
+        mutations = [
+            ("request_acceptance", "constructor_verifier_required", False),
+            ("request_acceptance", "exact_request_accepted_first_event", False),
+            ("semantic", "source_derived_validator_execution", False),
+            ("semantic", "raw_false_response_rejected", False),
+            ("receiver_occupancy", "durable_before_dispatch", False),
+            (
+                "receiver_occupancy",
+                "key_fields",
+                ["gpu_uuid", "runtime_generation"],
+            ),
+        ]
+        for section, field, value in mutations:
+            with self.subTest(section=section, field=field):
+                contract, threat = inputs()
+                contract["proof_gates"][section][field] = value
+                with self.assertRaisesRegex(ContractError, "exact gate"):
+                    validate(contract, threat)
+
     def test_every_inv_ctl_tst_and_code_binding_is_exact(self) -> None:
         mutations = [
             ("DR-INV-01", "controls", ["CTL-10"]),

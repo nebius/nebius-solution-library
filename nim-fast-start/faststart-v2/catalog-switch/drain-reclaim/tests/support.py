@@ -58,16 +58,37 @@ CONTROLLER_KEY = b"controller-test-key-32-bytes!"
 SINK_KEY = b"offnode-sink-test-key-32bytes"
 MODEL_A = ModelRef("model-a", "1", "a" * 64)
 MODEL_B = ModelRef("model-b", "2", "b" * 64)
-VALIDATOR_A_SOURCE = b"validator-a-v1:canonical-json:model-a:1\n"
-VALIDATOR_B_SOURCE = b"validator-b-v1:canonical-json:model-b:2\n"
+
+
+def validator_source(model: ModelRef) -> bytes:
+    return (
+        json.dumps(
+            {
+                "kind": "strict-json-response-field",
+                "model_id": model.model_id,
+                "model_version": model.model_version,
+                "required_response_fields": ["model_id", "model_version", "valid"],
+                "schema": "archvteams.nebius.ai/catalog-switch-json-semantic-validator/v1",
+                "validity_field": "valid",
+                "validity_value": True,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    ).encode("ascii")
+
+
+VALIDATOR_A_SOURCE = validator_source(MODEL_A)
+VALIDATOR_B_SOURCE = validator_source(MODEL_B)
 VALIDATOR_A = ValidatorRef(
     "validator-a-v1",
-    "git://validators/a.py",
+    "artifact://validators/a.json",
     hashlib.sha256(VALIDATOR_A_SOURCE).hexdigest(),
 )
 VALIDATOR_B = ValidatorRef(
     "validator-b-v1",
-    "git://validators/b.py",
+    "artifact://validators/b.json",
     hashlib.sha256(VALIDATOR_B_SOURCE).hexdigest(),
 )
 
@@ -424,7 +445,7 @@ def acceptance_data(trace: dict) -> dict:
         "precondition": request["precondition"],
         "environment": {
             "backend": "node-vm",
-            "backend_version": "drain-reclaim-v2",
+            "backend_version": "drain-reclaim-v3",
             "provider": "local-test",
             "project_id": "local-test",
             "region": "local",
@@ -434,7 +455,7 @@ def acceptance_data(trace: dict) -> dict:
             "image_digest": None,
             "code_revision": "0" * 40,
             "config_sha256": "d" * 64,
-            "experiment_id": "drain-reclaim-v2-test",
+            "experiment_id": "drain-reclaim-v3-test",
         },
         "ownership": {
             "owner_task_id": "catalog-switch-drain-reclaim-state-machine",
@@ -465,16 +486,75 @@ def write_acceptance(
     )
 
 
-def validator_replay(model: ModelRef):
-    def replay(_request: bytes, response: bytes) -> dict:
-        value = json.loads(response)
-        return {
-            "model_id": value["model_id"],
-            "model_version": value["model_version"],
-            "semantically_valid": value.get("valid") is True and (value["model_id"], value["model_version"]) == (model.model_id, model.model_version),
-        }
+def exact_acceptance_gate(
+    root: Path,
+    *,
+    switch_id: str = "switch-1",
+    trace_id: str = "switch-trace-1",
+    request_id: str = "switch-request-1",
+    attempt_id: str = "switch-attempt-1",
+    target: ModelRef = MODEL_B,
+) -> tuple[object, object, object]:
+    """Build the real shared-ledger bridge/verifier gate for state tests."""
 
-    return replay
+    from ledger import (  # noqa: PLC0415 - prevents test-support import cycle
+        ExactLedgerReceiptVerifier,
+        FileOffNodeSink,
+        SwitchLedgerBridge,
+        ValidatorRuntime,
+    )
+
+    ledger_path = root / "shared.jsonl"
+    audit_path = root / "audit.jsonl"
+    evidence_root = root / "evidence"
+    raw_request = (
+        json.dumps(
+            {"attempt_id": attempt_id, "input": "external-switch-request"},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    ).encode("ascii")
+    trace = make_trace(
+        raw_request,
+        model=target,
+        trace_id=trace_id,
+        request_id=request_id,
+        attempt_id=attempt_id,
+    )
+    write_acceptance(ledger_path, trace)
+    source = validator_source(target)
+    validator_ref = VALIDATOR_B if target == MODEL_B else VALIDATOR_A
+    validator_runtime = ValidatorRuntime(validator_ref, source)
+    sink = FileOffNodeSink(
+        root / "offnode",
+        sink_id="offnode-test-sink",
+        key=SINK_KEY,
+    )
+    bridge = SwitchLedgerBridge(
+        path=ledger_path,
+        audit_path=audit_path,
+        evidence_root=evidence_root,
+        trace=trace,
+        ledger_id="drain-reclaim-ledger-1",
+        switch_id=switch_id,
+        request_id=request_id,
+        attempt_id=attempt_id,
+        recorder=recorder(),
+        validator_runtime=validator_runtime,
+        offnode_sink=sink,
+    )
+    receipt = bridge.acceptance_receipt()
+    verifier = ExactLedgerReceiptVerifier(
+        ledger_path=ledger_path,
+        audit_path=audit_path,
+        evidence_root=evidence_root,
+        trace=trace,
+        validator_runtimes={validator_ref.source_sha256: validator_runtime},
+        durability_keys={"offnode-test-sink": SINK_KEY},
+        allow_isolated_test_sink=True,
+    )
+    return receipt, verifier, bridge
 
 
 def clean_host_assertions(_runtime_uid: str) -> dict[str, bool]:

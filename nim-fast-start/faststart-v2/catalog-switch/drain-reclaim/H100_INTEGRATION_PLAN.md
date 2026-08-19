@@ -5,7 +5,7 @@ does not authorize an existing resource, does not claim that either run has
 occurred, and must be refreshed with exact immutable lease files immediately
 before live work.
 
-Both lanes are gated on fresh independent acceptance of the v2 state-machine
+Both lanes are gated on fresh independent acceptance of the v3 state-machine
 candidate and on task-owned pilot images/artifacts with pinned semantic
 validators. No live resource is created in this commit.
 
@@ -33,6 +33,10 @@ validators. No live resource is created in this commit.
   reclaim, capacity wait, node creation, image/artifact localization, launch,
   semantic calls, failures, rollback, accounting, and cleanup remain after T0
   and in the same causal record. No idle TTL hides reclaim.
+- Switch mutation gate: after T0, the bridge must mirror the exact acceptance,
+  append its acceptance terminal, persist that predecessor-hash segment to the
+  fresh immutable off-node authority, and pass its canonical receipt through
+  the mandatory verifier before `DRAINING_A`. A scalar timestamp is rejected.
 - Modal is excluded: no authentication, deployment, command, synthetic score,
   empirical rank, or provider adapter.
 
@@ -63,6 +67,10 @@ node agent over the authenticated task-local channel.
   carries the signed `CommandEnvelope`; the agent returns its source-bound
   `ActionReceipt` and independently refuses stale generation, replay, policy
   drift, or second occupancy.
+- Occupancy gate: the receiving agent must fsync GPU UUID, operation ID,
+  generation, reservation digest, and command digest before launch dispatch.
+  Submit a second distinct, correctly signed launch while the first remains
+  occupied; the second physical runner invocation count must remain zero.
 
 The controller must never run `/proc`, cgroup, container, or NVML checks on its
 own host. Those probes execute on the attested target node and return signed
@@ -107,6 +115,9 @@ after T0.
   signed node agent. The receiving agent enforces the operation/executable,
   artifact, and privilege allowlist before dispatch. Both paths return source-
   bound receipts.
+- Repeat the receiving-agent occupancy adversary through the Kubernetes
+  adapter: both envelopes and both exact-cluster preflights are valid, but only
+  the first launch command may reach the physical runner.
 
 Before the next independent request, `cleanup-attempt --execute` must prove the
 exact GPU node group and provider node absent and restore
@@ -129,13 +140,16 @@ accounting, and cleanup; no row is discarded. Run at least:
 7. cancellation during drain and during B startup;
 8. wrong-node authority (both lanes) and wrong kubeconfig/context/cluster UID/
    server CA/namespace/node UID (Kubernetes), all rejected;
-9. observed compute and graphics processes blocking release;
+9. observed compute and graphics processes blocking release; successful empty
+   and header-only `nvidia-smi pmon` output must also fail rather than prove
+   zero graphics contexts;
 10. partial cleanup or evidence write loss entering quarantine, then exact
     lease revocation, recycle/new resource, fresh boot, and requalification.
 
 Every accepted B and rollback-A recovery uses two distinct real model requests
 and two complete raw semantic responses. Call 2 starts strictly after call 1
-completes. The pinned validator is replayed from its exact source contract; a
+completes. Validator execution is derived from its exact pinned canonical
+source artifact, with no separately supplied callback; a
 health/readiness response, self-asserted boolean, duplicate body, altered
 validator, prior call, or restart is failure. Call 1 alone remains the product
 terminal.

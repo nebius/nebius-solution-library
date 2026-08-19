@@ -15,7 +15,8 @@
         "DrainReclaimStateMachine.accept_b",
         "DrainReclaimStateMachine.accept_rollback",
         "ExactLedgerReceiptVerifier.verify",
-        "ExactLedgerReceiptVerifier._verify_durability"
+        "ExactLedgerReceiptVerifier._verify_durability",
+        "ValidatorRuntime.validate"
       ],
       "controls": [
         "CTL-10",
@@ -25,6 +26,7 @@
         "test_exact_bridge_receipt_is_mandatory_for_admission",
         "test_semantic_response_loss_reuses_durable_intent_and_idempotency_key",
         "test_semantic_mismatch_missing_duplicate_reordered_and_prior_calls_reject",
+        "test_pinned_validator_artifact_rejects_raw_false_response",
         "test_validator_source_authority_tamper_rejects"
       ],
       "threat_tests": [
@@ -55,7 +57,8 @@
     "DR-INV-03": {
       "code": [
         "DrainReclaimStateMachine.record_reclaim",
-        "GpuReleaseProof.validate_for"
+        "GpuReleaseProof.validate_for",
+        "NvidiaSmiNvmlProbe.observe"
       ],
       "controls": [
         "CTL-04",
@@ -63,7 +66,8 @@
       ],
       "tests": [
         "test_exact_total_absence_before_scrub_and_zero_nvml_are_required",
-        "test_graphics_process_rejects_gpu_release"
+        "test_graphics_process_rejects_gpu_release",
+        "test_empty_and_header_only_pmon_are_not_zero_process_proofs"
       ],
       "threat_tests": [
         "TST-01",
@@ -72,14 +76,19 @@
     },
     "DR-INV-04": {
       "code": [
+        "DrainReclaimStateMachine.__init__",
         "DrainReclaimStateMachine.begin_switch",
-        "SwitchLedgerBridge.__init__"
+        "ExactLedgerReceiptVerifier.verify_acceptance",
+        "SwitchLedgerBridge.__init__",
+        "SwitchLedgerBridge.acceptance_receipt"
       ],
       "controls": [
         "CTL-10"
       ],
       "tests": [
-        "test_bridge_refuses_work_before_external_t0"
+        "test_begin_switch_rejects_fabricated_acceptance_without_state_change",
+        "test_bridge_refuses_work_before_external_t0",
+        "test_state_machine_requires_canonical_verifier_at_construction"
       ],
       "threat_tests": [
         "TST-12"
@@ -183,6 +192,7 @@
     "DR-INV-10": {
       "code": [
         "DrainReclaimStateMachine.begin_start_b",
+        "ActionJournal.load",
         "FencedActionExecutor.execute",
         "KubernetesActions.launch",
         "NodeLocalActions.launch"
@@ -194,7 +204,7 @@
       "tests": [
         "test_concurrent_duplicate_b_reserves_one_generation",
         "test_duplicate_launch_reservation_is_idempotent_and_conflict_rejects",
-        "test_node_local_and_kubernetes_action_adapters_refuse_second_occupancy",
+        "test_receiving_agent_refuses_second_valid_launch_before_physical_dispatch",
         "test_kubernetes_adapter_pins_kubeconfig_context_cluster_ca_namespace_node"
       ],
       "threat_tests": [
@@ -206,7 +216,7 @@
   "invariants": [
     {
       "id": "DR-INV-01",
-      "statement": "Admission is open only for one exact runtime after an exact bridge receipt proves two distinct, ordered, raw-evidence-backed semantic calls using the pinned validator source and an independently reread complete off-node durable chain segment."
+      "statement": "Admission is open only for one exact runtime after an exact bridge receipt proves two distinct, ordered, raw-evidence-backed semantic calls executed by the canonical validator derived from the pinned source artifact and an independently reread complete off-node durable chain segment."
     },
     {
       "id": "DR-INV-02",
@@ -218,7 +228,7 @@
     },
     {
       "id": "DR-INV-04",
-      "statement": "The target switch begins only after the shared external-client T0 and every request-specific event remains causally after that immutable acceptance event."
+      "statement": "The target switch begins only after a mandatory canonical verifier reconstructs an exact request.accepted receipt from the pinned trace, shared ledger, predecessor-hash audit, and off-node durable segment; every request-specific event remains causally after that immutable external-client T0."
     },
     {
       "id": "DR-INV-05",
@@ -242,14 +252,15 @@
     },
     {
       "id": "DR-INV-10",
-      "statement": "Exact duplicate reservations and commands are idempotent, conflicting retries are rejected, and both node-local and exact-cluster Kubernetes agents independently refuse double occupancy before physical launch."
+      "statement": "Exact duplicate reservations and commands are idempotent, conflicting retries are rejected, and both node-local and exact-cluster Kubernetes receiving agents fsync GPU/operation/generation occupancy before dispatch and refuse a second valid launch before its physical runner."
     }
   ],
   "ledger": {
     "audit_event_schema": "archvteams.nebius.ai/catalog-switch-audit-event/v1",
+    "acceptance_gate_receipt_schema": "archvteams.nebius.ai/catalog-switch-request-acceptance-gate/v1",
     "boundary": "external-client-request-accepted/v1",
     "failure_terminal": "attempt.failed",
-    "gate_receipt_schema": "archvteams.nebius.ai/catalog-switch-ledger-gate/v2",
+    "gate_receipt_schema": "archvteams.nebius.ai/catalog-switch-ledger-gate/v3",
     "offnode_receipt_schema": "archvteams.nebius.ai/catalog-switch-offnode-durability/v1",
     "immutable_object_exact_version_reread_required": true,
     "predecessor_hash_required": true,
@@ -258,6 +269,13 @@
     "success_terminal": "first-complete-semantically-valid-response/v1"
   },
   "proof_gates": {
+    "request_acceptance": {
+      "constructor_verifier_required": true,
+      "exact_request_accepted_first_event": true,
+      "offnode_durable_predecessor_hash_segment": true,
+      "receipt_schema": "archvteams.nebius.ai/catalog-switch-request-acceptance-gate/v1",
+      "switch_attempt_target_bound": true
+    },
     "gpu_release": {
       "active_scrub_methods": [
         "full-vram-zero",
@@ -320,14 +338,26 @@
       "distinct_raw_request_bodies": true,
       "distinct_raw_response_bodies": true,
       "durable_idempotent_intents": true,
-      "exact_validator_replay": true,
+      "source_derived_validator_execution": true,
       "exact_validator_source_authority": true,
+      "raw_false_response_rejected": true,
       "no_prior_call_or_restart": true,
       "raw_authority_hash_and_bytes": true,
       "strict_call_order": true
+    },
+    "receiver_occupancy": {
+      "durable_before_dispatch": true,
+      "key_fields": [
+        "gpu_uuid",
+        "operation_id",
+        "runtime_generation",
+        "reservation_sha256"
+      ],
+      "node_local_and_kubernetes": true,
+      "second_valid_launch_refused_before_runner": true
     }
   },
-  "schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v2",
+  "schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v3",
   "source_contracts": {
     "request_slo_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
     "request_slo_path": "performance/request_slo",
@@ -356,7 +386,7 @@
       "TST-17"
     ]
   },
-  "state_schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v2",
+  "state_schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v3",
   "states": [
     {"admission": "closed", "name": "IDLE", "runtime": "absent"},
     {"admission": "open", "name": "SERVING_A", "runtime": "exactly-one-bootstrap-or-ledger-qualified"},
@@ -395,5 +425,5 @@
     "reject_reclaim_proof": {"from": ["RECLAIMING_A", "RECLAIMING_B"], "to": ["QUARANTINED"]},
     "seal_switch": {"from": ["SERVING_B", "ROLLBACK_SERVING"], "to": ["SERVING_A"]}
   },
-  "version": 2
+  "version": 3
 }

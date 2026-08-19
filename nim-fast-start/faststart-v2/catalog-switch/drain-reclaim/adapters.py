@@ -224,16 +224,37 @@ class CommandAdmissionPolicy:
             return
         options = cls._options(argv)
         allowed_sets = {
-            "stop-runtime": [{"--runtime-uid", "--pid", "--start-ticks"}],
-            "cleanup-launch-operation": [
-                {"--operation-id", "--generation"},
-                {"--operation-id", "--generation", "--cluster-uid", "--namespace"},
+            "stop-runtime": [
+                {
+                    "--runtime-uid",
+                    "--operation-id",
+                    "--generation",
+                    "--gpu-uuid",
+                    "--pid",
+                    "--start-ticks",
+                }
             ],
-            "launch-runtime": [
-                {"--operation-id", "--generation", "--artifact-sha256"},
+            "cleanup-launch-operation": [
+                {"--operation-id", "--generation", "--gpu-uuid"},
                 {
                     "--operation-id",
                     "--generation",
+                    "--gpu-uuid",
+                    "--cluster-uid",
+                    "--namespace",
+                },
+            ],
+            "launch-runtime": [
+                {
+                    "--operation-id",
+                    "--generation",
+                    "--gpu-uuid",
+                    "--artifact-sha256",
+                },
+                {
+                    "--operation-id",
+                    "--generation",
+                    "--gpu-uuid",
                     "--artifact-sha256",
                     "--cluster-uid",
                     "--namespace",
@@ -310,15 +331,46 @@ class ActionJournal:
 
     def load(self) -> dict[str, Any]:
         if not self.path.exists():
-            return {"last_sequence": -1, "operations": {}, "receipts": {}}
+            return {
+                "last_sequence": -1,
+                "operations": {},
+                "receipts": {},
+                "occupancy": {},
+            }
         if self.path.is_symlink() or not self.path.is_file():
             raise ProofRejected("action journal path is unsafe")
         raw = self.path.read_text(encoding="ascii")
         value = json.loads(raw)
         if raw != canonical_json(value) + "\n":
             raise ProofRejected("action journal is not canonical")
-        if set(value) != {"last_sequence", "operations", "receipts"}:
+        if set(value) != {
+            "last_sequence",
+            "operations",
+            "receipts",
+            "occupancy",
+        }:
             raise ProofRejected("action journal shape differs")
+        if not isinstance(value["occupancy"], dict):
+            raise ProofRejected("action journal occupancy shape differs")
+        expected_occupancy = {
+            "gpu_uuid",
+            "operation_id",
+            "runtime_generation",
+            "reservation_sha256",
+            "command_envelope_sha256",
+            "idempotency_key",
+            "state",
+        }
+        for gpu_uuid, occupant in value["occupancy"].items():
+            if (
+                not isinstance(occupant, dict)
+                or set(occupant) != expected_occupancy
+                or occupant.get("gpu_uuid") != gpu_uuid
+                or occupant.get("state") not in {"launching", "occupied", "ambiguous"}
+                or not isinstance(occupant.get("runtime_generation"), int)
+                or occupant["runtime_generation"] < 1
+            ):
+                raise ProofRejected("action journal occupancy record differs")
         return value
 
     def store(self, value: dict[str, Any]) -> None:
@@ -419,6 +471,64 @@ class FencedActionExecutor:
             )
         if envelope.command_sequence <= journal["last_sequence"]:
             raise ProofRejected("non-monotonic command sequence was refused")
+        options: dict[str, str] = {}
+        if len(argv) >= 2 and argv[1] in {
+            "launch",
+            "cleanup-operation",
+            "stop",
+            "scrub-gpu",
+        }:
+            options = self.admission_policy._options(argv)
+        gpu_uuid = options.get("--gpu-uuid")
+        occupant = journal["occupancy"].get(gpu_uuid) if gpu_uuid else None
+        generation: int | None = None
+        if "--generation" in options:
+            try:
+                generation = int(options["--generation"])
+            except ValueError as exc:
+                raise ProofRejected("command occupancy generation is malformed") from exc
+            if generation < 1:
+                raise ProofRejected("command occupancy generation is invalid")
+        if envelope.operation == "launch-runtime":
+            if gpu_uuid is None:
+                raise ProofRejected("launch command omits its exact GPU occupancy key")
+            if occupant is not None:
+                raise ProofRejected(
+                    "receiving agent refused launch: GPU already has durable occupancy"
+                )
+            if generation is None:
+                raise ProofRejected("launch occupancy generation is missing")
+            occupant = {
+                "gpu_uuid": gpu_uuid,
+                "operation_id": options["--operation-id"],
+                "runtime_generation": generation,
+                "reservation_sha256": envelope.subject_sha256,
+                "command_envelope_sha256": envelope.digest,
+                "idempotency_key": envelope.idempotency_key,
+                "state": "launching",
+            }
+            journal["occupancy"][gpu_uuid] = occupant
+        elif envelope.operation == "cleanup-launch-operation":
+            if gpu_uuid is None:
+                raise ProofRejected("cleanup command omits its exact GPU occupancy key")
+            if occupant is not None and (
+                occupant["operation_id"] != options.get("--operation-id")
+                or occupant["runtime_generation"] != generation
+            ):
+                raise ProofRejected("cleanup command targets a different GPU occupant")
+        elif envelope.operation == "stop-runtime" and gpu_uuid is not None:
+            if occupant is not None and (
+                occupant["operation_id"] != options.get("--operation-id")
+                or occupant["runtime_generation"] != generation
+            ):
+                raise ProofRejected("stop command targets a different GPU occupant")
+        elif envelope.operation == "stop-runtime" and self.authority.backend == "kubernetes":
+            if len(journal["occupancy"]) > 1:
+                raise ProofRejected("Kubernetes stop found impossible multi-occupancy")
+            if journal["occupancy"]:
+                gpu_uuid, occupant = next(iter(journal["occupancy"].items()))
+        elif envelope.operation == "scrub-gpu" and occupant is not None:
+            raise ProofRejected("GPU scrub refused while durable occupancy exists")
         started = self.clock_ns()
         journal["last_sequence"] = envelope.command_sequence
         journal["operations"][envelope.idempotency_key] = {
@@ -432,6 +542,8 @@ class FencedActionExecutor:
         result = self.runner.run(argv)
         finished = self.clock_ns()
         if result.returncode != 0:
+            if envelope.operation == "launch-runtime" and occupant is not None:
+                occupant["state"] = "ambiguous"
             journal["operations"][envelope.idempotency_key] = {
                 "command_envelope_sha256": envelope.digest,
                 "state": "failed",
@@ -488,6 +600,11 @@ class FencedActionExecutor:
             "started_at_ns": started,
             "finished_at_ns": finished,
         }
+        if envelope.operation == "launch-runtime" and occupant is not None:
+            occupant["state"] = "occupied"
+        elif envelope.operation in {"cleanup-launch-operation", "stop-runtime"}:
+            if gpu_uuid is not None and occupant is not None:
+                journal["occupancy"].pop(gpu_uuid)
         journal["receipts"][envelope.idempotency_key] = asdict(receipt)
         self.journal.store(journal)
         return receipt
@@ -531,7 +648,22 @@ class NodeLocalActions:
             subject_sha256=runtime.digest,
             authority=self.executor.authority,
         )
-        argv = (self.agent_executable, "stop", "--runtime-uid", runtime.runtime_uid, "--pid", str(runtime.host_pid), "--start-ticks", str(runtime.process_start_ticks))
+        argv = (
+            self.agent_executable,
+            "stop",
+            "--runtime-uid",
+            runtime.runtime_uid,
+            "--operation-id",
+            runtime.launch_operation_id,
+            "--generation",
+            str(runtime.runtime_generation),
+            "--gpu-uuid",
+            runtime.gpu_uuid,
+            "--pid",
+            str(runtime.host_pid),
+            "--start-ticks",
+            str(runtime.process_start_ticks),
+        )
         return self.executor.execute(envelope, argv)
 
     def cleanup_launch(self, envelope: CommandEnvelope, reservation: LaunchReservation) -> ActionReceipt:
@@ -546,7 +678,16 @@ class NodeLocalActions:
             subject_sha256=reservation.digest,
             authority=self.executor.authority,
         )
-        argv = (self.agent_executable, "cleanup-operation", "--operation-id", reservation.operation_id, "--generation", str(reservation.runtime_generation))
+        argv = (
+            self.agent_executable,
+            "cleanup-operation",
+            "--operation-id",
+            reservation.operation_id,
+            "--generation",
+            str(reservation.runtime_generation),
+            "--gpu-uuid",
+            reservation.gpu_uuid,
+        )
         return self.executor.execute(envelope, argv)
 
     def launch(self, envelope: CommandEnvelope, reservation: LaunchReservation) -> ActionReceipt:
@@ -563,7 +704,18 @@ class NodeLocalActions:
             subject_sha256=reservation.digest,
             authority=self.executor.authority,
         )
-        argv = (self.agent_executable, "launch", "--operation-id", reservation.operation_id, "--generation", str(reservation.runtime_generation), "--artifact-sha256", reservation.model.artifact_sha256)
+        argv = (
+            self.agent_executable,
+            "launch",
+            "--operation-id",
+            reservation.operation_id,
+            "--generation",
+            str(reservation.runtime_generation),
+            "--gpu-uuid",
+            reservation.gpu_uuid,
+            "--artifact-sha256",
+            reservation.model.artifact_sha256,
+        )
         return self.executor.execute(envelope, argv)
 
     def revoke_placement(self, envelope: CommandEnvelope) -> ActionReceipt:
@@ -661,6 +813,8 @@ class KubernetesActions:
             reservation.operation_id,
             "--generation",
             str(reservation.runtime_generation),
+            "--gpu-uuid",
+            reservation.gpu_uuid,
             "--cluster-uid",
             str(self.executor.authority.cluster_uid),
             "--namespace",
@@ -690,6 +844,8 @@ class KubernetesActions:
             reservation.operation_id,
             "--generation",
             str(reservation.runtime_generation),
+            "--gpu-uuid",
+            reservation.gpu_uuid,
             "--artifact-sha256",
             reservation.model.artifact_sha256,
             "--cluster-uid",
@@ -1303,24 +1459,44 @@ class NvidiaSmiNvmlProbe:
             raise ProofRejected("NVML pmon compute/graphics query failed closed")
         compute: list[int] = []
         graphics: list[int] = []
+        graphics_column_observed = False
+        target_sample_observed = False
         for line in pmon.stdout.splitlines():
             stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
+            if not stripped:
+                continue
+            if stripped.startswith("#"):
+                header = stripped.removeprefix("#").strip().lower().split()
+                if len(header) >= 3 and header[:3] == ["gpu", "pid", "type"]:
+                    graphics_column_observed = True
                 continue
             fields = stripped.split()
-            if len(fields) < 3 or fields[0] == "-":
-                continue
+            if len(fields) < 3:
+                raise ProofRejected("NVML pmon row is malformed")
             try:
-                index, pid = int(fields[0]), int(fields[1])
+                index = int(fields[0])
             except ValueError as exc:
                 raise ProofRejected("NVML pmon row is malformed") from exc
             if index != gpu_index:
                 continue
+            target_sample_observed = True
             kind = fields[2].upper()
+            if fields[1] == "-" and kind == "-":
+                continue
+            try:
+                pid = int(fields[1])
+            except ValueError as exc:
+                raise ProofRejected("NVML pmon target PID is malformed") from exc
+            if pid < 1 or not kind or any(value not in {"C", "G", "+"} for value in kind):
+                raise ProofRejected("NVML pmon target process type is malformed")
             if "C" in kind:
                 compute.append(pid)
             if "G" in kind:
                 graphics.append(pid)
+        if not graphics_column_observed or not target_sample_observed:
+            raise ProofRejected(
+                "NVML pmon lacks a parseable target-GPU sample with graphics type"
+            )
         observation = NvmlObservation(
             self.clock_ns(),
             gpu_uuid,

@@ -16,7 +16,7 @@ import json
 import os
 import tempfile
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Protocol
 
@@ -31,17 +31,23 @@ from performance.request_slo.harness import (
     load_ledger,
     validate_ledger,
     validate_trace,
+    _validate_acceptance_data as validate_acceptance_data,
+    _validate_event_shape as validate_event_shape,
 )
 from state_machine import (
+    ACCEPTANCE_GATE_SCHEMA,
     LEDGER_GATE_SCHEMA,
+    AcceptanceExpectation,
     LedgerExpectation,
     LedgerGateReceipt,
     LedgerStage,
     LaunchReservation,
     ProofRejected,
+    RequestAcceptanceReceipt,
     RuntimeIdentity,
     ValidatorRef,
     VerifiedLedgerGate,
+    VerifiedRequestAcceptance,
     canonical_json,
     canonical_sha256,
     key_sha256,
@@ -52,6 +58,9 @@ from state_machine import (
 AUDIT_EVENT_SCHEMA = "archvteams.nebius.ai/catalog-switch-audit-event/v1"
 OFFNODE_RECEIPT_SCHEMA = "archvteams.nebius.ai/catalog-switch-offnode-durability/v1"
 VALIDATOR_OUTPUT_KEYS = {"model_id", "model_version", "semantically_valid"}
+VALIDATOR_SPEC_SCHEMA = (
+    "archvteams.nebius.ai/catalog-switch-json-semantic-validator/v1"
+)
 
 
 def _atomic_write(path: Path, content: bytes) -> None:
@@ -260,8 +269,8 @@ class EvidenceBlobStore:
 @dataclass(frozen=True)
 class ValidatorRuntime:
     contract: ValidatorRef
-    replay: Callable[[bytes, bytes], dict[str, Any]]
     source_bytes: bytes
+    _spec: dict[str, Any] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self.contract.validate()
@@ -269,15 +278,78 @@ class ValidatorRuntime:
             raise ValueError("validator executable source cannot be empty")
         if hashlib.sha256(self.source_bytes).hexdigest() != self.contract.source_sha256:
             raise ValueError("validator executable source differs from pinned contract")
+        try:
+            decoded = self.source_bytes.decode("utf-8")
+            spec = json.loads(
+                decoded,
+                object_pairs_hook=self._reject_duplicate_pairs,
+            )
+        except (UnicodeDecodeError, ValueError, TypeError) as exc:
+            raise ValueError("validator source is not a strict JSON artifact") from exc
+        expected_keys = {
+            "schema",
+            "kind",
+            "model_id",
+            "model_version",
+            "required_response_fields",
+            "validity_field",
+            "validity_value",
+        }
+        if (
+            not isinstance(spec, dict)
+            or set(spec) != expected_keys
+            or spec["schema"] != VALIDATOR_SPEC_SCHEMA
+            or spec["kind"] != "strict-json-response-field"
+            or spec["required_response_fields"]
+            != ["model_id", "model_version", "valid"]
+            or spec["validity_field"] != "valid"
+            or spec["validity_value"] is not True
+            or not isinstance(spec["model_id"], str)
+            or not isinstance(spec["model_version"], str)
+            or decoded != canonical_json(spec) + "\n"
+        ):
+            raise ValueError("validator source artifact semantics/canonical bytes differ")
+        object.__setattr__(self, "_spec", spec)
+
+    @staticmethod
+    def _reject_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError(f"duplicate JSON key: {key}")
+            value[key] = item
+        return value
+
+    @classmethod
+    def _strict_object(cls, content: bytes, label: str) -> dict[str, Any]:
+        try:
+            value = json.loads(
+                content.decode("utf-8"),
+                object_pairs_hook=cls._reject_duplicate_pairs,
+            )
+        except (UnicodeDecodeError, ValueError, TypeError) as exc:
+            raise ProofRejected(f"{label} is not strict JSON") from exc
+        if not isinstance(value, dict):
+            raise ProofRejected(f"{label} is not a JSON object")
+        return value
 
     def validate(self, request: bytes, response: bytes) -> bytes:
-        result = self.replay(request, response)
-        if not isinstance(result, dict) or set(result) != VALIDATOR_OUTPUT_KEYS:
-            raise ProofRejected("validator replay output shape differs")
-        if result["semantically_valid"] is not True:
+        self._strict_object(request, "semantic request")
+        value = self._strict_object(response, "semantic response")
+        if any(field not in value for field in self._spec["required_response_fields"]):
+            raise ProofRejected("semantic response omits validator-required fields")
+        if (
+            value["model_id"] != self._spec["model_id"]
+            or value["model_version"] != self._spec["model_version"]
+        ):
+            raise ProofRejected("semantic response model differs from validator artifact")
+        if value[self._spec["validity_field"]] is not self._spec["validity_value"]:
             raise ProofRejected("validator rejected semantic response")
-        if (result["model_id"], result["model_version"]) == (None, None):
-            raise ProofRejected("validator did not identify a model")
+        result = {
+            "model_id": self._spec["model_id"],
+            "model_version": self._spec["model_version"],
+            "semantically_valid": True,
+        }
         return canonical_json(result).encode("ascii") + b"\n"
 
 
@@ -528,6 +600,60 @@ class SwitchLedgerBridge:
     @property
     def accepted_t0_ns(self) -> int:
         return int(self._accepted_event()["observed_monotonic_ns"])
+
+    def acceptance_receipt(self) -> RequestAcceptanceReceipt:
+        """Seal exact request.accepted evidence before any switch-side work."""
+
+        accepted = self._accepted_event()
+        trace_request_sha256 = harness_canonical_sha256(self.trace_request)
+        accepted_event_sha256 = harness_canonical_sha256(accepted)
+        target = self.trace_request["target"]
+        self.audit.append(
+            event_id=f"request-acceptance-terminal:{self.attempt_id}",
+            event_type="request.acceptance.terminal",
+            switch_id=self.switch_id,
+            trace_id=self.trace["trace_id"],
+            request_id=self.request_id,
+            attempt_id=self.attempt_id,
+            payload={
+                "accepted_t0_ns": self.accepted_t0_ns,
+                "trace_request_sha256": trace_request_sha256,
+                "accepted_event_sha256": accepted_event_sha256,
+                "target": target,
+            },
+        )
+        events = self.audit.load()
+        durability = self.offnode_sink.persist(
+            switch_id=self.switch_id, events=events
+        )
+        durability_digest = self.durability.put(durability)
+        audit_bytes = b"".join(
+            (canonical_json(event) + "\n").encode("ascii") for event in events
+        )
+        payload = {
+            "schema": ACCEPTANCE_GATE_SCHEMA,
+            "switch_id": self.switch_id,
+            "trace_id": self.trace["trace_id"],
+            "request_id": self.request_id,
+            "attempt_id": self.attempt_id,
+            "accepted_t0_ns": self.accepted_t0_ns,
+            "trace_request_sha256": trace_request_sha256,
+            "accepted_event_sha256": accepted_event_sha256,
+            "model_id": target["model_id"],
+            "model_version": target["model_version"],
+            "artifact_sha256": target["artifact_sha256"],
+            "shared_ledger_sha256": file_sha256(self.path),
+            "audit_segment_sha256": hashlib.sha256(audit_bytes).hexdigest(),
+            "audit_sequence_start": 0,
+            "audit_sequence_end": len(events) - 1,
+            "audit_chain_head_sha256": events[-1]["record_sha256"],
+            "offnode_durability_receipt_sha256": durability_digest,
+        }
+        receipt = RequestAcceptanceReceipt(
+            **payload, receipt_sha256=canonical_sha256(payload)
+        )
+        receipt.validate_self()
+        return receipt
 
     def _all_events(self) -> list[dict[str, Any]]:
         events = load_ledger(self.path)
@@ -1856,6 +1982,157 @@ class ExactLedgerReceiptVerifier:
             )
             if stored != content:
                 raise ProofRejected("immutable off-node stored bytes differ")
+
+    def verify_acceptance(
+        self,
+        receipt: RequestAcceptanceReceipt,
+        expectation: AcceptanceExpectation,
+    ) -> VerifiedRequestAcceptance:
+        """Reconstruct external T0 from the pinned trace, ledger, and audit bytes."""
+
+        receipt.validate_self()
+        expectation.target.validate()
+        expected = (
+            expectation.switch_id,
+            expectation.trace_id,
+            expectation.request_id,
+            expectation.attempt_id,
+            expectation.target.model_id,
+            expectation.target.model_version,
+            expectation.target.artifact_sha256,
+        )
+        actual = (
+            receipt.switch_id,
+            receipt.trace_id,
+            receipt.request_id,
+            receipt.attempt_id,
+            receipt.model_id,
+            receipt.model_version,
+            receipt.artifact_sha256,
+        )
+        if actual != expected or receipt.trace_id != self.trace["trace_id"]:
+            raise ProofRejected("request acceptance receipt identity/target differs")
+        if file_sha256(self.ledger_path) != receipt.shared_ledger_sha256:
+            raise ProofRejected("request acceptance shared ledger bytes differ")
+        shared_events = load_ledger(self.ledger_path)
+        if len(shared_events) != 1:
+            raise ProofRejected(
+                "request acceptance receipt must precede all request-specific work"
+            )
+        validate_event_shape(shared_events[0], 1)
+        attempt_events = [
+            event
+            for event in shared_events
+            if event["request_id"] == expectation.request_id
+            and event["attempt_id"] == expectation.attempt_id
+        ]
+        accepted = [
+            event
+            for event in attempt_events
+            if event["event_type"] == "request.accepted"
+        ]
+        trace_requests = [
+            item
+            for item in self.trace["requests"]
+            if item["request_id"] == expectation.request_id
+            and item["attempt_id"] == expectation.attempt_id
+        ]
+        if (
+            len(accepted) != 1
+            or not attempt_events
+            or attempt_events[0] != accepted[0]
+            or accepted[0]["data"].get("boundary") != T0_BOUNDARY
+            or accepted[0]["observed_monotonic_ns"] != receipt.accepted_t0_ns
+            or len(trace_requests) != 1
+        ):
+            raise ProofRejected("receipt lacks exact first external request.accepted")
+        trace_request = trace_requests[0]
+        validate_acceptance_data(accepted[0]["data"], trace_request)
+        trace_request_sha256 = harness_canonical_sha256(trace_request)
+        accepted_event_sha256 = harness_canonical_sha256(accepted[0])
+        if (
+            accepted[0]["data"].get("trace_request_sha256")
+            != trace_request_sha256
+            or receipt.trace_request_sha256 != trace_request_sha256
+            or receipt.accepted_event_sha256 != accepted_event_sha256
+            or (
+                trace_request["target"]["model_id"],
+                trace_request["target"]["model_version"],
+                trace_request["target"]["artifact_sha256"],
+            )
+            != (
+                expectation.target.model_id,
+                expectation.target.model_version,
+                expectation.target.artifact_sha256,
+            )
+        ):
+            raise ProofRejected("external T0 trace/event/target binding differs")
+        audit_events = AuditChainStore(self.audit_path).load()
+        if not audit_events or receipt.audit_sequence_end >= len(audit_events):
+            raise ProofRejected("request acceptance audit segment is incomplete")
+        segment = audit_events[: receipt.audit_sequence_end + 1]
+        if len(segment) != 2:
+            raise ProofRejected(
+                "request acceptance audit must contain only mirror then terminal"
+            )
+        content = b"".join(
+            (canonical_json(event) + "\n").encode("ascii") for event in segment
+        )
+        if (
+            receipt.audit_sequence_start != 0
+            or receipt.audit_segment_sha256 != hashlib.sha256(content).hexdigest()
+            or receipt.audit_chain_head_sha256 != segment[-1]["record_sha256"]
+        ):
+            raise ProofRejected("request acceptance audit receipt differs")
+        self._verify_durability(
+            receipt.offnode_durability_receipt_sha256, segment
+        )
+        mirrors = [
+            event
+            for event in segment
+            if event["event_type"] == "shared.event"
+            and event["trace_id"] == expectation.trace_id
+            and event["request_id"] == expectation.request_id
+            and event["attempt_id"] == expectation.attempt_id
+        ]
+        if len(mirrors) != len(attempt_events):
+            raise ProofRejected("request acceptance audit has a shared-ledger gap")
+        for shared, mirror in zip(attempt_events, mirrors, strict=True):
+            if (
+                mirror["payload"].get("event") != shared
+                or mirror["payload"].get("event_sha256")
+                != harness_canonical_sha256(shared)
+            ):
+                raise ProofRejected("request acceptance shared mirror differs/reordered")
+        terminals = [
+            event
+            for event in segment
+            if event["event_type"] == "request.acceptance.terminal"
+            and event["switch_id"] == expectation.switch_id
+            and event["trace_id"] == expectation.trace_id
+            and event["request_id"] == expectation.request_id
+            and event["attempt_id"] == expectation.attempt_id
+        ]
+        expected_payload = {
+            "accepted_t0_ns": receipt.accepted_t0_ns,
+            "trace_request_sha256": trace_request_sha256,
+            "accepted_event_sha256": accepted_event_sha256,
+            "target": trace_request["target"],
+        }
+        if (
+            len(terminals) != 1
+            or segment[0] not in mirrors
+            or segment[1] != terminals[0]
+            or terminals[0]["payload"] != expected_payload
+        ):
+            raise ProofRejected("request acceptance terminal is missing or differs")
+        return VerifiedRequestAcceptance(
+            receipt_sha256=receipt.receipt_sha256,
+            accepted_t0_ns=receipt.accepted_t0_ns,
+            trace_request_sha256=trace_request_sha256,
+            accepted_event_sha256=accepted_event_sha256,
+            audit_chain_head_sha256=receipt.audit_chain_head_sha256,
+        )
 
     def verify(
         self, receipt: LedgerGateReceipt, expectation: LedgerExpectation

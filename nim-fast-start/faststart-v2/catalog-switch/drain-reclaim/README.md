@@ -1,4 +1,4 @@
-# Generation-fenced A-to-B drain and GPU reclaim v2
+# Generation-fenced A-to-B drain and GPU reclaim v3
 
 This directory contains the backend-neutral reference implementation for
 switching one exclusively occupied GPU from model A to model B. It consumes the
@@ -11,13 +11,14 @@ authenticate to, deploy, run, benchmark, simulate, rank, or implement an
 adapter for Modal. Cerebrium is the parent program's sole external measured
 comparator and is not an adapter in this package.
 
-The previous v1 candidate at `34d70fd0` is rejected. Version 2 is a direct-child
-replacement and remains `independent-review-required`; passing its own tests is
-not approval or live H100 evidence.
+The v1 candidate at `34d70fd0` and v2 candidate at `6c2c06d` are rejected.
+Version 3 is a fresh direct-child replacement of `6c2c06d` and remains
+`independent-review-required`; passing its own tests is not approval or live
+H100 evidence.
 
 ## Delivered interfaces
 
-- `contract.json` freezes the v2 states, transitions, ten exact invariants,
+- `contract.json` freezes the v3 states, transitions, ten exact invariants,
   proof gates, prerequisite commit/tree/content hashes, resolved control/test
   bindings, and the backend scope.
 - `state_machine.py` implements durable compare-and-swap state, controller and
@@ -27,7 +28,8 @@ not approval or live H100 evidence.
   post-transition snapshot.
 - `ledger.py` bridges the shared request ledger to an append-only predecessor-
   hash audit chain. It stores exact raw request, raw response, and validator
-  output authorities, replays the pinned validator, retains failure/accounting/
+  output authorities, executes validator behavior derived only from the pinned
+  canonical source artifact, retains failure/accounting/
   cleanup events idempotently, persists the complete segment off-node, and
   issues the only receipts accepted by the state machine.
 - `adapters.py` implements fenced action producers and independent evidence
@@ -35,7 +37,10 @@ not approval or live H100 evidence.
   bound to controller lease, generation, sequence, operation ID, idempotency
   key, exact runtime authority, policy hash, and source digest. The receiving
   agent independently enforces the operation/executable, artifact, and
-  privilege allowlist; a valid signature alone never authorizes a command.
+  privilege allowlist; a valid signature alone never authorizes a command. Its
+  fsynced receiving-agent journal reserves GPU/operation/generation occupancy
+  before launch dispatch and blocks a second valid launch independently of the
+  physical runner.
 - `validate_contract.py` verifies contract-to-code/test equivalence and the
   exact prerequisite commit, Git tree, and content-manifest hashes. Nonempty
   prose is never treated as proof of an invariant.
@@ -71,8 +76,12 @@ canonical receipt again; it cannot accept caller-supplied terminal hashes.
 
 ## Exact reclaim and launch rules
 
-Admission closes atomically with `begin_switch()`. Existing A leases may finish
-only while `DRAINING_A`; new A leases cannot enter. A lease that crosses its
+Admission closes atomically with `begin_switch()` only after the mandatory
+constructor-bound canonical verifier has reconstructed an exact
+`request.accepted` receipt from the pinned trace, shared ledger, audit chain,
+and off-node durable segment. A scalar T0 or optional verifier cannot enter
+`DRAINING_A`. Existing A leases may finish only while `DRAINING_A`; new A
+leases cannot enter. A lease that crosses its
 deadline is atomically persisted as `TIMED_OUT` before `ResponseTimedOut` is
 reported. Its generation is retired, so a late response cannot escape.
 
@@ -108,13 +117,19 @@ authority, node UID, and boot ID. Kubernetes evidence additionally binds an
 absolute kubeconfig hash, an absolute non-symlink `kubectl` executable and its
 content hash, context, API server URL, server-CA hash, cluster UID, namespace,
 node UID, Pod UID, and container ID. `nvidia-smi pmon` supplies observed
-graphics contexts; the implementation never hard-codes an empty graphics-
+graphics contexts; successful exit with empty or header-only output fails.
+Zero processes require both a parseable `gpu pid type` header and an exact
+target-GPU sample, so the implementation never hard-codes an empty graphics-
 process set.
 
 ## Canonical semantic and durability gate
 
 The external client must durably append `request.accepted` before bridge or
-state-machine switch work begins. The bridge mirrors every shared event into a
+state-machine switch work begins. The bridge emits a dedicated acceptance
+receipt only after mirroring that exact first event, appending its acceptance
+terminal, and persisting the complete predecessor-hash segment off-node. The
+state machine stores the receipt, trace-request, accepted-event, and audit-head
+digests in the transition-bound snapshot. The bridge mirrors every shared event into a
 contiguous append-only chain whose event binds its sequence, predecessor hash,
 switch/attempt/generation, monotonic time, and canonical payload.
 
@@ -128,9 +143,10 @@ the exact model, artifact, runtime identity, launch operation, generation,
 attempt, validator source/hash, and terminal. A completed retry returns the
 durable call without invoking the runtime again; response loss reuses the same
 intent key. Call 2 must start strictly after call 1 completes. The verifier
-reloads the immutable blobs and replays the
-pinned validator; a self-asserted boolean or `SemanticProbe` object has no
-admission path.
+reloads the immutable blobs and executes the validator semantics derived from
+the exact pinned canonical artifact. No separately supplied callback exists;
+a raw response containing `valid:false`, a self-asserted boolean, or a
+`SemanticProbe` object has no admission path.
 
 The first valid target response remains the product terminal and retains its
 true timestamp. Call 2 is an admission qualification and never moves T0 or the
@@ -176,12 +192,16 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v \
   catalog-switch/drain-reclaim/tests
 ```
 
-The direct tests exercise fabricated ledger hashes, altered validator source,
+The direct tests exercise fabricated acceptance and terminal ledger hashes,
+missing mandatory verifier construction, altered validator source, raw
+`valid:false` responses,
 missing/duplicate/reordered/prior semantic calls, crash/retry closure, timeout
 persistence, launch response loss, partial B cleanup, linked rollback,
 transition-detail tampering, wrong cluster/context/CA/namespace/node/boot,
 wrong node-agent authority, stale-controller side effects, command replay,
-second occupancy, graphics processes, incomplete/full-size scrub, and full
+two valid node-local and Kubernetes launches against a runner that would accept
+both, empty/header-only graphics evidence, graphics processes,
+incomplete/full-size scrub, and full
 quarantine recovery. The prerequisite request-SLO and security suites must also
 remain green.
 
