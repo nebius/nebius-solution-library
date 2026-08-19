@@ -1,0 +1,26 @@
+{
+  "delete_plan": [
+    {
+      "command": "/usr/local/bin/nebius storage bucket delete storagebucket-e0012502855118697352069 --ttl 0s --profile sandbox",
+      "id": "storagebucket-e0012502855118697352069",
+      "kind": "bucket"
+    },
+    {
+      "command": "/usr/local/bin/nebius vpc security-group delete vpcsecuritygroup-e00ynn61pnpv8w5t5z --profile sandbox",
+      "id": "vpcsecuritygroup-e00ynn61pnpv8w5t5z",
+      "kind": "security_group"
+    },
+    {
+      "command": "/usr/local/bin/nebius vpc subnet delete vpcsubnet-e00vf5akn67bp4xkbb --profile sandbox",
+      "id": "vpcsubnet-e00vf5akn67bp4xkbb",
+      "kind": "subnet"
+    },
+    {
+      "command": "/usr/local/bin/nebius vpc network delete vpcnetwork-e00reqxyear61hkggz --profile sandbox",
+      "id": "vpcnetwork-e00reqxyear61hkggz",
+      "kind": "network"
+    }
+  ],
+  "lease_id": "resource-broker-smoke-20260819",
+  "mode": "DRY_RUN"
+}

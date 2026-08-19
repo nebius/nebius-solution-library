@@ -1,0 +1,147 @@
+{
+  "profiles": {
+    "cpu-d3-standard": {
+      "boot_disk_gib": 40,
+      "cost_assumptions": "Public PAYG list price, taxes and account discounts excluded. The preemptible CPU ceiling conservatively uses the normal CPU/RAM rate because the public table has no separate non-GPU preemptible row. Empty Object Storage costs zero; the estimate models its full configured quota as an upper bound.",
+      "gpu_count": 0,
+      "gpu_quota_name": null,
+      "hourly_compute_usd": {
+        "normal": "0.0992",
+        "preemptible": "0.0992"
+      },
+      "image_family": "ubuntu24.04-driverless",
+      "local_nvme": {
+        "ephemeral": true,
+        "notes": "Not requested: no local-NVMe support has been verified for this allowed project/platform combination.",
+        "request": false,
+        "verified_supported": false
+      },
+      "max_duration_hours": 24,
+      "max_ttl_hours": 48,
+      "network_ssd_usd_per_gib_month": "0.071",
+      "object_storage_usd_per_gib_month": "0.0147",
+      "platform": "cpu-d3",
+      "preset": "4vcpu-16gb",
+      "price_observed_at": "2026-08-19T00:00:00Z",
+      "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+      "regions": [
+        "eu-north1",
+        "us-central1",
+        "me-west1"
+      ]
+    },
+    "cpu-e2-smoke": {
+      "boot_disk_gib": 20,
+      "cost_assumptions": "Public PAYG list price, taxes and account discounts excluded. The preemptible CPU ceiling conservatively uses the normal CPU/RAM rate because the public table has no separate non-GPU preemptible row. Empty Object Storage costs zero; the estimate models its full configured quota as an upper bound.",
+      "gpu_count": 0,
+      "gpu_quota_name": null,
+      "hourly_compute_usd": {
+        "normal": "0.0496",
+        "preemptible": "0.0496"
+      },
+      "image_family": "ubuntu24.04-driverless",
+      "local_nvme": {
+        "ephemeral": true,
+        "notes": "Not requested: no local-NVMe support has been verified for cpu-e2.",
+        "request": false,
+        "verified_supported": false
+      },
+      "max_duration_hours": 2,
+      "max_ttl_hours": 4,
+      "network_ssd_usd_per_gib_month": "0.071",
+      "object_storage_usd_per_gib_month": "0.0147",
+      "platform": "cpu-e2",
+      "preset": "2vcpu-8gb",
+      "price_observed_at": "2026-08-19T00:00:00Z",
+      "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+      "regions": [
+        "eu-north1"
+      ]
+    },
+    "h100-single": {
+      "boot_disk_gib": 300,
+      "cost_assumptions": "Public PAYG unified H100 price per GPU-hour, taxes and account discounts excluded. The attached 300 GiB Network SSD and full configured artifact quota are modeled separately.",
+      "gpu_count": 1,
+      "gpu_quota_name": "compute.instance.gpu.h100",
+      "hourly_compute_usd": {
+        "normal": "3.85",
+        "preemptible": "2.15"
+      },
+      "image_family": "ubuntu24.04-cuda12",
+      "local_nvme": {
+        "ephemeral": true,
+        "notes": "The API can request passthrough local disks, but support is not verified for the allowed eu-north1 H100 project; fail closed until a task-owned capability probe proves it.",
+        "request": false,
+        "verified_supported": false
+      },
+      "max_duration_hours": 12,
+      "max_ttl_hours": 24,
+      "network_ssd_usd_per_gib_month": "0.071",
+      "object_storage_usd_per_gib_month": "0.0147",
+      "platform": "gpu-h100-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "price_observed_at": "2026-08-19T00:00:00Z",
+      "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+      "regions": [
+        "eu-north1"
+      ]
+    },
+    "h200-single": {
+      "boot_disk_gib": 300,
+      "cost_assumptions": "Public PAYG unified H200 price per GPU-hour, taxes and account discounts excluded. The attached 300 GiB Network SSD and full configured artifact quota are modeled separately.",
+      "gpu_count": 1,
+      "gpu_quota_name": "compute.instance.gpu.h200",
+      "hourly_compute_usd": {
+        "normal": "4.50",
+        "preemptible": "2.45"
+      },
+      "image_family": "ubuntu24.04-cuda12",
+      "local_nvme": {
+        "ephemeral": true,
+        "notes": "The API can request passthrough local disks, but support is not verified for the allowed eu-north1 H200 project; fail closed until a task-owned capability probe proves it.",
+        "request": false,
+        "verified_supported": false
+      },
+      "max_duration_hours": 12,
+      "max_ttl_hours": 24,
+      "network_ssd_usd_per_gib_month": "0.071",
+      "object_storage_usd_per_gib_month": "0.0147",
+      "platform": "gpu-h200-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "price_observed_at": "2026-08-19T00:00:00Z",
+      "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+      "regions": [
+        "eu-north1"
+      ]
+    },
+    "b200-single": {
+      "boot_disk_gib": 300,
+      "cost_assumptions": "Public PAYG unified B200 price per GPU-hour, taxes and account discounts excluded. The attached 300 GiB Network SSD and full configured artifact quota are modeled separately.",
+      "gpu_count": 1,
+      "gpu_quota_name": "compute.instance.gpu.b200",
+      "hourly_compute_usd": {
+        "normal": "7.15",
+        "preemptible": "3.95"
+      },
+      "image_family": "ubuntu24.04-cuda12",
+      "local_nvme": {
+        "ephemeral": true,
+        "notes": "Local-NVMe support is not verified for the allowed me-west1 B200 project. The only currently verified skill default is B300 in uk-south1, outside the epic allowlist, so this profile fails closed with passthrough disabled.",
+        "request": false,
+        "verified_supported": false
+      },
+      "max_duration_hours": 12,
+      "max_ttl_hours": 24,
+      "network_ssd_usd_per_gib_month": "0.071",
+      "object_storage_usd_per_gib_month": "0.0147",
+      "platform": "gpu-b200-sxm-a",
+      "preset": "1gpu-20vcpu-224gb",
+      "price_observed_at": "2026-08-19T00:00:00Z",
+      "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+      "regions": [
+        "me-west1"
+      ]
+    }
+  },
+  "schema_version": "catalog-switch-resource-profiles/v1"
+}
