@@ -421,6 +421,7 @@ def validate_contract(value: dict[str, Any]) -> dict[str, Any]:
         {
             "rootfs_diff_max_bytes",
             "pages_growth_max_basis_points",
+            "pages_growth_reviewed_max_basis_points",
             "forbidden_rootfs_prefixes",
             "required_external_mount",
             "tmpfs_images_max_total_bytes",
@@ -433,10 +434,11 @@ def validate_contract(value: dict[str, Any]) -> dict[str, Any]:
     expected_simple_gates = {
         "rootfs_diff_max_bytes": 134217728,
         "pages_growth_max_basis_points": 200,
+        "pages_growth_reviewed_max_basis_points": 500,
         "forbidden_rootfs_prefixes": ["tmp", "tmp/"],
         "required_external_mount": "/tmp",
         "tmpfs_images_max_total_bytes": 134217728,
-        "allowed_extra_files": ["stats-dump"],
+        "allowed_extra_files": ["criu.conf", "dump.log", "stats-dump"],
     }
     for key, expected in expected_simple_gates.items():
         if gates[key] != expected:
@@ -1809,8 +1811,19 @@ def _read_artifact_gate(
         raise StateError("artifact-gate pages must be an object")
     _exact_keys(
         pages,
-        {"file_count", "bytes", "baseline_bytes", "growth_basis_points", "max_growth_basis_points"},
+        {
+            "file_count",
+            "bytes",
+            "baseline_bytes",
+            "growth_basis_points",
+            "max_growth_basis_points",
+            "effective_max_growth_basis_points",
+            "growth_receipt_sha256",
+        },
         "artifact-gate pages",
+    )
+    effective = _strict_nonnegative_int(
+        pages["effective_max_growth_basis_points"], "pages effective growth cap"
     )
     if (
         _strict_nonnegative_int(pages["file_count"], "pages file count") < 1
@@ -1818,12 +1831,26 @@ def _read_artifact_gate(
         or pages["baseline_bytes"] != contract["baseline"]["pages_bytes"]
         or pages["max_growth_basis_points"]
         != contract["artifact_gates"]["pages_growth_max_basis_points"]
+        or effective
+        > contract["artifact_gates"]["pages_growth_reviewed_max_basis_points"]
         or _nonnegative_number(
             pages["growth_basis_points"], "pages growth basis points"
         )
-        > contract["artifact_gates"]["pages_growth_max_basis_points"]
+        > effective
     ):
         raise StateError("artifact pages gate is not an exact PASS")
+    if pages["growth_basis_points"] > pages["max_growth_basis_points"]:
+        if not isinstance(pages["growth_receipt_sha256"], str) or not SHA256.fullmatch(
+            pages["growth_receipt_sha256"]
+        ):
+            raise StateError(
+                "over-base pages growth requires a bound reviewed growth receipt"
+            )
+    elif pages["growth_receipt_sha256"] is not None and (
+        not isinstance(pages["growth_receipt_sha256"], str)
+        or not SHA256.fullmatch(pages["growth_receipt_sha256"])
+    ):
+        raise StateError("artifact pages growth receipt digest is malformed")
 
     crit = value["crit"]
     if not isinstance(crit, dict):
