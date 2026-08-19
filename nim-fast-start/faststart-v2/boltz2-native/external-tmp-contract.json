@@ -3,11 +3,11 @@
   "experiment_id": "boltz2-external-tmp-v1",
   "tool": {
     "filename": "external_tmp_state.py",
-    "sha256": "f1077789a3a1d1a0802ecb0f79273046b5b7db546d874b1364145f2fc762b0b5"
+    "sha256": "fdcc2fd8398b9aba4fb24c8b14f16e523632d0d9cf28153e7a0d2424c2921f71"
   },
   "artifact_validator": {
     "filename": "validate_external_tmp_artifact.py",
-    "sha256": "4a0b4b4262b44e44f2b277f131e5a6691913361346d8b3a968fadfba76da2fa2"
+    "sha256": "c5972e3f07b8fc0431b7454e89d69797fe118d17453a46f0f6341dd8c33e9ca5"
   },
   "images": {
     "nim": "nvcr.io/nim/mit/boltz2@sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98",
@@ -93,6 +93,18 @@
       "tmp",
       "tmp/"
     ],
-    "required_external_mount": "/tmp"
+    "required_external_mount": "/tmp",
+    "tmpfs_images_max_total_bytes": 134217728,
+    "allowed_extra_files": [
+      "stats-dump"
+    ],
+    "ext_mnt_exact": {
+      "/": "/",
+      "/tmp": "/tmp"
+    },
+    "bind_mount_dests_exact": [
+      "/opt/nim/.cache",
+      "/tmp"
+    ]
   }
 }

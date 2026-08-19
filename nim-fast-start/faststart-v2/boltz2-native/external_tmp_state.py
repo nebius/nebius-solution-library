@@ -19,9 +19,12 @@ import math
 import os
 import posixpath
 import re
+import shlex
 import shutil
 import stat
+import subprocess
 import sys
+import tempfile
 import time
 import uuid
 from datetime import datetime, timezone
@@ -34,17 +37,20 @@ INITIALIZE_SCHEMA = "archvteams.nebius.ai/boltz2-tmp-layout-initialization/v1"
 COPY_SCHEMA = "archvteams.nebius.ai/boltz2-tmp-seed-copy/v1"
 SEAL_SCHEMA = "archvteams.nebius.ai/boltz2-tmp-seed-seal/v1"
 OBSERVATION_SCHEMA = "archvteams.nebius.ai/boltz2-tmp-tree-observation/v1"
-WRITER_EXCLUSION_SCHEMA = "archvteams.nebius.ai/boltz2-tmp-writer-exclusion/v1"
+WRITER_EXCLUSION_SCHEMA = "archvteams.nebius.ai/boltz2-tmp-writer-exclusion/v2"
 CLONE_PREPARATION_SCHEMA = (
     "archvteams.nebius.ai/boltz2-tmp-run-clone-preparation/v1"
 )
 CLONE_SCHEMA = "archvteams.nebius.ai/boltz2-tmp-run-clone/v1"
 DELETE_AUTH_SCHEMA = "archvteams.nebius.ai/boltz2-tmp-delete-authorization/v1"
 DELETE_SCHEMA = "archvteams.nebius.ai/boltz2-tmp-run-clone-deletion/v1"
-ARTIFACT_GATE_SCHEMA = "archvteams.nebius.ai/boltz2-external-tmp-artifact-gate/v1"
+ARTIFACT_GATE_SCHEMA = "archvteams.nebius.ai/boltz2-external-tmp-artifact-gate/v2"
+DONOR_POD_NAME = "boltz2-native-f7-external-tmp-donor"
+HOLDER_POD_NAME = "boltz2-tmp-seed-holder-v2-t12"
+HOLDER_NODE_NAME = "computeinstance-e00t12crqg6tw0kz65"
+HOLDER_MOUNT_PATH = "/seed"
 RUN_ID = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
-SAFE_COMPONENT = re.compile(r"^[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?$")
 OBSERVATION_PHASES = frozenset(
     {"pre-capture", "post-capture", "post-deletion", "post-cohort"}
 )
@@ -151,6 +157,16 @@ def _canonical_uuid(value: Any, label: str) -> str:
         raise StateError(f"{label} must be a canonical UUID") from exc
     if str(parsed) != value:
         raise StateError(f"{label} must be a canonical lowercase UUID")
+    return value
+
+
+def _volume_handle(value: Any, contract: dict[str, Any], label: str) -> str:
+    # One provider-identity grammar shared with render.py: exact prefix followed
+    # by lowercase alphanumerics only, so both gates accept the same handles.
+    prefix = contract["storage"]["volume_handle_prefix"]
+    pattern = re.compile(r"^" + re.escape(prefix) + r"[a-z0-9]+$")
+    if not isinstance(value, str) or not pattern.fullmatch(value):
+        raise StateError(f"{label} is not an immutable provider volume handle")
     return value
 
 
@@ -402,7 +418,16 @@ def validate_contract(value: dict[str, Any]) -> dict[str, Any]:
         raise StateError("contract.artifact_gates must be an object")
     _exact_keys(
         gates,
-        {"rootfs_diff_max_bytes", "pages_growth_max_basis_points", "forbidden_rootfs_prefixes", "required_external_mount"},
+        {
+            "rootfs_diff_max_bytes",
+            "pages_growth_max_basis_points",
+            "forbidden_rootfs_prefixes",
+            "required_external_mount",
+            "tmpfs_images_max_total_bytes",
+            "allowed_extra_files",
+            "ext_mnt_exact",
+            "bind_mount_dests_exact",
+        },
         "contract.artifact_gates",
     )
     if gates != {
@@ -410,14 +435,14 @@ def validate_contract(value: dict[str, Any]) -> dict[str, Any]:
         "pages_growth_max_basis_points": 200,
         "forbidden_rootfs_prefixes": ["tmp", "tmp/"],
         "required_external_mount": "/tmp",
+        "tmpfs_images_max_total_bytes": 134217728,
+        "allowed_extra_files": ["stats-dump"],
+        "ext_mnt_exact": {"/": "/", "/tmp": "/tmp"},
+        "bind_mount_dests_exact": ["/opt/nim/.cache", "/tmp"],
     }:
         raise StateError("contract artifact gates changed")
-    _strict_nonnegative_int(
-        gates["rootfs_diff_max_bytes"], "contract artifact rootfs limit"
-    )
-    _strict_nonnegative_int(
-        gates["pages_growth_max_basis_points"], "contract artifact pages limit"
-    )
+    for field in ("rootfs_diff_max_bytes", "pages_growth_max_basis_points", "tmpfs_images_max_total_bytes"):
+        _strict_nonnegative_int(gates[field], f"contract artifact gate {field}")
     return value
 
 
@@ -1060,6 +1085,221 @@ def _read_observation(
     return value, raw
 
 
+def _evidence_object(value: Any, kind: str, label: str) -> dict[str, Any]:
+    if not isinstance(value, dict) or value.get("kind") != kind:
+        raise StateError(f"{label} evidence must be a raw Kubernetes {kind} document")
+    return value
+
+
+def _pvc_users_from_pod_list(
+    pod_list: dict[str, Any], pvc_name: str, namespace: str
+) -> list[dict[str, Any]]:
+    """Re-derive the PVC's active users from an embedded raw PodList."""
+
+    items = pod_list.get("items")
+    if not isinstance(items, list):
+        raise StateError("writer-exclusion PodList evidence has no items array")
+    users: list[dict[str, Any]] = []
+    for pod in items:
+        if not isinstance(pod, dict):
+            raise StateError("writer-exclusion PodList evidence has a non-object pod")
+        metadata = pod.get("metadata")
+        spec = pod.get("spec")
+        status = pod.get("status")
+        if (
+            not isinstance(metadata, dict)
+            or not isinstance(spec, dict)
+            or not isinstance(status, dict)
+        ):
+            raise StateError("writer-exclusion pod evidence is structurally incomplete")
+        if metadata.get("namespace") != namespace:
+            raise StateError("writer-exclusion PodList evidence crosses namespaces")
+        if status.get("phase") in {"Succeeded", "Failed"}:
+            continue
+        for volume in spec.get("volumes") or []:
+            if not isinstance(volume, dict):
+                continue
+            claim = volume.get("persistentVolumeClaim")
+            if not isinstance(claim, dict) or claim.get("claimName") != pvc_name:
+                continue
+            users.append(
+                {
+                    "pod": pod,
+                    "name": metadata.get("name"),
+                    "uid": metadata.get("uid"),
+                    "read_only": claim.get("readOnly") is True,
+                    "terminating": "deletionTimestamp" in metadata,
+                }
+            )
+    return users
+
+
+def _pod_spec_sha256(pod: dict[str, Any]) -> str:
+    return _sha256_bytes(
+        (
+            json.dumps(
+                pod["spec"], sort_keys=True, separators=(",", ":"), ensure_ascii=True
+            )
+            + "\n"
+        ).encode("ascii")
+    )
+
+
+def _pod_is_ready(pod: dict[str, Any]) -> bool:
+    for condition in (pod.get("status") or {}).get("conditions") or []:
+        if (
+            isinstance(condition, dict)
+            and condition.get("type") == "Ready"
+            and condition.get("status") == "True"
+        ):
+            return True
+    return False
+
+
+def _verify_writer_exclusion_evidence(
+    value: dict[str, Any], contract: dict[str, Any]
+) -> None:
+    """Re-derive every declared writer-exclusion fact from raw evidence.
+
+    Declared booleans and counts are never trusted on their own: each one must
+    be recomputable from the embedded raw Kubernetes documents, so a forged
+    receipt needs a complete, internally consistent forged cluster snapshot
+    that the live replay can still disprove against the real cluster.
+    """
+
+    evidence = value["evidence"]
+    if not isinstance(evidence, dict):
+        raise StateError("writer-exclusion evidence must be an object")
+    _exact_keys(
+        evidence,
+        {"pvc", "pv", "pods", "volumeattachments", "donor_get_attempt"},
+        "writer-exclusion evidence",
+    )
+    declared_pvc = value["pvc"]
+    namespace = contract["storage"]["namespace"]
+
+    pvc_doc = _evidence_object(evidence["pvc"], "PersistentVolumeClaim", "PVC")
+    pvc_meta = pvc_doc.get("metadata") or {}
+    pvc_spec = pvc_doc.get("spec") or {}
+    pvc_status = pvc_doc.get("status") or {}
+    if (
+        pvc_meta.get("name") != declared_pvc["name"]
+        or pvc_meta.get("namespace") != namespace
+        or pvc_meta.get("uid") != declared_pvc["uid"]
+        or pvc_spec.get("volumeName") != declared_pvc["pv_name"]
+        or pvc_spec.get("accessModes") != contract["storage"]["access_modes"]
+        or pvc_status.get("phase") != "Bound"
+    ):
+        raise StateError("writer-exclusion PVC evidence contradicts the declared identity")
+
+    pv_doc = _evidence_object(evidence["pv"], "PersistentVolume", "PV")
+    pv_meta = pv_doc.get("metadata") or {}
+    pv_spec = pv_doc.get("spec") or {}
+    pv_csi = pv_spec.get("csi") or {}
+    pv_claim_ref = pv_spec.get("claimRef") or {}
+    if (
+        pv_meta.get("name") != declared_pvc["pv_name"]
+        or pv_meta.get("uid") != declared_pvc["pv_uid"]
+        or pv_csi.get("driver") != declared_pvc["csi_driver"]
+        or pv_csi.get("volumeHandle") != declared_pvc["volume_handle"]
+        or pv_claim_ref.get("namespace") != namespace
+        or pv_claim_ref.get("name") != declared_pvc["name"]
+        or pv_claim_ref.get("uid") != declared_pvc["uid"]
+    ):
+        raise StateError("writer-exclusion PV evidence contradicts the declared identity")
+
+    pod_list = _evidence_object(evidence["pods"], "PodList", "pod inventory")
+    users = _pvc_users_from_pod_list(pod_list, declared_pvc["name"], namespace)
+    derived_rw_users = sorted(
+        {user["name"] for user in users if not user["read_only"] or user["terminating"]}
+    )
+    if derived_rw_users != value["active_read_write_users"]:
+        raise StateError(
+            "writer-exclusion evidence re-derivation contradicts the declared "
+            f"read-write users: {derived_rw_users}"
+        )
+    if len(derived_rw_users) != value["active_writer_count"]:
+        raise StateError("writer-exclusion declared writer count is not evidence-derived")
+    holder = value["holder"]
+    holder_users = [user for user in users if user["read_only"] and not user["terminating"]]
+    if (
+        len(users) != len(holder_users) + len(derived_rw_users)
+        or len(holder_users) != 1
+        or holder_users[0]["name"] != holder["name"]
+        or holder_users[0]["uid"] != holder["uid"]
+    ):
+        raise StateError(
+            "writer-exclusion evidence must show exactly the read-only holder using the claim"
+        )
+    holder_pod = holder_users[0]["pod"]
+    holder_spec = holder_pod.get("spec") or {}
+    containers = holder_spec.get("containers")
+    if not isinstance(containers, list) or len(containers) != 1:
+        raise StateError("writer-exclusion holder evidence must have one container")
+    container = containers[0]
+    holder_mounts = [
+        mount
+        for mount in container.get("volumeMounts") or []
+        if isinstance(mount, dict) and mount.get("mountPath") == holder["mount_path"]
+    ]
+    if (
+        holder_spec.get("nodeName") != holder["node_name"]
+        or holder_spec.get("restartPolicy") != holder["restart_policy"]
+        or container.get("image") != holder["image"]
+        or len(holder_mounts) != 1
+        or holder_mounts[0].get("subPath") != holder["seed_subpath"]
+        or holder_mounts[0].get("readOnly") is not True
+        or _pod_is_ready(holder_pod) is not (holder["ready"] is True)
+        or _pod_spec_sha256(holder_pod) != holder["pod_spec_sha256"]
+    ):
+        raise StateError("writer-exclusion holder evidence contradicts the declared holder")
+
+    attachments_doc = _evidence_object(
+        evidence["volumeattachments"], "VolumeAttachmentList", "volume attachments"
+    )
+    attachment_items = attachments_doc.get("items")
+    if not isinstance(attachment_items, list):
+        raise StateError("writer-exclusion VolumeAttachmentList evidence has no items")
+    attached_nodes = []
+    for attachment in attachment_items:
+        if not isinstance(attachment, dict):
+            raise StateError("writer-exclusion volume attachment is not an object")
+        spec = attachment.get("spec") or {}
+        source = spec.get("source") or {}
+        if source.get("persistentVolumeName") != declared_pvc["pv_name"]:
+            continue
+        attached_nodes.append(spec.get("nodeName"))
+    if attached_nodes not in ([], [holder["node_name"]]):
+        raise StateError(
+            "writer-exclusion evidence shows the volume attached beyond the holder node: "
+            f"{attached_nodes}"
+        )
+
+    donor = value["donor"]
+    donor_names = {
+        (pod.get("metadata") or {}).get("name")
+        for pod in pod_list.get("items", [])
+        if isinstance(pod, dict)
+    }
+    if donor["name"] in donor_names:
+        raise StateError("writer-exclusion PodList evidence still contains the donor pod")
+    attempt = evidence["donor_get_attempt"]
+    if not isinstance(attempt, dict):
+        raise StateError("writer-exclusion donor get attempt must be an object")
+    _exact_keys(attempt, {"argv", "exit_code", "stderr"}, "donor get attempt")
+    if (
+        not isinstance(attempt["argv"], list)
+        or not all(isinstance(item, str) for item in attempt["argv"])
+        or donor["name"] not in attempt["argv"]
+        or _strict_nonnegative_int(attempt["exit_code"], "donor get exit code") == 0
+        or not isinstance(attempt["stderr"], str)
+        or "NotFound" not in attempt["stderr"]
+    ):
+        raise StateError(
+            "writer-exclusion donor get attempt does not prove a NotFound donor"
+        )
+
+
 def _read_writer_exclusion(
     path: Path, contract: dict[str, Any], purpose: str
 ) -> tuple[dict[str, Any], bytes]:
@@ -1079,6 +1319,7 @@ def _read_writer_exclusion(
             "holder",
             "active_writer_count",
             "active_read_write_users",
+            "evidence",
         },
         "writer-exclusion receipt",
     )
@@ -1112,13 +1353,7 @@ def _read_writer_exclusion(
         raise StateError("writer-exclusion PV name is missing")
     if pvc["csi_driver"] != contract["storage"]["csi_driver"]:
         raise StateError("writer-exclusion CSI driver changed")
-    volume_handle = _nonempty_string(
-        pvc["volume_handle"], "writer-exclusion CSI volume handle"
-    )
-    if not volume_handle.startswith(contract["storage"]["volume_handle_prefix"]):
-        raise StateError("writer-exclusion CSI volume handle is not provider-scoped")
-    if not SAFE_COMPONENT.fullmatch(volume_handle):
-        raise StateError("writer-exclusion CSI volume handle is not normalized")
+    _volume_handle(pvc["volume_handle"], contract, "writer-exclusion CSI volume handle")
     donor = value["donor"]
     if not isinstance(donor, dict):
         raise StateError("writer-exclusion donor identity must be an object")
@@ -1128,7 +1363,7 @@ def _read_writer_exclusion(
         "writer-exclusion donor",
     )
     if (
-        donor["name"] != "boltz2-native-f7-external-tmp-donor"
+        donor["name"] != DONOR_POD_NAME
         or donor["absent"] is not True
         or donor["uid_preconditioned_delete"] is not True
     ):
@@ -1161,12 +1396,12 @@ def _read_writer_exclusion(
         "writer-exclusion holder",
     )
     if (
-        holder["name"] != "boltz2-tmp-seed-holder-v2-t12"
-        or holder["node_name"] != "computeinstance-e00t12crqg6tw0kz65"
+        holder["name"] != HOLDER_POD_NAME
+        or holder["node_name"] != HOLDER_NODE_NAME
         or holder["ready"] is not True
         or holder["read_only"] is not True
         or holder["seed_subpath"] != contract["layout"]["seed_subpath"]
-        or holder["mount_path"] != "/seed"
+        or holder["mount_path"] != HOLDER_MOUNT_PATH
         or holder["image"] != contract["images"]["probe"]
         or holder["restart_policy"] != "Never"
         or holder["pvc_name"] != pvc["name"]
@@ -1184,7 +1419,160 @@ def _read_writer_exclusion(
         holder["pod_spec_sha256"]
     ):
         raise StateError("writer-exclusion holder PodSpec SHA-256 is malformed")
+    _verify_writer_exclusion_evidence(value, contract)
     return value, raw
+
+
+def _run_kubectl_json(
+    kubectl: list[str], arguments: list[str], label: str
+) -> dict[str, Any]:
+    argv = [*kubectl, *arguments]
+    try:
+        completed = subprocess.run(
+            argv, capture_output=True, text=True, timeout=120, check=False
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise StateError(f"cannot collect {label}: {type(exc).__name__}: {exc}") from exc
+    if completed.returncode != 0:
+        raise StateError(
+            f"kubectl failed collecting {label} (exit {completed.returncode}): "
+            f"{completed.stderr.strip()[:400]}"
+        )
+    try:
+        value = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        raise StateError(f"{label} kubectl output is not JSON: {exc}") from exc
+    if not isinstance(value, dict):
+        raise StateError(f"{label} kubectl output is not a JSON object")
+    return value
+
+
+def collect_writer_exclusion(
+    contract: dict[str, Any],
+    purpose: str,
+    kubectl: list[str],
+    donor_uid: str,
+    donor_deleted_at: str,
+) -> dict[str, Any]:
+    """Collect a writer-exclusion receipt from the live cluster.
+
+    Every declared field is computed from raw kubectl documents that are then
+    embedded verbatim in the receipt, so the reader can re-derive each claim
+    and an auditor can replay the same queries against the cluster.
+    """
+
+    if purpose not in {"post-deletion-seal", "pre-clone", "post-clone"}:
+        raise StateError("writer-exclusion purpose is unsupported")
+    _canonical_uuid(donor_uid, "collector donor UID")
+    _timestamp(donor_deleted_at, "collector donor deleted_at")
+    namespace = contract["storage"]["namespace"]
+    pvc_name = contract["storage"]["pvc_name"]
+    checked_at = _now()
+    pvc_doc = _run_kubectl_json(
+        kubectl,
+        ["get", "persistentvolumeclaim", pvc_name, "-n", namespace, "-o", "json"],
+        "PVC evidence",
+    )
+    pv_name = ((pvc_doc.get("spec") or {}).get("volumeName")) or ""
+    if not pv_name:
+        raise StateError("collector PVC evidence is not bound to a PV")
+    pv_doc = _run_kubectl_json(
+        kubectl, ["get", "persistentvolume", pv_name, "-o", "json"], "PV evidence"
+    )
+    pods_doc = _run_kubectl_json(
+        kubectl, ["get", "pods", "-n", namespace, "-o", "json"], "pod inventory"
+    )
+    attachments_doc = _run_kubectl_json(
+        kubectl, ["get", "volumeattachments", "-o", "json"], "volume attachments"
+    )
+    donor_argv = [*kubectl, "get", "pod", DONOR_POD_NAME, "-n", namespace, "-o", "json"]
+    try:
+        donor_attempt = subprocess.run(
+            donor_argv, capture_output=True, text=True, timeout=120, check=False
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise StateError(f"cannot attempt donor lookup: {exc}") from exc
+
+    pv_csi = (pv_doc.get("spec") or {}).get("csi") or {}
+    declared_pvc = {
+        "name": pvc_name,
+        "uid": (pvc_doc.get("metadata") or {}).get("uid"),
+        "pv_name": pv_name,
+        "pv_uid": (pv_doc.get("metadata") or {}).get("uid"),
+        "csi_driver": pv_csi.get("driver"),
+        "volume_handle": pv_csi.get("volumeHandle"),
+    }
+    users = _pvc_users_from_pod_list(pods_doc, pvc_name, namespace)
+    rw_users = sorted(
+        {user["name"] for user in users if not user["read_only"] or user["terminating"]}
+    )
+    holder_users = [user for user in users if user["read_only"] and not user["terminating"]]
+    if len(holder_users) != 1:
+        raise StateError(
+            "collector requires exactly one read-only holder using the claim; "
+            f"observed {len(holder_users)}"
+        )
+    holder_pod = holder_users[0]["pod"]
+    holder_spec = holder_pod.get("spec") or {}
+    containers = holder_spec.get("containers") or [{}]
+    container = containers[0] if isinstance(containers, list) and containers else {}
+    holder_mounts = [
+        mount
+        for mount in container.get("volumeMounts") or []
+        if isinstance(mount, dict) and mount.get("mountPath") == HOLDER_MOUNT_PATH
+    ]
+    receipt = {
+        "schema": WRITER_EXCLUSION_SCHEMA,
+        "status": "PASS",
+        "purpose": purpose,
+        "checked_at": checked_at,
+        "namespace": namespace,
+        "pvc": declared_pvc,
+        "donor": {
+            "name": DONOR_POD_NAME,
+            "uid": donor_uid,
+            "absent": True,
+            "uid_preconditioned_delete": True,
+            "deleted_at": donor_deleted_at,
+        },
+        "holder": {
+            "name": holder_users[0]["name"],
+            "uid": holder_users[0]["uid"],
+            "node_name": holder_spec.get("nodeName"),
+            "ready": _pod_is_ready(holder_pod),
+            "read_only": True,
+            "seed_subpath": holder_mounts[0].get("subPath") if holder_mounts else None,
+            "mount_path": HOLDER_MOUNT_PATH,
+            "image": container.get("image"),
+            "restart_policy": holder_spec.get("restartPolicy"),
+            "pvc_name": declared_pvc["name"],
+            "pvc_uid": declared_pvc["uid"],
+            "pv_name": declared_pvc["pv_name"],
+            "pv_uid": declared_pvc["pv_uid"],
+            "csi_driver": declared_pvc["csi_driver"],
+            "volume_handle": declared_pvc["volume_handle"],
+            "pod_spec_sha256": _pod_spec_sha256(holder_pod),
+        },
+        "active_writer_count": len(rw_users),
+        "active_read_write_users": rw_users,
+        "evidence": {
+            "pvc": pvc_doc,
+            "pv": pv_doc,
+            "pods": pods_doc,
+            "volumeattachments": attachments_doc,
+            "donor_get_attempt": {
+                "argv": donor_argv,
+                "exit_code": donor_attempt.returncode,
+                "stderr": donor_attempt.stderr.strip()[:400],
+            },
+        },
+    }
+    # Fail closed at collection time exactly as the reader would.
+    with tempfile.TemporaryDirectory() as scratch:
+        probe_path = Path(scratch) / "writer-exclusion-probe.json"
+        _write_receipt(probe_path, receipt)
+        _read_writer_exclusion(probe_path, contract, purpose)
+    return receipt
 
 
 def _read_artifact_gate(
@@ -1203,10 +1591,12 @@ def _read_artifact_gate(
             "artifact_version",
             "artifact_manifest_sha256",
             "validated_at",
+            "artifact_entries",
             "external_mount",
             "rootfs",
             "deleted_files",
             "pages",
+            "tmpfs_images",
             "crit",
             "live_clone_canary_required",
             "live_clone_canary_completed",
@@ -1232,30 +1622,45 @@ def _read_artifact_gate(
         if not isinstance(value[field], str) or not SHA256.fullmatch(value[field]):
             raise StateError(f"artifact-gate {field} is malformed")
 
+    entries = value["artifact_entries"]
+    if (
+        not isinstance(entries, list)
+        or not entries
+        or any(not isinstance(item, str) or not item for item in entries)
+        or entries != sorted(entries)
+        or len(entries) != len(set(entries))
+    ):
+        raise StateError("artifact-gate artifact_entries must be a sorted unique list")
+
     external = value["external_mount"]
     if not isinstance(external, dict):
         raise StateError("artifact-gate external_mount must be an object")
     _exact_keys(
         external,
-        {"path", "ext_mnt_value", "bind_mount_dest_count"},
+        {"path", "ext_mnt", "bind_mount_dests"},
         "artifact-gate external_mount",
     )
     if (
         external["path"] != "/tmp"
-        or external["ext_mnt_value"] != "/tmp"
-        or _strict_nonnegative_int(
-            external["bind_mount_dest_count"], "artifact /tmp bind count"
-        )
-        != 1
+        or external["ext_mnt"] != contract["artifact_gates"]["ext_mnt_exact"]
+        or external["bind_mount_dests"]
+        != sorted(contract["artifact_gates"]["bind_mount_dests_exact"])
     ):
-        raise StateError("artifact-gate does not prove the exact /tmp mount contract")
+        raise StateError("artifact-gate does not prove the exact mount allowlist")
 
     rootfs = value["rootfs"]
     if not isinstance(rootfs, dict):
         raise StateError("artifact-gate rootfs must be an object")
     _exact_keys(
         rootfs,
-        {"path", "sha256", "bytes", "member_count", "forbidden_tmp_member_count"},
+        {
+            "path",
+            "sha256",
+            "bytes",
+            "member_count",
+            "member_type_counts",
+            "forbidden_tmp_member_count",
+        },
         "artifact-gate rootfs",
     )
     if (
@@ -1271,6 +1676,53 @@ def _read_artifact_gate(
     ):
         raise StateError("artifact rootfs gates are not exact PASS values")
     _strict_nonnegative_int(rootfs["member_count"], "artifact rootfs member count")
+    type_counts = rootfs["member_type_counts"]
+    if not isinstance(type_counts, dict):
+        raise StateError("artifact rootfs member type counts must be an object")
+    _exact_keys(
+        type_counts,
+        {"regular", "directory", "symlink", "hardlink"},
+        "artifact rootfs member type counts",
+    )
+    if sum(
+        _strict_nonnegative_int(count, f"rootfs {name} member count")
+        for name, count in type_counts.items()
+    ) != rootfs["member_count"]:
+        raise StateError("artifact rootfs member type counts do not total member_count")
+
+    tmpfs = value["tmpfs_images"]
+    if not isinstance(tmpfs, dict):
+        raise StateError("artifact-gate tmpfs_images must be an object")
+    _exact_keys(
+        tmpfs,
+        {"file_count", "total_bytes", "max_total_bytes", "images"},
+        "artifact-gate tmpfs_images",
+    )
+    if (
+        tmpfs["max_total_bytes"]
+        != contract["artifact_gates"]["tmpfs_images_max_total_bytes"]
+        or _strict_nonnegative_int(tmpfs["total_bytes"], "tmpfs images total bytes")
+        > tmpfs["max_total_bytes"]
+        or not isinstance(tmpfs["images"], list)
+        or _strict_nonnegative_int(tmpfs["file_count"], "tmpfs image count")
+        != len(tmpfs["images"])
+    ):
+        raise StateError("artifact tmpfs-images gate is not an exact PASS")
+    for image in tmpfs["images"]:
+        if not isinstance(image, dict):
+            raise StateError("artifact tmpfs image record must be an object")
+        _exact_keys(
+            image, {"name", "sha256", "bytes", "member_count"}, "tmpfs image record"
+        )
+        if (
+            not isinstance(image["name"], str)
+            or not image["name"]
+            or not isinstance(image["sha256"], str)
+            or not SHA256.fullmatch(image["sha256"])
+        ):
+            raise StateError("artifact tmpfs image record is malformed")
+        _strict_nonnegative_int(image["bytes"], "tmpfs image bytes")
+        _strict_nonnegative_int(image["member_count"], "tmpfs image member count")
 
     deleted = value["deleted_files"]
     if not isinstance(deleted, dict):
@@ -1337,7 +1789,10 @@ def _read_artifact_gate(
     _exact_keys(
         crit,
         {
-            "decoder_receipt_sha256",
+            "bundle_sha256",
+            "python_executable",
+            "imports_preflight_ok",
+            "images",
             "metadata_image_count",
             "decoded_image_count",
             "tmp_identity_reference_count",
@@ -1347,8 +1802,11 @@ def _read_artifact_gate(
         "artifact-gate crit",
     )
     if (
-        not isinstance(crit["decoder_receipt_sha256"], str)
-        or not SHA256.fullmatch(crit["decoder_receipt_sha256"])
+        crit["bundle_sha256"] != contract["crit_decoder"]["source_bundle_sha256"]
+        or crit["imports_preflight_ok"] is not True
+        or not isinstance(crit["python_executable"], str)
+        or not crit["python_executable"]
+        or not isinstance(crit["images"], list)
         or _strict_nonnegative_int(
             crit["metadata_image_count"], "CRIT metadata image count"
         )
@@ -1357,6 +1815,7 @@ def _read_artifact_gate(
             crit["decoded_image_count"], "CRIT decoded image count"
         )
         != crit["metadata_image_count"]
+        or len(crit["images"]) != crit["metadata_image_count"]
         or _strict_nonnegative_int(
             crit["tmp_identity_reference_count"], "CRIT tmp identity references"
         )
@@ -1364,6 +1823,35 @@ def _read_artifact_gate(
         or crit["decoder"] != contract["crit_decoder"]
     ):
         raise StateError("artifact pinned-CRIT gate is not an exact PASS")
+    for record in crit["images"]:
+        if not isinstance(record, dict):
+            raise StateError("artifact CRIT image record must be an object")
+        _exact_keys(
+            record,
+            {
+                "raw_name",
+                "raw_sha256",
+                "decoded_name",
+                "decoded_sha256",
+                "decode_argv",
+                "exit_code",
+            },
+            "artifact CRIT image record",
+        )
+        if (
+            not isinstance(record["raw_name"], str)
+            or not record["raw_name"]
+            or not isinstance(record["raw_sha256"], str)
+            or not SHA256.fullmatch(record["raw_sha256"])
+            or record["decoded_name"] != f"{record['raw_name']}.json"
+            or not isinstance(record["decoded_sha256"], str)
+            or not SHA256.fullmatch(record["decoded_sha256"])
+            or not isinstance(record["decode_argv"], list)
+            or not all(isinstance(item, str) for item in record["decode_argv"])
+            or _strict_nonnegative_int(record["exit_code"], "CRIT decode exit code")
+            != 0
+        ):
+            raise StateError("artifact CRIT image record is not an executed-decode PASS")
     expected_categories = {
         "open_file",
         "mmap",
@@ -1582,11 +2070,8 @@ def _read_seal_receipt(
         or value["seed_subpath"] != contract["layout"]["seed_subpath"]
         or value["pvc_name"] != contract["storage"]["pvc_name"]
         or value["csi_driver"] != contract["storage"]["csi_driver"]
-        or not isinstance(value["volume_handle"], str)
-        or not value["volume_handle"].startswith(
-            contract["storage"]["volume_handle_prefix"]
-        )
-        or not SAFE_COMPONENT.fullmatch(value["volume_handle"])
+        or value["volume_handle"]
+        != _volume_handle(value["volume_handle"], contract, "seed-seal volume handle")
         or value["donor_wrote_directly_to_seed"] is not False
         or value["working_seed_inode_identity_claimed"] is not False
         or value["metadata_changed_after_capture"] is not False
@@ -1830,11 +2315,10 @@ def _read_clone_preparation_receipt(
         or value["clone_subpath"] != f"{contract['layout']['run_root']}/{run_id}"
         or value["pvc_name"] != contract["storage"]["pvc_name"]
         or value["csi_driver"] != contract["storage"]["csi_driver"]
-        or not isinstance(value["volume_handle"], str)
-        or not value["volume_handle"].startswith(
-            contract["storage"]["volume_handle_prefix"]
+        or value["volume_handle"]
+        != _volume_handle(
+            value["volume_handle"], contract, "run-clone preparation volume handle"
         )
-        or not SAFE_COMPONENT.fullmatch(value["volume_handle"])
         or value["published_atomically"] is not True
         or _strict_nonnegative_int(
             value["published_clone_count"], "published clone count"
@@ -2031,11 +2515,10 @@ def _read_clone_receipt(
         or value["clone_subpath"] != f"{contract['layout']['run_root']}/{run_id}"
         or value["pvc_name"] != contract["storage"]["pvc_name"]
         or value["csi_driver"] != contract["storage"]["csi_driver"]
-        or not isinstance(value["volume_handle"], str)
-        or not value["volume_handle"].startswith(
-            contract["storage"]["volume_handle_prefix"]
+        or value["volume_handle"]
+        != _volume_handle(
+            value["volume_handle"], contract, "admitted run-clone volume handle"
         )
-        or not SAFE_COMPONENT.fullmatch(value["volume_handle"])
         or value["published_atomically"] is not True
         or value["writer_exclusion_bracketed"] is not True
         or _strict_nonnegative_int(
@@ -2078,7 +2561,11 @@ def _read_clone_receipt(
 
 
 def validate_delete_authorization(
-    value: dict[str, Any], run_id: str, clone: dict[str, Any], clone_sha256: str
+    value: dict[str, Any],
+    run_id: str,
+    clone: dict[str, Any],
+    clone_sha256: str,
+    reference_at: str,
 ) -> dict[str, Any]:
     _exact_keys(
         value,
@@ -2099,7 +2586,15 @@ def validate_delete_authorization(
         raise StateError("delete authorization is not a PASS receipt")
     if value["run_id"] != run_id:
         raise StateError("delete authorization run_id does not match")
-    _timestamp(value["authorized_at"], "delete authorization authorized_at")
+    # A stale target-absence authorization must not be replayable arbitrarily
+    # late: absence has to be re-proven within the same freshness window every
+    # other cross-receipt check in this state machine enforces.
+    _require_fresh_timestamp(
+        value["authorized_at"],
+        reference_at,
+        "delete authorization authorized_at",
+        "clone deletion started_at",
+    )
     if _strict_nonnegative_int(
         value["active_tmp_mount_users"], "active_tmp_mount_users"
     ) != 0:
@@ -2198,6 +2693,8 @@ def delete_clone(
     authorization_path: Path,
 ) -> dict[str, Any]:
     run_id = _validate_run_id(run_id)
+    start_ns = time.monotonic_ns()
+    started_at = _now()
     clone_receipt, clone_receipt_raw = _read_clone_receipt(
         clone_receipt_path, contract, contract_sha256, run_id
     )
@@ -2209,9 +2706,8 @@ def delete_clone(
         run_id,
         clone_receipt,
         _sha256_bytes(clone_receipt_raw),
+        started_at,
     )
-    start_ns = time.monotonic_ns()
-    started_at = _now()
     paths = _require_layout(root, contract)
     published = _directory_names(paths["run_root"])
     if published != [run_id]:
@@ -2312,6 +2808,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     delete.add_argument("--run-id", required=True)
     delete.add_argument("--clone-receipt", type=Path, required=True)
     delete.add_argument("--cleanup-authorization", type=Path, required=True)
+    collect = subparsers.add_parser("collect-writer-exclusion")
+    collect.add_argument(
+        "--purpose",
+        choices=["post-deletion-seal", "pre-clone", "post-clone"],
+        required=True,
+    )
+    collect.add_argument("--kubectl", default="kubectl")
+    collect.add_argument("--donor-uid", required=True)
+    collect.add_argument("--donor-deleted-at", required=True)
     return parser.parse_args(argv)
 
 
@@ -2356,6 +2861,14 @@ def main(argv: list[str] | None = None) -> int:
                 args.run_id,
                 args.preparation_receipt,
                 args.writer_exclusion_receipt,
+            )
+        elif args.action == "collect-writer-exclusion":
+            receipt = collect_writer_exclusion(
+                contract,
+                args.purpose,
+                shlex.split(args.kubectl),
+                args.donor_uid,
+                args.donor_deleted_at,
             )
         else:
             receipt = delete_clone(
