@@ -412,6 +412,12 @@ class KubernetesBackendTests(unittest.TestCase):
             pod_list(pod({**owned_metadata, "labels": {
                 **owned_metadata["labels"], "mlsp.nebius.ai/task": "foreign-task",
             }})),
+            pod_list(pod({**owned_metadata, "labels": {
+                **owned_metadata["labels"], "mlsp.nebius.ai/model-id": "foreign-model",
+            }})),
+            pod_list(pod({**owned_metadata, "labels": {
+                **owned_metadata["labels"], "mlsp.nebius.ai/model-version-id": "foreign-version",
+            }})),
         )
         for response in malformed:
             with self.subTest(response=response):

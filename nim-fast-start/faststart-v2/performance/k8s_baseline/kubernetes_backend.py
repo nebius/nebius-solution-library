@@ -194,6 +194,18 @@ class KubernetesBackend:
                 raise BaselineError("target Pod inventory contains a noncanonical Pod object")
             metadata = item["metadata"]
             labels = metadata.get("labels")
+            admitted_models = (
+                [
+                    model
+                    for model in self.models.values()
+                    if isinstance(labels, dict)
+                    and labels.get("mlsp.nebius.ai/model-id") == model["model_id"]
+                    and labels.get("mlsp.nebius.ai/model-version-id")
+                    == model["version_label"]
+                ]
+                if isinstance(labels, dict)
+                else []
+            )
             if (
                 not isinstance(metadata.get("name"), str)
                 or not metadata["name"]
@@ -209,6 +221,7 @@ class KubernetesBackend:
                 or not labels["mlsp.nebius.ai/model-id"]
                 or not isinstance(labels.get("mlsp.nebius.ai/model-version-id"), str)
                 or not labels["mlsp.nebius.ai/model-version-id"]
+                or len(admitted_models) != 1
             ):
                 raise BaselineError(
                     "target Pod inventory lacks exact deletable task-owned identity"
