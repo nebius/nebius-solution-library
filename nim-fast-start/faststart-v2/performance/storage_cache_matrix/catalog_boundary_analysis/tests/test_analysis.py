@@ -492,16 +492,12 @@ class CatalogBoundaryAnalysisTests(unittest.TestCase):
                 {"kind": "operation", "path": relative, "sha256": digest, "receipt_id": receipt_id}
             )
         cleanup = attempt["cleanup"]
-        cleanup_uids = (
-            [
-                cleanup["generation_uid"],
-                cleanup["writable_resource_uid"],
-                f"uid-pvc-{attempt['attempt_id']}",
-                f"uid-pv-{attempt['attempt_id']}",
-            ]
-            if cleanup["dirty"]
-            else [cleanup["generation_uid"]]
-        )
+        cleanup_uids = [
+            cleanup["generation_uid"],
+            cleanup["writable_resource_uid"],
+            f"uid-pvc-{attempt['attempt_id']}",
+            f"uid-pv-{attempt['attempt_id']}",
+        ]
         relative = f"evidence/{attempt['attempt_id']}/cleanup.json"
         document = {
             "schema": EVIDENCE_SCHEMA,
@@ -533,6 +529,36 @@ class CatalogBoundaryAnalysisTests(unittest.TestCase):
         if receipt_id == attempt["ownership_binding"]["receipt_id"]:
             attempt["ownership_binding"]["sha256"] = digest
 
+    def _attempt_for_scenario(self, attempts: list[dict], scenario: str) -> dict:
+        attempt_id = next(
+            request["attempt_id"]
+            for request in self.trace["requests"]
+            if request["scenario"] == scenario
+        )
+        return next(item for item in attempts if item["attempt_id"] == attempt_id)
+
+    def _recompute_operation_accounting(self, attempt: dict) -> None:
+        mapping = {
+            "bytes_read_total": "bytes_read",
+            "bytes_written_total": "bytes_written",
+            "bytes_network_total": "bytes_network",
+            "bytes_deleted_total": "bytes_deleted",
+            "operation_slo_bytes_moved_total": "slo_bytes_moved",
+        }
+        for total, operation_key in mapping.items():
+            attempt["accounting"][total] = sum(
+                operation[operation_key] for operation in attempt["operations"]
+            )
+        attempt["accounting"]["physical_bytes_total"] = sum(
+            attempt["accounting"][key]
+            for key in (
+                "bytes_read_total",
+                "bytes_written_total",
+                "bytes_network_total",
+                "bytes_deleted_total",
+            )
+        )
+
     def validate(self, attempts=None):
         return validate_attempts(self.manifest, attempts or self.attempts, self.root)
 
@@ -546,6 +572,116 @@ class CatalogBoundaryAnalysisTests(unittest.TestCase):
             "C_remote_miss_post_t0",
             "D_active_a_to_b_reclaim",
         })
+
+    def test_a_to_b_remote_cannot_be_relabelled_as_node_seed_clone(self) -> None:
+        attempts = copy.deepcopy(self.attempts)
+        attempt = self._attempt_for_scenario(attempts, "a_to_b_remote")
+        attempt["starting_state"].update(
+            {
+                "immutable_node_local_seed_present": True,
+                "remote_artifact_required": False,
+                "target_source": "immutable_node_local_seed",
+            }
+        )
+        investment = attempt["pre_t0_investment"]
+        rate = float(self.manifest["cost_source"]["network_ssd_usd_per_gib_month"])
+        investment.update(
+            {
+                "residency_medium": "network_ssd",
+                "residency_rate_usd_per_gib_month": rate,
+                "residency_cost_usd": round(
+                    attempt["target"]["artifact_bytes"]
+                    / (1024**3)
+                    * rate
+                    * investment["source_age_seconds"]
+                    / (30 * 24 * 60 * 60),
+                    12,
+                ),
+            }
+        )
+        fetch = next(
+            operation for operation in attempt["operations"] if operation["name"] == "artifact_fetch"
+        )
+        fetch.update(
+            {
+                "outcome": "skipped",
+                "started_monotonic_ns": None,
+                "finished_monotonic_ns": None,
+                "logical_bytes": 0,
+                "bytes_read": 0,
+                "bytes_written": 0,
+                "bytes_network": 0,
+                "bytes_deleted": 0,
+                "slo_bytes_moved": 0,
+                "reason": "relabel adversary skips authoritative remote fetch",
+                "evidence_ref": None,
+            }
+        )
+        clone_index = OPERATIONS.index("clone") + 1
+        clone = next(
+            operation for operation in attempt["operations"] if operation["name"] == "clone"
+        )
+        clone.update(
+            {
+                "outcome": "completed",
+                "started_monotonic_ns": self.global_operation_base + clone_index * 2_000_000,
+                "finished_monotonic_ns": self.global_operation_base
+                + clone_index * 2_000_000
+                + 1_000_000,
+                "logical_bytes": ARTIFACT_BYTES,
+                "bytes_read": ARTIFACT_BYTES,
+                "bytes_written": ARTIFACT_BYTES,
+                "bytes_network": 0,
+                "bytes_deleted": 0,
+                "slo_bytes_moved": ARTIFACT_BYTES,
+                "reason": "self-consistent but false node-seed clone adversary",
+                "evidence_ref": f"operation-{attempt['attempt_id']}-clone",
+            }
+        )
+        self._recompute_operation_accounting(attempt)
+        self._sync_evidence(attempt)
+        with self.assertRaisesRegex(
+            AnalysisError, "exact SLO scenario/cache contract"
+        ):
+            self.validate(attempts)
+
+    def test_capacity_failure_cleanup_cannot_be_relabelled_sealed_reusable(self) -> None:
+        attempts = copy.deepcopy(self.attempts)
+        attempt = self._attempt_for_scenario(attempts, "capacity_miss")
+        attempt["cleanup"].update(
+            {
+                "final_state": "SEALED_RETAINED",
+                "dirty": False,
+                "reusable": True,
+                "verified_absent": False,
+            }
+        )
+        self._sync_evidence(attempt)
+        with self.assertRaisesRegex(
+            AnalysisError, "SLO terminal/deleted resource IDs"
+        ):
+            self.validate(attempts)
+
+    def test_runtime_schema_rejects_empty_cleanup_resource_uids(self) -> None:
+        attempts = copy.deepcopy(self.attempts)
+        attempt = self._attempt_for_scenario(attempts, "same_model_hot")
+        receipt_id = attempt["cleanup"]["evidence_ref"]
+        entry = next(
+            item for item in attempt["supporting_evidence"] if item["receipt_id"] == receipt_id
+        )
+        document = json.loads((self.root / entry["path"]).read_text())
+        document["resource_uids"] = []
+        self._replace_document(attempt, receipt_id, document)
+        with self.assertRaisesRegex(
+            AnalysisError, "operation evidence fails checked-in JSON schema"
+        ):
+            self.validate(attempts)
+        document["resource_uids"] = [attempt["cleanup"]["generation_uid"]]
+        self._replace_document(attempt, receipt_id, document)
+        with self.assertRaisesRegex(
+            AnalysisError, "exact generation and writable resource UIDs"
+        ):
+            self.validate(attempts)
 
     def test_receipt_coverage_cannot_be_partial_or_success_only(self) -> None:
         with self.assertRaisesRegex(AnalysisError, "cover every SLO attempt/failure"):
@@ -796,6 +932,10 @@ class CatalogBoundaryAnalysisTests(unittest.TestCase):
         self.assertEqual(len(load_attempts(path)), 10)
 
     def test_all_v2_schemas_are_closed_and_meta_valid(self) -> None:
+        self.assertEqual(
+            (PACKAGE / "requirements.txt").read_text(encoding="utf-8"),
+            "jsonschema==4.10.3\n",
+        )
         for name in (
             "source_manifest.schema.json",
             "analysis_config.schema.json",

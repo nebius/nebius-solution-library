@@ -9,6 +9,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+from jsonschema import Draft202012Validator, SchemaError, ValidationError
+
 from performance.request_slo.harness import (
     HarnessError,
     canonical_json,
@@ -72,6 +74,69 @@ RESOURCE_KINDS = {
 WRITABLE_KINDS = {"pvc", "pv", "provider_volume"}
 LOCALIZATION_OPERATIONS = {"artifact_fetch", "clone", "materialization", "hash"}
 SECONDS_PER_BILLING_MONTH = 30 * 24 * 60 * 60
+SCENARIO_STORAGE_CONTRACTS = {
+    "same_model_hot": {
+        "cache_state": "A_materialized_hit",
+        "artifact_cache": "memory_hit",
+        "target_source": "materialized_generation",
+    },
+    "idle_local": {
+        "cache_state": "B_node_seed_post_t0_materialization",
+        "artifact_cache": "node_local_hit",
+        "target_source": "immutable_node_local_seed",
+    },
+    "capacity_miss": {
+        "cache_state": "C_remote_miss_post_t0",
+        "artifact_cache": "unavailable",
+        "target_source": "immutable_remote_artifact",
+    },
+    "a_to_b_remote": {
+        "cache_state": "D_active_a_to_b_reclaim",
+        "artifact_cache": "remote_miss",
+        "target_source": "immutable_remote_artifact",
+    },
+    "a_to_b_local": {
+        "cache_state": "D_active_a_to_b_reclaim",
+        "artifact_cache": "attached_storage_hit",
+        "target_source": "immutable_node_local_seed",
+    },
+    "checkpoint_fallback": {
+        "cache_state": "D_active_a_to_b_reclaim",
+        "artifact_cache": "attached_storage_hit",
+        "target_source": "immutable_node_local_seed",
+    },
+}
+SCHEMA_PATHS = {
+    "attempt": Path(__file__).resolve().parent / "attempt.schema.json",
+    "ownership": Path(__file__).resolve().parent / "ownership-receipt.schema.json",
+    "operation evidence": Path(__file__).resolve().parent
+    / "operation-evidence.schema.json",
+}
+
+
+def _load_schema_validators() -> dict[str, Draft202012Validator]:
+    validators: dict[str, Draft202012Validator] = {}
+    for label, path in SCHEMA_PATHS.items():
+        try:
+            schema = json.loads(path.read_text(encoding="utf-8"))
+            Draft202012Validator.check_schema(schema)
+        except (OSError, json.JSONDecodeError, SchemaError) as exc:
+            raise RuntimeError(f"checked-in {label} schema is unavailable or invalid") from exc
+        validators[label] = Draft202012Validator(schema)
+    return validators
+
+
+SCHEMA_VALIDATORS = _load_schema_validators()
+
+
+def _validate_checked_in_schema(value: Any, label: str) -> None:
+    try:
+        SCHEMA_VALIDATORS[label].validate(value)
+    except ValidationError as exc:
+        location = "/".join(str(item) for item in exc.absolute_path) or "<root>"
+        raise AnalysisError(
+            f"{label} fails checked-in JSON schema at {location}: {exc.message}"
+        ) from exc
 
 
 def _canonical_json_file(root: Path, relative: str, digest: str, label: str) -> dict[str, Any]:
@@ -327,6 +392,7 @@ def _validate_ownership_receipt(
     attempt: dict[str, Any],
     clock: dict[str, Any],
 ) -> dict[str, Any]:
+    _validate_checked_in_schema(value, "ownership")
     receipt = _expect_keys(value, OWNERSHIP_RECEIPT_KEYS, "ownership receipt")
     if receipt["schema"] != OWNERSHIP_SCHEMA:
         raise AnalysisError("ownership receipt schema is unsupported")
@@ -506,6 +572,7 @@ def _validate_typed_evidence(
         pair = by_id.get(ref)
         if pair is None or pair[0]["kind"] != "operation":
             raise AnalysisError(f"operation {name} lacks typed evidence")
+        _validate_checked_in_schema(pair[1], "operation evidence")
         document = _expect_keys(pair[1], TYPED_EVIDENCE_KEYS, "operation evidence")
         if document["schema"] != EVIDENCE_SCHEMA or document["kind"] != "operation":
             raise AnalysisError("operation evidence schema/kind is invalid")
@@ -531,6 +598,7 @@ def _validate_typed_evidence(
     pair = by_id.get(ref)
     if pair is None or pair[0]["kind"] != "cleanup":
         raise AnalysisError("cleanup lacks typed evidence")
+    _validate_checked_in_schema(pair[1], "operation evidence")
     document = _expect_keys(pair[1], TYPED_EVIDENCE_KEYS, "cleanup evidence")
     if document["schema"] != EVIDENCE_SCHEMA or document["kind"] != "cleanup":
         raise AnalysisError("cleanup evidence schema/kind is invalid")
@@ -552,10 +620,10 @@ def _validate_typed_evidence(
             if resource["kind"] in WRITABLE_KINDS
         ),
     }
-    if cleanup["dirty"] and set(resource_uids) != required_cleanup_uids:
-        raise AnalysisError("dirty cleanup absence proof omits exact writable UIDs")
-    if not cleanup["dirty"] and not set(resource_uids) <= permitted_uids:
-        raise AnalysisError("cleanup evidence references an unowned UID")
+    if set(resource_uids) != required_cleanup_uids:
+        raise AnalysisError(
+            "cleanup proof does not join the exact generation and writable resource UIDs"
+        )
     referenced.add(ref)
     if referenced != set(by_id):
         raise AnalysisError("supporting evidence contains unreferenced receipts")
@@ -710,6 +778,7 @@ def _validate_state_contract(attempt: dict[str, Any]) -> None:
 def _validate_attempt_shape(
     value: Any, manifest: dict[str, Any], evidence_root: Path
 ) -> dict[str, Any]:
+    _validate_checked_in_schema(value, "attempt")
     attempt = _expect_keys(value, ATTEMPT_KEYS, "attempt")
     if attempt["schema"] != ATTEMPT_SCHEMA:
         raise AnalysisError("attempt schema is unsupported")
@@ -871,22 +940,17 @@ def _validate_slo_joins(
             raise AnalysisError("storage receipt T0 differs from external recorder")
         if result["current_node_occupant"] != attempt["starting_state"]["active_model"]:
             raise AnalysisError("active model differs from SLO precondition")
-        artifact_cache = request["precondition"]["cache"]["artifact"]
-        allowed_cache = {
-            "A_materialized_hit": {"memory_hit"},
-            "B_node_seed_post_t0_materialization": {
-                "node_local_hit",
-                "attached_storage_hit",
-            },
-            "C_remote_miss_post_t0": {"remote_miss", "unavailable"},
-            "D_active_a_to_b_reclaim": {
-                "node_local_hit",
-                "attached_storage_hit",
-                "remote_miss",
-            },
-        }[attempt["cache_state"]]
-        if artifact_cache not in allowed_cache:
-            raise AnalysisError("cache state differs from SLO cache precondition")
+        scenario = request["scenario"]
+        expected_storage = SCENARIO_STORAGE_CONTRACTS.get(scenario)
+        observed_storage = {
+            "cache_state": attempt["cache_state"],
+            "artifact_cache": request["precondition"]["cache"]["artifact"],
+            "target_source": attempt["starting_state"]["target_source"],
+        }
+        if expected_storage is None or observed_storage != expected_storage:
+            raise AnalysisError(
+                "storage A-D state/source differs from exact SLO scenario/cache contract"
+            )
         if accepted["data"]["environment"]["node_id"] != item["ownership"]["raw"][
             "selected_node_id"
         ]:
@@ -928,13 +992,33 @@ def _validate_slo_joins(
             ):
                 raise AnalysisError("storage operation lies outside external T0/terminal")
         deleted = set(result["cleanup"]["resources_deleted"])
+        retained = set(result["cleanup"]["resources_retained"])
         writable_ids = {
             resource["id"]
             for resource in ownership["resources"]
             if resource["kind"] in WRITABLE_KINDS
         }
-        if item["cleanup"]["dirty"] and not writable_ids <= deleted:
-            raise AnalysisError("SLO cleanup omits dirty PVC/PV/provider volume IDs")
+        deleted_writable = writable_ids & deleted
+        if deleted_writable not in (set(), writable_ids):
+            raise AnalysisError("SLO cleanup only partially resets writable storage")
+        if not expected_success and deleted_writable != writable_ids:
+            raise AnalysisError("failed SLO terminal does not delete every writable resource")
+        reset_required = not expected_success or deleted_writable == writable_ids
+        expected_cleanup_state = {
+            "final_state": "ABSENT" if reset_required else "SEALED_RETAINED",
+            "dirty": reset_required,
+            "reusable": not reset_required,
+            "verified_absent": reset_required,
+        }
+        observed_cleanup_state = {
+            key: item["cleanup"][key] for key in expected_cleanup_state
+        }
+        if observed_cleanup_state != expected_cleanup_state:
+            raise AnalysisError(
+                "storage cleanup state differs from SLO terminal/deleted resource IDs"
+            )
+        if not reset_required and not writable_ids <= retained:
+            raise AnalysisError("retained storage state omits an authoritative writable ID")
 
 
 def _has_true_overlap(members: Sequence[dict[str, Any]]) -> bool:

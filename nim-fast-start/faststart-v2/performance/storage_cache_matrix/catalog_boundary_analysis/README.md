@@ -40,6 +40,24 @@ identity, terminal semantic response, GPU/cost accounting, failures, and
 cleanup. This receipt only adds causal storage operations and read/write/network
 /deleted byte counters. Phase-percentile summation remains forbidden.
 
+The source classification is exact rather than a broad per-state allowlist:
+`same_model_hot/memory_hit` is A/materialized;
+`idle_local/node_local_hit` is B/node seed;
+`capacity_miss/unavailable` is C/remote source;
+`a_to_b_remote/remote_miss` is D/remote source; and
+`a_to_b_local` or `checkpoint_fallback` with `attached_storage_hit` is D/node
+seed. A remote-miss D receipt cannot replace fetch evidence with internally
+consistent clone evidence.
+
+Cleanup state is also derived, not asserted. A failed SLO terminal must delete
+every owned PVC/PV/provider-volume ID. Any full writable deletion requires the
+storage receipt to be dirty, non-reusable, verified absent, and `ABSENT`; a
+successful receipt with no writable deletion must be reusable and
+`SEALED_RETAINED`. Partial writable deletion is invalid. Runtime validation
+executes the checked-in Draft 2020-12 attempt, ownership, and typed-evidence
+schemas. Every cleanup proof, including a clean A hit, must name the exact
+nonempty set of owned generation, PVC, PV, and provider-volume UIDs.
+
 ## Source-pinned conclusions
 
 The source manifest resolves both the reviewed and integrated request-SLO Git
@@ -79,6 +97,8 @@ transfer/compute remains a separate receipt field and is not invented offline.
 Run from `nim-fast-start/faststart-v2`:
 
 ```bash
+python3 -m pip install -r \
+  performance/storage_cache_matrix/catalog_boundary_analysis/requirements.txt
 python3 -m performance.storage_cache_matrix.catalog_boundary_analysis.cli \
   verify-sources --repo-root ../.. \
   --task-deck-root /home/tux/dashboard/data
