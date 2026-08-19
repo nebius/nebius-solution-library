@@ -175,13 +175,13 @@ class NebiusCLI:
         combined = f"{result.stdout}\n{result.stderr}".strip()
         lowered = combined.lower()
         if result.returncode:
-            if allow_not_found and any(marker in lowered for marker in NOT_FOUND_MARKERS):
-                return None
             if any(marker in lowered for marker in AUTH_FAILURES):
                 raise AuthenticationError(
                     "Nebius authentication/authorization failed; do not switch credentials or projects: "
                     + combined[:1000]
                 )
+            if allow_not_found and any(marker in lowered for marker in NOT_FOUND_MARKERS):
+                return None
             raise BrokerError(
                 f"Nebius command failed ({result.returncode}): {' '.join(command[:5])}: "
                 f"{combined[:2000]}"

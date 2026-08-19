@@ -12,6 +12,7 @@ import argparse
 import base64
 import functools
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -38,13 +39,13 @@ if str(ROOT) not in sys.path:
 import broker as common  # noqa: E402
 
 
-REQUEST_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-request/v3"
-LEASE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-lease/v4"
+REQUEST_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-request/v4"
+LEASE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-lease/v5"
 PROFILE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-profiles/v1"
 REGISTRY_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-registry/v1"
-DEMAND_SCHEMA_VERSION = "catalog-switch-kubernetes-node-demand/v3"
+DEMAND_SCHEMA_VERSION = "catalog-switch-kubernetes-node-demand/v4"
 EVENT_SCHEMA_VERSION = "catalog-switch-kubernetes-lifecycle-events/v1"
-BACKEND_VERSION = "nebius-managed-kubernetes/v3"
+BACKEND_VERSION = "nebius-managed-kubernetes/v4"
 KUBECTL = "/usr/local/bin/kubectl"
 KUBECONFIG_ROOT = ROOT / "kubeconfigs"
 LEASE_KEY_ROOT = ROOT / "lease-keys"
@@ -54,8 +55,9 @@ ATTEMPT_ID = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,127}$")
 BASELINE_EVENT_SCHEMA = "archvteams.nebius.ai/catalog-switch-ledger-event/v1"
 T0_BOUNDARY = "external-client-request-accepted/v1"
 EXTERNAL_ACCEPTANCE_RECEIPT_SCHEMA = "catalog-switch-external-accepted-event-receipt/v1"
-PRIVATE_RUNNER_RECEIPT_SCHEMA = "catalog-switch-kubernetes-private-runner-receipt/v1"
+PRIVATE_RUNNER_RECEIPT_SCHEMA = "catalog-switch-kubernetes-private-runner-attestation/v2"
 NO_CREATE_RECEIPT_SCHEMA = "catalog-switch-kubernetes-no-create-absence-receipt/v1"
+RESOURCE_ABSENCE_RECEIPT_SCHEMA = "catalog-switch-kubernetes-resource-absence-receipt/v1"
 ACCEPTED_SCENARIOS = {
     "same_model_hot",
     "idle_local",
@@ -130,17 +132,92 @@ def required_keys(value: dict[str, Any], required: set[str], label: str) -> None
         raise common.BrokerError(f"{label} fields mismatch; missing={missing}, extra={extra}")
 
 
+def observe_runner_execution(interface_name: str) -> dict[str, Any]:
+    """Bind a reviewed runner attestation to this exact host/boot/netns/interface."""
+
+    if not re.fullmatch(r"[a-zA-Z0-9_.:-]{1,64}", interface_name):
+        raise common.BrokerError("runner private interface name is unsafe")
+    try:
+        instance_uuid = Path("/sys/class/dmi/id/product_uuid").read_text().strip().lower()
+        netns_inode = Path("/proc/self/ns/net").stat().st_ino
+    except OSError as exc:
+        raise common.BrokerError("cannot bind the current runner instance/network namespace") from exc
+    if not instance_uuid:
+        raise common.BrokerError("current runner instance identity is empty")
+    binary = next(
+        (path for path in ("/usr/sbin/ip", "/usr/bin/ip") if Path(path).is_file()),
+        None,
+    )
+    if binary is None:
+        raise common.BrokerError("cannot inspect the current runner private interface")
+    result = subprocess.run(
+        [binary, "-j", "address", "show", "dev", interface_name],
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+    if result.returncode:
+        raise common.BrokerError("current runner private interface is unavailable")
+    try:
+        rows = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise common.BrokerError("current runner interface inspection is malformed") from exc
+    if len(rows) != 1 or rows[0].get("ifname") != interface_name:
+        raise common.BrokerError("current runner private interface identity is ambiguous")
+    row = rows[0]
+    ipv4 = [
+        item
+        for item in row.get("addr_info", [])
+        if item.get("family") == "inet" and item.get("scope") == "global"
+    ]
+    if len(ipv4) != 1:
+        raise common.BrokerError("runner must have exactly one global private IPv4 address")
+    address = ipaddress.ip_address(str(ipv4[0].get("local")))
+    private_ranges = (
+        ipaddress.ip_network("10.0.0.0/8"),
+        ipaddress.ip_network("172.16.0.0/12"),
+        ipaddress.ip_network("192.168.0.0/16"),
+    )
+    if not any(address in network for network in private_ranges):
+        raise common.BrokerError("runner interface IPv4 is not RFC1918 private")
+    return {
+        "runner_instance_id": f"dmi:{instance_uuid}",
+        "runner_boot_id": current_boot_id(),
+        "runner_netns_inode": netns_inode,
+        "private_interface": {
+            "name": interface_name,
+            "mac_address": str(row.get("address", "")).lower(),
+            "ipv4_address": str(address),
+            "prefix_length": int(ipv4[0].get("prefixlen")),
+        },
+    }
+
+
+def runner_attestation_message(material: dict[str, Any]) -> bytes:
+    return common.canonical(
+        {
+            "domain": PRIVATE_RUNNER_RECEIPT_SCHEMA,
+            "authority_id": material.get("authority_id"),
+            "material": material,
+        }
+    ).encode("ascii")
+
+
 def validate_private_runner_receipt(
-    value: dict[str, Any], request: dict[str, Any]
+    value: dict[str, Any],
+    request: dict[str, Any],
+    authority_id: str,
+    authority: dict[str, Any],
 ) -> dict[str, Any]:
-    required_keys(value, {"status", "path", "sha256", "reviewed_commit"}, "private_runner_receipt")
+    required_keys(value, {"status", "path", "sha256", "source_commit"}, "private_runner_receipt")
     status_value = value["status"]
     if status_value == "PENDING_CONSUMER_PROOF":
-        if any(value[field] is not None for field in ("path", "sha256", "reviewed_commit")):
+        if any(value[field] is not None for field in ("path", "sha256", "source_commit")):
             raise common.BrokerError("pending private runner receipt must not claim review evidence")
         return dict(value)
-    if status_value != "REVIEWED_ACTIVE":
-        raise common.BrokerError("private runner receipt has an unsupported status")
+    if status_value != "REVIEWED_ACTIVE" or authority.get("status") != "REVIEWED_ACTIVE":
+        raise common.BrokerError("private runner receipt/reviewer authority is not reviewed active")
     path = Path(str(value["path"]))
     if not path.is_absolute() or path.resolve() != path:
         raise common.BrokerError("private runner receipt path must be absolute and canonical")
@@ -149,20 +226,31 @@ def validate_private_runner_receipt(
         raw = path.read_bytes()
     except OSError as exc:
         raise common.BrokerError("reviewed private runner receipt is missing") from exc
-    if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
-        raise common.BrokerError("private runner receipt must be a regular non-symlink file")
+    if (
+        stat.S_ISLNK(details.st_mode)
+        or not stat.S_ISREG(details.st_mode)
+        or details.st_uid != os.getuid()
+        or stat.S_IMODE(details.st_mode) != 0o600
+    ):
+        raise common.BrokerError("private runner receipt must be current-user regular mode 0600")
     if not HEX64.fullmatch(str(value["sha256"])) or hashlib.sha256(raw).hexdigest() != value["sha256"]:
         raise common.BrokerError("private runner receipt digest mismatch")
-    if not re.fullmatch(r"[0-9a-f]{40}", str(value["reviewed_commit"])):
-        raise common.BrokerError("private runner receipt must pin an exact reviewed commit")
+    if not re.fullmatch(r"[0-9a-f]{40}", str(value["source_commit"])):
+        raise common.BrokerError("private runner receipt must pin an exact source commit")
     try:
-        receipt = json.loads(raw)
+        envelope = json.loads(raw)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise common.BrokerError("private runner receipt is not valid JSON") from exc
+    required_keys(envelope, {"material", "signature_base64"}, "private runner attestation")
+    material = envelope.get("material")
+    if not isinstance(material, dict):
+        raise common.BrokerError("private runner attestation material must be an object")
     required_keys(
-        receipt,
+        material,
         {
             "schema_version",
+            "authority_id",
+            "reviewer_id",
             "status",
             "consumer_task_id",
             "lease_id",
@@ -175,12 +263,25 @@ def validate_private_runner_receipt(
             "public_ingress",
             "implementation_sha256",
             "source_commit",
-            "reviewed_at_utc",
+            "runner_instance_id",
+            "runner_boot_id",
+            "runner_netns_inode",
+            "runner_network_id",
+            "runner_subnet_id",
+            "private_interface",
+            "attested_at_utc",
         },
-        "private runner receipt material",
+        "private runner attestation material",
     )
-    expected = {
+    required_keys(
+        material["private_interface"],
+        {"name", "mac_address", "ipv4_address", "prefix_length"},
+        "private runner interface",
+    )
+    expected_identity = {
         "schema_version": PRIVATE_RUNNER_RECEIPT_SCHEMA,
+        "authority_id": authority_id,
+        "reviewer_id": authority["reviewer_id"],
         "status": "PASS",
         "consumer_task_id": request["task_id"],
         "lease_id": request["lease_id"],
@@ -191,13 +292,38 @@ def validate_private_runner_receipt(
         "api_server_access": "internal-only",
         "public_ip": False,
         "public_ingress": False,
-        "implementation_sha256": receipt["implementation_sha256"],
-        "source_commit": value["reviewed_commit"],
-        "reviewed_at_utc": receipt["reviewed_at_utc"],
+        "implementation_sha256": authority["validator_sha256"],
+        "source_commit": authority["validator_reviewed_commit"],
     }
-    if receipt != expected or not HEX64.fullmatch(str(receipt["implementation_sha256"])):
-        raise common.BrokerError("private runner receipt does not prove the exact isolated path")
-    common.parse_utc(str(receipt["reviewed_at_utc"]))
+    if any(material.get(key) != expected for key, expected in expected_identity.items()):
+        raise common.BrokerError("private runner attestation identity/policy differs from the request")
+    if value["source_commit"] != authority["validator_reviewed_commit"]:
+        raise common.BrokerError(
+            "private runner receipt source commit differs from reviewed authority provenance"
+        )
+    if (
+        not HEX64.fullmatch(str(material["implementation_sha256"]))
+        or not all(
+            isinstance(material[field], str) and material[field]
+            for field in ("runner_instance_id", "runner_boot_id", "runner_network_id", "runner_subnet_id")
+        )
+        or not isinstance(material["runner_netns_inode"], int)
+        or material["runner_netns_inode"] <= 0
+    ):
+        raise common.BrokerError("private runner attestation execution identity is incomplete")
+    common.parse_utc(str(material["attested_at_utc"]))
+    try:
+        reviewer_key = Ed25519PublicKey.from_public_bytes(_unb64(authority["public_key_base64"]))
+        reviewer_key.verify(
+            _unb64(str(envelope["signature_base64"])),
+            runner_attestation_message(material),
+        )
+    except (InvalidSignature, ValueError, TypeError) as exc:
+        raise common.BrokerError("private runner reviewer signature is invalid") from exc
+    observed = observe_runner_execution(str(material["private_interface"]["name"]))
+    for key in ("runner_instance_id", "runner_boot_id", "runner_netns_inode", "private_interface"):
+        if material[key] != observed[key]:
+            raise common.BrokerError(f"current runner {key} differs from signed attestation")
     return {**value, "path": str(path)}
 
 
@@ -228,6 +354,7 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
         "model_input_sha256s",
         "model_request_bindings",
         "accepted_event_authority_id",
+        "private_runner_authority_id",
         "private_runner_receipt",
         "cleanup_plan",
     }
@@ -383,7 +510,56 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
             raise common.BrokerError("reviewed accepted-event authority key has invalid length")
     else:
         raise common.BrokerError("accepted-event authority has an unsupported review status")
-    runner = validate_private_runner_receipt(request["private_runner_receipt"], request)
+    runner_authority_id = request["private_runner_authority_id"]
+    runner_authorities = profiles.get("private_runner_attestation_authorities", {})
+    if runner_authority_id not in runner_authorities:
+        raise common.BrokerError("private-runner reviewer authority is not in the profile registry")
+    runner_authority = runner_authorities[runner_authority_id]
+    required_keys(
+        runner_authority,
+        {
+            "status",
+            "reviewer_id",
+            "attestation_schema_version",
+            "validator_sha256",
+            "validator_reviewed_commit",
+            "public_key_base64",
+        },
+        "private-runner reviewer authority",
+    )
+    if runner_authority["attestation_schema_version"] != PRIVATE_RUNNER_RECEIPT_SCHEMA:
+        raise common.BrokerError("private-runner attestation schema is unsupported")
+    if not isinstance(runner_authority["reviewer_id"], str) or not runner_authority["reviewer_id"]:
+        raise common.BrokerError("private-runner reviewer ID must be non-empty")
+    if runner_authority["status"] == "PENDING_REVIEWER_REVIEW":
+        if any(
+            runner_authority[field] is not None
+            for field in ("validator_sha256", "validator_reviewed_commit", "public_key_base64")
+        ):
+            raise common.BrokerError("pending private-runner authority must not claim review evidence")
+    elif runner_authority["status"] == "REVIEWED_ACTIVE":
+        if (
+            not HEX64.fullmatch(str(runner_authority["validator_sha256"]))
+            or not re.fullmatch(r"[0-9a-f]{40}", str(runner_authority["validator_reviewed_commit"]))
+        ):
+            raise common.BrokerError("private-runner reviewer provenance is incomplete")
+        try:
+            runner_key = base64.b64decode(
+                str(runner_authority["public_key_base64"]), validate=True
+            )
+            Ed25519PublicKey.from_public_bytes(runner_key)
+        except (ValueError, TypeError) as exc:
+            raise common.BrokerError("private-runner reviewer public key is invalid") from exc
+        if len(runner_key) != 32:
+            raise common.BrokerError("private-runner reviewer public key length is invalid")
+    else:
+        raise common.BrokerError("private-runner reviewer authority status is unsupported")
+    runner = validate_private_runner_receipt(
+        request["private_runner_receipt"],
+        request,
+        runner_authority_id,
+        runner_authority,
+    )
     normalized.update(
         {
             "expected_duration_hours": str(duration),
@@ -702,9 +878,26 @@ def resource_auth_material(resource: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def resource_lifecycle_material(resource: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "kind": resource.get("kind"),
+        "id": resource.get("id"),
+        "desired_final_state": resource.get("desired_final_state"),
+        "deleted_at": resource.get("deleted_at"),
+        "absence_verified_at": resource.get("absence_verified_at"),
+        "cleanup_evidence": resource.get("cleanup_evidence"),
+        "delete_operation": resource.get("delete_operation"),
+        "absence_receipt": resource.get("absence_receipt"),
+        "absence_receipt_signature": resource.get("absence_receipt_signature"),
+    }
+
+
 def authenticate_resource(lease: dict[str, Any], resource: dict[str, Any]) -> None:
     resource["ownership_signature"] = sign_material(
         "resource-row", lease, resource_auth_material(resource)
+    )
+    resource["lifecycle_signature"] = sign_material(
+        "resource-lifecycle", lease, resource_lifecycle_material(resource)
     )
 
 
@@ -715,6 +908,69 @@ def verify_resource(lease: dict[str, Any], resource: dict[str, Any]) -> None:
         resource_auth_material(resource),
         str(resource.get("ownership_signature", "")),
     )
+    verify_signature(
+        "resource-lifecycle",
+        lease,
+        resource_lifecycle_material(resource),
+        str(resource.get("lifecycle_signature", "")),
+    )
+    deleted = resource.get("deleted_at")
+    absence_at = resource.get("absence_verified_at")
+    evidence = resource.get("cleanup_evidence")
+    receipt = resource.get("absence_receipt")
+    receipt_signature = resource.get("absence_receipt_signature")
+    delete_operation = resource.get("delete_operation")
+    if any(value is not None for value in (deleted, absence_at, evidence, receipt, receipt_signature)):
+        if not all(value is not None for value in (deleted, absence_at, evidence, receipt, receipt_signature)):
+            raise common.BrokerError("resource cleanup lifecycle evidence is incomplete")
+        if not isinstance(delete_operation, dict) or delete_operation.get("status") != "ABSENCE_VERIFIED":
+            raise common.BrokerError("resource cleanup lifecycle lacks a completed delete operation")
+        verify_signature("resource-absence", lease, receipt, str(receipt_signature))
+        if (
+            receipt.get("schema_version") != RESOURCE_ABSENCE_RECEIPT_SCHEMA
+            or receipt.get("resource_id") != resource["id"]
+            or receipt.get("resource_kind") != resource["kind"]
+            or receipt.get("verified_at_utc") != absence_at
+            or receipt.get("cleanup_evidence") != evidence
+            or delete_operation.get("completed_at_utc") != absence_at
+        ):
+            raise common.BrokerError("resource absence receipt differs from signed lifecycle state")
+    elif delete_operation is not None and (
+        not isinstance(delete_operation, dict)
+        or delete_operation.get("status") != "INTENT_RECORDED"
+    ):
+        raise common.BrokerError("live resource has an invalid delete-operation state")
+
+
+def record_resource_absence(
+    lease: dict[str, Any],
+    resource: dict[str, Any],
+    delete_operation: dict[str, Any],
+    evidence: str,
+    *,
+    absence_mode: str,
+) -> None:
+    verified = common.iso(precise_utc_now())
+    delete_operation["status"] = "ABSENCE_VERIFIED"
+    delete_operation["completed_at_utc"] = verified
+    resource["deleted_at"] = verified
+    resource["absence_verified_at"] = verified
+    resource["cleanup_evidence"] = evidence
+    receipt = {
+        "schema_version": RESOURCE_ABSENCE_RECEIPT_SCHEMA,
+        "resource_id": resource["id"],
+        "resource_kind": resource["kind"],
+        "delete_operation_started_at_utc": delete_operation["started_at_utc"],
+        "delete_attempt_count": delete_operation["attempt_count"],
+        "absence_mode": absence_mode,
+        "verified_at_utc": verified,
+        "cleanup_evidence": evidence,
+    }
+    resource["absence_receipt"] = receipt
+    resource["absence_receipt_signature"] = sign_material(
+        "resource-absence", lease, receipt
+    )
+    authenticate_resource(lease, resource)
 
 
 def demand_auth_material(demand: dict[str, Any]) -> dict[str, Any]:
@@ -723,6 +979,8 @@ def demand_auth_material(demand: dict[str, Any]) -> dict[str, Any]:
         for key in (
             "schema_version",
             "lease_id",
+            "request_sha256",
+            "plan_sha256",
             "attempt_id",
             "accepted_event_path",
             "accepted_event_sha256",
@@ -774,10 +1032,13 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
     accepted_event_authority = profiles["accepted_event_authorities"][
         request["accepted_event_authority_id"]
     ]
+    private_runner_authority = profiles["private_runner_attestation_authorities"][
+        request["private_runner_authority_id"]
+    ]
     estimate = cost_estimate(request, profile)
     labels = {
         "program": common.PROGRAM,
-        "broker": "resource-broker-k8s-v3",
+        "broker": "resource-broker-k8s-v4",
         "lease": request["lease_id"],
         "task": request["task_id"],
         "owner": request["owner"],
@@ -807,11 +1068,15 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
         "profile_sha256": common.sha256_json(profile),
         "accepted_event_authority": accepted_event_authority,
         "accepted_event_authority_sha256": common.sha256_json(accepted_event_authority),
+        "private_runner_authority": private_runner_authority,
+        "private_runner_authority_sha256": common.sha256_json(private_runner_authority),
         "live_creation_gates": {
             "external_accepted_event_authority": accepted_event_authority["status"],
+            "private_runner_reviewer_authority": private_runner_authority["status"],
             "private_runner_network_path": request["private_runner_receipt"]["status"],
             "admitted": (
                 accepted_event_authority["status"] == "REVIEWED_ACTIVE"
+                and private_runner_authority["status"] == "REVIEWED_ACTIVE"
                 and request["private_runner_receipt"]["status"] == "REVIEWED_ACTIVE"
             ),
         },
@@ -875,6 +1140,8 @@ def immutable_plan_material(lease: dict[str, Any]) -> dict[str, Any]:
         "profile_sha256": lease["profile_sha256"],
         "accepted_event_authority": lease["accepted_event_authority"],
         "accepted_event_authority_sha256": lease["accepted_event_authority_sha256"],
+        "private_runner_authority": lease["private_runner_authority"],
+        "private_runner_authority_sha256": lease["private_runner_authority_sha256"],
         "live_creation_gates": lease["live_creation_gates"],
         "prefix": lease["prefix"],
         "project_id": lease["project_id"],
@@ -904,6 +1171,10 @@ def assert_integrity(lease: dict[str, Any]) -> None:
         "accepted_event_authority_sha256"
     ):
         raise common.BrokerError("immutable accepted-event authority hash mismatch")
+    if common.sha256_json(lease.get("private_runner_authority")) != lease.get(
+        "private_runner_authority_sha256"
+    ):
+        raise common.BrokerError("immutable private-runner authority hash mismatch")
     if common.sha256_json(immutable_plan_material(lease)) != lease.get("plan_sha256"):
         raise common.BrokerError("immutable resource plan hash mismatch")
     if lease.get("project_id") != lease["request"]["project_id"] or lease.get("region") != lease["request"]["region"]:
@@ -967,7 +1238,20 @@ def assert_live_creation_prerequisites(lease: dict[str, Any]) -> None:
         raise common.BrokerError("live creation blocked: external receipt public key is invalid") from exc
     if len(public_key) != 32:
         raise common.BrokerError("live creation blocked: external receipt public key length is invalid")
-    runner = validate_private_runner_receipt(lease["request"]["private_runner_receipt"], lease["request"])
+    runner_authority = lease["private_runner_authority"]
+    if (
+        runner_authority.get("status") != "REVIEWED_ACTIVE"
+        or gates.get("private_runner_reviewer_authority") != "REVIEWED_ACTIVE"
+    ):
+        raise common.BrokerError(
+            "live creation blocked: private-runner reviewer authority is unreviewed"
+        )
+    runner = validate_private_runner_receipt(
+        lease["request"]["private_runner_receipt"],
+        lease["request"],
+        lease["request"]["private_runner_authority_id"],
+        runner_authority,
+    )
     if runner.get("status") != "REVIEWED_ACTIVE" or not gates.get("admitted"):
         raise common.BrokerError(
             "live creation blocked: consumer has no reviewed task-owned private API runner path"
@@ -1314,6 +1598,9 @@ def add_resource(
         "deleted_at": None,
         "absence_verified_at": None,
         "cleanup_evidence": None,
+        "delete_operation": None,
+        "absence_receipt": None,
+        "absence_receipt_signature": None,
         "provider_metadata": {},
     }
     authenticate_resource(lease, resource)
@@ -1624,6 +1911,25 @@ def add_provider_resource(
             or existing.get("managed_by_resource_id") != managed_by_resource_id
         ):
             raise common.BrokerError("provider child identity conflicts with signed resource row")
+        refreshed = metadata or {}
+        prior_kubernetes = existing.get("provider_metadata", {}).get(
+            "kubernetes_network_attestation"
+        )
+        provider_network = refreshed.get("provider_network_attestation")
+        if (
+            prior_kubernetes
+            and provider_network
+            and prior_kubernetes.get("internal_ipv4") == provider_network.get("private_ipv4")
+        ):
+            refreshed = {
+                **refreshed,
+                "kubernetes_network_attestation": prior_kubernetes,
+            }
+        existing["provider_metadata"] = refreshed
+        existing["provider_spec_sha256"] = common.sha256_json(
+            refreshed.get("compute_spec", {})
+        )
+        authenticate_resource(lease, existing)
         return existing
     item = {
         "kind": kind,
@@ -1643,6 +1949,9 @@ def add_provider_resource(
         "deleted_at": None,
         "absence_verified_at": None,
         "cleanup_evidence": None,
+        "delete_operation": None,
+        "absence_receipt": None,
+        "absence_receipt_signature": None,
         "provider_metadata": metadata or {},
     }
     authenticate_resource(lease, item)
@@ -1971,6 +2280,9 @@ def ensure_kubeconfig(
         "deleted_at": None,
         "absence_verified_at": None,
         "cleanup_evidence": None,
+        "delete_operation": None,
+        "absence_receipt": None,
+        "absence_receipt_signature": None,
         "provider_metadata": {**expected, "identity_id": identity["id"]},
     }
     authenticate_resource(lease, item)
@@ -2020,6 +2332,75 @@ def provider_instance_group_id(instance: dict[str, Any]) -> str | None:
     return None
 
 
+def is_rfc1918(value: str) -> bool:
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return any(
+        address in network
+        for network in (
+            ipaddress.ip_network("10.0.0.0/8"),
+            ipaddress.ip_network("172.16.0.0/12"),
+            ipaddress.ip_network("192.168.0.0/16"),
+        )
+    )
+
+
+def provider_node_network_attestation(
+    lease: dict[str, Any], instance: dict[str, Any]
+) -> dict[str, Any]:
+    subnet = find_resource(lease, "subnet")
+    network = find_resource(lease, "network")
+    if not subnet or not network:
+        raise common.BrokerError("node network attestation lacks task-owned network/subnet rows")
+    spec_interfaces = instance.get("spec", {}).get("network_interfaces", [])
+    status_interfaces = instance.get("status", {}).get("network_interfaces", [])
+    if len(spec_interfaces) != 1 or spec_interfaces[0].get("subnet_id") != subnet["id"]:
+        raise common.BrokerError("provider node is not attached only to the task-owned private subnet")
+    if len(status_interfaces) != 1:
+        raise common.BrokerError("provider node live network-interface observation is ambiguous")
+    observed = status_interfaces[0]
+    if (
+        observed.get("subnet_id") != subnet["id"]
+        or observed.get("network_id") != network["id"]
+    ):
+        raise common.BrokerError("provider node live interface differs from task-owned network/subnet")
+    public_keys = ("public_ip_address", "public_ip", "nat_ip_address", "external_ip")
+    if any(interface.get(key) for interface in (*spec_interfaces, *status_interfaces) for key in public_keys):
+        raise common.BrokerError("provider node exposes a public IP address")
+    private_ip = str(observed.get("ip_address", ""))
+    if not is_rfc1918(private_ip):
+        raise common.BrokerError("provider node does not expose one RFC1918 private address")
+    return {
+        "verified_at_utc": common.iso(precise_utc_now()),
+        "network_id": network["id"],
+        "subnet_id": subnet["id"],
+        "private_ipv4": private_ip,
+        "public_ipv4": None,
+        "provider_spec_interfaces_sha256": common.sha256_json(spec_interfaces),
+        "provider_status_interfaces_sha256": common.sha256_json(status_interfaces),
+    }
+
+
+def kubernetes_node_network_attestation(
+    node: dict[str, Any], provider_attestation: dict[str, Any]
+) -> dict[str, Any]:
+    addresses = node.get("status", {}).get("addresses", []) or []
+    internal = [item.get("address") for item in addresses if item.get("type") == "InternalIP"]
+    external = [item.get("address") for item in addresses if item.get("type") == "ExternalIP"]
+    if external:
+        raise common.BrokerError("Kubernetes Node advertises an ExternalIP")
+    if internal != [provider_attestation["private_ipv4"]] or not is_rfc1918(str(internal[0])):
+        raise common.BrokerError("Kubernetes Node InternalIP differs from provider private interface")
+    return {
+        "verified_at_utc": common.iso(precise_utc_now()),
+        "internal_ipv4": internal[0],
+        "external_ipv4": [],
+        "addresses_sha256": common.sha256_json(addresses),
+    }
+
+
 def reconcile_provider_nodes(
     lease: dict[str, Any],
     cli: common.NebiusCLI,
@@ -2047,11 +2428,22 @@ def reconcile_provider_nodes(
         and item["id"] not in current_ids
     ]:
         if cli.run(get_args(node_kind, old["id"]), allow_not_found=True) is None:
-            verified = common.iso(precise_utc_now())
-            old["deleted_at"] = verified
-            old["absence_verified_at"] = verified
-            old["cleanup_evidence"] = (
+            evidence = (
                 f"{get_args(node_kind, old['id'])} -> NotFound during replacement reconciliation"
+            )
+            delete_operation = {
+                "status": "INTENT_RECORDED",
+                "started_at_utc": common.iso(precise_utc_now()),
+                "attempt_count": 0,
+                "last_failure": None,
+            }
+            old["delete_operation"] = delete_operation
+            record_resource_absence(
+                lease,
+                old,
+                delete_operation,
+                evidence,
+                absence_mode="PROVIDER_REPLACEMENT_CASCADE_NOT_FOUND",
             )
             event(
                 lease,
@@ -2081,6 +2473,7 @@ def reconcile_provider_nodes(
             raise common.BrokerError("provider child GPU node is not preemptible")
         if node_kind == "system_node" and "preemptible" in compute_spec:
             raise common.BrokerError("provider child system node unexpectedly is preemptible")
+        network_attestation = provider_node_network_attestation(lease, value)
         resource = add_provider_resource(
             lease,
             kind=node_kind,
@@ -2093,6 +2486,7 @@ def reconcile_provider_nodes(
                 "node_group_id": node_group["id"],
                 "compute_spec": compute_spec,
                 "compute_spec_sha256": common.sha256_json(compute_spec),
+                "provider_network_attestation": network_attestation,
                 "discovery": "compute.instance.list",
             },
         )
@@ -2142,6 +2536,13 @@ def reconcile_nodes(
             raise common.BrokerError(
                 "Kubernetes node was not first reconciled through the provider Compute API"
             )
+        resource["provider_metadata"]["kubernetes_network_attestation"] = (
+            kubernetes_node_network_attestation(
+                node,
+                resource["provider_metadata"]["provider_network_attestation"],
+            )
+        )
+        authenticate_resource(lease, resource)
         resources.append(resource)
     return resources
 
@@ -2162,6 +2563,13 @@ def capture_support_isolation(lease: dict[str, Any], cli: common.NebiusCLI) -> d
         "endpoints", {}
     )
     interfaces = template.get("network_interfaces", [])
+    system_nodes = [
+        item
+        for item in lease["resources"]
+        if item["kind"] == "system_node" and not item.get("deleted_at")
+    ]
+    network_generations = []
+    observed_public_ips = []
     failures = []
     if network.get("spec", {}).get("ipv4_public_pools", {}).get("pools", []):
         failures.append("task VPC has a public address pool")
@@ -2190,6 +2598,38 @@ def capture_support_isolation(lease: dict[str, Any], cli: common.NebiusCLI) -> d
         failures.append("system node group does not use the task-owned service account")
     if interfaces != [{"subnet_id": resources["subnet"]["id"]}]:
         failures.append("system node network interface differs from the task-owned subnet")
+    if len(system_nodes) != 1:
+        failures.append("system provider node cardinality is not exactly one")
+    for node in system_nodes:
+        provider_network = node.get("provider_metadata", {}).get(
+            "provider_network_attestation"
+        )
+        kubernetes_network = node.get("provider_metadata", {}).get(
+            "kubernetes_network_attestation"
+        )
+        if not provider_network or not kubernetes_network:
+            failures.append(f"system node {node['id']} lacks provider/Kubernetes network proof")
+            continue
+        if (
+            provider_network.get("network_id") != resources["network"]["id"]
+            or provider_network.get("subnet_id") != resources["subnet"]["id"]
+            or provider_network.get("private_ipv4") != kubernetes_network.get("internal_ipv4")
+            or provider_network.get("public_ipv4") is not None
+            or kubernetes_network.get("external_ipv4") != []
+        ):
+            failures.append(f"system node {node['id']} network proof is not private and exact")
+        observed_public_ips.extend(kubernetes_network.get("external_ipv4", []))
+        if provider_network.get("public_ipv4"):
+            observed_public_ips.append(provider_network["public_ipv4"])
+        network_generations.append(
+            {
+                "node_id": node["id"],
+                "provider": provider_network,
+                "kubernetes": kubernetes_network,
+            }
+        )
+    if observed_public_ips:
+        failures.append("system worker observations contain public IP addresses")
     if failures:
         raise common.BrokerError("support isolation proof failed: " + "; ".join(failures))
     return {
@@ -2204,7 +2644,7 @@ def capture_support_isolation(lease: dict[str, Any], cli: common.NebiusCLI) -> d
             "version": cluster.get("status", {}).get("control_plane", {}).get("version"),
             "private_control_plane_endpoint": lease["api_server"],
             "public_control_plane_endpoint": None,
-            "public_worker_ips": [],
+            "public_worker_ips": observed_public_ips,
             "karpenter": False,
         },
         "network": {
@@ -2240,6 +2680,7 @@ def capture_support_isolation(lease: dict[str, Any], cli: common.NebiusCLI) -> d
                 for item in lease["resources"]
                 if item["kind"] == "system_node" and not item.get("deleted_at")
             ],
+            "network_generations": network_generations,
         },
         "kubeconfig_authority": resources["kubeconfig_authority"]["provider_metadata"],
         "target_neutral": not any(
@@ -2274,6 +2715,10 @@ def provision_control_plane(
                 reconcile_provider_nodes(lease, cli, group, node_kind)
                 if Path(lease["kubeconfig_path"]).exists():
                     reconcile_nodes(lease, kubectl, group, node_kind)
+        prior_gpu_proof = (lease.get("isolation_proof") or {}).get("gpu_node_group")
+        lease["isolation_proof"] = capture_support_isolation(lease, cli)
+        if prior_gpu_proof:
+            lease["isolation_proof"]["gpu_node_group"] = prior_gpu_proof
         save(lease_path, registry_path, lease)
         return lease
     if lease["state"] not in {"PLANNED", "CONTROL_PLANE_CREATING", "CONTROL_PLANE_FAILED"}:
@@ -2547,6 +2992,8 @@ def validate_demand(value: dict[str, Any], lease: dict[str, Any]) -> dict[str, A
         {
             "schema_version",
             "lease_id",
+            "request_sha256",
+            "plan_sha256",
             "attempt_id",
             "accepted_event_path",
             "accepted_event_sha256",
@@ -2567,6 +3014,11 @@ def validate_demand(value: dict[str, Any], lease: dict[str, Any]) -> dict[str, A
         raise common.BrokerError("unsupported Kubernetes demand schema")
     if value["lease_id"] != lease["lease_id"]:
         raise common.BrokerError("demand lease_id differs from the target lease")
+    if (
+        value["request_sha256"] != lease["request_sha256"]
+        or value["plan_sha256"] != lease["plan_sha256"]
+    ):
+        raise common.BrokerError("demand request/plan commitment differs from the target lease")
     if not ATTEMPT_ID.fullmatch(str(value["attempt_id"])):
         raise common.BrokerError("attempt_id contains unsafe characters")
     if not HEX64.fullmatch(str(value["accepted_event_sha256"])):
@@ -2650,6 +3102,9 @@ def read_external_acceptance_receipt(
             "validator_id",
             "validator_sha256",
             "validator_reviewed_commit",
+            "lease_id",
+            "request_sha256",
+            "plan_sha256",
             "ledger_path",
             "ledger_sha256",
             "ledger_device",
@@ -2686,8 +3141,13 @@ def read_external_acceptance_receipt(
         or material["validator_id"] != authority["validator_id"]
         or material["validator_sha256"] != authority["validator_sha256"]
         or material["validator_reviewed_commit"] != authority["validator_reviewed_commit"]
+        or material["lease_id"] != lease["lease_id"]
+        or material["request_sha256"] != lease["request_sha256"]
+        or material["plan_sha256"] != lease["plan_sha256"]
     ):
-        raise common.BrokerError("external accepted-event receipt provenance differs from reviewed authority")
+        raise common.BrokerError(
+            "external accepted-event receipt provenance/lease commitment differs from reviewed authority"
+        )
     try:
         public_key = Ed25519PublicKey.from_public_bytes(_unb64(authority["public_key_base64"]))
         public_key.verify(
@@ -2708,6 +3168,9 @@ def read_external_acceptance_receipt(
         "validator_id": material["validator_id"],
         "validator_sha256": material["validator_sha256"],
         "validator_reviewed_commit": material["validator_reviewed_commit"],
+        "lease_id": material["lease_id"],
+        "request_sha256": material["request_sha256"],
+        "plan_sha256": material["plan_sha256"],
         "signature_verified": True,
         "validated_at_utc": common.iso(validated_at),
     }
@@ -2774,6 +3237,14 @@ def read_bound_accepted_event(demand: dict[str, Any], lease: dict[str, Any]) -> 
         raise common.BrokerError("accepted event trace identity differs from the frozen lease")
     if data.get("trace_request_sha256") != lease["request"]["trace_sha256"]:
         raise common.BrokerError("accepted event trace request digest differs from the frozen trace")
+    if data.get("metric_contract_sha256") != lease["request"]["metric_contract_sha256"]:
+        raise common.BrokerError("accepted event metric contract differs from the frozen lease")
+    if (
+        data.get("lease_id") != lease["lease_id"]
+        or data.get("request_sha256") != lease["request_sha256"]
+        or data.get("plan_sha256") != lease["plan_sha256"]
+    ):
+        raise common.BrokerError("accepted event lease/request/plan commitment differs from the target lease")
     if data.get("scenario") != demand["scenario"] or data.get("scenario") not in lease["request"]["allowed_scenarios"]:
         raise common.BrokerError("accepted event scenario differs from the frozen demand")
     target = data.get("target", {})
@@ -2801,6 +3272,9 @@ def read_bound_accepted_event(demand: dict[str, Any], lease: dict[str, Any]) -> 
     if accepted_mono <= 0:
         raise common.BrokerError("accepted event monotonic clock is invalid")
     receipt_expected = {
+        "lease_id": lease["lease_id"],
+        "request_sha256": lease["request_sha256"],
+        "plan_sha256": lease["plan_sha256"],
         "ledger_path": str(path.resolve()),
         "ledger_sha256": hashlib.sha256(raw).hexdigest(),
         "ledger_device": details.st_dev,
@@ -2810,7 +3284,7 @@ def read_bound_accepted_event(demand: dict[str, Any], lease: dict[str, Any]) -> 
         "ledger_mtime_ns": details.st_mtime_ns,
         "line_index": line_index,
         "canonical_event_sha256": demand["accepted_event_sha256"],
-        "metric_contract_sha256": lease["request"]["metric_contract_sha256"],
+        "metric_contract_sha256": data["metric_contract_sha256"],
         "trace_id": lease["request"]["trace_id"],
         "trace_sha256": lease["request"]["trace_sha256"],
         "trace_request_sha256": lease["request"]["trace_sha256"],
@@ -2840,6 +3314,9 @@ def read_bound_accepted_event(demand: dict[str, Any], lease: dict[str, Any]) -> 
         "file_sha256_at_read": hashlib.sha256(raw).hexdigest(),
         "line_index": line_index,
         "canonical_event_sha256": demand["accepted_event_sha256"],
+        "lease_id": lease["lease_id"],
+        "request_sha256": lease["request_sha256"],
+        "plan_sha256": lease["plan_sha256"],
         "ledger_id": accepted["ledger_id"],
         "ledger_sequence": accepted["ledger_sequence"],
         "event_id": accepted["event_id"],
@@ -3246,6 +3723,8 @@ def attest_gpu_node(
         or instance_spec.get("preemptible") != {}
     ):
         raise common.BrokerError("live Compute GPU shape/preemptible state differs from plan")
+    provider_network = provider_node_network_attestation(lease, instance)
+    kubernetes_network = kubernetes_node_network_attestation(node, provider_network)
     ready = next(
         (
             condition.get("status")
@@ -3268,6 +3747,8 @@ def attest_gpu_node(
         "preset": profile["preset"],
         "preemptible": True,
         "compute_spec_sha256": common.sha256_json(instance_spec),
+        "provider_network_attestation": provider_network,
+        "kubernetes_network_attestation": kubernetes_network,
     }
 
 
@@ -3299,6 +3780,11 @@ def provision_gpu_node_group(
         attempt["receipt"].setdefault("replacement_reconciliations", []).append(attestation)
         attempt["receipt"]["live_gpu_attestation"] = attestation
         lease["node_ids"] = [attestation["node_id"]]
+        lease["isolation_proof"]["gpu_node_group"]["node_id"] = attestation["node_id"]
+        lease["isolation_proof"]["gpu_node_group"]["public_worker_ips"] = (
+            attestation["kubernetes_network_attestation"]["external_ipv4"]
+        )
+        lease["isolation_proof"]["gpu_node_group"]["live_attestation"] = attestation
         save(lease_path, registry_path, lease)
         return lease
     if arm == "B_new_preemptible_node":
@@ -3484,7 +3970,7 @@ def provision_gpu_node_group(
             "gpu_product_label": profile["kubernetes_gpu_product_label"],
             "gpu_count": profile["gpu_count_per_node"],
             "preemptible": True,
-            "public_worker_ips": [],
+            "public_worker_ips": attestation["kubernetes_network_attestation"]["external_ipv4"],
             "attempt_id": attempt["attempt_id"],
             "live_attestation": attestation,
         }
@@ -3659,6 +4145,9 @@ def reconcile_create_intents_for_cleanup(
                 "deleted_at": None,
                 "absence_verified_at": None,
                 "cleanup_evidence": None,
+                "delete_operation": None,
+                "absence_receipt": None,
+                "absence_receipt_signature": None,
                 "provider_metadata": {
                     **expected,
                     "identity_id": lease["request"]["authority_identity"]["id"],
@@ -3714,17 +4203,18 @@ def delete_one(
     kind = resource["kind"]
     resource_id = resource["id"]
     verify_resource(lease, resource)
-    delete_operation = resource.setdefault(
-        "delete_operation",
-        {
+    delete_operation = resource.get("delete_operation")
+    if delete_operation is None:
+        delete_operation = {
             "status": "INTENT_RECORDED",
             "started_at_utc": common.iso(precise_utc_now()),
             "attempt_count": 0,
             "last_failure": None,
-        },
-    )
+        }
+        resource["delete_operation"] = delete_operation
     if delete_operation["status"] != "INTENT_RECORDED":
         delete_operation["status"] = "INTENT_RECORDED"
+    authenticate_resource(lease, resource)
     save(lease_path, registry_path, lease)
     if kind == "kubeconfig_authority":
         path = Path(resource["provider_metadata"]["path"])
@@ -3734,6 +4224,7 @@ def delete_one(
         if path.exists():
             raise common.BrokerError("kubeconfig authority still exists after exact unlink")
         evidence = f"lstat({path}) -> absent after exact owned-file unlink"
+        absence_mode = "LOCAL_OWNED_FILE_UNLINK_ABSENT"
     elif resource.get("deletion_mode") == "PROVIDER_CASCADE":
         if not wait_absent(cli, kind, resource_id, timeout_seconds=900):
             raise common.BrokerError("provider-cascade child is still present")
@@ -3741,6 +4232,7 @@ def delete_one(
             f"{get_args(kind, resource_id)} -> NotFound after parent "
             f"{resource['managed_by_resource_id']} deletion"
         )
+        absence_mode = "PROVIDER_PARENT_CASCADE_NOT_FOUND"
     else:
         operation = operation_for(lease, resource["create_operation_id"])
         if not operation:
@@ -3757,12 +4249,15 @@ def delete_one(
             if common.sha256_json(projected) != resource["provider_spec_sha256"]:
                 raise common.BrokerError("live provider spec differs from signed resource row")
             delete_operation["attempt_count"] += 1
+            delete_operation["last_failure"] = None
+            authenticate_resource(lease, resource)
             save(lease_path, registry_path, lease)
             try:
                 cli.run(delete_args(kind, resource_id), json_output=False, timeout=1200)
             except Exception as exc:
                 if cli.run(get_args(kind, resource_id), allow_not_found=True, timeout=60) is not None:
                     delete_operation["last_failure"] = str(exc)[:1500]
+                    authenticate_resource(lease, resource)
                     save(lease_path, registry_path, lease)
                     raise
         if not wait_absent(cli, kind, resource_id, timeout_seconds=1200):
@@ -3772,12 +4267,14 @@ def delete_one(
             f"{delete_args(kind, resource_id)} at most once per observed presence; "
             f"post-delete {get_args(kind, resource_id)} -> NotFound"
         )
-    verified = common.iso(precise_utc_now())
-    resource["deleted_at"] = verified
-    resource["absence_verified_at"] = verified
-    resource["cleanup_evidence"] = evidence
-    delete_operation["status"] = "ABSENCE_VERIFIED"
-    delete_operation["completed_at_utc"] = verified
+        absence_mode = "EXACT_ID_DELETE_THEN_NOT_FOUND"
+    record_resource_absence(
+        lease,
+        resource,
+        delete_operation,
+        evidence,
+        absence_mode=absence_mode,
+    )
     event(lease, "resource.absence.verified", "PASS", kind=kind, resource_id=resource_id)
     save(lease_path, registry_path, lease)
 

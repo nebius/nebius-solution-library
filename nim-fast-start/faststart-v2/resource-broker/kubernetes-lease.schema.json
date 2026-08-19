@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-kubernetes-resource-lease/v4",
-  "title": "Catalog switch Kubernetes resource lease v4",
+  "$id": "catalog-switch-kubernetes-resource-lease/v5",
+  "title": "Catalog switch Kubernetes resource lease v5",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -24,6 +24,8 @@
     "profile_sha256",
     "accepted_event_authority",
     "accepted_event_authority_sha256",
+    "private_runner_authority",
+    "private_runner_authority_sha256",
     "live_creation_gates",
     "cost_estimate",
     "resource_graph",
@@ -46,8 +48,8 @@
     "cleanup_plan"
   ],
   "properties": {
-    "schema_version": {"const": "catalog-switch-kubernetes-resource-lease/v4"},
-    "backend_version": {"const": "nebius-managed-kubernetes/v3"},
+    "schema_version": {"const": "catalog-switch-kubernetes-resource-lease/v5"},
+    "backend_version": {"const": "nebius-managed-kubernetes/v4"},
     "event_schema_version": {"const": "catalog-switch-kubernetes-lifecycle-events/v1"},
     "lease_id": {"type": "string"},
     "request_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -92,6 +94,8 @@
     "profile_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "accepted_event_authority": {"type": "object"},
     "accepted_event_authority_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "private_runner_authority": {"type": "object"},
+    "private_runner_authority_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "live_creation_gates": {"type": "object"},
     "cost_estimate": {"type": "object"},
     "resource_graph": {"type": "array", "items": {"type": "object"}},

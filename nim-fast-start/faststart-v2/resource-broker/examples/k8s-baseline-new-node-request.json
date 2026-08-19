@@ -1,6 +1,6 @@
 {
-  "schema_version": "catalog-switch-kubernetes-lease-request/v3",
-  "lease_id": "k8s-baseline-new-node-review2-candidate",
+  "schema_version": "catalog-switch-kubernetes-lease-request/v4",
+  "lease_id": "k8s-baseline-new-node-review3-candidate",
   "task_id": "catalog-switch-k8s-baseline",
   "owner": "catalog-switch-k8s-baseline",
   "cleanup_owner": "catalog-switch-resource-broker",
@@ -67,11 +67,12 @@
     }
   },
   "accepted_event_authority_id": "catalog-switch-k8s-external-client-v1",
+  "private_runner_authority_id": "catalog-switch-private-runner-reviewer-v1",
   "private_runner_receipt": {
     "status": "PENDING_CONSUMER_PROOF",
     "path": null,
     "sha256": null,
-    "reviewed_commit": null
+    "source_commit": null
   },
   "cleanup_plan": "Broker cleanup owner deletes each exact attempt node group and provider node before the next independent attempt, then deletes the support graph in reverse dependency order and records NotFound or local-file absence for every ledger row."
 }

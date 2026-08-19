@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-kubernetes-lease-request/v3",
+  "$id": "catalog-switch-kubernetes-lease-request/v4",
   "title": "Catalog switch Kubernetes lease request",
   "type": "object",
   "additionalProperties": false,
@@ -30,11 +30,12 @@
     "model_input_sha256s",
     "model_request_bindings",
     "accepted_event_authority_id",
+    "private_runner_authority_id",
     "private_runner_receipt",
     "cleanup_plan"
   ],
   "properties": {
-    "schema_version": {"const": "catalog-switch-kubernetes-lease-request/v3"},
+    "schema_version": {"const": "catalog-switch-kubernetes-lease-request/v4"},
     "lease_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
     "task_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
     "owner": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
@@ -115,15 +116,16 @@
       }
     },
     "accepted_event_authority_id": {"type": "string", "minLength": 1},
+    "private_runner_authority_id": {"type": "string", "minLength": 1},
     "private_runner_receipt": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "path", "sha256", "reviewed_commit"],
+      "required": ["status", "path", "sha256", "source_commit"],
       "properties": {
         "status": {"enum": ["PENDING_CONSUMER_PROOF", "REVIEWED_ACTIVE"]},
         "path": {"type": ["string", "null"]},
         "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
-        "reviewed_commit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"}
+        "source_commit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"}
       }
     },
     "cleanup_plan": {"type": "string", "minLength": 20}

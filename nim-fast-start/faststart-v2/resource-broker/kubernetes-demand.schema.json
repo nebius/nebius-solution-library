@@ -1,12 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-kubernetes-node-demand/v3",
+  "$id": "catalog-switch-kubernetes-node-demand/v4",
   "title": "Post-T0 Kubernetes GPU node-group demand",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schema_version",
     "lease_id",
+    "request_sha256",
+    "plan_sha256",
     "attempt_id",
     "accepted_event_path",
     "accepted_event_sha256",
@@ -22,8 +24,10 @@
     "input"
   ],
   "properties": {
-    "schema_version": {"const": "catalog-switch-kubernetes-node-demand/v3"},
+    "schema_version": {"const": "catalog-switch-kubernetes-node-demand/v4"},
     "lease_id": {"type": "string"},
+    "request_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "plan_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "attempt_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,127}$"},
     "accepted_event_path": {"type": "string", "minLength": 1},
     "accepted_event_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},

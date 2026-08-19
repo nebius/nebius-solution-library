@@ -5,16 +5,16 @@
       "cleanup_owner": "catalog-switch-resource-broker",
       "expires_at": "2026-08-20T15:00:00Z",
       "lease_file": "/home/tux/dashboard/data/worktrees/catalog-switch-resource-broker/nim-fast-start/faststart-v2/resource-broker/kubernetes-leases/k8s-baseline-new-node-candidate.json",
-      "lease_id": "k8s-baseline-new-node-review2-candidate",
-      "plan_sha256": "2a64cdb2913fa6116cfe32a7f23c29203476f1e77bdb05c1c09e90b2299f3dce",
-      "prefix": "mlsp-csw-catalog-switch-k8s-94ac6842",
+      "lease_id": "k8s-baseline-new-node-review3-candidate",
+      "plan_sha256": "8237e05be62691f72e8081774fd1b466b510ac702ebfb7ba3b92a1f60d87fe6e",
+      "prefix": "mlsp-csw-catalog-switch-k8s-ce39ad8b",
       "project_id": "project-e00z6b02t8ddk96c49",
       "region": "eu-north1",
-      "schema_version": "catalog-switch-kubernetes-resource-lease/v4",
+      "schema_version": "catalog-switch-kubernetes-resource-lease/v5",
       "state": "PLANNED",
       "task_id": "catalog-switch-k8s-baseline"
     }
   ],
   "schema_version": "catalog-switch-kubernetes-lease-registry/v1",
-  "updated_at": "2026-08-19T16:38:25Z"
+  "updated_at": "2026-08-19T17:08:29Z"
 }

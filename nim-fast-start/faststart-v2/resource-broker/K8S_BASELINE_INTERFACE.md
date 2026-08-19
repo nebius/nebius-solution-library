@@ -1,12 +1,12 @@
-# `catalog-switch-k8s-baseline` handoff: broker v4
+# `catalog-switch-k8s-baseline` handoff: lease v5 / broker v4
 
 This is the provider-side contract coordinated from the broker worktree. The
 baseline sibling worktree was inspected read-only and was not edited.
 
 ## Lease admission
 
-The consumer must require `catalog-switch-kubernetes-resource-lease/v4` with
-backend `nebius-managed-kubernetes/v3`. For Arm B, admitted pre-T0 state remains
+The consumer must require `catalog-switch-kubernetes-resource-lease/v5` with
+backend `nebius-managed-kubernetes/v4`. For Arm B, admitted pre-T0 state remains
 `SUPPORT_ACTIVE_NO_GPU_NODE_GROUP`: non-null task-owned cluster/system-node IDs,
 empty GPU group/node IDs, a private API server, and target-neutral isolation.
 
@@ -21,9 +21,10 @@ the consumer must provide both:
 - a reviewed external accepted-event recorder/validator authority: exact
   Ed25519 public key, validator implementation SHA-256, and reviewed source
   commit; and
-- a reviewed `catalog-switch-kubernetes-private-runner-receipt/v1` proving a
-  task-owned runner reaches the internal API from a task-owned private subnet,
-  with no public IP or public ingress.
+- a `catalog-switch-kubernetes-private-runner-attestation/v2` signed by a
+  separate pinned reviewer key. It must bind the reviewed broker source commit
+  to the current task-owned runner instance, Linux boot, network namespace, and
+  named RFC1918 interface on the exact task-owned network/subnet.
 
 Until both receipts are reviewed and frozen into a new plan, every support,
 demand, and GPU provisioning entry point fails before Capacity Advisor or any
@@ -36,16 +37,20 @@ fsynced canonical JSONL `request.accepted` row and emit a mode-0600 signed
 `catalog-switch-external-accepted-event-receipt/v1`. The signature material
 binds the exact ledger path/hash/device/inode/mode/size/mtime/line, canonical
 event hash, authority/validator provenance, clocks, recorder/boot authority,
-metric-contract SHA-256, trace ID/request SHA-256, scenario, complete target,
-complete input, and request/attempt/event/ledger identities.
+lease ID, immutable request and plan SHA-256, metric-contract SHA-256, trace
+ID/request SHA-256, scenario, complete target, complete input, and
+request/attempt/event/ledger identities. Those lease/request/plan/metric fields
+must also be present in, and exactly match, the signed canonical event data.
 
 The caller then atomically writes a demand conforming to
-`catalog-switch-kubernetes-node-demand/v3`:
+`catalog-switch-kubernetes-node-demand/v4`:
 
 ```json
 {
-  "schema_version": "catalog-switch-kubernetes-node-demand/v3",
+  "schema_version": "catalog-switch-kubernetes-node-demand/v4",
   "lease_id": "<lease-id>",
+  "request_sha256": "<immutable-lease-request-sha256>",
+  "plan_sha256": "<immutable-lease-plan-sha256>",
   "attempt_id": "<accepted-event-attempt-id>",
   "accepted_event_path": "/absolute/canonical/events.jsonl",
   "accepted_event_sha256": "<canonical-event-sha256>",
@@ -78,6 +83,11 @@ signature, rereads and rehashes the exact ledger, derives T0 from that event,
 and joins every receipt/demand/event field to the immutable lease. A caller-made
 0600 file, self-asserted recorder/boot, wrong trace request, wrong metric
 contract, scenario mutation, or partial target/input match fails closed.
+
+The support state is valid only when each current/replacement Compute child is
+observed on the exact task-owned network/subnet with one RFC1918 address and no
+public interface, and the corresponding Kubernetes Node reports the same
+`InternalIP` and no `ExternalIP`. Both observations are durable signed evidence.
 
 ## Attempt receipt and failures
 

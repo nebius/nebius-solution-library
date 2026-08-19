@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Atomically export the union of VM v1 and Kubernetes v4 resource ledgers."""
+"""Atomically export the union of VM v1 and Kubernetes v5 resource ledgers."""
 
 from __future__ import annotations
 

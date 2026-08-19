@@ -1,24 +1,29 @@
-# Kubernetes lease backend v4
+# Kubernetes lease v5 / provider backend v4
 
 `kubernetes_broker.py` is the sole Managed Kubernetes creation path for the
 catalog-switch program. It is additive: VM backend v1 is unchanged. Modal is
-excluded. This v4 replacement was prepared without creating a cloud resource.
+excluded. This v5 replacement was prepared without creating a cloud resource.
 
 ## Frozen authority and plan
 
-The v3 request freezes the `sandbox` profile and the exact `iam whoami`
+The v4 request freezes the `sandbox` profile and the exact `iam whoami`
 identity type, ID, and parent project. Every mutating entry point rechecks both
 before its first mutation; profile or identity drift is an authentication stop.
+Authentication/authorization markers are classified before any optional
+NotFound handling, so an error such as `Unauthenticated: profile not found`
+cannot be persisted as resource-absence evidence.
 The project/region allowlist, Kubernetes version, private-control-plane policy,
 CPU/H100 shapes, preemptibility, duration, cost, TTL, cleanup owner/deadline,
-metric/trace/model-input identities, accepted-event validation authority, and
-private-API runner receipt are also frozen.
+metric/trace/model-input identities, accepted-event validation authority,
+separate private-runner reviewer authority, and private-API runner attestation
+are also frozen.
 
-The v4 plan commitment covers the request and profile hashes plus lease ID,
+The v5 plan commitment covers the request and profile hashes plus lease ID,
 schema/backend versions, prefix, project, region, creation/expiry timestamps,
 all ownership labels, signing authority, cost, resource graph, kubeconfig path
-and context, GPU policy, and cleanup policy. Changing any authorization-bearing
-field invalidates the plan.
+and context, GPU policy, accepted-event authority, runner-review authority,
+runner evidence, and cleanup policy. Changing any authorization-bearing field
+invalidates the plan.
 
 Planning creates a mode-0600 task-local Ed25519 private key under ignored
 `lease-keys/` and commits only its public key/path metadata. Create intents and
@@ -68,6 +73,13 @@ Every call against an `ACTIVE` system or GPU lease reruns child reconciliation;
 provider replacements are added, replaced IDs receive exact NotFound evidence,
 and GPU replacements undergo a new live attestation.
 
+Every current and replacement worker is also checked twice: the provider
+Compute instance must expose exactly one RFC1918 address on the task-owned
+network/subnet with no public interface, and the Kubernetes Node must expose the
+same address as `InternalIP` with no `ExternalIP`. The signed provider and
+Kubernetes observations are retained per resource generation; isolation proof
+is derived from them rather than a hard-coded empty public-IP list.
+
 GPU readiness is not copied from the plan. The broker joins the Kubernetes
 providerID to the exact Compute instance, verifies the node-group marker,
 platform, preset, preemptible state, Kubernetes `nvidia.com/gpu.product`,
@@ -93,7 +105,7 @@ before unlinking.
 
 ## Reviewed source-bound Arm B T0
 
-The Arm B demand v3 does not trust caller-supplied clocks or a private file's
+The Arm B demand v4 does not trust caller-supplied clocks or a private file's
 shape. It names both the exact durable JSONL event and a mode-0600 receipt signed
 by a reviewed external recorder/validator authority. The immutable authority
 entry pins the Ed25519 public key, validator implementation SHA-256, and reviewed
@@ -103,7 +115,7 @@ and then requires exactly one matching canonical event with:
 - schema `archvteams.nebius.ai/catalog-switch-ledger-event/v1`;
 - event `request.accepted`, attempt sequence zero, and boundary
   `external-client-request-accepted/v1`;
-- an exact attempt/request/trace/ledger identity join;
+- an exact lease/plan/request/attempt/request-event/trace/ledger identity join;
 - the frozen trace ID, trace-request SHA-256, metric-contract SHA-256, scenario,
   and complete target/artifact/input identity; and
 - the frozen external recorder on the current Linux boot/monotonic clock.
@@ -115,11 +127,15 @@ checked against that signed T0 before every provider call. Missing, forged,
 ambiguous, wrong-contract/trace/scenario/target/input, wrong-clock, and stale
 events are rejected.
 
-Production live creation is additionally blocked until the baseline consumer
-publishes a reviewed task-owned, private-subnet runner receipt proving internal
-API reachability with no public IP or public ingress. The shipped candidate has
-both this runner gate and the external receipt authority set to pending; it
-cannot invoke a provider create.
+Production live creation is additionally blocked until a separate pinned
+reviewer signs a mode-0600 runner-attestation envelope. Its canonical material
+binds the exact broker source commit and policy to the lease/project/region,
+task-owned runner instance, current boot ID and network-namespace inode, and the
+current named RFC1918 interface on the task-owned network/subnet. The broker
+verifies the reviewer Ed25519 signature, file ownership/mode, and current live
+runner observation before every mutation. The shipped candidate keeps the
+external authority, runner reviewer, and runner evidence gates pending, so it
+cannot invoke Capacity Advisor, the provider, or kubectl.
 
 ## Cleanup and supervisor truth
 
@@ -135,6 +151,12 @@ transitive parents and provider children of blocked parents, preserving what is
 needed for recovery. Attempt cleanup reconstructs its final group/node receipt
 from all durable resource-row evidence across retries, including crashes after
 either deletion save.
+
+Resource ownership and cleanup lifecycle are independently authenticated.
+Deletion intent, deletion time, absence-verification time, evidence, and the
+exact signed structured absence receipt are in the lifecycle signature. Forged
+deleted/absent fields therefore fail integrity checks instead of making cleanup
+skip a live resource.
 
 An honest post-T0 `NO_PREEMPTIBLE_CAPACITY` result has no resource rows. Before
 returning that failure, the broker lists the exact cluster parent and intended

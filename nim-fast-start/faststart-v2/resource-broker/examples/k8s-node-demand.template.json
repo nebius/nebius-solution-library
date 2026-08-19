@@ -1,6 +1,8 @@
 {
-  "schema_version": "catalog-switch-kubernetes-node-demand/v3",
+  "schema_version": "catalog-switch-kubernetes-node-demand/v4",
   "lease_id": "REPLACE_FROM_LEASE",
+  "request_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "plan_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "attempt_id": "replace-from-durable-request-accepted-event",
   "accepted_event_path": "/absolute/path/to/canonical-events.jsonl",
   "accepted_event_sha256": "0000000000000000000000000000000000000000000000000000000000000000",

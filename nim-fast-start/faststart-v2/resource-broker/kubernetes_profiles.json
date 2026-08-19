@@ -11,6 +11,16 @@
       "public_key_base64": null
     }
   },
+  "private_runner_attestation_authorities": {
+    "catalog-switch-private-runner-reviewer-v1": {
+      "status": "PENDING_REVIEWER_REVIEW",
+      "reviewer_id": "catalog-switch-independent-runner-reviewer",
+      "attestation_schema_version": "catalog-switch-kubernetes-private-runner-attestation/v2",
+      "validator_sha256": null,
+      "validator_reviewed_commit": null,
+      "public_key_base64": null
+    }
+  },
   "profiles": {
     "mk8s-h100-new-node-v1": {
       "regions": [

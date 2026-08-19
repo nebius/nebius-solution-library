@@ -11,7 +11,7 @@
   "accepted_event_authority_sha256": "5c9f4ccffbbbd745faa3d47a4155f2444626de6277491c846b4cb896cee9a97b",
   "api_server": null,
   "attempts": [],
-  "backend_version": "nebius-managed-kubernetes/v3",
+  "backend_version": "nebius-managed-kubernetes/v4",
   "cleanup_plan": {
     "cleanup_owner": "catalog-switch-resource-broker",
     "deadline_utc": "2026-08-20T15:00:00Z",
@@ -56,33 +56,33 @@
     "ttl_cost_ceiling_usd": "53.644899",
     "ttl_hours": "24"
   },
-  "created_at": "2026-08-19T16:38:25Z",
+  "created_at": "2026-08-19T17:08:29Z",
   "demand": null,
   "event_schema_version": "catalog-switch-kubernetes-lifecycle-events/v1",
   "expires_at": "2026-08-20T15:00:00Z",
   "failures": [],
   "gpu_product": "NVIDIA H100 80GB HBM3",
   "isolation_proof": null,
-  "kubeconfig_path": "/home/tux/dashboard/data/worktrees/catalog-switch-resource-broker/nim-fast-start/faststart-v2/resource-broker/kubeconfigs/k8s-baseline-new-node-review2-candidate.yaml",
-  "kubernetes_context": "mlsp-csw-catalog-switch-k8s-94ac6842",
+  "kubeconfig_path": "/home/tux/dashboard/data/worktrees/catalog-switch-resource-broker/nim-fast-start/faststart-v2/resource-broker/kubeconfigs/k8s-baseline-new-node-review3-candidate.yaml",
+  "kubernetes_context": "mlsp-csw-catalog-switch-k8s-ce39ad8b",
   "labels": {
-    "broker": "resource-broker-k8s-v3",
+    "broker": "resource-broker-k8s-v4",
     "expires": "20260820t150000z",
-    "lease": "k8s-baseline-new-node-review2-candidate",
+    "lease": "k8s-baseline-new-node-review3-candidate",
     "owner": "catalog-switch-k8s-baseline",
     "program": "catalog-switch",
     "task": "catalog-switch-k8s-baseline"
   },
-  "lease_id": "k8s-baseline-new-node-review2-candidate",
+  "lease_id": "k8s-baseline-new-node-review3-candidate",
   "lifecycle_events": [
     {
       "attributes": {
-        "prefix": "mlsp-csw-catalog-switch-k8s-94ac6842",
-        "request_sha256": "94ac6842061009e015c7d82b6281f3e6646941b1e9dc11f5ad39f0adde32e9bc"
+        "prefix": "mlsp-csw-catalog-switch-k8s-ce39ad8b",
+        "request_sha256": "ce39ad8b333da2f2a8434299c15630a33a639a5ff6e01cad69e8372800a78c19"
       },
       "event": "lease.plan.created",
-      "observed_at_utc": "2026-08-19T16:38:25.022569Z",
-      "observed_monotonic_ns": 5710078034648122,
+      "observed_at_utc": "2026-08-19T17:08:29.602655Z",
+      "observed_monotonic_ns": 5711882614734565,
       "outcome": "PASS",
       "sequence": 0
     }
@@ -90,13 +90,23 @@
   "live_creation_gates": {
     "admitted": false,
     "external_accepted_event_authority": "PENDING_CONSUMER_REVIEW",
-    "private_runner_network_path": "PENDING_CONSUMER_PROOF"
+    "private_runner_network_path": "PENDING_CONSUMER_PROOF",
+    "private_runner_reviewer_authority": "PENDING_REVIEWER_REVIEW"
   },
   "node_group_ids": [],
   "node_ids": [],
-  "plan_sha256": "2a64cdb2913fa6116cfe32a7f23c29203476f1e77bdb05c1c09e90b2299f3dce",
+  "plan_sha256": "8237e05be62691f72e8081774fd1b466b510ac702ebfb7ba3b92a1f60d87fe6e",
   "preemptible": true,
-  "prefix": "mlsp-csw-catalog-switch-k8s-94ac6842",
+  "prefix": "mlsp-csw-catalog-switch-k8s-ce39ad8b",
+  "private_runner_authority": {
+    "attestation_schema_version": "catalog-switch-kubernetes-private-runner-attestation/v2",
+    "public_key_base64": null,
+    "reviewer_id": "catalog-switch-independent-runner-reviewer",
+    "status": "PENDING_REVIEWER_REVIEW",
+    "validator_reviewed_commit": null,
+    "validator_sha256": null
+  },
+  "private_runner_authority_sha256": "78fa997e8d5319cbfc8a696bbc440f99943d4b4a1081fea0ff67b948500f9918",
   "profile_sha256": "1b09bf50a44cd2175afbf5c329c2fe68f060d97901828be7987cb99d4127c145",
   "profile_snapshot": {
     "cost_assumptions": "Managed Kubernetes has no separately listed control-plane fee; nodes use Compute prices. The normal CPU support node uses the public CPU/RAM rate, the demand-created H100 node uses the public preemptible H100 rate, Network SSD is normalized with 730 hours/month, and Object Storage is conservatively charged at the full configured quota. Taxes, traffic, requests, logs, and account-specific discounts are excluded.",
@@ -165,7 +175,7 @@
     "cluster_version": "1.34",
     "expected_duration_hours": "4",
     "hard_cost_cap_usd": "60.000000",
-    "lease_id": "k8s-baseline-new-node-review2-candidate",
+    "lease_id": "k8s-baseline-new-node-review3-candidate",
     "metric_contract_sha256": "deb1e20022735bd958d3e832fb1a1e8faa036bd3be15cb07ee81a34f31a1eab3",
     "model_input_sha256s": {
       "boltz2": "5f810e10b2e72d62e1fb3e4ffd8a1f9c7a13c87ef1d2b10b097a296c017fee71",
@@ -206,22 +216,23 @@
     "nebius_profile": "sandbox",
     "node_group_profile": "mk8s-h100-new-node-v1",
     "owner": "catalog-switch-k8s-baseline",
+    "private_runner_authority_id": "catalog-switch-private-runner-reviewer-v1",
     "private_runner_receipt": {
       "path": null,
-      "reviewed_commit": null,
       "sha256": null,
+      "source_commit": null,
       "status": "PENDING_CONSUMER_PROOF"
     },
     "project_id": "project-e00z6b02t8ddk96c49",
     "purpose": "Fresh isolated Kubernetes support and demand-created preemptible H100 node-group baseline candidate.",
     "region": "eu-north1",
-    "schema_version": "catalog-switch-kubernetes-lease-request/v3",
+    "schema_version": "catalog-switch-kubernetes-lease-request/v4",
     "task_id": "catalog-switch-k8s-baseline",
     "trace_id": "k8s-arm-b-new-node-candidate-20260819",
     "trace_sha256": "786876a7a155ed50c18926787638ae426b550215645b8706ff678c0f37f50c23",
     "ttl_hours": 24
   },
-  "request_sha256": "94ac6842061009e015c7d82b6281f3e6646941b1e9dc11f5ad39f0adde32e9bc",
+  "request_sha256": "ce39ad8b333da2f2a8434299c15630a33a639a5ff6e01cad69e8372800a78c19",
   "resource_create_operations": [],
   "resource_graph": [
     {
@@ -229,7 +240,7 @@
       "depends_on": [],
       "desired_final_state": "ABSENT",
       "key": "network",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-net",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-net",
       "resource_type": "network"
     },
     {
@@ -239,7 +250,7 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "subnet",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-subnet",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-subnet",
       "resource_type": "subnet"
     },
     {
@@ -249,7 +260,7 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "security_group",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-sg",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-sg",
       "resource_type": "security_group"
     },
     {
@@ -257,7 +268,7 @@
       "depends_on": [],
       "desired_final_state": "ABSENT",
       "key": "service_account",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-nodes-sa",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-nodes-sa",
       "resource_type": "service_account"
     },
     {
@@ -265,7 +276,7 @@
       "depends_on": [],
       "desired_final_state": "ABSENT",
       "key": "iam_group",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-nodes-group",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-nodes-group",
       "resource_type": "iam_group"
     },
     {
@@ -276,7 +287,7 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "group_membership",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-nodes-member",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-nodes-member",
       "resource_type": "group_membership"
     },
     {
@@ -284,7 +295,7 @@
       "depends_on": [],
       "desired_final_state": "ABSENT",
       "key": "registry",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-registry",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-registry",
       "resource_type": "registry"
     },
     {
@@ -295,7 +306,7 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "registry_access_permit",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-registry-view",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-registry-view",
       "resource_type": "registry_access_permit"
     },
     {
@@ -303,7 +314,7 @@
       "depends_on": [],
       "desired_final_state": "ABSENT",
       "key": "bucket",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-artifacts",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-artifacts",
       "resource_type": "bucket"
     },
     {
@@ -314,7 +325,7 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "bucket_access_permit",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-artifact-edit",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-artifact-edit",
       "resource_type": "bucket_access_permit"
     },
     {
@@ -324,7 +335,7 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "cluster",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-cluster",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-cluster",
       "resource_type": "cluster"
     },
     {
@@ -338,7 +349,7 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "system_node_group",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-system",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-system",
       "resource_type": "system_node_group"
     },
     {
@@ -348,7 +359,7 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "system_node",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-system-provider-node",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-system-provider-node",
       "resource_type": "system_node"
     },
     {
@@ -358,7 +369,7 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "kubeconfig_authority",
-      "resource_name": "k8s-baseline-new-node-review2-candidate.yaml",
+      "resource_name": "k8s-baseline-new-node-review3-candidate.yaml",
       "resource_type": "kubeconfig_authority"
     },
     {
@@ -372,7 +383,7 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "gpu_node_group",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-gpu-{demand_sha256_8}",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-gpu-{demand_sha256_8}",
       "resource_type": "gpu_node_group"
     },
     {
@@ -382,17 +393,17 @@
       ],
       "desired_final_state": "ABSENT",
       "key": "gpu_node",
-      "resource_name": "mlsp-csw-catalog-switch-k8s-94ac6842-gpu-{demand_sha256_8}-provider-node",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-ce39ad8b-gpu-{demand_sha256_8}-provider-node",
       "resource_type": "gpu_node"
     }
   ],
   "resources": [],
-  "schema_version": "catalog-switch-kubernetes-resource-lease/v4",
+  "schema_version": "catalog-switch-kubernetes-resource-lease/v5",
   "signing_authority": {
     "algorithm": "ed25519",
     "private_key_contents_recorded": false,
-    "private_key_path": "/home/tux/dashboard/data/worktrees/catalog-switch-resource-broker/nim-fast-start/faststart-v2/resource-broker/lease-keys/k8s-baseline-new-node-review2-candidate.ed25519",
-    "public_key_base64": "J9hR0i65H3PInMRYu+2LT+hntd6zlT81ThS5o58ecBU="
+    "private_key_path": "/home/tux/dashboard/data/worktrees/catalog-switch-resource-broker/nim-fast-start/faststart-v2/resource-broker/lease-keys/k8s-baseline-new-node-review3-candidate.ed25519",
+    "public_key_base64": "1WltClGolVJBQB3touvABhg08ea1GUe5/AByZy3UsKc="
   },
   "state": "PLANNED"
 }

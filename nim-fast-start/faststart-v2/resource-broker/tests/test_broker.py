@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from decimal import Decimal
 from pathlib import Path
+from unittest import mock
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "broker.py"
@@ -235,6 +236,23 @@ class BrokerTests(unittest.TestCase):
             broker.plan(
                 self.request_path, self.lease_path, self.registry_path, self.profiles_path
             )
+
+    def test_allow_not_found_never_masks_authentication_failure(self):
+        cli = broker.NebiusCLI("sandbox")
+        result = mock.Mock(
+            returncode=1,
+            stdout="",
+            stderr="Unauthenticated: sandbox profile not found",
+        )
+        with mock.patch.object(broker.subprocess, "run", return_value=result):
+            with self.assertRaisesRegex(
+                broker.AuthenticationError,
+                "do not switch credentials or projects",
+            ):
+                cli.run(
+                    ["compute", "instance", "get", "computeinstance-unit"],
+                    allow_not_found=True,
+                )
 
     def test_gpu_profile_requires_frozen_experiment(self):
         self.write_request(request(profile="h100-single"))

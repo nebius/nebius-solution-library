@@ -6,7 +6,8 @@ provisions only fresh task-owned resources, records exact IDs, and deletes only
 those recorded IDs. It never adopts or mutates a pre-existing project resource.
 
 The original `broker.py` VM behavior remains the v1 contract. The additive
-Managed Kubernetes v4 backend is documented in `KUBERNETES_BACKEND.md`; its
+Managed Kubernetes lease v5/provider v4 backend is documented in
+`KUBERNETES_BACKEND.md`; its
 consumer handshake is `K8S_BASELINE_INTERFACE.md`. No Kubernetes resource was
 created while sealing the review candidate.
 
@@ -114,7 +115,7 @@ python3 broker.py scan --cloud --output evidence/orphan-scan-cloud.json
 ```
 
 The hourly supervisor ledger is exported atomically to the required Task Deck
-path. The union exporter preserves both VM v1 and Kubernetes v4 rows and
+path. The union exporter preserves both VM v1 and Kubernetes v5 rows and
 contains no credentials, kubeconfig contents, or signed URLs:
 
 ```bash
