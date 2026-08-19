@@ -58,10 +58,15 @@ exact path and exact typed value (`LANE_BINDINGS`). Every promoted
 cohort carries an explicit `image_binding` (`in-file` exact reference;
 `checkpoint-join` for OpenFold3, whose digest binds through the
 checkpoint identity shared between its results and prior-evidence
-files; `cohort-receipt-doc` for the TSV cohorts, whose exact digest is
-named with the cohort id in the lane's committed, hash-bound
-qualification document — the TSVs themselves record no image field, a
-disclosed gap) — a snapshot-safe class
+files; `structured-contract-join` for the TSV cohorts, whose exact
+digest binds through AST-extracted structured records of the committed
+cohort tooling: `APPROVED_CONTRACTS` in the aggregator joins model,
+digest-pinned image, checkpoint id, and qualification-contract hashes
+in one record, and the published `COHORTS` record joins model, exact
+cohort id, exact TSV path, per-run id prefix, outcome, and both
+published p95s — every comparison is field-to-field on extracted
+records, never token or prose presence; the TSVs themselves record no
+image field, a disclosed gap) — a snapshot-safe class
 with `image_binding: none` refuses the build. ProteinMPNN's
 digest-bearing results file and OpenFold3's prior-evidence file are
 cited and hash-bound as supplementary evidence; OpenFold3's and

@@ -29,12 +29,24 @@
         "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
        },
        {
-        "path": "nim-fast-start/faststart-v2/boltz2-native/README.md",
-        "sha256": "sha256:a5fc35b49bbc8656892a5b9fbd9c3bc2c1993469d5c22adbe292a6ae0a7f1cbe"
+        "path": "nim-fast-start/faststart-v2/performance/aggregate_fresh_cohort.py",
+        "sha256": "sha256:9e732ffc11d647d664468a291d702ddff0b40f1466adc8d9159d8553acefc88f"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/performance/test_published_fresh_cohort_results.py",
+        "sha256": "sha256:5734d30ac8b10b6f6880aca10eeaf9bfdd5958c3237190bd28bff97db64fd3b2"
        }
       ],
       "further_required": "sub-30 s SLO not met (conservative-upper p95 30.310246 s); latency work is tracked by the sibling boltz2-under-20 task; outstanding evidence gaps (host-driver Xid proof, raw response-body retention) remain open",
-      "image_binding": "cohort-receipt-doc",
+      "image_binding": "structured-contract-join",
+      "image_join": {
+       "checkpoint_id": "boltz2-native-f7-v1",
+       "digest_bound": true,
+       "records": [
+        "nim-fast-start/faststart-v2/performance/aggregate_fresh_cohort.py::APPROVED_CONTRACTS",
+        "nim-fast-start/faststart-v2/performance/test_published_fresh_cohort_results.py::COHORTS"
+       ]
+      },
       "outcome": {
        "boottime_upper_p50_s": 28.892235,
        "boottime_upper_p95_s": 30.310246,
@@ -47,7 +59,7 @@
       "outstanding_evidence_gaps": [
        "host-driver Xid absence is recorded as unavailable/unproven for all 40 selected qualification receipts (no task-scoped privileged node-log collector existed)",
        "the 80 raw response bodies referenced by the 40 two-call semantic summaries were not retained; response SHA-256, byte counts, complete-body timestamps, and strict semantic receipts are retained",
-       "the exact-image digest binding for this n=20 cohort rests on the lane's committed, hash-bound qualification document naming the cohort id and the digest-pinned image reference; no committed machine-readable per-run receipt records the image, so that stronger binding remains outstanding"
+       "no single committed machine-readable per-run receipt carries this n=20 cohort's image; the exact-digest binding is a chain of structured same-record joins extracted by AST from the committed cohort tooling (APPROVED_CONTRACTS: model/digest-pinned image/checkpoint and qualification identity; published COHORTS record: model/cohort id/TSV path/per-run prefix/outcome/percentiles), and a per-run image receipt remains outstanding"
       ],
       "sealed": true,
       "status": "complete-fresh-fail-closed-n20"
@@ -102,12 +114,24 @@
         "sha256": "sha256:b5e3bf5d28c3da0b8a3407dee51aaff8b45fce73f16929b632ca971deb513b03"
        },
        {
-        "path": "nim-fast-start/faststart-v2/performance/openfold2/README.md",
-        "sha256": "sha256:3fdc6b3510c5881e68281ccf2644d7f2fba2a54a21016c2191769cc931211271"
+        "path": "nim-fast-start/faststart-v2/performance/aggregate_fresh_cohort.py",
+        "sha256": "sha256:9e732ffc11d647d664468a291d702ddff0b40f1466adc8d9159d8553acefc88f"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/performance/test_published_fresh_cohort_results.py",
+        "sha256": "sha256:5734d30ac8b10b6f6880aca10eeaf9bfdd5958c3237190bd28bff97db64fd3b2"
        }
       ],
       "further_required": "no further provisioned-node cohort samples required; outstanding evidence gaps (host-driver Xid proof, raw response-body retention) remain open and are not closed by the SLO pass",
-      "image_binding": "cohort-receipt-doc",
+      "image_binding": "structured-contract-join",
+      "image_join": {
+       "checkpoint_id": "openfold2-native-f7-v1",
+       "digest_bound": true,
+       "records": [
+        "nim-fast-start/faststart-v2/performance/aggregate_fresh_cohort.py::APPROVED_CONTRACTS",
+        "nim-fast-start/faststart-v2/performance/test_published_fresh_cohort_results.py::COHORTS"
+       ]
+      },
       "outcome": {
        "boottime_upper_p50_s": 17.30254,
        "boottime_upper_p95_s": 17.629887,
@@ -120,7 +144,7 @@
       "outstanding_evidence_gaps": [
        "host-driver Xid absence is recorded as unavailable/unproven for all 40 selected qualification receipts (no task-scoped privileged node-log collector existed)",
        "the 80 raw response bodies referenced by the 40 two-call semantic summaries were not retained; response SHA-256, byte counts, complete-body timestamps, and strict semantic receipts are retained",
-       "the exact-image digest binding for this n=20 cohort rests on the lane's committed, hash-bound qualification document naming the cohort id and the digest-pinned image reference; no committed machine-readable per-run receipt records the image, so that stronger binding remains outstanding"
+       "no single committed machine-readable per-run receipt carries this n=20 cohort's image; the exact-digest binding is a chain of structured same-record joins extracted by AST from the committed cohort tooling (APPROVED_CONTRACTS: model/digest-pinned image/checkpoint and qualification identity; published COHORTS record: model/cohort id/TSV path/per-run prefix/outcome/percentiles), and a per-run image receipt remains outstanding"
       ],
       "sealed": true,
       "status": "complete-fresh-fail-closed-n20"
@@ -171,6 +195,7 @@
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
       "image_binding": "in-file",
+      "image_join": null,
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -230,6 +255,7 @@
       ],
       "further_required": "production-shaped capture and cohort on the pinned digest; deferred pending the explicit owner decision to release the only allowed H200",
       "image_binding": "in-file",
+      "image_join": null,
       "outcome": null,
       "outstanding_evidence_gaps": [],
       "sealed": true,
@@ -284,6 +310,7 @@
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
       "image_binding": "in-file",
+      "image_join": null,
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -343,6 +370,7 @@
       ],
       "further_required": "commit a replayable per-run result artifact to reseal the existing cohort, or run a fresh sealed cohort; then a fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
       "image_binding": "none",
+      "image_join": null,
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -404,6 +432,7 @@
       ],
       "further_required": "fresh fail-closed n=20 conventional rerun to the Boltz2/OpenFold2 evidence standard",
       "image_binding": "in-file",
+      "image_join": null,
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -473,6 +502,7 @@
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (published T0-to-call-2 median 30.564921 s already exceeds the 30 s SLO)",
       "image_binding": "checkpoint-join",
+      "image_join": null,
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -538,6 +568,7 @@
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
       "image_binding": "in-file",
+      "image_join": null,
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -597,6 +628,7 @@
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (published T0-to-call-2 median 31.379359 s already exceeds the 30 s SLO)",
       "image_binding": "in-file",
+      "image_join": null,
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,

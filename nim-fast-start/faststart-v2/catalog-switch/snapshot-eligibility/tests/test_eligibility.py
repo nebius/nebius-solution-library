@@ -782,7 +782,7 @@ class EligibilityArtifacts(unittest.TestCase):
             binding = e["cohorts"]["provisioned_node"]["image_binding"]
             self.assertIn(
                 binding,
-                ("in-file", "checkpoint-join", "cohort-receipt-doc", "none"),
+                ("in-file", "checkpoint-join", "structured-contract-join", "none"),
                 e["nim"],
             )
             if e["snapshot_class"] in SNAPSHOT_SAFE:
@@ -791,16 +791,26 @@ class EligibilityArtifacts(unittest.TestCase):
         self.assertEqual(by_nim["openfold3"]["image_binding"], "checkpoint-join")
         self.assertEqual(by_nim["proteinmpnn"]["image_binding"], "in-file")
         self.assertEqual(by_nim["molmim"]["image_binding"], "none")
+        self.assertIsNone(by_nim["molmim"]["image_join"])
         for nim in ("boltz2", "openfold2"):
-            self.assertEqual(by_nim[nim]["image_binding"], "cohort-receipt-doc", nim)
+            self.assertEqual(by_nim[nim]["image_binding"], "structured-contract-join", nim)
+            join = by_nim[nim]["image_join"]
+            self.assertTrue(join["digest_bound"], nim)
+            self.assertEqual(len(join["records"]), 2, nim)
             gaps = " ".join(by_nim[nim]["outstanding_evidence_gaps"])
-            self.assertIn("qualification document", gaps, nim)
-        b2_paths = {r["path"] for r in by_nim["boltz2"]["evidence_refs"]}
-        self.assertIn("nim-fast-start/faststart-v2/boltz2-native/README.md", b2_paths)
-        of2_paths = {r["path"] for r in by_nim["openfold2"]["evidence_refs"]}
-        self.assertIn(
-            "nim-fast-start/faststart-v2/performance/openfold2/README.md", of2_paths
-        )
+            self.assertIn("structured same-record joins", gaps, nim)
+            paths = {r["path"] for r in by_nim[nim]["evidence_refs"]}
+            self.assertIn(
+                "nim-fast-start/faststart-v2/performance/aggregate_fresh_cohort.py",
+                paths,
+                nim,
+            )
+            self.assertIn(
+                "nim-fast-start/faststart-v2/performance/"
+                "test_published_fresh_cohort_results.py",
+                paths,
+                nim,
+            )
 
     def test_n20_wrong_digest_adversaries(self):
         """The reviewer's executable proof: zeroing either n20 row's catalog
@@ -814,34 +824,93 @@ class EligibilityArtifacts(unittest.TestCase):
                 "nim-fast-start/faststart-v2/" + extra
                 for extra in b.SUPPLEMENTARY_EVIDENCE[nim]
             ]
-            # untampered row verifies and yields the receipt-doc binding
+            # untampered row verifies and yields the structured join
             verified = b.verify_lane_evidence(nim, row, refs)
-            self.assertEqual(verified["image_binding"], "cohort-receipt-doc", nim)
+            self.assertEqual(
+                verified["image_binding"], "structured-contract-join", nim
+            )
+            self.assertTrue(verified["image_join"]["digest_bound"], nim)
             # all-zero digest with untouched evidence must be refused
             mutated = json.loads(json.dumps(row))
             mutated["image"]["digest"] = "sha256:" + "0" * 64
             with self.assertRaises(SystemExit):
                 b.verify_lane_evidence(nim, mutated, refs)
-        # unit-level receipt-doc adversaries
+        # structured-join unit adversaries. The join reads AST-extracted
+        # records only, so token/prose presence anywhere else never counts.
         with open(
-            os.path.join(FASTSTART_ROOT, "boltz2-native", "README.md"),
+            os.path.join(FASTSTART_ROOT, "performance", "aggregate_fresh_cohort.py"),
             encoding="utf-8",
         ) as fh:
-            readme = fh.read()
+            contracts_src = fh.read()
+        with open(
+            os.path.join(
+                FASTSTART_ROOT, "performance", "test_published_fresh_cohort_results.py"
+            ),
+            encoding="utf-8",
+        ) as fh:
+            published_src = fh.read()
         good_digest = (
             "sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98"
         )
-        b.check_n20_receipt_doc(readme, "b2-n20-v3-20260818t1532z", good_digest, "boltz2")
+        with open(
+            os.path.join(FASTSTART_ROOT, "boltz2-native", "fresh-cohort-n20-results.tsv"),
+            encoding="utf-8",
+        ) as fh:
+            facts = b.check_n20_tsv(fh.read(), 28.794544, 30.208757, "b2-n20-")
+        tsv_rel = "boltz2-native/fresh-cohort-n20-results.tsv"
+        b.check_n20_structured_join(
+            "boltz2", good_digest, tsv_rel, facts, contracts_src, published_src
+        )
+        # The reviewer's cross-section adversary: the exact digest appears
+        # as loose prose in an unrelated section of the source, while the
+        # structured record carries a DIFFERENT digest. Token scanners
+        # accept this; the AST join must refuse.
+        cross_section = (
+            contracts_src.replace(good_digest.split(":")[1], "f" * 64)
+            + "\n# Historical n3 section mentions boltz2@" + good_digest + "\n"
+        )
+        self.assertIn(good_digest, cross_section)
         with self.assertRaises(SystemExit):
-            b.check_n20_receipt_doc(
-                readme, "b2-n20-v3-20260818t1532z", "sha256:" + "0" * 64, "boltz2"
+            b.check_n20_structured_join(
+                "boltz2", good_digest, tsv_rel, facts, cross_section, published_src
             )
+        # zeroed digest against untouched sources
         with self.assertRaises(SystemExit):
-            b.check_n20_receipt_doc(readme, "b2-n20-other-cohort", good_digest, "boltz2")
+            b.check_n20_structured_join(
+                "boltz2", "sha256:" + "0" * 64, tsv_rel, facts,
+                contracts_src, published_src,
+            )
+        # weakened aggregator minimum
         with self.assertRaises(SystemExit):
-            b.check_n20_receipt_doc(readme, "b2-n20-v3-20260818t1532z", good_digest, "openfold2")
+            b.check_n20_structured_join(
+                "boltz2", good_digest, tsv_rel, facts,
+                contracts_src.replace("MINIMUM_ATTEMPTS = 20", "MINIMUM_ATTEMPTS = 19"),
+                published_src,
+            )
+        # published-record mutations: cohort id, TSV path, run prefix,
+        # outcome, and published p95 pair must all match exactly
+        for old, new in (
+            ('"b2-n20-v3-20260818t1532z"', '"b2-n20-other"'),
+            ('ROOT / "boltz2-native/fresh-cohort-n20-results.tsv"', 'ROOT / "boltz2-native/other.tsv"'),
+            ('"run_prefix": "b2v3-1532"', '"run_prefix": "other"'),
+            ('"outcome": "SLO_FAIL"', '"outcome": "PASS"'),
+            ("(30.208757, 30.310246)", "(30.208757, 29.0)"),
+        ):
+            mutated_pub = published_src.replace(old, new)
+            self.assertNotEqual(mutated_pub, published_src, old)
+            with self.assertRaises(SystemExit):
+                b.check_n20_structured_join(
+                    "boltz2", good_digest, tsv_rel, facts, contracts_src, mutated_pub
+                )
+        # missing structured records refuse
         with self.assertRaises(SystemExit):
-            b.check_n20_receipt_doc(readme, "b2-n20-v3-20260818t1532z", "not-a-digest", "boltz2")
+            b.extract_assigned_value("x = 1", "APPROVED_CONTRACTS")
+        with self.assertRaises(SystemExit):
+            b.check_n20_structured_join(
+                "boltz2", good_digest, tsv_rel, facts,
+                contracts_src.replace("APPROVED_CONTRACTS", "OTHER_NAME"),
+                published_src,
+            )
         # ProteinMPNN's digest-bearing results file and OpenFold3's
         # digest-join prior evidence must be cited and hash-bound.
         by_nim = {
@@ -982,8 +1051,8 @@ class EligibilityArtifacts(unittest.TestCase):
             "openfold3-native/results.json",
             "rfdiffusion-native/results.json",
             "msa-search-native/results.json",
-            "boltz2-native/README.md",
-            "performance/openfold2/README.md",
+            "performance/aggregate_fresh_cohort.py",
+            "performance/test_published_fresh_cohort_results.py",
             "proteinmpnn-native/response-boundary-results.tsv",
             "proteinmpnn-native/results.json",
             "openfold3-native/prior-evidence.json",

@@ -197,13 +197,32 @@
           "type": "object",
           "required": [
            "status", "evidence_class", "evidence_refs", "sealed",
-           "image_binding", "outcome", "outstanding_evidence_gaps",
-           "further_required"
+           "image_binding", "image_join", "outcome",
+           "outstanding_evidence_gaps", "further_required"
           ],
           "additionalProperties": false,
           "properties": {
            "image_binding": {
-            "enum": ["in-file", "checkpoint-join", "cohort-receipt-doc", "none"]
+            "enum": ["in-file", "checkpoint-join", "structured-contract-join", "none"]
+           },
+           "image_join": {
+            "anyOf": [
+             {"type": "null"},
+             {
+              "type": "object",
+              "required": ["records", "checkpoint_id", "digest_bound"],
+              "additionalProperties": false,
+              "properties": {
+               "records": {
+                "type": "array",
+                "minItems": 2,
+                "items": {"type": "string", "pattern": "^nim-fast-start/faststart-v2/.+::[A-Z_]+$"}
+               },
+               "checkpoint_id": {"type": "string", "minLength": 3},
+               "digest_bound": {"const": true}
+              }
+             }
+            ]
            },
            "status": {
             "enum": [

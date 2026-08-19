@@ -455,11 +455,13 @@ RAWBODY_GAP = (
     "complete-body timestamps, and strict semantic receipts are retained"
 )
 RECEIPT_DOC_GAP = (
-    "the exact-image digest binding for this n=20 cohort rests on the "
-    "lane's committed, hash-bound qualification document naming the "
-    "cohort id and the digest-pinned image reference; no committed "
-    "machine-readable per-run receipt records the image, so that stronger "
-    "binding remains outstanding"
+    "no single committed machine-readable per-run receipt carries this "
+    "n=20 cohort's image; the exact-digest binding is a chain of "
+    "structured same-record joins extracted by AST from the committed "
+    "cohort tooling (APPROVED_CONTRACTS: model/digest-pinned image/"
+    "checkpoint and qualification identity; published COHORTS record: "
+    "model/cohort id/TSV path/per-run prefix/outcome/percentiles), and a "
+    "per-run image receipt remains outstanding"
 )
 MOLMIM_SEAL_GAP = (
     "provenance cites a harness tree without committed per-run result "
@@ -576,45 +578,134 @@ SLO_THRESHOLD_S = 30.0
 # Per-lane cohort binding for the two fresh fail-closed n=20 TSVs: the
 # cohort id prefix binds the file to the NIM, and every sample must be a
 # uniquely identified, qualified, cleaned, semantically exercised run.
-# The TSVs record no image field, so the exact-digest binding comes from
-# the lane's committed qualification document (receipt_doc), which must
-# name both the cohort id and an image reference carrying the row's
-# exact digest.
+# The TSVs record no image field. The exact-digest binding is a chain of
+# STRUCTURED same-record joins, extracted by AST from the committed
+# tools that produced and pinned the cohorts (never by token or prose
+# scanning):
+#   - performance/aggregate_fresh_cohort.py :: APPROVED_CONTRACTS[model]
+#     carries, in one record, the model, the digest-pinned target image,
+#     the checkpoint id, and the qualification-contract hashes;
+#   - performance/test_published_fresh_cohort_results.py :: COHORTS[model]
+#     carries, in one record, the model, the exact cohort id, the exact
+#     TSV path, the per-run id prefix, the cohort outcome, and the
+#     published observed/BOOTTIME-upper percentiles.
 N20_SPECS = {
-    "boltz2": {
-        "cohort_prefix": "b2-n20-",
-        "receipt_doc": "boltz2-native/README.md",
-        "image_repo_suffix": "boltz2",
-    },
-    "openfold2": {
-        "cohort_prefix": "of2-n20-",
-        "receipt_doc": "performance/openfold2/README.md",
-        "image_repo_suffix": "openfold2",
-    },
+    "boltz2": {"cohort_prefix": "b2-n20-"},
+    "openfold2": {"cohort_prefix": "of2-n20-"},
 }
+N20_CONTRACTS_PATH = "performance/aggregate_fresh_cohort.py"
+N20_PUBLISHED_PATH = "performance/test_published_fresh_cohort_results.py"
 
 
-def check_n20_receipt_doc(
-    text: str, cohort_id: str, digest: str, image_repo_suffix: str
-) -> None:
-    """The committed qualification document must bind the exact cohort to
-    an image reference carrying the row's exact digest. A catalog row
-    whose digest was tampered with therefore fails here, because the
-    committed receipt bytes no longer name that digest."""
-    if cohort_id not in text:
+def extract_assigned_value(source: str, name: str):
+    """Structured extraction of a module-level assignment from committed
+    Python source via the AST. Values are evaluated only as literals;
+    a `ROOT / \"relative/path\"` expression yields the relative path
+    string. Anything else refuses."""
+    import ast as _ast
+
+    tree = _ast.parse(source)
+
+    def eval_node(node):
+        if isinstance(node, _ast.Dict):
+            return {
+                eval_node(k): eval_node(v)
+                for k, v in zip(node.keys, node.values)
+            }
+        if isinstance(node, _ast.BinOp) and isinstance(node.op, _ast.Div):
+            right = node.right
+            if isinstance(right, _ast.Constant) and isinstance(right.value, str):
+                return right.value
+            raise SystemExit(f"unsupported path expression in {name}")
+        return _ast.literal_eval(node)
+
+    for stmt in tree.body:
+        if isinstance(stmt, _ast.Assign):
+            for target in stmt.targets:
+                if isinstance(target, _ast.Name) and target.id == name:
+                    return eval_node(stmt.value)
+        elif (
+            isinstance(stmt, _ast.AnnAssign)
+            and isinstance(stmt.target, _ast.Name)
+            and stmt.target.id == name
+            and stmt.value is not None
+        ):
+            return eval_node(stmt.value)
+    raise SystemExit(f"structured record {name} not found in committed source")
+
+
+def check_n20_structured_join(
+    model: str,
+    digest: str,
+    tsv_rel: str,
+    tsv_facts: dict,
+    contracts_source: str,
+    published_source: str,
+) -> dict:
+    """Exact structured join binding cohort, model, digest, and per-run/
+    qualification identity across committed records. Every comparison is
+    field-to-field equality on AST-extracted records."""
+    minimum = extract_assigned_value(contracts_source, "MINIMUM_ATTEMPTS")
+    if not isinstance(minimum, int) or minimum < 20:
+        raise SystemExit("aggregator MINIMUM_ATTEMPTS weakens the n>=20 contract")
+    contracts = extract_assigned_value(contracts_source, "APPROVED_CONTRACTS")
+    if model not in contracts:
+        raise SystemExit(f"APPROVED_CONTRACTS has no record for {model!r}")
+    contract = contracts[model]
+    target_image = contract["target_image"]
+    if not isinstance(target_image, str) or not target_image.endswith("@" + digest):
         raise SystemExit(
-            f"n20 receipt document does not name cohort {cohort_id!r}"
+            f"{model}: APPROVED_CONTRACTS target_image is not pinned to the "
+            "row's exact digest"
         )
-    if not digest or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
-        raise SystemExit("n20 receipt check requires a well-formed row digest")
-    pattern = re.compile(
-        r"[A-Za-z0-9./_-]*" + re.escape(image_repo_suffix) + r"@" + re.escape(digest) + r"\b"
-    )
-    if not pattern.search(text):
+    for field in ("checkpoint_id", "artifact_manifest_sha256", "restore_contract_sha256"):
+        value = contract.get(field)
+        if not isinstance(value, str) or not value:
+            raise SystemExit(
+                f"{model}: APPROVED_CONTRACTS record lacks qualification "
+                f"identity field {field!r}"
+            )
+    published_all = extract_assigned_value(published_source, "COHORTS")
+    if model not in published_all:
+        raise SystemExit(f"published COHORTS has no record for {model!r}")
+    published = published_all[model]
+    if published["cohort_id"] != tsv_facts["cohort_id"]:
         raise SystemExit(
-            "n20 receipt document does not record an image reference for "
-            f"{image_repo_suffix!r} carrying the row's exact digest"
+            f"{model}: published cohort record names "
+            f"{published['cohort_id']!r}, TSV cohort is "
+            f"{tsv_facts['cohort_id']!r}"
         )
+    if published["path"] != tsv_rel:
+        raise SystemExit(
+            f"{model}: published cohort record cites {published['path']!r}, "
+            f"verified TSV is {tsv_rel!r}"
+        )
+    run_prefix = published["run_prefix"]
+    if not all(rid.startswith(run_prefix) for rid in tsv_facts["run_ids"]):
+        raise SystemExit(
+            f"{model}: TSV run ids do not all carry the published per-run "
+            f"prefix {run_prefix!r}"
+        )
+    if published["outcome"] != tsv_facts["cohort_outcome"]:
+        raise SystemExit(
+            f"{model}: published outcome {published['outcome']!r} differs "
+            f"from the TSV cohort_outcome {tsv_facts['cohort_outcome']!r}"
+        )
+    expected_p95 = published["primary"]["p95-nearest-rank"]
+    got_p95 = (tsv_facts["observed_p95_s"], tsv_facts["boottime_upper_p95_s"])
+    if tuple(expected_p95) != got_p95:
+        raise SystemExit(
+            f"{model}: published p95 pair {tuple(expected_p95)} differs "
+            f"from the recomputed pair {got_p95}"
+        )
+    return {
+        "records": [
+            FS_PREFIX + N20_CONTRACTS_PATH + "::APPROVED_CONTRACTS",
+            FS_PREFIX + N20_PUBLISHED_PATH + "::COHORTS",
+        ],
+        "checkpoint_id": contract["checkpoint_id"],
+        "digest_bound": True,
+    }
 
 
 def check_n20_tsv(
@@ -671,7 +762,10 @@ def check_n20_tsv(
     return {
         "sample_count": len(samples),
         "cohort_id": cohort_id,
+        "run_ids": sorted(r["run_id"] for r in samples),
+        "cohort_outcome": outcomes.pop(),
         "failed_attempt_denominator": "0/20",
+        "observed_p95_s": got_p95,
         "boottime_upper_p50_s": nearest_rank(upper, 0.5),
         "boottime_upper_p95_s": upper_p95,
         "slo_pass_recomputed": slo_pass,
@@ -906,8 +1000,8 @@ def check_of3_digest_join(results_doc: dict, prior_doc: dict, image_ref: str) ->
 SUPPLEMENTARY_EVIDENCE = {
     "proteinmpnn": ["proteinmpnn-native/results.json"],
     "openfold3": ["openfold3-native/prior-evidence.json"],
-    "boltz2": ["boltz2-native/README.md"],
-    "openfold2": ["performance/openfold2/README.md"],
+    "boltz2": [N20_CONTRACTS_PATH, N20_PUBLISHED_PATH],
+    "openfold2": [N20_CONTRACTS_PATH, N20_PUBLISHED_PATH],
 }
 
 # Lanes whose committed results file records no cleanup block; disclosed
@@ -915,12 +1009,13 @@ SUPPLEMENTARY_EVIDENCE = {
 NO_CLEANUP_RECORD = frozenset(["openfold3", "rfdiffusion"])
 
 # How each promoted cohort's exact image digest is bound to its evidence.
-# "cohort-receipt-doc" means the exact digest is named alongside the
-# cohort id in the lane's committed, hash-bound qualification document —
-# not in a machine-readable per-run receipt, which is disclosed as a gap.
+# "structured-contract-join" means the digest binds through AST-extracted
+# structured records of the committed cohort tooling (see N20_SPECS);
+# no single machine-readable per-run receipt carries the image, which is
+# disclosed as a gap.
 IMAGE_BINDING = {
-    "boltz2": "cohort-receipt-doc",
-    "openfold2": "cohort-receipt-doc",
+    "boltz2": "structured-contract-join",
+    "openfold2": "structured-contract-join",
     "diffdock": "in-file",
     "genmol": "in-file",
     "rfdiffusion": "in-file",
@@ -1455,6 +1550,10 @@ def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
     image_verified = False
     of3_results_doc = None
     of3_prior_doc = None
+    n20_contracts_source = None
+    n20_published_source = None
+    n20_tsv_rel = None
+    n20_join = None
     for ref in refs:
         rel = repo_rel(ref)
         if ref.endswith("/"):
@@ -1476,19 +1575,11 @@ def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
             recomputed = check_n20_tsv(
                 text, p50, p95, N20_SPECS[nim]["cohort_prefix"]
             )
-        elif nim in N20_SPECS and rel.endswith("README.md"):
-            if "cohort_id" not in recomputed:
-                raise SystemExit(
-                    f"{nim}: receipt document cited before the cohort TSV; "
-                    "cannot bind cohort to digest"
-                )
-            check_n20_receipt_doc(
-                text,
-                recomputed["cohort_id"],
-                digest,
-                N20_SPECS[nim]["image_repo_suffix"],
-            )
-            image_verified = True
+            n20_tsv_rel = rel
+        elif nim in N20_SPECS and rel == N20_CONTRACTS_PATH:
+            n20_contracts_source = text
+        elif nim in N20_SPECS and rel == N20_PUBLISHED_PATH:
+            n20_published_source = text
         elif nim == "proteinmpnn" and rel.endswith(".tsv"):
             tsv_values = check_pmpnn_tsv(text, p50)
             if values is not None and sorted(tsv_values)[1] != sorted(values)[1]:
@@ -1532,6 +1623,26 @@ def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
             )
         check_of3_digest_join(of3_results_doc, of3_prior_doc, image_ref)
         image_verified = True
+    if nim in N20_SPECS:
+        if (
+            n20_contracts_source is None
+            or n20_published_source is None
+            or n20_tsv_rel is None
+            or "cohort_id" not in recomputed
+        ):
+            raise SystemExit(
+                f"{nim}: the structured contract/published records and the "
+                "cohort TSV must all be cited to close the digest join"
+            )
+        n20_join = check_n20_structured_join(
+            nim,
+            digest,
+            n20_tsv_rel,
+            recomputed,
+            n20_contracts_source,
+            n20_published_source,
+        )
+        image_verified = True
     expected_binding = IMAGE_BINDING[nim]
     if expected_binding != "none" and not image_verified:
         raise SystemExit(
@@ -1555,6 +1666,7 @@ def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
         "sealed": sealed,
         "slo_recomputed": slo_recomputed,
         "image_binding": expected_binding,
+        "image_join": n20_join,
     }
 
 
@@ -1739,6 +1851,7 @@ def build_bionemo_section(
                         "evidence_refs": verified["refs"],
                         "sealed": verified["sealed"],
                         "image_binding": verified["image_binding"],
+                        "image_join": verified["image_join"],
                         "outcome": outcome,
                         "outstanding_evidence_gaps": gaps,
                         "further_required": provisioned_further_required(

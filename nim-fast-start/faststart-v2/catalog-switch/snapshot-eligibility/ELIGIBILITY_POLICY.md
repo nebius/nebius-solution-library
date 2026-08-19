@@ -123,10 +123,15 @@ GenMol, RFdiffusion, ProteinMPNN, MSA Search, Evo2 profile),
 `checkpoint-join` (OpenFold3: results `selected.checkpoint_id` /
 `manifest_sha256` / `artifact_version` must equal the prior-evidence
 checkpoint whose `execution_identity.image` records the exact digest),
-or `cohort-receipt-doc` (Boltz2, OpenFold2: the exact digest is named
-with the cohort id in the lane's committed, hash-bound qualification
-document, because the cohort TSVs record no image field — disclosed as
-an outstanding gap). A snapshot-safe class with
+or `structured-contract-join` (Boltz2, OpenFold2: the cohort TSVs
+record no image field, so the digest binds through AST-extracted
+structured records of the committed cohort tooling — the aggregator's
+`APPROVED_CONTRACTS` record joins model ⋈ digest-pinned image ⋈
+checkpoint/qualification identity, and the published `COHORTS` record
+joins model ⋈ exact cohort id ⋈ exact TSV path ⋈ per-run prefix ⋈
+outcome ⋈ published p95 pair, cross-checked against the recomputed TSV
+values; a per-run machine image receipt remains a disclosed gap). A
+snapshot-safe class with
 no verified image binding refuses the build. Missing per-trial cleanup
 records (OpenFold3, RFdiffusion) are disclosed as outstanding gaps.
 
