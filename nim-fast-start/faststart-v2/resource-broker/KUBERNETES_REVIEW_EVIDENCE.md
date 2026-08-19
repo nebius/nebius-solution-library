@@ -1,8 +1,8 @@
-# Kubernetes v5 replacement review evidence
+# Kubernetes v6 replacement review evidence
 
 Recorded 2026-08-19 UTC from isolated branch
 `agent/catalog-switch-resource-broker`. Rejected commit
-`d40b6478275d5d5545786d5a3bf69ae46fe22c32` is preserved unchanged as the
+`420de38752da1708f52b7e7f68486cb9debf923d` is preserved unchanged as the
 direct parent of this replacement. No Nebius, kubectl, Capacity Advisor, or
 provider operation was invoked while preparing or testing this candidate.
 
@@ -33,17 +33,20 @@ Canonical prior artifacts:
 
 ## Immutable non-admitted candidate
 
-- Lease/backend: `catalog-switch-kubernetes-resource-lease/v5` /
-  `nebius-managed-kubernetes/v4`.
-- Lease/state: `k8s-baseline-new-node-review3-candidate` / `PLANNED`.
+- Lease/backend: `catalog-switch-kubernetes-resource-lease/v6` /
+  `nebius-managed-kubernetes/v5`.
+- Shared provider-error classifier: `catalog-switch-nebius-error-classifier/v2`;
+  new VM plans are `catalog-switch-resource-lease/v2` and cleanup safely reads
+  historical VM v1 leases.
+- Lease/state: `k8s-baseline-new-node-review4-candidate` / `PLANNED`.
 - Project/region: `project-e00z6b02t8ddk96c49` / `eu-north1`.
-- Prefix: `mlsp-csw-catalog-switch-k8s-ce39ad8b`.
+- Prefix: `mlsp-csw-catalog-switch-k8s-f47bdbe3`.
 - Canonical request SHA-256:
-  `ce39ad8b333da2f2a8434299c15630a33a639a5ff6e01cad69e8372800a78c19`.
+  `f47bdbe3dd446b7f346cd5bacf698c82a85d98abfa0df2c6b48567383230ced4`.
 - Plan SHA-256:
-  `8237e05be62691f72e8081774fd1b466b510ac702ebfb7ba3b92a1f60d87fe6e`.
+  `0ff427e6bdbce6d1d3acb7fba226fb463b82636836402b10098966545cc1a6bb`.
 - Lease file SHA-256:
-  `6e2bd262ee42acfc5c5d11f5cae74e99c945462a4494be5f80f2072ac10dca20`.
+  `b63d3e3246dcb8728ec592184f208dd2b0e3a3459e44ccb975281184c5da97e1`.
 - Expected duration/cost: four hours / `$8.940816`.
 - TTL/deadline/ceiling: 24 hours / `2026-08-20T15:00:00Z` /
   `$53.644899`; hard cap `$60.000000`.
@@ -54,27 +57,53 @@ Canonical prior artifacts:
 - `live_creation_gates.admitted` is `false`; cloud IDs, resource rows, create
   operations, cluster/API server, GPU group IDs, and node IDs are all empty.
 
-The 16 immutable graph vertices are exported as
+The 18 immutable graph vertices are exported as
 `PLAN_ONLY_CREATE_NOT_ADMITTED`: null exact ID, no create intent, and no false
 provider-absence claim. Offline planning created only an ignored task-local
 mode-0600 signing key; it is not a cloud resource, is absent from supervisor
 exports, and remains scheduled for exact unlink after a future reviewed
-lifecycle.
+lifecycle. Its signed collection begins with one zero-operation/zero-resource
+genesis entry and root; neither is provider evidence or live admission.
 
 ## Rejection closure
 
-### Separate trusted runner authority
+### Executing sealed-source runner authority
 
 `REVIEWED_ACTIVE` is no longer a self-asserted JSON state. A live plan requires
 a separate pinned reviewer authority with an Ed25519 public key, reviewed
 validator implementation hash, and reviewed source commit. The reviewer-signed
-mode-0600 attestation binds the exact broker source commit and policy to the
-lease/task/project/region, runner instance, current Linux boot ID, current
-network-namespace inode, and named RFC1918 interface on the exact task-owned
-network/subnet. The broker verifies regular-file ownership/mode, signature, and
-the current host observation before every mutation. The executable adversary
-rejects fabricated commits, signatures, modes, and boot identities before any
-fake support create.
+mode-0600 attestation binds the reviewer implementation and the actual executing
+broker commit, Git tree, source manifest, entrypoint bytes, and shared CLI bytes
+to the lease/task/project/region, runner instance, current Linux boot ID,
+current network-namespace inode, and named RFC1918 interface on the exact
+task-owned network/subnet. The broker requires the executing files to be clean,
+tracked, and byte-identical to that commit before every mutation. The exact
+adversary signs `dddd...` as source commit while the observed sealed commit is
+`aaaa...`; all fake provider create counts remain zero.
+
+### Authenticated complete resource collection
+
+Every persisted operation and resource row is a member of a signed append-only
+collection snapshot containing the immutable graph digest and ordered full-row
+hashes. The chain, current signed root, task-local signed anti-rollback anchor,
+and graph-to-operation-to-row joins are verified before cleanup. The exact
+adversary removes both a live bucket row and its valid signed create operation;
+integrity fails, zero bucket deletes occur, and the provider bucket remains
+live. A second adversary replays the earlier valid planned collection
+root/journal after support creation and is rejected by the latest durable
+anchor.
+
+### Complete ACTIVE-entry reconciliation
+
+Control-plane re-entry and GPU re-entry now use one complete-graph routine.
+Each reconciles and re-signs current/replacement system provider and Kubernetes
+nodes, rebuilds support isolation, then reconciles the GPU group/node and
+recomputes exact live product, allocatable count, node identity, and network
+proof. Failure is durably `ACTIVE_RECONCILIATION_FAILED`, and only a subsequent
+successful full pass restores active state. Exact adversaries prove that
+control-plane re-entry rejects a replacement advertising `FOREIGN-GPU`/zero
+allocatable GPU, while GPU re-entry rejects a replacement system node carrying
+public IP `203.0.113.55`.
 
 ### Exact source-bound Arm B identity
 
@@ -116,20 +145,24 @@ fsynced atomic state, dependency barriers, canonical retry receipts, and
 truthful supervisor ambiguity.
 
 The shared CLI wrapper now classifies authentication/authorization failure
-before optional NotFound handling. The VM regression presents
+before optional absence handling and accepts absence only from a structured
+provider `NotFound` code. The VM and Kubernetes adversaries iterate every
+cleanup `get`, present
 `Unauthenticated: sandbox profile not found` with `allow_not_found=true` and
-requires the authentication stop rather than a false absence result; both VM
-v1 and Kubernetes callers inherit the corrected boundary.
+require the authentication stop rather than a false absence result. A plain
+descriptive `profile was not found` error is also rejected. VM lease v2 records
+the classifier version; historical v1 cleanup inherits the safe runtime.
 
 ## Offline execution evidence
 
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v
-  resource-broker/tests`: `52/52 PASS` — nine VM v1 regressions and 43
+  resource-broker/tests`: `57/57 PASS` — ten VM regressions and 47
   Kubernetes/combined-supervisor tests.
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v` from
   `faststart-v2`: `55/55 PASS` for the existing fast-start suites.
-- Draft 2020-12 validation passed for the v4 request, v4 demand template, and
-  v5 lease. Every resource-broker JSON document parsed; candidate
+- Draft 2020-12 validation passed for the v5 request, v4 demand template, VM v2
+  lease, and Kubernetes v6 lease. Every resource-broker JSON document parsed;
+  candidate
   `assert_integrity`, exact pending gates, and zero-mutation assertions passed.
 - Python compilation, secret scan, and `git diff --check` passed.
 - Strict provider serialization tests retain `boot_disk.size_bytes`, omit
@@ -143,10 +176,10 @@ v1 and Kubernetes callers inherit the corrected boundary.
 ## Supervisor ledger and stop condition
 
 The atomic Task Deck ledger at `docs/supervision/resources.json` has schema
-`catalog-switch-supervisor-resource-ledger/v2`, four leases, 41 rows, all
-manager-required fields, 16 v5 plan-only rows, zero missing required fields,
+`catalog-switch-supervisor-resource-ledger/v2`, four leases, 43 rows, all
+manager-required fields, 18 v6 plan-only rows, zero missing required fields,
 and `contains_secrets=false`. Its sealed SHA-256 is
-`86737e8be7829d9f54c5a7c72b11a6b4455b95c52307836b35fd94b46953375f`.
+`70677c98a0f2dfa1c875c81a5ec275450e479d9ebbc8dd2a5277db443737058b`.
 
 No network, subnet, security group, IAM object, registry, bucket, cluster,
 control plane, node group, Compute node, GPU, kubeconfig, workload, or model was

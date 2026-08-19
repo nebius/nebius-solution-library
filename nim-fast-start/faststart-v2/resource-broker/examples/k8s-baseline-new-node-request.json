@@ -1,6 +1,6 @@
 {
-  "schema_version": "catalog-switch-kubernetes-lease-request/v4",
-  "lease_id": "k8s-baseline-new-node-review3-candidate",
+  "schema_version": "catalog-switch-kubernetes-lease-request/v5",
+  "lease_id": "k8s-baseline-new-node-review4-candidate",
   "task_id": "catalog-switch-k8s-baseline",
   "owner": "catalog-switch-k8s-baseline",
   "cleanup_owner": "catalog-switch-resource-broker",

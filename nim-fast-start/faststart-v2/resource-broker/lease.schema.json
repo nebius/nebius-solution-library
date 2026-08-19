@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://nebius.example/catalog-switch-resource-lease-v1.schema.json",
+  "$id": "https://nebius.example/catalog-switch-resource-lease-v2.schema.json",
   "additionalProperties": false,
   "properties": {
     "cost_estimate": {"type": "object"},
@@ -20,13 +20,14 @@
     "request": {"type": "object"},
     "request_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
     "resources": {"items": {"type": "object"}, "type": "array"},
-    "schema_version": {"const": "catalog-switch-resource-lease/v1"},
+    "schema_version": {"const": "catalog-switch-resource-lease/v2"},
+    "provider_error_classifier_version": {"const": "catalog-switch-nebius-error-classifier/v2"},
     "state": {
       "enum": ["PLANNED", "CREATING", "ACTIVE", "FAILED", "CLEANING", "CLEANUP_FAILED", "RELEASED"]
     }
   },
   "required": [
-    "schema_version", "lease_id", "request_sha256", "request", "prefix", "state",
+    "schema_version", "provider_error_classifier_version", "lease_id", "request_sha256", "request", "prefix", "state",
     "created_at", "expires_at", "labels", "profile_snapshot", "cost_estimate",
     "planned_resources", "resources", "health_proof", "events"
   ],

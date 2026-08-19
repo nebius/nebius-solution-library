@@ -224,6 +224,8 @@ class BrokerTests(unittest.TestCase):
             self.request_path, self.lease_path, self.registry_path, self.profiles_path
         )
         self.assertEqual(first["request_sha256"], second["request_sha256"])
+        self.assertEqual("catalog-switch-resource-lease/v2", second["schema_version"])
+        self.assertEqual(broker.ERROR_CLASSIFIER_VERSION, second["provider_error_classifier_version"])
         self.assertEqual("PLANNED", second["state"])
         self.assertEqual("catalog-switch-resource-broker", second["request"]["cleanup_owner"])
         self.assertEqual("1", str(second["request"]["ttl_hours"]))
@@ -245,10 +247,34 @@ class BrokerTests(unittest.TestCase):
             stderr="Unauthenticated: sandbox profile not found",
         )
         with mock.patch.object(broker.subprocess, "run", return_value=result):
-            with self.assertRaisesRegex(
-                broker.AuthenticationError,
-                "do not switch credentials or projects",
-            ):
+            for kind, command in broker.GET_COMMANDS.items():
+                with self.subTest(kind=kind), self.assertRaisesRegex(
+                    broker.AuthenticationError,
+                    "do not switch credentials or projects",
+                ):
+                    cli.run([*command, f"{kind}-unit"], allow_not_found=True)
+
+    def test_allow_not_found_requires_structured_provider_code(self):
+        cli = broker.NebiusCLI("sandbox")
+        structured = mock.Mock(
+            returncode=1,
+            stdout="",
+            stderr="rpc error: code = NotFound desc = exact resource is absent",
+        )
+        with mock.patch.object(broker.subprocess, "run", return_value=structured):
+            self.assertIsNone(
+                cli.run(
+                    ["compute", "instance", "get", "computeinstance-unit"],
+                    allow_not_found=True,
+                )
+            )
+        descriptive = mock.Mock(
+            returncode=1,
+            stdout="",
+            stderr="requested profile was not found in local configuration",
+        )
+        with mock.patch.object(broker.subprocess, "run", return_value=descriptive):
+            with self.assertRaisesRegex(broker.BrokerError, "Nebius command failed"):
                 cli.run(
                     ["compute", "instance", "get", "computeinstance-unit"],
                     allow_not_found=True,

@@ -1,12 +1,12 @@
-# `catalog-switch-k8s-baseline` handoff: lease v5 / broker v4
+# `catalog-switch-k8s-baseline` handoff: lease v6 / broker v5
 
 This is the provider-side contract coordinated from the broker worktree. The
 baseline sibling worktree was inspected read-only and was not edited.
 
 ## Lease admission
 
-The consumer must require `catalog-switch-kubernetes-resource-lease/v5` with
-backend `nebius-managed-kubernetes/v4`. For Arm B, admitted pre-T0 state remains
+The consumer must require `catalog-switch-kubernetes-resource-lease/v6` with
+backend `nebius-managed-kubernetes/v5`. For Arm B, admitted pre-T0 state remains
 `SUPPORT_ACTIVE_NO_GPU_NODE_GROUP`: non-null task-owned cluster/system-node IDs,
 empty GPU group/node IDs, a private API server, and target-neutral isolation.
 
@@ -21,10 +21,11 @@ the consumer must provide both:
 - a reviewed external accepted-event recorder/validator authority: exact
   Ed25519 public key, validator implementation SHA-256, and reviewed source
   commit; and
-- a `catalog-switch-kubernetes-private-runner-attestation/v2` signed by a
-  separate pinned reviewer key. It must bind the reviewed broker source commit
-  to the current task-owned runner instance, Linux boot, network namespace, and
-  named RFC1918 interface on the exact task-owned network/subnet.
+- a `catalog-switch-kubernetes-private-runner-attestation/v3` signed by a
+  separate pinned reviewer key. It must bind the actual executing broker commit,
+  tree, source manifest, and exact entrypoint/common bytes to the current
+  task-owned runner instance, Linux boot, network namespace, and named RFC1918
+  interface on the exact task-owned network/subnet.
 
 Until both receipts are reviewed and frozen into a new plan, every support,
 demand, and GPU provisioning entry point fails before Capacity Advisor or any
@@ -88,6 +89,13 @@ The support state is valid only when each current/replacement Compute child is
 observed on the exact task-owned network/subnet with one RFC1918 address and no
 public interface, and the corresponding Kubernetes Node reports the same
 `InternalIP` and no `ExternalIP`. Both observations are durable signed evidence.
+Both provisioning entry points revalidate the full system-plus-GPU graph while
+active; `ACTIVE_RECONCILIATION_FAILED` is never benchmark-admissible.
+
+The consumer must also reject a lease whose signed collection root, append-only
+journal, or task-local anti-rollback anchor fails verification. Every graph-bound
+create intent and resource/cleanup row must be present; omission is ambiguity,
+never absence.
 
 ## Attempt receipt and failures
 

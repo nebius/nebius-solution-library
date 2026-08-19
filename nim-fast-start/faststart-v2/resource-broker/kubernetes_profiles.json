@@ -15,7 +15,7 @@
     "catalog-switch-private-runner-reviewer-v1": {
       "status": "PENDING_REVIEWER_REVIEW",
       "reviewer_id": "catalog-switch-independent-runner-reviewer",
-      "attestation_schema_version": "catalog-switch-kubernetes-private-runner-attestation/v2",
+      "attestation_schema_version": "catalog-switch-kubernetes-private-runner-attestation/v3",
       "validator_sha256": null,
       "validator_reviewed_commit": null,
       "public_key_base64": null

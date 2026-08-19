@@ -1,24 +1,28 @@
-# Kubernetes lease v5 / provider backend v4
+# Kubernetes lease v6 / provider backend v5
 
 `kubernetes_broker.py` is the sole Managed Kubernetes creation path for the
-catalog-switch program. It is additive: VM backend v1 is unchanged. Modal is
-excluded. This v5 replacement was prepared without creating a cloud resource.
+catalog-switch program. It is additive: existing VM provisioning behavior is
+unchanged and new VM plans version the shared error classifier as lease v2.
+Modal is excluded. This v6 replacement was prepared without creating a cloud
+resource.
 
 ## Frozen authority and plan
 
-The v4 request freezes the `sandbox` profile and the exact `iam whoami`
+The v5 request freezes the `sandbox` profile and the exact `iam whoami`
 identity type, ID, and parent project. Every mutating entry point rechecks both
 before its first mutation; profile or identity drift is an authentication stop.
 Authentication/authorization markers are classified before any optional
-NotFound handling, so an error such as `Unauthenticated: profile not found`
-cannot be persisted as resource-absence evidence.
+absence handling. Absence accepts only a structured provider `NotFound` code,
+so an error such as `Unauthenticated: sandbox profile not found` cannot be
+persisted as resource-absence evidence. The versioned classifier is shared by
+VM and Kubernetes cleanup paths.
 The project/region allowlist, Kubernetes version, private-control-plane policy,
 CPU/H100 shapes, preemptibility, duration, cost, TTL, cleanup owner/deadline,
 metric/trace/model-input identities, accepted-event validation authority,
 separate private-runner reviewer authority, and private-API runner attestation
 are also frozen.
 
-The v5 plan commitment covers the request and profile hashes plus lease ID,
+The v6 plan commitment covers the request and profile hashes plus lease ID,
 schema/backend versions, prefix, project, region, creation/expiry timestamps,
 all ownership labels, signing authority, cost, resource graph, kubeconfig path
 and context, GPU policy, accepted-event authority, runner-review authority,
@@ -27,9 +31,12 @@ invalidates the plan.
 
 Planning creates a mode-0600 task-local Ed25519 private key under ignored
 `lease-keys/` and commits only its public key/path metadata. Create intents and
-resource ownership rows are signed. The key is never emitted to the ledger or
-supervisor and is unlinked after full verified cleanup; public-key verification
-of the historical rows remains possible.
+resource ownership rows are signed. Every saved membership transition is also
+committed to a signed append-only collection journal and root. A separately
+signed mode-0600 task-local anchor prevents rolling the lease back to an older
+otherwise-valid collection root. The key and anchor never enter the supervisor
+ledger; the private key is unlinked after full verified cleanup and historical
+public-key verification remains possible.
 
 ## Exact graph and provider schemas
 
@@ -72,6 +79,14 @@ This closes the crash window after node creation but before credentials exist.
 Every call against an `ACTIVE` system or GPU lease reruns child reconciliation;
 provider replacements are added, replaced IDs receive exact NotFound evidence,
 and GPU replacements undergo a new live attestation.
+
+Every ACTIVE entry point reconciles the complete graph, regardless of whether
+the caller asked for control-plane or GPU provisioning: system children and
+their private-network evidence are refreshed first, then GPU children are
+reconciled and live product/allocatable/identity attestation is rebuilt. No
+entry point copies prior GPU proof over a replacement. A mismatch is durably
+recorded as `ACTIVE_RECONCILIATION_FAILED`; a later clean full reconciliation
+may restore `ACTIVE`/`ACTIVE_ATTEMPT`.
 
 Every current and replacement worker is also checked twice: the provider
 Compute instance must expose exactly one RFC1918 address on the task-owned
@@ -129,11 +144,15 @@ events are rejected.
 
 Production live creation is additionally blocked until a separate pinned
 reviewer signs a mode-0600 runner-attestation envelope. Its canonical material
-binds the exact broker source commit and policy to the lease/project/region,
-task-owned runner instance, current boot ID and network-namespace inode, and the
-current named RFC1918 interface on the task-owned network/subnet. The broker
-verifies the reviewer Ed25519 signature, file ownership/mode, and current live
-runner observation before every mutation. The shipped candidate keeps the
+binds the reviewer implementation to the actual executing broker Git commit,
+tree object, manifest digest, and exact `broker.py`/`kubernetes_broker.py` byte
+digests, as well as the lease/project/region, task-owned runner instance,
+current boot ID and network-namespace inode, and the current named RFC1918
+interface on the task-owned network/subnet. Before every mutation, the broker
+requires a clean tracked checkout, rereads the exact commit bytes, verifies the
+reviewer Ed25519 signature and file ownership/mode, and compares the current
+host observation. A reviewer-signed arbitrary commit cannot substitute for the
+executing sealed broker. The shipped candidate keeps the
 external authority, runner reviewer, and runner evidence gates pending, so it
 cannot invoke Capacity Advisor, the provider, or kubectl.
 
@@ -157,6 +176,16 @@ Deletion intent, deletion time, absence-verification time, evidence, and the
 exact signed structured absence receipt are in the lifecycle signature. Forged
 deleted/absent fields therefore fail integrity checks instead of making cleanup
 skip a live resource.
+
+Membership itself is authenticated. The signed collection snapshot includes
+the immutable graph digest and ordered full-row hashes for every create intent,
+resource row, and cleanup-lifecycle revision. Each transition chains to the
+previous signed entry; the signed root and durable anti-rollback anchor must
+equal the current lease. Graph completeness requires every direct resource to
+join one exact graph-bound create operation, and every provider-cascade child to
+join its exact recorded parent. Removing both a live row and its signed intent,
+or replaying an older valid root, therefore blocks cleanup instead of producing
+a false `RELEASED` result.
 
 An honest post-T0 `NO_PREEMPTIBLE_CAPACITY` result has no resource rows. Before
 returning that failure, the broker lists the exact cluster parent and intended

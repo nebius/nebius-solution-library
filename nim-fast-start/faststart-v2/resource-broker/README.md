@@ -5,8 +5,11 @@ catalog-switch architecture program. It issues immutable experiment leases,
 provisions only fresh task-owned resources, records exact IDs, and deletes only
 those recorded IDs. It never adopts or mutates a pre-existing project resource.
 
-The original `broker.py` VM behavior remains the v1 contract. The additive
-Managed Kubernetes lease v5/provider v4 backend is documented in
+The original `broker.py` VM provisioning behavior is preserved. New VM plans
+use lease v2 to pin the fail-closed provider-error classifier; cleanup remains
+backward-compatible with recorded v1 leases while applying that same safe
+runtime classifier. The additive Managed Kubernetes lease v6/provider v5
+backend is documented in
 `KUBERNETES_BACKEND.md`; its
 consumer handshake is `K8S_BASELINE_INTERFACE.md`. No Kubernetes resource was
 created while sealing the review candidate.
@@ -25,7 +28,10 @@ created while sealing the review candidate.
   buckets are private, capped, versioning-disabled, and configured for full
   object audit logging.
 - Cleanup reads immutable IDs from the lease, deletes in reverse dependency
-  order, and records a successful `get -> NotFound` observation. Unregistered
+  order, and records a successful `get -> NotFound` observation. Authentication
+  and permission failures are classified first; optional absence accepts only a
+  structured provider `NotFound` code, never descriptive text such as a missing
+  profile. Unregistered
   prefixed resources are reported as `MANUAL_REVIEW`; the scanner never deletes
   them automatically.
 - Provider-created children are reconciled before release. Private IP
@@ -115,7 +121,7 @@ python3 broker.py scan --cloud --output evidence/orphan-scan-cloud.json
 ```
 
 The hourly supervisor ledger is exported atomically to the required Task Deck
-path. The union exporter preserves both VM v1 and Kubernetes v5 rows and
+path. The union exporter preserves VM v1/v2 and Kubernetes v6 rows and
 contains no credentials, kubeconfig contents, or signed URLs:
 
 ```bash
@@ -164,7 +170,8 @@ python3 -m json.tool lease.schema.json >/dev/null
 
 The unit suite covers policy validation, request-hash idempotency, unauthorized
 project rejection, the GPU experiment gate, mocked end-to-end provision/health/
-cleanup, reverse exact-ID deletion, `NotFound` receipts, orphan scanning, and the
+cleanup, reverse exact-ID deletion, structured `NotFound` receipts, auth-first
+failure handling across every cleanup resource type, orphan scanning, and the
 supervisor export contract.
 
 The live disposable-CPU run, exact resource IDs, isolation proof, fail-closed

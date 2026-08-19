@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-kubernetes-lease-request/v4",
+  "$id": "catalog-switch-kubernetes-lease-request/v5",
   "title": "Catalog switch Kubernetes lease request",
   "type": "object",
   "additionalProperties": false,
@@ -35,7 +35,7 @@
     "cleanup_plan"
   ],
   "properties": {
-    "schema_version": {"const": "catalog-switch-kubernetes-lease-request/v4"},
+    "schema_version": {"const": "catalog-switch-kubernetes-lease-request/v5"},
     "lease_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
     "task_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
     "owner": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},

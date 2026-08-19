@@ -22,9 +22,11 @@ from typing import Any, Iterator
 
 ROOT = Path(__file__).resolve().parent
 NEBIUS = "/usr/local/bin/nebius"
-SCHEMA_VERSION = "catalog-switch-resource-lease/v1"
+LEGACY_SCHEMA_VERSION = "catalog-switch-resource-lease/v1"
+SCHEMA_VERSION = "catalog-switch-resource-lease/v2"
 REQUEST_SCHEMA_VERSION = "catalog-switch-lease-request/v1"
 REGISTRY_SCHEMA_VERSION = "catalog-switch-lease-registry/v1"
+ERROR_CLASSIFIER_VERSION = "catalog-switch-nebius-error-classifier/v2"
 PROGRAM = "catalog-switch"
 PROGRAM_PREFIX = "mlsp-csw"
 DEFAULT_SUPERVISOR_LEDGER = Path(
@@ -43,7 +45,11 @@ AUTH_FAILURES = (
     "unauthorized",
     "login required",
 )
-NOT_FOUND_MARKERS = ("notfound", "not found", "code = not_found")
+NOT_FOUND_CODES = {"NOT_FOUND", "NotFound", "not_found"}
+RPC_NOT_FOUND = re.compile(
+    r"(?:^|\n)(?:error:\s*)?rpc error:\s*code\s*=\s*(?:NotFound|NOT_FOUND)(?:\s|$)",
+    re.IGNORECASE,
+)
 SAFE_LABEL = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,62}$")
 GPU_PLATFORM_PREFIX = "gpu-"
 
@@ -54,6 +60,37 @@ class BrokerError(RuntimeError):
 
 class AuthenticationError(BrokerError):
     """Authentication/authorization stop condition."""
+
+
+def _structured_error_code(value: Any) -> str | None:
+    if not isinstance(value, dict):
+        return None
+    direct = value.get("code")
+    if isinstance(direct, str):
+        return direct
+    for key in ("error", "status"):
+        nested = value.get(key)
+        if isinstance(nested, dict) and isinstance(nested.get("code"), str):
+            return nested["code"]
+    return None
+
+
+def is_structured_not_found(stdout: str, stderr: str) -> bool:
+    """Accept only an explicit provider NotFound code, never descriptive text."""
+
+    combined = f"{stdout}\n{stderr}".strip()
+    if RPC_NOT_FOUND.search(combined):
+        return True
+    for candidate in (stdout.strip(), stderr.strip()):
+        if not candidate:
+            continue
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if _structured_error_code(parsed) in NOT_FOUND_CODES:
+            return True
+    return False
 
 
 def utc_now() -> dt.datetime:
@@ -180,7 +217,7 @@ class NebiusCLI:
                     "Nebius authentication/authorization failed; do not switch credentials or projects: "
                     + combined[:1000]
                 )
-            if allow_not_found and any(marker in lowered for marker in NOT_FOUND_MARKERS):
+            if allow_not_found and is_structured_not_found(result.stdout, result.stderr):
                 return None
             raise BrokerError(
                 f"Nebius command failed ({result.returncode}): {' '.join(command[:5])}: "
@@ -360,7 +397,7 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any], now: dt.datet
     expires_at = now + dt.timedelta(hours=request["ttl_hours"])
     labels = {
         "program": PROGRAM,
-        "broker": "resource-broker-v1",
+        "broker": "resource-broker-v2",
         "lease": request["lease_id"],
         "task": request["task_id"],
         "owner": request["owner"],
@@ -371,6 +408,7 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any], now: dt.datet
         sanitize_label(value, f"label value {key}")
     return {
         "schema_version": SCHEMA_VERSION,
+        "provider_error_classifier_version": ERROR_CLASSIFIER_VERSION,
         "lease_id": request["lease_id"],
         "request_sha256": request_hash,
         "request": request,
@@ -401,6 +439,8 @@ def registry_summary(lease: dict[str, Any], path: Path) -> dict[str, Any]:
     return {
         "lease_id": lease["lease_id"],
         "lease_file": str(path.resolve()),
+        "schema_version": lease["schema_version"],
+        "provider_error_classifier_version": lease.get("provider_error_classifier_version"),
         "task_id": lease["request"]["task_id"],
         "project_id": lease["request"]["project_id"],
         "region": lease["request"]["region"],
@@ -451,6 +491,17 @@ def update_registry(registry_path: Path, lease_path: Path, lease: dict[str, Any]
 def save_lease(lease_path: Path, registry_path: Path, lease: dict[str, Any]) -> None:
     atomic_json(lease_path, lease)
     update_registry(registry_path, lease_path, lease)
+
+
+def assert_lease_schema(lease: dict[str, Any], *, allow_legacy: bool = False) -> None:
+    version = lease.get("schema_version")
+    if version == SCHEMA_VERSION:
+        if lease.get("provider_error_classifier_version") != ERROR_CLASSIFIER_VERSION:
+            raise BrokerError("unsupported Nebius provider error classifier")
+        return
+    if allow_legacy and version == LEGACY_SCHEMA_VERSION:
+        return
+    raise BrokerError("unsupported lease schema")
 
 
 def plan(request_path: Path, lease_path: Path, registry_path: Path, profiles_path: Path) -> dict[str, Any]:
@@ -906,8 +957,7 @@ def resource_payload(name: str, project_id: str, labels: dict[str, str], spec: d
 
 def provision(lease_path: Path, registry_path: Path, cli: NebiusCLI) -> dict[str, Any]:
     lease = load_json(lease_path)
-    if lease.get("schema_version") != SCHEMA_VERSION:
-        raise BrokerError("unsupported lease schema")
+    assert_lease_schema(lease)
     if lease["state"] == "ACTIVE":
         return lease
     if lease["state"] != "PLANNED" or lease["resources"]:
@@ -1124,6 +1174,7 @@ def verify_health_lease(
     instance_id: str | None = None,
 ) -> dict[str, Any]:
     lease = load_json(lease_path)
+    assert_lease_schema(lease)
     if lease["state"] == "ACTIVE" and lease.get("health_proof"):
         reconcile_managed_children(lease, cli)
         lease["isolation_proof"] = capture_isolation_proof(lease, cli)
@@ -1218,8 +1269,7 @@ def cleanup(
     execute: bool,
 ) -> dict[str, Any]:
     lease = load_json(lease_path)
-    if lease.get("schema_version") != SCHEMA_VERSION:
-        raise BrokerError("unsupported lease schema")
+    assert_lease_schema(lease, allow_legacy=True)
     pending = sorted(
         [resource for resource in lease["resources"] if not resource["deleted_at"]],
         key=lambda resource: CLEANUP_PRIORITY.get(resource["kind"], 0),

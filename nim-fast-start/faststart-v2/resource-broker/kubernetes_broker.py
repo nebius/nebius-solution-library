@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Versioned, fail-closed Nebius Managed Kubernetes experiment lease broker.
 
-The existing ``broker.py`` VM v1 contract intentionally remains independent.
-This backend owns only fresh Managed Kubernetes resources and splits target-
-neutral support creation from demand-gated GPU node-group creation.
+The existing ``broker.py`` VM provisioning behavior remains independent; its
+v2 lease only versions the shared fail-closed provider-error classifier. This
+backend owns only fresh Managed Kubernetes resources and splits target-neutral
+support creation from demand-gated GPU node-group creation.
 """
 
 from __future__ import annotations
@@ -39,13 +40,13 @@ if str(ROOT) not in sys.path:
 import broker as common  # noqa: E402
 
 
-REQUEST_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-request/v4"
-LEASE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-lease/v5"
+REQUEST_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-request/v5"
+LEASE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-lease/v6"
 PROFILE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-profiles/v1"
 REGISTRY_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-registry/v1"
 DEMAND_SCHEMA_VERSION = "catalog-switch-kubernetes-node-demand/v4"
 EVENT_SCHEMA_VERSION = "catalog-switch-kubernetes-lifecycle-events/v1"
-BACKEND_VERSION = "nebius-managed-kubernetes/v4"
+BACKEND_VERSION = "nebius-managed-kubernetes/v5"
 KUBECTL = "/usr/local/bin/kubectl"
 KUBECONFIG_ROOT = ROOT / "kubeconfigs"
 LEASE_KEY_ROOT = ROOT / "lease-keys"
@@ -55,9 +56,11 @@ ATTEMPT_ID = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,127}$")
 BASELINE_EVENT_SCHEMA = "archvteams.nebius.ai/catalog-switch-ledger-event/v1"
 T0_BOUNDARY = "external-client-request-accepted/v1"
 EXTERNAL_ACCEPTANCE_RECEIPT_SCHEMA = "catalog-switch-external-accepted-event-receipt/v1"
-PRIVATE_RUNNER_RECEIPT_SCHEMA = "catalog-switch-kubernetes-private-runner-attestation/v2"
+PRIVATE_RUNNER_RECEIPT_SCHEMA = "catalog-switch-kubernetes-private-runner-attestation/v3"
 NO_CREATE_RECEIPT_SCHEMA = "catalog-switch-kubernetes-no-create-absence-receipt/v1"
 RESOURCE_ABSENCE_RECEIPT_SCHEMA = "catalog-switch-kubernetes-resource-absence-receipt/v1"
+COLLECTION_SCHEMA_VERSION = "catalog-switch-kubernetes-signed-resource-collection/v1"
+COLLECTION_ENTRY_SCHEMA_VERSION = "catalog-switch-kubernetes-collection-entry/v1"
 ACCEPTED_SCENARIOS = {
     "same_model_hot",
     "idle_local",
@@ -194,6 +197,71 @@ def observe_runner_execution(interface_name: str) -> dict[str, Any]:
     }
 
 
+def _git_text(arguments: list[str]) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(ROOT), *arguments],
+        text=True,
+        capture_output=True,
+        timeout=15,
+        check=False,
+    )
+    if result.returncode:
+        raise common.BrokerError(f"cannot bind broker source identity: {result.stderr[:500]}")
+    return result.stdout.strip()
+
+
+def observe_broker_source_identity() -> dict[str, Any]:
+    """Prove the executing broker bytes are exactly one clean sealed Git commit."""
+
+    repository = Path(_git_text(["rev-parse", "--show-toplevel"])).resolve()
+    commit = _git_text(["rev-parse", "HEAD"])
+    tree = _git_text(["rev-parse", "HEAD^{tree}"])
+    if not re.fullmatch(r"[0-9a-f]{40}", commit) or not re.fullmatch(r"[0-9a-f]{40}", tree):
+        raise common.BrokerError("broker source commit/tree identity is malformed")
+    paths = []
+    for source in (Path(common.__file__).resolve(), Path(__file__).resolve()):
+        try:
+            relative = source.relative_to(repository).as_posix()
+        except ValueError as exc:
+            raise common.BrokerError("executing broker source is outside the sealed repository") from exc
+        paths.append((relative, source))
+    dirty = _git_text(["status", "--porcelain=v1", "--untracked-files=no", "--", *[p for p, _ in paths]])
+    if dirty:
+        raise common.BrokerError("executing broker source differs from the sealed Git commit")
+    manifest = []
+    for relative, source in paths:
+        result = subprocess.run(
+            ["git", "-C", str(repository), "show", f"{commit}:{relative}"],
+            capture_output=True,
+            timeout=15,
+            check=False,
+        )
+        if result.returncode:
+            raise common.BrokerError(f"sealed broker source is missing {relative}")
+        live = source.read_bytes()
+        if live != result.stdout:
+            raise common.BrokerError(f"executing broker bytes differ from sealed source: {relative}")
+        manifest.append(
+            {
+                "path": relative,
+                "sha256": hashlib.sha256(live).hexdigest(),
+                "size_bytes": len(live),
+            }
+        )
+    return {
+        "source_commit": commit,
+        "source_tree_oid": tree,
+        "source_manifest_sha256": common.sha256_json(manifest),
+        "source_manifest": manifest,
+        "entrypoint_sha256": next(
+            item["sha256"] for item in manifest if item["path"].endswith("kubernetes_broker.py")
+        ),
+        "common_cli_sha256": next(
+            item["sha256"] for item in manifest if item["path"].endswith("resource-broker/broker.py")
+        ),
+    }
+
+
 def runner_attestation_message(material: dict[str, Any]) -> bytes:
     return common.canonical(
         {
@@ -262,7 +330,13 @@ def validate_private_runner_receipt(
             "public_ip",
             "public_ingress",
             "implementation_sha256",
+            "reviewer_source_commit",
             "source_commit",
+            "source_tree_oid",
+            "source_manifest_sha256",
+            "source_manifest",
+            "entrypoint_sha256",
+            "common_cli_sha256",
             "runner_instance_id",
             "runner_boot_id",
             "runner_netns_inode",
@@ -293,16 +367,23 @@ def validate_private_runner_receipt(
         "public_ip": False,
         "public_ingress": False,
         "implementation_sha256": authority["validator_sha256"],
-        "source_commit": authority["validator_reviewed_commit"],
+        "reviewer_source_commit": authority["validator_reviewed_commit"],
     }
     if any(material.get(key) != expected for key, expected in expected_identity.items()):
         raise common.BrokerError("private runner attestation identity/policy differs from the request")
-    if value["source_commit"] != authority["validator_reviewed_commit"]:
-        raise common.BrokerError(
-            "private runner receipt source commit differs from reviewed authority provenance"
-        )
     if (
         not HEX64.fullmatch(str(material["implementation_sha256"]))
+        or not re.fullmatch(r"[0-9a-f]{40}", str(material["source_commit"]))
+        or not re.fullmatch(r"[0-9a-f]{40}", str(material["source_tree_oid"]))
+        or not all(
+            HEX64.fullmatch(str(material[field]))
+            for field in (
+                "source_manifest_sha256",
+                "entrypoint_sha256",
+                "common_cli_sha256",
+            )
+        )
+        or not isinstance(material["source_manifest"], list)
         or not all(
             isinstance(material[field], str) and material[field]
             for field in ("runner_instance_id", "runner_boot_id", "runner_network_id", "runner_subnet_id")
@@ -320,6 +401,21 @@ def validate_private_runner_receipt(
         )
     except (InvalidSignature, ValueError, TypeError) as exc:
         raise common.BrokerError("private runner reviewer signature is invalid") from exc
+    observed_source = observe_broker_source_identity()
+    for key in (
+        "source_commit",
+        "source_tree_oid",
+        "source_manifest_sha256",
+        "source_manifest",
+        "entrypoint_sha256",
+        "common_cli_sha256",
+    ):
+        if material[key] != observed_source[key]:
+            raise common.BrokerError(f"executing broker {key} differs from signed attestation")
+    if value["source_commit"] != observed_source["source_commit"]:
+        raise common.BrokerError(
+            "private runner receipt source commit differs from executing sealed broker"
+        )
     observed = observe_runner_execution(str(material["private_interface"]["name"]))
     for key in ("runner_instance_id", "runner_boot_id", "runner_netns_inode", "private_interface"):
         if material[key] != observed[key]:
@@ -625,6 +721,8 @@ def planned_graph(prefix: str, request: dict[str, Any]) -> list[dict[str, Any]]:
     gpu_name = f"{prefix}-gpu" if request["campaign_arm"] == "A_prepared_node" else f"{prefix}-gpu-{{demand_sha256_8}}"
     graph = [
         ("network", f"{prefix}-net", [], "cloud"),
+        ("pool", f"{prefix}-provider-private-pool", ["network"], "provider_cascade"),
+        ("route_table", f"{prefix}-provider-route-table", ["network"], "provider_cascade"),
         ("subnet", f"{prefix}-subnet", ["network"], "cloud"),
         ("security_group", f"{prefix}-sg", ["network"], "cloud"),
         ("service_account", f"{prefix}-nodes-sa", [], "cloud"),
@@ -688,6 +786,10 @@ def signing_key_path(lease_id: str) -> Path:
     return (LEASE_KEY_ROOT / f"{lease_id}.ed25519").resolve()
 
 
+def collection_anchor_path(lease_id: str) -> Path:
+    return (LEASE_KEY_ROOT / "collection-anchors" / f"{lease_id}.json").resolve()
+
+
 def _b64(value: bytes) -> str:
     return base64.b64encode(value).decode("ascii")
 
@@ -734,6 +836,7 @@ def create_signing_authority(lease_id: str) -> dict[str, Any]:
         "algorithm": "ed25519",
         "public_key_base64": _b64(public_bytes),
         "private_key_path": str(path),
+        "collection_anchor_path": str(collection_anchor_path(lease_id)),
         "private_key_contents_recorded": False,
     }
 
@@ -942,6 +1045,333 @@ def verify_resource(lease: dict[str, Any], resource: dict[str, Any]) -> None:
         raise common.BrokerError("live resource has an invalid delete-operation state")
 
 
+def collection_snapshot(lease: dict[str, Any]) -> dict[str, Any]:
+    operations = lease.get("resource_create_operations", [])
+    resources = lease.get("resources", [])
+    operation_ids = [str(item.get("operation_id", "")) for item in operations]
+    resource_ids = [f"{item.get('kind', '')}:{item.get('id', '')}" for item in resources]
+    if not all(operation_ids) or len(operation_ids) != len(set(operation_ids)):
+        raise common.BrokerError("resource collection contains missing/duplicate operation identities")
+    if not all(value.split(":", 1)[1] for value in resource_ids) or len(resource_ids) != len(
+        set(resource_ids)
+    ):
+        raise common.BrokerError("resource collection contains missing/duplicate resource identities")
+    return {
+        "graph_sha256": common.sha256_json(lease["resource_graph"]),
+        "operation_count": len(operations),
+        "operation_members": [
+            {
+                "operation_id": item["operation_id"],
+                "row_sha256": common.sha256_json(item),
+            }
+            for item in operations
+        ],
+        "resource_count": len(resources),
+        "resource_members": [
+            {
+                "kind": item["kind"],
+                "id": item["id"],
+                "row_sha256": common.sha256_json(item),
+            }
+            for item in resources
+        ],
+    }
+
+
+def collection_root_material(root: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: root[key]
+        for key in (
+            "schema_version",
+            "journal_length",
+            "head_sha256",
+            "snapshot",
+            "sealed_at_utc",
+        )
+    }
+
+
+def collection_anchor_material(lease: dict[str, Any]) -> dict[str, Any]:
+    root = lease["collection_root"]
+    return {
+        "schema_version": COLLECTION_SCHEMA_VERSION,
+        "lease_id": lease["lease_id"],
+        "plan_sha256": lease["plan_sha256"],
+        "journal_length": root["journal_length"],
+        "head_sha256": root["head_sha256"],
+        "root_signature": root["root_signature"],
+    }
+
+
+def write_collection_anchor(lease: dict[str, Any]) -> None:
+    path = Path(lease["signing_authority"]["collection_anchor_path"])
+    if path != collection_anchor_path(lease["lease_id"]):
+        raise common.BrokerError("collection anchor path differs from immutable authority")
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if path.parent.is_symlink():
+        raise common.BrokerError("collection anchor directory cannot be a symlink")
+    material = collection_anchor_material(lease)
+    common.atomic_json(
+        path,
+        {
+            "material": material,
+            "signature": sign_material("collection-anchor", lease, material),
+        },
+    )
+    os.chmod(path, 0o600)
+    common.fsync_directory(path.parent)
+
+
+def verify_collection_anchor(lease: dict[str, Any]) -> None:
+    path = Path(lease["signing_authority"]["collection_anchor_path"])
+    if path != collection_anchor_path(lease["lease_id"]):
+        raise common.BrokerError("collection anchor path differs from immutable authority")
+    try:
+        details = path.lstat()
+        value = common.load_json(path)
+    except OSError as exc:
+        raise common.BrokerError("signed append-only collection anchor is missing") from exc
+    if (
+        stat.S_ISLNK(details.st_mode)
+        or not stat.S_ISREG(details.st_mode)
+        or details.st_uid != os.getuid()
+        or stat.S_IMODE(details.st_mode) != 0o600
+    ):
+        raise common.BrokerError("collection anchor must be current-user regular mode 0600")
+    required_keys(value, {"material", "signature"}, "collection anchor")
+    expected = collection_anchor_material(lease)
+    if value["material"] != expected:
+        raise common.BrokerError("collection anchor differs from the latest signed root")
+    verify_signature("collection-anchor", lease, expected, str(value["signature"]))
+
+
+def _snapshot_operation_ids(snapshot: dict[str, Any]) -> list[str]:
+    return [item["operation_id"] for item in snapshot["operation_members"]]
+
+
+def _snapshot_resource_ids(snapshot: dict[str, Any]) -> list[str]:
+    return [f"{item['kind']}:{item['id']}" for item in snapshot["resource_members"]]
+
+
+def validate_collection_snapshot(snapshot: dict[str, Any]) -> None:
+    required_keys(
+        snapshot,
+        {
+            "graph_sha256",
+            "operation_count",
+            "operation_members",
+            "resource_count",
+            "resource_members",
+        },
+        "collection snapshot",
+    )
+    operations = snapshot["operation_members"]
+    resources = snapshot["resource_members"]
+    if (
+        snapshot["operation_count"] != len(operations)
+        or snapshot["resource_count"] != len(resources)
+        or not HEX64.fullmatch(str(snapshot["graph_sha256"]))
+    ):
+        raise common.BrokerError("collection snapshot counts/graph digest are invalid")
+    if any(
+        set(item) != {"operation_id", "row_sha256"}
+        or not item["operation_id"]
+        or not HEX64.fullmatch(str(item["row_sha256"]))
+        for item in operations
+    ):
+        raise common.BrokerError("collection snapshot operation membership is invalid")
+    if any(
+        set(item) != {"kind", "id", "row_sha256"}
+        or not item["kind"]
+        or not item["id"]
+        or not HEX64.fullmatch(str(item["row_sha256"]))
+        for item in resources
+    ):
+        raise common.BrokerError("collection snapshot resource membership is invalid")
+    if len(_snapshot_operation_ids(snapshot)) != len(set(_snapshot_operation_ids(snapshot))):
+        raise common.BrokerError("collection snapshot operation membership is duplicated")
+    if len(_snapshot_resource_ids(snapshot)) != len(set(_snapshot_resource_ids(snapshot))):
+        raise common.BrokerError("collection snapshot resource membership is duplicated")
+
+
+def verify_collection_history(lease: dict[str, Any], *, require_current: bool) -> None:
+    if lease.get("collection_schema_version") != COLLECTION_SCHEMA_VERSION:
+        raise common.BrokerError("signed resource collection schema is unsupported")
+    journal = lease.get("collection_journal")
+    root = lease.get("collection_root")
+    if not isinstance(journal, list) or not journal or not isinstance(root, dict):
+        raise common.BrokerError("signed resource collection root/journal is missing")
+    previous_hash: str | None = None
+    previous_snapshot: dict[str, Any] | None = None
+    for sequence, entry in enumerate(journal):
+        required_keys(entry, {"material", "entry_sha256", "signature"}, "collection entry")
+        material = entry["material"]
+        if not isinstance(material, dict):
+            raise common.BrokerError("collection entry material is malformed")
+        required_keys(
+            material,
+            {
+                "schema_version",
+                "sequence",
+                "previous_entry_sha256",
+                "previous_snapshot_sha256",
+                "snapshot",
+                "recorded_at_utc",
+            },
+            "collection entry material",
+        )
+        if (
+            material["schema_version"] != COLLECTION_ENTRY_SCHEMA_VERSION
+            or material["sequence"] != sequence
+            or material["previous_entry_sha256"] != previous_hash
+            or common.sha256_json(material) != entry["entry_sha256"]
+        ):
+            raise common.BrokerError("signed resource collection chain is invalid")
+        expected_previous_snapshot = (
+            common.sha256_json(previous_snapshot) if previous_snapshot is not None else None
+        )
+        if material["previous_snapshot_sha256"] != expected_previous_snapshot:
+            raise common.BrokerError("signed resource collection previous snapshot is invalid")
+        snapshot = material["snapshot"]
+        if not isinstance(snapshot, dict):
+            raise common.BrokerError("collection entry snapshot is malformed")
+        validate_collection_snapshot(snapshot)
+        if snapshot.get("graph_sha256") != common.sha256_json(lease["resource_graph"]):
+            raise common.BrokerError("signed resource collection graph commitment differs")
+        if previous_snapshot is not None:
+            previous_operations = _snapshot_operation_ids(previous_snapshot)
+            current_operations = _snapshot_operation_ids(snapshot)
+            previous_resources = _snapshot_resource_ids(previous_snapshot)
+            current_resources = _snapshot_resource_ids(snapshot)
+            if current_operations[: len(previous_operations)] != previous_operations:
+                raise common.BrokerError("create-operation collection is not append-only")
+            if current_resources[: len(previous_resources)] != previous_resources:
+                raise common.BrokerError("resource-row collection is not append-only")
+        verify_signature("collection-entry", lease, material, str(entry["signature"]))
+        previous_hash = entry["entry_sha256"]
+        previous_snapshot = snapshot
+    required_keys(
+        root,
+        {
+            "schema_version",
+            "journal_length",
+            "head_sha256",
+            "snapshot",
+            "sealed_at_utc",
+            "root_signature",
+        },
+        "collection root",
+    )
+    if (
+        root["schema_version"] != COLLECTION_SCHEMA_VERSION
+        or root["journal_length"] != len(journal)
+        or root["head_sha256"] != previous_hash
+        or root["snapshot"] != previous_snapshot
+    ):
+        raise common.BrokerError("signed resource collection root differs from its journal")
+    verify_signature(
+        "collection-root",
+        lease,
+        collection_root_material(root),
+        str(root["root_signature"]),
+    )
+    if require_current and collection_snapshot(lease) != root["snapshot"]:
+        raise common.BrokerError("resource collection membership/root mismatch; preserve resources")
+    verify_collection_anchor(lease)
+
+
+def seal_collection_state(lease: dict[str, Any]) -> None:
+    snapshot = collection_snapshot(lease)
+    root = lease.get("collection_root")
+    journal = lease.get("collection_journal")
+    if root is not None:
+        verify_collection_history(lease, require_current=False)
+        previous_snapshot = root["snapshot"]
+        previous_operations = _snapshot_operation_ids(previous_snapshot)
+        previous_resources = _snapshot_resource_ids(previous_snapshot)
+        if _snapshot_operation_ids(snapshot)[: len(previous_operations)] != previous_operations:
+            raise common.BrokerError("refusing to seal removed/reordered create-operation membership")
+        if _snapshot_resource_ids(snapshot)[: len(previous_resources)] != previous_resources:
+            raise common.BrokerError("refusing to seal removed/reordered resource membership")
+        if snapshot == previous_snapshot:
+            return
+        previous_entry = root["head_sha256"]
+        previous_snapshot_sha = common.sha256_json(previous_snapshot)
+    else:
+        if journal != []:
+            raise common.BrokerError("resource collection journal exists without a signed root")
+        previous_entry = None
+        previous_snapshot_sha = None
+    material = {
+        "schema_version": COLLECTION_ENTRY_SCHEMA_VERSION,
+        "sequence": len(journal),
+        "previous_entry_sha256": previous_entry,
+        "previous_snapshot_sha256": previous_snapshot_sha,
+        "snapshot": snapshot,
+        "recorded_at_utc": common.iso(precise_utc_now()),
+    }
+    entry = {
+        "material": material,
+        "entry_sha256": common.sha256_json(material),
+        "signature": sign_material("collection-entry", lease, material),
+    }
+    journal.append(entry)
+    new_root = {
+        "schema_version": COLLECTION_SCHEMA_VERSION,
+        "journal_length": len(journal),
+        "head_sha256": entry["entry_sha256"],
+        "snapshot": snapshot,
+        "sealed_at_utc": common.iso(precise_utc_now()),
+    }
+    new_root["root_signature"] = sign_material(
+        "collection-root", lease, collection_root_material(new_root)
+    )
+    lease["collection_root"] = new_root
+    write_collection_anchor(lease)
+
+
+def graph_name_matches(template: str, name: str) -> bool:
+    escaped = re.escape(template).replace(re.escape("{demand_sha256_8}"), r"[0-9a-f]{8}")
+    return re.fullmatch(escaped, name) is not None
+
+
+def verify_graph_collection_completeness(lease: dict[str, Any]) -> None:
+    graph = lease["resource_graph"]
+    vertices = {item["resource_type"]: item for item in graph}
+    if len(vertices) != len(graph):
+        raise common.BrokerError("immutable resource graph has duplicate resource types")
+    operations = lease["resource_create_operations"]
+    resources = lease["resources"]
+    by_operation = {item["operation_id"]: item for item in operations}
+    by_resource = {item["id"]: item for item in resources}
+    if len(by_operation) != len(operations) or len(by_resource) != len(resources):
+        raise common.BrokerError("resource graph collection contains duplicate identities")
+    for operation in operations:
+        vertex = vertices.get(operation["kind"])
+        if not vertex or not graph_name_matches(vertex["resource_name"], operation["name"]):
+            raise common.BrokerError("create operation is outside the immutable resource graph")
+    for resource in resources:
+        vertex = vertices.get(resource["kind"])
+        if not vertex:
+            raise common.BrokerError("resource row is outside the immutable resource graph")
+        operation_id = resource.get("create_operation_id")
+        if operation_id is not None:
+            operation = by_operation.get(operation_id)
+            if (
+                operation is None
+                or operation.get("kind") != resource["kind"]
+                or operation.get("name") != resource["name"]
+                or operation.get("resource_id") != resource["id"]
+            ):
+                raise common.BrokerError("resource row lacks its exact graph-bound create operation")
+        else:
+            if vertex.get("authority") != "provider_cascade":
+                raise common.BrokerError("non-cascade resource row lacks a create operation")
+            parent = by_resource.get(resource.get("managed_by_resource_id"))
+            if parent is None or parent["kind"] not in vertex.get("depends_on", []):
+                raise common.BrokerError("provider child lacks its exact graph-bound parent row")
+
+
 def record_resource_absence(
     lease: dict[str, Any],
     resource: dict[str, Any],
@@ -1038,7 +1468,7 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
     estimate = cost_estimate(request, profile)
     labels = {
         "program": common.PROGRAM,
-        "broker": "resource-broker-k8s-v4",
+        "broker": "resource-broker-k8s-v5",
         "lease": request["lease_id"],
         "task": request["task_id"],
         "owner": request["owner"],
@@ -1053,6 +1483,8 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
         "schema_version": LEASE_SCHEMA_VERSION,
         "backend_version": BACKEND_VERSION,
         "event_schema_version": EVENT_SCHEMA_VERSION,
+        "provider_error_classifier_version": common.ERROR_CLASSIFIER_VERSION,
+        "collection_schema_version": COLLECTION_SCHEMA_VERSION,
         "lease_id": request["lease_id"],
         "request_sha256": request_hash,
         "request": request,
@@ -1084,6 +1516,8 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
         "resource_graph": planned_graph(prefix, request),
         "resources": [],
         "resource_create_operations": [],
+        "collection_journal": [],
+        "collection_root": None,
         "cluster_id": None,
         "node_group_ids": [],
         "node_ids": [],
@@ -1127,6 +1561,7 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
     }
     lease["plan_sha256"] = common.sha256_json(immutable_plan_material(lease))
     event(lease, "lease.plan.created", "PASS", request_sha256=request_hash, prefix=prefix)
+    seal_collection_state(lease)
     return lease
 
 
@@ -1135,6 +1570,8 @@ def immutable_plan_material(lease: dict[str, Any]) -> dict[str, Any]:
         "schema_version": lease["schema_version"],
         "backend_version": lease["backend_version"],
         "event_schema_version": lease["event_schema_version"],
+        "provider_error_classifier_version": lease["provider_error_classifier_version"],
+        "collection_schema_version": lease["collection_schema_version"],
         "lease_id": lease["lease_id"],
         "request_sha256": lease["request_sha256"],
         "profile_sha256": lease["profile_sha256"],
@@ -1163,6 +1600,8 @@ def immutable_plan_material(lease: dict[str, Any]) -> dict[str, Any]:
 def assert_integrity(lease: dict[str, Any]) -> None:
     if lease.get("schema_version") != LEASE_SCHEMA_VERSION:
         raise common.BrokerError("unsupported Kubernetes lease schema")
+    if lease.get("provider_error_classifier_version") != common.ERROR_CLASSIFIER_VERSION:
+        raise common.BrokerError("unsupported Nebius provider error classifier")
     if common.sha256_json(lease.get("request")) != lease.get("request_sha256"):
         raise common.BrokerError("immutable request hash mismatch")
     if common.sha256_json(lease.get("profile_snapshot")) != lease.get("profile_sha256"):
@@ -1209,6 +1648,8 @@ def assert_integrity(lease: dict[str, Any]) -> None:
             verify_operation_absence(lease, operation)
     for resource in resources:
         verify_resource(lease, resource)
+    verify_graph_collection_completeness(lease)
+    verify_collection_history(lease, require_current=True)
     for attempt in lease.get("attempts", []):
         verify_no_create_absence_receipt(lease, attempt)
     verify_demand(lease)
@@ -1306,6 +1747,7 @@ def update_registry(registry_path: Path, lease_path: Path, lease: dict[str, Any]
 
 
 def save(lease_path: Path, registry_path: Path, lease: dict[str, Any]) -> None:
+    seal_collection_state(lease)
     assert_integrity(lease)
     common.atomic_json(lease_path, lease)
     update_registry(registry_path, lease_path, lease)
@@ -2701,26 +3143,14 @@ def provision_control_plane(
     lease = common.load_json(lease_path)
     assert_integrity(lease)
     assert_live_creation_prerequisites(lease)
-    if lease["state"] in {"SUPPORT_ACTIVE_NO_GPU_NODE_GROUP", "ACTIVE", "ACTIVE_ATTEMPT"}:
+    if lease["state"] in {
+        "SUPPORT_ACTIVE_NO_GPU_NODE_GROUP",
+        "ACTIVE",
+        "ACTIVE_ATTEMPT",
+        "ACTIVE_RECONCILIATION_FAILED",
+    }:
         assert_frozen_authority(lease, cli)
-        for group_kind, node_kind in (
-            ("system_node_group", "system_node"),
-            ("gpu_node_group", "gpu_node"),
-        ):
-            for group in [
-                item
-                for item in lease["resources"]
-                if item["kind"] == group_kind and not item.get("deleted_at")
-            ]:
-                reconcile_provider_nodes(lease, cli, group, node_kind)
-                if Path(lease["kubeconfig_path"]).exists():
-                    reconcile_nodes(lease, kubectl, group, node_kind)
-        prior_gpu_proof = (lease.get("isolation_proof") or {}).get("gpu_node_group")
-        lease["isolation_proof"] = capture_support_isolation(lease, cli)
-        if prior_gpu_proof:
-            lease["isolation_proof"]["gpu_node_group"] = prior_gpu_proof
-        save(lease_path, registry_path, lease)
-        return lease
+        return reconcile_active_graph(lease_path, registry_path, lease, cli, kubectl)
     if lease["state"] not in {"PLANNED", "CONTROL_PLANE_CREATING", "CONTROL_PLANE_FAILED"}:
         raise common.BrokerError(f"control-plane provisioning is not admitted from {lease['state']}")
     if common.utc_now() >= common.parse_utc(lease["expires_at"]):
@@ -3752,6 +4182,135 @@ def attest_gpu_node(
     }
 
 
+def _reconcile_active_graph_once(
+    lease_path: Path,
+    registry_path: Path,
+    lease: dict[str, Any],
+    cli: common.NebiusCLI,
+    kubectl: KubeCTL,
+) -> dict[str, Any]:
+    """Reconcile and re-attest the complete live support/GPU graph."""
+
+    if lease["state"] not in {
+        "SUPPORT_ACTIVE_NO_GPU_NODE_GROUP",
+        "ACTIVE",
+        "ACTIVE_ATTEMPT",
+        "ACTIVE_RECONCILIATION_FAILED",
+    }:
+        raise common.BrokerError("complete active-graph reconciliation requires an active lease")
+    system_group = find_resource(lease, "system_node_group")
+    if not system_group:
+        raise common.BrokerError("active lease lacks a signed system node-group row")
+    system_nodes = reconcile_provider_nodes(lease, cli, system_group, "system_node")
+    if len(system_nodes) != lease["profile_snapshot"]["system_node_group"]["node_count"]:
+        raise common.BrokerError("active support has the wrong provider system-node cardinality")
+    save(lease_path, registry_path, lease)
+    reconciled_system_nodes = reconcile_nodes(lease, kubectl, system_group, "system_node")
+    if len(reconciled_system_nodes) != len(system_nodes):
+        raise common.BrokerError("active support provider/Kubernetes system-node identities differ")
+    save(lease_path, registry_path, lease)
+    support_proof = capture_support_isolation(lease, cli)
+    gpu_group = find_resource(lease, "gpu_node_group")
+    if not gpu_group:
+        lease["isolation_proof"] = support_proof
+        lease["state"] = "SUPPORT_ACTIVE_NO_GPU_NODE_GROUP"
+        save(lease_path, registry_path, lease)
+        return lease
+
+    live_resources = {
+        item["kind"]: item for item in lease["resources"] if not item.get("deleted_at")
+    }
+    gpu_group_value = cli.run([*RESOURCE_COMMANDS["gpu_node_group"]["get"], gpu_group["id"]])
+    validate_owned_metadata(
+        lease,
+        "gpu_node_group",
+        gpu_group_value,
+        gpu_group["name"],
+        gpu_group["parent_id"],
+    )
+    verify_gpu_group(
+        lease,
+        gpu_group_value,
+        live_resources["service_account"]["id"],
+        live_resources["subnet"]["id"],
+    )
+    provider_nodes = reconcile_provider_nodes(lease, cli, gpu_group, "gpu_node")
+    if len(provider_nodes) != lease["profile_snapshot"]["gpu_node_group"]["node_count"]:
+        raise common.BrokerError("active GPU group has the wrong provider-node cardinality")
+    save(lease_path, registry_path, lease)
+    reconciled_gpu_nodes = reconcile_nodes(lease, kubectl, gpu_group, "gpu_node")
+    if len(reconciled_gpu_nodes) != len(provider_nodes):
+        raise common.BrokerError("active GPU provider/Kubernetes node identities differ")
+    attestation = attest_gpu_node(lease, cli, kubectl, gpu_group, provider_nodes)
+    arm = lease["request"]["campaign_arm"]
+    attempt = (
+        current_attempt(lease)
+        if arm == "B_new_preemptible_node"
+        else next(item for item in lease["attempts"] if item["attempt_id"] == "prepared-node")
+    )
+    attempt["receipt"].setdefault("replacement_reconciliations", []).append(attestation)
+    attempt["receipt"]["live_gpu_attestation"] = attestation
+    attempt["receipt"]["node_group_id"] = gpu_group["id"]
+    attempt["receipt"]["node_id"] = attestation["node_id"]
+    lease["node_group_ids"] = [gpu_group["id"]]
+    lease["node_ids"] = [attestation["node_id"]]
+    support_proof["target_neutral"] = False
+    support_proof["gpu_node_group"] = {
+        "id": gpu_group["id"],
+        "node_id": attestation["node_id"],
+        "platform": lease["profile_snapshot"]["gpu_node_group"]["platform"],
+        "preset": lease["profile_snapshot"]["gpu_node_group"]["preset"],
+        "gpu_product": lease["profile_snapshot"]["gpu_node_group"]["gpu_product"],
+        "gpu_product_label": lease["profile_snapshot"]["gpu_node_group"][
+            "kubernetes_gpu_product_label"
+        ],
+        "gpu_count": lease["profile_snapshot"]["gpu_node_group"]["gpu_count_per_node"],
+        "preemptible": True,
+        "public_worker_ips": attestation["kubernetes_network_attestation"]["external_ipv4"],
+        "attempt_id": attempt["attempt_id"],
+        "live_attestation": attestation,
+    }
+    lease["isolation_proof"] = support_proof
+    lease["state"] = "ACTIVE" if arm == "A_prepared_node" else "ACTIVE_ATTEMPT"
+    save(lease_path, registry_path, lease)
+    return lease
+
+
+def reconcile_active_graph(
+    lease_path: Path,
+    registry_path: Path,
+    lease: dict[str, Any],
+    cli: common.NebiusCLI,
+    kubectl: KubeCTL,
+) -> dict[str, Any]:
+    try:
+        return _reconcile_active_graph_once(lease_path, registry_path, lease, cli, kubectl)
+    except Exception as exc:
+        persisted = common.load_json(lease_path)
+        assert_integrity(persisted)
+        persisted["state"] = "ACTIVE_RECONCILIATION_FAILED"
+        persisted["failures"].append(
+            {
+                "at": common.iso(precise_utc_now()),
+                "stage": "active_graph_reconciliation",
+                "attempt_id": (
+                    persisted.get("demand", {}).get("attempt_id")
+                    if persisted.get("demand")
+                    else None
+                ),
+                "error": str(exc)[:1500],
+            }
+        )
+        event(
+            persisted,
+            "active.graph.reconciliation.failed",
+            "FAIL",
+            error=str(exc)[:1000],
+        )
+        save(lease_path, registry_path, persisted)
+        raise
+
+
 @lease_mutation_locked
 def provision_gpu_node_group(
     lease_path: Path,
@@ -3764,29 +4323,8 @@ def provision_gpu_node_group(
     assert_live_creation_prerequisites(lease)
     assert_frozen_authority(lease, cli)
     arm = lease["request"]["campaign_arm"]
-    if lease["state"] in {"ACTIVE", "ACTIVE_ATTEMPT"}:
-        group = find_resource(lease, "gpu_node_group")
-        if not group:
-            raise common.BrokerError("active lease lacks a signed GPU node-group row")
-        provider_nodes = reconcile_provider_nodes(lease, cli, group, "gpu_node")
-        save(lease_path, registry_path, lease)
-        reconcile_nodes(lease, kubectl, group, "gpu_node")
-        attestation = attest_gpu_node(lease, cli, kubectl, group, provider_nodes)
-        attempt = (
-            current_attempt(lease)
-            if arm == "B_new_preemptible_node"
-            else next(item for item in lease["attempts"] if item["attempt_id"] == "prepared-node")
-        )
-        attempt["receipt"].setdefault("replacement_reconciliations", []).append(attestation)
-        attempt["receipt"]["live_gpu_attestation"] = attestation
-        lease["node_ids"] = [attestation["node_id"]]
-        lease["isolation_proof"]["gpu_node_group"]["node_id"] = attestation["node_id"]
-        lease["isolation_proof"]["gpu_node_group"]["public_worker_ips"] = (
-            attestation["kubernetes_network_attestation"]["external_ipv4"]
-        )
-        lease["isolation_proof"]["gpu_node_group"]["live_attestation"] = attestation
-        save(lease_path, registry_path, lease)
-        return lease
+    if lease["state"] in {"ACTIVE", "ACTIVE_ATTEMPT", "ACTIVE_RECONCILIATION_FAILED"}:
+        return reconcile_active_graph(lease_path, registry_path, lease, cli, kubectl)
     if arm == "B_new_preemptible_node":
         if lease["state"] not in {"DEMAND_RECORDED", "GPU_CAPACITY_FAILED", "GPU_CREATE_FAILED"}:
             raise common.BrokerError("Arm B GPU creation requires a recorded durable post-T0 demand")
