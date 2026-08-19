@@ -4,11 +4,26 @@
   "title": "Catalog-switch production architecture",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "generated_at", "decision_status", "scope", "metric_contract", "evidence", "recommendations", "scenarios", "backends", "cache_policy", "budgets", "apis", "benchmark_matrix", "rollout_gates", "blockers"],
+  "required": ["schema_version", "generated_at", "decision_status", "evidence_index_update", "scope", "metric_contract", "evidence", "recommendations", "scenarios", "backends", "cache_policy", "budgets", "apis", "benchmark_matrix", "rollout_gates", "blockers"],
   "properties": {
     "schema_version": {"const": "catalog-switch-production-architecture/v1"},
     "generated_at": {"type": "string", "format": "date-time"},
     "decision_status": {"const": "conditional"},
+    "evidence_index_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "baseline_commit", "evidence_index", "decision_matrix", "budget_placeholders", "open_unknowns", "backend_selection_allowed", "final_adr_claim_allowed"],
+      "properties": {
+        "scope": {"const": "evidence-index-only"},
+        "baseline_commit": {"const": "1db7703e3078ce3236c4655816312416145eb709"},
+        "evidence_index": {"const": "catalog-switch/architecture/evidence-index.v2.json"},
+        "decision_matrix": {"const": "catalog-switch/architecture/decision-matrix.v1.json"},
+        "budget_placeholders": {"const": "catalog-switch/architecture/budget-placeholders.v1.json"},
+        "open_unknowns": {"const": "catalog-switch/architecture/OPEN_UNKNOWNS.md"},
+        "backend_selection_allowed": {"const": false},
+        "final_adr_claim_allowed": {"const": false}
+      }
+    },
     "scope": {
       "type": "object",
       "additionalProperties": false,
@@ -93,10 +108,10 @@
           "additionalProperties": false,
           "required": ["kubernetes_first_h100_campaign", "node_vm_h100_ttl", "internal_qwen_h100_ttl", "internal_glm_h200_ttl", "cerebrium_provider_spend"],
           "properties": {
-            "kubernetes_first_h100_campaign": {"const": 27.0},
-            "node_vm_h100_ttl": {"const": 13.082801},
-            "internal_qwen_h100_ttl": {"const": 8.721867},
-            "internal_glm_h200_ttl": {"const": 289.409894},
+            "kubernetes_first_h100_campaign": {"type": "null"},
+            "node_vm_h100_ttl": {"type": "null"},
+            "internal_qwen_h100_ttl": {"type": "null"},
+            "internal_glm_h200_ttl": {"type": "null"},
             "cerebrium_provider_spend": {"type": "null"}
           }
         }

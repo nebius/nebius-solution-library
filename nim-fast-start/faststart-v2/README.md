@@ -26,10 +26,11 @@ response-boundary audit is recorded in
   program's threat model: the fail-closed control and adversary matrix, per
   backend, required before any switching backend can be recommended for
   production, plus its consistency validator and tests;
-- `catalog-switch/architecture/` integrates the evidence into a conditional,
-  machine-validated ADR, backend/scenario dispositions, executable budgets and
-  benchmark matrix, implementation roadmap, rollback plan, and explicit
-  promotion blockers. It promotes no backend and keeps Modal reference-only;
+- `catalog-switch/architecture/` preserves the conditional baseline and adds a
+  versioned exact-commit evidence index, open unscored decision matrix, null
+  latency/cost placeholders, explicit unknowns, and fail-closed review gates.
+  It selects no backend, has zero matched cohorts, and keeps Modal
+  documentation-only;
 - `native-capture/` creates the qualified native Dynamo artifact;
 - `phase2-agent/` reproduces the generic one-shot restore-worker image;
 - `dynamo/` renders and validates target, binding, restore, semantic probe, and

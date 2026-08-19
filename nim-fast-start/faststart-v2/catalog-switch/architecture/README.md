@@ -1,18 +1,27 @@
-# Catalog-switch production architecture decision package
+# Catalog-switch evidence index and conditional architecture baseline
 
-This directory is the integration point for the catalog-switch program. It is
-an independently checkable, **conditional** architecture decision, not a claim
-that a production backend has won. The reviewed contracts and offline
-prototypes are integrated in this branch; the product-boundary GPU cohorts,
-capacity/cost model, corrected A-to-B state machine, corrected snapshot
-classification, v2 model-id-plus-input acceptance contract, and chaos
-qualification are still promotion blockers.
+This directory is the integration point for the catalog-switch program. Commit
+`1db7703e` remains the preserved conditional architecture baseline. The current
+revision reopens it **only as an evidence-index update**; it does not select a
+backend, finalize the ADR, approve a product SLO, or authorize live work.
+
+Kubernetes, plain node VM, and Cerebrium each have zero accepted matched
+product-boundary cohorts. All-ten Arm A/Arm B coverage and an accepted safe
+drain/reclaim replacement are missing. Cerebrium remains the sole intended
+external comparator. Modal remains documentation-only and receives no measured
+score.
 
 The package's normative parts are:
 
 - `architecture.json` is the machine-readable decision, evidence ledger,
   scenario routing, backend dispositions, budgets, API ownership, benchmark
   matrix, rollout gates, and open blockers.
+- `evidence-index.v2.json` is the current exact-commit evidence authority;
+  `evidence-index.v2.schema.json` closes its shape.
+- `decision-matrix.v1.json` keeps every backend/scenario winner, score, and rank
+  null until matched evidence exists; its schema makes that state executable.
+- `budget-placeholders.v1.json` contains only null, unratified latency and cost
+  ceilings. `OPEN_UNKNOWNS.md` records the exact exits blocking a decision.
 - `ADR.md` explains the decision and the exact control/data-plane design.
 - `IMPLEMENTATION_ROADMAP.md` assigns phases, owners, estimates, canaries, and
   rollback actions.
@@ -27,24 +36,22 @@ The package's normative parts are:
 - `validate_architecture.py` and `tests/` fail closed when scope, evidence,
   provenance, API, scenario, budget, security, or promotion constraints are
   weakened.
+- `validate_evidence_index.py` verifies exact Git commits/blobs, independent
+  acceptance, negative review history, zero cohorts, no winner, and null
+  budgets.
 
 `EVIDENCE_INDEX.md` is the human review map. `MODAL_REFERENCE.md` is a strictly
 separate documentation-only appendix. Modal is not an empirical backend, is
 not present in any benchmark matrix row, and cannot receive a rank or rollout
 weight.
 
-## Decision in one paragraph
+## Current non-decision
 
-Adopt a catalog-aware control plane with one external request boundary and one
-causal ledger. Keep Kubernetes as the fleet/control-plane and baseline path.
-Evaluate a generation-fenced node-local OCI supervisor as the internal
-single-GPU data-plane hot path, without bypassing admission, isolation,
-accounting, or cleanup. Use immutable L0/L1/L2 cache identities, a conventional
-local-start fallback for every snapshot route, and switch-cost-aware placement
-with a queue-depth bound as an experiment-backed policy candidate. Treat
-Cerebrium only as the matched external comparator and possible capacity-miss
-fallback after its own entitlement, identity, semantic, cost, and raw-cohort
-gates pass. No backend is promoted today.
+No backend is selected or ranked. The structural material preserved from
+`1db7703e` remains a conditional baseline for future experiments, not the
+outcome of this pass. The current authoritative matrix has `winner: null`,
+disabled scoring, and zero matched cohorts for Kubernetes, node VM, Cerebrium,
+and the unscored Modal reference row.
 
 The reviewed v1 ledger remains valid for pre-resolved benchmark cohorts, but
 its T0 target already contains exact artifact identity. The product API accepts
@@ -63,11 +70,10 @@ From `nim-fast-start/faststart-v2`:
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 \
   catalog-switch/architecture/validate_architecture.py
+PYTHONDONTWRITEBYTECODE=1 python3 \
+  catalog-switch/architecture/validate_evidence_index.py
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v \
   catalog-switch/architecture/tests
-python3 catalog-switch/architecture/capacity_budget.py \
-  --arrival-rate-p95 0.5 --occupancy-p95 20 \
-  --preemptible-failover-slots 2
 bash catalog-switch/architecture/run_checks.sh
 ```
 
@@ -77,7 +83,9 @@ offline and creates no cloud, cluster, GPU, endpoint, or provider resource.
 
 ## Promotion rule
 
-Only `approved` recommendations may be implemented without another decision.
-Items marked `experiment-required`, `blocked`, `rejected`, or `reference-only`
-are not production claims. Closing a blocker requires a new evidence entry
-with a content hash and review; editing prose is insufficient.
+This reopened revision makes no implementation recommendation. A future
+positive item requires independent acceptance of its exact source commit and
+bounded claim, an intentional validator allowlist update, and a matching Git
+blob hash. Rejected `34d70fd0` and `f5f2706a`, all current replacement
+rejections, prepared-stage evidence, projections, and references cannot become
+design inputs by editing a label.

@@ -1,50 +1,69 @@
 # Evidence and confidence index
 
-Snapshot time: 2026-08-19T15:06:53Z. File hashes are enforced by
-`validate_architecture.py`. `High` means the artifact directly supports its
-bounded claim and has deterministic/reviewed checks. `Medium` means real but
-internal-stage or offline evidence. `Low` means a hypothesis/preflight with
-material unmeasured inputs. Confidence never expands the stated boundary.
+Current index: `catalog-switch-evidence-index/v2`, snapshot
+2026-08-19T17:05:00Z. Baseline commit `1db7703e` is preserved. This update is
+an evidence audit, not a backend decision or final ADR.
 
-| ID | State / confidence | Immutable source | What it supports | What it excludes |
-| --- | --- | --- | --- | --- |
-| `E-METRIC-001` | Accepted / high | `ba49c9e2`, event schema `a8371e8f...` | External T0, terminal, causal ledger, sample gates for pre-resolved benchmark cohorts. | No backend performance; v1 pins artifact, occupant, queue/cache/capacity state, and resource ownership at T0, so it is not compatible with unresolved demand-after-T0 production ingress. |
-| `E-CATALOG-001` | Accepted / high | `9abd4920`, catalog `831c0517...` | 220 rows / 171 canonical identities, pilots, evidence gaps. | No universal deployability or snapshot safety. |
-| `E-SECURITY-001` | Accepted / high | `9cfbc1b1`, model `a9bfccaf...` | 20 reviewed controls and 16 test families apply to internal Kubernetes/node-VM paths. | Source total is 21/17; CTL-17 and TST-14 are legacy Modal-only. No Cerebrium coverage or live proof. |
-| `E-BROKER-001` | Accepted / high | `229101bb`, smoke `28e03e04...` | Fresh CPU lease isolation and exact-ID cleanup. | Kubernetes v2 and GPU lease support remain pending. |
-| `E-OF2-PREPARED-001` | Accepted / medium | base `01809150`, TSV `b5e3bf5d...` | OpenFold2 internal prepared-node n=20, p95 17.629887 s. | No external T0/product SLO or full host-Xid proof. |
-| `E-BOLTZ-PREPARED-001` | Accepted / medium | base `01809150`, TSV `ec36c850...` | Boltz2 internal prepared-node n=20, p95 30.310246 s: internal-stage 30-second target fail. | No external T0/product SLO; no hidden pass. |
-| `E-NODE-CPU-001` | Accepted / high | `dd072528`, JSON `9d680995...` | Matched OCI isolation overhead and runtime selection. | No GPU, NIM, storage, or product latency prediction. |
-| `E-NODE-SUPERVISOR-001` | Provisional / medium | `dd072528`, JSON `9c9e2125...` | CPU fixture ledger, cache, replay, and fail-closed behavior. | No live GPU isolation or physical switch action proof. |
-| `E-K8S-CONTRACT-001` | Provisional / medium | `93309aa4`, plan `620cb247...` | Separate Arm A/Arm B and causal campaign implementation. | No cluster/GPU mutation or performance sample. |
-| `E-CEREBRIUM-001` | Provisional / high | `ad824c1d`, verification `e522d3e2...` | Claim audit, exact model plans, entitlement/capacity stops. | No Qwen/GLM timing or external winner. |
-| `E-CEREBRIUM-SECURITY-PENDING-001` | Blocked / high | No reviewed artifact | Makes the missing provider-boundary control/accepted-risk mapping explicit. | No Cerebrium security, isolation, cleanup, or rollback claim. |
-| `E-SIM-001` | Provisional / low | `2d17c187`, reports `6954d454...` | Structural sensitivity of switch cost, queue cap, localization. | No backend/eviction/prefetch production rank. |
-| `E-STORAGE-CONTRACT-001` | Provisional / medium | `ce62db1e`, README `7d056836...` | Request-bound storage/cache receipt and matrix contract. | No local-NVMe entitlement or live cell result. |
-| `E-MODAL-REF-001` | Reference only / medium | `530fa212`, contract `0b113e66...` | Managed-runtime documentation patterns. | No execution, spend, timing, comparison, or rank. |
-| `E-DRAIN-REJECTED-001` | Rejected / high | `34d70fd0` | Records why the revision is not admissible. | Must not be implemented or promoted. |
-| `E-SNAPSHOT-REJECTED-001` | Rejected / high | `f5f2706a` | Records why the classification is not admissible. | Must not drive row routing or promotion. |
-| `E-COST-PENDING-001` | Blocked / high | No finished artifact | Makes missing economics visible. | No absolute standard/large budgets or unit economics. |
-| `E-CHAOS-PENDING-001` | Blocked / high | No run | Makes missing live fault qualification visible. | No production reliability claim. |
+The normative source is `evidence-index.v2.json`; its schema and
+`validate_evidence_index.py` bind every source to an exact 40-character commit,
+GitHub commit link, repository path, and SHA-256 of `git show commit:path`.
+Positive evidence additionally requires an independent acceptance verdict for
+that same exact commit. Label edits cannot promote a replacement.
 
-## Recommendation traceability
+## Independently accepted bounded contracts
 
-| Recommendation | Evidence | Disposition |
+| ID | Exact commit | Accepted boundary | Excludes |
+| --- | --- | --- | --- |
+| `EV2-METRIC-BA49` | [`ba49c9e2`](https://github.com/nebius/nebius-solutions-library/commit/ba49c9e20f194e0f419d4209608904cc9335219d) | Pre-resolved external-T0 ledger contract. | No backend result or unresolved production ingress. |
+| `EV2-CATALOG-9ABD` | [`9abd4920`](https://github.com/nebius/nebius-solutions-library/commit/9abd49204e7dbfb9be17ebf6c3f213227a88e5ca) | Versioned 220-row / 171-model catalog and explicit gaps. | No universal runtime or snapshot eligibility. |
+| `EV2-SECURITY-9CFB` | [`9cfbc1b1`](https://github.com/nebius/nebius-solutions-library/commit/9cfbc1b1311a1f784a407889b215aaec5200fe0e) | Internal Kubernetes/node-VM control contract. | No Cerebrium coverage; Modal-only controls are excluded. |
+| `EV2-BROKER-CPU-2291` | [`229101bb`](https://github.com/nebius/nebius-solutions-library/commit/229101bb5430143e78c4bc796b30715a2a0a14df) | Bounded fresh CPU lease/cleanup contract. | No Kubernetes/GPU replacement acceptance. |
+
+These are the only v2 positive-evidence entries. They are contract inputs, not
+backend performance scores.
+
+## Limited prepared-stage observations
+
+| ID | Exact source | Boundary |
 | --- | --- | --- |
-| `R-METRIC` | `E-METRIC-001` | Experiment required: retain v1 evidence; close `BLK-ACCEPTANCE-CONTRACT` and `BLK-CONTROL-CHAIN` with reviewed v2 ingress and causal operation receipts. |
-| `R-CATALOG` | `E-CATALOG-001`, `E-SECURITY-001` | Approved identity/fail-closed lookup. |
-| `R-CONTROL-DATA-PLANE` | `E-SECURITY-001`, `E-NODE-CPU-001`, `E-NODE-SUPERVISOR-001`, `E-K8S-CONTRACT-001` | Experiment required. |
-| `R-CACHE-PLACEMENT` | `E-SIM-001`, `E-STORAGE-CONTRACT-001`, `E-BOLTZ-PREPARED-001` | Experiment required; policy unranked. |
-| `R-SNAPSHOT-FALLBACK` | `E-SECURITY-001`, `E-CATALOG-001`, prepared anchors, rejected classification | Approved safety rule; eligibility blocked. |
-| `R-CEREBRIUM` | `E-CEREBRIUM-001`, `E-CEREBRIUM-SECURITY-PENDING-001`, `E-METRIC-001`, `E-COST-PENDING-001` | Experiment required; provider security blocked. |
-| `R-MODAL-REFERENCE` | `E-MODAL-REF-001` | Reference only. |
-| `R-PRODUCTION-PROMOTION` | Both rejected artifacts plus cost/chaos gaps | Blocked; no winner. |
+| `EV2-OF2-PREPARED-0180` | [`01809150`](https://github.com/nebius/nebius-solutions-library/commit/0180915001fff47fbed0f82292fe32edc40e40ea) | OpenFold2 prepared-node internal stage only. |
+| `EV2-BOLTZ-PREPARED-0180` | [`01809150`](https://github.com/nebius/nebius-solutions-library/commit/0180915001fff47fbed0f82292fe32edc40e40ea) | Boltz2 prepared-node internal stage only; not unknown-model demand latency. |
+| `EV2-BOLTZ-HIDDEN-SETUP-75E3` | [`75e3b1fa`](https://github.com/nebius/nebius-solutions-library/commit/75e3b1faabc53a0c621d6efee84bd5b277bbc8bd) | Unreviewed source observation: 1,826,220,898 bytes copied/hashed for roughly 440--442 seconds before admission/T0; raw attempt receipts are absent. |
 
-## Evidence admission rule
+None is eligible for a product SLO, matched comparison, score, or rank.
 
-A new result is admissible only when its source path and SHA-256 are added to
-`architecture.json`, the canonical ledger validates, exact environment and
-resource ownership are present, all attempts and failures are retained, cost
-and cleanup reconcile, and an independent reviewer verifies the bounded claim.
-Prepared-stage, synthetic, read-only, planned, rejected, and reference-only
-artifacts can never become product evidence solely by changing a label.
+## Rejected, pending, and unreviewed replacements
+
+| ID | Exact commit | State | Review boundary |
+| --- | --- | --- | --- |
+| `EV2-DRAIN-34D-REJECTED` | [`34d70fd0`](https://github.com/nebius/nebius-solutions-library/commit/34d70fd0b4c84ddd2375a9db1ec9d9961f4aa5be) | Rejected | Negative evidence only: durability, GPU scrub, physical action, semantic, and rollback gaps. |
+| `EV2-SNAPSHOT-F5F-REJECTED` | [`f5f2706a`](https://github.com/nebius/nebius-solutions-library/commit/f5f2706a432bcc7795e51ab69fb64cd2e45ee2a2) | Rejected | Negative evidence only: new-node gates, topology, pins, and per-model proof incomplete. |
+| `EV2-BROKER-D40-REJECTED` | [`d40b6478`](https://github.com/nebius/nebius-solutions-library/commit/d40b6478275d5d5545786d5a3bf69ae46fe22c32) | Rejected | Self-asserted runner, cross-lease replay, forged cleanup, public-interface gap, and authentication-as-absence. |
+| `EV2-K8S-4E63-PENDING` | [`4e63e8dd`](https://github.com/nebius/nebius-solutions-library/commit/4e63e8dde2c2df79ee2c1a11fb850de25b6993cb) | Changes requested | Canonical test is timing-sensitive; replacement and Cerebrium wording remain pending. |
+| `EV2-NODE-F4C9-DISCONNECTED` | [`f4c9c188`](https://github.com/nebius/nebius-solutions-library/commit/f4c9c1886ddd9c0bc04bd5804c348402ee429066) | Changes requested | Supervisor candidate remains disconnected from an accepted production runtime path. |
+| `EV2-DRAIN-E2DA-REJECTED` | [`e2dabf7a`](https://github.com/nebius/nebius-solutions-library/commit/e2dabf7a274f9db4287553154b625f838031a009) | Rejected | Missing `items` is accepted as empty; proof can use another trusted node instead of the runtime authority. |
+| `EV2-SNAPSHOT-71E1-REJECTED` | [`71e15616`](https://github.com/nebius/nebius-solutions-library/commit/71e15616a745a747368d3b58d572432b416124cc) | Rejected | All-zero Boltz/OpenFold image digests pass through n20 TSVs with no image column. |
+| `EV2-COST-2BC0-REJECTED` | [`2bc0f760`](https://github.com/nebius/nebius-solutions-library/commit/2bc0f76044e9e2e960c2519cce260d36aa23331f) | Rejected | Intermediate rounding changes a choice; billed/free relocation cases are missing. |
+| `EV2-QWEN-27C2-REJECTED` | [`27c28e20`](https://github.com/nebius/nebius-solutions-library/commit/27c28e20e89193f3865b5aadf805d0e735f4e20e) | Rejected | Forgeable gate, missing network join, response-lost create, and ordinal reuse. |
+| `EV2-STORAGE-75E3-UNREVIEWED` | [`75e3b1fa`](https://github.com/nebius/nebius-solutions-library/commit/75e3b1faabc53a0c621d6efee84bd5b277bbc8bd) | Unreviewed | Offline A-D schema/projection only; no live localization cohort or measured score. |
+
+The rejected `34d70fd0` and `f5f2706a` commits remain negative review history
+only. Neither they nor their rejected replacements may enter
+`decision_inputs`.
+
+## Comparator and reference scope
+
+- Kubernetes and plain node VM are the internal empirical candidates. Each has
+  zero accepted matched product-boundary cohorts in this index.
+- Cerebrium is the sole intended external comparator. It has zero measured
+  cohorts; `27c28e20` is rejected precreation evidence, not a timing result.
+- Modal is documentation-only under `EV2-MODAL-530F-REFERENCE`. It has no
+  empirical row, score, rank, spend, or deployment.
+
+## Admission rule
+
+An item becomes positive only after a fresh independent review accepts the
+exact source commit and bounded claim, the validator's exact-commit allowlist
+is deliberately updated, and `git show commit:path` matches the recorded blob
+hash. Rejected, changes-requested, pending, prepared-stage, projection, and
+reference-only entries remain non-positive and unscored.

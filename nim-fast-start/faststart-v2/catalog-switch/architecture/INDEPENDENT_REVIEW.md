@@ -6,6 +6,10 @@ Reviewer: independent architecture review agent (separate review context)
 
 Verdict: **conditional sign-off**
 
+Scope note: this verdict applies to the preserved `1db7703e` baseline. The
+subsequent evidence-index v2 update is unreviewed, does not inherit this
+sign-off, and leaves `G-INDEPENDENT-REVIEW` pending.
+
 The reviewer signs off on this package as an independently reviewable,
 conditional ADR and implementation roadmap. This is not sign-off on a
 production backend, product SLO, traffic rollout, or deployment.

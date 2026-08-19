@@ -197,7 +197,14 @@ class ArchitectureValidationTests(unittest.TestCase):
             if item["name"] == "fast-switch"
         )
         budget["status"] = "approved-product-slo"
-        self.assert_rejected(mutated, "unratified provisional candidate")
+        self.assert_rejected(mutated, "owner-ratification placeholder")
+
+    def test_campaign_cost_cap_cannot_be_invented(self) -> None:
+        mutated = copy.deepcopy(self.document)
+        mutated["budgets"]["campaign_hard_caps_usd"][
+            "kubernetes_first_h100_campaign"
+        ] = 27
+        self.assert_rejected(mutated, "campaign cost caps must remain null placeholders")
 
     def test_prefetch_defaults_off(self) -> None:
         mutated = copy.deepcopy(self.document)

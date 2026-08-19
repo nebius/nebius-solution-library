@@ -8,6 +8,7 @@ cd "${faststart_root}"
 export PYTHONDONTWRITEBYTECODE=1
 
 python3 catalog-switch/architecture/validate_architecture.py
+python3 catalog-switch/architecture/validate_evidence_index.py
 python3 catalog-switch/architecture/capacity_budget.py \
   --arrival-rate-p95 0.5 --occupancy-p95 20 \
   --preemptible-failover-slots 2

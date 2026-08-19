@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nebius.example/schemas/catalog-switch-decision-matrix-v1.json",
+  "title": "Catalog-switch open decision matrix",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "final_adr",
+    "winner",
+    "scoring_status",
+    "evidence_index",
+    "budget_placeholders",
+    "backends",
+    "scenarios",
+    "qualification_requirements",
+    "decision_inputs",
+    "negative_review_evidence",
+    "unknowns"
+  ],
+  "properties": {
+    "$schema": {"const": "./decision-matrix.v1.schema.json"},
+    "schema_version": {"const": "catalog-switch-decision-matrix/v1"},
+    "status": {"const": "open-insufficient-matched-evidence"},
+    "final_adr": {"const": false},
+    "winner": {"type": "null"},
+    "scoring_status": {"const": "disabled-until-matched-cohorts"},
+    "evidence_index": {"const": "catalog-switch/architecture/evidence-index.v2.json"},
+    "budget_placeholders": {"const": "catalog-switch/architecture/budget-placeholders.v1.json"},
+    "backends": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {"$ref": "#/$defs/backend"}
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {"$ref": "#/$defs/scenario"}
+    },
+    "qualification_requirements": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"$ref": "#/$defs/requirement"}
+    },
+    "decision_inputs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^EV2-[A-Z0-9-]+$"}
+    },
+    "negative_review_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^EV2-[A-Z0-9-]+$"}
+    },
+    "unknowns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/unknown"}
+    }
+  },
+  "$defs": {
+    "backend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "empirical_candidate",
+        "matched_measured_cohorts",
+        "score",
+        "rank",
+        "disposition",
+        "evidence_ids",
+        "blockers"
+      ],
+      "properties": {
+        "id": {"enum": ["kubernetes", "node-vm", "cerebrium", "modal"]},
+        "role": {"type": "string", "minLength": 1},
+        "empirical_candidate": {"type": "boolean"},
+        "matched_measured_cohorts": {"const": 0},
+        "score": {"type": "null"},
+        "rank": {"type": "null"},
+        "disposition": {
+          "enum": ["insufficient-evidence", "documentation-only-unscored"]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^EV2-[A-Z0-9-]+$"}
+        },
+        "blockers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"id": {"const": "modal"}}, "required": ["id"]},
+          "then": {
+            "properties": {
+              "role": {"const": "documentation-reference-only"},
+              "empirical_candidate": {"const": false},
+              "disposition": {"const": "documentation-only-unscored"}
+            }
+          },
+          "else": {
+            "properties": {
+              "empirical_candidate": {"const": true},
+              "disposition": {"const": "insufficient-evidence"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"id": {"const": "cerebrium"}}, "required": ["id"]},
+          "then": {"properties": {"role": {"const": "sole-intended-external-comparator"}}}
+        }
+      ]
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "winner", "status", "latency_budget_id", "cost_budget_ids", "missing_evidence"],
+      "properties": {
+        "id": {
+          "enum": [
+            "same_model_hot",
+            "idle_local",
+            "a_to_b_local",
+            "a_to_b_remote",
+            "checkpoint_fallback",
+            "capacity_miss"
+          ]
+        },
+        "winner": {"type": "null"},
+        "status": {"const": "open"},
+        "latency_budget_id": {"type": "string", "pattern": "^LAT-[A-Z0-9-]+$"},
+        "cost_budget_ids": {
+          "const": ["COST-KUBERNETES", "COST-NODE-VM", "COST-CEREBRIUM"]
+        },
+        "missing_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "required", "accepted", "accepted_commit", "exit"],
+      "properties": {
+        "id": {
+          "enum": [
+            "matched-k8s-node-vm-cerebrium",
+            "all-10-arm-a-arm-b",
+            "safe-drain-reclaim-replacement"
+          ]
+        },
+        "status": {"const": "missing"},
+        "required": {"type": "integer", "minimum": 1},
+        "accepted": {"const": 0},
+        "accepted_commit": {"type": "null"},
+        "exit": {"type": "string", "minLength": 1}
+      }
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "question", "blocks", "owner_tasks", "exit_evidence"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^U-[A-Z0-9-]+$"},
+        "question": {"type": "string", "minLength": 1},
+        "blocks": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "owner_tasks": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "exit_evidence": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

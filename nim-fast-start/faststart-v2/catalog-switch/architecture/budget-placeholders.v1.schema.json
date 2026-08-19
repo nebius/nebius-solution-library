@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nebius.example/schemas/catalog-switch-budget-placeholders-v1.json",
+  "title": "Catalog-switch unratified budget placeholders",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "selection_permitted",
+    "latency",
+    "cost"
+  ],
+  "properties": {
+    "$schema": {"const": "./budget-placeholders.v1.schema.json"},
+    "schema_version": {"const": "catalog-switch-budget-placeholders/v1"},
+    "status": {"const": "placeholders-only-unratified"},
+    "selection_permitted": {"const": false},
+    "latency": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {"$ref": "#/$defs/latency"}
+    },
+    "cost": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/cost"}
+    }
+  },
+  "$defs": {
+    "latency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "scenario", "unit", "p50_max", "p95_max", "p99_max", "status", "owner", "evidence_required"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^LAT-[A-Z0-9-]+$"},
+        "scenario": {
+          "enum": ["same_model_hot", "idle_local", "a_to_b_local", "a_to_b_remote", "checkpoint_fallback", "capacity_miss"]
+        },
+        "unit": {"const": "seconds"},
+        "p50_max": {"type": "null"},
+        "p95_max": {"type": "null"},
+        "p99_max": {"type": "null"},
+        "status": {"const": "unratified-placeholder"},
+        "owner": {"type": "string", "minLength": 1},
+        "evidence_required": {"type": "string", "minLength": 1}
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "backend",
+        "currency",
+        "per_valid_response_max",
+        "failed_attempt_max",
+        "warm_idle_gpu_hour_max",
+        "transfer_gib_max",
+        "campaign_cap",
+        "status",
+        "owner",
+        "evidence_required"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^COST-[A-Z0-9-]+$"},
+        "backend": {"enum": ["kubernetes", "node-vm", "cerebrium"]},
+        "currency": {"const": "USD"},
+        "per_valid_response_max": {"type": "null"},
+        "failed_attempt_max": {"type": "null"},
+        "warm_idle_gpu_hour_max": {"type": "null"},
+        "transfer_gib_max": {"type": "null"},
+        "campaign_cap": {"type": "null"},
+        "status": {"const": "unratified-placeholder"},
+        "owner": {"type": "string", "minLength": 1},
+        "evidence_required": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

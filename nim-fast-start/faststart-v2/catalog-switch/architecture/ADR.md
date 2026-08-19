@@ -1,11 +1,25 @@
 # ADR: catalog-aware hybrid model switching
 
-Status: **conditional; no production backend promoted**
+Status: **reopened for evidence-index update only; not final; no production backend promoted**
 
 Decision date: 2026-08-19
 
 Scope: internal Kubernetes and direct/node-local VM paths, compared empirically
 only with Cerebrium. Modal appears only in `MODAL_REFERENCE.md`.
+
+## Manager scope for the reopened revision
+
+Commit `1db7703e` is preserved as the prior conditional baseline. This revision
+adds only a versioned evidence index, an open decision matrix, exact provenance,
+explicit unknowns, and null latency/cost budget placeholders. It neither
+selects a backend nor upgrades the previous conditional sign-off.
+
+The current decision matrix is open because matched Kubernetes/plain-VM/
+Cerebrium cohorts, all-ten Arm A/Arm B evidence, and an accepted safe
+drain/reclaim replacement are missing. Rejected commits `34d70fd0` and
+`f5f2706a` and all rejected replacements are negative review evidence, not
+production-design inputs. Cerebrium has zero measured cohorts. Modal remains
+documentation-only and unscored.
 
 ## Context and evidence boundary
 
@@ -248,17 +262,17 @@ No cell is promoted. `G-LIVE-K8S`, `G-LIVE-NODE`, and
 
 ## SLO, capacity, and cost budgets
 
-The fast-switch catalog class carries a **provisional, unratified** program
-objective of p95 <= 30 seconds under the external boundary. It is an executable
-candidate gate, not an approved product SLO; `BLK-PRODUCT-BUDGETS` requires
-product owners to ratify or replace it. P99 is reported at n>=100, but no
-absolute p99 target is invented before owner ratification. Promotion also requires
+All latency and cost ceilings are **null, unratified placeholders** in this
+revision. The earlier 30-second internal program objective is evidence context,
+not a current budget or product SLO. `BLK-PRODUCT-BUDGETS` requires product
+owners to define p50/p95/p99 semantics after matched evidence exists. Promotion
+also requires
 at least 100 attempts, >=99% valid-response success, zero semantic
 false successes, zero duplicates, zero unaccounted attempts, and 100% cleanup,
 GPU-scrub, and cost receipts. These gates are executable in
 `architecture.json`; they are not claims that a backend currently passes.
 
-The fast-switch p95/p99 decision and absolute standard-on-demand and
+The fast-switch p50/p95/p99 decision and absolute standard-on-demand and
 large/multi-GPU latency budgets are blocked by `BLK-PRODUCT-BUDGETS` and
 `BLK-COST`. They must not be invented from prepared-stage data. Until ratified,
 standard routes must at least match their exact frozen production baseline and
@@ -274,7 +288,8 @@ max(1, ceil(arrival_rate_p95 * occupancy_p95 / 0.70))
 It is a testable starting point, not a capacity conclusion. Every route must
 publish p50/p95 cost per valid response, failed-attempt cost, warm-idle cost,
 pre-T0 cache investment, post-response cleanup tail, and price provenance.
-The current campaign ceilings are safety caps, not a completed cost model.
+Historical child campaign ceilings remain source provenance, not current
+budgets. Every current campaign cost placeholder is null.
 `G-COST` cannot pass until `E-COST-PENDING-001` is replaced.
 
 The provisional calculation is executable and rejects negative, non-finite,

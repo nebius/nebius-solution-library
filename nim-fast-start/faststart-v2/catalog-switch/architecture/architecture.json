@@ -1,7 +1,17 @@
 {
   "schema_version": "catalog-switch-production-architecture/v1",
-  "generated_at": "2026-08-19T15:06:53Z",
+  "generated_at": "2026-08-19T17:05:00Z",
   "decision_status": "conditional",
+  "evidence_index_update": {
+    "scope": "evidence-index-only",
+    "baseline_commit": "1db7703e3078ce3236c4655816312416145eb709",
+    "evidence_index": "catalog-switch/architecture/evidence-index.v2.json",
+    "decision_matrix": "catalog-switch/architecture/decision-matrix.v1.json",
+    "budget_placeholders": "catalog-switch/architecture/budget-placeholders.v1.json",
+    "open_unknowns": "catalog-switch/architecture/OPEN_UNKNOWNS.md",
+    "backend_selection_allowed": false,
+    "final_adr_claim_allowed": false
+  },
   "scope": {
     "empirical_backends": ["kubernetes", "node-vm", "cerebrium"],
     "reference_only": ["modal"],
@@ -410,10 +420,10 @@
     "latency_classes": [
       {
         "name": "fast-switch",
-        "p95_seconds_max": 30.0,
+        "p95_seconds_max": null,
         "p99_seconds_max": null,
-        "status": "provisional-candidate-blocking-owner-ratification",
-        "note": "The 30-second external-boundary p95 is an unratified program objective and executable candidate gate, not an approved product SLO. Product owners must ratify or replace it and define p99 before promotion."
+        "status": "blocking-owner-ratification",
+        "note": "Placeholder only. Product owners must define and ratify external-boundary p95 and p99 after matched evidence exists."
       },
       {
         "name": "standard-on-demand",
@@ -442,10 +452,10 @@
     "capacity_status": "provisional-until-cost-model",
     "request_cost_rule": "No route is promoted without p50/p95 cost per valid response, failed-attempt cost, warm-idle cost, and cleanup tail from actual receipts.",
     "campaign_hard_caps_usd": {
-      "kubernetes_first_h100_campaign": 27.0,
-      "node_vm_h100_ttl": 13.082801,
-      "internal_qwen_h100_ttl": 8.721867,
-      "internal_glm_h200_ttl": 289.409894,
+      "kubernetes_first_h100_campaign": null,
+      "node_vm_h100_ttl": null,
+      "internal_qwen_h100_ttl": null,
+      "internal_glm_h200_ttl": null,
       "cerebrium_provider_spend": null
     }
   },
@@ -597,7 +607,7 @@
     {"id": "G-SNAPSHOT", "status": "blocked", "requires": ["BLK-SNAPSHOT"]},
     {"id": "G-COST", "status": "blocked", "requires": ["BLK-COST"]},
     {"id": "G-CHAOS", "status": "blocked", "requires": ["B-CHAOS", "BLK-CHAOS"]},
-    {"id": "G-INDEPENDENT-REVIEW", "status": "conditional-sign-off", "requires": ["catalog-switch/architecture/INDEPENDENT_REVIEW.md"]}
+    {"id": "G-INDEPENDENT-REVIEW", "status": "pending", "requires": ["catalog-switch/architecture/INDEPENDENT_REVIEW.md", "catalog-switch/architecture/evidence-index.v2.json", "catalog-switch/architecture/decision-matrix.v1.json"]}
   ],
   "blockers": [
     {"id": "BLK-ACCEPTANCE-CONTRACT", "owner_task": "catalog-switch-request-slo-harness,catalog-switch-integrated-architecture-adr", "exit": "Review and adopt a v2 external ledger whose T0 binds authenticated tenant, client idempotency key, model/version, immutable input, and deadline only. Post-T0 records must append authoritative catalog/artifact plus compiled API/input-schema digests, occupant, queue/cache/capacity snapshots, placement decision, broker/provider resource IDs, and cleanup inventory/receipts while preserving all-attempt accounting and later external terminal timing."},
@@ -610,6 +620,6 @@
     {"id": "BLK-CEREBRIUM-SECURITY", "owner_task": "catalog-switch-security-reliability,catalog-switch-cerebrium-qwen3-glm52-benchmark", "exit": "Independent review of a Cerebrium provider-boundary control mapping, accepted-risk exceptions for unverifiable host/GPU residue, authenticated tenant/model isolation, audit/idempotency, credentials/egress, cost, cleanup, rollback, and mapped live adversarial evidence."},
     {"id": "BLK-STORAGE", "owner_task": "catalog-switch-storage-cache-matrix", "exit": "Allowed-project local-NVMe entitlement or an explicit scope change, then complete live localization cohorts."},
     {"id": "BLK-CHAOS", "owner_task": "catalog-switch-chaos-qualification", "exit": "Cross-backend TST fault, preemption, isolation, accounting, rollback, and exact cleanup qualification."},
-    {"id": "BLK-PRODUCT-BUDGETS", "owner_task": "product-and-capacity-owners", "exit": "Ratify or replace the provisional fast-switch p95 objective, define fast-switch p99 semantics, approve absolute standard-on-demand and large-multi-gpu latency semantics, and set the external provider spend cap."}
+    {"id": "BLK-PRODUCT-BUDGETS", "owner_task": "product-and-capacity-owners", "exit": "After matched evidence exists, fill and ratify the null per-scenario p50/p95/p99 and per-backend cost placeholders, including external provider spend."}
   ]
 }

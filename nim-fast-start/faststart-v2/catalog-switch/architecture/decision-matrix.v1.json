@@ -1,0 +1,230 @@
+{
+  "$schema": "./decision-matrix.v1.schema.json",
+  "schema_version": "catalog-switch-decision-matrix/v1",
+  "status": "open-insufficient-matched-evidence",
+  "final_adr": false,
+  "winner": null,
+  "scoring_status": "disabled-until-matched-cohorts",
+  "evidence_index": "catalog-switch/architecture/evidence-index.v2.json",
+  "budget_placeholders": "catalog-switch/architecture/budget-placeholders.v1.json",
+  "backends": [
+    {
+      "id": "kubernetes",
+      "role": "internal-empirical-candidate",
+      "empirical_candidate": true,
+      "matched_measured_cohorts": 0,
+      "score": null,
+      "rank": null,
+      "disposition": "insufficient-evidence",
+      "evidence_ids": [
+        "EV2-K8S-4E63-PENDING",
+        "EV2-DRAIN-E2DA-REJECTED",
+        "EV2-SNAPSHOT-71E1-REJECTED",
+        "EV2-BOLTZ-PREPARED-0180",
+        "EV2-STORAGE-75E3-UNREVIEWED"
+      ],
+      "blockers": [
+        "matched-k8s-node-vm-cerebrium",
+        "all-10-arm-a-arm-b",
+        "safe-drain-reclaim-replacement"
+      ]
+    },
+    {
+      "id": "node-vm",
+      "role": "internal-empirical-candidate",
+      "empirical_candidate": true,
+      "matched_measured_cohorts": 0,
+      "score": null,
+      "rank": null,
+      "disposition": "insufficient-evidence",
+      "evidence_ids": [
+        "EV2-NODE-F4C9-DISCONNECTED",
+        "EV2-DRAIN-E2DA-REJECTED",
+        "EV2-SNAPSHOT-71E1-REJECTED",
+        "EV2-STORAGE-75E3-UNREVIEWED"
+      ],
+      "blockers": [
+        "matched-k8s-node-vm-cerebrium",
+        "all-10-arm-a-arm-b",
+        "safe-drain-reclaim-replacement"
+      ]
+    },
+    {
+      "id": "cerebrium",
+      "role": "sole-intended-external-comparator",
+      "empirical_candidate": true,
+      "matched_measured_cohorts": 0,
+      "score": null,
+      "rank": null,
+      "disposition": "insufficient-evidence",
+      "evidence_ids": ["EV2-QWEN-27C2-REJECTED"],
+      "blockers": [
+        "matched-k8s-node-vm-cerebrium",
+        "all-10-arm-a-arm-b",
+        "cerebrium-private-placement-and-provider-boundary-proof"
+      ]
+    },
+    {
+      "id": "modal",
+      "role": "documentation-reference-only",
+      "empirical_candidate": false,
+      "matched_measured_cohorts": 0,
+      "score": null,
+      "rank": null,
+      "disposition": "documentation-only-unscored",
+      "evidence_ids": ["EV2-MODAL-530F-REFERENCE"],
+      "blockers": ["not-an-empirical-candidate-by-scope"]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "same_model_hot",
+      "winner": null,
+      "status": "open",
+      "latency_budget_id": "LAT-SAME-MODEL-HOT",
+      "cost_budget_ids": ["COST-KUBERNETES", "COST-NODE-VM", "COST-CEREBRIUM"],
+      "missing_evidence": ["matched product-boundary backend cohorts"]
+    },
+    {
+      "id": "idle_local",
+      "winner": null,
+      "status": "open",
+      "latency_budget_id": "LAT-IDLE-LOCAL",
+      "cost_budget_ids": ["COST-KUBERNETES", "COST-NODE-VM", "COST-CEREBRIUM"],
+      "missing_evidence": ["matched local-artifact-hit cohorts"]
+    },
+    {
+      "id": "a_to_b_local",
+      "winner": null,
+      "status": "open",
+      "latency_budget_id": "LAT-A-TO-B-LOCAL",
+      "cost_budget_ids": ["COST-KUBERNETES", "COST-NODE-VM", "COST-CEREBRIUM"],
+      "missing_evidence": ["accepted safe drain/reclaim replacement", "matched A-to-B cohorts"]
+    },
+    {
+      "id": "a_to_b_remote",
+      "winner": null,
+      "status": "open",
+      "latency_budget_id": "LAT-A-TO-B-REMOTE",
+      "cost_budget_ids": ["COST-KUBERNETES", "COST-NODE-VM", "COST-CEREBRIUM"],
+      "missing_evidence": ["external-T0 localization cohorts", "accepted safe drain/reclaim replacement"]
+    },
+    {
+      "id": "checkpoint_fallback",
+      "winner": null,
+      "status": "open",
+      "latency_budget_id": "LAT-CHECKPOINT-FALLBACK",
+      "cost_budget_ids": ["COST-KUBERNETES", "COST-NODE-VM", "COST-CEREBRIUM"],
+      "missing_evidence": ["accepted exact-digest eligibility", "live restore-to-conventional fallback cohorts"]
+    },
+    {
+      "id": "capacity_miss",
+      "winner": null,
+      "status": "open",
+      "latency_budget_id": "LAT-CAPACITY-MISS",
+      "cost_budget_ids": ["COST-KUBERNETES", "COST-NODE-VM", "COST-CEREBRIUM"],
+      "missing_evidence": ["matched Cerebrium cohort", "accepted exact-arithmetic cost model"]
+    }
+  ],
+  "qualification_requirements": [
+    {
+      "id": "matched-k8s-node-vm-cerebrium",
+      "status": "missing",
+      "required": 3,
+      "accepted": 0,
+      "accepted_commit": null,
+      "exit": "Independently accepted matched product-boundary cohorts for Kubernetes, plain node VM, and Cerebrium on the same model/input/hardware class."
+    },
+    {
+      "id": "all-10-arm-a-arm-b",
+      "status": "missing",
+      "required": 20,
+      "accepted": 0,
+      "accepted_commit": null,
+      "exit": "Independently accepted Arm A and Arm B evidence for every one of the ten BioNeMo NIMs."
+    },
+    {
+      "id": "safe-drain-reclaim-replacement",
+      "status": "missing",
+      "required": 1,
+      "accepted": 0,
+      "accepted_commit": null,
+      "exit": "An independently accepted exact replacement closes missing-items and cross-node authority proof and then passes live A-to-B qualification."
+    }
+  ],
+  "decision_inputs": [
+    "EV2-METRIC-BA49",
+    "EV2-CATALOG-9ABD",
+    "EV2-SECURITY-9CFB",
+    "EV2-BROKER-CPU-2291"
+  ],
+  "negative_review_evidence": [
+    "EV2-DRAIN-34D-REJECTED",
+    "EV2-SNAPSHOT-F5F-REJECTED",
+    "EV2-BROKER-D40-REJECTED",
+    "EV2-K8S-4E63-PENDING",
+    "EV2-NODE-F4C9-DISCONNECTED",
+    "EV2-DRAIN-E2DA-REJECTED",
+    "EV2-SNAPSHOT-71E1-REJECTED",
+    "EV2-COST-2BC0-REJECTED",
+    "EV2-QWEN-27C2-REJECTED"
+  ],
+  "unknowns": [
+    {
+      "id": "U-MATCHED-COHORTS",
+      "question": "How do Kubernetes, plain node VM, and Cerebrium compare under identical product-boundary cohorts?",
+      "blocks": ["backend score", "backend selection", "latency budget"],
+      "owner_tasks": ["catalog-switch-k8s-baseline", "catalog-switch-node-local-runtime", "catalog-switch-cerebrium-qwen3-glm52-benchmark"],
+      "exit_evidence": "Raw, independently accepted matched cohorts with all attempts, exact resources, cost, and cleanup."
+    },
+    {
+      "id": "U-ALL-10-ARMS",
+      "question": "What are Arm A and Arm B outcomes for all ten BioNeMo NIMs?",
+      "blocks": ["catalog coverage", "tier disposition", "production roadmap"],
+      "owner_tasks": ["catalog-switch-k8s-baseline", "catalog-switch-node-local-runtime"],
+      "exit_evidence": "Twenty independently accepted model-arm cells with semantic responses and external-T0 accounting."
+    },
+    {
+      "id": "U-DRAIN-RECLAIM",
+      "question": "Can a replacement prove complete inventory and the exact runtime-authority node across drain, scrub, launch, and rollback?",
+      "blocks": ["a_to_b_local", "a_to_b_remote", "safe rollback"],
+      "owner_tasks": ["catalog-switch-drain-reclaim-state-machine"],
+      "exit_evidence": "Accepted replacement after executable missing-items and cross-node adversaries plus live H100 proof."
+    },
+    {
+      "id": "U-SNAPSHOT-DIGEST",
+      "question": "Which catalog rows have digest-bearing, topology-bound snapshot evidence?",
+      "blocks": ["checkpoint_fallback", "snapshot routing"],
+      "owner_tasks": ["catalog-switch-snapshot-eligibility"],
+      "exit_evidence": "Accepted exact-digest per-row evidence and conventional fallback outcomes."
+    },
+    {
+      "id": "U-EXACT-COST",
+      "question": "What are exact per-valid-response, failed-attempt, relocation, transfer, and warm-idle costs?",
+      "blocks": ["cost budget", "capacity policy", "backend score"],
+      "owner_tasks": ["catalog-switch-capacity-cost-model"],
+      "exit_evidence": "Accepted exact-arithmetic model with billed/free relocation variants and matched receipts."
+    },
+    {
+      "id": "U-CEREBRIUM-PLACEMENT",
+      "question": "Can Cerebrium provide the required private Nebius placement and provider-boundary evidence?",
+      "blocks": ["external comparator cohort", "capacity-miss fallback", "external security disposition"],
+      "owner_tasks": ["catalog-switch-cerebrium-qwen3-glm52-benchmark", "catalog-switch-security-reliability"],
+      "exit_evidence": "First independently accepted private-placement cohort and provider-boundary control mapping."
+    },
+    {
+      "id": "U-BOLTZ-EXTERNAL-T0",
+      "question": "What is Boltz latency when the 1,826,220,898-byte copy and hash work occurs after external T0?",
+      "blocks": ["remote-miss latency", "storage policy", "Boltz backend comparison"],
+      "owner_tasks": ["catalog-switch-storage-cache-matrix"],
+      "exit_evidence": "Raw per-attempt receipts charging all 440--442-second prepared-clone work to the correct boundary or a measured replacement path."
+    },
+    {
+      "id": "U-PRODUCT-BUDGETS",
+      "question": "What latency and cost ceilings do product and capacity owners ratify per scenario and backend?",
+      "blocks": ["promotion gate", "backend selection", "rollout"],
+      "owner_tasks": ["product-slo-owner", "capacity-cost-owner"],
+      "exit_evidence": "Owner-ratified non-null v2 budgets after matched evidence exists."
+    }
+  ]
+}

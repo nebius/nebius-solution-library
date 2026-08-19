@@ -1,0 +1,545 @@
+{
+  "$schema": "./evidence-index.v2.schema.json",
+  "schema_version": "catalog-switch-evidence-index/v2",
+  "index_version": 2,
+  "as_of": "2026-08-19T17:05:00Z",
+  "baseline_architecture_commit": "1db7703e3078ce3236c4655816312416145eb709",
+  "scope": {
+    "update_kind": "evidence-index-only",
+    "backend_selection_allowed": false,
+    "final_adr_claim_allowed": false,
+    "live_resources_allowed": false,
+    "empirical_backends": ["kubernetes", "node-vm", "cerebrium"],
+    "external_comparator": "cerebrium",
+    "documentation_only": ["modal"]
+  },
+  "positive_evidence_policy": {
+    "exact_commit_required": true,
+    "independent_acceptance_required": true,
+    "source_blob_hash_required": true,
+    "reviewed_commit_must_equal_source_commit": true,
+    "label_change_can_promote": false
+  },
+  "entries": [
+    {
+      "id": "EV2-METRIC-BA49",
+      "lane": "request-slo",
+      "subject": "Frozen external-T0 benchmark contract",
+      "backends": ["backend-neutral"],
+      "classification": "positive-contract",
+      "measurement_kind": "contract",
+      "positive_evidence_eligible": true,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact pre-resolved benchmark ledger defines external T0, terminal semantic response, causal phases, and all-attempt retention.",
+      "excluded_claims": [
+        "No backend latency or cost result.",
+        "No unresolved model-at-T0 production ingress compatibility."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "ba49c9e20f194e0f419d4209608904cc9335219d",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/ba49c9e20f194e0f419d4209608904cc9335219d",
+        "path": "nim-fast-start/faststart-v2/performance/request_slo/event.schema.json",
+        "blob_sha256": "a8371e8f0e3713ccbf3db8658ae144e2c62b2ace223dbfd6ae7761d1a2cf3a52"
+      },
+      "review": {
+        "verdict": "accepted",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "ba49c9e20f194e0f419d4209608904cc9335219d",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-request-slo-harness",
+        "reviewed_at": "2026-08-19T11:26:00Z",
+        "reasons": ["Exact contract accepted for pre-resolved benchmark cohorts only."]
+      }
+    },
+    {
+      "id": "EV2-CATALOG-9ABD",
+      "lane": "catalog",
+      "subject": "Versioned catalog inventory",
+      "backends": ["backend-neutral"],
+      "classification": "positive-contract",
+      "measurement_kind": "contract",
+      "positive_evidence_eligible": true,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact catalog contains 220 rows and 171 canonical models with explicit compatibility and evidence gaps.",
+      "excluded_claims": ["No universal runtime, snapshot, or backend eligibility claim."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
+        "path": "nim-fast-start/faststart-v2/catalog/catalog.json",
+        "blob_sha256": "831c0517c0df3c92e3b8e802b609c08dbc5f2c0eb945fc0d21830e457a71d6ce"
+      },
+      "review": {
+        "verdict": "accepted",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-model-inventory",
+        "reviewed_at": "2026-08-19T14:16:00Z",
+        "reasons": ["Deterministic rebuild, schema, provenance, and gap checks were accepted at the exact commit."]
+      }
+    },
+    {
+      "id": "EV2-SECURITY-9CFB",
+      "lane": "security-reliability",
+      "subject": "Internal-backend threat model",
+      "backends": ["kubernetes", "node-vm"],
+      "classification": "positive-contract",
+      "measurement_kind": "contract",
+      "positive_evidence_eligible": true,
+      "decision_score_eligible": false,
+      "allowed_claim": "Twenty controls and sixteen test families apply to the internal Kubernetes and node-VM paths.",
+      "excluded_claims": [
+        "No Cerebrium provider-boundary coverage.",
+        "Legacy Modal-only CTL-17 and TST-14 are not operative evidence."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "9cfbc1b1311a1f784a407889b215aaec5200fe0e",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/9cfbc1b1311a1f784a407889b215aaec5200fe0e",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/security-reliability/threat_model.json",
+        "blob_sha256": "a9bfccaf2425b75beb40ed6265736aa1d97b3a26327ac37db3a9b92877bbb765"
+      },
+      "review": {
+        "verdict": "accepted",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "9cfbc1b1311a1f784a407889b215aaec5200fe0e",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-security-reliability",
+        "reviewed_at": "2026-08-19T14:25:00Z",
+        "reasons": ["Exact internal control scope was accepted; external-provider coverage remains explicitly absent."]
+      }
+    },
+    {
+      "id": "EV2-BROKER-CPU-2291",
+      "lane": "resource-broker",
+      "subject": "Fresh CPU lease and exact-ID cleanup smoke",
+      "backends": ["node-vm"],
+      "classification": "positive-contract",
+      "measurement_kind": "contract",
+      "positive_evidence_eligible": true,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact v1 broker commit supports the bounded fresh CPU lease isolation and cleanup claim.",
+      "excluded_claims": ["No Kubernetes, GPU, public-interface, or current replacement acceptance."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "229101bb5430143e78c4bc796b30715a2a0a14df",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/229101bb5430143e78c4bc796b30715a2a0a14df",
+        "path": "nim-fast-start/faststart-v2/resource-broker/SMOKE_EVIDENCE.md",
+        "blob_sha256": "28e03e04db7f9812dd68a7e345695620fca59a0080c3bb697ced3abdf5a2332a"
+      },
+      "review": {
+        "verdict": "accepted",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "229101bb5430143e78c4bc796b30715a2a0a14df",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-resource-broker#v1",
+        "reviewed_at": "2026-08-19T14:44:00Z",
+        "reasons": ["The accepted claim is limited to the v1 CPU smoke and exact-ID cleanup evidence."]
+      }
+    },
+    {
+      "id": "EV2-OF2-PREPARED-0180",
+      "lane": "prepared-node-feasibility",
+      "subject": "OpenFold2 prepared-node n20 cohort",
+      "backends": ["kubernetes"],
+      "classification": "limited-measurement",
+      "measurement_kind": "prepared-stage",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact TSV is a prepared-node internal-stage feasibility cohort.",
+      "excluded_claims": ["No external-T0 product latency, matched backend comparison, or backend score."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "0180915001fff47fbed0f82292fe32edc40e40ea",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/0180915001fff47fbed0f82292fe32edc40e40ea",
+        "path": "nim-fast-start/faststart-v2/performance/openfold2/fresh-cohort-n20-results.tsv",
+        "blob_sha256": "b5e3bf5d28c3da0b8a3407dee51aaff8b45fce73f16929b632ca971deb513b03"
+      },
+      "review": {
+        "verdict": "accepted-limited",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "0180915001fff47fbed0f82292fe32edc40e40ea",
+        "review_reference": "catalog-switch/architecture/INDEPENDENT_REVIEW.md@1db7703e",
+        "reviewed_at": "2026-08-19T16:10:00Z",
+        "reasons": ["The evidence boundary is accepted only as prepared-node internal-stage feasibility."]
+      }
+    },
+    {
+      "id": "EV2-BOLTZ-PREPARED-0180",
+      "lane": "prepared-node-feasibility",
+      "subject": "Boltz2 prepared-node n20 cohort",
+      "backends": ["kubernetes"],
+      "classification": "limited-measurement",
+      "measurement_kind": "prepared-stage",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact TSV records prepared-node internal-stage results and no product-boundary cohort.",
+      "excluded_claims": [
+        "No unknown-model demand startup result.",
+        "No matched backend score.",
+        "The 440--442-second pre-T0 copy and hash setup is outside this TSV latency boundary."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "0180915001fff47fbed0f82292fe32edc40e40ea",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/0180915001fff47fbed0f82292fe32edc40e40ea",
+        "path": "nim-fast-start/faststart-v2/boltz2-native/fresh-cohort-n20-results.tsv",
+        "blob_sha256": "ec36c85052f62878c22d3e6320845d5e74fb342612d5e1b367d422e9beedad58"
+      },
+      "review": {
+        "verdict": "accepted-limited",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "0180915001fff47fbed0f82292fe32edc40e40ea",
+        "review_reference": "catalog-switch/architecture/INDEPENDENT_REVIEW.md@1db7703e",
+        "reviewed_at": "2026-08-19T16:10:00Z",
+        "reasons": ["The stage result is retained but excluded from product latency and backend ranking."]
+      }
+    },
+    {
+      "id": "EV2-DRAIN-34D-REJECTED",
+      "lane": "drain-reclaim",
+      "subject": "Original drain/reclaim implementation",
+      "backends": ["kubernetes", "node-vm"],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is negative review evidence for missing physical, fencing, durability, semantic, and rollback proof.",
+      "excluded_claims": ["Must not be used as a production design input or live implementation."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "34d70fd0b4c84ddd2375a9db1ec9d9961f4aa5be",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/34d70fd0b4c84ddd2375a9db1ec9d9961f4aa5be",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/drain-reclaim/contract.json",
+        "blob_sha256": "7d639d545db3ee9a3411c7c729ab7925510728b589e9e782eaea62e949a93d29"
+      },
+      "review": {
+        "verdict": "rejected",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "34d70fd0b4c84ddd2375a9db1ec9d9961f4aa5be",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-drain-reclaim-state-machine#34d70fd0",
+        "reviewed_at": "2026-08-19T14:49:00Z",
+        "reasons": ["Canonical durability, GPU scrub binding, physical actions, safe rollback, and live integration were not proven."]
+      }
+    },
+    {
+      "id": "EV2-SNAPSHOT-F5F-REJECTED",
+      "lane": "snapshot-eligibility",
+      "subject": "Original snapshot classification replacement",
+      "backends": ["kubernetes", "node-vm"],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is negative review evidence for incomplete new-node, topology, pin, and per-model proof.",
+      "excluded_claims": ["Must not drive snapshot routing or a production fallback decision."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "f5f2706a432bcc7795e51ab69fb64cd2e45ee2a2",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/f5f2706a432bcc7795e51ab69fb64cd2e45ee2a2",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/eligibility.json",
+        "blob_sha256": "298b809973766637ac6937f136b6cdedad657796e565a2171381c9d0b5166fbf"
+      },
+      "review": {
+        "verdict": "rejected",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "f5f2706a432bcc7795e51ab69fb64cd2e45ee2a2",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-snapshot-eligibility#f5f2706a",
+        "reviewed_at": "2026-08-19T15:05:00Z",
+        "reasons": ["New-node gates, exact topology and pins, and per-model evidence were incomplete."]
+      }
+    },
+    {
+      "id": "EV2-BROKER-D40-REJECTED",
+      "lane": "resource-broker",
+      "subject": "Kubernetes lease v4 replacement",
+      "backends": ["kubernetes"],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit records a non-admitted plan and the review failures that keep creation disabled.",
+      "excluded_claims": ["No Kubernetes lease, cleanup, absence, or live-creation acceptance."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "d40b6478275d5d5545786d5a3bf69ae46fe22c32",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/d40b6478275d5d5545786d5a3bf69ae46fe22c32",
+        "path": "nim-fast-start/faststart-v2/resource-broker/KUBERNETES_REVIEW_EVIDENCE.md",
+        "blob_sha256": "8483d0840a9fd73a6ac4bb155ce2d279e001980da7fd6d4b33a691f1036f62d8"
+      },
+      "review": {
+        "verdict": "rejected",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "d40b6478275d5d5545786d5a3bf69ae46fe22c32",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-resource-broker#2026-08-19T16:55Z",
+        "reviewed_at": "2026-08-19T16:55:00Z",
+        "reasons": [
+          "Runner and acceptance receipts are self-asserted rather than joined to the executing authority.",
+          "Signed material can replay across leases.",
+          "Forged cleanup and absence fields can release a still-live resource.",
+          "The public-interface boundary is not proven.",
+          "Authentication failure can be misclassified as resource absence."
+        ]
+      }
+    },
+    {
+      "id": "EV2-K8S-4E63-PENDING",
+      "lane": "kubernetes-baseline",
+      "subject": "Causal switch campaign replacement",
+      "backends": ["kubernetes"],
+      "classification": "changes-requested",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is a pending offline campaign candidate with a timing-sensitive canonical test.",
+      "excluded_claims": ["No deterministic release gate, live cohort, Cerebrium measurement, or backend score."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "4e63e8dde2c2df79ee2c1a11fb850de25b6993cb",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/4e63e8dde2c2df79ee2c1a11fb850de25b6993cb",
+        "path": "nim-fast-start/faststart-v2/performance/k8s_baseline/LIVE_EVIDENCE.md",
+        "blob_sha256": "b9f5d0c4750b8552f4a07b161d856f5d35aff1045142981f0ff9e47a97c1c4ba"
+      },
+      "review": {
+        "verdict": "changes-requested",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "4e63e8dde2c2df79ee2c1a11fb850de25b6993cb",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-k8s-baseline#2026-08-19T16:59Z",
+        "reviewed_at": "2026-08-19T16:59:00Z",
+        "reasons": [
+          "The canonical suite failed once because the generated acceptance schedule differed from the pinned trace.",
+          "Isolated retries passed, demonstrating timing sensitivity rather than a deterministic gate.",
+          "Cerebrium wording must remain pending and unmeasured."
+        ]
+      }
+    },
+    {
+      "id": "EV2-NODE-F4C9-DISCONNECTED",
+      "lane": "node-local-runtime",
+      "subject": "Integrated supervisor replacement v3",
+      "backends": ["node-vm"],
+      "classification": "changes-requested",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit contains an offline supervisor candidate whose production runtime connection is not proven.",
+      "excluded_claims": ["No connected live runtime, H100 cohort, product latency, or production path acceptance."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "f4c9c1886ddd9c0bc04bd5804c348402ee429066",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/f4c9c1886ddd9c0bc04bd5804c348402ee429066",
+        "path": "nim-fast-start/faststart-v2/node-local-runtime/replacement_v3/supervisor.py",
+        "blob_sha256": "2e999d4e1bdd946a8114fc92493302c1da9fd1538ca1a25bb7c48b7630fe34f0"
+      },
+      "review": {
+        "verdict": "changes-requested",
+        "authority": "manager-scope",
+        "reviewed_commit_sha": "f4c9c1886ddd9c0bc04bd5804c348402ee429066",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-replacement-evidence-review#node-local-f4",
+        "reviewed_at": "2026-08-19T17:00:00Z",
+        "reasons": ["The replacement remains disconnected from an accepted production runtime path."]
+      }
+    },
+    {
+      "id": "EV2-DRAIN-E2DA-REJECTED",
+      "lane": "drain-reclaim",
+      "subject": "Drain/reclaim v3 replacement",
+      "backends": ["kubernetes", "node-vm"],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is negative review evidence for inventory and runtime-authority binding gaps.",
+      "excluded_claims": ["No safe drain/reclaim design input or live A-to-B proof."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "e2dabf7a274f9db4287553154b625f838031a009",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/e2dabf7a274f9db4287553154b625f838031a009",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/drain-reclaim/contract.json",
+        "blob_sha256": "89bf910fad584ff2abad5c88e87d7077edd42dc36032184c7dffffae3af0f763"
+      },
+      "review": {
+        "verdict": "rejected",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "e2dabf7a274f9db4287553154b625f838031a009",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-drain-reclaim-state-machine#2026-08-19T16:57Z",
+        "reviewed_at": "2026-08-19T16:57:00Z",
+        "reasons": [
+          "A successful Kubernetes inventory without an items list is treated as zero Pods.",
+          "Proof validation accepts another trusted node key instead of the exact runtime authority node-agent key."
+        ]
+      }
+    },
+    {
+      "id": "EV2-SNAPSHOT-71E1-REJECTED",
+      "lane": "snapshot-eligibility",
+      "subject": "Digest-bound eligibility replacement",
+      "backends": ["kubernetes", "node-vm"],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is negative review evidence for an invalid n20 image-digest proof path.",
+      "excluded_claims": ["No snapshot eligibility, routing, or promotion input."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "71e15616a745a747368d3b58d572432b416124cc",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/71e15616a745a747368d3b58d572432b416124cc",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/eligibility.json",
+        "blob_sha256": "36f96210dc7a0c31af0611012cf3187e7bea7d87c483b7b3e612f6c61d1c0984"
+      },
+      "review": {
+        "verdict": "rejected",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "71e15616a745a747368d3b58d572432b416124cc",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-snapshot-eligibility#2026-08-19T16:53Z",
+        "reviewed_at": "2026-08-19T16:53:00Z",
+        "reasons": ["Boltz2 and OpenFold2 all-zero catalog image digests were accepted from n20 TSVs that contain no image-digest column."]
+      }
+    },
+    {
+      "id": "EV2-COST-2BC0-REJECTED",
+      "lane": "capacity-cost",
+      "subject": "Capacity and cost model v4 replacement",
+      "backends": ["kubernetes", "node-vm", "cerebrium"],
+      "classification": "rejected",
+      "measurement_kind": "offline-projection",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is negative review evidence for decision-changing intermediate rounding and incomplete relocation accounting.",
+      "excluded_claims": ["No backend economics, break-even winner, or ratified cost budget."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "2bc0f76044e9e2e960c2519cce260d36aa23331f",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/2bc0f76044e9e2e960c2519cce260d36aa23331f",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/capacity-cost/results/frontier.json",
+        "blob_sha256": "fc33de732fecdff2563ba95f0762dd115a1f123be91115e201d11998d894dc81"
+      },
+      "review": {
+        "verdict": "rejected",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "2bc0f76044e9e2e960c2519cce260d36aa23331f",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-capacity-cost-model#2026-08-19T17:01Z",
+        "reviewed_at": "2026-08-19T17:01:00Z",
+        "reasons": [
+          "Pre-emission rounding can create a false tie and change the selected strategy.",
+          "Pessimistic billed and free relocation variants remain missing."
+        ]
+      }
+    },
+    {
+      "id": "EV2-QWEN-27C2-REJECTED",
+      "lane": "cerebrium-comparator",
+      "subject": "Internal Qwen scout precreation gate v4",
+      "backends": ["node-vm", "cerebrium"],
+      "classification": "rejected",
+      "measurement_kind": "read-only-preflight",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit records a precreation stop and the reasons the internal scout cannot run.",
+      "excluded_claims": ["No internal Qwen cohort, Cerebrium cohort, entitlement proof, or comparator score."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "27c28e20e89193f3865b5aadf805d0e735f4e20e",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/27c28e20e89193f3865b5aadf805d0e735f4e20e",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/cerebrium-comparator/PRE_CREATION_REVIEW_V4.md",
+        "blob_sha256": "17a6c4496038936ca11ecc79340379b4247028a454172a3201407eef37c6e7f4"
+      },
+      "review": {
+        "verdict": "rejected",
+        "authority": "independent-review",
+        "reviewed_commit_sha": "27c28e20e89193f3865b5aadf805d0e735f4e20e",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-cerebrium-qwen3-glm52-benchmark#2026-08-19T16:50Z",
+        "reviewed_at": "2026-08-19T16:50:00Z",
+        "reasons": [
+          "The benchmark bearer can forge the runtime gate.",
+          "The VM observation is not joined to its subnet and security group.",
+          "A response-lost create can escape the ledger and cleanup.",
+          "An unfinished runtime group can reuse ordinal one."
+        ]
+      }
+    },
+    {
+      "id": "EV2-BOLTZ-HIDDEN-SETUP-75E3",
+      "lane": "storage-cache",
+      "subject": "Boltz prepared-clone setup observation",
+      "backends": ["kubernetes"],
+      "classification": "unreviewed",
+      "measurement_kind": "prepared-stage",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The source manifest records that 1,826,220,898 bytes were copied and hashed for roughly 440--442 seconds before admission and T0.",
+      "excluded_claims": [
+        "No raw per-attempt receipt is present in the package.",
+        "No unknown-model demand latency or backend score."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "75e3b1faabc53a0c621d6efee84bd5b277bbc8bd",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/75e3b1faabc53a0c621d6efee84bd5b277bbc8bd",
+        "path": "nim-fast-start/faststart-v2/performance/storage_cache_matrix/catalog_boundary_analysis/source_manifest.json",
+        "blob_sha256": "ffcdd69e7fcee05fc1be724d31b5f787db2689f860655f8488ffd156ce5d11c4"
+      },
+      "review": {
+        "verdict": "pending",
+        "authority": "manager-scope",
+        "reviewed_commit_sha": null,
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-storage-cache-matrix#75e3b1fa",
+        "reviewed_at": null,
+        "reasons": ["The observation is source-pinned but lacks raw external-T0 attempt receipts and independent acceptance."]
+      }
+    },
+    {
+      "id": "EV2-STORAGE-75E3-UNREVIEWED",
+      "lane": "storage-cache",
+      "subject": "Catalog-boundary A-D analysis package",
+      "backends": ["kubernetes", "node-vm"],
+      "classification": "unreviewed",
+      "measurement_kind": "offline-projection",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit contains an offline A-D schema, source verifier, and capacity/cost sensitivity projection.",
+      "excluded_claims": ["No live localization cohort, measured cache score, backend ranking, or product budget."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "75e3b1faabc53a0c621d6efee84bd5b277bbc8bd",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/75e3b1faabc53a0c621d6efee84bd5b277bbc8bd",
+        "path": "nim-fast-start/faststart-v2/performance/storage_cache_matrix/catalog_boundary_analysis/source_manifest.json",
+        "blob_sha256": "ffcdd69e7fcee05fc1be724d31b5f787db2689f860655f8488ffd156ce5d11c4"
+      },
+      "review": {
+        "verdict": "pending",
+        "authority": "manager-scope",
+        "reviewed_commit_sha": null,
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-storage-cache-matrix#75e3b1fa",
+        "reviewed_at": null,
+        "reasons": ["The package is an unreviewed offline projection and explicitly disables live execution."]
+      }
+    },
+    {
+      "id": "EV2-MODAL-530F-REFERENCE",
+      "lane": "managed-runtime-reference",
+      "subject": "Modal documentation contract",
+      "backends": ["modal"],
+      "classification": "reference-only",
+      "measurement_kind": "documentation",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "Official-documentation concepts may inform later interface design.",
+      "excluded_claims": ["No Modal execution, measured cohort, score, rank, spend, or rollout role."],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "530fa21207d6d716e441b2494c1389a7fa3dba3b",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/530fa21207d6d716e441b2494c1389a7fa3dba3b",
+        "path": "nim-fast-start/faststart-v2/modal-pilot/MODAL_CONTRACT.md",
+        "blob_sha256": "0b113e664e2b2344d9a69ce0f57ad167ad2dd037ba6cfbab7f4d4b362a942502"
+      },
+      "review": {
+        "verdict": "reference-only",
+        "authority": "documentation",
+        "reviewed_commit_sha": "530fa21207d6d716e441b2494c1389a7fa3dba3b",
+        "review_reference": "task-deck://ml-specialist-tasks/catalog-switch-modal-pilot",
+        "reviewed_at": "2026-08-19T14:25:00Z",
+        "reasons": ["Modal is documentation-only and excluded from empirical comparison."]
+      }
+    }
+  ]
+}

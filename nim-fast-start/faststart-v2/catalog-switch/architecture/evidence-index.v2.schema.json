@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nebius.example/schemas/catalog-switch-evidence-index-v2.json",
+  "title": "Catalog-switch versioned evidence index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "index_version",
+    "as_of",
+    "baseline_architecture_commit",
+    "scope",
+    "positive_evidence_policy",
+    "entries"
+  ],
+  "properties": {
+    "$schema": {"const": "./evidence-index.v2.schema.json"},
+    "schema_version": {"const": "catalog-switch-evidence-index/v2"},
+    "index_version": {"const": 2},
+    "as_of": {"type": "string", "format": "date-time"},
+    "baseline_architecture_commit": {
+      "const": "1db7703e3078ce3236c4655816312416145eb709"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "update_kind",
+        "backend_selection_allowed",
+        "final_adr_claim_allowed",
+        "live_resources_allowed",
+        "empirical_backends",
+        "external_comparator",
+        "documentation_only"
+      ],
+      "properties": {
+        "update_kind": {"const": "evidence-index-only"},
+        "backend_selection_allowed": {"const": false},
+        "final_adr_claim_allowed": {"const": false},
+        "live_resources_allowed": {"const": false},
+        "empirical_backends": {
+          "const": ["kubernetes", "node-vm", "cerebrium"]
+        },
+        "external_comparator": {"const": "cerebrium"},
+        "documentation_only": {"const": ["modal"]}
+      }
+    },
+    "positive_evidence_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_commit_required",
+        "independent_acceptance_required",
+        "source_blob_hash_required",
+        "reviewed_commit_must_equal_source_commit",
+        "label_change_can_promote"
+      ],
+      "properties": {
+        "exact_commit_required": {"const": true},
+        "independent_acceptance_required": {"const": true},
+        "source_blob_hash_required": {"const": true},
+        "reviewed_commit_must_equal_source_commit": {"const": true},
+        "label_change_can_promote": {"const": false}
+      }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/entry"}
+    }
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "lane",
+        "subject",
+        "backends",
+        "classification",
+        "measurement_kind",
+        "positive_evidence_eligible",
+        "decision_score_eligible",
+        "allowed_claim",
+        "excluded_claims",
+        "provenance",
+        "review"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^EV2-[A-Z0-9-]+$"},
+        "lane": {"type": "string", "minLength": 1},
+        "subject": {"type": "string", "minLength": 1},
+        "backends": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["backend-neutral", "kubernetes", "node-vm", "cerebrium", "modal"]
+          }
+        },
+        "classification": {
+          "enum": [
+            "positive-contract",
+            "limited-measurement",
+            "rejected",
+            "changes-requested",
+            "unreviewed",
+            "reference-only"
+          ]
+        },
+        "measurement_kind": {
+          "enum": [
+            "contract",
+            "prepared-stage",
+            "offline-test",
+            "offline-projection",
+            "read-only-preflight",
+            "documentation"
+          ]
+        },
+        "positive_evidence_eligible": {"type": "boolean"},
+        "decision_score_eligible": {"const": false},
+        "allowed_claim": {"type": "string", "minLength": 1},
+        "excluded_claims": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "provenance": {"$ref": "#/$defs/provenance"},
+        "review": {"$ref": "#/$defs/review"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"positive_evidence_eligible": {"const": true}},
+            "required": ["positive_evidence_eligible"]
+          },
+          "then": {
+            "properties": {
+              "classification": {"const": "positive-contract"},
+              "review": {
+                "properties": {
+                  "verdict": {"const": "accepted"},
+                  "authority": {"const": "independent-review"},
+                  "reviewed_commit_sha": {"$ref": "#/$defs/sha"}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"classification": {"const": "reference-only"}},
+            "required": ["classification"]
+          },
+          "then": {
+            "properties": {
+              "backends": {"const": ["modal"]},
+              "measurement_kind": {"const": "documentation"},
+              "positive_evidence_eligible": {"const": false}
+            }
+          }
+        }
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit_sha", "commit_url", "path", "blob_sha256"],
+      "properties": {
+        "repository": {
+          "const": "https://github.com/nebius/nebius-solutions-library"
+        },
+        "commit_sha": {"$ref": "#/$defs/sha"},
+        "commit_url": {
+          "type": "string",
+          "pattern": "^https://github\\.com/nebius/nebius-solutions-library/commit/[0-9a-f]{40}$"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^nim-fast-start/faststart-v2/[A-Za-z0-9._/-]+$"
+        },
+        "blob_sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "authority",
+        "reviewed_commit_sha",
+        "review_reference",
+        "reviewed_at",
+        "reasons"
+      ],
+      "properties": {
+        "verdict": {
+          "enum": [
+            "accepted",
+            "accepted-limited",
+            "rejected",
+            "changes-requested",
+            "pending",
+            "reference-only"
+          ]
+        },
+        "authority": {
+          "enum": ["independent-review", "manager-scope", "documentation"]
+        },
+        "reviewed_commit_sha": {
+          "oneOf": [{"$ref": "#/$defs/sha"}, {"type": "null"}]
+        },
+        "review_reference": {"type": "string", "minLength": 1},
+        "reviewed_at": {
+          "oneOf": [{"type": "string", "format": "date-time"}, {"type": "null"}]
+        },
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

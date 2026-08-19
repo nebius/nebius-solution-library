@@ -1,0 +1,115 @@
+{
+  "$schema": "./budget-placeholders.v1.schema.json",
+  "schema_version": "catalog-switch-budget-placeholders/v1",
+  "status": "placeholders-only-unratified",
+  "selection_permitted": false,
+  "latency": [
+    {
+      "id": "LAT-SAME-MODEL-HOT",
+      "scenario": "same_model_hot",
+      "unit": "seconds",
+      "p50_max": null,
+      "p95_max": null,
+      "p99_max": null,
+      "status": "unratified-placeholder",
+      "owner": "product-slo-owner",
+      "evidence_required": "Matched product-boundary cohorts on Kubernetes, node VM, and Cerebrium."
+    },
+    {
+      "id": "LAT-IDLE-LOCAL",
+      "scenario": "idle_local",
+      "unit": "seconds",
+      "p50_max": null,
+      "p95_max": null,
+      "p99_max": null,
+      "status": "unratified-placeholder",
+      "owner": "product-slo-owner",
+      "evidence_required": "Matched local-artifact cohorts with exact cache state and all-attempt accounting."
+    },
+    {
+      "id": "LAT-A-TO-B-LOCAL",
+      "scenario": "a_to_b_local",
+      "unit": "seconds",
+      "p50_max": null,
+      "p95_max": null,
+      "p99_max": null,
+      "status": "unratified-placeholder",
+      "owner": "product-slo-owner",
+      "evidence_required": "Reviewed safe drain/reclaim replacement plus matched live A-to-B cohorts."
+    },
+    {
+      "id": "LAT-A-TO-B-REMOTE",
+      "scenario": "a_to_b_remote",
+      "unit": "seconds",
+      "p50_max": null,
+      "p95_max": null,
+      "p99_max": null,
+      "status": "unratified-placeholder",
+      "owner": "product-slo-owner",
+      "evidence_required": "Matched remote-miss cohorts with all bytes and setup after external T0."
+    },
+    {
+      "id": "LAT-CHECKPOINT-FALLBACK",
+      "scenario": "checkpoint_fallback",
+      "unit": "seconds",
+      "p50_max": null,
+      "p95_max": null,
+      "p99_max": null,
+      "status": "unratified-placeholder",
+      "owner": "product-slo-owner",
+      "evidence_required": "Reviewed exact-digest eligibility and live restore-to-conventional fallback cohorts."
+    },
+    {
+      "id": "LAT-CAPACITY-MISS",
+      "scenario": "capacity_miss",
+      "unit": "seconds",
+      "p50_max": null,
+      "p95_max": null,
+      "p99_max": null,
+      "status": "unratified-placeholder",
+      "owner": "product-slo-owner",
+      "evidence_required": "Matched internal and Cerebrium capacity-miss outcomes with deadline semantics."
+    }
+  ],
+  "cost": [
+    {
+      "id": "COST-KUBERNETES",
+      "backend": "kubernetes",
+      "currency": "USD",
+      "per_valid_response_max": null,
+      "failed_attempt_max": null,
+      "warm_idle_gpu_hour_max": null,
+      "transfer_gib_max": null,
+      "campaign_cap": null,
+      "status": "unratified-placeholder",
+      "owner": "capacity-cost-owner",
+      "evidence_required": "Accepted exact-arithmetic model plus matched Kubernetes receipts."
+    },
+    {
+      "id": "COST-NODE-VM",
+      "backend": "node-vm",
+      "currency": "USD",
+      "per_valid_response_max": null,
+      "failed_attempt_max": null,
+      "warm_idle_gpu_hour_max": null,
+      "transfer_gib_max": null,
+      "campaign_cap": null,
+      "status": "unratified-placeholder",
+      "owner": "capacity-cost-owner",
+      "evidence_required": "Accepted exact-arithmetic model plus matched node-VM receipts."
+    },
+    {
+      "id": "COST-CEREBRIUM",
+      "backend": "cerebrium",
+      "currency": "USD",
+      "per_valid_response_max": null,
+      "failed_attempt_max": null,
+      "warm_idle_gpu_hour_max": null,
+      "transfer_gib_max": null,
+      "campaign_cap": null,
+      "status": "unratified-placeholder",
+      "owner": "capacity-cost-owner",
+      "evidence_required": "First matched Cerebrium cohorts and provider billing receipts."
+    }
+  ]
+}

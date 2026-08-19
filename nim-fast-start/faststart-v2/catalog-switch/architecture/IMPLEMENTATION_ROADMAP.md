@@ -1,15 +1,16 @@
 # Implementation, migration, and rollback roadmap
 
-This roadmap begins from the conditional decision in `ADR.md`. It separates
-contract implementation from evidence-based promotion. Calendar estimates are
-planning ranges, not delivery promises; cloud amounts are hard safety ceilings
-already recorded by child plans, not a final cost model.
+This roadmap is preserved from the conditional baseline in `ADR.md`, but the
+current revision is evidence-index-only. Calendar estimates are planning
+ranges, not delivery promises. Historical child-plan amounts remain provenance
+in their source commits; the current decision package exposes only null,
+unratified cost placeholders.
 
 ## Ownership model
 
 | Area | Accountable owner | Responsibilities |
 | --- | --- | --- |
-| Product/SLO | Product owner + serving SRE | Ratify or replace the provisional fast-switch p95 objective, define p99, and ratify standard/large tier semantics, deadlines, and error/cost budgets. |
+| Product/SLO | Product owner + serving SRE | Fill and ratify the null per-scenario latency and per-backend cost placeholders after matched evidence exists. |
 | Catalog/API | Catalog platform team | Immutable schema, validator registry, digest publication, N/N-1 compatibility. |
 | Router/control plane | Serving platform team | Admission, placement policy, backend weights, idempotency, reconciliation. |
 | Kubernetes backend | Kubernetes serving team | Baseline adapter, fresh campaign, target-neutral Service, exact cleanup. |
@@ -78,10 +79,9 @@ Status: blocked. Estimate: 2 runtime engineers + 1 security reviewer for
    cleanup/rollback and provider outages, and explicitly accept or attest host/
    GPU residue controls that are not customer-verifiable. The legacy threat
    model's Modal rows cannot satisfy this work.
-7. Product owners close `BLK-PRODUCT-BUDGETS` by ratifying or replacing the
-   provisional fast-switch p95 objective, defining its p99 semantics, approving
-   standard and large-tier latency semantics, and setting a Cerebrium spend
-   ceiling.
+7. Product owners close `BLK-PRODUCT-BUDGETS` by filling and ratifying the null
+   per-scenario p50/p95/p99 and per-backend cost placeholders after matched
+   evidence exists, including a Cerebrium spend ceiling.
 8. Do not start product-boundary live cohorts until
    `BLK-ACCEPTANCE-CONTRACT` and `BLK-CONTROL-CHAIN` close; otherwise adapters would either hide
    artifact resolution before T0 or emit a ledger incompatible with the
@@ -118,15 +118,16 @@ conditions.
 
 ### Resource and spend envelopes
 
-| Campaign | Fresh resources | Current hard ceiling |
-| --- | --- | ---: |
-| Kubernetes first H100 | Private cluster/control plane, preemptible H100 node group, task registry/storage/credentials, exact provider children | USD 27 |
-| Node-VM H100 control | Private network, preemptible H100 VM, encrypted boot/attached storage, task publication/credentials | USD 13.082801 TTL ceiling (USD 8.721867 expected) |
-| Internal Qwen H100 TTL | Broker-created private stack | USD 8.721867 |
-| Internal GLM H200 TTL | Exact 8xH200 TP8 normal stack if capacity/approval passes | USD 289.409894 |
-| Cerebrium | New task app at min replicas zero, authenticated endpoint, task artifacts | Blocked until spend cap approval |
+| Campaign | Fresh resources | Current cost placeholder |
+| --- | --- | --- |
+| Kubernetes first H100 | Private cluster/control plane, preemptible H100 node group, task registry/storage/credentials, exact provider children | `null`; requires accepted cost evidence and owner approval. |
+| Node-VM H100 control | Private network, preemptible H100 VM, encrypted boot/attached storage, task publication/credentials | `null`; historical child-plan amounts are not decision budgets. |
+| Internal Qwen H100 | Broker-created private stack | `null`; current precreation gate is rejected. |
+| Internal GLM H200 | Exact 8xH200 TP8 normal stack if capacity/approval passes | `null`; entitlement, capacity, and cost remain unknown. |
+| Cerebrium | New task app at min replicas zero, authenticated endpoint, task artifacts | `null`; zero measured cohorts and no approved spend cap. |
 
-The table is a set of stop limits, not estimated production economics. Every
+The table is a set of placeholders, not spend authorization or estimated
+production economics. Every
 cohort records actual resource IDs, tenant/project/region, GPU, preemptible
 choice, image/artifact/input hashes, calls, samples, bytes, billed/idle/active
 time, price source, failures, cleanup commands, NotFound receipts, and final

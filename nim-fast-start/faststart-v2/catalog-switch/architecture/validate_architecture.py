@@ -124,7 +124,11 @@ REQUIRED_GATE_REQUIREMENTS = {
     "G-SNAPSHOT": {"BLK-SNAPSHOT"},
     "G-COST": {"BLK-COST"},
     "G-CHAOS": {"B-CHAOS", "BLK-CHAOS"},
-    "G-INDEPENDENT-REVIEW": {"catalog-switch/architecture/INDEPENDENT_REVIEW.md"},
+    "G-INDEPENDENT-REVIEW": {
+        "catalog-switch/architecture/INDEPENDENT_REVIEW.md",
+        "catalog-switch/architecture/evidence-index.v2.json",
+        "catalog-switch/architecture/decision-matrix.v1.json",
+    },
 }
 REQUIRED_BACKEND_GATES = {
     "kubernetes": {"G-LIVE-K8S", "G-DRAIN", "G-CHAOS", "G-COST"},
@@ -170,6 +174,7 @@ REQUIRED_TOP_LEVEL = {
     "schema_version",
     "generated_at",
     "decision_status",
+    "evidence_index_update",
     "scope",
     "metric_contract",
     "evidence",
@@ -747,6 +752,8 @@ def validate_document(data: dict[str, Any], root: Path = FASTSTART_ROOT) -> list
         errors.append("rollout gate ids must match the exact normative v1 set")
     allowed_gate_refs = evidence_ids | matrix_ids | blocker_ids | {
         "catalog-switch/architecture/INDEPENDENT_REVIEW.md",
+        "catalog-switch/architecture/evidence-index.v2.json",
+        "catalog-switch/architecture/decision-matrix.v1.json",
         API_CONTRACT_PATH,
         CONTEXT_BINDING_PATH,
     }
@@ -815,20 +822,14 @@ def validate_document(data: dict[str, Any], root: Path = FASTSTART_ROOT) -> list
     latency_classes = {item.get("name"): item for item in budgets.get("latency_classes", [])}
     if set(latency_classes) != {"fast-switch", "standard-on-demand", "large-multi-gpu"}:
         errors.append("latency classes are incomplete")
-    if latency_classes.get("fast-switch", {}).get("p95_seconds_max") != 30.0:
-        errors.append("fast-switch p95 target must remain 30 seconds")
-    if latency_classes.get("fast-switch", {}).get("p99_seconds_max") is not None:
-        errors.append("fast-switch absolute p99 cannot be invented before ratification")
-    if latency_classes.get("fast-switch", {}).get("status") != (
-        "provisional-candidate-blocking-owner-ratification"
-    ):
-        errors.append("fast-switch p95 must remain an unratified provisional candidate")
-    for name in ("standard-on-demand", "large-multi-gpu"):
+    for name in ("fast-switch", "standard-on-demand", "large-multi-gpu"):
         budget = latency_classes.get(name, {})
         if budget.get("p95_seconds_max") is not None:
             errors.append(f"{name}: absolute p95 cannot be invented before ratification")
+        if budget.get("p99_seconds_max") is not None:
+            errors.append(f"{name}: absolute p99 cannot be invented before ratification")
         if budget.get("status") != "blocking-owner-ratification":
-            errors.append(f"{name}: missing owner-ratification blocker")
+            errors.append(f"{name}: missing owner-ratification placeholder")
     if budgets.get("capacity_formula") != {
         "version": "catalog-switch-capacity-formula/v1",
         "arrival_rate_statistic": "p95_per_second",
@@ -841,8 +842,11 @@ def validate_document(data: dict[str, Any], root: Path = FASTSTART_ROOT) -> list
         errors.append("capacity formula must match the executable provisional v1 contract")
     if not (root / "catalog-switch/architecture/capacity_budget.py").is_file():
         errors.append("capacity formula implementation is missing")
-    if budgets.get("campaign_hard_caps_usd", {}).get("cerebrium_provider_spend") is not None:
-        errors.append("Cerebrium spend cap must remain unresolved until approved")
+    if any(
+        value is not None
+        for value in budgets.get("campaign_hard_caps_usd", {}).values()
+    ):
+        errors.append("campaign cost caps must remain null placeholders until approved")
 
     apis = data.get("apis", [])
     api_names = {item.get("name") for item in apis}
