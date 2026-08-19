@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: boltz2-tmp-seed-holder-v2-t12
+  namespace: nim-fast-start
+  labels:
+    app.kubernetes.io/name: boltz2
+    app.kubernetes.io/component: external-tmp-seed-holder
+    app.kubernetes.io/part-of: archvteams-2407-faststart
+    archvteams.nebius.ai/tmp-seed-version: boltz2-native-f7-tmp-seed-v2
+spec:
+  automountServiceAccountToken: false
+  enableServiceLinks: false
+  restartPolicy: Never
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - computeinstance-e00t12crqg6tw0kz65
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: holder
+      image: docker.io/library/python@sha256:356b0d18f9385f4bdcc673af60e1e64c9d1504952e4ec36ee32044c722a6bc4e
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/sleep
+        - "2147483647"
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+      volumeMounts:
+        - name: tmp-seed
+          mountPath: /seed
+          subPath: seeds/boltz2-native-f7-tmp-seed-v2
+          readOnly: true
+  volumes:
+    - name: tmp-seed
+      persistentVolumeClaim:
+        claimName: boltz2-tmp-state-native-f7-v2
+        readOnly: true
