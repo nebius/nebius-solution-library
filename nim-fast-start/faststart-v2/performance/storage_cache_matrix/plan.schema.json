@@ -1,0 +1,41 @@
+{
+  "$id": "https://nebius.ai/schemas/storage-cache-matrix-plan-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {"items": {"type": "object"}, "minItems": 1, "type": "array"},
+    "boltz_external_tmp": {"type": "object"},
+    "cleanup_plan": {"type": "object"},
+    "code_revision": {"pattern": "^[0-9a-f]{40}$", "type": "string"},
+    "cost_plan": {"type": "object"},
+    "created_at_utc": {"type": "string"},
+    "environment_requirements": {"type": "object"},
+    "evidence_classification": {
+      "enum": ["measured-live-product-slo", "synthetic-smoke-not-performance-evidence"]
+    },
+    "matrix": {"type": "object"},
+    "metric_contract": {"type": "object"},
+    "plan_id": {"minLength": 1, "type": "string"},
+    "purpose": {"minLength": 1, "type": "string"},
+    "schema": {"const": "archvteams.nebius.ai/storage-cache-matrix-plan/v1"},
+    "task_id": {"const": "catalog-switch-storage-cache-matrix"}
+  },
+  "required": [
+    "schema",
+    "plan_id",
+    "task_id",
+    "evidence_classification",
+    "created_at_utc",
+    "purpose",
+    "code_revision",
+    "metric_contract",
+    "artifacts",
+    "matrix",
+    "environment_requirements",
+    "cost_plan",
+    "cleanup_plan",
+    "boltz_external_tmp"
+  ],
+  "title": "Storage/cache matrix frozen experiment plan v1",
+  "type": "object"
+}

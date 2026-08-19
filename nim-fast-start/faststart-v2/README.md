@@ -45,6 +45,11 @@ response-boundary audit is recorded in
   baseline: separate prepared-node and new-preemptible-node campaign arms,
   causal switch controller, one-support-object comparison, frozen broker v2
   interface, two-semantic-call qualification, and ten-NIM coverage plan;
+- `performance/storage_cache_matrix/` binds detailed image, artifact, volume,
+  cache, clone/COW, load/restore, byte, cost, and cleanup receipts to that
+  canonical request ledger, then exports raw simulator distributions and router
+  locality costs. Its deterministic smoke is non-performance evidence; live
+  execution remains fail-closed on an allowed-project local-NVMe entitlement;
 - `openfold2-newnode/` contains the archived scale-from-zero preemptible-node
   harness, lifecycle verifier, automated node bootstrap, and two historical
   lifecycle results. Both remain useful operational evidence but contribute

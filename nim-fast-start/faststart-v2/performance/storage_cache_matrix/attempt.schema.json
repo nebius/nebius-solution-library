@@ -1,0 +1,66 @@
+{
+  "$id": "https://nebius.ai/schemas/storage-cache-matrix-attempt-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "accounting": {"type": "object"},
+    "artifact": {"type": "object"},
+    "attempt_id": {"minLength": 1, "type": "string"},
+    "cache": {"type": "object"},
+    "cell_id": {"minLength": 1, "type": "string"},
+    "cleanup": {"type": "object"},
+    "cohort": {
+      "enum": [
+        "hot",
+        "warm",
+        "cold",
+        "eviction_repopulation",
+        "concurrent_fetch",
+        "corruption",
+        "boltz_external_tmp_hit",
+        "boltz_external_tmp_clone_miss"
+      ]
+    },
+    "concurrency": {"type": "object"},
+    "environment": {"type": "object"},
+    "evidence_classification": {
+      "enum": ["measured-live-product-slo", "synthetic-smoke-not-performance-evidence"]
+    },
+    "ownership": {"type": "object"},
+    "phases": {"items": {"type": "object"}, "maxItems": 20, "minItems": 20, "type": "array"},
+    "plan_id": {"minLength": 1, "type": "string"},
+    "plan_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "request": {"type": "object"},
+    "request_id": {"minLength": 1, "type": "string"},
+    "request_slo_binding": {"type": "object"},
+    "schema": {"const": "archvteams.nebius.ai/storage-cache-matrix-attempt/v1"},
+    "supporting_evidence": {"items": {"type": "object"}, "minItems": 1, "type": "array"},
+    "terminal": {"type": "object"},
+    "tier": {"enum": ["local_nvme", "attached_block_pvc", "remote_artifact"]}
+  },
+  "required": [
+    "schema",
+    "plan_id",
+    "plan_sha256",
+    "attempt_id",
+    "request_id",
+    "cell_id",
+    "evidence_classification",
+    "artifact",
+    "tier",
+    "cohort",
+    "cache",
+    "concurrency",
+    "environment",
+    "ownership",
+    "request",
+    "request_slo_binding",
+    "phases",
+    "terminal",
+    "accounting",
+    "cleanup",
+    "supporting_evidence"
+  ],
+  "title": "Storage/cache matrix per-attempt receipt v1",
+  "type": "object"
+}
