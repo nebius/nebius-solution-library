@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any, Callable
 from unittest import mock
 
+import yaml
+
 
 TEST_DIR = Path(__file__).resolve().parent
 MODULE_DIR = TEST_DIR.parent
@@ -45,6 +47,31 @@ def run_config() -> dict[str, Any]:
         "artifact_pvc": "mlspec-archvteams-2407-ckpt-m3",
         "cache_pvc": "boltz2-nim-cache-native-f7-r3",
     }
+
+
+def external_tmp_run_config() -> dict[str, Any]:
+    value = run_config()
+    value.update(
+        {
+            "schema": render.EXTERNAL_TMP_RUN_SCHEMA,
+            "checkpoint_id": render.EXTERNAL_TMP_CHECKPOINT_ID,
+            "artifact_version": render.EXTERNAL_TMP_ARTIFACT_VERSION,
+            "artifact_manifest_sha256": "2" * 64,
+            "tmp_state_pvc": render.EXTERNAL_TMP_PVC,
+            "tmp_state_pvc_uid": "22222222-2222-4222-8222-222222222222",
+            "tmp_state_pv_name": "pvc-22222222-2222-4222-8222-222222222222",
+            "tmp_state_pv_uid": "33333333-3333-4333-8333-333333333333",
+            "tmp_state_csi_driver": render.EXTERNAL_TMP_CSI_DRIVER,
+            "tmp_state_volume_handle": "computedisk-e00tmpstateidentity",
+            "tmp_clone_subpath": f"runs/{value['run_id']}",
+            "tmp_seed_version": render.EXTERNAL_TMP_SEED_VERSION,
+            "tmp_seed_tree_sha256": "4" * 64,
+            "tmp_clone_tree_sha256": "4" * 64,
+            "tmp_seed_seal_receipt_sha256": "5" * 64,
+            "tmp_clone_receipt_sha256": "6" * 64,
+        }
+    )
+    return value
 
 
 def mmcif_for(sequence: str, chain: str) -> str:
@@ -250,6 +277,241 @@ class BoltzRequestAndSemanticTests(unittest.TestCase):
 
 
 class BoltzRenderAndBindingTests(unittest.TestCase):
+    def test_external_tmp_storage_and_donor_are_exactly_scoped(self) -> None:
+        pvc = yaml.safe_load(
+            (MODULE_DIR / "boltz2-external-tmp-pvc.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual("boltz2-tmp-state-native-f7-v2", pvc["metadata"]["name"])
+        self.assertEqual(["ReadWriteOnce"], pvc["spec"]["accessModes"])
+        self.assertEqual("Filesystem", pvc["spec"]["volumeMode"])
+        self.assertEqual("20Gi", pvc["spec"]["resources"]["requests"]["storage"])
+        self.assertEqual("compute-csi-default-sc", pvc["spec"]["storageClassName"])
+
+        donor = yaml.safe_load(
+            (MODULE_DIR / "boltz2-external-tmp-donor-job.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        container = donor["spec"]["template"]["spec"]["containers"][0]
+        self.assertEqual(render.NIM_IMAGE, container["image"])
+        self.assertEqual(
+            [
+                {"name": "TMPDIR", "value": "/tmp"},
+                {"name": "TEMP", "value": "/tmp"},
+                {"name": "TMP", "value": "/tmp"},
+            ],
+            [item for item in container["env"] if item["name"] in {"TMPDIR", "TEMP", "TMP"}],
+        )
+        mounts = [
+            item for item in container["volumeMounts"] if item["name"] == "tmp-state"
+        ]
+        self.assertEqual(
+            [
+                {
+                    "name": "tmp-state",
+                    "mountPath": "/tmp",
+                    "subPath": "working/boltz2-native-f7-external-tmp-v2",
+                    "readOnly": False,
+                }
+            ],
+            mounts,
+        )
+        volume = next(
+            item
+            for item in donor["spec"]["template"]["spec"]["volumes"]
+            if item["name"] == "tmp-state"
+        )
+        self.assertEqual(
+            {
+                "claimName": render.EXTERNAL_TMP_PVC,
+                "readOnly": False,
+            },
+            volume["persistentVolumeClaim"],
+        )
+        self.assertNotIn(
+            "/state",
+            {item["mountPath"] for item in container["volumeMounts"]},
+        )
+        script = container["args"][0]
+        for sequence in ("ACDEFGHIKLMNPQRSTVWY", "YWVTSRQPNMLKIHGFEDCA"):
+            self.assertIn(sequence, script)
+        for exact_option in (
+            '"recycling_steps": 1',
+            '"sampling_steps": 10',
+            '"diffusion_samples": 1',
+            '"output_format": "mmcif"',
+        ):
+            self.assertIn(exact_option, script)
+
+        holder = yaml.safe_load(
+            (MODULE_DIR / "boltz2-external-tmp-seed-holder.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual("Never", holder["spec"]["restartPolicy"])
+        holder_container = holder["spec"]["containers"][0]
+        self.assertEqual(contract()["probe_image"], holder_container["image"])
+        self.assertEqual(
+            [{
+                "name": "tmp-seed",
+                "mountPath": "/seed",
+                "subPath": "seeds/boltz2-native-f7-tmp-seed-v2",
+                "readOnly": True,
+            }],
+            holder_container["volumeMounts"],
+        )
+        self.assertEqual(
+            {
+                "claimName": render.EXTERNAL_TMP_PVC,
+                "readOnly": True,
+            },
+            holder["spec"]["volumes"][0]["persistentVolumeClaim"],
+        )
+
+    def test_external_tmp_donor_is_baseline_identical_after_exact_allowlist(self) -> None:
+        baseline = yaml.safe_load(
+            (MODULE_DIR / "boltz2-donor-job.yaml").read_text(encoding="utf-8")
+        )
+        candidate = yaml.safe_load(
+            (MODULE_DIR / "boltz2-external-tmp-donor-job.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        normalized = copy.deepcopy(candidate)
+        normalized["metadata"]["name"] = baseline["metadata"]["name"]
+        normalized["metadata"]["labels"].pop(
+            "archvteams.nebius.ai/experiment"
+        )
+        normalized["metadata"]["labels"][
+            "nvidia.com/snapshot-checkpoint-id"
+        ] = "boltz2-native-f7-v1"
+        pod_metadata = normalized["spec"]["template"]["metadata"]
+        pod_metadata["labels"].pop("archvteams.nebius.ai/experiment")
+        pod_metadata["labels"][
+            "nvidia.com/snapshot-checkpoint-id"
+        ] = "boltz2-native-f7-v1"
+        pod_metadata["annotations"]["nvidia.com/snapshot-artifact-version"] = "1"
+        for key in (
+            "archvteams.nebius.ai/tmp-state-pvc",
+            "archvteams.nebius.ai/tmp-working-subpath",
+            "archvteams.nebius.ai/tmp-seed-version",
+        ):
+            pod_metadata["annotations"].pop(key)
+        container = normalized["spec"]["template"]["spec"]["containers"][0]
+        container["env"] = [
+            item
+            for item in container["env"]
+            if item["name"] not in {"TMPDIR", "TEMP", "TMP"}
+        ]
+        container["volumeMounts"] = [
+            item for item in container["volumeMounts"] if item["name"] != "tmp-state"
+        ]
+        pod_spec = normalized["spec"]["template"]["spec"]
+        pod_spec["volumes"] = [
+            item for item in pod_spec["volumes"] if item["name"] != "tmp-state"
+        ]
+        self.assertEqual(baseline, normalized)
+
+    def test_external_tmp_target_render_and_lint(self) -> None:
+        run = render.validate_run(external_tmp_run_config())
+        approved = render.validate_contract(contract())
+        documents = render.render_target(run, approved)
+        self.assertEqual([], render.lint_documents(documents))
+        target = next(item for item in documents if item["kind"] == "Pod")
+        container = target["spec"]["containers"][0]
+        self.assertEqual(render.NIM_IMAGE, container["image"])
+        self.assertEqual(render.EXTERNAL_TMP_ENV, container["env"][-3:])
+        self.assertEqual(
+            {
+                "name": "tmp-state",
+                "mountPath": "/tmp",
+                "subPath": f"runs/{run['run_id']}",
+                "readOnly": False,
+            },
+            container["volumeMounts"][-1],
+        )
+        self.assertEqual(
+            {
+                "name": "tmp-state",
+                "persistentVolumeClaim": {
+                    "claimName": render.EXTERNAL_TMP_PVC,
+                    "readOnly": False,
+                },
+            },
+            target["spec"]["volumes"][-1],
+        )
+        annotations = target["metadata"]["annotations"]
+        self.assertEqual(run["tmp_state_pvc_uid"], annotations[
+            "archvteams.nebius.ai/tmp-state-pvc-uid"
+        ])
+        self.assertEqual(run["tmp_state_pv_name"], annotations[
+            "archvteams.nebius.ai/tmp-state-pv-name"
+        ])
+        self.assertEqual(run["tmp_state_pv_uid"], annotations[
+            "archvteams.nebius.ai/tmp-state-pv-uid"
+        ])
+        self.assertEqual(run["tmp_state_csi_driver"], annotations[
+            "archvteams.nebius.ai/tmp-state-csi-driver"
+        ])
+        self.assertEqual(run["tmp_state_volume_handle"], annotations[
+            "archvteams.nebius.ai/tmp-state-volume-handle"
+        ])
+        self.assertEqual(run["tmp_clone_subpath"], annotations[
+            "archvteams.nebius.ai/tmp-clone-subpath"
+        ])
+        self.assertEqual(run["tmp_seed_tree_sha256"], annotations[
+            "archvteams.nebius.ai/tmp-seed-tree-sha256"
+        ])
+        self.assertEqual(run["tmp_clone_tree_sha256"], annotations[
+            "archvteams.nebius.ai/tmp-clone-tree-sha256"
+        ])
+        self.assertEqual(run["tmp_seed_seal_receipt_sha256"], annotations[
+            "archvteams.nebius.ai/tmp-seed-seal-receipt-sha256"
+        ])
+        self.assertEqual(run["tmp_clone_receipt_sha256"], annotations[
+            "archvteams.nebius.ai/tmp-clone-receipt-sha256"
+        ])
+
+    def test_external_tmp_run_schema_and_lint_fail_closed(self) -> None:
+        for field, bad_value, message in (
+            ("checkpoint_id", "boltz2-native-f7-v1", "checkpoint_id"),
+            ("artifact_version", "1", "artifact_version"),
+            ("tmp_state_pvc", "wrong-pvc", "tmp_state_pvc"),
+            ("tmp_state_pvc_uid", "not-a-uid", "canonical UUID"),
+            ("tmp_state_pv_name", "Bad/PV", "PV name"),
+            ("tmp_state_pv_uid", "not-a-uid", "canonical UUID"),
+            ("tmp_state_csi_driver", "other.csi.example", "CSI driver"),
+            ("tmp_state_volume_handle", "disk-elsewhere", "provider identity"),
+            ("tmp_clone_subpath", "runs/../seed", "runs/<run_id>"),
+            ("tmp_seed_tree_sha256", "ABC", "lowercase SHA-256"),
+            ("tmp_clone_tree_sha256", "7" * 64, "exactly match"),
+        ):
+            with self.subTest(field=field):
+                value = external_tmp_run_config()
+                value[field] = bad_value
+                with self.assertRaisesRegex(render.RenderError, message):
+                    render.validate_run(value)
+
+        run = render.validate_run(external_tmp_run_config())
+        documents = render.render_target(run, render.validate_contract(contract()))
+        target = next(item for item in documents if item["kind"] == "Pod")
+        target["spec"]["containers"][0]["volumeMounts"][-1]["subPath"] = (
+            "seeds/boltz2-native-f7-tmp-seed-v2"
+        )
+        self.assertTrue(any("per-run subPath" in item for item in render.lint_documents(documents)))
+
+    def test_legacy_target_has_no_external_tmp_state(self) -> None:
+        run = render.validate_run(run_config())
+        target = next(
+            item
+            for item in render.render_target(run, render.validate_contract(contract()))
+            if item["kind"] == "Pod"
+        )
+        container = target["spec"]["containers"][0]
+        self.assertNotIn("tmp-state", {item["name"] for item in target["spec"]["volumes"]})
+        self.assertNotIn("tmp-state", {item["name"] for item in container["volumeMounts"]})
+        self.assertFalse({"TMPDIR", "TEMP", "TMP"} & {item["name"] for item in container["env"]})
+
     def test_trial_runner_emits_aligned_timing_metrics(self) -> None:
         runner = (MODULE_DIR / "run_one_native_trial.sh").read_text(encoding="utf-8")
         self.assertIn('${BASH_SOURCE[0]}', runner)

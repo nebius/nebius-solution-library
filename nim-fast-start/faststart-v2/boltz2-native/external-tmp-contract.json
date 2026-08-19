@@ -1,0 +1,98 @@
+{
+  "schema": "archvteams.nebius.ai/boltz2-external-tmp-contract/v1",
+  "experiment_id": "boltz2-external-tmp-v1",
+  "tool": {
+    "filename": "external_tmp_state.py",
+    "sha256": "f1077789a3a1d1a0802ecb0f79273046b5b7db546d874b1364145f2fc762b0b5"
+  },
+  "artifact_validator": {
+    "filename": "validate_external_tmp_artifact.py",
+    "sha256": "4a0b4b4262b44e44f2b277f131e5a6691913361346d8b3a968fadfba76da2fa2"
+  },
+  "images": {
+    "nim": "nvcr.io/nim/mit/boltz2@sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98",
+    "worker": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:31e1dacd18b99aec1ab7e8ec8c933f260c9dcec687938b40c44c61274f930d86",
+    "probe": "docker.io/library/python@sha256:356b0d18f9385f4bdcc673af60e1e64c9d1504952e4ec36ee32044c722a6bc4e"
+  },
+  "crit_decoder": {
+    "container_image": "nvcr.io/nim/mit/boltz2@sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98",
+    "criu_repository": "https://github.com/checkpoint-restore/criu",
+    "criu_commit": "91d552257809d0e5c7148190e9aa0372f13b76a0",
+    "source_archive_sha256": "1f2a5a3f3b393feb57f18331f4af1284ea3b7883fadc2f8b2da70291fc1e0040",
+    "source_bundle_filename": "boltz2-crit-decoder-bundle.tar.gz",
+    "source_bundle_sha256": "113b40250517c7bfe423eb12ed5612f68b7e07966de77f39603121bbd369b2c8",
+    "bundle_build_tool": "build_crit_decoder_bundle.py",
+    "bundle_build_tool_sha256": "1deff4847516e258dec43a123fccd7c102a6da582bbe24a0b5eb8f9eb3a12093",
+    "python_command": "python3",
+    "pythonpath": "/decoder",
+    "python_imports": [
+      "crit",
+      "pycriu",
+      "google.protobuf"
+    ],
+    "decode_argument_template": [
+      "-m",
+      "crit",
+      "decode",
+      "-i",
+      "{raw_image}",
+      "-o",
+      "{decoded_json}"
+    ]
+  },
+  "deleted_files_capture": {
+    "container_image": "cr.eu-north1.nebius.cloud/e00ffw8yqnrrd507t9/archvteams-2407-k301ud/snapshot-agent@sha256:31e1dacd18b99aec1ab7e8ec8c933f260c9dcec687938b40c44c61274f930d86",
+    "repository": "https://github.com/ai-dynamo/dynamo.git",
+    "commit": "f7f37be174d252590c4b56e25ff4262dd82466fd",
+    "source_path": "deploy/snapshot/internal/runtime/overlay.go",
+    "source_sha256": "dfd89a85f2bc52f3699bfa494c204f69c86ca6229f3c6fdbbfe2fcd64e9cb0e2",
+    "empty_inventory_encoding": "file-absent"
+  },
+  "storage": {
+    "namespace": "nim-fast-start",
+    "pvc_name": "boltz2-tmp-state-native-f7-v2",
+    "access_modes": [
+      "ReadWriteOnce"
+    ],
+    "requested_storage": "20Gi",
+    "storage_class": "compute-csi-default-sc",
+    "csi_driver": "compute.csi.nebius.com",
+    "volume_handle_prefix": "computedisk-"
+  },
+  "layout": {
+    "working_root": "working",
+    "seed_root": "seeds",
+    "run_root": "runs",
+    "partial_root": ".partial",
+    "working_subpath": "working/boltz2-native-f7-external-tmp-v2",
+    "seed_version": "boltz2-native-f7-tmp-seed-v2",
+    "seed_subpath": "seeds/boltz2-native-f7-tmp-seed-v2",
+    "max_published_run_clones": 1,
+    "container_mount_path": "/tmp",
+    "temp_environment": {
+      "TMPDIR": "/tmp",
+      "TEMP": "/tmp",
+      "TMP": "/tmp"
+    }
+  },
+  "candidate": {
+    "checkpoint_id": "boltz2-native-f7-external-tmp-v2",
+    "artifact_version": "2",
+    "image_io_mode": "direct"
+  },
+  "baseline": {
+    "checkpoint_id": "boltz2-native-f7-v1",
+    "artifact_manifest_sha256": "6539b9f50a71c9f5fb6a3fbacd44f5d5ea41003539b6563682a38600d1492456",
+    "rootfs_diff_bytes": 1908910080,
+    "pages_bytes": 14321520640
+  },
+  "artifact_gates": {
+    "rootfs_diff_max_bytes": 134217728,
+    "pages_growth_max_basis_points": 200,
+    "forbidden_rootfs_prefixes": [
+      "tmp",
+      "tmp/"
+    ],
+    "required_external_mount": "/tmp"
+  }
+}
