@@ -9,6 +9,8 @@ neutral support creation from demand-gated GPU node-group creation.
 from __future__ import annotations
 
 import argparse
+import base64
+import functools
 import hashlib
 import json
 import os
@@ -21,6 +23,14 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable
 
+import yaml
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
+
 
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
@@ -28,18 +38,37 @@ if str(ROOT) not in sys.path:
 import broker as common  # noqa: E402
 
 
-REQUEST_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-request/v1"
-LEASE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-lease/v2"
+REQUEST_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-request/v2"
+LEASE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-lease/v3"
 PROFILE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-profiles/v1"
 REGISTRY_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-registry/v1"
-DEMAND_SCHEMA_VERSION = "catalog-switch-kubernetes-node-demand/v1"
+DEMAND_SCHEMA_VERSION = "catalog-switch-kubernetes-node-demand/v2"
 EVENT_SCHEMA_VERSION = "catalog-switch-kubernetes-lifecycle-events/v1"
-BACKEND_VERSION = "nebius-managed-kubernetes/v1"
+BACKEND_VERSION = "nebius-managed-kubernetes/v2"
 KUBECTL = "/usr/local/bin/kubectl"
 KUBECONFIG_ROOT = ROOT / "kubeconfigs"
+LEASE_KEY_ROOT = ROOT / "lease-keys"
 K8S_REGISTRY = ROOT / "kubernetes-leases" / "registry.json"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 ATTEMPT_ID = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,127}$")
+BASELINE_EVENT_SCHEMA = "archvteams.nebius.ai/catalog-switch-ledger-event/v1"
+T0_BOUNDARY = "external-client-request-accepted/v1"
+GIB = 1024**3
+
+
+def lease_lock_path(lease_path: Path) -> Path:
+    return lease_path.with_suffix(lease_path.suffix + ".mutation.lock")
+
+
+def lease_mutation_locked(function: Callable[..., dict[str, Any]]) -> Callable[..., dict[str, Any]]:
+    """Serialize every lease mutation, including provider reconciliation."""
+
+    @functools.wraps(function)
+    def wrapped(lease_path: Path, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        with common.locked(lease_lock_path(lease_path)):
+            return function(lease_path, *args, **kwargs)
+
+    return wrapped
 
 
 def precise_utc_now() -> common.dt.datetime:
@@ -102,6 +131,7 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
         "project_id",
         "region",
         "nebius_profile",
+        "authority_identity",
         "cluster_version",
         "node_group_profile",
         "expected_duration_hours",
@@ -112,6 +142,7 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
         "metric_contract_sha256",
         "trace_sha256",
         "model_input_sha256s",
+        "accepted_event_recorder_id",
         "cleanup_plan",
     }
     required_keys(request, required, "request")
@@ -129,6 +160,13 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
         raise common.BrokerError("region does not match the authorized project")
     if request["nebius_profile"] != "sandbox":
         raise common.BrokerError("only the audited Nebius profile 'sandbox' is allowed")
+    authority = request["authority_identity"]
+    required_keys(authority, {"type", "id", "parent_id"}, "authority_identity")
+    for field in ("type", "id", "parent_id"):
+        if not isinstance(authority[field], str) or not authority[field].strip():
+            raise common.BrokerError(f"authority_identity.{field} must be a non-empty string")
+    if authority["parent_id"] not in common.AUTHORIZED_PROJECTS:
+        raise common.BrokerError("frozen authority identity is outside the epic allowlist")
     try:
         profile = profiles["profiles"][request["node_group_profile"]]
     except KeyError as exc:
@@ -138,6 +176,8 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
     if request["cluster_version"] != profile["kubernetes_version"]:
         raise common.BrokerError("cluster version differs from the pinned profile")
     gpu = profile["gpu_node_group"]
+    if profile.get("public_control_plane_endpoint") is not False or profile.get("karpenter") is not False:
+        raise common.BrokerError("Kubernetes profile must pin a private control plane and omit Karpenter")
     if gpu["mode"] != "preemptible" or gpu["node_count"] != 1 or gpu["gpu_count_per_node"] != 1:
         raise common.BrokerError("profile must be an exact single-node preemptible GPU profile")
     duration = Decimal(str(request["expected_duration_hours"]))
@@ -173,6 +213,8 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
         common.sanitize_label(str(model_id), "model_id")
         if not HEX64.fullmatch(str(digest)):
             raise common.BrokerError("model input values must be SHA-256 digests")
+    if request["accepted_event_recorder_id"] != "catalog-switch-k8s-external-client":
+        raise common.BrokerError("accepted-event recorder authority is not the frozen K8s client")
     normalized.update(
         {
             "expected_duration_hours": str(duration),
@@ -180,6 +222,7 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
             "hard_cost_cap_usd": common.decimal_string(cap),
             "cleanup_deadline_utc": common.iso(deadline),
             "artifact_storage": {"max_size_gib": int(artifact["max_size_gib"])},
+            "authority_identity": dict(authority),
         }
     )
     return normalized
@@ -293,6 +336,259 @@ def event(
     return item
 
 
+def signing_key_path(lease_id: str) -> Path:
+    return (LEASE_KEY_ROOT / f"{lease_id}.ed25519").resolve()
+
+
+def _b64(value: bytes) -> str:
+    return base64.b64encode(value).decode("ascii")
+
+
+def _unb64(value: str) -> bytes:
+    try:
+        return base64.b64decode(value, validate=True)
+    except ValueError as exc:
+        raise common.BrokerError("invalid lease signing-key encoding") from exc
+
+
+def create_signing_authority(lease_id: str) -> dict[str, Any]:
+    """Create one task-local signing key without ever placing it in the ledger."""
+
+    path = signing_key_path(lease_id)
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if path.parent.is_symlink():
+        raise common.BrokerError("lease signing-key directory cannot be a symlink")
+    if path.exists():
+        raise common.BrokerError("lease signing-key path collision; preserve it")
+    private_key = Ed25519PrivateKey.generate()
+    private_bytes = private_key.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(path, flags, 0o600)
+    try:
+        written = os.write(descriptor, private_bytes)
+        if written != len(private_bytes):
+            raise common.BrokerError("short write creating lease signing authority")
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    public_bytes = private_key.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    return {
+        "algorithm": "ed25519",
+        "public_key_base64": _b64(public_bytes),
+        "private_key_path": str(path),
+        "private_key_contents_recorded": False,
+    }
+
+
+def load_private_key(lease: dict[str, Any]) -> Ed25519PrivateKey:
+    path = Path(lease["signing_authority"]["private_key_path"])
+    if path != signing_key_path(lease["lease_id"]):
+        raise common.BrokerError("lease signing-key path differs from immutable authority")
+    details = path.lstat()
+    if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
+        raise common.BrokerError("lease signing authority is not a regular file")
+    if details.st_uid != os.getuid() or stat.S_IMODE(details.st_mode) != 0o600:
+        raise common.BrokerError("lease signing authority owner/mode mismatch")
+    raw = path.read_bytes()
+    if len(raw) != 32:
+        raise common.BrokerError("lease signing authority has an invalid length")
+    key = Ed25519PrivateKey.from_private_bytes(raw)
+    actual_public = key.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    if _b64(actual_public) != lease["signing_authority"]["public_key_base64"]:
+        raise common.BrokerError("lease signing authority does not match immutable public key")
+    return key
+
+
+def destroy_signing_authority(lease: dict[str, Any]) -> None:
+    path = Path(lease["signing_authority"]["private_key_path"])
+    if path.exists():
+        load_private_key(lease)
+        path.unlink()
+    if path.exists():
+        raise common.BrokerError("lease signing authority still exists after exact unlink")
+    lease["signing_key_cleanup"] = {
+        "absence_verified_at": common.iso(precise_utc_now()),
+        "evidence": f"lstat({path}) -> absent after exact signed-authority unlink",
+    }
+
+
+def signed_message(kind: str, lease: dict[str, Any], material: dict[str, Any]) -> bytes:
+    return common.canonical(
+        {
+            "domain": f"catalog-switch-kubernetes-{kind}/v1",
+            "plan_sha256": lease["plan_sha256"],
+            "material": material,
+        }
+    ).encode("ascii")
+
+
+def sign_material(kind: str, lease: dict[str, Any], material: dict[str, Any]) -> str:
+    return _b64(load_private_key(lease).sign(signed_message(kind, lease, material)))
+
+
+def verify_signature(kind: str, lease: dict[str, Any], material: dict[str, Any], signature: str) -> None:
+    try:
+        key = Ed25519PublicKey.from_public_bytes(
+            _unb64(lease["signing_authority"]["public_key_base64"])
+        )
+        key.verify(_unb64(signature), signed_message(kind, lease, material))
+    except (InvalidSignature, ValueError) as exc:
+        raise common.BrokerError(f"{kind} ownership signature mismatch; preserve resources") from exc
+
+
+def operation_auth_material(operation: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: operation[key]
+        for key in (
+            "operation_id",
+            "kind",
+            "name",
+            "parent_id",
+            "depends_on",
+            "payload_sha256",
+            "spec_sha256",
+            "requested_spec",
+            "started_at_utc",
+            "started_monotonic_ns",
+        )
+    }
+
+
+def authenticate_operation(lease: dict[str, Any], operation: dict[str, Any]) -> None:
+    operation["intent_signature"] = sign_material(
+        "create-intent", lease, operation_auth_material(operation)
+    )
+
+
+def verify_operation(lease: dict[str, Any], operation: dict[str, Any]) -> None:
+    verify_signature(
+        "create-intent",
+        lease,
+        operation_auth_material(operation),
+        str(operation.get("intent_signature", "")),
+    )
+
+
+def record_operation_absence(
+    lease: dict[str, Any], operation: dict[str, Any], evidence: str
+) -> None:
+    receipt = {
+        "operation_id": operation["operation_id"],
+        "verified_at_utc": common.iso(precise_utc_now()),
+        "evidence": evidence,
+    }
+    operation["absence_receipt"] = receipt
+    operation["absence_receipt_signature"] = sign_material(
+        "create-absence", lease, receipt
+    )
+
+
+def verify_operation_absence(lease: dict[str, Any], operation: dict[str, Any]) -> None:
+    receipt = operation.get("absence_receipt")
+    signature = operation.get("absence_receipt_signature")
+    if not receipt or not signature:
+        raise common.BrokerError("create-operation absence lacks a signed receipt")
+    verify_signature("create-absence", lease, receipt, signature)
+    if receipt.get("operation_id") != operation["operation_id"]:
+        raise common.BrokerError("create-operation absence receipt identity mismatch")
+
+
+def resource_auth_material(resource: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: resource.get(key)
+        for key in (
+            "kind",
+            "name",
+            "id",
+            "project_id",
+            "region",
+            "parent_id",
+            "depends_on",
+            "created_at",
+            "create_operation_id",
+            "deletion_mode",
+            "managed_by_resource_id",
+            "intended_spec_sha256",
+            "provider_spec_sha256",
+            "desired_final_state",
+            "provider_metadata",
+        )
+    }
+
+
+def authenticate_resource(lease: dict[str, Any], resource: dict[str, Any]) -> None:
+    resource["ownership_signature"] = sign_material(
+        "resource-row", lease, resource_auth_material(resource)
+    )
+
+
+def verify_resource(lease: dict[str, Any], resource: dict[str, Any]) -> None:
+    verify_signature(
+        "resource-row",
+        lease,
+        resource_auth_material(resource),
+        str(resource.get("ownership_signature", "")),
+    )
+
+
+def demand_auth_material(demand: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: demand[key]
+        for key in (
+            "schema_version",
+            "lease_id",
+            "attempt_id",
+            "accepted_event_path",
+            "accepted_event_sha256",
+            "ledger_id",
+            "ledger_sequence",
+            "trace_id",
+            "request_id",
+            "event_id",
+            "model_id",
+            "input_payload_sha256",
+            "accepted_event_source_receipt",
+            "t0_observed_at_utc",
+            "t0_observed_monotonic_ns",
+            "demand_sha256",
+            "demand_received_at_utc",
+            "demand_received_monotonic_ns",
+            "causal_order_pass",
+        )
+    }
+
+
+def authenticate_demand(lease: dict[str, Any]) -> None:
+    demand = lease["demand"]
+    demand["authority_signature"] = sign_material(
+        "accepted-demand", lease, demand_auth_material(demand)
+    )
+
+
+def verify_demand(lease: dict[str, Any]) -> None:
+    demand = lease.get("demand")
+    if not demand:
+        return
+    verify_signature(
+        "accepted-demand",
+        lease,
+        demand_auth_material(demand),
+        str(demand.get("authority_signature", "")),
+    )
+
+
 def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, Any]:
     request_hash = common.sha256_json(request)
     task_slug = request["task_id"][:18].rstrip("-._")
@@ -311,6 +607,7 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
         common.sanitize_label(key, "label key")
         common.sanitize_label(value, f"label {key}")
     now = common.utc_now()
+    signing_authority = create_signing_authority(request["lease_id"])
     lease: dict[str, Any] = {
         "schema_version": LEASE_SCHEMA_VERSION,
         "backend_version": BACKEND_VERSION,
@@ -325,6 +622,7 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
         "created_at": common.iso(now),
         "expires_at": request["cleanup_deadline_utc"],
         "labels": labels,
+        "signing_authority": signing_authority,
         "profile_snapshot": profile,
         "profile_sha256": common.sha256_json(profile),
         "cost_estimate": estimate,
@@ -379,12 +677,19 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
 
 def immutable_plan_material(lease: dict[str, Any]) -> dict[str, Any]:
     return {
+        "schema_version": lease["schema_version"],
+        "backend_version": lease["backend_version"],
+        "event_schema_version": lease["event_schema_version"],
+        "lease_id": lease["lease_id"],
         "request_sha256": lease["request_sha256"],
         "profile_sha256": lease["profile_sha256"],
         "prefix": lease["prefix"],
         "project_id": lease["project_id"],
         "region": lease["region"],
+        "created_at": lease["created_at"],
         "expires_at": lease["expires_at"],
+        "labels": lease["labels"],
+        "signing_authority": lease["signing_authority"],
         "cost_estimate": lease["cost_estimate"],
         "resource_graph": lease["resource_graph"],
         "kubeconfig_path": lease["kubeconfig_path"],
@@ -406,6 +711,37 @@ def assert_integrity(lease: dict[str, Any]) -> None:
         raise common.BrokerError("immutable resource plan hash mismatch")
     if lease.get("project_id") != lease["request"]["project_id"] or lease.get("region") != lease["request"]["region"]:
         raise common.BrokerError("lease identity differs from immutable request")
+    if lease.get("lease_id") != lease["request"]["lease_id"]:
+        raise common.BrokerError("lease ID differs from immutable request")
+    if lease.get("expires_at") != lease["request"]["cleanup_deadline_utc"]:
+        raise common.BrokerError("lease deadline differs from immutable request")
+    if lease.get("cleanup_plan", {}).get("cleanup_owner") != lease["request"]["cleanup_owner"]:
+        raise common.BrokerError("cleanup owner differs from immutable request")
+    operations = lease.get("resource_create_operations", [])
+    resources = lease.get("resources", [])
+    for operation in operations:
+        verify_operation(lease, operation)
+        if operation.get("kubeconfig_content_authority"):
+            verify_signature(
+                "kubeconfig-content",
+                lease,
+                operation["kubeconfig_content_authority"],
+                str(operation.get("kubeconfig_content_signature", "")),
+            )
+        if operation.get("resource_id"):
+            linked = [
+                resource
+                for resource in resources
+                if resource.get("id") == operation["resource_id"]
+                and resource.get("create_operation_id") == operation["operation_id"]
+            ]
+            if len(linked) != 1:
+                raise common.BrokerError("create operation resource ID lacks one signed linked row")
+        if operation.get("status") == "ABSENCE_VERIFIED_AFTER_INTERRUPTION":
+            verify_operation_absence(lease, operation)
+    for resource in resources:
+        verify_resource(lease, resource)
+    verify_demand(lease)
 
 
 def registry_summary(lease: dict[str, Any], path: Path) -> dict[str, Any]:
@@ -461,7 +797,7 @@ def save(lease_path: Path, registry_path: Path, lease: dict[str, Any]) -> None:
     update_registry(registry_path, lease_path, lease)
 
 
-def plan(request_path: Path, lease_path: Path, registry_path: Path, profiles_path: Path) -> dict[str, Any]:
+def _plan(request_path: Path, lease_path: Path, registry_path: Path, profiles_path: Path) -> dict[str, Any]:
     profiles = load_profiles(profiles_path)
     request = validate_request(common.load_json(request_path), profiles)
     request_hash = common.sha256_json(request)
@@ -475,6 +811,11 @@ def plan(request_path: Path, lease_path: Path, registry_path: Path, profiles_pat
     lease = build_lease(request, profiles)
     save(lease_path, registry_path, lease)
     return lease
+
+
+def plan(request_path: Path, lease_path: Path, registry_path: Path, profiles_path: Path) -> dict[str, Any]:
+    with common.locked(lease_lock_path(lease_path)):
+        return _plan(request_path, lease_path, registry_path, profiles_path)
 
 
 RESOURCE_COMMANDS: dict[str, dict[str, list[str]]] = {
@@ -557,6 +898,7 @@ RESOURCE_COMMANDS: dict[str, dict[str, list[str]]] = {
         "delete": ["mk8s", "v1", "node-group", "delete"],
     },
     "node": {
+        "list": ["compute", "instance", "list"],
         "get": ["compute", "instance", "get"],
     },
     "pool": {"get": ["vpc", "pool", "get"]},
@@ -566,6 +908,122 @@ RESOURCE_COMMANDS: dict[str, dict[str, list[str]]] = {
 
 def resource_payload(name: str, parent_id: str, labels: dict[str, str], spec: dict[str, Any]) -> dict[str, Any]:
     return {"metadata": {"name": name, "parent_id": parent_id, "labels": labels}, "spec": spec}
+
+
+def _strict_fields(
+    value: dict[str, Any], *, allowed: set[str], required: set[str], label: str
+) -> None:
+    unknown = sorted(set(value) - allowed)
+    missing = sorted(required - set(value))
+    if unknown or missing:
+        raise common.BrokerError(
+            f"installed provider schema mismatch at {label}; missing={missing}, unknown={unknown}"
+        )
+
+
+def validate_provider_create_payload(kind: str, payload: dict[str, Any]) -> None:
+    """Strict subset of the installed Nebius CLI 0.12.206 input schema."""
+
+    _strict_fields(payload, allowed={"metadata", "spec"}, required={"metadata", "spec"}, label=kind)
+    _strict_fields(
+        payload["metadata"],
+        allowed={"name", "parent_id", "labels"},
+        required={"name", "parent_id", "labels"},
+        label=f"{kind}.metadata",
+    )
+    if kind == "cluster":
+        _strict_fields(
+            payload["spec"],
+            allowed={"control_plane", "kube_network"},
+            required={"control_plane", "kube_network"},
+            label="cluster.spec",
+        )
+        control_plane = payload["spec"]["control_plane"]
+        _strict_fields(
+            control_plane,
+            allowed={"audit_logs", "etcd_cluster_size", "subnet_id", "version"},
+            required={"subnet_id", "version"},
+            label="cluster.spec.control_plane",
+        )
+        if "endpoints" in control_plane or "karpenter" in control_plane:
+            raise common.BrokerError("private cluster must omit endpoints and disabled karpenter")
+    elif kind in {"system_node_group", "gpu_node_group"}:
+        spec = payload["spec"]
+        _strict_fields(
+            spec,
+            allowed={"version", "fixed_node_count", "template"},
+            required={"version", "fixed_node_count", "template"},
+            label=f"{kind}.spec",
+        )
+        template = spec["template"]
+        allowed_template = {
+            "metadata",
+            "taints",
+            "resources",
+            "boot_disk",
+            "gpu_settings",
+            "os",
+            "network_interfaces",
+            "service_account_id",
+            "preemptible",
+            "reservation_policy",
+        }
+        required_template = {
+            "metadata",
+            "resources",
+            "boot_disk",
+            "os",
+            "network_interfaces",
+            "service_account_id",
+            "reservation_policy",
+        }
+        _strict_fields(
+            template,
+            allowed=allowed_template,
+            required=required_template,
+            label=f"{kind}.spec.template",
+        )
+        _strict_fields(
+            template["boot_disk"],
+            allowed={"size_bytes", "block_size_bytes", "type"},
+            required={"size_bytes", "block_size_bytes", "type"},
+            label=f"{kind}.spec.template.boot_disk",
+        )
+        size_bytes = template["boot_disk"]["size_bytes"]
+        if not isinstance(size_bytes, int) or size_bytes <= 0 or size_bytes % GIB:
+            raise common.BrokerError("boot_disk.size_bytes must be an exact positive GiB conversion")
+        if kind == "gpu_node_group":
+            if "preemptible" not in template or template["preemptible"] != {}:
+                raise common.BrokerError("GPU provider payload must enable preemptible with an object")
+            if "gpu_settings" not in template:
+                raise common.BrokerError("GPU provider payload must pin driver ownership")
+        elif "preemptible" in template:
+            raise common.BrokerError("system node-group payload must omit preemptible")
+
+
+def project_requested_spec(live: Any, requested: Any, path: str = "spec") -> Any:
+    """Project a provider response onto exactly the signed requested shape."""
+
+    if isinstance(requested, dict):
+        if not isinstance(live, dict):
+            raise common.BrokerError(f"provider object differs from create intent at {path}")
+        missing = sorted(set(requested) - set(live))
+        if missing:
+            raise common.BrokerError(f"provider object is missing signed fields at {path}: {missing}")
+        return {
+            key: project_requested_spec(live[key], value, f"{path}.{key}")
+            for key, value in requested.items()
+        }
+    if isinstance(requested, list):
+        if not isinstance(live, list) or len(live) != len(requested):
+            raise common.BrokerError(f"provider list differs from create intent at {path}")
+        return [
+            project_requested_spec(live[index], value, f"{path}[{index}]")
+            for index, value in enumerate(requested)
+        ]
+    if live != requested:
+        raise common.BrokerError(f"provider value differs from create intent at {path}")
+    return live
 
 
 def find_resource(lease: dict[str, Any], kind: str, name: str | None = None) -> dict[str, Any] | None:
@@ -597,10 +1055,14 @@ def add_resource(
     value: dict[str, Any],
     depends_on: list[str],
     operation_id: str,
+    intended_spec: dict[str, Any],
 ) -> dict[str, Any]:
     resource_id = common.metadata_id(value, kind)
     existing = next((item for item in lease["resources"] if item.get("id") == resource_id), None)
     if existing:
+        verify_resource(lease, existing)
+        if existing["kind"] != kind or existing["name"] != name:
+            raise common.BrokerError("provider resource ID conflicts with signed ownership row")
         return existing
     resource = {
         "kind": kind,
@@ -612,11 +1074,19 @@ def add_resource(
         "depends_on": depends_on,
         "created_at": value.get("metadata", {}).get("created_at") or common.iso(common.utc_now()),
         "create_operation_id": operation_id,
+        "deletion_mode": None,
+        "managed_by_resource_id": None,
+        "intended_spec_sha256": common.sha256_json(intended_spec),
+        "provider_spec_sha256": common.sha256_json(
+            project_requested_spec(value.get("spec", {}), intended_spec)
+        ),
         "desired_final_state": "ABSENT",
         "deleted_at": None,
         "absence_verified_at": None,
         "cleanup_evidence": None,
+        "provider_metadata": {},
     }
+    authenticate_resource(lease, resource)
     lease["resources"].append(resource)
     event(lease, "resource.created", "PASS", kind=kind, resource_id=resource_id, name=name)
     return resource
@@ -643,13 +1113,22 @@ def ensure_resource(
     timeout: int = 600,
 ) -> dict[str, Any]:
     assert_integrity(lease)
+    payload = resource_payload(name, parent_id, lease["labels"], spec)
+    if kind in {"cluster", "system_node_group", "gpu_node_group"}:
+        validate_provider_create_payload(kind, payload)
     operation_id = f"create:{kind}:{name}"
     recorded = find_resource(lease, kind, name)
     if recorded:
+        verify_resource(lease, recorded)
         value = cli.run([*RESOURCE_COMMANDS[kind]["get"], recorded["id"]])
         validate_owned_metadata(lease, kind, value, name, parent_id)
+        project_requested_spec(value.get("spec", {}), spec)
         return recorded
     operation = operation_for(lease, operation_id)
+    if operation:
+        verify_operation(lease, operation)
+        if operation["payload_sha256"] != common.sha256_json(payload):
+            raise common.BrokerError(f"{kind} create payload differs from signed intent")
     listed = cli.run([*RESOURCE_COMMANDS[kind]["list"], "--parent-id", parent_id, "--all"])
     exact = [item for item in listed.get("items", []) if item.get("metadata", {}).get("name") == name]
     if len(exact) > 1:
@@ -658,10 +1137,13 @@ def ensure_resource(
         if operation is None or operation["status"] not in {"INTENT_RECORDED", "CREATE_FAILED"}:
             raise common.BrokerError(f"foreign or pre-existing {kind} name collision; preserve it")
         validate_owned_metadata(lease, kind, exact[0], name, parent_id)
+        project_requested_spec(exact[0].get("spec", {}), spec)
         created_at = exact[0].get("metadata", {}).get("created_at")
         if created_at and common.parse_utc(created_at) < common.parse_utc(operation["started_at_utc"]):
             raise common.BrokerError(f"{kind} predates the persisted create intent; preserve it")
-        resource = add_resource(lease, kind, name, exact[0], depends_on, operation_id)
+        resource = add_resource(
+            lease, kind, name, exact[0], depends_on, operation_id, spec
+        )
         operation["status"] = "RECONCILED_AFTER_INTERRUPTION"
         operation["completed_at_utc"] = common.iso(common.utc_now())
         operation["resource_id"] = resource["id"]
@@ -675,6 +1157,9 @@ def ensure_resource(
             "name": name,
             "parent_id": parent_id,
             "depends_on": depends_on,
+            "payload_sha256": common.sha256_json(payload),
+            "spec_sha256": common.sha256_json(spec),
+            "requested_spec": spec,
             "status": "INTENT_RECORDED",
             "started_at_utc": common.iso(common.utc_now()),
             "started_monotonic_ns": time.monotonic_ns(),
@@ -682,6 +1167,7 @@ def ensure_resource(
             "resource_id": None,
             "failure": None,
         }
+        authenticate_operation(lease, operation)
         lease["resource_create_operations"].append(operation)
         event(lease, "resource.create.started", "PASS", kind=kind, name=name)
         save(lease_path, registry_path, lease)
@@ -690,11 +1176,12 @@ def ensure_resource(
     try:
         value = cli.run(
             RESOURCE_COMMANDS[kind]["create"],
-            payload=resource_payload(name, parent_id, lease["labels"], spec),
+            payload=payload,
             timeout=timeout,
         )
         validate_owned_metadata(lease, kind, value, name, parent_id)
-        resource = add_resource(lease, kind, name, value, depends_on, operation_id)
+        project_requested_spec(value.get("spec", {}), spec)
+        resource = add_resource(lease, kind, name, value, depends_on, operation_id, spec)
         operation["status"] = "CREATED"
         operation["completed_at_utc"] = common.iso(common.utc_now())
         operation["completed_monotonic_ns"] = time.monotonic_ns()
@@ -720,14 +1207,40 @@ def ensure_resource(
         raise
 
 
+def identity_from_whoami(whoami: dict[str, Any]) -> dict[str, str | None]:
+    if len(whoami) != 1:
+        raise common.BrokerError("Nebius whoami returned an ambiguous authority identity")
+    identity_type = next(iter(whoami))
+    metadata = whoami.get(identity_type, {}).get("info", {}).get("metadata", {})
+    return {
+        "type": identity_type,
+        "id": metadata.get("id"),
+        "parent_id": metadata.get("parent_id"),
+    }
+
+
+def assert_frozen_authority(
+    lease: dict[str, Any], cli: common.NebiusCLI, whoami: dict[str, Any] | None = None
+) -> dict[str, str | None]:
+    expected_profile = lease["request"]["nebius_profile"]
+    if cli.profile != expected_profile:
+        raise common.BrokerError(
+            f"Nebius profile mismatch: frozen={expected_profile}, observed={cli.profile}"
+        )
+    observed = identity_from_whoami(whoami or cli.run(["iam", "whoami"]))
+    if observed != lease["request"]["authority_identity"]:
+        raise common.AuthenticationError(
+            "Nebius authority identity differs from the immutable lease; do not switch credentials"
+        )
+    return observed
+
+
 def run_read_only_preflight(lease: dict[str, Any], cli: common.NebiusCLI) -> dict[str, Any]:
     request = lease["request"]
     profile = lease["profile_snapshot"]
     whoami = cli.run(["iam", "whoami"])
-    identity_type = next(iter(whoami), "unknown")
-    identity = whoami.get(identity_type, {}).get("info", {}).get("metadata", {})
-    if identity.get("parent_id") not in common.AUTHORIZED_PROJECTS:
-        raise common.BrokerError("authenticated identity is not rooted in an authorized epic project")
+    identity = assert_frozen_authority(lease, cli, whoami)
+    identity_type = str(identity["type"])
     project = cli.run(["iam", "project", "get", request["project_id"]])
     if common.project_region(project) != request["region"]:
         raise common.BrokerError("live project region differs from the immutable request")
@@ -799,7 +1312,7 @@ def run_read_only_preflight(lease: dict[str, Any], cli: common.NebiusCLI) -> dic
         "checked_at": common.iso(common.utc_now()),
         "mutation_count": 0,
         "nebius_profile": cli.profile,
-        "identity": {"type": identity_type, "id": identity.get("id"), "parent_id": identity.get("parent_id")},
+        "identity": identity,
         "project": {
             "id": request["project_id"],
             "tenant_id": project.get("metadata", {}).get("parent_id"),
@@ -870,6 +1383,12 @@ def add_provider_resource(
 ) -> dict[str, Any]:
     existing = next((item for item in lease["resources"] if item.get("id") == resource_id), None)
     if existing:
+        verify_resource(lease, existing)
+        if (
+            existing.get("kind") != kind
+            or existing.get("managed_by_resource_id") != managed_by_resource_id
+        ):
+            raise common.BrokerError("provider child identity conflicts with signed resource row")
         return existing
     item = {
         "kind": kind,
@@ -883,12 +1402,15 @@ def add_provider_resource(
         "create_operation_id": None,
         "deletion_mode": "PROVIDER_CASCADE",
         "managed_by_resource_id": managed_by_resource_id,
+        "intended_spec_sha256": None,
+        "provider_spec_sha256": common.sha256_json((metadata or {}).get("compute_spec", {})),
         "desired_final_state": "ABSENT",
         "deleted_at": None,
         "absence_verified_at": None,
         "cleanup_evidence": None,
         "provider_metadata": metadata or {},
     }
+    authenticate_resource(lease, item)
     lease["resources"].append(item)
     event(
         lease,
@@ -949,7 +1471,12 @@ def kubeconfig_file_sha256(path: Path) -> str:
 
 
 def validate_kubeconfig_file(path: Path) -> None:
-    if path.parent.resolve() != KUBECONFIG_ROOT.resolve() or path.suffix != ".yaml":
+    staging_name = path.name.startswith(".") and ".yaml." in path.name and path.name.endswith(
+        ".broker-staging"
+    )
+    if path.parent.resolve() != KUBECONFIG_ROOT.resolve() or not (
+        path.suffix == ".yaml" or staging_name
+    ):
         raise common.BrokerError("kubeconfig path is outside the task-owned authority directory")
     details = path.lstat()
     if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
@@ -958,6 +1485,87 @@ def validate_kubeconfig_file(path: Path) -> None:
         raise common.BrokerError("kubeconfig authority is not owned by the current task user")
     if stat.S_IMODE(details.st_mode) & 0o077:
         raise common.BrokerError("kubeconfig authority permissions are broader than 0600")
+
+
+def cluster_internal_endpoint(cluster_value: dict[str, Any]) -> str:
+    endpoints = cluster_value.get("status", {}).get("control_plane", {}).get("endpoints", {})
+    if endpoints.get("public_endpoint"):
+        raise common.BrokerError("public control-plane endpoint violates the immutable isolation gate")
+    endpoint = endpoints.get("internal_endpoint") or endpoints.get("private_endpoint")
+    if not isinstance(endpoint, str) or not endpoint.startswith("https://"):
+        raise common.BrokerError("cluster has no exact private control-plane endpoint")
+    return endpoint
+
+
+def kubeconfig_content_authority(
+    path: Path, *, cluster_id: str, context: str, endpoint: str
+) -> dict[str, Any]:
+    validate_kubeconfig_file(path)
+    try:
+        value = yaml.safe_load(path.read_text())
+    except (OSError, yaml.YAMLError) as exc:
+        raise common.BrokerError("kubeconfig authority is not valid YAML") from exc
+    if not isinstance(value, dict) or value.get("current-context") != context:
+        raise common.BrokerError("kubeconfig current context differs from immutable authority")
+    contexts = [
+        item for item in value.get("contexts", []) if item.get("name") == context
+    ]
+    if len(contexts) != 1:
+        raise common.BrokerError("kubeconfig does not contain one exact immutable context")
+    context_value = contexts[0].get("context", {})
+    cluster_name = context_value.get("cluster")
+    user_name = context_value.get("user")
+    clusters = [
+        item for item in value.get("clusters", []) if item.get("name") == cluster_name
+    ]
+    users = [item for item in value.get("users", []) if item.get("name") == user_name]
+    if len(clusters) != 1 or len(users) != 1:
+        raise common.BrokerError("kubeconfig cluster/user authority is missing or ambiguous")
+    cluster = clusters[0].get("cluster", {})
+    if cluster.get("server") != endpoint:
+        raise common.BrokerError("kubeconfig server differs from the private cluster endpoint")
+    ca_data = cluster.get("certificate-authority-data")
+    if not isinstance(ca_data, str) or not ca_data.strip():
+        raise common.BrokerError("kubeconfig lacks embedded certificate authority data")
+    return {
+        "path": str(path),
+        "sha256": kubeconfig_file_sha256(path),
+        "mode": "0600",
+        "cluster_id": cluster_id,
+        "api_server": endpoint,
+        "context": context,
+        "cluster_entry": cluster_name,
+        "user_entry": user_name,
+        "ca_data_sha256": hashlib.sha256(ca_data.encode()).hexdigest(),
+        "contents_recorded": False,
+    }
+
+
+def verify_kubeconfig_content(
+    path: Path, expected: dict[str, Any]
+) -> dict[str, Any]:
+    authority_keys = {
+        "path",
+        "sha256",
+        "mode",
+        "cluster_id",
+        "api_server",
+        "context",
+        "cluster_entry",
+        "user_entry",
+        "ca_data_sha256",
+        "contents_recorded",
+    }
+    authority = {key: expected[key] for key in authority_keys}
+    actual = kubeconfig_content_authority(
+        path,
+        cluster_id=authority["cluster_id"],
+        context=authority["context"],
+        endpoint=authority["api_server"],
+    )
+    if actual != authority:
+        raise common.BrokerError("kubeconfig content authority mismatch; preserve file")
+    return actual
 
 
 def ensure_kubeconfig(
@@ -972,31 +1580,61 @@ def ensure_kubeconfig(
     operation_id = f"create:kubeconfig_authority:{path.name}"
     operation = operation_for(lease, operation_id)
     existing = find_resource(lease, "kubeconfig_authority")
-    endpoint = cluster_value.get("status", {}).get("control_plane", {}).get("endpoints", {}).get(
-        "public_endpoint"
-    )
-    if not endpoint:
-        raise common.BrokerError("cluster has no public control-plane endpoint for this authority")
+    cluster_id = common.metadata_id(cluster_value, "cluster")
+    endpoint = cluster_internal_endpoint(cluster_value)
     if existing:
-        validate_kubeconfig_file(path)
-        if kubeconfig_file_sha256(path) != existing["provider_metadata"]["sha256"]:
-            raise common.BrokerError("kubeconfig authority changed outside the broker")
-        view = kubectl.run(path, ["config", "view", "--minify"])
-        if endpoint not in json.dumps(view):
-            raise common.BrokerError("kubeconfig authority does not point to the leased cluster")
+        verify_resource(lease, existing)
+        verify_kubeconfig_content(path, existing["provider_metadata"])
         return existing
+    local_spec = {
+        "cluster_id": cluster_id,
+        "context": lease["kubernetes_context"],
+        "endpoint": endpoint,
+        "access": "internal",
+    }
+    staging = path.with_name(f".{path.name}.{lease['plan_sha256'][:16]}.broker-staging")
     if path.exists():
         if operation is None or operation["status"] not in {"INTENT_RECORDED", "CREATE_FAILED"}:
             raise common.BrokerError("pre-existing kubeconfig path collision; preserve it")
-        validate_kubeconfig_file(path)
-    else:
+        verify_operation(lease, operation)
+        expected = operation.get("kubeconfig_content_authority")
+        signature = operation.get("kubeconfig_content_signature")
+        if not expected or not signature:
+            raise common.BrokerError(
+                "unknown kubeconfig appeared before signed content authority; preserve it"
+            )
+        verify_signature("kubeconfig-content", lease, expected, signature)
+        verify_kubeconfig_content(path, expected)
+    elif operation and operation.get("kubeconfig_content_authority"):
+        verify_operation(lease, operation)
+        expected = operation["kubeconfig_content_authority"]
+        verify_signature(
+            "kubeconfig-content",
+            lease,
+            expected,
+            operation["kubeconfig_content_signature"],
+        )
+        if not staging.exists():
+            raise common.BrokerError("signed kubeconfig staging receipt exists but file is absent")
+        verify_kubeconfig_content(staging, {**expected, "path": str(staging)})
+        os.replace(staging, path)
+    elif operation:
+        verify_operation(lease, operation)
+        if staging.exists():
+            raise common.BrokerError(
+                "unreceipted kubeconfig staging file is ambiguous; preserve it"
+            )
+    if not path.exists():
         if operation is None:
             operation = {
                 "operation_id": operation_id,
                 "kind": "kubeconfig_authority",
                 "name": path.name,
-                "parent_id": common.metadata_id(cluster_value, "cluster"),
-                "depends_on": [common.metadata_id(cluster_value, "cluster")],
+                "parent_id": cluster_id,
+                "depends_on": [cluster_id],
+                "payload_sha256": common.sha256_json(local_spec),
+                "spec_sha256": common.sha256_json(local_spec),
+                "requested_spec": local_spec,
                 "status": "INTENT_RECORDED",
                 "started_at_utc": common.iso(common.utc_now()),
                 "started_monotonic_ns": time.monotonic_ns(),
@@ -1004,12 +1642,13 @@ def ensure_kubeconfig(
                 "resource_id": None,
                 "failure": None,
             }
+            authenticate_operation(lease, operation)
             lease["resource_create_operations"].append(operation)
             event(lease, "kubeconfig.authority.started", "PASS", path=str(path))
             save(lease_path, registry_path, lease)
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        if path.parent.is_symlink():
-            raise common.BrokerError("kubeconfig authority directory cannot be a symlink")
+        if path.parent.is_symlink() or staging.exists():
+            raise common.BrokerError("kubeconfig staging authority is unsafe or ambiguous")
         cli.run(
             [
                 "mk8s",
@@ -1017,22 +1656,39 @@ def ensure_kubeconfig(
                 "cluster",
                 "get-credentials",
                 "--id",
-                common.metadata_id(cluster_value, "cluster"),
-                "--external",
+                cluster_id,
+                "--internal",
                 "--context-name",
                 lease["kubernetes_context"],
                 "--kubeconfig",
-                str(path),
+                str(staging),
             ],
             json_output=False,
             timeout=180,
         )
+        os.chmod(staging, 0o600)
+        generated = kubeconfig_content_authority(
+            staging,
+            cluster_id=cluster_id,
+            context=lease["kubernetes_context"],
+            endpoint=endpoint,
+        )
+        expected = {**generated, "path": str(path)}
+        operation["kubeconfig_content_authority"] = expected
+        operation["kubeconfig_content_signature"] = sign_material(
+            "kubeconfig-content", lease, expected
+        )
+        save(lease_path, registry_path, lease)
+        os.replace(staging, path)
         os.chmod(path, 0o600)
-        validate_kubeconfig_file(path)
-    view = kubectl.run(path, ["config", "view", "--minify"])
-    if endpoint not in json.dumps(view):
-        raise common.BrokerError("generated kubeconfig does not point to the leased cluster")
-    digest = kubeconfig_file_sha256(path)
+    expected = operation.get("kubeconfig_content_authority")
+    if not expected:
+        raise common.BrokerError("kubeconfig lacks a signed content-authority receipt")
+    verify_signature(
+        "kubeconfig-content", lease, expected, operation["kubeconfig_content_signature"]
+    )
+    verify_kubeconfig_content(path, expected)
+    digest = expected["sha256"]
     identity = lease["preflight"]["identity"]
     item = {
         "kind": "kubeconfig_authority",
@@ -1044,21 +1700,17 @@ def ensure_kubeconfig(
         "depends_on": [lease["cluster_id"]],
         "created_at": common.iso(common.utc_now()),
         "create_operation_id": operation_id,
+        "deletion_mode": None,
+        "managed_by_resource_id": None,
+        "intended_spec_sha256": common.sha256_json(local_spec),
+        "provider_spec_sha256": common.sha256_json(local_spec),
         "desired_final_state": "ABSENT",
         "deleted_at": None,
         "absence_verified_at": None,
         "cleanup_evidence": None,
-        "provider_metadata": {
-            "path": str(path),
-            "sha256": digest,
-            "mode": "0600",
-            "identity_id": identity["id"],
-            "cluster_id": lease["cluster_id"],
-            "api_server": endpoint,
-            "context": lease["kubernetes_context"],
-            "contents_recorded": False,
-        },
+        "provider_metadata": {**expected, "identity_id": identity["id"]},
     }
+    authenticate_resource(lease, item)
     lease["resources"].append(item)
     operation["status"] = "CREATED" if operation["status"] == "INTENT_RECORDED" else "RECONCILED_AFTER_INTERRUPTION"
     operation["completed_at_utc"] = common.iso(common.utc_now())
@@ -1086,6 +1738,105 @@ def node_belongs_to_group(node: dict[str, Any], node_group_id: str) -> bool:
     return node_group_id in label_values or str(metadata.get("name", "")).startswith(node_group_id)
 
 
+def provider_instance_group_id(instance: dict[str, Any]) -> str | None:
+    """Extract only documented/provider-emitted exact node-group ownership markers."""
+
+    metadata = instance.get("metadata", {})
+    labels = metadata.get("labels", {}) or {}
+    for key in (
+        "nebius.com/node-group-id",
+        "mk8s.nebius.com/node-group-id",
+        "node-group-id",
+    ):
+        if labels.get(key):
+            return str(labels[key])
+    for container in (instance.get("spec", {}), instance.get("status", {})):
+        for key in ("node_group_id", "nodegroup_id", "managed_kubernetes_node_group_id"):
+            if container.get(key):
+                return str(container[key])
+    return None
+
+
+def reconcile_provider_nodes(
+    lease: dict[str, Any],
+    cli: common.NebiusCLI,
+    node_group: dict[str, Any],
+    node_kind: str,
+) -> list[dict[str, Any]]:
+    """Discover provider Compute children without depending on kubeconfig access."""
+
+    verify_resource(lease, node_group)
+    values = cli.run(
+        [*RESOURCE_COMMANDS["node"]["list"], "--parent-id", lease["project_id"], "--all"]
+    )
+    matching = [
+        value
+        for value in values.get("items", [])
+        if provider_instance_group_id(value) == node_group["id"]
+    ]
+    current_ids = {common.metadata_id(value, "node") for value in matching}
+    for old in [
+        item
+        for item in lease["resources"]
+        if item["kind"] == node_kind
+        and item.get("managed_by_resource_id") == node_group["id"]
+        and not item.get("deleted_at")
+        and item["id"] not in current_ids
+    ]:
+        if cli.run(get_args(node_kind, old["id"]), allow_not_found=True) is None:
+            verified = common.iso(precise_utc_now())
+            old["deleted_at"] = verified
+            old["absence_verified_at"] = verified
+            old["cleanup_evidence"] = (
+                f"{get_args(node_kind, old['id'])} -> NotFound during replacement reconciliation"
+            )
+            event(
+                lease,
+                "resource.provider_child.replaced",
+                "PASS",
+                kind=node_kind,
+                resource_id=old["id"],
+                managed_by_resource_id=node_group["id"],
+            )
+    resources = []
+    for value in matching:
+        metadata = value.get("metadata", {})
+        resource_id = common.metadata_id(value, "node")
+        created = metadata.get("created_at")
+        if created and common.parse_utc(created) < common.parse_utc(node_group["created_at"]):
+            raise common.BrokerError("provider node predates its signed node-group receipt")
+        compute_spec = value.get("spec", {})
+        profile_key = "gpu_node_group" if node_kind == "gpu_node" else "system_node_group"
+        profile = lease["profile_snapshot"][profile_key]
+        compute_resources = compute_spec.get("resources", {})
+        if (
+            compute_resources.get("platform") != profile["platform"]
+            or compute_resources.get("preset") != profile["preset"]
+        ):
+            raise common.BrokerError("provider child Compute shape differs from signed node-group plan")
+        if node_kind == "gpu_node" and compute_spec.get("preemptible") != {}:
+            raise common.BrokerError("provider child GPU node is not preemptible")
+        if node_kind == "system_node" and "preemptible" in compute_spec:
+            raise common.BrokerError("provider child system node unexpectedly is preemptible")
+        resource = add_provider_resource(
+            lease,
+            kind=node_kind,
+            resource_id=resource_id,
+            name=metadata.get("name", resource_id),
+            managed_by_resource_id=node_group["id"],
+            created_at=created,
+            parent_id=metadata.get("parent_id"),
+            metadata={
+                "node_group_id": node_group["id"],
+                "compute_spec": compute_spec,
+                "compute_spec_sha256": common.sha256_json(compute_spec),
+                "discovery": "compute.instance.list",
+            },
+        )
+        resources.append(resource)
+    return resources
+
+
 def reconcile_nodes(
     lease: dict[str, Any], kubectl: KubeCTL, node_group: dict[str, Any], node_kind: str
 ) -> list[dict[str, Any]]:
@@ -1100,6 +1851,13 @@ def reconcile_nodes(
         raise common.BrokerError(
             f"expected {expected} exact Kubernetes nodes for {group_id}, observed {len(matching)}"
         )
+    provider_resources = {
+        item["id"]: item
+        for item in lease["resources"]
+        if item["kind"] == node_kind
+        and item.get("managed_by_resource_id") == group_id
+        and not item.get("deleted_at")
+    }
     resources = []
     for node in matching:
         ready = next(
@@ -1116,25 +1874,11 @@ def reconcile_nodes(
         compute_id = compute_id_from_provider_id(provider_id)
         if not compute_id:
             raise common.BrokerError("Kubernetes node lacks an exact Nebius Compute provider ID")
-        resource = add_provider_resource(
-            lease,
-            kind=node_kind,
-            resource_id=compute_id,
-            name=node.get("metadata", {}).get("name", compute_id),
-            managed_by_resource_id=group_id,
-            created_at=node.get("metadata", {}).get("creationTimestamp"),
-            parent_id=lease["project_id"],
-            metadata={
-                "kubernetes_uid": node.get("metadata", {}).get("uid"),
-                "provider_id": provider_id,
-                "ready": True,
-                "labels": {
-                    key: value
-                    for key, value in (node.get("metadata", {}).get("labels", {}) or {}).items()
-                    if key.startswith(("nebius", "mk8s", "node.kubernetes.io", "nvidia.com"))
-                },
-            },
-        )
+        resource = provider_resources.get(compute_id)
+        if not resource:
+            raise common.BrokerError(
+                "Kubernetes node was not first reconciled through the provider Compute API"
+            )
         resources.append(resource)
     return resources
 
@@ -1150,6 +1894,10 @@ def capture_support_isolation(lease: dict[str, Any], cli: common.NebiusCLI) -> d
         [*RESOURCE_COMMANDS["system_node_group"]["get"], resources["system_node_group"]["id"]]
     )
     template = system.get("spec", {}).get("template", {})
+    control_plane_spec = cluster.get("spec", {}).get("control_plane", {})
+    control_plane_endpoints = cluster.get("status", {}).get("control_plane", {}).get(
+        "endpoints", {}
+    )
     interfaces = template.get("network_interfaces", [])
     failures = []
     if network.get("spec", {}).get("ipv4_public_pools", {}).get("pools", []):
@@ -1158,6 +1906,15 @@ def capture_support_isolation(lease: dict[str, Any], cli: common.NebiusCLI) -> d
         failures.append("task security group is not deny-all")
     if cluster.get("status", {}).get("state") != "RUNNING":
         failures.append("cluster is not RUNNING")
+    if "endpoints" in control_plane_spec or control_plane_endpoints.get("public_endpoint"):
+        failures.append("cluster exposes or requests a public control-plane endpoint")
+    if "karpenter" in control_plane_spec:
+        failures.append("disabled Karpenter must be omitted from provider schema")
+    if (
+        control_plane_endpoints.get("internal_endpoint")
+        or control_plane_endpoints.get("private_endpoint")
+    ) != lease["api_server"]:
+        failures.append("cluster private endpoint differs from kubeconfig authority")
     if system.get("status", {}).get("state") != "RUNNING" or int(
         system.get("status", {}).get("ready_node_count", 0)
     ) != 1:
@@ -1182,7 +1939,8 @@ def capture_support_isolation(lease: dict[str, Any], cli: common.NebiusCLI) -> d
             "id": resources["cluster"]["id"],
             "state": cluster.get("status", {}).get("state"),
             "version": cluster.get("status", {}).get("control_plane", {}).get("version"),
-            "public_control_plane_endpoint": lease["api_server"],
+            "private_control_plane_endpoint": lease["api_server"],
+            "public_control_plane_endpoint": None,
             "public_worker_ips": [],
             "karpenter": False,
         },
@@ -1229,6 +1987,7 @@ def capture_support_isolation(lease: dict[str, Any], cli: common.NebiusCLI) -> d
     }
 
 
+@lease_mutation_locked
 def provision_control_plane(
     lease_path: Path,
     registry_path: Path,
@@ -1238,6 +1997,20 @@ def provision_control_plane(
     lease = common.load_json(lease_path)
     assert_integrity(lease)
     if lease["state"] in {"SUPPORT_ACTIVE_NO_GPU_NODE_GROUP", "ACTIVE", "ACTIVE_ATTEMPT"}:
+        assert_frozen_authority(lease, cli)
+        for group_kind, node_kind in (
+            ("system_node_group", "system_node"),
+            ("gpu_node_group", "gpu_node"),
+        ):
+            for group in [
+                item
+                for item in lease["resources"]
+                if item["kind"] == group_kind and not item.get("deleted_at")
+            ]:
+                reconcile_provider_nodes(lease, cli, group, node_kind)
+                if Path(lease["kubeconfig_path"]).exists():
+                    reconcile_nodes(lease, kubectl, group, node_kind)
+        save(lease_path, registry_path, lease)
         return lease
     if lease["state"] not in {"PLANNED", "CONTROL_PLANE_CREATING", "CONTROL_PLANE_FAILED"}:
         raise common.BrokerError(f"control-plane provisioning is not admitted from {lease['state']}")
@@ -1401,9 +2174,7 @@ def provision_control_plane(
             spec={
                 "control_plane": {
                     "audit_logs": {},
-                    "endpoints": {"public_endpoint": {}},
                     "etcd_cluster_size": 3,
-                    "karpenter": False,
                     "subnet_id": subnet["id"],
                     "version": request["cluster_version"],
                 },
@@ -1439,7 +2210,7 @@ def provision_control_plane(
                         "preset": system_profile["preset"],
                     },
                     "boot_disk": {
-                        "size_gibibytes": system_profile["boot_disk_gib"],
+                        "size_bytes": int(system_profile["boot_disk_gib"]) * GIB,
                         "block_size_bytes": 4096,
                         "type": "NETWORK_SSD",
                     },
@@ -1468,6 +2239,12 @@ def provision_control_plane(
         lease["readiness_timestamps"]["system_node_group_ready_at_utc"] = common.iso(
             common.utc_now()
         )
+        system_nodes = reconcile_provider_nodes(
+            lease, cli, system_group, "system_node"
+        )
+        if len(system_nodes) != system_profile["node_count"]:
+            raise common.BrokerError("provider API did not expose the exact system node child")
+        save(lease_path, registry_path, lease)
         ensure_kubeconfig(lease_path, registry_path, lease, cli, kubectl, cluster_value)
         reconcile_nodes(lease, kubectl, system_group, "system_node")
         reconcile_network_children(lease, cli)
@@ -1507,9 +2284,15 @@ def validate_demand(value: dict[str, Any], lease: dict[str, Any]) -> dict[str, A
             "schema_version",
             "lease_id",
             "attempt_id",
+            "accepted_event_path",
             "accepted_event_sha256",
-            "t0_observed_at_utc",
-            "t0_observed_monotonic_ns",
+            "ledger_id",
+            "ledger_sequence",
+            "trace_id",
+            "request_id",
+            "event_id",
+            "model_id",
+            "input_payload_sha256",
         },
         "demand",
     )
@@ -1521,16 +2304,133 @@ def validate_demand(value: dict[str, Any], lease: dict[str, Any]) -> dict[str, A
         raise common.BrokerError("attempt_id contains unsafe characters")
     if not HEX64.fullmatch(str(value["accepted_event_sha256"])):
         raise common.BrokerError("accepted_event_sha256 must be a SHA-256 digest")
-    accepted_at = common.parse_utc(str(value["t0_observed_at_utc"]))
-    monotonic_ns = int(value["t0_observed_monotonic_ns"])
-    if monotonic_ns <= 0:
-        raise common.BrokerError("t0_observed_monotonic_ns must be positive")
+    if not HEX64.fullmatch(str(value["input_payload_sha256"])):
+        raise common.BrokerError("input_payload_sha256 must be a SHA-256 digest")
+    for field in ("ledger_id", "trace_id", "request_id", "event_id", "model_id"):
+        if not isinstance(value[field], str) or not value[field]:
+            raise common.BrokerError(f"{field} must be a non-empty string")
+    if int(value["ledger_sequence"]) < 0:
+        raise common.BrokerError("ledger_sequence must be nonnegative")
+    path = Path(str(value["accepted_event_path"]))
+    if not path.is_absolute():
+        raise common.BrokerError("accepted_event_path must be absolute")
     normalized = dict(value)
-    normalized["t0_observed_at_utc"] = common.iso(accepted_at)
-    normalized["t0_observed_monotonic_ns"] = monotonic_ns
+    normalized["accepted_event_path"] = str(path)
+    normalized["ledger_sequence"] = int(value["ledger_sequence"])
     return normalized
 
 
+def current_boot_id() -> str:
+    try:
+        return Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    except OSError as exc:
+        raise common.BrokerError("cannot bind accepted-event monotonic clock to host boot") from exc
+
+
+def read_bound_accepted_event(demand: dict[str, Any], lease: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    path = Path(demand["accepted_event_path"])
+    try:
+        details = path.lstat()
+    except OSError as exc:
+        raise common.BrokerError("accepted-event ledger is missing") from exc
+    if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
+        raise common.BrokerError("accepted-event ledger must be a regular non-symlink file")
+    if path.resolve() != path:
+        raise common.BrokerError("accepted-event ledger path cannot traverse symlinks")
+    if details.st_uid != os.getuid() or stat.S_IMODE(details.st_mode) & 0o077:
+        raise common.BrokerError("accepted-event ledger owner/mode is not durable private authority")
+    raw = path.read_bytes()
+    matches: list[tuple[int, dict[str, Any]]] = []
+    parsed: list[dict[str, Any]] = []
+    for index, line in enumerate(raw.splitlines()):
+        if not line.strip():
+            continue
+        try:
+            item = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise common.BrokerError("accepted-event ledger contains malformed JSONL") from exc
+        if not isinstance(item, dict):
+            raise common.BrokerError("accepted-event ledger contains a non-object row")
+        parsed.append(item)
+        if common.sha256_json(item) == demand["accepted_event_sha256"]:
+            matches.append((index, item))
+    if len(matches) != 1:
+        raise common.BrokerError("accepted-event canonical digest is missing or ambiguous")
+    line_index, accepted = matches[0]
+    exact_identity = {
+        "ledger_id": demand["ledger_id"],
+        "ledger_sequence": demand["ledger_sequence"],
+        "trace_id": demand["trace_id"],
+        "request_id": demand["request_id"],
+        "attempt_id": demand["attempt_id"],
+        "event_id": demand["event_id"],
+    }
+    if any(accepted.get(key) != expected for key, expected in exact_identity.items()):
+        raise common.BrokerError("accepted event does not join the exact demand identity")
+    if accepted.get("schema") != BASELINE_EVENT_SCHEMA or accepted.get("event_type") != "request.accepted":
+        raise common.BrokerError("accepted-event source is not a canonical request.accepted event")
+    if accepted.get("attempt_sequence") != 0:
+        raise common.BrokerError("request.accepted must be the first event for its attempt")
+    earlier_same_attempt = [
+        item
+        for item in parsed
+        if item is not accepted
+        and item.get("attempt_id") == demand["attempt_id"]
+        and int(item.get("ledger_sequence", 2**63 - 1)) < demand["ledger_sequence"]
+    ]
+    if earlier_same_attempt:
+        raise common.BrokerError("accepted event is stale: an earlier attempt event exists")
+    data = accepted.get("data", {})
+    if data.get("boundary") != T0_BOUNDARY:
+        raise common.BrokerError("accepted event has the wrong external T0 boundary")
+    target = data.get("target", {})
+    request_input = data.get("input", {})
+    if target.get("model_id") != demand["model_id"]:
+        raise common.BrokerError("accepted event model identity differs from demand")
+    if request_input.get("payload_sha256") != demand["input_payload_sha256"]:
+        raise common.BrokerError("accepted event input identity differs from demand")
+    if lease["request"]["model_input_sha256s"].get(demand["model_id"]) != demand[
+        "input_payload_sha256"
+    ]:
+        raise common.BrokerError("accepted event model/input pair is outside the frozen lease")
+    recorder = accepted.get("recorder", {})
+    boot_id = current_boot_id()
+    if (
+        recorder.get("recorder_id") != lease["request"]["accepted_event_recorder_id"]
+        or recorder.get("boot_id") != boot_id
+        or recorder.get("clock_id") != f"linux-boottime:{boot_id}"
+    ):
+        raise common.BrokerError("accepted event clock/recorder authority differs from this host")
+    accepted_at = common.parse_utc(str(accepted.get("observed_at_utc")))
+    accepted_mono = int(accepted.get("observed_monotonic_ns", 0))
+    if accepted_mono <= 0:
+        raise common.BrokerError("accepted event monotonic clock is invalid")
+    receipt = {
+        "path": str(path.resolve()),
+        "device": details.st_dev,
+        "inode": details.st_ino,
+        "mode": format(stat.S_IMODE(details.st_mode), "04o"),
+        "size_bytes": len(raw),
+        "mtime_ns": details.st_mtime_ns,
+        "file_sha256_at_read": hashlib.sha256(raw).hexdigest(),
+        "line_index": line_index,
+        "canonical_event_sha256": demand["accepted_event_sha256"],
+        "ledger_id": accepted["ledger_id"],
+        "ledger_sequence": accepted["ledger_sequence"],
+        "event_id": accepted["event_id"],
+        "request_id": accepted["request_id"],
+        "trace_id": accepted["trace_id"],
+        "attempt_id": accepted["attempt_id"],
+        "model_id": demand["model_id"],
+        "input_payload_sha256": demand["input_payload_sha256"],
+        "recorder": recorder,
+        "observed_at_utc": common.iso(accepted_at),
+        "observed_monotonic_ns": accepted_mono,
+    }
+    return accepted, receipt
+
+
+@lease_mutation_locked
 def record_demand(
     lease_path: Path, registry_path: Path, demand_path: Path
 ) -> dict[str, Any]:
@@ -1539,6 +2439,7 @@ def record_demand(
     if lease["request"]["campaign_arm"] != "B_new_preemptible_node":
         raise common.BrokerError("post-T0 demand is valid only for B_new_preemptible_node")
     demand = validate_demand(common.load_json(demand_path), lease)
+    _accepted_event, source_receipt = read_bound_accepted_event(demand, lease)
     demand_hash = common.sha256_json(demand)
     if lease.get("demand"):
         if lease["demand"]["demand_sha256"] != demand_hash:
@@ -1555,24 +2456,33 @@ def record_demand(
         raise common.BrokerError("attempt_id was already consumed; a retry must keep its active demand")
     received_at = precise_utc_now()
     received_mono = time.monotonic_ns()
-    accepted_at = common.parse_utc(demand["t0_observed_at_utc"])
+    accepted_at = common.parse_utc(source_receipt["observed_at_utc"])
+    accepted_mono = source_receipt["observed_monotonic_ns"]
     if accepted_at > received_at:
         raise common.BrokerError("demand appears to precede its accepted T0 wall clock")
-    if demand["t0_observed_monotonic_ns"] > received_mono:
+    if accepted_mono > received_mono:
         raise common.BrokerError("demand appears to precede its accepted T0 monotonic clock")
     support_event = next(
         (item for item in reversed(lease["lifecycle_events"]) if item["event"] == "support.ready"),
         None,
     )
-    if not support_event or accepted_at < common.parse_utc(support_event["observed_at_utc"]):
+    if (
+        not support_event
+        or accepted_at < common.parse_utc(support_event["observed_at_utc"])
+        or accepted_mono < int(support_event["observed_monotonic_ns"])
+    ):
         raise common.BrokerError("request T0 predates the target-neutral support-ready boundary")
     lease["demand"] = {
         **demand,
+        "accepted_event_source_receipt": source_receipt,
+        "t0_observed_at_utc": source_receipt["observed_at_utc"],
+        "t0_observed_monotonic_ns": accepted_mono,
         "demand_sha256": demand_hash,
         "demand_received_at_utc": common.iso(received_at),
         "demand_received_monotonic_ns": received_mono,
         "causal_order_pass": True,
     }
+    authenticate_demand(lease)
     attempt = {
         "attempt_id": demand["attempt_id"],
         "demand_sha256": demand_hash,
@@ -1581,8 +2491,9 @@ def record_demand(
             "schema_version": "catalog-switch-kubernetes-node-demand-receipt/v1",
             "attempt_id": demand["attempt_id"],
             "accepted_event_sha256": demand["accepted_event_sha256"],
-            "t0_observed_at_utc": demand["t0_observed_at_utc"],
-            "t0_observed_monotonic_ns": demand["t0_observed_monotonic_ns"],
+            "accepted_event_source_receipt": source_receipt,
+            "t0_observed_at_utc": source_receipt["observed_at_utc"],
+            "t0_observed_monotonic_ns": accepted_mono,
             "demand_received_at_utc": common.iso(received_at),
             "demand_received_monotonic_ns": received_mono,
             "capacity_advice_started_at_utc": None,
@@ -1743,7 +2654,7 @@ def verify_gpu_group(
         failures.append("GPU platform differs from plan")
     if template.get("resources", {}).get("preset") != profile["preset"]:
         failures.append("GPU preset differs from plan")
-    if "preemptible" not in template:
+    if template.get("preemptible") != {}:
         failures.append("GPU node group is not preemptible")
     if template.get("service_account_id") != service_account_id:
         failures.append("GPU node group does not use the task-owned service account")
@@ -1755,6 +2666,72 @@ def verify_gpu_group(
         raise common.BrokerError("GPU isolation proof failed: " + "; ".join(failures))
 
 
+def attest_gpu_node(
+    lease: dict[str, Any],
+    cli: common.NebiusCLI,
+    kubectl: KubeCTL,
+    node_group: dict[str, Any],
+    provider_nodes: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if len(provider_nodes) != 1:
+        raise common.BrokerError("live GPU attestation requires exactly one provider node")
+    path = Path(lease["kubeconfig_path"])
+    nodes = kubectl.run(path, ["get", "nodes"])
+    matching = [
+        item for item in nodes.get("items", []) if node_belongs_to_group(item, node_group["id"])
+    ]
+    if len(matching) != 1:
+        raise common.BrokerError("live GPU attestation found an ambiguous Kubernetes node")
+    node = matching[0]
+    provider_id = node.get("spec", {}).get("providerID", "")
+    compute_id = compute_id_from_provider_id(provider_id)
+    if compute_id != provider_nodes[0]["id"]:
+        raise common.BrokerError("Kubernetes/provider node identities do not join")
+    labels = node.get("metadata", {}).get("labels", {}) or {}
+    allocatable = node.get("status", {}).get("allocatable", {}) or {}
+    profile = lease["profile_snapshot"]["gpu_node_group"]
+    expected_product = profile["kubernetes_gpu_product_label"]
+    if labels.get("nvidia.com/gpu.product") != expected_product:
+        raise common.BrokerError("live Kubernetes gpu.product differs from the frozen profile")
+    if int(allocatable.get("nvidia.com/gpu", 0)) != profile["gpu_count_per_node"]:
+        raise common.BrokerError("live Kubernetes allocatable GPU count differs from the plan")
+    instance = cli.run([*RESOURCE_COMMANDS["node"]["get"], compute_id])
+    if provider_instance_group_id(instance) != node_group["id"]:
+        raise common.BrokerError("live Compute node is not owned by the exact node group")
+    instance_spec = instance.get("spec", {})
+    instance_resources = instance_spec.get("resources", {})
+    if (
+        instance_resources.get("platform") != profile["platform"]
+        or instance_resources.get("preset") != profile["preset"]
+        or instance_spec.get("preemptible") != {}
+    ):
+        raise common.BrokerError("live Compute GPU shape/preemptible state differs from plan")
+    ready = next(
+        (
+            condition.get("status")
+            for condition in node.get("status", {}).get("conditions", [])
+            if condition.get("type") == "Ready"
+        ),
+        None,
+    )
+    if ready != "True":
+        raise common.BrokerError("live GPU node is not Ready")
+    return {
+        "verified_at_utc": common.iso(precise_utc_now()),
+        "node_group_id": node_group["id"],
+        "node_id": compute_id,
+        "provider_id": provider_id,
+        "kubernetes_uid": node.get("metadata", {}).get("uid"),
+        "gpu_product_label": expected_product,
+        "allocatable_nvidia_com_gpu": profile["gpu_count_per_node"],
+        "platform": profile["platform"],
+        "preset": profile["preset"],
+        "preemptible": True,
+        "compute_spec_sha256": common.sha256_json(instance_spec),
+    }
+
+
+@lease_mutation_locked
 def provision_gpu_node_group(
     lease_path: Path,
     registry_path: Path,
@@ -1763,8 +2740,25 @@ def provision_gpu_node_group(
 ) -> dict[str, Any]:
     lease = common.load_json(lease_path)
     assert_integrity(lease)
+    assert_frozen_authority(lease, cli)
     arm = lease["request"]["campaign_arm"]
     if lease["state"] in {"ACTIVE", "ACTIVE_ATTEMPT"}:
+        group = find_resource(lease, "gpu_node_group")
+        if not group:
+            raise common.BrokerError("active lease lacks a signed GPU node-group row")
+        provider_nodes = reconcile_provider_nodes(lease, cli, group, "gpu_node")
+        save(lease_path, registry_path, lease)
+        reconcile_nodes(lease, kubectl, group, "gpu_node")
+        attestation = attest_gpu_node(lease, cli, kubectl, group, provider_nodes)
+        attempt = (
+            current_attempt(lease)
+            if arm == "B_new_preemptible_node"
+            else next(item for item in lease["attempts"] if item["attempt_id"] == "prepared-node")
+        )
+        attempt["receipt"].setdefault("replacement_reconciliations", []).append(attestation)
+        attempt["receipt"]["live_gpu_attestation"] = attestation
+        lease["node_ids"] = [attestation["node_id"]]
+        save(lease_path, registry_path, lease)
         return lease
     if arm == "B_new_preemptible_node":
         if lease["state"] not in {"DEMAND_RECORDED", "GPU_CAPACITY_FAILED", "GPU_CREATE_FAILED"}:
@@ -1865,7 +2859,7 @@ def provision_gpu_node_group(
                     ],
                     "resources": {"platform": profile["platform"], "preset": profile["preset"]},
                     "boot_disk": {
-                        "size_gibibytes": profile["boot_disk_gib"],
+                        "size_bytes": int(profile["boot_disk_gib"]) * GIB,
                         "block_size_bytes": 4096,
                         "type": "NETWORK_SSD",
                     },
@@ -1900,18 +2894,25 @@ def provision_gpu_node_group(
         verify_gpu_group(
             lease, group_value, resources["service_account"]["id"], resources["subnet"]["id"]
         )
+        provider_nodes = reconcile_provider_nodes(lease, cli, node_group, "gpu_node")
+        if len(provider_nodes) != 1:
+            raise common.BrokerError("provider API did not expose exactly one GPU node child")
+        save(lease_path, registry_path, lease)
         nodes = reconcile_nodes(lease, kubectl, node_group, "gpu_node")
         if len(nodes) != 1:
             raise common.BrokerError("GPU node group did not yield exactly one node identity")
         ready_at = precise_utc_now()
+        attestation = attest_gpu_node(lease, cli, kubectl, node_group, provider_nodes)
         attempt["receipt"].update(
             {
                 "node_group_id": node_group["id"],
                 "node_id": nodes[0]["id"],
                 "node_ready_at_utc": common.iso(ready_at),
                 "gpu_product": profile["gpu_product"],
-                "gpu_count": 1,
+                "gpu_count": profile["gpu_count_per_node"],
                 "preemptible": True,
+                "live_gpu_attestation": attestation,
+                "replacement_reconciliations": [],
                 "causal_order_pass": (
                     True
                     if arm == "B_new_preemptible_node"
@@ -1934,10 +2935,12 @@ def provision_gpu_node_group(
             "platform": profile["platform"],
             "preset": profile["preset"],
             "gpu_product": profile["gpu_product"],
-            "gpu_count": 1,
+            "gpu_product_label": profile["kubernetes_gpu_product_label"],
+            "gpu_count": profile["gpu_count_per_node"],
             "preemptible": True,
             "public_worker_ips": [],
             "attempt_id": attempt["attempt_id"],
+            "live_attestation": attestation,
         }
         lease["state"] = "ACTIVE" if arm == "A_prepared_node" else "ACTIVE_ATTEMPT"
         event(
@@ -2045,6 +3048,7 @@ def reconcile_create_intents_for_cleanup(
     cli: common.NebiusCLI,
 ) -> None:
     for operation in lease["resource_create_operations"]:
+        verify_operation(lease, operation)
         if operation.get("resource_id") or operation["status"] not in {
             "INTENT_RECORDED",
             "CREATE_FAILED",
@@ -2053,12 +3057,44 @@ def reconcile_create_intents_for_cleanup(
         kind = operation["kind"]
         if kind == "kubeconfig_authority":
             path = Path(lease["kubeconfig_path"])
-            if not path.exists():
+            staging = path.with_name(
+                f".{path.name}.{lease['plan_sha256'][:16]}.broker-staging"
+            )
+            expected = operation.get("kubeconfig_content_authority")
+            signature = operation.get("kubeconfig_content_signature")
+            if not path.exists() and not staging.exists():
                 operation["status"] = "ABSENCE_VERIFIED_AFTER_INTERRUPTION"
                 operation["completed_at_utc"] = common.iso(precise_utc_now())
+                operation["reconciliation_evidence"] = (
+                    f"lstat({path}) and lstat({staging}) -> absent"
+                )
+                record_operation_absence(
+                    lease, operation, operation["reconciliation_evidence"]
+                )
                 continue
-            validate_kubeconfig_file(path)
-            digest = kubeconfig_file_sha256(path)
+            if not expected or not signature:
+                operation["status"] = "AMBIGUOUS_FOREIGN_PRESERVED"
+                operation["failure"] = "file exists without signed kubeconfig content authority"
+                save(lease_path, registry_path, lease)
+                raise common.BrokerError(
+                    "interrupted kubeconfig file has no signed content authority; preserve it"
+                )
+            verify_signature("kubeconfig-content", lease, expected, signature)
+            if path.exists() and staging.exists():
+                operation["status"] = "AMBIGUOUS_FOREIGN_PRESERVED"
+                operation["failure"] = "both final and staging kubeconfig paths exist"
+                save(lease_path, registry_path, lease)
+                raise common.BrokerError(
+                    "both kubeconfig paths exist after interruption; preserve both"
+                )
+            owned_path = path if path.exists() else staging
+            verify_kubeconfig_content(
+                owned_path,
+                expected if owned_path == path else {**expected, "path": str(staging)},
+            )
+            if owned_path == staging:
+                os.replace(staging, path)
+            digest = expected["sha256"]
             item = {
                 "kind": "kubeconfig_authority",
                 "name": path.name,
@@ -2069,18 +3105,21 @@ def reconcile_create_intents_for_cleanup(
                 "depends_on": operation.get("depends_on", []),
                 "created_at": operation["started_at_utc"],
                 "create_operation_id": operation["operation_id"],
+                "deletion_mode": None,
+                "managed_by_resource_id": None,
+                "intended_spec_sha256": operation["spec_sha256"],
+                "provider_spec_sha256": operation["spec_sha256"],
                 "desired_final_state": "ABSENT",
                 "deleted_at": None,
                 "absence_verified_at": None,
                 "cleanup_evidence": None,
                 "provider_metadata": {
-                    "path": str(path),
-                    "sha256": digest,
-                    "mode": "0600",
-                    "contents_recorded": False,
+                    **expected,
+                    "identity_id": lease["request"]["authority_identity"]["id"],
                     "reconciled_for_cleanup": True,
                 },
             }
+            authenticate_resource(lease, item)
             lease["resources"].append(item)
             operation["resource_id"] = item["id"]
             operation["status"] = "RECONCILED_FOR_CLEANUP"
@@ -2098,8 +3137,18 @@ def reconcile_create_intents_for_cleanup(
         if not exact:
             operation["status"] = "ABSENCE_VERIFIED_AFTER_INTERRUPTION"
             operation["completed_at_utc"] = common.iso(precise_utc_now())
+            operation["reconciliation_evidence"] = (
+                f"{RESOURCE_COMMANDS[kind]['list']} parent={operation['parent_id']} "
+                f"name={operation['name']} -> no exact match"
+            )
+            record_operation_absence(
+                lease, operation, operation["reconciliation_evidence"]
+            )
             continue
         validate_owned_metadata(lease, kind, exact[0], operation["name"], operation["parent_id"])
+        project_requested_spec(
+            exact[0].get("spec", {}), operation["requested_spec"]
+        )
         created = exact[0].get("metadata", {}).get("created_at")
         if created and common.parse_utc(created) < common.parse_utc(operation["started_at_utc"]):
             raise common.BrokerError(f"interrupted {kind} candidate predates intent; preserve it")
@@ -2110,6 +3159,7 @@ def reconcile_create_intents_for_cleanup(
             exact[0],
             operation.get("depends_on", []),
             operation["operation_id"],
+            operation["requested_spec"],
         )
         operation["resource_id"] = resource["id"]
         operation["status"] = "RECONCILED_FOR_CLEANUP"
@@ -2126,12 +3176,23 @@ def delete_one(
 ) -> None:
     kind = resource["kind"]
     resource_id = resource["id"]
+    verify_resource(lease, resource)
+    delete_operation = resource.setdefault(
+        "delete_operation",
+        {
+            "status": "INTENT_RECORDED",
+            "started_at_utc": common.iso(precise_utc_now()),
+            "attempt_count": 0,
+            "last_failure": None,
+        },
+    )
+    if delete_operation["status"] != "INTENT_RECORDED":
+        delete_operation["status"] = "INTENT_RECORDED"
+    save(lease_path, registry_path, lease)
     if kind == "kubeconfig_authority":
         path = Path(resource["provider_metadata"]["path"])
         if path.exists():
-            validate_kubeconfig_file(path)
-            if kubeconfig_file_sha256(path) != resource["provider_metadata"]["sha256"]:
-                raise common.BrokerError("kubeconfig changed outside the lease; preserve it")
+            verify_kubeconfig_content(path, resource["provider_metadata"])
             path.unlink()
         if path.exists():
             raise common.BrokerError("kubeconfig authority still exists after exact unlink")
@@ -2144,18 +3205,61 @@ def delete_one(
             f"{resource['managed_by_resource_id']} deletion"
         )
     else:
-        cli.run(delete_args(kind, resource_id), json_output=False, timeout=1200)
+        operation = operation_for(lease, resource["create_operation_id"])
+        if not operation:
+            raise common.BrokerError("signed resource row lacks its create intent; preserve it")
+        verify_operation(lease, operation)
+        live = cli.run(get_args(kind, resource_id), allow_not_found=True, timeout=60)
+        if live is not None:
+            validate_owned_metadata(
+                lease, kind, live, resource["name"], resource["parent_id"]
+            )
+            projected = project_requested_spec(
+                live.get("spec", {}), operation["requested_spec"]
+            )
+            if common.sha256_json(projected) != resource["provider_spec_sha256"]:
+                raise common.BrokerError("live provider spec differs from signed resource row")
+            delete_operation["attempt_count"] += 1
+            save(lease_path, registry_path, lease)
+            try:
+                cli.run(delete_args(kind, resource_id), json_output=False, timeout=1200)
+            except Exception as exc:
+                if cli.run(get_args(kind, resource_id), allow_not_found=True, timeout=60) is not None:
+                    delete_operation["last_failure"] = str(exc)[:1500]
+                    save(lease_path, registry_path, lease)
+                    raise
         if not wait_absent(cli, kind, resource_id, timeout_seconds=1200):
             raise common.BrokerError("resource is still present after exact-ID deletion")
-        evidence = f"{delete_args(kind, resource_id)} then {get_args(kind, resource_id)} -> NotFound"
+        evidence = (
+            f"pre-delete {get_args(kind, resource_id)} ownership verified when present; "
+            f"{delete_args(kind, resource_id)} at most once per observed presence; "
+            f"post-delete {get_args(kind, resource_id)} -> NotFound"
+        )
     verified = common.iso(precise_utc_now())
     resource["deleted_at"] = verified
     resource["absence_verified_at"] = verified
     resource["cleanup_evidence"] = evidence
+    delete_operation["status"] = "ABSENCE_VERIFIED"
+    delete_operation["completed_at_utc"] = verified
     event(lease, "resource.absence.verified", "PASS", kind=kind, resource_id=resource_id)
     save(lease_path, registry_path, lease)
 
 
+def dependency_closure(lease: dict[str, Any], resource: dict[str, Any]) -> set[str]:
+    by_id = {item["id"]: item for item in lease["resources"]}
+    pending = list(resource.get("depends_on", []))
+    result: set[str] = set()
+    while pending:
+        resource_id = pending.pop()
+        if resource_id in result:
+            continue
+        result.add(resource_id)
+        if resource_id in by_id:
+            pending.extend(by_id[resource_id].get("depends_on", []))
+    return result
+
+
+@lease_mutation_locked
 def cleanup_attempt(
     lease_path: Path,
     registry_path: Path,
@@ -2170,6 +3274,7 @@ def cleanup_attempt(
         raise common.BrokerError("attempt cleanup is valid only for B_new_preemptible_node")
     attempt = current_attempt(lease)
     if execute:
+        assert_frozen_authority(lease, cli)
         reconcile_create_intents_for_cleanup(lease_path, registry_path, lease, cli)
         lease = common.load_json(lease_path)
         attempt = current_attempt(lease)
@@ -2183,16 +3288,13 @@ def cleanup_attempt(
             and item.get("managed_by_resource_id") == live_group["id"]
         ]
         if live_group and not live_nodes:
-            group_value = cli.run(
-                [*RESOURCE_COMMANDS["gpu_node_group"]["get"], live_group["id"]]
+            live_nodes = reconcile_provider_nodes(
+                lease, cli, live_group, "gpu_node"
             )
-            if int(group_value.get("status", {}).get("node_count", 0)):
-                live_nodes = reconcile_nodes(
-                    lease, kubectl or KubeCTL(), live_group, "gpu_node"
-                )
-                attempt["receipt"]["node_group_id"] = live_group["id"]
+            attempt["receipt"]["node_group_id"] = live_group["id"]
+            if live_nodes:
                 attempt["receipt"]["node_id"] = live_nodes[0]["id"]
-                save(lease_path, registry_path, lease)
+            save(lease_path, registry_path, lease)
     node_group_id = attempt["receipt"].get("node_group_id")
     pending = [
         item
@@ -2234,6 +3336,7 @@ def cleanup_attempt(
                 error=str(exc)[:1000],
             )
             save(lease_path, registry_path, lease)
+            break
     if failures:
         lease["state"] = "ATTEMPT_CLEANUP_FAILED"
         attempt["state"] = "CLEANUP_FAILED"
@@ -2241,6 +3344,27 @@ def cleanup_attempt(
         raise common.BrokerError("attempt cleanup incomplete: " + "; ".join(failures))
     verified_at = common.iso(precise_utc_now())
     attempt["state"] = "RELEASED"
+    group_ids = {
+        item["id"]
+        for item in lease["resources"]
+        if item["kind"] == "gpu_node_group"
+        and (
+            item["name"] == gpu_group_name(lease, attempt)
+            or item["id"] == attempt["receipt"].get("node_group_id")
+        )
+    }
+    receipt_rows = [
+        item
+        for item in lease["resources"]
+        if (
+            item["kind"] == "gpu_node_group" and item["id"] in group_ids
+        )
+        or (
+            item["kind"] == "gpu_node" and item.get("managed_by_resource_id") in group_ids
+        )
+    ]
+    if not receipt_rows or any(not item.get("absence_verified_at") for item in receipt_rows):
+        raise common.BrokerError("attempt cleanup lacks canonical durable absence evidence")
     attempt["receipt"]["cleanup"] = {
         "verified_at_utc": verified_at,
         "node_group_absent": True,
@@ -2252,7 +3376,7 @@ def cleanup_attempt(
                 "absence_verified_at": item["absence_verified_at"],
                 "evidence": item["cleanup_evidence"],
             }
-            for item in pending
+            for item in sorted(receipt_rows, key=lambda value: (value["kind"], value["id"]))
         ],
     }
     lease["demand"] = None
@@ -2266,6 +3390,7 @@ def cleanup_attempt(
     return lease
 
 
+@lease_mutation_locked
 def cleanup(
     lease_path: Path,
     registry_path: Path,
@@ -2307,33 +3432,45 @@ def cleanup(
         }
     if lease["state"] == "RELEASED" and not pending:
         return lease
-    reconcile_create_intents_for_cleanup(lease_path, registry_path, lease, cli)
+    assert_frozen_authority(lease, cli)
+    try:
+        reconcile_create_intents_for_cleanup(lease_path, registry_path, lease, cli)
+    except Exception as exc:
+        lease = common.load_json(lease_path)
+        assert_integrity(lease)
+        lease["state"] = "CLEANUP_FAILED"
+        event(lease, "lease.cleanup.reconciliation_failed", "FAIL", error=str(exc)[:1000])
+        save(lease_path, registry_path, lease)
+        raise
     lease = common.load_json(lease_path)
+    unresolved = [
+        item
+        for item in lease["resource_create_operations"]
+        if not item.get("resource_id")
+        and item["status"]
+        not in {"ABSENCE_VERIFIED_AFTER_INTERRUPTION"}
+    ]
+    if unresolved:
+        lease["state"] = "CLEANUP_FAILED"
+        event(
+            lease,
+            "lease.cleanup.blocked",
+            "FAIL",
+            unresolved_operations=[item["operation_id"] for item in unresolved],
+        )
+        save(lease_path, registry_path, lease)
+        raise common.BrokerError("cleanup blocked by ambiguous create operations")
     reconcile_network_children(lease, cli)
-    kubeconfig = Path(lease["kubeconfig_path"])
-    if kubeconfig.exists():
-        for group_kind, node_kind in (
-            ("gpu_node_group", "gpu_node"),
-            ("system_node_group", "system_node"),
-        ):
-            for group in [
-                item
-                for item in lease["resources"]
-                if item["kind"] == group_kind and not item.get("deleted_at")
-            ]:
-                children = [
-                    item
-                    for item in lease["resources"]
-                    if item["kind"] == node_kind
-                    and not item.get("deleted_at")
-                    and item.get("managed_by_resource_id") == group["id"]
-                ]
-                if not children:
-                    group_value = cli.run(
-                        [*RESOURCE_COMMANDS[group_kind]["get"], group["id"]]
-                    )
-                    if int(group_value.get("status", {}).get("node_count", 0)):
-                        reconcile_nodes(lease, kubectl or KubeCTL(), group, node_kind)
+    for group_kind, node_kind in (
+        ("gpu_node_group", "gpu_node"),
+        ("system_node_group", "system_node"),
+    ):
+        for group in [
+            item
+            for item in lease["resources"]
+            if item["kind"] == group_kind and not item.get("deleted_at")
+        ]:
+            reconcile_provider_nodes(lease, cli, group, node_kind)
     save(lease_path, registry_path, lease)
     pending = sorted(
         [item for item in lease["resources"] if not item.get("deleted_at")],
@@ -2344,7 +3481,18 @@ def cleanup(
     event(lease, "lease.cleanup.started", "PASS", exact_id_count=len(pending))
     save(lease_path, registry_path, lease)
     failures = []
+    blocked_ids: set[str] = set()
     for item in pending:
+        if item["id"] in blocked_ids or item.get("managed_by_resource_id") in blocked_ids:
+            event(
+                lease,
+                "resource.cleanup.skipped_dependency_barrier",
+                "FAIL",
+                kind=item["kind"],
+                resource_id=item["id"],
+            )
+            save(lease_path, registry_path, lease)
+            continue
         try:
             delete_one(lease_path, registry_path, lease, cli, item)
         except Exception as exc:
@@ -2358,11 +3506,13 @@ def cleanup(
                 error=str(exc)[:1000],
             )
             save(lease_path, registry_path, lease)
+            blocked_ids.update(dependency_closure(lease, item))
     if failures:
         lease["state"] = "CLEANUP_FAILED"
         save(lease_path, registry_path, lease)
         raise common.BrokerError("cleanup incomplete: " + "; ".join(failures))
     lease["state"] = "RELEASED"
+    destroy_signing_authority(lease)
     lease["released_at"] = common.iso(precise_utc_now())
     lease["node_group_ids"] = []
     lease["node_ids"] = []
@@ -2428,12 +3578,57 @@ def supervisor_ledger(registry_path: Path) -> dict[str, Any]:
                     "absence_verified_at": resource.get("absence_verified_at"),
                     "cleanup_evidence": resource.get("cleanup_evidence"),
                     "managed_by_resource_id": resource.get("managed_by_resource_id"),
+                    "create_operation_status": (
+                        operation_for(lease, resource["create_operation_id"])["status"]
+                        if resource.get("create_operation_id")
+                        and operation_for(lease, resource["create_operation_id"])
+                        else None
+                    ),
+                    "reconciliation_required": False,
                 }
             )
         for planned in lease["resource_graph"]:
             key = (planned["resource_type"], planned["resource_name"])
             if key in actual_keys:
                 continue
+            matching_operations = [
+                operation
+                for operation in lease["resource_create_operations"]
+                if operation["kind"] == planned["resource_type"]
+                and (
+                    operation["name"] == planned["resource_name"]
+                    or "{demand_sha256_8}" in planned["resource_name"]
+                )
+            ]
+            if matching_operations:
+                operation = matching_operations[-1]
+                operation_status = operation["status"]
+                if operation_status == "ABSENCE_VERIFIED_AFTER_INTERRUPTION":
+                    cleanup_state = "ABSENCE_VERIFIED"
+                    cleanup_evidence = operation.get("reconciliation_evidence") or (
+                        "Provider/local reconciliation proved the interrupted create absent."
+                    )
+                    reconciliation_required = False
+                elif operation_status == "INTENT_RECORDED":
+                    cleanup_state = "CREATE_PENDING_RECONCILIATION"
+                    cleanup_evidence = (
+                        "Signed create intent exists without an exact resource ID; provider reconciliation is required."
+                    )
+                    reconciliation_required = True
+                else:
+                    cleanup_state = "CREATE_AMBIGUOUS_RECONCILIATION_REQUIRED"
+                    cleanup_evidence = (
+                        f"Create operation state {operation_status} has no exact resource ID; "
+                        "absence is not claimed and reconciliation is required."
+                    )
+                    reconciliation_required = True
+            else:
+                operation_status = None
+                cleanup_state = "PLAN_ONLY_CREATE_NOT_ADMITTED"
+                cleanup_evidence = (
+                    "Immutable plan row only; no create intent was admitted and no provider absence is claimed."
+                )
+                reconciliation_required = False
             resources.append(
                 {
                     "lease_id": lease["lease_id"],
@@ -2448,10 +3643,12 @@ def supervisor_ledger(registry_path: Path) -> dict[str, Any]:
                     "expires_at": lease["expires_at"],
                     "cleanup_owner": lease["request"]["cleanup_owner"],
                     "desired_final_state": "ABSENT",
-                    "cleanup_state": "NOT_CREATED",
+                    "cleanup_state": cleanup_state,
                     "deleted_at": None,
                     "absence_verified_at": None,
-                    "cleanup_evidence": "No create operation admitted or resource ID recorded.",
+                    "cleanup_evidence": cleanup_evidence,
+                    "create_operation_status": operation_status,
+                    "reconciliation_required": reconciliation_required,
                     "managed_by_resource_id": None,
                 }
             )

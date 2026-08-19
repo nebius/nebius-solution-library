@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Atomically export the union of VM v1 and Kubernetes v2 resource ledgers."""
+"""Atomically export the union of VM v1 and Kubernetes v3 resource ledgers."""
 
 from __future__ import annotations
 
@@ -21,13 +21,13 @@ def cleanup_evidence(row: dict[str, Any]) -> str:
     existing = row.get("cleanup_evidence")
     if existing:
         return str(existing)
-    if row.get("cleanup_state") == "NOT_CREATED" or not row.get("resource_id"):
-        return "No resource ID was created or recorded; desired final state already holds."
     if row.get("absence_verified_at"):
         return (
             f"Exact resource ID {row['resource_id']} returned NotFound/absence at "
             f"{row['absence_verified_at']}."
         )
+    if not row.get("resource_id"):
+        return "No exact resource ID is recorded; absence is not claimed and reconciliation may be required."
     return "No cleanup or absence proof yet; exact-ID cleanup remains pending."
 
 

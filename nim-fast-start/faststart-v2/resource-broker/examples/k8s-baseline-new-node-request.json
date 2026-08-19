@@ -1,5 +1,5 @@
 {
-  "schema_version": "catalog-switch-kubernetes-lease-request/v1",
+  "schema_version": "catalog-switch-kubernetes-lease-request/v2",
   "lease_id": "k8s-baseline-new-node-candidate",
   "task_id": "catalog-switch-k8s-baseline",
   "owner": "catalog-switch-k8s-baseline",
@@ -9,6 +9,11 @@
   "project_id": "project-e00z6b02t8ddk96c49",
   "region": "eu-north1",
   "nebius_profile": "sandbox",
+  "authority_identity": {
+    "type": "service_account_profile",
+    "id": "serviceaccount-i00pafr0ydvbaxj952",
+    "parent_id": "project-i00xz31gpr00xp9jhp982v"
+  },
   "cluster_version": "1.34",
   "node_group_profile": "mk8s-h100-new-node-v1",
   "expected_duration_hours": "4",
@@ -24,5 +29,6 @@
     "boltz2": "5f810e10b2e72d62e1fb3e4ffd8a1f9c7a13c87ef1d2b10b097a296c017fee71",
     "openfold2": "283ee064e0c88e8583e43aa6923d3da75c3e050ed74832cc2f4782b9c5254099"
   },
+  "accepted_event_recorder_id": "catalog-switch-k8s-external-client",
   "cleanup_plan": "Broker cleanup owner deletes each exact attempt node group and provider node before the next independent attempt, then deletes the support graph in reverse dependency order and records NotFound or local-file absence for every ledger row."
 }

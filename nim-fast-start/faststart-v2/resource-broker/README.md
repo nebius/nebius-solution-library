@@ -6,7 +6,7 @@ provisions only fresh task-owned resources, records exact IDs, and deletes only
 those recorded IDs. It never adopts or mutates a pre-existing project resource.
 
 The original `broker.py` VM behavior remains the v1 contract. The additive
-Managed Kubernetes v2 backend is documented in `KUBERNETES_BACKEND.md`; its
+Managed Kubernetes v3 backend is documented in `KUBERNETES_BACKEND.md`; its
 consumer handshake is `K8S_BASELINE_INTERFACE.md`. No Kubernetes resource was
 created while sealing the review candidate.
 
@@ -67,7 +67,9 @@ for the frozen external-request-to-valid-response metric and semantic input.
 
 ## Commands
 
-All commands use Python's standard library and Nebius CLI `0.12.206` or newer.
+The VM command uses Python's standard library. The Kubernetes backend also pins
+PyYAML and cryptography in `requirements-kubernetes.txt` and validates its
+payloads against Nebius CLI `0.12.206`'s installed input schema.
 Planning is offline and non-mutating:
 
 ```bash
@@ -112,7 +114,7 @@ python3 broker.py scan --cloud --output evidence/orphan-scan-cloud.json
 ```
 
 The hourly supervisor ledger is exported atomically to the required Task Deck
-path. The union exporter preserves both VM v1 and Kubernetes v2 rows and
+path. The union exporter preserves both VM v1 and Kubernetes v3 rows and
 contains no credentials, kubeconfig contents, or signed URLs:
 
 ```bash

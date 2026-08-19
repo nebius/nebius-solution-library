@@ -4,10 +4,13 @@ import datetime as dt
 import importlib.util
 import json
 import os
+import subprocess
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "kubernetes_broker.py"
@@ -30,7 +33,7 @@ def timestamp() -> str:
 
 def request(**overrides):
     value = {
-        "schema_version": "catalog-switch-kubernetes-lease-request/v1",
+        "schema_version": "catalog-switch-kubernetes-lease-request/v2",
         "lease_id": "k8s-unit-new-node",
         "task_id": "catalog-switch-k8s-baseline",
         "owner": "catalog-switch-k8s-baseline",
@@ -40,6 +43,11 @@ def request(**overrides):
         "project_id": "project-e00z6b02t8ddk96c49",
         "region": "eu-north1",
         "nebius_profile": "sandbox",
+        "authority_identity": {
+            "type": "service_account_profile",
+            "id": "serviceaccount-caller",
+            "parent_id": "project-i00xz31gpr00xp9jhp982v",
+        },
         "cluster_version": "1.34",
         "node_group_profile": "mk8s-h100-new-node-v1",
         "expected_duration_hours": "2",
@@ -52,6 +60,7 @@ def request(**overrides):
         "metric_contract_sha256": "1" * 64,
         "trace_sha256": "2" * 64,
         "model_input_sha256s": {"openfold2": "3" * 64, "boltz2": "4" * 64},
+        "accepted_event_recorder_id": "catalog-switch-k8s-external-client",
         "cleanup_plan": "Broker removes each exact resource ID and proves absence.",
     }
     value.update(overrides)
@@ -66,12 +75,18 @@ class FakeCLI:
         self.absent = set()
         self.deleted = []
         self.created_count = {}
+        self.created_payloads = {}
         self.fail_after_create_kind = None
         self.failed_once = False
         self.capacity_available = True
         self.pool_id = "vpcpool-unit-private"
         self.route_id = "vpcroutetable-unit-default"
         self.node_by_group = {}
+        self.fail_delete_id = None
+        self.crash_after_delete_id = None
+        self.reject_duplicate_delete = True
+        self.fail_get_credentials_before_write = False
+        self.create_delay_seconds = 0.0
 
     @staticmethod
     def kind(args):
@@ -121,6 +136,34 @@ class FakeCLI:
             "spec": {},
             "status": {},
         }
+
+    def replace_node(self, group_id):
+        old_id = self.node_by_group[group_id]
+        self.absent.add(old_id)
+        group = self.resources[group_id]
+        role = "system" if group["_kind"] == "system_node_group" else "gpu"
+        new_id = f"computeinstance-unitreplacement{role}"
+        template = group["spec"]["template"]
+        spec = {
+            "node_group_id": group_id,
+            "resources": dict(template["resources"]),
+        }
+        if role == "gpu":
+            spec["preemptible"] = {}
+        self.resources[new_id] = {
+            "_kind": "node",
+            "metadata": {
+                "id": new_id,
+                "name": f"{group_id}-replacement",
+                "parent_id": "project-e00z6b02t8ddk96c49",
+                "created_at": timestamp(),
+                "labels": {"mk8s.nebius.com/node-group-id": group_id},
+            },
+            "spec": spec,
+            "status": {"state": "RUNNING", "node_group_id": group_id},
+        }
+        self.node_by_group[group_id] = new_id
+        return old_id, new_id
 
     def run(
         self,
@@ -202,8 +245,28 @@ class FakeCLI:
         if args[:3] == ["vpc", "security-rule", "list"]:
             return {"items": []}
         if args[:4] == ["mk8s", "v1", "cluster", "get-credentials"]:
+            if self.fail_get_credentials_before_write:
+                raise k8s.common.BrokerError("simulated interruption before kubeconfig write")
             path = Path(args[args.index("--kubeconfig") + 1])
-            path.write_text("apiVersion: v1\nclusters: unit\n")
+            context = args[args.index("--context-name") + 1]
+            path.write_text(
+                "apiVersion: v1\n"
+                "clusters:\n"
+                f"- name: {context}-cluster\n"
+                "  cluster:\n"
+                "    server: https://unit-cluster.internal:443\n"
+                "    certificate-authority-data: dW5pdC1jYQ==\n"
+                "contexts:\n"
+                f"- name: {context}\n"
+                "  context:\n"
+                f"    cluster: {context}-cluster\n"
+                f"    user: {context}-user\n"
+                f"current-context: {context}\n"
+                "users:\n"
+                f"- name: {context}-user\n"
+                "  user:\n"
+                "    token: unit-token-not-recorded\n"
+            )
             os.chmod(path, 0o600)
             return ""
 
@@ -211,6 +274,8 @@ class FakeCLI:
         action_index = 3 if args[:2] == ["mk8s", "v1"] else 1 if args[0] == "registry" else 2
         action = args[action_index] if len(args) > action_index else None
         if action == "create":
+            if self.create_delay_seconds:
+                time.sleep(self.create_delay_seconds)
             metadata = dict(payload["metadata"])
             actual_kind = kind
             if kind == "access_permit":
@@ -225,8 +290,13 @@ class FakeCLI:
                     if metadata["name"].endswith("-system")
                     else "gpu_node_group"
                 )
+            if actual_kind in {"cluster", "system_node_group", "gpu_node_group"}:
+                k8s.validate_provider_create_payload(actual_kind, payload)
             number = self.created_count.get(actual_kind, 0) + 1
             self.created_count[actual_kind] = number
+            self.created_payloads.setdefault(actual_kind, []).append(
+                json.loads(json.dumps(payload))
+            )
             prefixes = {
                 "cluster": "mk8scluster",
                 "system_node_group": "mk8snodegroup",
@@ -250,7 +320,7 @@ class FakeCLI:
                     "state": "RUNNING",
                     "control_plane": {
                         "version": "1.34",
-                        "endpoints": {"public_endpoint": "https://unit-cluster.example:443"},
+                        "endpoints": {"internal_endpoint": "https://unit-cluster.internal:443"},
                     },
                 }
             if actual_kind in {"system_node_group", "gpu_node_group"}:
@@ -261,7 +331,26 @@ class FakeCLI:
                     "ready_node_count": "1",
                 }
                 role = "system" if actual_kind == "system_node_group" else "gpu"
-                self.node_by_group[resource_id] = f"computeinstance-unitnode{role}{number}"
+                node_id = f"computeinstance-unitnode{role}{number}"
+                self.node_by_group[resource_id] = node_id
+                node_spec = {
+                    "node_group_id": resource_id,
+                    "resources": dict(payload["spec"]["template"]["resources"]),
+                }
+                if actual_kind == "gpu_node_group":
+                    node_spec["preemptible"] = {}
+                self.resources[node_id] = {
+                    "_kind": "node",
+                    "metadata": {
+                        "id": node_id,
+                        "name": f"{resource_id}-unit-node",
+                        "parent_id": "project-e00z6b02t8ddk96c49",
+                        "created_at": timestamp(),
+                        "labels": {"mk8s.nebius.com/node-group-id": resource_id},
+                    },
+                    "spec": node_spec,
+                    "status": {"state": "RUNNING", "node_group_id": resource_id},
+                }
             value = {
                 "_kind": actual_kind,
                 "metadata": metadata,
@@ -314,11 +403,6 @@ class FakeCLI:
             resource_id = args[action_index + 1]
             if resource_id in self.absent:
                 return None if allow_not_found else self._not_found(resource_id)
-            if kind == "node":
-                return {
-                    "metadata": {"id": resource_id, "name": resource_id},
-                    "status": {"state": "RUNNING"},
-                }
             try:
                 value = self.resources[resource_id]
             except KeyError:
@@ -332,6 +416,10 @@ class FakeCLI:
             return value
         if action == "delete":
             resource_id = args[action_index + 1]
+            if resource_id in self.absent and self.reject_duplicate_delete:
+                raise k8s.common.BrokerError(f"duplicate delete rejected: {resource_id}")
+            if resource_id == self.fail_delete_id:
+                raise k8s.common.BrokerError(f"simulated delete failure: {resource_id}")
             self.deleted.append(resource_id)
             self.absent.add(resource_id)
             value = self.resources.get(resource_id, {})
@@ -339,6 +427,9 @@ class FakeCLI:
                 self.absent.add(self.node_by_group[resource_id])
             if value.get("_kind") == "network":
                 self.absent.update({self.pool_id, self.route_id})
+            if resource_id == self.crash_after_delete_id:
+                self.crash_after_delete_id = None
+                raise KeyboardInterrupt("simulated process crash after provider delete")
             return ""
         raise AssertionError(f"unexpected fake CLI call: {args}")
 
@@ -350,12 +441,14 @@ class FakeCLI:
 class FakeKubectl:
     def __init__(self, cli):
         self.cli = cli
+        self.gpu_product = "NVIDIA-H100-80GB-HBM3"
+        self.gpu_allocatable = "1"
 
     def run(self, kubeconfig, args, timeout=90):
         if args[:2] == ["config", "view"]:
             return {
                 "current-context": "unit",
-                "clusters": [{"cluster": {"server": "https://unit-cluster.example:443"}}],
+                "clusters": [{"cluster": {"server": "https://unit-cluster.internal:443"}}],
             }
         if args[:2] == ["get", "nodes"]:
             items = []
@@ -373,10 +466,20 @@ class FakeKubectl:
                             "labels": {
                                 "mk8s.nebius.com/node-group-id": group_id,
                                 "mlsp.nebius.ai/node-role": role,
+                                **(
+                                    {"nvidia.com/gpu.product": self.gpu_product}
+                                    if role == "gpu"
+                                    else {}
+                                ),
                             },
                         },
                         "spec": {"providerID": f"nebius:///{node_id}"},
-                        "status": {"conditions": [{"type": "Ready", "status": "True"}]},
+                        "status": {
+                            "conditions": [{"type": "Ready", "status": "True"}],
+                            "allocatable": {"nvidia.com/gpu": self.gpu_allocatable}
+                            if role == "gpu"
+                            else {},
+                        },
                     }
                 )
             return {"items": items}
@@ -391,9 +494,11 @@ class KubernetesBrokerTests(unittest.TestCase):
         self.lease_path = self.root / "lease.json"
         self.registry_path = self.root / "registry.json"
         self.demand_path = self.root / "demand.json"
+        self.accepted_ledger_path = self.root / "accepted.jsonl"
         self.profiles_path = MODULE_PATH.parent / "kubernetes_profiles.json"
         self.request_value = request()
         k8s.KUBECONFIG_ROOT = self.root / "kubeconfigs"
+        k8s.LEASE_KEY_ROOT = self.root / "lease-keys"
         self.cli = FakeCLI()
         self.kubectl = FakeKubectl(self.cli)
 
@@ -412,23 +517,72 @@ class KubernetesBrokerTests(unittest.TestCase):
             self.lease_path, self.registry_path, self.cli, self.kubectl
         )
 
-    def demand(self, **overrides):
+    def demand(self, *, event_overrides=None, demand_overrides=None, record=True):
+        boot_id = k8s.current_boot_id()
+        accepted_event = {
+            "schema": "archvteams.nebius.ai/catalog-switch-ledger-event/v1",
+            "ledger_id": "unit-ledger",
+            "ledger_sequence": 0,
+            "trace_id": "unit-trace",
+            "request_id": "unit-request-000001",
+            "attempt_id": "attempt-000001",
+            "attempt_sequence": 0,
+            "event_id": "attempt-000001:000000",
+            "observed_at_utc": timestamp(),
+            "observed_monotonic_ns": time.monotonic_ns() - 1,
+            "recorder": {
+                "recorder_id": "catalog-switch-k8s-external-client",
+                "clock_id": f"linux-boottime:{boot_id}",
+                "boot_id": boot_id,
+                "utc_sync_source": "unit-test",
+                "max_error_ms": 1,
+            },
+            "event_type": "request.accepted",
+            "data": {
+                "boundary": "external-client-request-accepted/v1",
+                "trace_request_sha256": "5" * 64,
+                "scenario": "capacity_miss",
+                "target": {"model_id": "openfold2"},
+                "input": {"payload_sha256": "3" * 64},
+                "precondition": {},
+                "environment": {},
+                "ownership": {},
+            },
+        }
+        if event_overrides:
+            for key, value in event_overrides.items():
+                if key.startswith("data."):
+                    accepted_event["data"][key.split(".", 1)[1]] = value
+                elif key.startswith("recorder."):
+                    accepted_event["recorder"][key.split(".", 1)[1]] = value
+                else:
+                    accepted_event[key] = value
+        self.accepted_ledger_path.write_text(k8s.common.canonical(accepted_event) + "\n")
+        os.chmod(self.accepted_ledger_path, 0o600)
         value = {
-            "schema_version": "catalog-switch-kubernetes-node-demand/v1",
+            "schema_version": "catalog-switch-kubernetes-node-demand/v2",
             "lease_id": "k8s-unit-new-node",
             "attempt_id": "attempt-000001",
-            "accepted_event_sha256": "a" * 64,
-            "t0_observed_at_utc": timestamp(),
-            "t0_observed_monotonic_ns": time.monotonic_ns() - 1,
+            "accepted_event_path": str(self.accepted_ledger_path.resolve()),
+            "accepted_event_sha256": k8s.common.sha256_json(accepted_event),
+            "ledger_id": accepted_event["ledger_id"],
+            "ledger_sequence": accepted_event["ledger_sequence"],
+            "trace_id": accepted_event["trace_id"],
+            "request_id": accepted_event["request_id"],
+            "event_id": accepted_event["event_id"],
+            "model_id": accepted_event["data"]["target"]["model_id"],
+            "input_payload_sha256": accepted_event["data"]["input"]["payload_sha256"],
         }
-        value.update(overrides)
+        value.update(demand_overrides or {})
         self.demand_path.write_text(json.dumps(value))
-        return k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+        if record:
+            return k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+        return value
 
     def test_plan_is_versioned_immutable_and_idempotent(self):
         first = self.plan()
         second = self.plan()
-        self.assertEqual("catalog-switch-kubernetes-resource-lease/v2", first["schema_version"])
+        self.assertEqual("catalog-switch-kubernetes-resource-lease/v3", first["schema_version"])
         self.assertEqual(first["request_sha256"], second["request_sha256"])
         self.assertEqual("PLANNED", second["state"])
         self.assertTrue(second["prefix"].startswith("mlsp-csw-"))
@@ -522,7 +676,11 @@ class KubernetesBrokerTests(unittest.TestCase):
     def test_future_t0_is_rejected(self):
         self.support()
         with self.assertRaisesRegex(k8s.common.BrokerError, "precede its accepted T0"):
-            self.demand(t0_observed_monotonic_ns=time.monotonic_ns() + 1_000_000_000)
+            self.demand(
+                event_overrides={
+                    "observed_monotonic_ns": time.monotonic_ns() + 1_000_000_000
+                }
+            )
 
     def test_capacity_failure_is_retained_and_no_gpu_create_occurs(self):
         self.support()
@@ -665,7 +823,378 @@ class KubernetesBrokerTests(unittest.TestCase):
         ):
             self.assertIn(field, row)
         self.assertEqual(lease["prefix"] + "-cluster", row["resource_name"])
-        self.assertEqual("NOT_CREATED", row["cleanup_state"])
+        self.assertEqual("PLAN_ONLY_CREATE_NOT_ADMITTED", row["cleanup_state"])
+
+    def test_profile_and_identity_are_bound_before_mutation(self):
+        self.plan()
+        self.cli.profile = "switched-profile"
+        with self.assertRaisesRegex(k8s.common.BrokerError, "profile mismatch"):
+            k8s.provision_control_plane(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
+        self.assertEqual({}, self.cli.created_count)
+        self.cli.profile = "sandbox"
+        self.request_value["authority_identity"]["id"] = "different-authority"
+        other_request = self.root / "other-request.json"
+        other_lease = self.root / "other-lease.json"
+        self.request_value["lease_id"] = "k8s-unit-other-authority"
+        other_request.write_text(json.dumps(self.request_value))
+        k8s.plan(other_request, other_lease, self.registry_path, self.profiles_path)
+        with self.assertRaisesRegex(k8s.common.AuthenticationError, "authority identity differs"):
+            k8s.provision_control_plane(
+                other_lease, self.registry_path, self.cli, self.kubectl
+            )
+        self.assertEqual({}, self.cli.created_count)
+
+    def test_installed_provider_schemas_and_serialized_payloads_are_strict(self):
+        support = self.support()
+        self.assertEqual("SUPPORT_ACTIVE_NO_GPU_NODE_GROUP", support["state"])
+        cluster = self.cli.created_payloads["cluster"][0]
+        control_plane = cluster["spec"]["control_plane"]
+        self.assertNotIn("karpenter", control_plane)
+        self.assertNotIn("endpoints", control_plane)
+        system_boot = self.cli.created_payloads["system_node_group"][0]["spec"][
+            "template"
+        ]["boot_disk"]
+        self.assertEqual(64 * 1024**3, system_boot["size_bytes"])
+        self.assertNotIn("size_gibibytes", system_boot)
+        self.demand()
+        k8s.provision_gpu_node_group(
+            self.lease_path, self.registry_path, self.cli, self.kubectl
+        )
+        gpu_boot = self.cli.created_payloads["gpu_node_group"][0]["spec"]["template"][
+            "boot_disk"
+        ]
+        self.assertEqual(300 * 1024**3, gpu_boot["size_bytes"])
+        self.assertNotIn("size_gibibytes", gpu_boot)
+        cluster_help = subprocess.run(
+            ["/usr/local/bin/nebius", "mk8s", "v1", "cluster", "create", "--help"],
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout
+        group_help = subprocess.run(
+            ["/usr/local/bin/nebius", "mk8s", "v1", "node-group", "create", "--help"],
+            text=True,
+            capture_output=True,
+            check=True,
+        ).stdout
+        self.assertIn('"karpenter": {', cluster_help)
+        self.assertIn('"size_bytes": 0', group_help)
+        self.assertNotIn("size_gibibytes", group_help)
+
+    def test_private_control_plane_and_internal_kubeconfig_only(self):
+        support = self.support()
+        proof = support["isolation_proof"]["cluster"]
+        self.assertIsNone(proof["public_control_plane_endpoint"])
+        self.assertEqual(
+            "https://unit-cluster.internal:443", proof["private_control_plane_endpoint"]
+        )
+        operation = next(
+            item
+            for item in support["resource_create_operations"]
+            if item["kind"] == "kubeconfig_authority"
+        )
+        self.assertEqual("internal", operation["requested_spec"]["access"])
+
+    def test_foreign_kubeconfig_in_intent_crash_window_is_preserved(self):
+        self.plan()
+        self.cli.fail_get_credentials_before_write = True
+        with self.assertRaisesRegex(k8s.common.BrokerError, "before kubeconfig write"):
+            k8s.provision_control_plane(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
+        lease = json.loads(self.lease_path.read_text())
+        path = Path(lease["kubeconfig_path"])
+        path.write_text("foreign: true\n")
+        os.chmod(path, 0o600)
+        with self.assertRaisesRegex(k8s.common.BrokerError, "no signed content authority"):
+            k8s.cleanup(self.lease_path, self.registry_path, self.cli, execute=True)
+        self.assertTrue(path.exists())
+        persisted = json.loads(self.lease_path.read_text())
+        self.assertEqual("CLEANUP_FAILED", persisted["state"])
+        operation = next(
+            item
+            for item in persisted["resource_create_operations"]
+            if item["kind"] == "kubeconfig_authority"
+        )
+        self.assertEqual("AMBIGUOUS_FOREIGN_PRESERVED", operation["status"])
+        self.assertNotIn(persisted["cluster_id"], self.cli.deleted)
+
+    def test_receipted_kubeconfig_crash_window_reconciles_exact_content(self):
+        original = k8s.authenticate_resource
+
+        def crash_on_kubeconfig(lease, resource):
+            if resource["kind"] == "kubeconfig_authority":
+                raise k8s.common.BrokerError("simulated crash before kubeconfig resource row")
+            return original(lease, resource)
+
+        self.plan()
+        with mock.patch.object(k8s, "authenticate_resource", side_effect=crash_on_kubeconfig):
+            with self.assertRaisesRegex(k8s.common.BrokerError, "before kubeconfig resource row"):
+                k8s.provision_control_plane(
+                    self.lease_path, self.registry_path, self.cli, self.kubectl
+                )
+        lease = json.loads(self.lease_path.read_text())
+        path = Path(lease["kubeconfig_path"])
+        self.assertTrue(path.exists())
+        released = k8s.cleanup(
+            self.lease_path, self.registry_path, self.cli, execute=True
+        )
+        row = next(item for item in released["resources"] if item["kind"] == "kubeconfig_authority")
+        self.assertTrue(row["absence_verified_at"])
+        self.assertFalse(path.exists())
+
+    def test_arm_b_rejects_missing_forged_and_stale_accepted_events(self):
+        self.support()
+        self.demand(record=False)
+        self.accepted_ledger_path.unlink()
+        with self.assertRaisesRegex(k8s.common.BrokerError, "ledger is missing"):
+            k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+        self.demand(record=False, demand_overrides={"accepted_event_sha256": "a" * 64})
+        with self.assertRaisesRegex(k8s.common.BrokerError, "digest is missing"):
+            k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+        stale_utc = (
+            dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=1)
+        ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.demand(
+            record=False,
+            event_overrides={
+                "observed_at_utc": stale_utc,
+                "observed_monotonic_ns": time.monotonic_ns() - 2_000_000_000,
+            },
+        )
+        with self.assertRaisesRegex(k8s.common.BrokerError, "predates"):
+            k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+
+    def test_arm_b_rejects_forged_identity_and_clock_authority(self):
+        self.support()
+        self.demand(record=False, demand_overrides={"request_id": "forged-request"})
+        with self.assertRaisesRegex(k8s.common.BrokerError, "exact demand identity"):
+            k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+        self.demand(
+            record=False,
+            event_overrides={"recorder.boot_id": "foreign-boot"},
+        )
+        with self.assertRaisesRegex(k8s.common.BrokerError, "clock/recorder authority"):
+            k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+
+    def test_system_provider_child_is_reconciled_without_kubeconfig(self):
+        self.plan()
+        self.cli.fail_after_create_kind = "system_node_group"
+        with self.assertRaisesRegex(k8s.common.BrokerError, "simulated interruption"):
+            k8s.provision_control_plane(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
+        lease = json.loads(self.lease_path.read_text())
+        self.assertFalse(Path(lease["kubeconfig_path"]).exists())
+        released = k8s.cleanup(
+            self.lease_path, self.registry_path, self.cli, execute=True
+        )
+        nodes = [item for item in released["resources"] if item["kind"] == "system_node"]
+        self.assertEqual(1, len(nodes))
+        self.assertTrue(nodes[0]["absence_verified_at"])
+
+    def test_gpu_live_product_and_allocatable_are_attested(self):
+        self.support()
+        self.demand()
+        self.kubectl.gpu_product = "NVIDIA-B200"
+        with self.assertRaisesRegex(k8s.common.BrokerError, "gpu.product"):
+            k8s.provision_gpu_node_group(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
+        lease = json.loads(self.lease_path.read_text())
+        self.assertEqual("GPU_CREATE_FAILED", lease["state"])
+        self.kubectl.gpu_product = "NVIDIA-H100-80GB-HBM3"
+        self.kubectl.gpu_allocatable = "0"
+        with self.assertRaisesRegex(k8s.common.BrokerError, "allocatable GPU"):
+            k8s.provision_gpu_node_group(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
+
+    def test_signed_spec_intent_rejects_same_name_label_wrong_spec(self):
+        self.plan()
+        self.cli.fail_after_create_kind = "cluster"
+        with self.assertRaisesRegex(k8s.common.BrokerError, "simulated interruption"):
+            k8s.provision_control_plane(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
+        cluster_id = next(
+            resource_id
+            for resource_id, value in self.cli.resources.items()
+            if value.get("_kind") == "cluster"
+        )
+        self.cli.resources[cluster_id]["spec"]["control_plane"]["version"] = "1.33"
+        self.cli.fail_after_create_kind = None
+        with self.assertRaisesRegex(k8s.common.BrokerError, "create intent"):
+            k8s.provision_control_plane(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
+        self.assertNotIn(cluster_id, self.cli.deleted)
+
+    def test_exclusive_lease_lock_prevents_concurrent_duplicate_creates(self):
+        self.plan()
+        self.cli.create_delay_seconds = 0.002
+        failures = []
+
+        def worker():
+            try:
+                k8s.provision_control_plane(
+                    self.lease_path, self.registry_path, self.cli, self.kubectl
+                )
+            except Exception as exc:  # pragma: no cover - asserted below
+                failures.append(exc)
+
+        threads = [threading.Thread(target=worker) for _ in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.assertEqual([], failures)
+        for kind in (
+            "network",
+            "subnet",
+            "security_group",
+            "service_account",
+            "iam_group",
+            "group_membership",
+            "registry",
+            "registry_access_permit",
+            "bucket",
+            "bucket_access_permit",
+            "cluster",
+            "system_node_group",
+        ):
+            self.assertEqual(1, self.cli.created_count[kind], kind)
+
+    def test_active_reconciliation_discovers_preemptible_replacement(self):
+        self.support()
+        self.demand()
+        active = k8s.provision_gpu_node_group(
+            self.lease_path, self.registry_path, self.cli, self.kubectl
+        )
+        group_id = active["node_group_ids"][0]
+        old_id, new_id = self.cli.replace_node(group_id)
+        reconciled = k8s.provision_gpu_node_group(
+            self.lease_path, self.registry_path, self.cli, self.kubectl
+        )
+        old = next(item for item in reconciled["resources"] if item["id"] == old_id)
+        new = next(item for item in reconciled["resources"] if item["id"] == new_id)
+        self.assertTrue(old["absence_verified_at"])
+        self.assertIsNone(new["absence_verified_at"])
+        self.assertEqual([new_id], reconciled["node_ids"])
+        self.assertEqual(
+            new_id,
+            reconciled["attempts"][0]["receipt"]["replacement_reconciliations"][-1][
+                "node_id"
+            ],
+        )
+
+    def test_resource_row_signature_and_live_ownership_block_foreign_delete(self):
+        support = self.support()
+        pristine = json.loads(json.dumps(support))
+        injected = dict(support["resources"][0])
+        injected["id"] = "vpcnetwork-injected"
+        support["resources"].append(injected)
+        self.lease_path.write_text(json.dumps(support))
+        with self.assertRaisesRegex(k8s.common.BrokerError, "ownership signature mismatch"):
+            k8s.cleanup(self.lease_path, self.registry_path, self.cli, execute=True)
+        self.assertEqual([], self.cli.deleted)
+
+        self.lease_path.write_text(json.dumps(pristine))
+        cluster = next(item for item in pristine["resources"] if item["kind"] == "cluster")
+        self.cli.resources[cluster["id"]]["spec"]["control_plane"]["version"] = "1.33"
+        with self.assertRaisesRegex(k8s.common.BrokerError, "cleanup incomplete"):
+            k8s.cleanup(self.lease_path, self.registry_path, self.cli, execute=True)
+        self.assertNotIn(cluster["id"], self.cli.deleted)
+
+    def test_cleanup_delete_crash_is_idempotent_and_not_reissued(self):
+        support = self.support()
+        system_group = next(
+            item for item in support["resources"] if item["kind"] == "system_node_group"
+        )
+        self.cli.crash_after_delete_id = system_group["id"]
+        with self.assertRaises(KeyboardInterrupt):
+            k8s.cleanup(self.lease_path, self.registry_path, self.cli, execute=True)
+        released = k8s.cleanup(
+            self.lease_path, self.registry_path, self.cli, execute=True
+        )
+        self.assertEqual("RELEASED", released["state"])
+        self.assertEqual(1, self.cli.deleted.count(system_group["id"]))
+
+    def test_cleanup_failure_barrier_preserves_parent_dependencies(self):
+        support = self.support()
+        permit = next(
+            item for item in support["resources"] if item["kind"] == "registry_access_permit"
+        )
+        group_id, registry_id = permit["depends_on"]
+        self.cli.fail_delete_id = permit["id"]
+        with self.assertRaisesRegex(k8s.common.BrokerError, "cleanup incomplete"):
+            k8s.cleanup(self.lease_path, self.registry_path, self.cli, execute=True)
+        self.assertNotIn(group_id, self.cli.deleted)
+        self.assertNotIn(registry_id, self.cli.deleted)
+
+    def test_supervisor_reports_create_ambiguity_not_false_absence(self):
+        self.plan()
+        self.cli.fail_after_create_kind = "network"
+        with self.assertRaisesRegex(k8s.common.BrokerError, "simulated interruption"):
+            k8s.provision_control_plane(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
+        ledger = k8s.supervisor_ledger(self.registry_path)
+        row = next(item for item in ledger["resources"] if item["resource_type"] == "network")
+        self.assertEqual("CREATE_AMBIGUOUS_RECONCILIATION_REQUIRED", row["cleanup_state"])
+        self.assertTrue(row["reconciliation_required"])
+        self.assertNotIn("already holds", row["cleanup_evidence"])
+        lease = json.loads(self.lease_path.read_text())
+        operation = next(item for item in lease["resource_create_operations"] if item["kind"] == "network")
+        operation["status"] = "ABSENCE_VERIFIED_AFTER_INTERRUPTION"
+        self.lease_path.write_text(json.dumps(lease))
+        with self.assertRaisesRegex(k8s.common.BrokerError, "lacks a signed receipt"):
+            k8s.supervisor_ledger(self.registry_path)
+
+    def test_every_authorization_bearing_plan_field_is_sealed(self):
+        original = self.plan()
+        mutations = (
+            lambda value: value.__setitem__("lease_id", "other-lease"),
+            lambda value: value["labels"].__setitem__("owner", "other-owner"),
+            lambda value: value.__setitem__("created_at", "2026-01-01T00:00:00Z"),
+            lambda value: value["cleanup_plan"].__setitem__("cleanup_owner", "other-owner"),
+        )
+        for mutate in mutations:
+            changed = json.loads(json.dumps(original))
+            mutate(changed)
+            with self.assertRaises(k8s.common.BrokerError):
+                k8s.assert_integrity(changed)
+
+    def test_attempt_receipt_survives_crashes_after_each_delete_save(self):
+        self.support()
+        self.demand()
+        k8s.provision_gpu_node_group(
+            self.lease_path, self.registry_path, self.cli, self.kubectl
+        )
+        original = k8s.delete_one
+
+        def delete_then_crash(*args, **kwargs):
+            original(*args, **kwargs)
+            raise k8s.common.BrokerError("simulated crash after durable absence save")
+
+        with mock.patch.object(k8s, "delete_one", side_effect=delete_then_crash):
+            with self.assertRaisesRegex(k8s.common.BrokerError, "attempt cleanup incomplete"):
+                k8s.cleanup_attempt(
+                    self.lease_path, self.registry_path, self.cli, execute=True
+                )
+        with mock.patch.object(k8s, "delete_one", side_effect=delete_then_crash):
+            with self.assertRaisesRegex(k8s.common.BrokerError, "attempt cleanup incomplete"):
+                k8s.cleanup_attempt(
+                    self.lease_path, self.registry_path, self.cli, execute=True
+                )
+        released = k8s.cleanup_attempt(
+            self.lease_path, self.registry_path, self.cli, execute=True
+        )
+        receipts = released["attempts"][0]["receipt"]["cleanup"]["exact_id_receipts"]
+        self.assertEqual(2, len(receipts))
+        self.assertTrue(all(item["absence_verified_at"] for item in receipts))
 
     def test_combined_supervisor_adds_explicit_absence_evidence(self):
         self.plan()

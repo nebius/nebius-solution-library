@@ -1,8 +1,14 @@
 {
-  "schema_version": "catalog-switch-kubernetes-node-demand/v1",
+  "schema_version": "catalog-switch-kubernetes-node-demand/v2",
   "lease_id": "REPLACE_FROM_LEASE",
   "attempt_id": "REPLACE_FROM_DURABLE_REQUEST_ACCEPTED_EVENT",
+  "accepted_event_path": "/absolute/path/to/canonical-events.jsonl",
   "accepted_event_sha256": "REPLACE_WITH_64_LOWERCASE_HEX",
-  "t0_observed_at_utc": "REPLACE_WITH_REQUEST_ACCEPTED_UTC",
-  "t0_observed_monotonic_ns": "REPLACE_WITH_REQUEST_ACCEPTED_MONOTONIC_NS"
+  "ledger_id": "REPLACE_FROM_ACCEPTED_EVENT",
+  "ledger_sequence": 0,
+  "trace_id": "REPLACE_FROM_ACCEPTED_EVENT",
+  "request_id": "REPLACE_FROM_ACCEPTED_EVENT",
+  "event_id": "REPLACE_FROM_ACCEPTED_EVENT",
+  "model_id": "REPLACE_FROM_ACCEPTED_EVENT_TARGET",
+  "input_payload_sha256": "REPLACE_FROM_ACCEPTED_EVENT_INPUT"
 }

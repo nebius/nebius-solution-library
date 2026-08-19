@@ -46,3 +46,9 @@ terraform.rc
 # It's added to the root .gitignore because they shouldn't be ignored if commited to other repos.
 /soperator/installations/*
 !/soperator/installations/example
+
+# Resource-broker local authorities and advisory locks (never commit secrets).
+/nim-fast-start/faststart-v2/resource-broker/kubeconfigs/
+/nim-fast-start/faststart-v2/resource-broker/lease-keys/
+/nim-fast-start/faststart-v2/resource-broker/**/*.mutation.lock
+/nim-fast-start/faststart-v2/resource-broker/**/*.lock

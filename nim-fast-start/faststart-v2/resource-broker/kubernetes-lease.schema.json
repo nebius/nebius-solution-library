@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-kubernetes-resource-lease/v2",
-  "title": "Catalog switch Kubernetes resource lease v2",
+  "$id": "catalog-switch-kubernetes-resource-lease/v3",
+  "title": "Catalog switch Kubernetes resource lease v3",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -19,6 +19,7 @@
     "created_at",
     "expires_at",
     "labels",
+    "signing_authority",
     "profile_snapshot",
     "profile_sha256",
     "cost_estimate",
@@ -42,8 +43,8 @@
     "cleanup_plan"
   ],
   "properties": {
-    "schema_version": {"const": "catalog-switch-kubernetes-resource-lease/v2"},
-    "backend_version": {"const": "nebius-managed-kubernetes/v1"},
+    "schema_version": {"const": "catalog-switch-kubernetes-resource-lease/v3"},
+    "backend_version": {"const": "nebius-managed-kubernetes/v2"},
     "event_schema_version": {"const": "catalog-switch-kubernetes-lifecycle-events/v1"},
     "lease_id": {"type": "string"},
     "request_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -73,6 +74,17 @@
     "created_at": {"type": "string", "format": "date-time"},
     "expires_at": {"type": "string", "format": "date-time"},
     "labels": {"type": "object", "additionalProperties": {"type": "string"}},
+    "signing_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "public_key_base64", "private_key_path", "private_key_contents_recorded"],
+      "properties": {
+        "algorithm": {"const": "ed25519"},
+        "public_key_base64": {"type": "string", "minLength": 40},
+        "private_key_path": {"type": "string"},
+        "private_key_contents_recorded": {"const": false}
+      }
+    },
     "profile_snapshot": {"type": "object"},
     "profile_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "cost_estimate": {"type": "object"},
@@ -95,6 +107,7 @@
     "lifecycle_events": {"type": "array", "items": {"type": "object"}},
     "cleanup_plan": {"type": "object"},
     "preflight": {"type": "object"},
+    "signing_key_cleanup": {"type": "object"},
     "released_at": {"type": "string", "format": "date-time"}
   }
 }

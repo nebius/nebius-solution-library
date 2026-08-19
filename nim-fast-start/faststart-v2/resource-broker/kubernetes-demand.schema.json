@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-kubernetes-node-demand/v1",
+  "$id": "catalog-switch-kubernetes-node-demand/v2",
   "title": "Post-T0 Kubernetes GPU node-group demand",
   "type": "object",
   "additionalProperties": false,
@@ -8,16 +8,28 @@
     "schema_version",
     "lease_id",
     "attempt_id",
+    "accepted_event_path",
     "accepted_event_sha256",
-    "t0_observed_at_utc",
-    "t0_observed_monotonic_ns"
+    "ledger_id",
+    "ledger_sequence",
+    "trace_id",
+    "request_id",
+    "event_id",
+    "model_id",
+    "input_payload_sha256"
   ],
   "properties": {
-    "schema_version": {"const": "catalog-switch-kubernetes-node-demand/v1"},
+    "schema_version": {"const": "catalog-switch-kubernetes-node-demand/v2"},
     "lease_id": {"type": "string"},
     "attempt_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,127}$"},
+    "accepted_event_path": {"type": "string", "minLength": 1},
     "accepted_event_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "t0_observed_at_utc": {"type": "string", "format": "date-time"},
-    "t0_observed_monotonic_ns": {"type": "integer", "minimum": 1}
+    "ledger_id": {"type": "string", "minLength": 1},
+    "ledger_sequence": {"type": "integer", "minimum": 0},
+    "trace_id": {"type": "string", "minLength": 1},
+    "request_id": {"type": "string", "minLength": 1},
+    "event_id": {"type": "string", "minLength": 1},
+    "model_id": {"type": "string", "minLength": 1},
+    "input_payload_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
   }
 }

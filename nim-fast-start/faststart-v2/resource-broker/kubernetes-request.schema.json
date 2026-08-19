@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-kubernetes-lease-request/v1",
+  "$id": "catalog-switch-kubernetes-lease-request/v2",
   "title": "Catalog switch Kubernetes lease request",
   "type": "object",
   "additionalProperties": false,
@@ -15,6 +15,7 @@
     "project_id",
     "region",
     "nebius_profile",
+    "authority_identity",
     "cluster_version",
     "node_group_profile",
     "expected_duration_hours",
@@ -25,10 +26,11 @@
     "metric_contract_sha256",
     "trace_sha256",
     "model_input_sha256s",
+    "accepted_event_recorder_id",
     "cleanup_plan"
   ],
   "properties": {
-    "schema_version": {"const": "catalog-switch-kubernetes-lease-request/v1"},
+    "schema_version": {"const": "catalog-switch-kubernetes-lease-request/v2"},
     "lease_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
     "task_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
     "owner": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
@@ -38,6 +40,16 @@
     "project_id": {"type": "string"},
     "region": {"type": "string"},
     "nebius_profile": {"const": "sandbox"},
+    "authority_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "parent_id"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "id": {"type": "string", "minLength": 1},
+        "parent_id": {"type": "string", "minLength": 1}
+      }
+    },
     "cluster_version": {"type": "string", "pattern": "^1\\.[0-9]+$"},
     "node_group_profile": {"type": "string"},
     "expected_duration_hours": {"type": ["string", "number"]},
@@ -57,6 +69,7 @@
       "minProperties": 1,
       "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
     },
+    "accepted_event_recorder_id": {"const": "catalog-switch-k8s-external-client"},
     "cleanup_plan": {"type": "string", "minLength": 20}
   }
 }

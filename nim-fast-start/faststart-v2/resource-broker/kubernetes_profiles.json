@@ -7,7 +7,7 @@
       ],
       "kubernetes_version": "1.34",
       "service_cidr": "/16",
-      "public_control_plane_endpoint": true,
+      "public_control_plane_endpoint": false,
       "karpenter": false,
       "system_node_group": {
         "platform": "cpu-e2",
@@ -22,6 +22,7 @@
         "platform": "gpu-h100-sxm",
         "preset": "1gpu-16vcpu-200gb",
         "gpu_product": "NVIDIA H100 80GB HBM3",
+        "kubernetes_gpu_product_label": "NVIDIA-H100-80GB-HBM3",
         "gpu_count_per_node": 1,
         "node_count": 1,
         "mode": "preemptible",
