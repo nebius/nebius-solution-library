@@ -1,0 +1,123 @@
+{
+  "schema_version": "capacity-cost-measured-inputs/v1",
+  "as_of_date": "2026-08-19",
+  "statement": "Every entry in 'measured' points at a committed artifact on this branch with its SHA-256 pinned; the frontier builder refuses to run if a checksum drifts. Entries in 'assumptions' are explicitly not measurements and every frontier output that depends on one names it. Backends in 'unmeasured_backends' receive no measured latency, no per-request cost, and no empirical rank.",
+  "measured": [
+    {
+      "id": "of2-n20-fresh",
+      "kind": "latency_cohort",
+      "backend": "internal-k8s-snapshot",
+      "model": "OpenFold2",
+      "file": "performance/openfold2/fresh-cohort-n20-results.tsv",
+      "sha256": "b5e3bf5d28c3da0b8a3407dee51aaff8b45fce73f16929b632ca971deb513b03",
+      "metric": "demand_to_two_semantic_boottime_upper_seconds",
+      "n": 20,
+      "failed_attempt_denominator": "0/20",
+      "environment": "already provisioned t12 H100 (gpu-h100-sxm), storage attached, exact image residency proven before T0; see performance/COLD_START_METRICS.md",
+      "notes": "Fresh fail-closed cohort; conservative CLOCK_BOOTTIME upper bound; nearest-rank percentiles."
+    },
+    {
+      "id": "boltz2-n20-fresh",
+      "kind": "latency_cohort",
+      "backend": "internal-k8s-snapshot",
+      "model": "Boltz2",
+      "file": "boltz2-native/fresh-cohort-n20-results.tsv",
+      "sha256": "ec36c85052f62878c22d3e6320845d5e74fb342612d5e1b367d422e9beedad58",
+      "metric": "demand_to_two_semantic_boottime_upper_seconds",
+      "n": 20,
+      "failed_attempt_denominator": "0/20",
+      "environment": "same t12 H100 cohort protocol as of2-n20-fresh",
+      "notes": "All 20 attempts measured and qualified; the cohort outcome is SLO_FAIL against the separate 20 s p95 target, which does not remove any sample from this cost model."
+    },
+    {
+      "id": "catalog-sim-reports",
+      "kind": "simulation",
+      "backend": "internal-k8s-snapshot",
+      "model": "catalog-wide traces",
+      "file": "catalog-sim/results/reports.json",
+      "sha256": "6954d454eb2630279b3e42126ea36afdc1c16540804ec224bd49a0d6f4097f2a",
+      "metric": "reserved_gpu_hours, busy_gpu_hours, fetched_gib, latency p50/p95/p99, slo_goodput, hit rates",
+      "n": null,
+      "failed_attempt_denominator": null,
+      "environment": "deterministic discrete-event simulator seeded with measured faststart lane inputs; commit 2d17c187 cherry-picked onto this branch",
+      "notes": "The simulator's own cost_usd uses explicitly-declared placeholder prices and is IGNORED here; this model re-prices reserved GPU-hours and fetched GiB with the sourced price snapshot."
+    },
+    {
+      "id": "cold-start-metrics-doc",
+      "kind": "reference_document",
+      "backend": "internal-k8s-snapshot",
+      "model": "ten BioNeMo NIM lanes",
+      "file": "performance/COLD_START_METRICS.md",
+      "sha256": "db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1",
+      "metric": "warm-instance exact response-boundary n=3 totals (secondary reference)",
+      "n": 3,
+      "failed_attempt_denominator": null,
+      "environment": "warm provisioned nodes, storage attached",
+      "notes": "n=3 lanes are reference-only in this model; only the n=20 cohorts drive per-request frontier rows because n=3 cannot support a p95 claim."
+    }
+  ],
+  "assumptions": [
+    {
+      "name": "snapshot_capture_seconds_of2",
+      "value": "272.426",
+      "unit": "seconds",
+      "basis": "ARCHVTEAMS-2407 Phase 2 recorded measurement (agent checkpoint 272.426 s incl. CRIU 270.517 s) for OpenFold2 on H100",
+      "why_assumption": "The raw capture log lives on branch agent/archvteams-2407-p2, not on this branch, so it is consumed as a dated recorded value rather than a pinned artifact."
+    },
+    {
+      "name": "preemption_loss_probability_grid",
+      "value": ["0.00", "0.05", "0.10", "0.20", "0.30", "0.44155844", "0.60"],
+      "unit": "probability that a preemptible attempt is lost and retried",
+      "basis": "modeling grid; 0.44155844 is the computed break-even for H100 (1 - 2.15/3.85)",
+      "why_assumption": "No measured preemption-loss rate exists for the measured lanes; the 0/20 observed failure count bounds but does not estimate it."
+    },
+    {
+      "name": "monthly_demand_grid_requests",
+      "value": [1000, 10000, 50000, 100000, 500000, 1000000],
+      "unit": "requests/month per model",
+      "basis": "sensitivity grid",
+      "why_assumption": "Catalog demand is not measured; the frontier reports break-even demand instead of assuming one point."
+    },
+    {
+      "name": "hours_per_month",
+      "value": "730",
+      "unit": "hours",
+      "basis": "365.25 * 24 / 12 rounded to the value the Nebius calculator itself uses (2810.5 / 3.85 = 730)",
+      "why_assumption": "Calendar convention; cross-checked against every captured monthly quote."
+    },
+    {
+      "name": "failure_rate_upper_bound_rule_of_three",
+      "value": "0.15",
+      "unit": "probability",
+      "basis": "rule of three: 0 failures in 20 attempts gives a ~95% upper bound of 3/20",
+      "why_assumption": "Statistical bound derived from the measured 0/20 denominators, not an observed rate; used only for the pessimistic retry multiplier."
+    },
+    {
+      "name": "l2_fetch_billing_variants",
+      "value": ["egress_billed", "egress_free"],
+      "unit": "variant",
+      "basis": "Object Storage egress is $0.0150/GiB on the dated price page while VPC networking egress/ingress is listed free; which meter applies to remote artifact fetches depends on artifact placement",
+      "why_assumption": "Billing attribution of intra-cloud object reads was not verified against an invoice; both variants are computed and labeled."
+    }
+  ],
+  "unmeasured_backends": [
+    {
+      "backend": "cerebrium",
+      "status": "PENDING_MEASUREMENT",
+      "reason": "The sibling task catalog-switch-cerebrium-qwen3-glm52-benchmark is implemented but fail-closed at entitlement/capacity gates; no measured Cerebrium latency exists in this program as of 2026-08-19.",
+      "what_exists": "Dated public per-second prices in price_snapshot.json only."
+    },
+    {
+      "backend": "internal-node-local-vm",
+      "status": "PENDING_MEASUREMENT",
+      "reason": "The node-local runtime prototype (sibling task) has a planned-only lease and no live measured cohort on any reviewed branch as of 2026-08-19.",
+      "what_exists": "Same Nebius instance quotes apply; no measured latency."
+    },
+    {
+      "backend": "modal",
+      "status": "EXCLUDED_DOCUMENTATION_ONLY",
+      "reason": "Program scope correction of 2026-08-19: Modal is documentation-only; it must never receive a measured value or an empirical rank.",
+      "what_exists": "Dated public terms in MODAL_APPENDIX.md, outside every computation."
+    }
+  ]
+}

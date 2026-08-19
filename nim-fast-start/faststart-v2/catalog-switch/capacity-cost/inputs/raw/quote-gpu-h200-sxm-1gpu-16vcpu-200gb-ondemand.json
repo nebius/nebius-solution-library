@@ -1,0 +1,24 @@
+{
+  "captured_at_utc": "2026-08-19T15:07:35Z",
+  "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-instance-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-instance-spec-resources-platform gpu-h200-sxm --resource-spec-compute-instance-spec-resources-preset 1gpu-16vcpu-200gb",
+  "exit_code": 0,
+  "raw_text": null,
+  "response": {
+    "hourly_cost": {
+      "general": {
+        "total": {
+          "cost": "4.5",
+          "cost_rounded": "4.5"
+        }
+      }
+    },
+    "monthly_cost": {
+      "general": {
+        "total": {
+          "cost": "3285",
+          "cost_rounded": "3285"
+        }
+      }
+    }
+  }
+}

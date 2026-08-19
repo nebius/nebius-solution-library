@@ -1,0 +1,24 @@
+{
+  "captured_at_utc": "2026-08-19T15:07:37Z",
+  "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-disk-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-disk-spec-type network_ssd_non_replicated --resource-spec-compute-disk-spec-size-gibibytes 930",
+  "exit_code": 0,
+  "raw_text": null,
+  "response": {
+    "hourly_cost": {
+      "general": {
+        "total": {
+          "cost": "0.06716646",
+          "cost_rounded": "0.07"
+        }
+      }
+    },
+    "monthly_cost": {
+      "general": {
+        "total": {
+          "cost": "49.0315158",
+          "cost_rounded": "51.1"
+        }
+      }
+    }
+  }
+}

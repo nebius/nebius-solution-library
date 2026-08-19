@@ -1,0 +1,668 @@
+{
+  "as_of_date": "2026-08-19",
+  "generated_by": "catalog-switch/capacity-cost/inputs/build_snapshots.py",
+  "records": [
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-a10-h",
+      "region_scope": "derived",
+      "sku": "cerebrium/A10",
+      "source": {
+        "derivation": "per-second price * 3600",
+        "derived_from": [
+          "cerebrium-a10-s"
+        ],
+        "kind": "derived"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "1.1016"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Per-second metered; GPU price excludes CPU/memory add-ons.",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-a10-s",
+      "region_scope": "published-list",
+      "sku": "cerebrium/A10",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://www.cerebrium.ai/pricing"
+      },
+      "unit": "USD/GPU-second",
+      "unit_price": "0.000306"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-a100-80-h",
+      "region_scope": "derived",
+      "sku": "cerebrium/A100-80GB",
+      "source": {
+        "derivation": "per-second price * 3600",
+        "derived_from": [
+          "cerebrium-a100-80-s"
+        ],
+        "kind": "derived"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "2.0988"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Per-second metered; GPU price excludes CPU/memory add-ons.",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-a100-80-s",
+      "region_scope": "published-list",
+      "sku": "cerebrium/A100-80GB",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://www.cerebrium.ai/pricing"
+      },
+      "unit": "USD/GPU-second",
+      "unit_price": "0.000583"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-b200-h",
+      "region_scope": "derived",
+      "sku": "cerebrium/B200",
+      "source": {
+        "derivation": "per-second price * 3600",
+        "derived_from": [
+          "cerebrium-b200-s"
+        ],
+        "kind": "derived"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "6.012"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Per-second metered; GPU price excludes CPU/memory add-ons.",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-b200-s",
+      "region_scope": "published-list",
+      "sku": "cerebrium/B200",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://www.cerebrium.ai/pricing"
+      },
+      "unit": "USD/GPU-second",
+      "unit_price": "0.00167"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-cpu-s",
+      "region_scope": "published-list",
+      "sku": "cerebrium/vCPU",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://www.cerebrium.ai/pricing"
+      },
+      "unit": "USD/vCPU-second",
+      "unit_price": "0.00000655"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-h100-h",
+      "region_scope": "derived",
+      "sku": "cerebrium/H100",
+      "source": {
+        "derivation": "per-second price * 3600",
+        "derived_from": [
+          "cerebrium-h100-s"
+        ],
+        "kind": "derived"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "3.3984"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Per-second metered; GPU price excludes CPU/memory add-ons.",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-h100-s",
+      "region_scope": "published-list",
+      "sku": "cerebrium/H100",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://www.cerebrium.ai/pricing"
+      },
+      "unit": "USD/GPU-second",
+      "unit_price": "0.000944"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-h200-h",
+      "region_scope": "derived",
+      "sku": "cerebrium/H200",
+      "source": {
+        "derivation": "per-second price * 3600",
+        "derived_from": [
+          "cerebrium-h200-s"
+        ],
+        "kind": "derived"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "4.1976"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Per-second metered; GPU price excludes CPU/memory add-ons.",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-h200-s",
+      "region_scope": "published-list",
+      "sku": "cerebrium/H200",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://www.cerebrium.ai/pricing"
+      },
+      "unit": "USD/GPU-second",
+      "unit_price": "0.001166"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-l40s-h",
+      "region_scope": "derived",
+      "sku": "cerebrium/L40S",
+      "source": {
+        "derivation": "per-second price * 3600",
+        "derived_from": [
+          "cerebrium-l40s-s"
+        ],
+        "kind": "derived"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "1.9512"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Per-second metered; GPU price excludes CPU/memory add-ons.",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-l40s-s",
+      "region_scope": "published-list",
+      "sku": "cerebrium/L40S",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://www.cerebrium.ai/pricing"
+      },
+      "unit": "USD/GPU-second",
+      "unit_price": "0.000542"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "on_demand",
+      "record_id": "cerebrium-mem-s",
+      "region_scope": "published-list",
+      "sku": "cerebrium/memory",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://www.cerebrium.ai/pricing"
+      },
+      "unit": "USD/GB-second",
+      "unit_price": "0.00000222"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Standard plan platform fee, plus metered compute.",
+      "offer_class": "committed",
+      "record_id": "cerebrium-plan-standard",
+      "region_scope": "published-list",
+      "sku": "cerebrium/plan-standard",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://www.cerebrium.ai/pricing"
+      },
+      "unit": "USD/month",
+      "unit_price": "100"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "First 100 GB free.",
+      "offer_class": "committed",
+      "record_id": "cerebrium-storage",
+      "region_scope": "published-list",
+      "sku": "cerebrium/storage",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://www.cerebrium.ai/pricing"
+      },
+      "unit": "USD/GB-month",
+      "unit_price": "0.05"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "5219.5",
+      "notes": "Whole-instance quote; the GPU platform bundles vCPU/RAM.",
+      "offer_class": "on_demand",
+      "record_id": "nebius-b200-1g-od",
+      "region_scope": "us-central1",
+      "sku": "gpu-b200-sxm/1gpu-20vcpu-224gb",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-instance-spec-parent-id project-u00tds8vpr00jaxa76s22d --resource-spec-compute-instance-spec-resources-platform gpu-b200-sxm --resource-spec-compute-instance-spec-resources-preset 1gpu-20vcpu-224gb ",
+        "evidence_file": "inputs/raw/quote-gpu-b200-sxm-1gpu-20vcpu-224gb-ondemand.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-u00tds8vpr00jaxa76s22d",
+        "retrieved_at_utc": "2026-08-19T15:08:12Z"
+      },
+      "unit": "USD/instance-hour",
+      "unit_price": "7.15"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "2883.5",
+      "notes": "Whole-instance quote; the GPU platform bundles vCPU/RAM.",
+      "offer_class": "preemptible",
+      "record_id": "nebius-b200-1g-pre",
+      "region_scope": "us-central1",
+      "sku": "gpu-b200-sxm/1gpu-20vcpu-224gb",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-instance-spec-parent-id project-u00tds8vpr00jaxa76s22d --resource-spec-compute-instance-spec-resources-platform gpu-b200-sxm --resource-spec-compute-instance-spec-resources-preset 1gpu-20vcpu-224gb --resource-spec-compute-instance-spec-preemptible-on-preemption stop",
+        "evidence_file": "inputs/raw/quote-gpu-b200-sxm-1gpu-20vcpu-224gb-preemptible.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-u00tds8vpr00jaxa76s22d",
+        "retrieved_at_utc": "2026-08-19T15:08:12Z"
+      },
+      "unit": "USD/instance-hour",
+      "unit_price": "3.95"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "72.416",
+      "notes": "Whole-instance quote; the GPU platform bundles vCPU/RAM.",
+      "offer_class": "on_demand",
+      "record_id": "nebius-cpu-d3-4v16g-od",
+      "region_scope": "eu-north1",
+      "sku": "cpu-d3/4vcpu-16gb",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-instance-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-instance-spec-resources-platform cpu-d3 --resource-spec-compute-instance-spec-resources-preset 4vcpu-16gb",
+        "evidence_file": "inputs/raw/quote-cpu-d3-4vcpu-16gb-ondemand.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-e00z6b02t8ddk96c49",
+        "retrieved_at_utc": "2026-08-19T15:07:36Z"
+      },
+      "unit": "USD/instance-hour",
+      "unit_price": "0.0992"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "49.0315158",
+      "notes": "",
+      "offer_class": "committed",
+      "record_id": "nebius-disk-nrd-930gib",
+      "region_scope": "eu-north1",
+      "sku": "disk/network_ssd_non_replicated/930GiB",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-disk-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-disk-spec-type network_ssd_non_replicated --resource-spec-compute-disk-spec-size-gibibytes 930",
+        "evidence_file": "inputs/raw/quote-disk-network-ssd-nonreplicated-930gib.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-e00z6b02t8ddk96c49",
+        "retrieved_at_utc": "2026-08-19T15:07:37Z"
+      },
+      "unit": "USD/disk-hour",
+      "unit_price": "0.06716646"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "14.194412",
+      "notes": "",
+      "offer_class": "committed",
+      "record_id": "nebius-disk-nssd-200gib",
+      "region_scope": "eu-north1",
+      "sku": "disk/network_ssd/200GiB",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-disk-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-disk-spec-type network_ssd --resource-spec-compute-disk-spec-size-gibibytes 200",
+        "evidence_file": "inputs/raw/quote-disk-network-ssd-200gib.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-e00z6b02t8ddk96c49",
+        "retrieved_at_utc": "2026-08-19T15:07:37Z"
+      },
+      "unit": "USD/disk-hour",
+      "unit_price": "0.0194444"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "2810.5",
+      "notes": "Whole-instance quote; the GPU platform bundles vCPU/RAM.",
+      "offer_class": "on_demand",
+      "record_id": "nebius-h100-1g-od",
+      "region_scope": "eu-north1",
+      "sku": "gpu-h100-sxm/1gpu-16vcpu-200gb",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-instance-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-instance-spec-resources-platform gpu-h100-sxm --resource-spec-compute-instance-spec-resources-preset 1gpu-16vcpu-200gb",
+        "evidence_file": "inputs/raw/quote-gpu-h100-sxm-1gpu-16vcpu-200gb-ondemand.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-e00z6b02t8ddk96c49",
+        "retrieved_at_utc": "2026-08-19T15:07:35Z"
+      },
+      "unit": "USD/instance-hour",
+      "unit_price": "3.85"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "1569.5",
+      "notes": "Whole-instance quote; the GPU platform bundles vCPU/RAM.",
+      "offer_class": "preemptible",
+      "record_id": "nebius-h100-1g-pre",
+      "region_scope": "eu-north1",
+      "sku": "gpu-h100-sxm/1gpu-16vcpu-200gb",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-instance-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-instance-spec-resources-platform gpu-h100-sxm --resource-spec-compute-instance-spec-resources-preset 1gpu-16vcpu-200gb --resource-spec-compute-instance-spec-preemptible-on-preemption stop",
+        "evidence_file": "inputs/raw/quote-gpu-h100-sxm-1gpu-16vcpu-200gb-preemptible.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-e00z6b02t8ddk96c49",
+        "retrieved_at_utc": "2026-08-19T15:07:35Z"
+      },
+      "unit": "USD/instance-hour",
+      "unit_price": "2.15"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "3285",
+      "notes": "Whole-instance quote; the GPU platform bundles vCPU/RAM.",
+      "offer_class": "on_demand",
+      "record_id": "nebius-h200-1g-od",
+      "region_scope": "eu-north1",
+      "sku": "gpu-h200-sxm/1gpu-16vcpu-200gb",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-instance-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-instance-spec-resources-platform gpu-h200-sxm --resource-spec-compute-instance-spec-resources-preset 1gpu-16vcpu-200gb",
+        "evidence_file": "inputs/raw/quote-gpu-h200-sxm-1gpu-16vcpu-200gb-ondemand.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-e00z6b02t8ddk96c49",
+        "retrieved_at_utc": "2026-08-19T15:07:35Z"
+      },
+      "unit": "USD/instance-hour",
+      "unit_price": "4.5"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "1788.5",
+      "notes": "Whole-instance quote; the GPU platform bundles vCPU/RAM.",
+      "offer_class": "preemptible",
+      "record_id": "nebius-h200-1g-pre",
+      "region_scope": "eu-north1",
+      "sku": "gpu-h200-sxm/1gpu-16vcpu-200gb",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-instance-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-instance-spec-resources-platform gpu-h200-sxm --resource-spec-compute-instance-spec-resources-preset 1gpu-16vcpu-200gb --resource-spec-compute-instance-spec-preemptible-on-preemption stop",
+        "evidence_file": "inputs/raw/quote-gpu-h200-sxm-1gpu-16vcpu-200gb-preemptible.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-e00z6b02t8ddk96c49",
+        "retrieved_at_utc": "2026-08-19T15:07:35Z"
+      },
+      "unit": "USD/instance-hour",
+      "unit_price": "2.45"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Matches tenant quote nebius-b200-1g-od.",
+      "offer_class": "on_demand",
+      "record_id": "nebius-list-b200-od",
+      "region_scope": "published-list",
+      "sku": "gpu-b200-sxm",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "7.15"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Matches tenant quote nebius-b200-1g-pre.",
+      "offer_class": "preemptible",
+      "record_id": "nebius-list-b200-pre",
+      "region_scope": "published-list",
+      "sku": "gpu-b200-sxm",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "3.95"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "No tenant quote captured.",
+      "offer_class": "on_demand",
+      "record_id": "nebius-list-b300-od",
+      "region_scope": "published-list",
+      "sku": "gpu-b300-sxm",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "7.85"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "No tenant quote captured.",
+      "offer_class": "preemptible",
+      "record_id": "nebius-list-b300-pre",
+      "region_scope": "published-list",
+      "sku": "gpu-b300-sxm",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "4.30"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Matches tenant quote nebius-h100-1g-od.",
+      "offer_class": "on_demand",
+      "record_id": "nebius-list-h100-od",
+      "region_scope": "published-list",
+      "sku": "gpu-h100-sxm",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "3.85"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Matches tenant quote nebius-h100-1g-pre.",
+      "offer_class": "preemptible",
+      "record_id": "nebius-list-h100-pre",
+      "region_scope": "published-list",
+      "sku": "gpu-h100-sxm",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "2.15"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Matches tenant quote nebius-h200-1g-od.",
+      "offer_class": "on_demand",
+      "record_id": "nebius-list-h200-od",
+      "region_scope": "published-list",
+      "sku": "gpu-h200-sxm",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "4.50"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Matches tenant quote nebius-h200-1g-pre.",
+      "offer_class": "preemptible",
+      "record_id": "nebius-list-h200-pre",
+      "region_scope": "published-list",
+      "sku": "gpu-h200-sxm",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GPU-hour",
+      "unit_price": "2.45"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Object Storage egress. VPC networking egress/ingress and public IPs are listed as free on the same page.",
+      "offer_class": "usage",
+      "record_id": "nebius-list-object-egress",
+      "region_scope": "published-list",
+      "sku": "object-storage/egress",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GiB",
+      "unit_price": "0.0150"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "committed",
+      "record_id": "nebius-list-object-volume",
+      "region_scope": "published-list",
+      "sku": "object-storage/standard",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GiB-month",
+      "unit_price": "0.0147"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "Matches derived nebius-sfs-gib-month within rounding.",
+      "offer_class": "committed",
+      "record_id": "nebius-list-sfs",
+      "region_scope": "published-list",
+      "sku": "filesystem/network_ssd",
+      "source": {
+        "kind": "public_list_price",
+        "retrieved_at_utc": "2026-08-19T15:05:00Z",
+        "url": "https://nebius.com/prices"
+      },
+      "unit": "USD/GiB-month",
+      "unit_price": "0.08"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "81.91996928",
+      "notes": "",
+      "offer_class": "committed",
+      "record_id": "nebius-sfs-1024gib",
+      "region_scope": "eu-north1",
+      "sku": "filesystem/network_ssd/1024GiB",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-filesystem-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-filesystem-spec-type network_ssd --resource-spec-compute-filesystem-spec-size-gibibytes 1024",
+        "evidence_file": "inputs/raw/quote-filesystem-network-ssd-1024gib.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-e00z6b02t8ddk96c49",
+        "retrieved_at_utc": "2026-08-19T15:07:36Z"
+      },
+      "unit": "USD/filesystem-hour",
+      "unit_price": "0.112219136"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": "327.67987712",
+      "notes": "4 TiB matches the SFS size used by the measured artifact tier.",
+      "offer_class": "committed",
+      "record_id": "nebius-sfs-4096gib",
+      "region_scope": "eu-north1",
+      "sku": "filesystem/network_ssd/4096GiB",
+      "source": {
+        "command": "nebius --profile sandbox billing v1alpha1 calculator estimate --format json --resource-spec-compute-filesystem-spec-parent-id project-e00z6b02t8ddk96c49 --resource-spec-compute-filesystem-spec-type network_ssd --resource-spec-compute-filesystem-spec-size-gibibytes 4096",
+        "evidence_file": "inputs/raw/quote-filesystem-network-ssd-4096gib.json",
+        "kind": "tenant_calculator_quote",
+        "project": "project-e00z6b02t8ddk96c49",
+        "retrieved_at_utc": "2026-08-19T15:07:37Z"
+      },
+      "unit": "USD/filesystem-hour",
+      "unit_price": "0.448876544"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "committed",
+      "record_id": "nebius-sfs-gib-month",
+      "region_scope": "derived",
+      "sku": "filesystem/network_ssd",
+      "source": {
+        "derivation": "monthly_price / 4096 GiB, quantized to 1e-9",
+        "derived_from": [
+          "nebius-sfs-4096gib"
+        ],
+        "kind": "derived"
+      },
+      "unit": "USD/GiB-month",
+      "unit_price": "0.079999970"
+    }
+  ],
+  "schema_version": "capacity-cost-price-snapshot/v1",
+  "statement": "Prices are point-in-time quotes/list prices retrieved on the dated timestamps, not invoices. Billing increments, minimums, discounts, and taxes are out of scope, consistent with performance/cost-ledger semantics. Modal terms are excluded by design; see MODAL_APPENDIX.md."
+}

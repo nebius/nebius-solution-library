@@ -1,0 +1,910 @@
+{
+  "as_of_utc": "2026-08-19T15:07:37Z",
+  "generated_by": "catalog-switch/capacity-cost/inputs/build_snapshots.py",
+  "rows": [
+    {
+      "fabric": "fabric-2",
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 6,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 51
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 76,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h100-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": "fabric-3",
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 6,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 51
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 76,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h100-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": "fabric-4",
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 6,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 51
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 67,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h100-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": "fabric-6",
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": 6,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 51
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 46,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h100-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": "fabric-2",
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 6
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 15,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h100-sxm",
+      "preset": "8gpu-128vcpu-1600gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": "fabric-3",
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 6
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 11,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h100-sxm",
+      "preset": "8gpu-128vcpu-1600gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": "fabric-4",
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 6
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 7,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h100-sxm",
+      "preset": "8gpu-128vcpu-1600gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": "fabric-6",
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 6
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 3,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h100-sxm",
+      "preset": "8gpu-128vcpu-1600gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": "fabric-7",
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 2,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 32
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 76,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h200-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": "fabric-7",
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 4
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 9,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h200-sxm",
+      "preset": "8gpu-128vcpu-1600gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": null,
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": 6,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 55
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 12,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-l40s-a",
+      "preset": "1gpu-16vcpu-64gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": null,
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": 6,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 55
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 12,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-l40s-a",
+      "preset": "1gpu-24vcpu-96gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": null,
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": 6,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 55
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 12,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-l40s-a",
+      "preset": "1gpu-32vcpu-128gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": null,
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": 6,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 55
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 12,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-l40s-a",
+      "preset": "1gpu-40vcpu-160gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": null,
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": 6,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 55
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 12,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-l40s-a",
+      "preset": "1gpu-8vcpu-32gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": null,
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 55
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 12,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-l40s-d",
+      "preset": "1gpu-16vcpu-96gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": null,
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 55
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 12,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-l40s-d",
+      "preset": "1gpu-32vcpu-192gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": null,
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 55
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 12,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-l40s-d",
+      "preset": "1gpu-48vcpu-288gb",
+      "region": "eu-north1"
+    },
+    {
+      "fabric": "fabric-5",
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 7,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 8
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 84,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h200-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "region": "eu-west1"
+    },
+    {
+      "fabric": "fabric-5",
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 1
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 3,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h200-sxm",
+      "preset": "8gpu-128vcpu-1600gb",
+      "region": "eu-west1"
+    },
+    {
+      "fabric": "me-west1-a",
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 16
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 28,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-b200-sxm-a",
+      "preset": "1gpu-20vcpu-224gb",
+      "region": "me-west1"
+    },
+    {
+      "fabric": "me-west1-a",
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 2
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 2,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-b200-sxm-a",
+      "preset": "8gpu-160vcpu-1792gb",
+      "region": "me-west1"
+    },
+    {
+      "fabric": "uk-south1-a",
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 18
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 94,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": 80
+        }
+      },
+      "platform": "gpu-b300-sxm",
+      "preset": "1gpu-24vcpu-346gb",
+      "region": "uk-south1"
+    },
+    {
+      "fabric": "uk-south1-a",
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 2
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 9,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": 10
+        }
+      },
+      "platform": "gpu-b300-sxm",
+      "preset": "8gpu-192vcpu-2768gb",
+      "region": "uk-south1"
+    },
+    {
+      "fabric": "us-central1-b",
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 18
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 79,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-b200-sxm",
+      "preset": "1gpu-20vcpu-224gb",
+      "region": "us-central1"
+    },
+    {
+      "fabric": "us-central1-b",
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 2
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 39,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-b200-sxm",
+      "preset": "8gpu-160vcpu-1792gb",
+      "region": "us-central1"
+    },
+    {
+      "fabric": "us-central1-a",
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 6,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 9
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_HIGH",
+          "available": 79,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h200-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "region": "us-central1"
+    },
+    {
+      "fabric": "us-central1-a",
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 1
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 33,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-h200-sxm",
+      "preset": "8gpu-128vcpu-1600gb",
+      "region": "us-central1"
+    },
+    {
+      "fabric": null,
+      "gpu_count": 1,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 8
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 31,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T14:22:08.370Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-rtx6000",
+      "preset": "1gpu-24vcpu-218gb",
+      "region": "us-central1"
+    },
+    {
+      "fabric": null,
+      "gpu_count": 8,
+      "offers": {
+        "on_demand": {
+          "availability_level": "AVAILABILITY_LEVEL_LOW",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 1
+        },
+        "preemptible": {
+          "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+          "available": 1,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T13:50:55.851Z",
+          "limit": 128
+        },
+        "reserved": {
+          "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+          "available": null,
+          "data_state": "DATA_STATE_FRESH",
+          "effective_at": "2026-08-19T15:07:38.410050Z",
+          "limit": null
+        }
+      },
+      "platform": "gpu-rtx6000",
+      "preset": "8gpu-192vcpu-1744gb",
+      "region": "us-central1"
+    }
+  ],
+  "schema_version": "capacity-cost-capacity-snapshot/v1",
+  "source_evidence_file": "inputs/raw/capacity-resource-advice.json",
+  "statement": "Quota-clipped availability from the read-only capacity resource-advice service at capture time. Availability levels are point-in-time observations, not commitments.",
+  "tenant": "tenant-e00f3wdfzwfjgbcyfv"
+}

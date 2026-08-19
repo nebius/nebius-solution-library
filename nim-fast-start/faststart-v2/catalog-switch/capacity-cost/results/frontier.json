@@ -1,0 +1,4012 @@
+{
+  "as_of_date": "2026-08-19",
+  "backends": {
+    "cerebrium": {
+      "dated_unit_prices": {
+        "B200_usd_per_gpu_hour_equivalent": "6.012",
+        "H100_usd_per_gpu_hour_equivalent": "3.3984",
+        "H200_usd_per_gpu_hour_equivalent": "4.1976",
+        "plan_standard_usd_per_month": "100"
+      },
+      "latency_seconds": null,
+      "notes": "Cerebrium bills GPU+CPU+memory per second only while an app is active. Its H100-hour equivalent is below the Nebius on-demand H100 quote and above the preemptible quote, but no per-request cost is computable fail-closed until the sibling benchmark produces measured request latency.",
+      "per_request_cost_usd": null,
+      "reason": "The sibling task catalog-switch-cerebrium-qwen3-glm52-benchmark is implemented but fail-closed at entitlement/capacity gates; no measured Cerebrium latency exists in this program as of 2026-08-19.",
+      "status": "PENDING_MEASUREMENT"
+    },
+    "internal-k8s-snapshot": {
+      "availability_at_capture": [
+        {
+          "fabric": "fabric-2",
+          "offers": {
+            "on_demand": {
+              "availability_level": "AVAILABILITY_LEVEL_HIGH",
+              "available": 6,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T14:22:08.370Z",
+              "limit": 51
+            },
+            "preemptible": {
+              "availability_level": "AVAILABILITY_LEVEL_HIGH",
+              "available": 76,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T14:22:08.370Z",
+              "limit": 128
+            },
+            "reserved": {
+              "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+              "available": null,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T15:07:38.410050Z",
+              "limit": null
+            }
+          }
+        },
+        {
+          "fabric": "fabric-3",
+          "offers": {
+            "on_demand": {
+              "availability_level": "AVAILABILITY_LEVEL_HIGH",
+              "available": 6,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T14:22:08.370Z",
+              "limit": 51
+            },
+            "preemptible": {
+              "availability_level": "AVAILABILITY_LEVEL_HIGH",
+              "available": 76,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T14:22:08.370Z",
+              "limit": 128
+            },
+            "reserved": {
+              "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+              "available": null,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T15:07:38.410050Z",
+              "limit": null
+            }
+          }
+        },
+        {
+          "fabric": "fabric-4",
+          "offers": {
+            "on_demand": {
+              "availability_level": "AVAILABILITY_LEVEL_HIGH",
+              "available": 6,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T14:22:08.370Z",
+              "limit": 51
+            },
+            "preemptible": {
+              "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+              "available": 67,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T14:22:08.370Z",
+              "limit": 128
+            },
+            "reserved": {
+              "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+              "available": null,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T15:07:38.410050Z",
+              "limit": null
+            }
+          }
+        },
+        {
+          "fabric": "fabric-6",
+          "offers": {
+            "on_demand": {
+              "availability_level": "AVAILABILITY_LEVEL_LOW",
+              "available": 6,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T14:22:08.370Z",
+              "limit": 51
+            },
+            "preemptible": {
+              "availability_level": "AVAILABILITY_LEVEL_MEDIUM",
+              "available": 46,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T14:22:08.370Z",
+              "limit": 128
+            },
+            "reserved": {
+              "availability_level": "AVAILABILITY_LEVEL_LIMIT_REACHED",
+              "available": null,
+              "data_state": "DATA_STATE_FRESH",
+              "effective_at": "2026-08-19T15:07:38.410050Z",
+              "limit": null
+            }
+          }
+        }
+      ],
+      "fixed_monthly_overheads_usd": {
+        "controller_cpu_d3_4vcpu_16gb": "72.416",
+        "notes": "As-deployed measured-tier shapes: one 4 TiB network_ssd SFS holding artifacts/caches and one cpu-d3 controller node.",
+        "sfs_4096gib_artifact_tier": "327.67987712"
+      },
+      "gpu_platform": "gpu-h100-sxm 1gpu-16vcpu-200gb, eu-north1",
+      "models": [
+        {
+          "cost_notes": "GPU critical path only (T0 through second semantic response on a 1x H100 instance quote). Node provision, pre-T0 setup, warm idle, storage, and controller costs are separate rows. Pessimistic = rule-of-three retry multiplier from the measured 0/20 failure denominator.",
+          "evidence": "of2-n20-fresh",
+          "failed_attempt_denominator": "0/20",
+          "latency_seconds": {
+            "max": "18.063099",
+            "min": "16.716039",
+            "p50": "17.302540",
+            "p95": "17.629887"
+          },
+          "metric": "demand_to_two_semantic_boottime_upper_seconds",
+          "model": "OpenFold2",
+          "n": 20,
+          "per_request_cost_usd": {
+            "on_demand/p50": {
+              "gpu_critical_path_usd": "0.018504",
+              "gpu_critical_path_usd_pessimistic": "0.021769"
+            },
+            "on_demand/p95": {
+              "gpu_critical_path_usd": "0.018854",
+              "gpu_critical_path_usd_pessimistic": "0.022181"
+            },
+            "preemptible/p50": {
+              "gpu_critical_path_usd": "0.010333",
+              "gpu_critical_path_usd_pessimistic": "0.012156"
+            },
+            "preemptible/p95": {
+              "gpu_critical_path_usd": "0.010529",
+              "gpu_critical_path_usd_pessimistic": "0.012387"
+            }
+          },
+          "slo_goodput": {
+            "within_20s": "1.0000",
+            "within_30s": "1.0000",
+            "within_60s": "1.0000"
+          }
+        },
+        {
+          "cost_notes": "GPU critical path only (T0 through second semantic response on a 1x H100 instance quote). Node provision, pre-T0 setup, warm idle, storage, and controller costs are separate rows. Pessimistic = rule-of-three retry multiplier from the measured 0/20 failure denominator.",
+          "evidence": "boltz2-n20-fresh",
+          "failed_attempt_denominator": "0/20",
+          "latency_seconds": {
+            "max": "31.022641",
+            "min": "24.364138",
+            "p50": "28.892235",
+            "p95": "30.310246"
+          },
+          "metric": "demand_to_two_semantic_boottime_upper_seconds",
+          "model": "Boltz2",
+          "n": 20,
+          "per_request_cost_usd": {
+            "on_demand/p50": {
+              "gpu_critical_path_usd": "0.030899",
+              "gpu_critical_path_usd_pessimistic": "0.036352"
+            },
+            "on_demand/p95": {
+              "gpu_critical_path_usd": "0.032415",
+              "gpu_critical_path_usd_pessimistic": "0.038135"
+            },
+            "preemptible/p50": {
+              "gpu_critical_path_usd": "0.017255",
+              "gpu_critical_path_usd_pessimistic": "0.020300"
+            },
+            "preemptible/p95": {
+              "gpu_critical_path_usd": "0.018102",
+              "gpu_critical_path_usd_pessimistic": "0.021296"
+            }
+          },
+          "slo_goodput": {
+            "within_20s": "0.0000",
+            "within_30s": "0.9000",
+            "within_60s": "1.0000"
+          }
+        }
+      ],
+      "snapshot_capture_cost": {
+        "assumption": "snapshot_capture_seconds_of2",
+        "notes": "Capture is per model-version, amortized over all restores between recaptures; it is not part of any request's critical path.",
+        "on_demand_usd_per_capture": "0.291344",
+        "preemptible_usd_per_capture": "0.162699",
+        "seconds": "272.426"
+      },
+      "status": "MEASURED"
+    },
+    "internal-node-local-vm": {
+      "dated_unit_prices": {
+        "h100_on_demand_usd_per_hour": "3.85",
+        "h100_preemptible_usd_per_hour": "2.15"
+      },
+      "latency_seconds": null,
+      "per_request_cost_usd": null,
+      "reason": "The node-local runtime prototype (sibling task) has a planned-only lease and no live measured cohort on any reviewed branch as of 2026-08-19.",
+      "status": "PENDING_MEASUREMENT"
+    },
+    "modal": {
+      "dated_unit_prices": null,
+      "latency_seconds": null,
+      "per_request_cost_usd": null,
+      "reason": "Program scope correction of 2026-08-19: Modal is documentation-only; it must never receive a measured value or an empirical rank.",
+      "reference": "catalog-switch/capacity-cost/MODAL_APPENDIX.md",
+      "status": "EXCLUDED_DOCUMENTATION_ONLY"
+    }
+  },
+  "breakeven": {
+    "demand_sensitivity": [
+      {
+        "cheaper": "switch",
+        "model": "OpenFold2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 1000,
+        "switch_every_request_usd_preemptible_p50": "10.33"
+      },
+      {
+        "cheaper": "switch",
+        "model": "OpenFold2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 10000,
+        "switch_every_request_usd_preemptible_p50": "103.33"
+      },
+      {
+        "cheaper": "switch",
+        "model": "OpenFold2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 50000,
+        "switch_every_request_usd_preemptible_p50": "516.65"
+      },
+      {
+        "cheaper": "switch",
+        "model": "OpenFold2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 100000,
+        "switch_every_request_usd_preemptible_p50": "1033.30"
+      },
+      {
+        "cheaper": "warm",
+        "model": "OpenFold2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 500000,
+        "switch_every_request_usd_preemptible_p50": "5166.50"
+      },
+      {
+        "cheaper": "warm",
+        "model": "OpenFold2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 1000000,
+        "switch_every_request_usd_preemptible_p50": "10333.00"
+      },
+      {
+        "cheaper": "switch",
+        "model": "Boltz2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 1000,
+        "switch_every_request_usd_preemptible_p50": "17.26"
+      },
+      {
+        "cheaper": "switch",
+        "model": "Boltz2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 10000,
+        "switch_every_request_usd_preemptible_p50": "172.55"
+      },
+      {
+        "cheaper": "switch",
+        "model": "Boltz2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 50000,
+        "switch_every_request_usd_preemptible_p50": "862.75"
+      },
+      {
+        "cheaper": "switch",
+        "model": "Boltz2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 100000,
+        "switch_every_request_usd_preemptible_p50": "1725.50"
+      },
+      {
+        "cheaper": "warm",
+        "model": "Boltz2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 500000,
+        "switch_every_request_usd_preemptible_p50": "8627.50"
+      },
+      {
+        "cheaper": "warm",
+        "model": "Boltz2",
+        "one_warm_gpu_usd": "2810.5",
+        "requests_per_month": 1000000,
+        "switch_every_request_usd_preemptible_p50": "17255.00"
+      }
+    ],
+    "preemption_loss_probability": {
+      "gpu-b200-sxm": "0.44755245",
+      "gpu-h100-sxm": "0.44155844",
+      "gpu-h200-sxm": "0.45555556"
+    },
+    "storage_tier": {
+      "egress_billed_breakeven_refetches_per_gib_month": "4.3533",
+      "egress_free_variant": "if intra-cloud object reads are not billed as egress, object storage dominates SFS on cost at any refetch rate and the decision is latency-only",
+      "object_egress_usd_per_gib": "0.0150",
+      "object_usd_per_gib_month": "0.0147",
+      "sfs_usd_per_gib_month": "0.079999970"
+    },
+    "warm_pool_monthly": [
+      {
+        "includes": "K warm H100 + 4 TiB SFS + controller",
+        "k_warm_gpus": 1,
+        "monthly_usd_on_demand": "3210.60"
+      },
+      {
+        "includes": "K warm H100 + 4 TiB SFS + controller",
+        "k_warm_gpus": 2,
+        "monthly_usd_on_demand": "6021.10"
+      },
+      {
+        "includes": "K warm H100 + 4 TiB SFS + controller",
+        "k_warm_gpus": 4,
+        "monthly_usd_on_demand": "11642.10"
+      },
+      {
+        "includes": "K warm H100 + 4 TiB SFS + controller",
+        "k_warm_gpus": 8,
+        "monthly_usd_on_demand": "22884.10"
+      },
+      {
+        "includes": "K warm H100 + 4 TiB SFS + controller",
+        "k_warm_gpus": 16,
+        "monthly_usd_on_demand": "45368.10"
+      }
+    ],
+    "warm_vs_switch": [
+      {
+        "bound": "upper bound: assumes every request pays a full switch; any cache hit rate lowers the effective switch cost",
+        "breakeven_requests_per_month": "266929.43",
+        "latency_tradeoff": "warm hit ~= second-call latency; switch p95 = 17.629887s",
+        "model": "OpenFold2",
+        "per_switch_usd_p95": "0.010529",
+        "switch_offer": "preemptible",
+        "warm_gpu_month_usd_on_demand": "2810.5"
+      },
+      {
+        "bound": "upper bound: assumes every request pays a full switch; any cache hit rate lowers the effective switch cost",
+        "breakeven_requests_per_month": "149066.51",
+        "latency_tradeoff": "warm hit ~= second-call latency; switch p95 = 17.629887s",
+        "model": "OpenFold2",
+        "per_switch_usd_p95": "0.018854",
+        "switch_offer": "on_demand",
+        "warm_gpu_month_usd_on_demand": "2810.5"
+      },
+      {
+        "bound": "upper bound: assumes every request pays a full switch; any cache hit rate lowers the effective switch cost",
+        "breakeven_requests_per_month": "155259.09",
+        "latency_tradeoff": "warm hit ~= second-call latency; switch p95 = 30.310246s",
+        "model": "Boltz2",
+        "per_switch_usd_p95": "0.018102",
+        "switch_offer": "preemptible",
+        "warm_gpu_month_usd_on_demand": "2810.5"
+      },
+      {
+        "bound": "upper bound: assumes every request pays a full switch; any cache hit rate lowers the effective switch cost",
+        "breakeven_requests_per_month": "86703.69",
+        "latency_tradeoff": "warm hit ~= second-call latency; switch p95 = 30.310246s",
+        "model": "Boltz2",
+        "per_switch_usd_p95": "0.032415",
+        "switch_offer": "on_demand",
+        "warm_gpu_month_usd_on_demand": "2810.5"
+      }
+    ]
+  },
+  "generated_by": "catalog-switch/capacity-cost/costmodel/build_frontier.py",
+  "schema_version": "capacity-cost-frontier/v1",
+  "simulator_frontier": {
+    "egress_price_record": "nebius-list-object-egress",
+    "gpu_price_records": [
+      "nebius-h100-1g-od",
+      "nebius-h100-1g-pre"
+    ],
+    "reports": [
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "226.522059",
+            "gpu": "295.633068",
+            "per_1000_completed": "291.869831",
+            "total": "522.155127"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "295.633068",
+            "per_1000_completed": "165.250457",
+            "total": "295.633068"
+          },
+          "preemptible/egress_billed": {
+            "egress": "226.522059",
+            "gpu": "165.093791",
+            "per_1000_completed": "218.902096",
+            "total": "391.615850"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "165.093791",
+            "per_1000_completed": "92.282723",
+            "total": "165.093791"
+          }
+        },
+        "fetched_gib": "15101.47063263692",
+        "hot_hit_rate": 0.0553381777529346,
+        "latency_seconds": {
+          "p50": 830.615448,
+          "p95": 3148.684022,
+          "p99": 4844.845072
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "76.78780989333333",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.11291224147568474,
+          "within_30s": 0.025712688652878703,
+          "within_60s": 0.03130240357741755
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.7495724120499356
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "481.694239",
+            "gpu": "218.393876",
+            "per_1000_completed": "391.329298",
+            "total": "700.088115"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "218.393876",
+            "per_1000_completed": "122.075951",
+            "total": "218.393876"
+          },
+          "preemptible/egress_billed": {
+            "egress": "481.694239",
+            "gpu": "121.960216",
+            "per_1000_completed": "337.425632",
+            "total": "603.654455"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "121.960216",
+            "per_1000_completed": "68.172284",
+            "total": "121.960216"
+          }
+        },
+        "fetched_gib": "32112.94927116949",
+        "hot_hit_rate": 0.004471771939631079,
+        "latency_seconds": {
+          "p50": 192.379094,
+          "p95": 951.47112,
+          "p99": 1442.514356
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+least-loaded+lru",
+        "reserved_gpu_hours": "56.72568207333334",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.3605366126327557,
+          "within_30s": 0.08552263834544438,
+          "within_60s": 0.21576299608719957
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.8683071224137895
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "90.240697",
+            "gpu": "183.844150",
+            "per_1000_completed": "153.205616",
+            "total": "274.084847"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "183.844150",
+            "per_1000_completed": "102.763639",
+            "total": "183.844150"
+          },
+          "preemptible/egress_billed": {
+            "egress": "90.240697",
+            "gpu": "102.666214",
+            "per_1000_completed": "107.829464",
+            "total": "192.906911"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "102.666214",
+            "per_1000_completed": "57.387487",
+            "total": "102.666214"
+          }
+        },
+        "fetched_gib": "6016.046492639929",
+        "hot_hit_rate": 0.15762996087199552,
+        "latency_seconds": {
+          "p50": 21.698956,
+          "p95": 122.029698,
+          "p99": 454.045354
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "47.75172721333333",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9480156512017887,
+          "within_30s": 0.6696478479597541,
+          "within_60s": 0.8770262716601454
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.3395225377878113
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "112.052959",
+            "gpu": "181.904339",
+            "per_1000_completed": "164.313750",
+            "total": "293.957298"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "181.904339",
+            "per_1000_completed": "101.679340",
+            "total": "181.904339"
+          },
+          "preemptible/egress_billed": {
+            "egress": "112.052959",
+            "gpu": "101.582943",
+            "per_1000_completed": "119.416379",
+            "total": "213.635902"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "101.582943",
+            "per_1000_completed": "56.781969",
+            "total": "101.582943"
+          }
+        },
+        "fetched_gib": "7470.197287822142",
+        "hot_hit_rate": 0.1470095025153717,
+        "latency_seconds": {
+          "p50": 23.541255,
+          "p95": 128.607797,
+          "p99": 512.7956
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+lfu",
+        "reserved_gpu_hours": "47.247880286666664",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9401900503074343,
+          "within_30s": 0.6294019005030743,
+          "within_60s": 0.8524315259921744
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.38458049771000263
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "107.608127",
+            "gpu": "181.929983",
+            "per_1000_completed": "161.843549",
+            "total": "289.538110"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "181.929983",
+            "per_1000_completed": "101.693674",
+            "total": "181.929983"
+          },
+          "preemptible/egress_billed": {
+            "egress": "107.608127",
+            "gpu": "101.597263",
+            "per_1000_completed": "116.939849",
+            "total": "209.205390"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "101.597263",
+            "per_1000_completed": "56.789974",
+            "total": "101.597263"
+          }
+        },
+        "fetched_gib": "7173.875161654316",
+        "hot_hit_rate": 0.1542761319172722,
+        "latency_seconds": {
+          "p50": 22.715281,
+          "p95": 127.676381,
+          "p99": 546.59792
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "47.25454106666667",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9390721073225266,
+          "within_30s": 0.6495248742314143,
+          "within_60s": 0.864169927333706
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.3695835971280865
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "88.199323",
+            "gpu": "184.799099",
+            "per_1000_completed": "152.598335",
+            "total": "272.998422"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "184.799099",
+            "per_1000_completed": "103.297428",
+            "total": "184.799099"
+          },
+          "preemptible/egress_billed": {
+            "egress": "88.199323",
+            "gpu": "103.199497",
+            "per_1000_completed": "106.986484",
+            "total": "191.398820"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "103.199497",
+            "per_1000_completed": "57.685577",
+            "total": "103.199497"
+          }
+        },
+        "fetched_gib": "5879.954882370308",
+        "hot_hit_rate": 0.14477361654555618,
+        "latency_seconds": {
+          "p50": 21.855421,
+          "p95": 121.041016,
+          "p99": 437.982831
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+lru+bounded-queue",
+        "reserved_gpu_hours": "47.999766066666666",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9485746226942426,
+          "within_30s": 0.6623812185578536,
+          "within_60s": 0.8669647847959754
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.33335089199529633
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "191.207461",
+            "gpu": "182.609917",
+            "per_1000_completed": "208.953258",
+            "total": "373.817378"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "182.609917",
+            "per_1000_completed": "102.073738",
+            "total": "182.609917"
+          },
+          "preemptible/egress_billed": {
+            "egress": "191.207461",
+            "gpu": "101.976966",
+            "per_1000_completed": "163.881737",
+            "total": "293.184427"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "101.976966",
+            "per_1000_completed": "57.002217",
+            "total": "101.976966"
+          }
+        },
+        "fetched_gib": "12747.164091044106",
+        "hot_hit_rate": 0.14589155953046395,
+        "latency_seconds": {
+          "p50": 22.883123,
+          "p95": 121.668682,
+          "p99": 470.073055
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+lru+pipeline-next",
+        "reserved_gpu_hours": "47.431147186666664",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9485746226942426,
+          "within_30s": 0.6484069312465064,
+          "within_60s": 0.868641699273337
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.35461131249952926
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "102.634235",
+            "gpu": "183.580379",
+            "per_1000_completed": "159.985810",
+            "total": "286.214614"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "183.580379",
+            "per_1000_completed": "102.616198",
+            "total": "183.580379"
+          },
+          "preemptible/egress_billed": {
+            "egress": "102.634235",
+            "gpu": "102.518913",
+            "per_1000_completed": "114.674761",
+            "total": "205.153148"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "102.518913",
+            "per_1000_completed": "57.305150",
+            "total": "102.518913"
+          }
+        },
+        "fetched_gib": "6842.28231311962",
+        "hot_hit_rate": 0.15371716042481834,
+        "latency_seconds": {
+          "p50": 23.088953,
+          "p95": 126.055837,
+          "p99": 482.413454
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k8",
+        "reserved_gpu_hours": "47.683215393333334",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9401900503074343,
+          "within_30s": 0.6411403018446059,
+          "within_60s": 0.8574622694242594
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.358800644704724
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "102.510248",
+            "gpu": "185.452435",
+            "per_1000_completed": "160.962931",
+            "total": "287.962683"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "185.452435",
+            "per_1000_completed": "103.662624",
+            "total": "185.452435"
+          },
+          "preemptible/egress_billed": {
+            "egress": "102.510248",
+            "gpu": "103.564347",
+            "per_1000_completed": "115.189824",
+            "total": "206.074595"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "103.564347",
+            "per_1000_completed": "57.889518",
+            "total": "103.564347"
+          }
+        },
+        "fetched_gib": "6834.016506218351",
+        "hot_hit_rate": 0.14812744550027948,
+        "latency_seconds": {
+          "p50": 21.710652,
+          "p95": 121.668682,
+          "p99": 442.331026
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+size",
+        "reserved_gpu_hours": "48.1694637",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9480156512017887,
+          "within_30s": 0.6713247624371157,
+          "within_60s": 0.8943543879262158
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.3326043091106008
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "463.087333",
+            "gpu": "884.602248",
+            "per_1000_completed": "753.320056",
+            "total": "1347.689581"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "884.602248",
+            "per_1000_completed": "494.467439",
+            "total": "884.602248"
+          },
+          "preemptible/egress_billed": {
+            "egress": "463.087333",
+            "gpu": "493.998658",
+            "per_1000_completed": "534.983785",
+            "total": "957.085991"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "493.998658",
+            "per_1000_completed": "276.131167",
+            "total": "493.998658"
+          }
+        },
+        "fetched_gib": "30872.48884195462",
+        "hot_hit_rate": 0.044717719396310786,
+        "latency_seconds": {
+          "p50": 5302.635225,
+          "p95": 23174.019588,
+          "p99": 26010.894454
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "229.76681766666667",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.0072666294019005035,
+          "within_30s": 0.003912800447177194,
+          "within_60s": 0.005030743432084964
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.516348474689261
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "120.508343",
+            "gpu": "184.490756",
+            "per_1000_completed": "170.485802",
+            "total": "304.999099"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "184.490756",
+            "per_1000_completed": "103.125073",
+            "total": "184.490756"
+          },
+          "preemptible/egress_billed": {
+            "egress": "120.508343",
+            "gpu": "103.027306",
+            "per_1000_completed": "124.950055",
+            "total": "223.535649"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "103.027306",
+            "per_1000_completed": "57.589327",
+            "total": "103.027306"
+          }
+        },
+        "fetched_gib": "8033.889556542039",
+        "hot_hit_rate": 0.15483510340972612,
+        "latency_seconds": {
+          "p50": 30.979761,
+          "p95": 150.274203,
+          "p99": 715.307517
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "47.919676986666666",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.9200670765790945,
+          "within_30s": 0.4823923979877026,
+          "within_60s": 0.7970933482392398
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.43100901064833763
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "123.916083",
+            "gpu": "183.396865",
+            "per_1000_completed": "171.779177",
+            "total": "307.312948"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "183.396865",
+            "per_1000_completed": "102.513619",
+            "total": "183.396865"
+          },
+          "preemptible/egress_billed": {
+            "egress": "123.916083",
+            "gpu": "102.416431",
+            "per_1000_completed": "126.513423",
+            "total": "226.332514"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "102.416431",
+            "per_1000_completed": "57.247865",
+            "total": "102.416431"
+          }
+        },
+        "fetched_gib": "8261.072207440622",
+        "hot_hit_rate": 0.1436556735606484,
+        "latency_seconds": {
+          "p50": 30.887369,
+          "p95": 151.119366,
+          "p99": 738.064984
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "47.63554937166666",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.9206260480715484,
+          "within_30s": 0.4795975405254332,
+          "within_60s": 0.7998882057015092
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.4461253551422995
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "280.098300",
+            "gpu": "417.579585",
+            "per_1000_completed": "389.982049",
+            "total": "697.677885"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "417.579585",
+            "per_1000_completed": "233.415084",
+            "total": "417.579585"
+          },
+          "preemptible/egress_billed": {
+            "egress": "280.098300",
+            "gpu": "233.193794",
+            "per_1000_completed": "286.915648",
+            "total": "513.292094"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "233.193794",
+            "per_1000_completed": "130.348683",
+            "total": "233.193794"
+          }
+        },
+        "fetched_gib": "18673.220006730407",
+        "hot_hit_rate": 0.05869200670765791,
+        "latency_seconds": {
+          "p50": 1013.57999,
+          "p95": 5848.846759,
+          "p99": 8695.496345
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "108.4622299",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.13750698714365567,
+          "within_30s": 0.029625489100055896,
+          "within_60s": 0.043040804918949134
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.5919377018158958
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "162.646818",
+            "gpu": "182.380976",
+            "per_1000_completed": "192.860701",
+            "total": "345.027794"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "182.380976",
+            "per_1000_completed": "101.945766",
+            "total": "182.380976"
+          },
+          "preemptible/egress_billed": {
+            "egress": "162.646818",
+            "gpu": "101.849116",
+            "per_1000_completed": "147.845687",
+            "total": "264.495934"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "101.849116",
+            "per_1000_completed": "56.930752",
+            "total": "101.849116"
+          }
+        },
+        "fetched_gib": "10843.12117678672",
+        "hot_hit_rate": 0.1442146450531023,
+        "latency_seconds": {
+          "p50": 24.202128,
+          "p95": 418.524222,
+          "p99": 689.455547
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "47.37168196277778",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.8485187255449972,
+          "within_30s": 0.5690329793180547,
+          "within_60s": 0.7702627166014533
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.5481715416176212
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "156.465971",
+            "gpu": "186.452190",
+            "per_1000_completed": "191.681476",
+            "total": "342.918161"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "186.452190",
+            "per_1000_completed": "104.221459",
+            "total": "186.452190"
+          },
+          "preemptible/egress_billed": {
+            "egress": "156.465971",
+            "gpu": "104.122651",
+            "per_1000_completed": "145.661611",
+            "total": "260.588622"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "104.122651",
+            "per_1000_completed": "58.201594",
+            "total": "104.122651"
+          }
+        },
+        "fetched_gib": "10431.064710672013",
+        "hot_hit_rate": 0.13974287311347122,
+        "latency_seconds": {
+          "p50": 28.063776,
+          "p95": 403.817247,
+          "p99": 689.187887
+        },
+        "n_completed": 1789,
+        "n_failed": 0,
+        "n_requests": 1789,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "48.429140153333336",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.8474007825600894,
+          "within_30s": 0.5181665735047513,
+          "within_60s": 0.7663499161542762
+        },
+        "trace_family": "adversarial",
+        "utilization": 0.5377531194554461
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "256.913923",
+            "gpu": "643.405788",
+            "per_1000_completed": "227.124044",
+            "total": "900.319711"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "643.405788",
+            "per_1000_completed": "162.312257",
+            "total": "643.405788"
+          },
+          "preemptible/egress_billed": {
+            "egress": "256.913923",
+            "gpu": "359.304531",
+            "per_1000_completed": "155.453697",
+            "total": "616.218454"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "359.304531",
+            "per_1000_completed": "90.641910",
+            "total": "359.304531"
+          }
+        },
+        "fetched_gib": "17127.59487103112",
+        "hot_hit_rate": 0.36781029263370335,
+        "latency_seconds": {
+          "p50": 2201.912649,
+          "p95": 13647.117988,
+          "p99": 16336.542656
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "167.11838640666667",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.08980827447023208,
+          "within_30s": 0.020433905146316853,
+          "within_60s": 0.03456104944500504
+        },
+        "trace_family": "bursty",
+        "utilization": 0.49064211688815734
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "470.800204",
+            "gpu": "281.329728",
+            "per_1000_completed": "189.740144",
+            "total": "752.129932"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "281.329728",
+            "per_1000_completed": "70.971173",
+            "total": "281.329728"
+          },
+          "preemptible/egress_billed": {
+            "egress": "470.800204",
+            "gpu": "157.106212",
+            "per_1000_completed": "158.402224",
+            "total": "627.906416"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "157.106212",
+            "per_1000_completed": "39.633252",
+            "total": "157.106212"
+          }
+        },
+        "fetched_gib": "31386.68028813321",
+        "hot_hit_rate": 0.07038345105953582,
+        "latency_seconds": {
+          "p50": 1377.262352,
+          "p95": 2993.416362,
+          "p99": 3434.706929
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+least-loaded+lru",
+        "reserved_gpu_hours": "73.07265656",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.040110998990918266,
+          "within_30s": 0.010090817356205853,
+          "within_60s": 0.02472250252270434
+        },
+        "trace_family": "bursty",
+        "utilization": 0.8838612497202469
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "83.250038",
+            "gpu": "197.023374",
+            "per_1000_completed": "70.704695",
+            "total": "280.273412"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "197.023374",
+            "per_1000_completed": "49.703172",
+            "total": "197.023374"
+          },
+          "preemptible/egress_billed": {
+            "egress": "83.250038",
+            "gpu": "110.026040",
+            "per_1000_completed": "48.757840",
+            "total": "193.276078"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "110.026040",
+            "per_1000_completed": "27.756317",
+            "total": "110.026040"
+          }
+        },
+        "fetched_gib": "5550.00251230225",
+        "hot_hit_rate": 0.4772956609485368,
+        "latency_seconds": {
+          "p50": 24.778098,
+          "p95": 731.81779,
+          "p99": 1867.701391
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "51.17490240777777",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.799949545913219,
+          "within_30s": 0.5469223007063572,
+          "within_60s": 0.6977800201816348
+        },
+        "trace_family": "bursty",
+        "utilization": 0.4285294735120067
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "105.768143",
+            "gpu": "207.622068",
+            "per_1000_completed": "79.059085",
+            "total": "313.390211"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "207.622068",
+            "per_1000_completed": "52.376909",
+            "total": "207.622068"
+          },
+          "preemptible/egress_billed": {
+            "egress": "105.768143",
+            "gpu": "115.944791",
+            "per_1000_completed": "55.931618",
+            "total": "221.712934"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "115.944791",
+            "per_1000_completed": "29.249443",
+            "total": "115.944791"
+          }
+        },
+        "fetched_gib": "7051.209563169628",
+        "hot_hit_rate": 0.4659434914228052,
+        "latency_seconds": {
+          "p50": 33.06594,
+          "p95": 841.743791,
+          "p99": 2005.358311
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+lfu",
+        "reserved_gpu_hours": "53.92780979999999",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.6965186680121089,
+          "within_30s": 0.47906155398587286,
+          "within_60s": 0.624117053481332
+        },
+        "trace_family": "bursty",
+        "utilization": 0.4336611950372795
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "109.972891",
+            "gpu": "308.811828",
+            "per_1000_completed": "105.647003",
+            "total": "418.784719"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "308.811828",
+            "per_1000_completed": "77.904094",
+            "total": "308.811828"
+          },
+          "preemptible/egress_billed": {
+            "egress": "109.972891",
+            "gpu": "172.453359",
+            "per_1000_completed": "71.247793",
+            "total": "282.426250"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "172.453359",
+            "per_1000_completed": "43.504884",
+            "total": "172.453359"
+          }
+        },
+        "fetched_gib": "7331.52605516091",
+        "hot_hit_rate": 0.4883955600403633,
+        "latency_seconds": {
+          "p50": 28.070925,
+          "p95": 3748.099011,
+          "p99": 4704.66665
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "80.21086449416667",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.7192230070635721,
+          "within_30s": 0.5174066599394551,
+          "within_60s": 0.6458123107971746
+        },
+        "trace_family": "bursty",
+        "utilization": 0.2890920119267181
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "92.870056",
+            "gpu": "196.301235",
+            "per_1000_completed": "72.949367",
+            "total": "289.171291"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "196.301235",
+            "per_1000_completed": "49.520998",
+            "total": "196.301235"
+          },
+          "preemptible/egress_billed": {
+            "egress": "92.870056",
+            "gpu": "109.622767",
+            "per_1000_completed": "51.082952",
+            "total": "202.492823"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "109.622767",
+            "per_1000_completed": "27.654583",
+            "total": "109.622767"
+          }
+        },
+        "fetched_gib": "6191.3370443554595",
+        "hot_hit_rate": 0.45736629667003026,
+        "latency_seconds": {
+          "p50": 25.095886,
+          "p95": 210.136923,
+          "p99": 647.327237
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+lru+bounded-queue",
+        "reserved_gpu_hours": "50.98733369999999",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.8420787083753785,
+          "within_30s": 0.549949545913219,
+          "within_60s": 0.7172048435923309
+        },
+        "trace_family": "bursty",
+        "utilization": 0.4490258557424168
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "177.302941",
+            "gpu": "230.378333",
+            "per_1000_completed": "102.845932",
+            "total": "407.681274"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "230.378333",
+            "per_1000_completed": "58.117642",
+            "total": "230.378333"
+          },
+          "preemptible/egress_billed": {
+            "egress": "177.302941",
+            "gpu": "128.652835",
+            "per_1000_completed": "77.183596",
+            "total": "305.955776"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "128.652835",
+            "per_1000_completed": "32.455307",
+            "total": "128.652835"
+          }
+        },
+        "fetched_gib": "11820.196094200015",
+        "hot_hit_rate": 0.4788092835519677,
+        "latency_seconds": {
+          "p50": 27.249724,
+          "p95": 1227.860432,
+          "p99": 1924.559768
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+lru+pipeline-next",
+        "reserved_gpu_hours": "59.83852796666666",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.7527749747729566,
+          "within_30s": 0.5196770938446014,
+          "within_60s": 0.6601917255297679
+        },
+        "trace_family": "bursty",
+        "utilization": 0.38123248053099346
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "96.080242",
+            "gpu": "224.964194",
+            "per_1000_completed": "80.990019",
+            "total": "321.044436"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "224.964194",
+            "per_1000_completed": "56.751815",
+            "total": "224.964194"
+          },
+          "preemptible/egress_billed": {
+            "egress": "96.080242",
+            "gpu": "125.629355",
+            "per_1000_completed": "55.930776",
+            "total": "221.709597"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "125.629355",
+            "per_1000_completed": "31.692572",
+            "total": "125.629355"
+          }
+        },
+        "fetched_gib": "6405.349434615113",
+        "hot_hit_rate": 0.4760343087790111,
+        "latency_seconds": {
+          "p50": 32.250728,
+          "p95": 1383.160029,
+          "p99": 1809.035651
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k8",
+        "reserved_gpu_hours": "58.43225818666667",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.7174571140262361,
+          "within_30s": 0.48562058526740665,
+          "within_60s": 0.6266397578203835
+        },
+        "trace_family": "bursty",
+        "utilization": 0.4066699946216055
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "92.722805",
+            "gpu": "208.109757",
+            "per_1000_completed": "75.891161",
+            "total": "300.832562"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "208.109757",
+            "per_1000_completed": "52.499939",
+            "total": "208.109757"
+          },
+          "preemptible/egress_billed": {
+            "egress": "92.722805",
+            "gpu": "116.217137",
+            "per_1000_completed": "52.709370",
+            "total": "208.939942"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "116.217137",
+            "per_1000_completed": "29.318148",
+            "total": "116.217137"
+          }
+        },
+        "fetched_gib": "6181.520330583677",
+        "hot_hit_rate": 0.46745711402623613,
+        "latency_seconds": {
+          "p50": 29.352953,
+          "p95": 869.794062,
+          "p99": 1331.110186
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+size",
+        "reserved_gpu_hours": "54.054482359999994",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.7563067608476287,
+          "within_30s": 0.5042885973763875,
+          "within_60s": 0.643037336024218
+        },
+        "trace_family": "bursty",
+        "utilization": 0.4221097058814857
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "457.458159",
+            "gpu": "1724.073377",
+            "per_1000_completed": "550.335907",
+            "total": "2181.531536"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "1724.073377",
+            "per_1000_completed": "434.932739",
+            "total": "1724.073377"
+          },
+          "preemptible/egress_billed": {
+            "egress": "457.458159",
+            "gpu": "962.794224",
+            "per_1000_completed": "358.287685",
+            "total": "1420.252383"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "962.794224",
+            "per_1000_completed": "242.884517",
+            "total": "962.794224"
+          }
+        },
+        "fetched_gib": "30497.210575556383",
+        "hot_hit_rate": 0.3796670030272452,
+        "latency_seconds": {
+          "p50": 8144.852845,
+          "p95": 41377.235007,
+          "p99": 52426.911107
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "447.8112668344444",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.018163471241170535,
+          "within_30s": 0.006054490413723511,
+          "within_60s": 0.011352169525731584
+        },
+        "trace_family": "bursty",
+        "utilization": 0.36373693040134847
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "127.720869",
+            "gpu": "230.771998",
+            "per_1000_completed": "90.437151",
+            "total": "358.492867"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "230.771998",
+            "per_1000_completed": "58.216952",
+            "total": "230.771998"
+          },
+          "preemptible/egress_billed": {
+            "egress": "127.720869",
+            "gpu": "128.872674",
+            "per_1000_completed": "64.730964",
+            "total": "256.593543"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "128.872674",
+            "per_1000_completed": "32.510765",
+            "total": "128.872674"
+          }
+        },
+        "fetched_gib": "8514.7246057624",
+        "hot_hit_rate": 0.43264379414732596,
+        "latency_seconds": {
+          "p50": 52.418687,
+          "p95": 1801.380351,
+          "p99": 2979.337285
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "59.94077858666667",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.6329465186680121,
+          "within_30s": 0.3705852674066599,
+          "within_60s": 0.5358224016145308
+        },
+        "trace_family": "bursty",
+        "utilization": 0.5112307982383348
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "136.531630",
+            "gpu": "216.013178",
+            "per_1000_completed": "88.936632",
+            "total": "352.544808"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "216.013178",
+            "per_1000_completed": "54.493738",
+            "total": "216.013178"
+          },
+          "preemptible/egress_billed": {
+            "egress": "136.531630",
+            "gpu": "120.630736",
+            "per_1000_completed": "64.874462",
+            "total": "257.162366"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "120.630736",
+            "per_1000_completed": "30.431568",
+            "total": "120.630736"
+          }
+        },
+        "fetched_gib": "9102.108689151704",
+        "hot_hit_rate": 0.41649848637739656,
+        "latency_seconds": {
+          "p50": 47.131045,
+          "p95": 1404.205923,
+          "p99": 2032.318794
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "56.10731898",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.6697780020181635,
+          "within_30s": 0.38244197780020184,
+          "within_60s": 0.5628153380423815
+        },
+        "trace_family": "bursty",
+        "utilization": 0.5481480361989981
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "199.224144",
+            "gpu": "668.079999",
+            "per_1000_completed": "219.126868",
+            "total": "867.304143"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "668.079999",
+            "per_1000_completed": "168.792319",
+            "total": "668.079999"
+          },
+          "preemptible/egress_billed": {
+            "egress": "199.224144",
+            "gpu": "373.083636",
+            "per_1000_completed": "144.595195",
+            "total": "572.307780"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "373.083636",
+            "per_1000_completed": "94.260646",
+            "total": "373.083636"
+          }
+        },
+        "fetched_gib": "13281.609630630352",
+        "hot_hit_rate": 0.4034866093986862,
+        "latency_seconds": {
+          "p50": 1382.885973,
+          "p95": 18345.812454,
+          "p99": 19652.716461
+        },
+        "n_completed": 3958,
+        "n_failed": 6,
+        "n_requests": 3964,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "173.52727244666667",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.11377396569122099,
+          "within_30s": 0.03203834510595358,
+          "within_60s": 0.05272452068617558
+        },
+        "trace_family": "bursty",
+        "utilization": 0.39928702993560194
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "125.309065",
+            "gpu": "193.805146",
+            "per_1000_completed": "80.503080",
+            "total": "319.114211"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "193.805146",
+            "per_1000_completed": "48.891308",
+            "total": "193.805146"
+          },
+          "preemptible/egress_billed": {
+            "egress": "125.309065",
+            "gpu": "108.228848",
+            "per_1000_completed": "58.914711",
+            "total": "233.537913"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "108.228848",
+            "per_1000_completed": "27.302938",
+            "total": "108.228848"
+          }
+        },
+        "fetched_gib": "8353.937648659572",
+        "hot_hit_rate": 0.4384460141271443,
+        "latency_seconds": {
+          "p50": 31.281615,
+          "p95": 397.963576,
+          "p99": 1136.692106
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "50.338998893888885",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.7588294651866802,
+          "within_30s": 0.4906659939455096,
+          "within_60s": 0.6521190716448032
+        },
+        "trace_family": "bursty",
+        "utilization": 0.5229962011372389
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "122.079306",
+            "gpu": "204.507341",
+            "per_1000_completed": "82.388155",
+            "total": "326.586647"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "204.507341",
+            "per_1000_completed": "51.591156",
+            "total": "204.507341"
+          },
+          "preemptible/egress_billed": {
+            "egress": "122.079306",
+            "gpu": "114.205398",
+            "per_1000_completed": "59.607645",
+            "total": "236.284704"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "114.205398",
+            "per_1000_completed": "28.810645",
+            "total": "114.205398"
+          }
+        },
+        "fetched_gib": "8138.62040684931",
+        "hot_hit_rate": 0.44904137235116043,
+        "latency_seconds": {
+          "p50": 31.331856,
+          "p95": 451.21787,
+          "p99": 1330.000961
+        },
+        "n_completed": 3964,
+        "n_failed": 0,
+        "n_requests": 3964,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "53.118789813333336",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.7694248234106963,
+          "within_30s": 0.49369323915237134,
+          "within_60s": 0.6528758829465187
+        },
+        "trace_family": "bursty",
+        "utilization": 0.4945949083196767
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "274.393674",
+            "gpu": "280.350851",
+            "per_1000_completed": "328.445545",
+            "total": "554.744525"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "280.350851",
+            "per_1000_completed": "165.986294",
+            "total": "280.350851"
+          },
+          "preemptible/egress_billed": {
+            "egress": "274.393674",
+            "gpu": "156.559566",
+            "per_1000_completed": "255.152895",
+            "total": "430.953240"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "156.559566",
+            "per_1000_completed": "92.693645",
+            "total": "156.559566"
+          }
+        },
+        "fetched_gib": "18292.911580108106",
+        "hot_hit_rate": 0.047957371225577264,
+        "latency_seconds": {
+          "p50": 638.36326,
+          "p95": 2970.850005,
+          "p99": 3403.930663
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "72.81840286666667",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.11308466548253404,
+          "within_30s": 0.020722320899940794,
+          "within_60s": 0.02427471876850207
+        },
+        "trace_family": "correlated",
+        "utilization": 0.8000804832988235
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "500.178725",
+            "gpu": "227.478793",
+            "per_1000_completed": "430.821503",
+            "total": "727.657518"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "227.478793",
+            "per_1000_completed": "134.682530",
+            "total": "227.478793"
+          },
+          "preemptible/egress_billed": {
+            "egress": "500.178725",
+            "gpu": "127.033612",
+            "per_1000_completed": "371.351295",
+            "total": "627.212337"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "127.033612",
+            "per_1000_completed": "75.212322",
+            "total": "127.033612"
+          }
+        },
+        "fetched_gib": "33345.248301958665",
+        "hot_hit_rate": 0.007104795737122558,
+        "latency_seconds": {
+          "p50": 210.862787,
+          "p95": 911.073738,
+          "p99": 1377.27277
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+least-loaded+lru",
+        "reserved_gpu_hours": "59.085400899999996",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.33747779751332146,
+          "within_30s": 0.06808762581409118,
+          "within_60s": 0.1989342806394316
+        },
+        "trace_family": "correlated",
+        "utilization": 0.8510062893603516
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "108.331123",
+            "gpu": "188.980442",
+            "per_1000_completed": "176.028162",
+            "total": "297.311565"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "188.980442",
+            "per_1000_completed": "111.888953",
+            "total": "188.980442"
+          },
+          "preemptible/egress_billed": {
+            "egress": "108.331123",
+            "gpu": "105.534532",
+            "per_1000_completed": "126.622649",
+            "total": "213.865655"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "105.534532",
+            "per_1000_completed": "62.483441",
+            "total": "105.534532"
+          }
+        },
+        "fetched_gib": "7222.074850641191",
+        "hot_hit_rate": 0.12729425695677915,
+        "latency_seconds": {
+          "p50": 24.525876,
+          "p95": 149.934099,
+          "p99": 484.941028
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "49.08582897333333",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9289520426287744,
+          "within_30s": 0.6086441681468324,
+          "within_60s": 0.8478389579632919
+        },
+        "trace_family": "correlated",
+        "utilization": 0.3492197459458949
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "117.046675",
+            "gpu": "188.057904",
+            "per_1000_completed": "180.642143",
+            "total": "305.104579"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "188.057904",
+            "per_1000_completed": "111.342750",
+            "total": "188.057904"
+          },
+          "preemptible/egress_billed": {
+            "egress": "117.046675",
+            "gpu": "105.019349",
+            "per_1000_completed": "131.477812",
+            "total": "222.066024"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "105.019349",
+            "per_1000_completed": "62.178419",
+            "total": "105.019349"
+          }
+        },
+        "fetched_gib": "7803.111657746136",
+        "hot_hit_rate": 0.12374185908821789,
+        "latency_seconds": {
+          "p50": 24.002472,
+          "p95": 146.333065,
+          "p99": 546.271158
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+lfu",
+        "reserved_gpu_hours": "48.846208819999994",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9265837773830669,
+          "within_30s": 0.6198934280639432,
+          "within_60s": 0.84251036116045
+        },
+        "trace_family": "correlated",
+        "utilization": 0.36498764401730066
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "104.905315",
+            "gpu": "189.655539",
+            "per_1000_completed": "174.399558",
+            "total": "294.560854"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "189.655539",
+            "per_1000_completed": "112.288655",
+            "total": "189.655539"
+          },
+          "preemptible/egress_billed": {
+            "egress": "104.905315",
+            "gpu": "105.911535",
+            "per_1000_completed": "124.817555",
+            "total": "210.816850"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "105.911535",
+            "per_1000_completed": "62.706652",
+            "total": "105.911535"
+          }
+        },
+        "fetched_gib": "6993.687665230595",
+        "hot_hit_rate": 0.1267021906453523,
+        "latency_seconds": {
+          "p50": 24.47182,
+          "p95": 149.165312,
+          "p99": 491.120027
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "49.26117886666667",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9271758436944938,
+          "within_30s": 0.6080521018354056,
+          "within_60s": 0.8312611012433393
+        },
+        "trace_family": "correlated",
+        "utilization": 0.35882547928436387
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "121.106534",
+            "gpu": "187.697619",
+            "per_1000_completed": "182.832536",
+            "total": "308.804153"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "187.697619",
+            "per_1000_completed": "111.129437",
+            "total": "187.697619"
+          },
+          "preemptible/egress_billed": {
+            "egress": "121.106534",
+            "gpu": "104.818151",
+            "per_1000_completed": "133.762395",
+            "total": "225.924685"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "104.818151",
+            "per_1000_completed": "62.059296",
+            "total": "104.818151"
+          }
+        },
+        "fetched_gib": "8073.768941427581",
+        "hot_hit_rate": 0.1172291296625222,
+        "latency_seconds": {
+          "p50": 24.695343,
+          "p95": 147.824557,
+          "p99": 483.604439
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+lru+bounded-queue",
+        "reserved_gpu_hours": "48.752628353333336",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9242155121373594,
+          "within_30s": 0.5926583777383067,
+          "within_60s": 0.8217880402605092
+        },
+        "trace_family": "correlated",
+        "utilization": 0.37208578374087786
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "209.306183",
+            "gpu": "190.265400",
+            "per_1000_completed": "236.572873",
+            "total": "399.571583"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "190.265400",
+            "per_1000_completed": "112.649734",
+            "total": "190.265400"
+          },
+          "preemptible/egress_billed": {
+            "egress": "209.306183",
+            "gpu": "106.252106",
+            "per_1000_completed": "186.831432",
+            "total": "315.558289"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "106.252106",
+            "per_1000_completed": "62.908292",
+            "total": "106.252106"
+          }
+        },
+        "fetched_gib": "13953.745541349985",
+        "hot_hit_rate": 0.11012433392539965,
+        "latency_seconds": {
+          "p50": 24.839043,
+          "p95": 165.33008,
+          "p99": 546.564337
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+lru+pipeline-next",
+        "reserved_gpu_hours": "49.41958432666667",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9200710479573713,
+          "within_30s": 0.6003552397868561,
+          "within_60s": 0.8206039076376554
+        },
+        "trace_family": "correlated",
+        "utilization": 0.371294572946794
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "117.147063",
+            "gpu": "188.993802",
+            "per_1000_completed": "181.255693",
+            "total": "306.140865"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "188.993802",
+            "per_1000_completed": "111.896863",
+            "total": "188.993802"
+          },
+          "preemptible/egress_billed": {
+            "egress": "117.147063",
+            "gpu": "105.541993",
+            "per_1000_completed": "131.846688",
+            "total": "222.689056"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "105.541993",
+            "per_1000_completed": "62.487858",
+            "total": "105.541993"
+          }
+        },
+        "fetched_gib": "7809.804225755855",
+        "hot_hit_rate": 0.11190053285968028,
+        "latency_seconds": {
+          "p50": 24.828551,
+          "p95": 149.165312,
+          "p99": 490.417988
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k8",
+        "reserved_gpu_hours": "49.0892992",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9295441089402013,
+          "within_30s": 0.5932504440497336,
+          "within_60s": 0.8259325044404974
+        },
+        "trace_family": "correlated",
+        "utilization": 0.3821700348970012
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "123.611174",
+            "gpu": "186.024254",
+            "per_1000_completed": "183.324706",
+            "total": "309.635428"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "186.024254",
+            "per_1000_completed": "110.138694",
+            "total": "186.024254"
+          },
+          "preemptible/egress_billed": {
+            "egress": "123.611174",
+            "gpu": "103.883674",
+            "per_1000_completed": "134.692036",
+            "total": "227.494848"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "103.883674",
+            "per_1000_completed": "61.506024",
+            "total": "103.883674"
+          }
+        },
+        "fetched_gib": "8240.744950505905",
+        "hot_hit_rate": 0.11190053285968028,
+        "latency_seconds": {
+          "p50": 24.276102,
+          "p95": 178.466072,
+          "p99": 554.653988
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+size",
+        "reserved_gpu_hours": "48.31798798",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9135583185316756,
+          "within_30s": 0.6157489638839551,
+          "within_60s": 0.827708703374778
+        },
+        "trace_family": "correlated",
+        "utilization": 0.3801349524688273
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "480.714268",
+            "gpu": "1011.450199",
+            "per_1000_completed": "883.460312",
+            "total": "1492.164467"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "1011.450199",
+            "per_1000_completed": "598.845589",
+            "total": "1011.450199"
+          },
+          "preemptible/egress_billed": {
+            "egress": "480.714268",
+            "gpu": "564.835826",
+            "per_1000_completed": "619.034988",
+            "total": "1045.550094"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "564.835826",
+            "per_1000_completed": "334.420264",
+            "total": "564.835826"
+          }
+        },
+        "fetched_gib": "32047.617857074365",
+        "hot_hit_rate": 0.047365304914150384,
+        "latency_seconds": {
+          "p50": 5020.883489,
+          "p95": 18892.496216,
+          "p99": 31157.515323
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "262.71433747333333",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.016577856719952634,
+          "within_30s": 0.009473060982830076,
+          "within_60s": 0.011249259917110717
+        },
+        "trace_family": "correlated",
+        "utilization": 0.4415595905089515
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "140.067348",
+            "gpu": "183.099910",
+            "per_1000_completed": "191.336446",
+            "total": "323.167258"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "183.099910",
+            "per_1000_completed": "108.407288",
+            "total": "183.099910"
+          },
+          "preemptible/egress_billed": {
+            "egress": "140.067348",
+            "gpu": "102.250599",
+            "per_1000_completed": "143.468293",
+            "total": "242.317947"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "102.250599",
+            "per_1000_completed": "60.539135",
+            "total": "102.250599"
+          }
+        },
+        "fetched_gib": "9337.823170092888",
+        "hot_hit_rate": 0.12492599171107165,
+        "latency_seconds": {
+          "p50": 32.407917,
+          "p95": 151.997786,
+          "p99": 691.002555
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "47.55841811333333",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.9147424511545293,
+          "within_30s": 0.4541148608644168,
+          "within_60s": 0.7655417406749556
+        },
+        "trace_family": "correlated",
+        "utilization": 0.44584619959215654
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "136.452238",
+            "gpu": "192.527927",
+            "per_1000_completed": "194.778073",
+            "total": "328.980165"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "192.527927",
+            "per_1000_completed": "113.989300",
+            "total": "192.527927"
+          },
+          "preemptible/egress_billed": {
+            "egress": "136.452238",
+            "gpu": "107.515596",
+            "per_1000_completed": "144.445136",
+            "total": "243.967834"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "107.515596",
+            "per_1000_completed": "63.656362",
+            "total": "107.515596"
+          }
+        },
+        "fetched_gib": "9096.815854745917",
+        "hot_hit_rate": 0.12551805802249852,
+        "latency_seconds": {
+          "p50": 32.933792,
+          "p95": 166.676972,
+          "p99": 701.480897
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "50.0072538",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.901716992303138,
+          "within_30s": 0.4511545293072824,
+          "within_60s": 0.7756068679692125
+        },
+        "trace_family": "correlated",
+        "utilization": 0.4317736938995838
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "261.493397",
+            "gpu": "384.806470",
+            "per_1000_completed": "383.106027",
+            "total": "646.299867"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "384.806470",
+            "per_1000_completed": "228.101049",
+            "total": "384.806470"
+          },
+          "preemptible/egress_billed": {
+            "egress": "261.493397",
+            "gpu": "214.891925",
+            "per_1000_completed": "282.386083",
+            "total": "476.385322"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "214.891925",
+            "per_1000_completed": "127.381106",
+            "total": "214.891925"
+          }
+        },
+        "fetched_gib": "17432.89312838018",
+        "hot_hit_rate": 0.06342620035566093,
+        "latency_seconds": {
+          "p50": 855.84827,
+          "p95": 4963.366836,
+          "p99": 6466.867452
+        },
+        "n_completed": 1687,
+        "n_failed": 2,
+        "n_requests": 1689,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "99.94973253333333",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.152753108348135,
+          "within_30s": 0.017169923031379514,
+          "within_60s": 0.037892243931320305
+        },
+        "trace_family": "correlated",
+        "utilization": 0.6230968499985963
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "169.657025",
+            "gpu": "191.482937",
+            "per_1000_completed": "213.818805",
+            "total": "361.139962"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "191.482937",
+            "per_1000_completed": "113.370596",
+            "total": "191.482937"
+          },
+          "preemptible/egress_billed": {
+            "egress": "169.657025",
+            "gpu": "106.932030",
+            "per_1000_completed": "163.759062",
+            "total": "276.589055"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "106.932030",
+            "per_1000_completed": "63.310853",
+            "total": "106.932030"
+          }
+        },
+        "fetched_gib": "11310.468349506147",
+        "hot_hit_rate": 0.12196566015393724,
+        "latency_seconds": {
+          "p50": 28.576128,
+          "p95": 400.607576,
+          "p99": 584.465317
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "49.735827693333334",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.8342214328004737,
+          "within_30s": 0.5162818235642392,
+          "within_60s": 0.7560686796921255
+        },
+        "trace_family": "correlated",
+        "utilization": 0.5213449851682421
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "172.498244",
+            "gpu": "191.008978",
+            "per_1000_completed": "215.220380",
+            "total": "363.507222"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "191.008978",
+            "per_1000_completed": "113.089981",
+            "total": "191.008978"
+          },
+          "preemptible/egress_billed": {
+            "egress": "172.498244",
+            "gpu": "106.667351",
+            "per_1000_completed": "165.284544",
+            "total": "279.165595"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "106.667351",
+            "per_1000_completed": "63.154145",
+            "total": "106.667351"
+          }
+        },
+        "fetched_gib": "11499.882914078422",
+        "hot_hit_rate": 0.11900532859680284,
+        "latency_seconds": {
+          "p50": 31.185414,
+          "p95": 413.640191,
+          "p99": 620.603946
+        },
+        "n_completed": 1689,
+        "n_failed": 0,
+        "n_requests": 1689,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "49.61272162666666",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.8247483718176436,
+          "within_30s": 0.4931912374185909,
+          "within_60s": 0.7317939609236235
+        },
+        "trace_family": "correlated",
+        "utilization": 0.5313007089585485
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "274.927908",
+            "gpu": "353.637984",
+            "per_1000_completed": "349.981009",
+            "total": "628.565892"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "353.637984",
+            "per_1000_completed": "196.903109",
+            "total": "353.637984"
+          },
+          "preemptible/egress_billed": {
+            "egress": "274.927908",
+            "gpu": "197.486147",
+            "per_1000_completed": "263.036779",
+            "total": "472.414055"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "197.486147",
+            "per_1000_completed": "109.958879",
+            "total": "197.486147"
+          }
+        },
+        "fetched_gib": "18328.52722588554",
+        "hot_hit_rate": 0.044543429844097995,
+        "latency_seconds": {
+          "p50": 896.278993,
+          "p95": 5099.209458,
+          "p99": 5786.265654
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "91.85402186",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.12583518930957685,
+          "within_30s": 0.027282850779510023,
+          "within_60s": 0.030066815144766147
+        },
+        "trace_family": "uniform",
+        "utilization": 0.6535092380251903
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "499.386341",
+            "gpu": "250.012764",
+            "per_1000_completed": "417.260081",
+            "total": "749.399105"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "250.012764",
+            "per_1000_completed": "139.205325",
+            "total": "250.012764"
+          },
+          "preemptible/egress_billed": {
+            "egress": "499.386341",
+            "gpu": "139.617518",
+            "per_1000_completed": "355.792795",
+            "total": "639.003859"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "139.617518",
+            "per_1000_completed": "77.738039",
+            "total": "139.617518"
+          }
+        },
+        "fetched_gib": "33292.422750848345",
+        "hot_hit_rate": 0.005011135857461025,
+        "latency_seconds": {
+          "p50": 481.506258,
+          "p95": 1507.272927,
+          "p99": 2146.239957
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+least-loaded+lru",
+        "reserved_gpu_hours": "64.93838035333333",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.18541202672605792,
+          "within_30s": 0.04287305122494432,
+          "within_60s": 0.10244988864142539
+        },
+        "trace_family": "uniform",
+        "utilization": 0.8149673555674435
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "116.200306",
+            "gpu": "183.665260",
+            "per_1000_completed": "166.963010",
+            "total": "299.865566"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "183.665260",
+            "per_1000_completed": "102.263508",
+            "total": "183.665260"
+          },
+          "preemptible/egress_billed": {
+            "egress": "116.200306",
+            "gpu": "102.566314",
+            "per_1000_completed": "121.807695",
+            "total": "218.766620"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "102.566314",
+            "per_1000_completed": "57.108193",
+            "total": "102.566314"
+          }
+        },
+        "fetched_gib": "7746.687058635056",
+        "hot_hit_rate": 0.11915367483296214,
+        "latency_seconds": {
+          "p50": 24.175351,
+          "p95": 151.91822,
+          "p99": 492.778503
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "47.70526237333333",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9220489977728286,
+          "within_30s": 0.6174832962138085,
+          "within_60s": 0.829064587973274
+        },
+        "trace_family": "uniform",
+        "utilization": 0.3969002364547337
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "91.241492",
+            "gpu": "189.139532",
+            "per_1000_completed": "156.114156",
+            "total": "280.381024"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "189.139532",
+            "per_1000_completed": "105.311543",
+            "total": "189.139532"
+          },
+          "preemptible/egress_billed": {
+            "egress": "91.241492",
+            "gpu": "105.623375",
+            "per_1000_completed": "109.612955",
+            "total": "196.864867"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "105.623375",
+            "per_1000_completed": "58.810342",
+            "total": "105.623375"
+          }
+        },
+        "fetched_gib": "6082.7661442821845",
+        "hot_hit_rate": 0.11302895322939867,
+        "latency_seconds": {
+          "p50": 23.133667,
+          "p95": 126.280083,
+          "p99": 441.582913
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+lfu",
+        "reserved_gpu_hours": "49.127151286666674",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9426503340757239,
+          "within_30s": 0.6353006681514477,
+          "within_60s": 0.8535634743875279
+        },
+        "trace_family": "uniform",
+        "utilization": 0.35284562845606326
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "110.571933",
+            "gpu": "197.598553",
+            "per_1000_completed": "171.587130",
+            "total": "308.170486"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "197.598553",
+            "per_1000_completed": "110.021466",
+            "total": "197.598553"
+          },
+          "preemptible/egress_billed": {
+            "egress": "110.571933",
+            "gpu": "110.347244",
+            "per_1000_completed": "123.006223",
+            "total": "220.919177"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "110.347244",
+            "per_1000_completed": "61.440559",
+            "total": "110.347244"
+          }
+        },
+        "fetched_gib": "7371.462213685736",
+        "hot_hit_rate": 0.13140311804008908,
+        "latency_seconds": {
+          "p50": 23.462981,
+          "p95": 147.840545,
+          "p99": 555.649811
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "51.32429947333333",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9276169265033407,
+          "within_30s": 0.6353006681514477,
+          "within_60s": 0.8446547884187082
+        },
+        "trace_family": "uniform",
+        "utilization": 0.3591462610137959
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "94.587920",
+            "gpu": "194.287547",
+            "per_1000_completed": "160.843801",
+            "total": "288.875467"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "194.287547",
+            "per_1000_completed": "108.177921",
+            "total": "194.287547"
+          },
+          "preemptible/egress_billed": {
+            "egress": "94.587920",
+            "gpu": "108.498241",
+            "per_1000_completed": "113.076927",
+            "total": "203.086161"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "108.498241",
+            "per_1000_completed": "60.411047",
+            "total": "108.498241"
+          }
+        },
+        "fetched_gib": "6305.86132185068",
+        "hot_hit_rate": 0.12583518930957685,
+        "latency_seconds": {
+          "p50": 23.14521,
+          "p95": 128.307384,
+          "p99": 441.93757
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+lru+bounded-queue",
+        "reserved_gpu_hours": "50.464297943055556",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9398663697104677,
+          "within_30s": 0.6481069042316259,
+          "within_60s": 0.8652561247216035
+        },
+        "trace_family": "uniform",
+        "utilization": 0.33635263656514097
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "194.418791",
+            "gpu": "185.160359",
+            "per_1000_completed": "211.346965",
+            "total": "379.579150"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "185.160359",
+            "per_1000_completed": "103.095968",
+            "total": "185.160359"
+          },
+          "preemptible/egress_billed": {
+            "egress": "194.418791",
+            "gpu": "103.401239",
+            "per_1000_completed": "165.824070",
+            "total": "297.820030"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "103.401239",
+            "per_1000_completed": "57.573073",
+            "total": "103.401239"
+          }
+        },
+        "fetched_gib": "12961.252716476098",
+        "hot_hit_rate": 0.11358574610244988,
+        "latency_seconds": {
+          "p50": 23.408349,
+          "p95": 146.072637,
+          "p99": 521.306347
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+lru+pipeline-next",
+        "reserved_gpu_hours": "48.09359972",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9315144766146993,
+          "within_30s": 0.6469933184855234,
+          "within_60s": 0.8463251670378619
+        },
+        "trace_family": "uniform",
+        "utilization": 0.38252460258390114
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "104.786436",
+            "gpu": "184.976461",
+            "per_1000_completed": "161.337916",
+            "total": "289.762897"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "184.976461",
+            "per_1000_completed": "102.993575",
+            "total": "184.976461"
+          },
+          "preemptible/egress_billed": {
+            "egress": "104.786436",
+            "gpu": "103.298543",
+            "per_1000_completed": "115.860233",
+            "total": "208.084979"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "103.298543",
+            "per_1000_completed": "57.515893",
+            "total": "103.298543"
+          }
+        },
+        "fetched_gib": "6985.762423249893",
+        "hot_hit_rate": 0.10968819599109131,
+        "latency_seconds": {
+          "p50": 23.656043,
+          "p95": 147.154489,
+          "p99": 446.39708
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k8",
+        "reserved_gpu_hours": "48.04583407333334",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9226057906458798,
+          "within_30s": 0.6224944320712695,
+          "within_60s": 0.8402004454342984
+        },
+        "trace_family": "uniform",
+        "utilization": 0.37754101388275507
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "109.718881",
+            "gpu": "185.741545",
+            "per_1000_completed": "164.510259",
+            "total": "295.460426"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "185.741545",
+            "per_1000_completed": "103.419568",
+            "total": "185.741545"
+          },
+          "preemptible/egress_billed": {
+            "egress": "109.718881",
+            "gpu": "103.725798",
+            "per_1000_completed": "118.844476",
+            "total": "213.444679"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "103.725798",
+            "per_1000_completed": "57.753785",
+            "total": "103.725798"
+          }
+        },
+        "fetched_gib": "7314.592090571299",
+        "hot_hit_rate": 0.12806236080178174,
+        "latency_seconds": {
+          "p50": 22.954821,
+          "p95": 146.376325,
+          "p99": 451.054328
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+size",
+        "reserved_gpu_hours": "48.24455721333333",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9326280623608018,
+          "within_30s": 0.6447661469933185,
+          "within_60s": 0.8535634743875279
+        },
+        "trace_family": "uniform",
+        "utilization": 0.3625909821146026
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "478.357706",
+            "gpu": "798.080137",
+            "per_1000_completed": "710.711494",
+            "total": "1276.437843"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "798.080137",
+            "per_1000_completed": "444.365332",
+            "total": "798.080137"
+          },
+          "preemptible/egress_billed": {
+            "egress": "478.357706",
+            "gpu": "445.681116",
+            "per_1000_completed": "514.498231",
+            "total": "924.038822"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "445.681116",
+            "per_1000_completed": "248.152069",
+            "total": "445.681116"
+          }
+        },
+        "fetched_gib": "31890.513765955344",
+        "hot_hit_rate": 0.045657015590200446,
+        "latency_seconds": {
+          "p50": 5610.773936,
+          "p95": 18250.79181,
+          "p99": 21645.381058
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "207.29354209999997",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.01670378619153675,
+          "within_30s": 0.012249443207126948,
+          "within_60s": 0.015033407572383074
+        },
+        "trace_family": "uniform",
+        "utilization": 0.5729418445289919
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "115.008189",
+            "gpu": "187.863755",
+            "per_1000_completed": "168.636940",
+            "total": "302.871944"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "187.863755",
+            "per_1000_completed": "104.601200",
+            "total": "187.863755"
+          },
+          "preemptible/egress_billed": {
+            "egress": "115.008189",
+            "gpu": "104.910928",
+            "per_1000_completed": "122.449397",
+            "total": "219.919117"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "104.910928",
+            "per_1000_completed": "58.413657",
+            "total": "104.910928"
+          }
+        },
+        "fetched_gib": "7667.21262888331",
+        "hot_hit_rate": 0.11915367483296214,
+        "latency_seconds": {
+          "p50": 31.5527,
+          "p95": 147.68602,
+          "p99": 558.578148
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "48.79578042666667",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.9170378619153675,
+          "within_30s": 0.4593541202672606,
+          "within_60s": 0.7873051224944321
+        },
+        "trace_family": "uniform",
+        "utilization": 0.44364570401352216
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "119.240575",
+            "gpu": "186.607076",
+            "per_1000_completed": "170.293792",
+            "total": "305.847651"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "186.607076",
+            "per_1000_completed": "103.901490",
+            "total": "186.607076"
+          },
+          "preemptible/egress_billed": {
+            "egress": "119.240575",
+            "gpu": "104.209147",
+            "per_1000_completed": "124.415213",
+            "total": "223.449722"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "104.209147",
+            "per_1000_completed": "58.022910",
+            "total": "104.209147"
+          }
+        },
+        "fetched_gib": "7949.371656879783",
+        "hot_hit_rate": 0.11581291759465479,
+        "latency_seconds": {
+          "p50": 32.685584,
+          "p95": 150.071694,
+          "p99": 608.556748
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "48.46937050666667",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.9198218262806236,
+          "within_30s": 0.4459910913140312,
+          "within_60s": 0.7951002227171492
+        },
+        "trace_family": "uniform",
+        "utilization": 0.4550716478144932
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "239.676068",
+            "gpu": "392.876294",
+            "per_1000_completed": "352.200647",
+            "total": "632.552362"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "392.876294",
+            "per_1000_completed": "218.750720",
+            "total": "392.876294"
+          },
+          "preemptible/egress_billed": {
+            "egress": "239.676068",
+            "gpu": "219.398450",
+            "per_1000_completed": "255.609420",
+            "total": "459.074518"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "219.398450",
+            "per_1000_completed": "122.159493",
+            "total": "219.398450"
+          }
+        },
+        "fetched_gib": "15978.404546051286",
+        "hot_hit_rate": 0.08073496659242761,
+        "latency_seconds": {
+          "p50": 703.563439,
+          "p95": 4429.131167,
+          "p99": 7249.33779
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "102.04579057333333",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.18541202672605792,
+          "within_30s": 0.04120267260579064,
+          "within_60s": 0.06403118040089087
+        },
+        "trace_family": "uniform",
+        "utilization": 0.5924279568439834
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "160.594394",
+            "gpu": "199.370252",
+            "per_1000_completed": "200.425749",
+            "total": "359.964646"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "199.370252",
+            "per_1000_completed": "111.007935",
+            "total": "199.370252"
+          },
+          "preemptible/egress_billed": {
+            "egress": "160.594394",
+            "gpu": "111.336634",
+            "per_1000_completed": "151.409258",
+            "total": "271.931028"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "111.336634",
+            "per_1000_completed": "61.991444",
+            "total": "111.336634"
+          }
+        },
+        "fetched_gib": "10706.292938390747",
+        "hot_hit_rate": 0.11247216035634744,
+        "latency_seconds": {
+          "p50": 24.571679,
+          "p95": 377.552729,
+          "p99": 669.107117
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "51.78448100972223",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.8479955456570156,
+          "within_30s": 0.5612472160356348,
+          "within_60s": 0.762249443207127
+        },
+        "trace_family": "uniform",
+        "utilization": 0.511814044996128
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "138.249329",
+            "gpu": "199.476108",
+            "per_1000_completed": "188.043116",
+            "total": "337.725437"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "199.476108",
+            "per_1000_completed": "111.066875",
+            "total": "199.476108"
+          },
+          "preemptible/egress_billed": {
+            "egress": "138.249329",
+            "gpu": "111.395748",
+            "per_1000_completed": "139.000600",
+            "total": "249.645077"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "111.395748",
+            "per_1000_completed": "62.024359",
+            "total": "111.395748"
+          }
+        },
+        "fetched_gib": "9216.62190381065",
+        "hot_hit_rate": 0.11080178173719377,
+        "latency_seconds": {
+          "p50": 25.374014,
+          "p95": 340.454825,
+          "p99": 600.285826
+        },
+        "n_completed": 1796,
+        "n_failed": 0,
+        "n_requests": 1796,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "51.81197603333333",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.8724944320712695,
+          "within_30s": 0.5634743875278396,
+          "within_60s": 0.794543429844098
+        },
+        "trace_family": "uniform",
+        "utilization": 0.4760980985622376
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "100.812006",
+            "gpu": "191.486253",
+            "per_1000_completed": "158.255690",
+            "total": "292.298259"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "191.486253",
+            "per_1000_completed": "103.674203",
+            "total": "191.486253"
+          },
+          "preemptible/egress_billed": {
+            "egress": "100.812006",
+            "gpu": "106.933881",
+            "per_1000_completed": "112.477470",
+            "total": "207.745887"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "106.933881",
+            "per_1000_completed": "57.895983",
+            "total": "106.933881"
+          }
+        },
+        "fetched_gib": "6720.800432882272",
+        "hot_hit_rate": 0.5008121277747699,
+        "latency_seconds": {
+          "p50": 19.636331,
+          "p95": 215.88756,
+          "p99": 360.505043
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "49.73668905527778",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.8045479155387114,
+          "within_30s": 0.5067677314564158,
+          "within_60s": 0.5392528424472117
+        },
+        "trace_family": "zipf",
+        "utilization": 0.5604615115908375
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "276.769285",
+            "gpu": "207.146395",
+            "per_1000_completed": "262.000910",
+            "total": "483.915680"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "207.146395",
+            "per_1000_completed": "112.152894",
+            "total": "207.146395"
+          },
+          "preemptible/egress_billed": {
+            "egress": "276.769285",
+            "gpu": "115.679156",
+            "per_1000_completed": "212.478853",
+            "total": "392.448441"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "115.679156",
+            "per_1000_completed": "62.630837",
+            "total": "115.679156"
+          }
+        },
+        "fetched_gib": "18451.285666082986",
+        "hot_hit_rate": 0.06984298863021116,
+        "latency_seconds": {
+          "p50": 20.229244,
+          "p95": 409.323641,
+          "p99": 686.743203
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+least-loaded+lru",
+        "reserved_gpu_hours": "53.80425852",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.8608554412560909,
+          "within_30s": 0.5966432051976177,
+          "within_60s": 0.8099621007038441
+        },
+        "trace_family": "zipf",
+        "utilization": 0.5989795197358955
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "84.791725",
+            "gpu": "181.779400",
+            "per_1000_completed": "144.326543",
+            "total": "266.571125"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "181.779400",
+            "per_1000_completed": "98.418733",
+            "total": "181.779400"
+          },
+          "preemptible/egress_billed": {
+            "egress": "84.791725",
+            "gpu": "101.513172",
+            "per_1000_completed": "100.868921",
+            "total": "186.304897"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "101.513172",
+            "per_1000_completed": "54.961111",
+            "total": "101.513172"
+          }
+        },
+        "fetched_gib": "5652.78165570274",
+        "hot_hit_rate": 0.4510016242555495,
+        "latency_seconds": {
+          "p50": 11.957346,
+          "p95": 147.887994,
+          "p99": 477.588571
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "47.21542863361111",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9361126150514347,
+          "within_30s": 0.7547374120194911,
+          "within_60s": 0.8830536004331349
+        },
+        "trace_family": "zipf",
+        "utilization": 0.26186102645243065
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "88.752852",
+            "gpu": "183.673177",
+            "per_1000_completed": "147.496496",
+            "total": "272.426029"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "183.673177",
+            "per_1000_completed": "99.444059",
+            "total": "183.673177"
+          },
+          "preemptible/egress_billed": {
+            "egress": "88.752852",
+            "gpu": "102.570735",
+            "per_1000_completed": "103.586133",
+            "total": "191.323587"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "102.570735",
+            "per_1000_completed": "55.533695",
+            "total": "102.570735"
+          }
+        },
+        "fetched_gib": "5916.856804264709",
+        "hot_hit_rate": 0.4558743909041689,
+        "latency_seconds": {
+          "p50": 8.300722,
+          "p95": 103.222427,
+          "p99": 392.060692
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+lfu",
+        "reserved_gpu_hours": "47.70731862666666",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.955062263129399,
+          "within_30s": 0.7845154304277207,
+          "within_60s": 0.9117487818083378
+        },
+        "trace_family": "zipf",
+        "utilization": 0.2411662581533376
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "92.447289",
+            "gpu": "186.708146",
+            "per_1000_completed": "151.139921",
+            "total": "279.155435"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "186.708146",
+            "per_1000_completed": "101.087247",
+            "total": "186.708146"
+          },
+          "preemptible/egress_billed": {
+            "egress": "92.447289",
+            "gpu": "104.265588",
+            "per_1000_completed": "106.503994",
+            "total": "196.712877"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "104.265588",
+            "per_1000_completed": "56.451320",
+            "total": "104.265588"
+          }
+        },
+        "fetched_gib": "6163.152628383599",
+        "hot_hit_rate": 0.44883595018949646,
+        "latency_seconds": {
+          "p50": 9.440329,
+          "p95": 149.972938,
+          "p99": 449.603369
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "48.49562244",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9334055224688684,
+          "within_30s": 0.7612344342176502,
+          "within_60s": 0.8868435300487276
+        },
+        "trace_family": "zipf",
+        "utilization": 0.25999147286815055
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "79.948958",
+            "gpu": "183.095922",
+            "per_1000_completed": "142.417369",
+            "total": "263.044880"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "183.095922",
+            "per_1000_completed": "99.131522",
+            "total": "183.095922"
+          },
+          "preemptible/egress_billed": {
+            "egress": "79.948958",
+            "gpu": "102.248372",
+            "per_1000_completed": "98.645008",
+            "total": "182.197330"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "102.248372",
+            "per_1000_completed": "55.359162",
+            "total": "102.248372"
+          }
+        },
+        "fetched_gib": "5329.930557415821",
+        "hot_hit_rate": 0.5181375203031944,
+        "latency_seconds": {
+          "p50": 7.770063,
+          "p95": 104.29207,
+          "p99": 392.584376
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+lru+bounded-queue",
+        "reserved_gpu_hours": "47.55738239333333",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.952896589063346,
+          "within_30s": 0.7877639415268002,
+          "within_60s": 0.9106659447753113
+        },
+        "trace_family": "zipf",
+        "utilization": 0.23528976159222711
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "150.855626",
+            "gpu": "182.074967",
+            "per_1000_completed": "180.254788",
+            "total": "332.930593"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "182.074967",
+            "per_1000_completed": "98.578759",
+            "total": "182.074967"
+          },
+          "preemptible/egress_billed": {
+            "egress": "150.855626",
+            "gpu": "101.678229",
+            "per_1000_completed": "136.726505",
+            "total": "252.533855"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "101.678229",
+            "per_1000_completed": "55.050476",
+            "total": "101.678229"
+          }
+        },
+        "fetched_gib": "10057.04174609296",
+        "hot_hit_rate": 0.47265836491608015,
+        "latency_seconds": {
+          "p50": 9.504182,
+          "p95": 121.668682,
+          "p99": 441.942008
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+lru+pipeline-next",
+        "reserved_gpu_hours": "47.29219933333333",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9469409853817,
+          "within_30s": 0.7693557119653492,
+          "within_60s": 0.8938819707634001
+        },
+        "trace_family": "zipf",
+        "utilization": 0.2642740510019372
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "80.534668",
+            "gpu": "183.764409",
+            "per_1000_completed": "143.096414",
+            "total": "264.299077"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "183.764409",
+            "per_1000_completed": "99.493454",
+            "total": "183.764409"
+          },
+          "preemptible/egress_billed": {
+            "egress": "80.534668",
+            "gpu": "102.621683",
+            "per_1000_completed": "99.164240",
+            "total": "183.156351"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "102.621683",
+            "per_1000_completed": "55.561279",
+            "total": "102.621683"
+          }
+        },
+        "fetched_gib": "5368.977885690518",
+        "hot_hit_rate": 0.47969680563075257,
+        "latency_seconds": {
+          "p50": 8.091174,
+          "p95": 107.822938,
+          "p99": 429.789915
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k8",
+        "reserved_gpu_hours": "47.731015247777776",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9534380075798592,
+          "within_30s": 0.7948023822414727,
+          "within_60s": 0.9144558743909041
+        },
+        "trace_family": "zipf",
+        "utilization": 0.24415139643139883
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "81.456339",
+            "gpu": "184.898870",
+            "per_1000_completed": "144.209642",
+            "total": "266.355209"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "184.898870",
+            "per_1000_completed": "100.107672",
+            "total": "184.898870"
+          },
+          "preemptible/egress_billed": {
+            "egress": "81.456339",
+            "gpu": "103.255213",
+            "per_1000_completed": "100.006254",
+            "total": "184.711552"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "103.255213",
+            "per_1000_completed": "55.904284",
+            "total": "103.255213"
+          }
+        },
+        "fetched_gib": "5430.42259317264",
+        "hot_hit_rate": 0.4704926908500271,
+        "latency_seconds": {
+          "p50": 8.182258,
+          "p95": 103.132601,
+          "p99": 386.731643
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+size",
+        "reserved_gpu_hours": "48.02568049333333",
+        "sensitivity": "base",
+        "slo_goodput": {
+          "within_120s": 0.9561451001624256,
+          "within_30s": 0.7915538711423931,
+          "within_60s": 0.9068760151597185
+        },
+        "trace_family": "zipf",
+        "utilization": 0.22871185221929272
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "219.748507",
+            "gpu": "379.810034",
+            "per_1000_completed": "324.612096",
+            "total": "599.558541"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "379.810034",
+            "per_1000_completed": "205.636185",
+            "total": "379.810034"
+          },
+          "preemptible/egress_billed": {
+            "egress": "219.748507",
+            "gpu": "212.101708",
+            "per_1000_completed": "233.811703",
+            "total": "431.850215"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "212.101708",
+            "per_1000_completed": "114.835792",
+            "total": "212.101708"
+          }
+        },
+        "fetched_gib": "14649.900453343987",
+        "hot_hit_rate": 0.23768272874932322,
+        "latency_seconds": {
+          "p50": 1151.956084,
+          "p95": 5218.966028,
+          "p99": 6287.317347
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "98.65195698666666",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.11802923659989172,
+          "within_30s": 0.08391987005955603,
+          "within_60s": 0.10232809962100704
+        },
+        "trace_family": "zipf",
+        "utilization": 0.703820056146094
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "103.260370",
+            "gpu": "183.443318",
+            "per_1000_completed": "155.226685",
+            "total": "286.703688"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "183.443318",
+            "per_1000_completed": "99.319609",
+            "total": "183.443318"
+          },
+          "preemptible/egress_billed": {
+            "egress": "103.260370",
+            "gpu": "102.442372",
+            "per_1000_completed": "111.371273",
+            "total": "205.702742"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "102.442372",
+            "per_1000_completed": "55.464197",
+            "total": "102.442372"
+          }
+        },
+        "fetched_gib": "6884.024672516622",
+        "hot_hit_rate": 0.47915538711423933,
+        "latency_seconds": {
+          "p50": 13.874145,
+          "p95": 130.184203,
+          "p99": 519.20194
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "47.6476151",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.9393611261505144,
+          "within_30s": 0.6897671900378993,
+          "within_60s": 0.8776394152680022
+        },
+        "trace_family": "zipf",
+        "utilization": 0.30437800813805405
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "107.199498",
+            "gpu": "186.892018",
+            "per_1000_completed": "159.226592",
+            "total": "294.091516"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "186.892018",
+            "per_1000_completed": "101.186799",
+            "total": "186.892018"
+          },
+          "preemptible/egress_billed": {
+            "egress": "107.199498",
+            "gpu": "104.368270",
+            "per_1000_completed": "114.546707",
+            "total": "211.567768"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "104.368270",
+            "per_1000_completed": "56.506914",
+            "total": "104.368270"
+          }
+        },
+        "fetched_gib": "7146.633187078871",
+        "hot_hit_rate": 0.4807796426637791,
+        "latency_seconds": {
+          "p50": 14.002385,
+          "p95": 128.245219,
+          "p99": 497.754668
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "48.543381239999995",
+        "sensitivity": "high",
+        "slo_goodput": {
+          "within_120s": 0.9404439631835408,
+          "within_30s": 0.689225771521386,
+          "within_60s": 0.8749323226854359
+        },
+        "trace_family": "zipf",
+        "utilization": 0.2924367384821714
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "87.329947",
+            "gpu": "197.326159",
+            "per_1000_completed": "154.118087",
+            "total": "284.656106"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "197.326159",
+            "per_1000_completed": "106.836036",
+            "total": "197.326159"
+          },
+          "preemptible/egress_billed": {
+            "egress": "87.329947",
+            "gpu": "110.195128",
+            "per_1000_completed": "106.943733",
+            "total": "197.525075"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "110.195128",
+            "per_1000_completed": "59.661683",
+            "total": "110.195128"
+          }
+        },
+        "fetched_gib": "5821.9964882116765",
+        "hot_hit_rate": 0.47211694639956686,
+        "latency_seconds": {
+          "p50": 37.323527,
+          "p95": 294.57321,
+          "p99": 614.589475
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "conventional+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "51.25354775333333",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.8337845154304278,
+          "within_30s": 0.49431510557661074,
+          "within_60s": 0.5636166756903086
+        },
+        "trace_family": "zipf",
+        "utilization": 0.5441359040439974
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "109.837289",
+            "gpu": "187.594061",
+            "per_1000_completed": "161.034840",
+            "total": "297.431350"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "187.594061",
+            "per_1000_completed": "101.566898",
+            "total": "187.594061"
+          },
+          "preemptible/egress_billed": {
+            "egress": "109.837289",
+            "gpu": "104.760320",
+            "per_1000_completed": "116.187119",
+            "total": "214.597609"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "104.760320",
+            "per_1000_completed": "56.719177",
+            "total": "104.760320"
+          }
+        },
+        "fetched_gib": "7322.485952761956",
+        "hot_hit_rate": 0.43746616134271793,
+        "latency_seconds": {
+          "p50": 10.199312,
+          "p95": 277.706495,
+          "p99": 539.488282
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+gdsf",
+        "reserved_gpu_hours": "48.72573009333333",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.902003248511099,
+          "within_30s": 0.6946399566865187,
+          "within_60s": 0.8440714672441797
+        },
+        "trace_family": "zipf",
+        "utilization": 0.34824975301087263
+      },
+      {
+        "cost_usd": {
+          "on_demand/egress_billed": {
+            "egress": "98.557095",
+            "gpu": "188.014560",
+            "per_1000_completed": "155.155200",
+            "total": "286.571655"
+          },
+          "on_demand/egress_free": {
+            "egress": "0.000000",
+            "gpu": "188.014560",
+            "per_1000_completed": "101.794564",
+            "total": "188.014560"
+          },
+          "preemptible/egress_billed": {
+            "egress": "98.557095",
+            "gpu": "104.995144",
+            "per_1000_completed": "110.206951",
+            "total": "203.552239"
+          },
+          "preemptible/egress_free": {
+            "egress": "0.000000",
+            "gpu": "104.995144",
+            "per_1000_completed": "56.846315",
+            "total": "104.995144"
+          }
+        },
+        "fetched_gib": "6570.473010720685",
+        "hot_hit_rate": 0.5105576610720086,
+        "latency_seconds": {
+          "p50": 6.152073,
+          "p95": 236.789832,
+          "p99": 487.309539
+        },
+        "n_completed": 1847,
+        "n_failed": 0,
+        "n_requests": 1847,
+        "policy": "snapshot+shortest-switch-cost+lru",
+        "reserved_gpu_hours": "48.83495058",
+        "sensitivity": "low",
+        "slo_goodput": {
+          "within_120s": 0.9177043854899838,
+          "within_30s": 0.7574445046020574,
+          "within_60s": 0.8765565782349757
+        },
+        "trace_family": "zipf",
+        "utilization": 0.3162647431731169
+      }
+    ],
+    "source": "catalog-sim/results/reports.json (placeholder prices replaced)"
+  },
+  "statement": "Measured internal Kubernetes snapshot backend versus Cerebrium (sole external comparator, latency pending) with Modal excluded as documentation-only. Every USD value traces to a dated record in inputs/price_snapshot.json and every latency to a checksum-pinned measured artifact. Cost values are always paired with the p50/p95 and SLO goodput of the same evidence."
+}
