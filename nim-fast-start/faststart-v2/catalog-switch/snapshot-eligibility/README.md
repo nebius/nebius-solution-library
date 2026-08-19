@@ -58,7 +58,10 @@ exact path and exact typed value (`LANE_BINDINGS`). Every promoted
 cohort carries an explicit `image_binding` (`in-file` exact reference;
 `checkpoint-join` for OpenFold3, whose digest binds through the
 checkpoint identity shared between its results and prior-evidence
-files; `cohort-bound-n20` for the TSV cohorts) — a snapshot-safe class
+files; `cohort-receipt-doc` for the TSV cohorts, whose exact digest is
+named with the cohort id in the lane's committed, hash-bound
+qualification document — the TSVs themselves record no image field, a
+disclosed gap) — a snapshot-safe class
 with `image_binding: none` refuses the build. ProteinMPNN's
 digest-bearing results file and OpenFold3's prior-evidence file are
 cited and hash-bound as supplementary evidence; OpenFold3's and
@@ -109,9 +112,9 @@ request-SLO harness process, never runs performed by this task.
 
 Per the 2026-08-19 scope correction: Modal is reference material only —
 no live dependency, test, or empirical/synthetic ranking appears in
-this lane. The sole external measured comparator is Cerebrium; measured
-internal candidates are Kubernetes and the direct/node-local VM
-runtime.
+this lane. Cerebrium is the sole intended external comparator and
+remains PENDING until a sealed cohort exists; measured internal
+candidates are Kubernetes and the direct/node-local VM runtime.
 
 ## Publishing constraints
 

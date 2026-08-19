@@ -203,7 +203,7 @@
           "additionalProperties": false,
           "properties": {
            "image_binding": {
-            "enum": ["in-file", "checkpoint-join", "cohort-bound-n20", "none"]
+            "enum": ["in-file", "checkpoint-join", "cohort-receipt-doc", "none"]
            },
            "status": {
             "enum": [

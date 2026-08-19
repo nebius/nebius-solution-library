@@ -494,7 +494,7 @@ class EligibilityArtifacts(unittest.TestCase):
         self.assertEqual(of2["outcome"]["boottime_upper_p95_s"], 17.629887)
         self.assertIn("not closed by the SLO pass", of2["further_required"])
         for prov in (boltz, of2):
-            self.assertEqual(len(prov["outstanding_evidence_gaps"]), 2)
+            self.assertEqual(len(prov["outstanding_evidence_gaps"]), 3)
             gaps = " ".join(prov["outstanding_evidence_gaps"])
             self.assertIn("Xid", gaps)
             self.assertIn("80 raw response bodies", gaps)
@@ -782,7 +782,7 @@ class EligibilityArtifacts(unittest.TestCase):
             binding = e["cohorts"]["provisioned_node"]["image_binding"]
             self.assertIn(
                 binding,
-                ("in-file", "checkpoint-join", "cohort-bound-n20", "none"),
+                ("in-file", "checkpoint-join", "cohort-receipt-doc", "none"),
                 e["nim"],
             )
             if e["snapshot_class"] in SNAPSHOT_SAFE:
@@ -791,8 +791,63 @@ class EligibilityArtifacts(unittest.TestCase):
         self.assertEqual(by_nim["openfold3"]["image_binding"], "checkpoint-join")
         self.assertEqual(by_nim["proteinmpnn"]["image_binding"], "in-file")
         self.assertEqual(by_nim["molmim"]["image_binding"], "none")
+        for nim in ("boltz2", "openfold2"):
+            self.assertEqual(by_nim[nim]["image_binding"], "cohort-receipt-doc", nim)
+            gaps = " ".join(by_nim[nim]["outstanding_evidence_gaps"])
+            self.assertIn("qualification document", gaps, nim)
+        b2_paths = {r["path"] for r in by_nim["boltz2"]["evidence_refs"]}
+        self.assertIn("nim-fast-start/faststart-v2/boltz2-native/README.md", b2_paths)
+        of2_paths = {r["path"] for r in by_nim["openfold2"]["evidence_refs"]}
+        self.assertIn(
+            "nim-fast-start/faststart-v2/performance/openfold2/README.md", of2_paths
+        )
+
+    def test_n20_wrong_digest_adversaries(self):
+        """The reviewer's executable proof: zeroing either n20 row's catalog
+        digest while leaving every cited evidence byte untouched must now
+        refuse the build for BOTH lanes."""
+        b = build_eligibility
+        cat_by_id = {r["id"]: r for r in self.catalog["rows"]}
+        for nim, prefix in (("boltz2", "faststart:boltz2@"), ("openfold2", "faststart:openfold2@")):
+            row = next(v for k, v in cat_by_id.items() if k.startswith(prefix))
+            refs = sorted({p["path"] for p in row["provenance"]}) + [
+                "nim-fast-start/faststart-v2/" + extra
+                for extra in b.SUPPLEMENTARY_EVIDENCE[nim]
+            ]
+            # untampered row verifies and yields the receipt-doc binding
+            verified = b.verify_lane_evidence(nim, row, refs)
+            self.assertEqual(verified["image_binding"], "cohort-receipt-doc", nim)
+            # all-zero digest with untouched evidence must be refused
+            mutated = json.loads(json.dumps(row))
+            mutated["image"]["digest"] = "sha256:" + "0" * 64
+            with self.assertRaises(SystemExit):
+                b.verify_lane_evidence(nim, mutated, refs)
+        # unit-level receipt-doc adversaries
+        with open(
+            os.path.join(FASTSTART_ROOT, "boltz2-native", "README.md"),
+            encoding="utf-8",
+        ) as fh:
+            readme = fh.read()
+        good_digest = (
+            "sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98"
+        )
+        b.check_n20_receipt_doc(readme, "b2-n20-v3-20260818t1532z", good_digest, "boltz2")
+        with self.assertRaises(SystemExit):
+            b.check_n20_receipt_doc(
+                readme, "b2-n20-v3-20260818t1532z", "sha256:" + "0" * 64, "boltz2"
+            )
+        with self.assertRaises(SystemExit):
+            b.check_n20_receipt_doc(readme, "b2-n20-other-cohort", good_digest, "boltz2")
+        with self.assertRaises(SystemExit):
+            b.check_n20_receipt_doc(readme, "b2-n20-v3-20260818t1532z", good_digest, "openfold2")
+        with self.assertRaises(SystemExit):
+            b.check_n20_receipt_doc(readme, "b2-n20-v3-20260818t1532z", "not-a-digest", "boltz2")
         # ProteinMPNN's digest-bearing results file and OpenFold3's
         # digest-join prior evidence must be cited and hash-bound.
+        by_nim = {
+            e["nim"]: e["cohorts"]["provisioned_node"]
+            for e in self.meta["bionemo_nims"]
+        }
         pm_paths = {r["path"] for r in by_nim["proteinmpnn"]["evidence_refs"]}
         self.assertIn(
             "nim-fast-start/faststart-v2/proteinmpnn-native/results.json", pm_paths
@@ -927,6 +982,8 @@ class EligibilityArtifacts(unittest.TestCase):
             "openfold3-native/results.json",
             "rfdiffusion-native/results.json",
             "msa-search-native/results.json",
+            "boltz2-native/README.md",
+            "performance/openfold2/README.md",
             "proteinmpnn-native/response-boundary-results.tsv",
             "proteinmpnn-native/results.json",
             "openfold3-native/prior-evidence.json",

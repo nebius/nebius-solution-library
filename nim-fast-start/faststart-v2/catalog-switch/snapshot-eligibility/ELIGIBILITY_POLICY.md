@@ -123,7 +123,10 @@ GenMol, RFdiffusion, ProteinMPNN, MSA Search, Evo2 profile),
 `checkpoint-join` (OpenFold3: results `selected.checkpoint_id` /
 `manifest_sha256` / `artifact_version` must equal the prior-evidence
 checkpoint whose `execution_identity.image` records the exact digest),
-or `cohort-bound-n20` (Boltz2, OpenFold2). A snapshot-safe class with
+or `cohort-receipt-doc` (Boltz2, OpenFold2: the exact digest is named
+with the cohort id in the lane's committed, hash-bound qualification
+document, because the cohort TSVs record no image field — disclosed as
+an outstanding gap). A snapshot-safe class with
 no verified image binding refuses the build. Missing per-trial cleanup
 records (OpenFold3, RFdiffusion) are disclosed as outstanding gaps.
 
@@ -175,7 +178,8 @@ all with status `requested-not-run`.
 Offline classification only. Modal is reference material only per the
 2026-08-19 scope correction — no live dependency, test, or
 empirical/synthetic ranking in this lane, and no gate binds the threat
-model's Modal-specific control. The sole external measured comparator
-is Cerebrium; measured internal candidates are Kubernetes and the
-direct/node-local VM runtime. The Boltz external-/tmp worktree was read
+model's Modal-specific control. Cerebrium is the sole intended
+external comparator and remains PENDING until a sealed cohort exists;
+measured internal candidates are Kubernetes and the direct/node-local
+VM runtime. The Boltz external-/tmp worktree was read
 as evidence only and never edited.

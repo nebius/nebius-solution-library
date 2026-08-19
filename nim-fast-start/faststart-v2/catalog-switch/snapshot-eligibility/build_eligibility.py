@@ -454,6 +454,13 @@ RAWBODY_GAP = (
     "summaries were not retained; response SHA-256, byte counts, "
     "complete-body timestamps, and strict semantic receipts are retained"
 )
+RECEIPT_DOC_GAP = (
+    "the exact-image digest binding for this n=20 cohort rests on the "
+    "lane's committed, hash-bound qualification document naming the "
+    "cohort id and the digest-pinned image reference; no committed "
+    "machine-readable per-run receipt records the image, so that stronger "
+    "binding remains outstanding"
+)
 MOLMIM_SEAL_GAP = (
     "provenance cites a harness tree without committed per-run result "
     "receipts; the published medians appear in the committed metrics "
@@ -569,10 +576,45 @@ SLO_THRESHOLD_S = 30.0
 # Per-lane cohort binding for the two fresh fail-closed n=20 TSVs: the
 # cohort id prefix binds the file to the NIM, and every sample must be a
 # uniquely identified, qualified, cleaned, semantically exercised run.
+# The TSVs record no image field, so the exact-digest binding comes from
+# the lane's committed qualification document (receipt_doc), which must
+# name both the cohort id and an image reference carrying the row's
+# exact digest.
 N20_SPECS = {
-    "boltz2": {"cohort_prefix": "b2-n20-"},
-    "openfold2": {"cohort_prefix": "of2-n20-"},
+    "boltz2": {
+        "cohort_prefix": "b2-n20-",
+        "receipt_doc": "boltz2-native/README.md",
+        "image_repo_suffix": "boltz2",
+    },
+    "openfold2": {
+        "cohort_prefix": "of2-n20-",
+        "receipt_doc": "performance/openfold2/README.md",
+        "image_repo_suffix": "openfold2",
+    },
 }
+
+
+def check_n20_receipt_doc(
+    text: str, cohort_id: str, digest: str, image_repo_suffix: str
+) -> None:
+    """The committed qualification document must bind the exact cohort to
+    an image reference carrying the row's exact digest. A catalog row
+    whose digest was tampered with therefore fails here, because the
+    committed receipt bytes no longer name that digest."""
+    if cohort_id not in text:
+        raise SystemExit(
+            f"n20 receipt document does not name cohort {cohort_id!r}"
+        )
+    if not digest or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+        raise SystemExit("n20 receipt check requires a well-formed row digest")
+    pattern = re.compile(
+        r"[A-Za-z0-9./_-]*" + re.escape(image_repo_suffix) + r"@" + re.escape(digest) + r"\b"
+    )
+    if not pattern.search(text):
+        raise SystemExit(
+            "n20 receipt document does not record an image reference for "
+            f"{image_repo_suffix!r} carrying the row's exact digest"
+        )
 
 
 def check_n20_tsv(
@@ -628,6 +670,7 @@ def check_n20_tsv(
         )
     return {
         "sample_count": len(samples),
+        "cohort_id": cohort_id,
         "failed_attempt_denominator": "0/20",
         "boottime_upper_p50_s": nearest_rank(upper, 0.5),
         "boottime_upper_p95_s": upper_p95,
@@ -863,6 +906,8 @@ def check_of3_digest_join(results_doc: dict, prior_doc: dict, image_ref: str) ->
 SUPPLEMENTARY_EVIDENCE = {
     "proteinmpnn": ["proteinmpnn-native/results.json"],
     "openfold3": ["openfold3-native/prior-evidence.json"],
+    "boltz2": ["boltz2-native/README.md"],
+    "openfold2": ["performance/openfold2/README.md"],
 }
 
 # Lanes whose committed results file records no cleanup block; disclosed
@@ -870,9 +915,12 @@ SUPPLEMENTARY_EVIDENCE = {
 NO_CLEANUP_RECORD = frozenset(["openfold3", "rfdiffusion"])
 
 # How each promoted cohort's exact image digest is bound to its evidence.
+# "cohort-receipt-doc" means the exact digest is named alongside the
+# cohort id in the lane's committed, hash-bound qualification document —
+# not in a machine-readable per-run receipt, which is disclosed as a gap.
 IMAGE_BINDING = {
-    "boltz2": "cohort-bound-n20",
-    "openfold2": "cohort-bound-n20",
+    "boltz2": "cohort-receipt-doc",
+    "openfold2": "cohort-receipt-doc",
     "diffdock": "in-file",
     "genmol": "in-file",
     "rfdiffusion": "in-file",
@@ -1423,10 +1471,24 @@ def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
         if rel == METRICS_DOC_PATH:
             check_metrics_doc(text)
         elif nim in N20_SPECS and rel.endswith(".tsv"):
+            # The TSV binds the cohort, never the image: it has no image
+            # field, so image_verified must NOT be set here.
             recomputed = check_n20_tsv(
                 text, p50, p95, N20_SPECS[nim]["cohort_prefix"]
             )
-            image_verified = True  # cohort id is NIM-bound; digest from row id
+        elif nim in N20_SPECS and rel.endswith("README.md"):
+            if "cohort_id" not in recomputed:
+                raise SystemExit(
+                    f"{nim}: receipt document cited before the cohort TSV; "
+                    "cannot bind cohort to digest"
+                )
+            check_n20_receipt_doc(
+                text,
+                recomputed["cohort_id"],
+                digest,
+                N20_SPECS[nim]["image_repo_suffix"],
+            )
+            image_verified = True
         elif nim == "proteinmpnn" and rel.endswith(".tsv"):
             tsv_values = check_pmpnn_tsv(text, p50)
             if values is not None and sorted(tsv_values)[1] != sorted(values)[1]:
@@ -1633,7 +1695,7 @@ def build_bionemo_section(
 
         gaps: list[str] = []
         if status == "complete-fresh-fail-closed-n20":
-            gaps = [XID_GAP, RAWBODY_GAP]
+            gaps = [XID_GAP, RAWBODY_GAP, RECEIPT_DOC_GAP]
         if not verified["sealed"]:
             gaps = gaps + [MOLMIM_SEAL_GAP]
         if nim in NO_CLEANUP_RECORD:
@@ -1804,8 +1866,9 @@ def build():
                     "Per the 2026-08-19 scope correction: Modal is reference "
                     "material only and receives no empirical or synthetic "
                     "ranking, live dependency, or test anywhere in this "
-                    "lane. The sole external measured comparator is "
-                    "Cerebrium; measured internal candidates are Kubernetes "
+                    "lane. Cerebrium is the sole intended external "
+                    "comparator and remains PENDING until a sealed cohort "
+                    "exists; measured internal candidates are Kubernetes "
                     "and the direct/node-local VM runtime."
                 ),
                 (
