@@ -426,7 +426,62 @@ def _inspect_deleted_files(
     }
 
 
-def _inspect_pages(artifact: Path, contract: dict[str, Any]) -> dict[str, Any]:
+PAGES_GROWTH_RECEIPT_SCHEMA = "archvteams.nebius.ai/boltz2-pages-growth-review/v1"
+
+
+def _read_pages_growth_receipt(
+    path: Path, contract: dict[str, Any], observed_total: int
+) -> tuple[dict[str, Any], bytes]:
+    value, raw = _read_json(path, "pages-growth review receipt")
+    if not isinstance(value, dict):
+        raise ArtifactError("pages-growth review receipt must be an object")
+    _exact_keys(
+        value,
+        {
+            "schema",
+            "status",
+            "checkpoint_id",
+            "baseline_pages_bytes",
+            "observed_pages_bytes",
+            "max_allowed_basis_points",
+            "tmp_backed_vma_bytes",
+            "tmp_backed_vma_count",
+            "analysis",
+            "reviewed_at",
+        },
+        "pages-growth review receipt",
+    )
+    reviewed_cap = contract["artifact_gates"]["pages_growth_reviewed_max_basis_points"]
+    if (
+        value["schema"] != PAGES_GROWTH_RECEIPT_SCHEMA
+        or value["status"] != "REVIEWED"
+        or value["checkpoint_id"] != contract["candidate"]["checkpoint_id"]
+        or value["baseline_pages_bytes"] != contract["baseline"]["pages_bytes"]
+        or value["observed_pages_bytes"] != observed_total
+        or isinstance(value["max_allowed_basis_points"], bool)
+        or not isinstance(value["max_allowed_basis_points"], int)
+        or value["max_allowed_basis_points"] > reviewed_cap
+        or isinstance(value["tmp_backed_vma_bytes"], bool)
+        or not isinstance(value["tmp_backed_vma_bytes"], int)
+        or value["tmp_backed_vma_bytes"] < 0
+        or isinstance(value["tmp_backed_vma_count"], bool)
+        or not isinstance(value["tmp_backed_vma_count"], int)
+        or value["tmp_backed_vma_count"] < 0
+        or not isinstance(value["analysis"], str)
+        or len(value["analysis"].strip()) < 40
+    ):
+        raise ArtifactError(
+            "pages-growth review receipt does not exactly cover the observed artifact"
+        )
+    state._timestamp(value["reviewed_at"], "pages-growth reviewed_at")
+    return value, raw
+
+
+def _inspect_pages(
+    artifact: Path,
+    contract: dict[str, Any],
+    growth_receipt_path: Path | None = None,
+) -> dict[str, Any]:
     pages = sorted(
         (entry for entry in os.scandir(artifact) if PAGES.fullmatch(entry.name)),
         key=lambda item: item.name,
@@ -440,11 +495,26 @@ def _inspect_pages(artifact: Path, contract: dict[str, Any]) -> dict[str, Any]:
         total += path.stat().st_size
     baseline = contract["baseline"]["pages_bytes"]
     basis_points = contract["artifact_gates"]["pages_growth_max_basis_points"]
+    reviewed_cap = contract["artifact_gates"]["pages_growth_reviewed_max_basis_points"]
     maximum = baseline * (10_000 + basis_points) // 10_000
-    if total <= 0 or total > maximum:
-        raise ArtifactError(
-            f"CRIU pages grew above {basis_points} basis points: {total}>{maximum}"
-        )
+    growth_receipt_sha256: str | None = None
+    effective_max = basis_points
+    if total <= 0:
+        raise ArtifactError("CRIU pages total is empty")
+    if total > maximum:
+        if growth_receipt_path is None:
+            raise ArtifactError(
+                f"CRIU pages grew above {basis_points} basis points: {total}>{maximum} "
+                "and no reviewed growth receipt was provided"
+            )
+        receipt, raw = _read_pages_growth_receipt(growth_receipt_path, contract, total)
+        effective_max = receipt["max_allowed_basis_points"]
+        reviewed_maximum = baseline * (10_000 + effective_max) // 10_000
+        if total > reviewed_maximum or effective_max > reviewed_cap:
+            raise ArtifactError(
+                f"CRIU pages exceed even the reviewed growth ceiling: {total}>{reviewed_maximum}"
+            )
+        growth_receipt_sha256 = _sha256_bytes(raw)
     growth = max(0.0, (total - baseline) * 10_000 / baseline)
     return {
         "file_count": len(pages),
@@ -452,6 +522,8 @@ def _inspect_pages(artifact: Path, contract: dict[str, Any]) -> dict[str, Any]:
         "baseline_bytes": baseline,
         "growth_basis_points": round(growth, 9),
         "max_growth_basis_points": basis_points,
+        "effective_max_growth_basis_points": effective_max,
+        "growth_receipt_sha256": growth_receipt_sha256,
     }
 
 
@@ -715,6 +787,7 @@ def validate_artifact(
     *,
     bundle_path: Path | None = None,
     python_executable: str | None = None,
+    pages_growth_receipt: Path | None = None,
 ) -> dict[str, Any]:
     artifact = _directory(artifact, "candidate artifact")
     if bundle_path is None:
@@ -738,7 +811,7 @@ def validate_artifact(
         "external_mount": external_mount,
         "rootfs": _inspect_rootfs(artifact, contract),
         "deleted_files": _inspect_deleted_files(artifact, contract),
-        "pages": _inspect_pages(artifact, contract),
+        "pages": _inspect_pages(artifact, contract, pages_growth_receipt),
         "tmpfs_images": _inspect_tmpfs_images(artifact, contract),
         "crit": _inspect_crit(
             artifact, decoded_dir, contract, bundle_path, python_executable
@@ -764,6 +837,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="python interpreter with google.protobuf (default: contract value)",
     )
+    parser.add_argument(
+        "--pages-growth-receipt",
+        type=Path,
+        default=None,
+        help="reviewed growth receipt admitting pages growth above the base gate",
+    )
     parser.add_argument("--receipt-output", type=Path, required=True)
     return parser.parse_args(argv)
 
@@ -781,6 +860,7 @@ def main(argv: list[str] | None = None) -> int:
             contract,
             contract_sha256,
             python_executable=args.decoder_python,
+            pages_growth_receipt=args.pages_growth_receipt,
         )
         state._write_receipt(args.receipt_output, receipt)
     except (ArtifactError, state.StateError, OSError) as exc:

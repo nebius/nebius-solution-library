@@ -3,11 +3,11 @@
   "experiment_id": "boltz2-external-tmp-v1",
   "tool": {
     "filename": "external_tmp_state.py",
-    "sha256": "f7ddc1d6c530547338df94a2df0975cfbed8b881ff2c586aabd8e053d27d77d7"
+    "sha256": "55faeae011d05912e139a5b914c921016988bfaa5525d90c22c6f2fdf7af423f"
   },
   "artifact_validator": {
     "filename": "validate_external_tmp_artifact.py",
-    "sha256": "c5972e3f07b8fc0431b7454e89d69797fe118d17453a46f0f6341dd8c33e9ca5"
+    "sha256": "dd7979c52323fadd36abeeb7e3b7a8321c5a2060aad559bbc9ec8fc7ee83f79b"
   },
   "images": {
     "nim": "nvcr.io/nim/mit/boltz2@sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98",
@@ -96,6 +96,8 @@
     "required_external_mount": "/tmp",
     "tmpfs_images_max_total_bytes": 134217728,
     "allowed_extra_files": [
+      "criu.conf",
+      "dump.log",
       "stats-dump"
     ],
     "ext_mnt_exact": {
@@ -165,6 +167,7 @@
       "/output",
       "/snapshot-control",
       "/tmp"
-    ]
+    ],
+    "pages_growth_reviewed_max_basis_points": 500
   }
 }
