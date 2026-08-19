@@ -26,7 +26,8 @@
       "catalog_schema_sha256", "threat_model_commit", "threat_model_branch",
       "threat_model_path", "threat_model_sha256", "threat_model_vendored",
       "resource_broker_commit", "resource_broker_branch",
-      "request_slo_commit", "request_slo_branch"
+      "request_slo_commit", "request_slo_branch",
+      "n20_aggregate_path", "n20_aggregate_sha256"
      ],
      "additionalProperties": false,
      "properties": {
@@ -43,7 +44,9 @@
       "resource_broker_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
       "resource_broker_branch": {"type": "string"},
       "request_slo_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-      "request_slo_branch": {"type": "string"}
+      "request_slo_branch": {"type": "string"},
+      "n20_aggregate_path": {"type": "string"},
+      "n20_aggregate_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
      }
     },
     "interfaces": {
@@ -203,7 +206,7 @@
           "additionalProperties": false,
           "properties": {
            "image_binding": {
-            "enum": ["in-file", "checkpoint-join", "structured-contract-join", "none"]
+            "enum": ["in-file", "checkpoint-join", "machine-aggregate", "none"]
            },
            "image_join": {
             "anyOf": [
@@ -215,8 +218,8 @@
               "properties": {
                "records": {
                 "type": "array",
-                "minItems": 2,
-                "items": {"type": "string", "pattern": "^nim-fast-start/faststart-v2/.+::[A-Z_]+$"}
+                "minItems": 3,
+                "items": {"type": "string", "pattern": "^nim-fast-start/faststart-v2/.+::.+$"}
                },
                "checkpoint_id": {"type": "string", "minLength": 3},
                "digest_bound": {"const": true}

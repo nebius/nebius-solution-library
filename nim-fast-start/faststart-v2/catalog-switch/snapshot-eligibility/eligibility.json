@@ -29,6 +29,10 @@
         "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
        },
        {
+        "path": "nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/inputs/n20_cohort_aggregates.json",
+        "sha256": "sha256:06567dc8576b416810947f5de0838cf4995a02d43e622fd8630237910f52a8a1"
+       },
+       {
         "path": "nim-fast-start/faststart-v2/performance/aggregate_fresh_cohort.py",
         "sha256": "sha256:9e732ffc11d647d664468a291d702ddff0b40f1466adc8d9159d8553acefc88f"
        },
@@ -38,11 +42,12 @@
        }
       ],
       "further_required": "sub-30 s SLO not met (conservative-upper p95 30.310246 s); latency work is tracked by the sibling boltz2-under-20 task; outstanding evidence gaps (host-driver Xid proof, raw response-body retention) remain open",
-      "image_binding": "structured-contract-join",
+      "image_binding": "machine-aggregate",
       "image_join": {
        "checkpoint_id": "boltz2-native-f7-v1",
        "digest_bound": true,
        "records": [
+        "nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/inputs/n20_cohort_aggregates.json::cohorts.boltz2",
         "nim-fast-start/faststart-v2/performance/aggregate_fresh_cohort.py::APPROVED_CONTRACTS",
         "nim-fast-start/faststart-v2/performance/test_published_fresh_cohort_results.py::COHORTS"
        ]
@@ -59,7 +64,7 @@
       "outstanding_evidence_gaps": [
        "host-driver Xid absence is recorded as unavailable/unproven for all 40 selected qualification receipts (no task-scoped privileged node-log collector existed)",
        "the 80 raw response bodies referenced by the 40 two-call semantic summaries were not retained; response SHA-256, byte counts, complete-body timestamps, and strict semantic receipts are retained",
-       "no single committed machine-readable per-run receipt carries this n=20 cohort's image; the exact-digest binding is a chain of structured same-record joins extracted by AST from the committed cohort tooling (APPROVED_CONTRACTS: model/digest-pinned image/checkpoint and qualification identity; published COHORTS record: model/cohort id/TSV path/per-run prefix/outcome/percentiles), and a per-run image receipt remains outstanding"
+       "the harness emitted no collocated cohort-image receipt, so the immutable machine aggregate consumed for this cohort (cohort id, exact run-id sequence, exact repository@digest, qualification/cleanup/outcome, contract hashes) was constructed in-repo and is field-verified against the committed TSV bytes, aggregator contract, and published record; a harness-emitted per-run image receipt remains outstanding"
       ],
       "sealed": true,
       "status": "complete-fresh-fail-closed-n20"
@@ -114,6 +119,10 @@
         "sha256": "sha256:b5e3bf5d28c3da0b8a3407dee51aaff8b45fce73f16929b632ca971deb513b03"
        },
        {
+        "path": "nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/inputs/n20_cohort_aggregates.json",
+        "sha256": "sha256:06567dc8576b416810947f5de0838cf4995a02d43e622fd8630237910f52a8a1"
+       },
+       {
         "path": "nim-fast-start/faststart-v2/performance/aggregate_fresh_cohort.py",
         "sha256": "sha256:9e732ffc11d647d664468a291d702ddff0b40f1466adc8d9159d8553acefc88f"
        },
@@ -123,11 +132,12 @@
        }
       ],
       "further_required": "no further provisioned-node cohort samples required; outstanding evidence gaps (host-driver Xid proof, raw response-body retention) remain open and are not closed by the SLO pass",
-      "image_binding": "structured-contract-join",
+      "image_binding": "machine-aggregate",
       "image_join": {
        "checkpoint_id": "openfold2-native-f7-v1",
        "digest_bound": true,
        "records": [
+        "nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/inputs/n20_cohort_aggregates.json::cohorts.openfold2",
         "nim-fast-start/faststart-v2/performance/aggregate_fresh_cohort.py::APPROVED_CONTRACTS",
         "nim-fast-start/faststart-v2/performance/test_published_fresh_cohort_results.py::COHORTS"
        ]
@@ -144,7 +154,7 @@
       "outstanding_evidence_gaps": [
        "host-driver Xid absence is recorded as unavailable/unproven for all 40 selected qualification receipts (no task-scoped privileged node-log collector existed)",
        "the 80 raw response bodies referenced by the 40 two-call semantic summaries were not retained; response SHA-256, byte counts, complete-body timestamps, and strict semantic receipts are retained",
-       "no single committed machine-readable per-run receipt carries this n=20 cohort's image; the exact-digest binding is a chain of structured same-record joins extracted by AST from the committed cohort tooling (APPROVED_CONTRACTS: model/digest-pinned image/checkpoint and qualification identity; published COHORTS record: model/cohort id/TSV path/per-run prefix/outcome/percentiles), and a per-run image receipt remains outstanding"
+       "the harness emitted no collocated cohort-image receipt, so the immutable machine aggregate consumed for this cohort (cohort id, exact run-id sequence, exact repository@digest, qualification/cleanup/outcome, contract hashes) was constructed in-repo and is field-verified against the committed TSV bytes, aggregator contract, and published record; a harness-emitted per-run image receipt remains outstanding"
       ],
       "sealed": true,
       "status": "complete-fresh-fail-closed-n20"
@@ -932,6 +942,8 @@
    "catalog_path": "nim-fast-start/faststart-v2/catalog/catalog.json",
    "catalog_schema_sha256": "sha256:c1d979b6ab62ed6e54edd2e1657e7aae4d557514638d726ba99ff7766e9ad56c",
    "catalog_sha256": "sha256:831c0517c0df3c92e3b8e802b609c08dbc5f2c0eb945fc0d21830e457a71d6ce",
+   "n20_aggregate_path": "inputs/n20_cohort_aggregates.json",
+   "n20_aggregate_sha256": "sha256:06567dc8576b416810947f5de0838cf4995a02d43e622fd8630237910f52a8a1",
    "request_slo_branch": "agent/catalog-switch-request-slo-harness",
    "request_slo_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
    "resource_broker_branch": "agent/catalog-switch-resource-broker",

@@ -782,7 +782,7 @@ class EligibilityArtifacts(unittest.TestCase):
             binding = e["cohorts"]["provisioned_node"]["image_binding"]
             self.assertIn(
                 binding,
-                ("in-file", "checkpoint-join", "structured-contract-join", "none"),
+                ("in-file", "checkpoint-join", "machine-aggregate", "none"),
                 e["nim"],
             )
             if e["snapshot_class"] in SNAPSHOT_SAFE:
@@ -793,12 +793,14 @@ class EligibilityArtifacts(unittest.TestCase):
         self.assertEqual(by_nim["molmim"]["image_binding"], "none")
         self.assertIsNone(by_nim["molmim"]["image_join"])
         for nim in ("boltz2", "openfold2"):
-            self.assertEqual(by_nim[nim]["image_binding"], "structured-contract-join", nim)
+            self.assertEqual(by_nim[nim]["image_binding"], "machine-aggregate", nim)
             join = by_nim[nim]["image_join"]
             self.assertTrue(join["digest_bound"], nim)
-            self.assertEqual(len(join["records"]), 2, nim)
+            self.assertEqual(len(join["records"]), 3, nim)
+            self.assertIn("n20_cohort_aggregates.json::cohorts." + nim, join["records"][0], nim)
             gaps = " ".join(by_nim[nim]["outstanding_evidence_gaps"])
-            self.assertIn("structured same-record joins", gaps, nim)
+            self.assertIn("immutable machine aggregate", gaps, nim)
+            self.assertIn("constructed in-repo", gaps, nim)
             paths = {r["path"] for r in by_nim[nim]["evidence_refs"]}
             self.assertIn(
                 "nim-fast-start/faststart-v2/performance/aggregate_fresh_cohort.py",
@@ -824,19 +826,16 @@ class EligibilityArtifacts(unittest.TestCase):
                 "nim-fast-start/faststart-v2/" + extra
                 for extra in b.SUPPLEMENTARY_EVIDENCE[nim]
             ]
-            # untampered row verifies and yields the structured join
+            # untampered row verifies and yields the machine-aggregate join
             verified = b.verify_lane_evidence(nim, row, refs)
-            self.assertEqual(
-                verified["image_binding"], "structured-contract-join", nim
-            )
+            self.assertEqual(verified["image_binding"], "machine-aggregate", nim)
             self.assertTrue(verified["image_join"]["digest_bound"], nim)
             # all-zero digest with untouched evidence must be refused
             mutated = json.loads(json.dumps(row))
             mutated["image"]["digest"] = "sha256:" + "0" * 64
             with self.assertRaises(SystemExit):
                 b.verify_lane_evidence(nim, mutated, refs)
-        # structured-join unit adversaries. The join reads AST-extracted
-        # records only, so token/prose presence anywhere else never counts.
+        # machine-aggregate unit adversaries
         with open(
             os.path.join(FASTSTART_ROOT, "performance", "aggregate_fresh_cohort.py"),
             encoding="utf-8",
@@ -849,68 +848,110 @@ class EligibilityArtifacts(unittest.TestCase):
             encoding="utf-8",
         ) as fh:
             published_src = fh.read()
+        with open(
+            os.path.join(ELIG_DIR, "inputs", "n20_cohort_aggregates.json"),
+            encoding="utf-8",
+        ) as fh:
+            aggregate = json.load(fh)
         good_digest = (
             "sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98"
         )
-        with open(
-            os.path.join(FASTSTART_ROOT, "boltz2-native", "fresh-cohort-n20-results.tsv"),
-            encoding="utf-8",
-        ) as fh:
-            facts = b.check_n20_tsv(fh.read(), 28.794544, 30.208757, "b2-n20-")
         tsv_rel = "boltz2-native/fresh-cohort-n20-results.tsv"
-        b.check_n20_structured_join(
-            "boltz2", good_digest, tsv_rel, facts, contracts_src, published_src
+        with open(
+            os.path.join(FASTSTART_ROOT, tsv_rel), "rb"
+        ) as fh:
+            tsv_bytes = fh.read()
+        facts = b.check_n20_tsv(
+            tsv_bytes.decode("utf-8"), 28.794544, 30.208757, "b2-n20-"
         )
-        # The reviewer's cross-section adversary: the exact digest appears
-        # as loose prose in an unrelated section of the source, while the
-        # structured record carries a DIFFERENT digest. Token scanners
-        # accept this; the AST join must refuse.
-        cross_section = (
-            contracts_src.replace(good_digest.split(":")[1], "f" * 64)
-            + "\n# Historical n3 section mentions boltz2@" + good_digest + "\n"
-        )
-        self.assertIn(good_digest, cross_section)
+        args = ("boltz2", good_digest, tsv_rel, tsv_bytes, facts)
+        b.check_n20_machine_aggregate(*args, aggregate, contracts_src, published_src)
+        # zeroed digest against untouched evidence
         with self.assertRaises(SystemExit):
-            b.check_n20_structured_join(
-                "boltz2", good_digest, tsv_rel, facts, cross_section, published_src
+            b.check_n20_machine_aggregate(
+                "boltz2", "sha256:" + "0" * 64, tsv_rel, tsv_bytes, facts,
+                aggregate, contracts_src, published_src,
             )
-        # zeroed digest against untouched sources
-        with self.assertRaises(SystemExit):
-            b.check_n20_structured_join(
-                "boltz2", "sha256:" + "0" * 64, tsv_rel, facts,
-                contracts_src, published_src,
-            )
-        # weakened aggregator minimum
-        with self.assertRaises(SystemExit):
-            b.check_n20_structured_join(
-                "boltz2", good_digest, tsv_rel, facts,
-                contracts_src.replace("MINIMUM_ATTEMPTS = 20", "MINIMUM_ATTEMPTS = 19"),
-                published_src,
-            )
-        # published-record mutations: cohort id, TSV path, run prefix,
-        # outcome, and published p95 pair must all match exactly
-        for old, new in (
-            ('"b2-n20-v3-20260818t1532z"', '"b2-n20-other"'),
-            ('ROOT / "boltz2-native/fresh-cohort-n20-results.tsv"', 'ROOT / "boltz2-native/other.tsv"'),
-            ('"run_prefix": "b2v3-1532"', '"run_prefix": "other"'),
-            ('"outcome": "SLO_FAIL"', '"outcome": "PASS"'),
-            ("(30.208757, 30.310246)", "(30.208757, 29.0)"),
+        # REBINDING adversaries: appending a later, weaker binding changes
+        # the source bytes, breaking the aggregate's pin — and structured
+        # extraction independently refuses multiply-bound names.
+        for appended in (
+            "\nMINIMUM_ATTEMPTS = 1\n",
+            "\nAPPROVED_CONTRACTS = {}\n",
         ):
-            mutated_pub = published_src.replace(old, new)
-            self.assertNotEqual(mutated_pub, published_src, old)
             with self.assertRaises(SystemExit):
-                b.check_n20_structured_join(
-                    "boltz2", good_digest, tsv_rel, facts, contracts_src, mutated_pub
+                b.check_n20_machine_aggregate(
+                    *args, aggregate, contracts_src + appended, published_src
                 )
-        # missing structured records refuse
+        with self.assertRaises(SystemExit):
+            b.extract_assigned_value("X = 1\nX = 2\n", "X")
+        with self.assertRaises(SystemExit):
+            b.extract_assigned_value("X = 20\nX += 1\n", "X")
         with self.assertRaises(SystemExit):
             b.extract_assigned_value("x = 1", "APPROVED_CONTRACTS")
+        # different repository carrying the same digest: the aggregate pins
+        # the exact repository@digest string by hash, so this refuses even
+        # when the digest tail matches (source hash updated to isolate the
+        # repo check from the byte pin)
+        rebound = contracts_src.replace("nvcr.io/nim/mit/boltz2@", "evil.example/boltz2@")
+        self.assertNotEqual(rebound, contracts_src)
+        agg_rebound = json.loads(json.dumps(aggregate))
+        agg_rebound["sources"]["contracts_sha256"] = (
+            "sha256:" + hashlib.sha256(rebound.encode()).hexdigest()
+        )
         with self.assertRaises(SystemExit):
-            b.check_n20_structured_join(
-                "boltz2", good_digest, tsv_rel, facts,
-                contracts_src.replace("APPROVED_CONTRACTS", "OTHER_NAME"),
-                published_src,
+            b.check_n20_machine_aggregate(
+                *args, agg_rebound, rebound, published_src
             )
+        # aggregate-field adversaries: sequence drift, empty prefix,
+        # flipped qualification/cleanup/outcome, wrong TSV bytes
+        for mutate in (
+            lambda a: a["cohorts"]["boltz2"]["run_ids"].reverse(),
+            lambda a: a["cohorts"]["boltz2"]["run_ids"].__setitem__(0, "b2v3-1532-002"),
+            lambda a: a["cohorts"]["boltz2"].__setitem__("run_prefix", ""),
+            lambda a: a["cohorts"]["boltz2"].__setitem__("runner_qualification", "FAIL"),
+            lambda a: a["cohorts"]["boltz2"].__setitem__("cleanup", "FAIL"),
+            lambda a: a["cohorts"]["boltz2"].__setitem__("cohort_outcome", "PASS"),
+            lambda a: a["cohorts"]["boltz2"].__setitem__("tsv_sha256", "sha256:" + "0" * 64),
+            lambda a: a["cohorts"]["boltz2"].__setitem__("checkpoint_id", "other-ckpt"),
+            lambda a: a["cohorts"]["boltz2"].__setitem__(
+                "image_ref_sha256", "sha256:" + "0" * 64
+            ),
+            lambda a: a["cohorts"].pop("boltz2"),
+        ):
+            mutated_agg = json.loads(json.dumps(aggregate))
+            mutate(mutated_agg)
+            with self.assertRaises(SystemExit):
+                b.check_n20_machine_aggregate(
+                    *args, mutated_agg, contracts_src, published_src
+                )
+        # TSV-side adversaries: malformed record/run ids, unrelated
+        # local_evidence, changed summary outcome
+        text = tsv_bytes.decode("utf-8")
+        lines = text.splitlines()
+        header = lines[0].split("\t")
+        rec_i = header.index("record")
+        run_i = header.index("run_id")
+        le_i = header.index("local_evidence")
+        out_i = header.index("cohort_outcome")
+        sample_idx = next(i for i, l in enumerate(lines) if l.startswith("sample"))
+        fields = lines[sample_idx].split("\t")
+        for col, value in ((rec_i, "99"), (run_i, "unrelated-run"), (le_i, "/tmp/unrelated")):
+            mutated_fields = fields[:]
+            mutated_fields[col] = value
+            mutated_text = "\n".join(
+                lines[:sample_idx] + ["\t".join(mutated_fields)] + lines[sample_idx + 1:]
+            ) + "\n"
+            with self.assertRaises(SystemExit):
+                b.check_n20_tsv(mutated_text, 28.794544, 30.208757, "b2-n20-")
+        summary_idx = next(i for i, l in enumerate(lines) if l.startswith("summary"))
+        sfields = lines[summary_idx].split("\t")
+        sfields[out_i] = "PASS"
+        mutated_text = "\n".join(
+            lines[:summary_idx] + ["\t".join(sfields)] + lines[summary_idx + 1:]
+        ) + "\n"
+        with self.assertRaises(SystemExit):
+            b.check_n20_tsv(mutated_text, 28.794544, 30.208757, "b2-n20-")
         # ProteinMPNN's digest-bearing results file and OpenFold3's
         # digest-join prior evidence must be cited and hash-bound.
         by_nim = {
