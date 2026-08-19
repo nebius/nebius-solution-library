@@ -26,6 +26,10 @@ response-boundary audit is recorded in
   program's threat model: the fail-closed control and adversary matrix, per
   backend, required before any switching backend can be recommended for
   production, plus its consistency validator and tests;
+- `catalog-switch/drain-reclaim/` implements the versioned, generation-fenced
+  A-to-B drain, exact runtime absence, active GPU scrub/NVML release, semantic
+  B admission, failure/quarantine, and rollback machine for Kubernetes and
+  node-local prototypes, integrated with the external-T0 ledger;
 - `native-capture/` creates the qualified native Dynamo artifact;
 - `phase2-agent/` reproduces the generic one-shot restore-worker image;
 - `dynamo/` renders and validates target, binding, restore, semantic probe, and
