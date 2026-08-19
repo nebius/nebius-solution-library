@@ -31,6 +31,16 @@ fail-closed startup path.
 - `ELIGIBILITY_POLICY.md` — the human-readable policy: gates,
   fail-closed rules, fallback ladder, and canary process.
 
+`eligibility.json` additionally carries `meta.bionemo_nims`: explicit,
+evidence-first coverage of all ten ARCHVTEAMS-2407 BioNeMo NIMs (Boltz2
+and OpenFold2 first, with their fresh fail-closed n=20 cohorts), each
+recording exact snapshot eligibility, the conventional fallback,
+storage/topology blockers, the provisioned-node cohort status, and the
+required — currently nonexistent — new-preemptible-node cohort
+(`inputs/bionemo_cohorts.json` is the hand-encoded evidence table). The
+builder refuses to emit output when any Modal reference exists outside
+the scope notes, so Modal can never become an execution class.
+
 ## Pinned inputs (never edited here)
 
 - `inputs/catalog.json` + `inputs/catalog.schema.json` — byte-identical

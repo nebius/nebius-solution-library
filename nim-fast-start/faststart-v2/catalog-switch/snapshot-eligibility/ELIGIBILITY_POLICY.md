@@ -93,6 +93,30 @@ other fallbacks are `measurement-required` and owed to the shared
 harness / Kubernetes-baseline lane — stating otherwise would invent
 numbers.
 
+## BioNeMo NIM coverage (ARCHVTEAMS-2407)
+
+`meta.bionemo_nims` covers all ten NIMs explicitly, ordered
+evidence-first: Boltz2 and OpenFold2 (fresh fail-closed n=20,
+provisioned node, storage attached) rank 1–2, the rest alphabetical.
+Per NIM it records the exact snapshot class, the conventional fallback
+with measurement honesty, storage blockers (direct-I/O verification,
+prewarm assumptions), topology blockers (MSA Search's excluding
+topology mismatch; Evo2's GPU-count discrepancy), and both node
+cohorts:
+
+- **provisioned-node** — what exists: `complete-fresh-fail-closed-n20`
+  (Boltz2, OpenFold2), `complete-n3` (DiffDock, GenMol, MolMIM,
+  OpenFold3, ProteinMPNN, RFdiffusion; each owes an n=20 rerun to the
+  Boltz2/OpenFold2 standard), `complete-n3-conventional` (MSA Search),
+  `missing-production-shaped` (Evo2-40B, H200 owner gate).
+- **new-preemptible-node** — what is required and does not exist: zero
+  current-contract new-node samples for any NIM (OpenFold2 has two
+  historical non-poolable lifecycles; the future path is
+  newnode-v2-only). Every NIM requires a fail-closed n≥3 fresh
+  preemptible-node cohort under the current exact contract via an
+  approved broker lease and the shared harness; Evo2-40B's is
+  additionally blocked on the H200 gate.
+
 ## Canary process
 
 Representative live canaries are **requests, not runs**: each requires

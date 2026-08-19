@@ -1,6 +1,410 @@
 {
  "meta": {
   "artifact": "catalog-switch snapshot-eligibility classification",
+  "bionemo_nims": [
+   {
+    "catalog_snapshot_eligibility": "proven",
+    "cohorts": {
+     "new_preemptible_node": {
+      "evidence_refs": [],
+      "historical_note": null,
+      "requested_via": {
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+      },
+      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "status": "required-not-run"
+     },
+     "provisioned_node": {
+      "evidence_class": "fresh fail-closed n=20",
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/boltz2-native/fresh-cohort-n20-results.tsv",
+       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+      ],
+      "further_required": null,
+      "status": "complete-fresh-fail-closed-n20"
+     }
+    },
+    "confidence": "high",
+    "conventional_fallback": {
+     "admission": "measurement-required",
+     "measured": false,
+     "measurement_refs": [],
+     "path": "conventional-pull-and-load"
+    },
+    "evidence_rank": 1,
+    "nim": "boltz2",
+    "row_id": "faststart:boltz2@sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98",
+    "snapshot_class": "direct-snapshot-safe",
+    "storage_blockers": [
+     "G-STORAGE applies: direct/O_DIRECT model artifact volume (16.2 GB) plus attached cache volume (13.3 GB) must be content-verified against the promotion tuple before restore",
+     "storage attached never implies bytes page-resident; the proven cohort's storage state is 'direct' and any other tier requires its own measured restore"
+    ],
+    "topology_blockers": []
+   },
+   {
+    "catalog_snapshot_eligibility": "proven",
+    "cohorts": {
+     "new_preemptible_node": {
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/openfold2-newnode/CURRENT_STATUS.json",
+       "nim-fast-start/faststart-v2/openfold2-newnode/README.md"
+      ],
+      "historical_note": "two historical new-node lifecycles passed (of2-newnode-r4-0418, of2-newnode-r5-regional) but are non-poolable under the current exact contract; zero current-contract samples exist and the future execution path is newnode-v2-only",
+      "requested_via": {
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+      },
+      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "status": "required-not-run"
+     },
+     "provisioned_node": {
+      "evidence_class": "fresh fail-closed n=20",
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+       "nim-fast-start/faststart-v2/performance/openfold2/fresh-cohort-n20-results.tsv"
+      ],
+      "further_required": null,
+      "status": "complete-fresh-fail-closed-n20"
+     }
+    },
+    "confidence": "high",
+    "conventional_fallback": {
+     "admission": "measurement-required",
+     "measured": false,
+     "measurement_refs": [],
+     "path": "conventional-pull-and-load"
+    },
+    "evidence_rank": 2,
+    "nim": "openfold2",
+    "row_id": "faststart:openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4",
+    "snapshot_class": "direct-snapshot-safe",
+    "storage_blockers": [
+     "G-STORAGE applies: direct/O_DIRECT model artifact volume must be content-verified against the promotion tuple before restore; the proven cohort's storage state is 'direct'"
+    ],
+    "topology_blockers": []
+   },
+   {
+    "catalog_snapshot_eligibility": "proven",
+    "cohorts": {
+     "new_preemptible_node": {
+      "evidence_refs": [],
+      "historical_note": null,
+      "requested_via": {
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+      },
+      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "status": "required-not-run"
+     },
+     "provisioned_node": {
+      "evidence_class": "exact response-boundary n=3",
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/diffdock-native/results.json",
+       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+      ],
+      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "status": "complete-n3"
+     }
+    },
+    "confidence": "high",
+    "conventional_fallback": {
+     "admission": "measurement-required",
+     "measured": false,
+     "measurement_refs": [],
+     "path": "conventional-pull-and-load"
+    },
+    "evidence_rank": 3,
+    "nim": "diffdock",
+    "row_id": "faststart:diffdock@sha256:300696eb8331d78face40f84d835cc1e278c7d3c391c5aabbbee5884366da480",
+    "snapshot_class": "direct-snapshot-safe",
+    "storage_blockers": [
+     "evidence assumes a buffered, fully prewarmed artifact volume (7.5 GB); unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
+    ],
+    "topology_blockers": []
+   },
+   {
+    "catalog_snapshot_eligibility": "blocked-pending-capture",
+    "cohorts": {
+     "new_preemptible_node": {
+      "evidence_refs": [],
+      "historical_note": "only manual/provisional restore-trigger evidence exists (65.377 s median from an in-Pod trigger); it is not comparable with the production clock",
+      "requested_via": {
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+      },
+      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "status": "blocked-hardware-gate-h200"
+     },
+     "provisioned_node": {
+      "evidence_class": "manual/provisional",
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/evo2-native/profile.json",
+       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+      ],
+      "further_required": "production-shaped capture and cohort on the pinned digest; deferred pending the explicit owner decision to release the only allowed H200",
+      "status": "missing-production-shaped"
+     }
+    },
+    "confidence": "high",
+    "conventional_fallback": {
+     "admission": "measurement-required",
+     "measured": false,
+     "measurement_refs": [],
+     "path": "conventional-pull-and-load"
+    },
+    "evidence_rank": 4,
+    "nim": "evo2-40b",
+    "row_id": "faststart:evo2-40b@sha256:561886bab1d2d0da836ebf5bec403f9de2baf6e92deb7eedf1b316aa994b5dd2",
+    "snapshot_class": "unresolved",
+    "storage_blockers": [
+     "G-STORAGE applies: ~100 GB legacy direct checkpoint with no current manifest-bound artifact; a manifest-bound, digest-verified artifact must exist before any promotion tuple can be built"
+    ],
+    "topology_blockers": [
+     "GPU-count discrepancy: the lane profile pins a single-H200 configuration while the Terraform catalog requests 2 GPUs for the same image; this must be resolved before any capture qualification",
+     "writable state on the production-shaped route is unknown; the state audit is unfinished"
+    ]
+   },
+   {
+    "catalog_snapshot_eligibility": "proven",
+    "cohorts": {
+     "new_preemptible_node": {
+      "evidence_refs": [],
+      "historical_note": null,
+      "requested_via": {
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+      },
+      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "status": "required-not-run"
+     },
+     "provisioned_node": {
+      "evidence_class": "exact response-boundary n=3",
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/genmol-native/results.json",
+       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+      ],
+      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "status": "complete-n3"
+     }
+    },
+    "confidence": "high",
+    "conventional_fallback": {
+     "admission": "measurement-required",
+     "measured": false,
+     "measurement_refs": [],
+     "path": "conventional-pull-and-load"
+    },
+    "evidence_rank": 5,
+    "nim": "genmol",
+    "row_id": "faststart:genmol@sha256:139b909a450fe1fb81198214784a15f67e172e766a93a1569827ba5aa05b4541",
+    "snapshot_class": "direct-snapshot-safe",
+    "storage_blockers": [
+     "evidence assumes a buffered, fully prewarmed artifact volume (4.8 GB); unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
+    ],
+    "topology_blockers": []
+   },
+   {
+    "catalog_snapshot_eligibility": "proven",
+    "cohorts": {
+     "new_preemptible_node": {
+      "evidence_refs": [],
+      "historical_note": null,
+      "requested_via": {
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+      },
+      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "status": "required-not-run"
+     },
+     "provisioned_node": {
+      "evidence_class": "exact response-boundary n=3",
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/molmim-native/conventional/",
+       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+      ],
+      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "status": "complete-n3"
+     }
+    },
+    "confidence": "high",
+    "conventional_fallback": {
+     "admission": "measurement-required",
+     "measured": false,
+     "measurement_refs": [],
+     "path": "conventional-pull-and-load"
+    },
+    "evidence_rank": 6,
+    "nim": "molmim",
+    "row_id": "faststart:molmim@sha256:7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa",
+    "snapshot_class": "direct-snapshot-safe",
+    "storage_blockers": [
+     "evidence assumes buffered, fully prewarmed artifact (5.2 GB) and cache (0.3 GB) volumes; unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
+    ],
+    "topology_blockers": []
+   },
+   {
+    "catalog_snapshot_eligibility": "excluded",
+    "cohorts": {
+     "new_preemptible_node": {
+      "evidence_refs": [],
+      "historical_note": "cohort is conventional-cached-start only; no snapshot attempt is admissible",
+      "requested_via": {
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+      },
+      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "status": "required-not-run"
+     },
+     "provisioned_node": {
+      "evidence_class": "exact response-boundary conventional n=3",
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/msa-search-native/results.json",
+       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+      ],
+      "further_required": "fresh fail-closed n=20 conventional rerun to the Boltz2/OpenFold2 evidence standard",
+      "status": "complete-n3-conventional"
+     }
+    },
+    "confidence": "high",
+    "conventional_fallback": {
+     "admission": "measured",
+     "measured": true,
+     "measurement_refs": [
+      "nim-fast-start/faststart-v2/msa-search-native/results.json",
+      "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+     ],
+     "path": "conventional-cached-start"
+    },
+    "evidence_rank": 7,
+    "nim": "msa-search",
+    "row_id": "faststart:msa-search@sha256:944f3cf845761be8e42b33147ae08b68c61eca7cad67bf5251e1708d03c0165c",
+    "snapshot_class": "conventional-only",
+    "storage_blockers": [
+     "prewarmed database cache volume required (PDB70 subset, 0.1 GB measured); full MSA databases are much larger and outside the selected route, so any database expansion requires a new cohort"
+    ],
+    "topology_blockers": [
+     "native capture excluded: the runtime's process topology at load differs from the captured topology, so restore identity cannot hold; conventional-only is permanent absent new runtime evidence"
+    ]
+   },
+   {
+    "catalog_snapshot_eligibility": "proven",
+    "cohorts": {
+     "new_preemptible_node": {
+      "evidence_refs": [],
+      "historical_note": null,
+      "requested_via": {
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+      },
+      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "status": "required-not-run"
+     },
+     "provisioned_node": {
+      "evidence_class": "exact response-boundary n=3",
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/openfold3-native/results.json",
+       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+      ],
+      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (T0-to-call-2 median 30.56 s already exceeds the 30 s SLO)",
+      "status": "complete-n3"
+     }
+    },
+    "confidence": "high",
+    "conventional_fallback": {
+     "admission": "measurement-required",
+     "measured": false,
+     "measurement_refs": [],
+     "path": "conventional-pull-and-load"
+    },
+    "evidence_rank": 8,
+    "nim": "openfold3",
+    "row_id": "faststart:openfold3@sha256:6286cc7c02247ed3efe42f0f1af6c2f6f6a680b1e5cae669512c44b636aa42d2",
+    "snapshot_class": "direct-snapshot-safe",
+    "storage_blockers": [
+     "evidence assumes a buffered, fully prewarmed artifact volume (9.3 GB); unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
+    ],
+    "topology_blockers": []
+   },
+   {
+    "catalog_snapshot_eligibility": "proven",
+    "cohorts": {
+     "new_preemptible_node": {
+      "evidence_refs": [],
+      "historical_note": null,
+      "requested_via": {
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+      },
+      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "status": "required-not-run"
+     },
+     "provisioned_node": {
+      "evidence_class": "exact response-boundary n=3",
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+       "nim-fast-start/faststart-v2/proteinmpnn-native/response-boundary-results.tsv"
+      ],
+      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "status": "complete-n3"
+     }
+    },
+    "confidence": "high",
+    "conventional_fallback": {
+     "admission": "measurement-required",
+     "measured": false,
+     "measurement_refs": [],
+     "path": "conventional-pull-and-load"
+    },
+    "evidence_rank": 9,
+    "nim": "proteinmpnn",
+    "row_id": "faststart:proteinmpnn@sha256:b55a0aa6733e267e6e6fe06434e98aea61eff14bc5545127555607fef6f38aa5",
+    "snapshot_class": "direct-snapshot-safe",
+    "storage_blockers": [
+     "evidence assumes a buffered, fully prewarmed artifact volume (1.9 GB); unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
+    ],
+    "topology_blockers": []
+   },
+   {
+    "catalog_snapshot_eligibility": "proven",
+    "cohorts": {
+     "new_preemptible_node": {
+      "evidence_refs": [],
+      "historical_note": null,
+      "requested_via": {
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+      },
+      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "status": "required-not-run"
+     },
+     "provisioned_node": {
+      "evidence_class": "exact response-boundary n=3",
+      "evidence_refs": [
+       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+       "nim-fast-start/faststart-v2/rfdiffusion-native/results.json"
+      ],
+      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (T0-to-call-2 median 31.38 s already exceeds the 30 s SLO)",
+      "status": "complete-n3"
+     }
+    },
+    "confidence": "high",
+    "conventional_fallback": {
+     "admission": "measurement-required",
+     "measured": false,
+     "measurement_refs": [],
+     "path": "conventional-pull-and-load"
+    },
+    "evidence_rank": 10,
+    "nim": "rfdiffusion",
+    "row_id": "faststart:rfdiffusion@sha256:15e40e466d8ebe9a53f1feea599373720428c9de65da750bf4271c96ec35ceb4",
+    "snapshot_class": "direct-snapshot-safe",
+    "storage_blockers": [
+     "evidence assumes buffered, fully prewarmed artifact (22.1 GB) and cache (2.6 GB) volumes; unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
+    ],
+    "topology_blockers": []
+   }
+  ],
   "blockers": [
    {
     "fail_closed_behavior": "Snapshot admission is refused for any row with min_gpus > 1 or multi_gpu_required; only the conventional fallback may serve it.",

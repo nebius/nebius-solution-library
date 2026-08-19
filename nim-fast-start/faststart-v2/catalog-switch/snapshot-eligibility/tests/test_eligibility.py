@@ -307,6 +307,79 @@ class EligibilityArtifacts(unittest.TestCase):
         }
         self.assertEqual(plan_ids, row_ids)
 
+    # -- BioNeMo NIM coverage (ARCHVTEAMS-2407) ---------------------------
+
+    def test_bionemo_covers_all_ten_nims_evidence_first(self):
+        entries = self.meta["bionemo_nims"]
+        names = [e["nim"] for e in entries]
+        self.assertEqual(
+            sorted(names),
+            sorted(
+                [
+                    "boltz2", "openfold2", "diffdock", "evo2-40b", "genmol",
+                    "molmim", "msa-search", "openfold3", "proteinmpnn",
+                    "rfdiffusion",
+                ]
+            ),
+        )
+        self.assertEqual(names[:2], ["boltz2", "openfold2"])
+        self.assertEqual(names[2:], sorted(names[2:]))
+        self.assertEqual(
+            [e["evidence_rank"] for e in entries], list(range(1, 11))
+        )
+        for e in entries[:2]:
+            self.assertEqual(
+                e["cohorts"]["provisioned_node"]["status"],
+                "complete-fresh-fail-closed-n20",
+                e["nim"],
+            )
+
+    def test_bionemo_entries_consistent_with_rows(self):
+        for e in self.meta["bionemo_nims"]:
+            row = self.by_id[e["row_id"]]
+            self.assertEqual(row["source"], "faststart-v2-lanes", e["nim"])
+            self.assertEqual(e["snapshot_class"], row["snapshot_class"], e["nim"])
+            self.assertEqual(
+                e["catalog_snapshot_eligibility"],
+                row["catalog"]["snapshot_eligibility"],
+                e["nim"],
+            )
+            self.assertEqual(e["confidence"], row["confidence"], e["nim"])
+            fb = e["conventional_fallback"]
+            self.assertEqual(fb["path"], row["fallback"]["path"], e["nim"])
+            self.assertEqual(fb["admission"], row["fallback"]["admission"], e["nim"])
+            self.assertEqual(fb["measured"], row["fallback"]["measured"], e["nim"])
+
+    def test_bionemo_blockers_and_cohorts_fail_closed(self):
+        by_nim = {e["nim"]: e for e in self.meta["bionemo_nims"]}
+        for nim, e in by_nim.items():
+            self.assertTrue(e["storage_blockers"], nim)
+            prov = e["cohorts"]["provisioned_node"]
+            newnode = e["cohorts"]["new_preemptible_node"]
+            self.assertTrue(prov["evidence_refs"], nim)
+            self.assertIn("resource-broker", newnode["requested_via"]["resource_broker"], nim)
+            self.assertIn("request_slo", newnode["requested_via"]["request_slo_harness"], nim)
+            self.assertIn("preemptible", newnode["required"], nim)
+            if prov["status"] != "complete-fresh-fail-closed-n20":
+                self.assertTrue(prov["further_required"], nim)
+        self.assertTrue(by_nim["msa-search"]["topology_blockers"])
+        self.assertTrue(by_nim["evo2-40b"]["topology_blockers"])
+        self.assertEqual(
+            by_nim["evo2-40b"]["cohorts"]["new_preemptible_node"]["status"],
+            "blocked-hardware-gate-h200",
+        )
+        self.assertEqual(
+            by_nim["evo2-40b"]["cohorts"]["provisioned_node"]["status"],
+            "missing-production-shaped",
+        )
+        self.assertEqual(by_nim["msa-search"]["snapshot_class"], "conventional-only")
+        self.assertTrue(by_nim["openfold2"]["cohorts"]["new_preemptible_node"]["historical_note"])
+
+    def test_modal_is_never_an_execution_class(self):
+        pruned = json.loads(read("eligibility.json"))
+        pruned["meta"]["scope_notes"] = []
+        self.assertNotIn("modal", json.dumps(pruned).lower())
+
     # -- scope and sanitization ------------------------------------------
 
     def test_no_modal_dependency_anywhere(self):
@@ -339,6 +412,7 @@ ARTIFACTS = [
     os.path.join("inputs", "catalog.json"),
     os.path.join("inputs", "catalog.schema.json"),
     os.path.join("inputs", "lane_evidence.json"),
+    os.path.join("inputs", "bionemo_cohorts.json"),
     os.path.join("schema", "eligibility.schema.json"),
 ]
 

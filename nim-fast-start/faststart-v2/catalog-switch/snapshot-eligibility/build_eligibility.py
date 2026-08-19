@@ -679,6 +679,102 @@ def build_canary_plan(out_rows: list[dict], lanes: dict) -> dict:
     }
 
 
+BIONEMO_NIMS = frozenset(
+    [
+        "boltz2",
+        "openfold2",
+        "diffdock",
+        "evo2-40b",
+        "genmol",
+        "molmim",
+        "msa-search",
+        "openfold3",
+        "proteinmpnn",
+        "rfdiffusion",
+    ]
+)
+
+REQUESTED_VIA = {
+    "resource_broker": (
+        "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, "
+        "unique prefix, TTL, exact-ID cleanup; preemptible profile for "
+        "new-node cohorts)"
+    ),
+    "request_slo_harness": (
+        "nim-fast-start/faststart-v2/performance/request_slo (external T0, "
+        "semantic completion, full denominator)"
+    ),
+}
+
+
+def build_bionemo_section(cohort_doc: dict, by_id: dict, cat_rows: dict) -> list[dict]:
+    """Explicit per-NIM coverage of the ten ARCHVTEAMS-2407 BioNeMo NIMs,
+    evidence-first (Boltz2 and OpenFold2 carry the fresh fail-closed n=20
+    cohorts), each with exact eligibility, conventional fallback,
+    storage/topology blockers, and both node-cohort requirements."""
+    order = cohort_doc["evidence_order"]
+    nims = cohort_doc["nims"]
+    if set(order) != BIONEMO_NIMS or set(nims) != BIONEMO_NIMS:
+        raise SystemExit("bionemo cohort table must cover exactly the ten NIMs")
+    if order[:2] != ["boltz2", "openfold2"]:
+        raise SystemExit("Boltz2/OpenFold2 evidence must rank first")
+    default_required = cohort_doc["new_preemptible_required_default"]
+
+    entries = []
+    for rank, nim in enumerate(order, start=1):
+        spec = nims[nim]
+        row = by_id.get(spec["row_id"])
+        cat = cat_rows.get(spec["row_id"])
+        if row is None or cat is None or row["source"] != "faststart-v2-lanes":
+            raise SystemExit(f"bionemo NIM {nim} does not resolve to a faststart lane row")
+        measured = cat["startup"].get("measured") or {}
+        prov = spec["provisioned_node"]
+        newnode = spec["new_preemptible_node"]
+        entries.append(
+            {
+                "nim": nim,
+                "evidence_rank": rank,
+                "row_id": spec["row_id"],
+                "snapshot_class": row["snapshot_class"],
+                "catalog_snapshot_eligibility": row["catalog"]["snapshot_eligibility"],
+                "confidence": row["confidence"],
+                "conventional_fallback": {
+                    "path": row["fallback"]["path"],
+                    "admission": row["fallback"]["admission"],
+                    "measured": row["fallback"]["measured"],
+                    "measurement_refs": row["fallback"]["measurement_refs"],
+                },
+                "storage_blockers": spec["storage_blockers"],
+                "topology_blockers": spec["topology_blockers"],
+                "cohorts": {
+                    "provisioned_node": {
+                        "status": prov["status"],
+                        "evidence_class": measured.get("evidence_class"),
+                        "evidence_refs": evidence_refs(cat),
+                        "further_required": prov["further_required"],
+                    },
+                    "new_preemptible_node": {
+                        "status": newnode["status"],
+                        "required": default_required,
+                        "requested_via": dict(REQUESTED_VIA),
+                        "historical_note": newnode["historical_note"],
+                        "evidence_refs": newnode.get("evidence_refs", []),
+                    },
+                },
+            }
+        )
+    return entries
+
+
+def assert_modal_never_executes(doc: dict) -> None:
+    """Modal is documentation-only: it must never appear in any execution-
+    relevant field. The only permitted mentions are the scope notes."""
+    pruned = json.loads(json.dumps(doc))
+    pruned["meta"]["scope_notes"] = []
+    if "modal" in json.dumps(pruned).lower():
+        raise SystemExit("Modal appeared outside scope notes; it must not become an execution class")
+
+
 def build():
     verify_pins()
     catalog = read_json("inputs/catalog.json")
@@ -699,6 +795,11 @@ def build():
     by_id = {x["id"]: x for x in out_rows}
     for entry in canary_plan["entries"]:
         by_id[entry["row_id"]]["canary_ids"].append(entry["canary_id"])
+
+    cohort_doc = read_json("inputs/bionemo_cohorts.json")
+    if cohort_doc["pinned_catalog_commit"] != PINS["catalog_commit"]:
+        raise SystemExit("bionemo_cohorts.json pinned to a different catalog commit")
+    bionemo_nims = build_bionemo_section(cohort_doc, by_id, cat_rows)
 
     class_counts: dict[str, int] = {}
     rule_counts: dict[str, int] = {}
@@ -721,6 +822,7 @@ def build():
             "class_counts": class_counts,
             "rule_counts": rule_counts,
             "fleet_counts": fleet_counts,
+            "bionemo_nims": bionemo_nims,
             "fallback_policy": {
                 "statement": (
                     "Every active row whose snapshot path is not direct-"
@@ -769,6 +871,7 @@ def build():
         "rows": out_rows,
     }
 
+    assert_modal_never_executes(doc)
     eligibility_json = json.dumps(doc, indent=1, sort_keys=True, ensure_ascii=False) + "\n"
 
     tsv_cols = [
