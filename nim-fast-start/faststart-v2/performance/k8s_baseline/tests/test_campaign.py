@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -15,6 +16,50 @@ def sha256(path: Path) -> str:
 
 
 class CampaignFreezeTests(unittest.TestCase):
+    def test_cerebrium_measured_wording_requires_a_sealed_cohort(self) -> None:
+        scope = json.loads((CAMPAIGN / "comparator-scope.json").read_text())
+        self.assertEqual(
+            scope["schema"],
+            "archvteams.nebius.ai/catalog-switch-comparator-scope/v1",
+        )
+        cerebrium = scope["cerebrium"]
+        receipt_path = cerebrium["sealed_cohort_receipt_path"]
+        measured_claim = re.compile(
+            r"cerebrium[^.\n]{0,160}\b(?:measured|benchmarked|empirically ranked)\b",
+            re.IGNORECASE,
+        )
+        docs = "\n".join(
+            path.read_text() for path in sorted(ROOT.glob("*.md"))
+        )
+        if receipt_path is None:
+            self.assertEqual(
+                cerebrium["measurement_status"], "PENDING_PRIVATE_PLACEMENT"
+            )
+            self.assertIsNone(cerebrium["sealed_cohort_receipt_sha256"])
+            self.assertIsNone(measured_claim.search(docs))
+            return
+
+        receipt_file = (CAMPAIGN / receipt_path).resolve()
+        self.assertEqual(receipt_file.parent, CAMPAIGN.resolve())
+        self.assertTrue(receipt_file.is_file())
+        self.assertFalse(receipt_file.is_symlink())
+        self.assertEqual(
+            sha256(receipt_file), cerebrium["sealed_cohort_receipt_sha256"]
+        )
+        receipt = json.loads(receipt_file.read_text())
+        self.assertEqual(
+            receipt["schema"],
+            "archvteams.nebius.ai/cerebrium-sealed-cohort-receipt/v1",
+        )
+        self.assertEqual(receipt["status"], "SEALED")
+        self.assertEqual(receipt["backend"], "cerebrium")
+        self.assertEqual(receipt["private_placement_status"], "VERIFIED")
+        evidence_seal = (CAMPAIGN / receipt["evidence_seal_path"]).resolve()
+        self.assertEqual(evidence_seal.parent, CAMPAIGN.resolve())
+        self.assertTrue(evidence_seal.is_file())
+        self.assertFalse(evidence_seal.is_symlink())
+        self.assertEqual(sha256(evidence_seal), receipt["evidence_seal_sha256"])
+
     def test_first_campaign_is_planned_and_mutation_is_not_admitted(self) -> None:
         value = json.loads((CAMPAIGN / "arm-a-first-campaign.json").read_text())
         self.assertEqual(value["status"], "PLANNED")

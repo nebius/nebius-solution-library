@@ -68,6 +68,18 @@ python3 -m performance.k8s_baseline.cli synthetic-smoke \
   --output-dir /tmp/catalog-switch-k8s-controller-smoke
 ```
 
+Synthetic controller tests inject a thread-safe logical clock so their pinned
+acceptance schedule cannot drift with host load or ledger fsync latency. The
+controller rejects an injected clock for any empirical backend. The fail-fast
+repetition gate is:
+
+```bash
+for run in 1 2 3 4 5; do
+  PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v \
+    performance/k8s_baseline/tests || exit 1
+done
+```
+
 Build a promoted single-scenario trace:
 
 ```bash
@@ -110,9 +122,11 @@ improvement promotion remains disabled pending the broker pair handoff.
 ## Comparator scope
 
 This lane measures Kubernetes only. Direct/node-local VM is a separate internal
-lane, and Cerebrium is the separately owned external measured comparator.
-Modal is excluded: there is no client, credential, deployment, live test, or
-empirical/synthetic ranking dependency here.
+lane. Cerebrium is the sole intended external comparator, but its measurement
+is pending and blocked on verified private placement; no sealed Cerebrium
+cohort exists. Modal is excluded: there is no client, credential, deployment,
+live test, or empirical/synthetic ranking dependency here.
 
 See `CAMPAIGN_PLAN.md`, `NIM_COVERAGE_MATRIX.md`, and `LIVE_EVIDENCE.md` for the
-full qualification sequence and current no-mutation state.
+full qualification sequence and current no-mutation state. The machine-readable
+comparator state is `campaign/comparator-scope.json`.

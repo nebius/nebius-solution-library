@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import threading
 import unittest
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -55,6 +56,34 @@ def catalog() -> dict:
     }
 
 
+class DeterministicControllerClock:
+    """Thread-safe logical clock for synthetic recorder-contract tests only."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._origin_ns = 8_000_000_000_000
+        self._now_ns = self._origin_ns
+        self._origin_utc = datetime(2026, 8, 19, tzinfo=UTC)
+
+    def monotonic_ns(self) -> int:
+        with self._lock:
+            # A tiny logical tick preserves strict ledger ordering without
+            # making the offered schedule depend on thread or fsync latency.
+            self._now_ns += 10
+            return self._now_ns
+
+    def utc_now(self) -> datetime:
+        with self._lock:
+            elapsed = (self._now_ns - self._origin_ns) / 1_000_000_000
+            return self._origin_utc + timedelta(seconds=elapsed)
+
+    def sleep(self, seconds: float) -> None:
+        if seconds < 0:
+            raise AssertionError("logical sleep cannot be negative")
+        with self._lock:
+            self._now_ns += round(seconds * 1_000_000_000)
+
+
 class ControllerTests(unittest.TestCase):
     def run_smoke(self, requests: int = 24):
         trace = generate_trace(
@@ -76,6 +105,7 @@ class ControllerTests(unittest.TestCase):
             ledger,
             evidence,
             ledger_id=f"k8s-controller-test-ledger-{requests}",
+            clock=DeterministicControllerClock(),
         )
         backend.write_evidence(evidence)
         return temporary, trace, ledger, evidence, receipt
@@ -101,8 +131,38 @@ class ControllerTests(unittest.TestCase):
         attempts = validate_ledger(load_ledger(ledger), trace)
         self.assertLessEqual(
             max(abs(item["acceptance_schedule_error_ms"]) for item in attempts),
-            100.0,
+            0.001,
         )
+
+    def test_synthetic_schedule_is_stable_across_repeated_runs(self) -> None:
+        for _ in range(20):
+            temporary, trace, ledger, _, receipt = self.run_smoke()
+            try:
+                attempts = validate_ledger(load_ledger(ledger), trace)
+                self.assertEqual(receipt["attempt_count"], 24)
+                self.assertLessEqual(
+                    max(abs(item["acceptance_schedule_error_ms"]) for item in attempts),
+                    0.001,
+                )
+            finally:
+                temporary.cleanup()
+
+    def test_explicit_clock_is_rejected_for_empirical_backends(self) -> None:
+        trace = generate_trace(
+            catalog(), distribution="adversarial", seed=1, request_count=1,
+            trace_id="empirical-clock-refusal", interval_ms=20,
+        )
+        backend = ScriptedBackend()
+        backend.classification = "empirical-kubernetes-performance-evidence"
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(
+                ValueError, "explicit clocks are permitted only for non-performance evidence"
+            ):
+                run_trace(
+                    trace, backend, Path(directory) / "ledger.jsonl",
+                    Path(directory) / "evidence.json", ledger_id="empirical-clock-refusal",
+                    clock=DeterministicControllerClock(),
+                )
 
     def test_each_attempt_begins_with_external_acceptance(self) -> None:
         temporary, trace, ledger, _, _ = self.run_smoke(12)

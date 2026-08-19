@@ -121,16 +121,50 @@ class Backend(Protocol):
     def qualification_summary(self) -> dict[str, Any]: ...
 
 
+class ControllerClock(Protocol):
+    """Clock boundary owned by the external recorder.
+
+    Live runs always use :class:`SystemControllerClock`.  Explicit clocks are
+    accepted only for backends classified as non-performance evidence so unit
+    tests can exercise the pinned schedule without inheriting host load.
+    """
+
+    def monotonic_ns(self) -> int: ...
+
+    def utc_now(self) -> datetime: ...
+
+    def sleep(self, seconds: float) -> None: ...
+
+
+class SystemControllerClock:
+    def monotonic_ns(self) -> int:
+        return time.monotonic_ns()
+
+    def utc_now(self) -> datetime:
+        return datetime.now(UTC)
+
+    def sleep(self, seconds: float) -> None:
+        time.sleep(seconds)
+
+
 class EventSink:
     """Append canonical observations with one immutable external recorder."""
 
-    def __init__(self, ledger: Path, ledger_id: str, trace_id: str) -> None:
+    def __init__(
+        self,
+        ledger: Path,
+        ledger_id: str,
+        trace_id: str,
+        *,
+        clock: ControllerClock | None = None,
+    ) -> None:
         self.ledger = ledger
         self.ledger_id = ledger_id
         self.trace_id = trace_id
         self.recorder = default_recorder(
             "catalog-switch-k8s-external-client", max_error_ms=50.0
         )
+        self.clock = clock or SystemControllerClock()
         self._lock = threading.Lock()
         self._ledger_sequence = 0
         self._attempt_sequences: dict[str, int] = {}
@@ -189,8 +223,11 @@ class EventSink:
             "attempt_sequence": attempt_sequence,
             "event_id": f"{request['attempt_id']}:{attempt_sequence:06d}",
             "observed_at_utc": observed_at_utc
-            or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            "observed_monotonic_ns": observed_monotonic_ns or time.monotonic_ns(),
+            if observed_at_utc is not None
+            else self.clock.utc_now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "observed_monotonic_ns": observed_monotonic_ns
+            if observed_monotonic_ns is not None
+            else self.clock.monotonic_ns(),
             "recorder": dict(self.recorder),
             "event_type": event_type,
             "data": data,
@@ -221,8 +258,8 @@ class EventSink:
             raise BaselineError("ledger output cannot be a symlink")
         self.ledger.parent.mkdir(parents=True, exist_ok=True)
         with self._lock:
-            observed_at_utc = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-            observed_monotonic_ns = time.monotonic_ns()
+            observed_at_utc = self.clock.utc_now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            observed_monotonic_ns = self.clock.monotonic_ns()
             failures: list[str] = []
             ownership_failed = False
             try:
@@ -442,7 +479,7 @@ def _record_accounting_and_cleanup(
     ownership: dict[str, Any],
     ownership_failed: bool = False,
 ) -> None:
-    elapsed = max(0.0, (time.monotonic_ns() - started_ns) / 1_000_000_000)
+    elapsed = max(0.0, (sink.clock.monotonic_ns() - started_ns) / 1_000_000_000)
     try:
         accounting = backend.accounting(request, elapsed, bytes_moved)
     except Exception as exc:
@@ -534,6 +571,7 @@ def run_trace(
     evidence: Path,
     *,
     ledger_id: str,
+    clock: ControllerClock | None = None,
 ) -> dict[str, Any]:
     """Execute a trace while accepting offered requests on their pinned schedule.
 
@@ -548,9 +586,14 @@ def run_trace(
         raise BaselineError("ledger output must be new")
     if evidence.exists() or evidence.is_symlink():
         raise BaselineError("backend evidence output must be new")
+    if clock is not None and "not-performance-evidence" not in backend.classification:
+        raise BaselineError(
+            "explicit clocks are permitted only for non-performance evidence"
+        )
+    controller_clock = clock or SystemControllerClock()
     ledger.parent.mkdir(parents=True, exist_ok=True)
     backend.prepare()
-    sink = EventSink(ledger, ledger_id, trace["trace_id"])
+    sink = EventSink(ledger, ledger_id, trace["trace_id"], clock=controller_clock)
     accepted: queue.Queue[
         tuple[dict[str, Any], int, PhaseResult | None, dict[str, Any], bool] | None
     ] = queue.Queue()
@@ -631,15 +674,15 @@ def run_trace(
 
     thread = threading.Thread(target=worker, name="catalog-switch-gpu-worker", daemon=False)
     thread.start()
-    schedule_origin_ns = time.monotonic_ns()
+    schedule_origin_ns = controller_clock.monotonic_ns()
     try:
         for request in trace["requests"]:
             deadline_ns = schedule_origin_ns + request["offered_at_offset_ms"] * 1_000_000
             while True:
-                remaining = deadline_ns - time.monotonic_ns()
+                remaining = deadline_ns - controller_clock.monotonic_ns()
                 if remaining <= 0:
                     break
-                time.sleep(min(remaining / 1_000_000_000, 0.01))
+                controller_clock.sleep(min(remaining / 1_000_000_000, 0.01))
             acceptance = sink.accept(request, backend)
             accepted_ns = acceptance["observed_monotonic_ns"]
             accepted_hook_failure, ownership_failed = sink.pop_acceptance_failure(

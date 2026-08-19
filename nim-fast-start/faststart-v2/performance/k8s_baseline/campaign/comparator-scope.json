@@ -1,0 +1,20 @@
+{
+  "schema": "archvteams.nebius.ai/catalog-switch-comparator-scope/v1",
+  "kubernetes_lane": "catalog-switch-k8s-baseline",
+  "cerebrium": {
+    "role": "sole-intended-external-comparator",
+    "measurement_status": "PENDING_PRIVATE_PLACEMENT",
+    "sealed_cohort_receipt_path": null,
+    "sealed_cohort_receipt_sha256": null
+  },
+  "direct_node_local_vm": {
+    "role": "separate-internal-comparator-lane"
+  },
+  "modal": {
+    "role": "documentation-reference-only",
+    "authentication_allowed": false,
+    "deployment_allowed": false,
+    "measurement_allowed": false,
+    "ranking_allowed": false
+  }
+}

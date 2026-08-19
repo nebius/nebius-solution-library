@@ -41,6 +41,7 @@ by provider evidence files, credential revocation, actual-cost reconciliation,
 and a cleanup audit extension before a separate final seal is created.
 
 Comparator scope is unchanged: this file will contain Kubernetes evidence
-only. Cerebrium is measured in its separately owned lane; direct/node-local VM
-is a separate internal lane. Modal receives no authentication, deployment,
+only. Cerebrium is the sole intended external comparator, but remains pending
+and private-placement blocked with no sealed cohort receipt; direct/node-local
+VM is a separate internal lane. Modal receives no authentication, deployment,
 test, benchmark, or ranking from this task.
