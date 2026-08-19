@@ -1,0 +1,45 @@
+{
+  "leases": [
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "estimated_ttl_cost_usd": "0.051565",
+      "expires_at": "2026-08-19T12:23:17Z",
+      "lease_file": "/home/tux/dashboard/data/worktrees/catalog-switch-resource-broker/nim-fast-start/faststart-v2/resource-broker/leases/resource-broker-smoke-20260819.json",
+      "lease_id": "resource-broker-smoke-20260819",
+      "prefix": "mlsp-csw-catalog-switch-res-9d2942a5",
+      "profile": "cpu-e2-smoke",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1",
+      "state": "RELEASED",
+      "task_id": "catalog-switch-resource-broker"
+    },
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "estimated_ttl_cost_usd": "0.051565",
+      "expires_at": "2026-08-19T12:24:53Z",
+      "lease_file": "/home/tux/dashboard/data/worktrees/catalog-switch-resource-broker/nim-fast-start/faststart-v2/resource-broker/leases/resource-broker-smoke2-20260819.json",
+      "lease_id": "resource-broker-smoke2-20260819",
+      "prefix": "mlsp-csw-catalog-switch-res-4c8792c0",
+      "profile": "cpu-e2-smoke",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1",
+      "state": "RELEASED",
+      "task_id": "catalog-switch-resource-broker"
+    },
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "estimated_ttl_cost_usd": "0.051565",
+      "expires_at": "2026-08-19T12:34:43Z",
+      "lease_file": "/home/tux/dashboard/data/worktrees/catalog-switch-resource-broker/nim-fast-start/faststart-v2/resource-broker/leases/resource-broker-smoke3-20260819.json",
+      "lease_id": "resource-broker-smoke3-20260819",
+      "prefix": "mlsp-csw-catalog-switch-res-1d8d3526",
+      "profile": "cpu-e2-smoke",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1",
+      "state": "RELEASED",
+      "task_id": "catalog-switch-resource-broker"
+    }
+  ],
+  "schema_version": "catalog-switch-lease-registry/v1",
+  "updated_at": "2026-08-19T11:39:33Z"
+}
