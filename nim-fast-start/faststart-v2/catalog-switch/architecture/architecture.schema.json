@@ -12,11 +12,14 @@
     "evidence_index_update": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["scope", "baseline_commit", "evidence_index", "decision_matrix", "budget_placeholders", "open_unknowns", "backend_selection_allowed", "final_adr_claim_allowed"],
+      "required": ["scope", "baseline_commit", "rejected_predecessor_commit", "review_record_bundle_commit", "review_records", "evidence_index", "decision_matrix", "budget_placeholders", "open_unknowns", "backend_selection_allowed", "final_adr_claim_allowed"],
       "properties": {
         "scope": {"const": "evidence-index-only"},
         "baseline_commit": {"const": "1db7703e3078ce3236c4655816312416145eb709"},
-        "evidence_index": {"const": "catalog-switch/architecture/evidence-index.v2.json"},
+        "rejected_predecessor_commit": {"const": "7dc39ea7903c8aa19fe8a8269ab435268a7ae4b7"},
+        "review_record_bundle_commit": {"const": "0c47062047d19b3271350e66cd86ee0de87a57e0"},
+        "review_records": {"const": "catalog-switch/architecture/review-records.v1.json"},
+        "evidence_index": {"const": "catalog-switch/architecture/evidence-index.v3.json"},
         "decision_matrix": {"const": "catalog-switch/architecture/decision-matrix.v1.json"},
         "budget_placeholders": {"const": "catalog-switch/architecture/budget-placeholders.v1.json"},
         "open_unknowns": {"const": "catalog-switch/architecture/OPEN_UNKNOWNS.md"},

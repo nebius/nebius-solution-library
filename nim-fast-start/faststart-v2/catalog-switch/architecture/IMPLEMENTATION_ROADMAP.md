@@ -31,7 +31,9 @@ Status: decision and wire contracts are reviewable in this branch, but the
 production acceptance ledger is blocked. Estimate: 1 engineer-week (realized
 for this package) plus the v2 acceptance work below.
 
-- Retain the reviewed v1 external evidence schema for pre-resolved cohorts.
+- Retain the exact v1 external evidence schema as a source contract for
+  pre-resolved cohorts; do not treat its Task Deck review claim as positive
+  evidence until a separately committed independent record is bound.
 - Close `BLK-ACCEPTANCE-CONTRACT`: version acceptance so a model-id-plus-input
   request binds only authenticated tenant/idempotency/model/input/deadline at
   T0, then append authoritative post-T0 catalog/preconditions, placement,

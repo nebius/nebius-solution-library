@@ -1,11 +1,14 @@
 {
   "schema_version": "catalog-switch-production-architecture/v1",
-  "generated_at": "2026-08-19T17:05:00Z",
+  "generated_at": "2026-08-19T17:35:00Z",
   "decision_status": "conditional",
   "evidence_index_update": {
     "scope": "evidence-index-only",
     "baseline_commit": "1db7703e3078ce3236c4655816312416145eb709",
-    "evidence_index": "catalog-switch/architecture/evidence-index.v2.json",
+    "rejected_predecessor_commit": "7dc39ea7903c8aa19fe8a8269ab435268a7ae4b7",
+    "review_record_bundle_commit": "0c47062047d19b3271350e66cd86ee0de87a57e0",
+    "review_records": "catalog-switch/architecture/review-records.v1.json",
+    "evidence_index": "catalog-switch/architecture/evidence-index.v3.json",
     "decision_matrix": "catalog-switch/architecture/decision-matrix.v1.json",
     "budget_placeholders": "catalog-switch/architecture/budget-placeholders.v1.json",
     "open_unknowns": "catalog-switch/architecture/OPEN_UNKNOWNS.md",
@@ -607,7 +610,7 @@
     {"id": "G-SNAPSHOT", "status": "blocked", "requires": ["BLK-SNAPSHOT"]},
     {"id": "G-COST", "status": "blocked", "requires": ["BLK-COST"]},
     {"id": "G-CHAOS", "status": "blocked", "requires": ["B-CHAOS", "BLK-CHAOS"]},
-    {"id": "G-INDEPENDENT-REVIEW", "status": "pending", "requires": ["catalog-switch/architecture/INDEPENDENT_REVIEW.md", "catalog-switch/architecture/evidence-index.v2.json", "catalog-switch/architecture/decision-matrix.v1.json"]}
+    {"id": "G-INDEPENDENT-REVIEW", "status": "pending", "requires": ["catalog-switch/architecture/INDEPENDENT_REVIEW.md", "catalog-switch/architecture/review-records.v1.json@0c470620", "catalog-switch/architecture/evidence-index.v3.json", "catalog-switch/architecture/decision-matrix.v1.json"]}
   ],
   "blockers": [
     {"id": "BLK-ACCEPTANCE-CONTRACT", "owner_task": "catalog-switch-request-slo-harness,catalog-switch-integrated-architecture-adr", "exit": "Review and adopt a v2 external ledger whose T0 binds authenticated tenant, client idempotency key, model/version, immutable input, and deadline only. Post-T0 records must append authoritative catalog/artifact plus compiled API/input-schema digests, occupant, queue/cache/capacity snapshots, placement decision, broker/provider resource IDs, and cleanup inventory/receipts while preserving all-attempt accounting and later external terminal timing."},

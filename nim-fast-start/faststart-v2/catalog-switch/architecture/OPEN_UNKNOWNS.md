@@ -19,9 +19,11 @@ open; this evidence-index pass resolves none of them.
    provider receipts.
 6. **Cerebrium:** private Nebius placement, provider-boundary security, and the
    first matched cohort are unproven.
-7. **Boltz storage:** the available prepared-clone observation places a
-   1,826,220,898-byte copy/hash and roughly 440--442 seconds before T0; the
-   product-boundary result with that work after T0 is unknown.
+7. **Boltz storage:** mutable Task Deck text reported preparation bytes and
+   time, but the package contains no raw attempt receipt/source join. The
+   reported numbers are non-admissible; both the raw preparation measurement
+   and product-boundary result with all request-triggered work after T0 are
+   unknown.
 8. **Budgets:** product and capacity owners have not ratified any per-scenario
    p50/p95/p99 or per-backend cost ceiling. All current values are null
    placeholders.

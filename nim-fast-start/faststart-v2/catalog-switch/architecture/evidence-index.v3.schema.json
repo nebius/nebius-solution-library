@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nebius.example/schemas/catalog-switch-evidence-index-v3.json",
+  "title": "Review-record-bound catalog-switch evidence index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "index_version",
+    "as_of",
+    "baseline_architecture_commit",
+    "rejected_predecessor_commit",
+    "scope",
+    "positive_evidence_policy",
+    "review_record_bundle",
+    "entries"
+  ],
+  "properties": {
+    "$schema": {"const": "./evidence-index.v3.schema.json"},
+    "schema_version": {"const": "catalog-switch-evidence-index/v3"},
+    "index_version": {"const": 3},
+    "as_of": {"const": "2026-08-19T17:35:00Z"},
+    "baseline_architecture_commit": {"const": "1db7703e3078ce3236c4655816312416145eb709"},
+    "rejected_predecessor_commit": {"const": "7dc39ea7903c8aa19fe8a8269ab435268a7ae4b7"},
+    "scope": {"$ref": "#/$defs/scope"},
+    "positive_evidence_policy": {"$ref": "#/$defs/policy"},
+    "review_record_bundle": {"$ref": "#/$defs/bundle"},
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/entry"}
+    }
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["update_kind", "backend_selection_allowed", "final_adr_claim_allowed", "live_resources_allowed", "empirical_backends", "external_comparator", "documentation_only"],
+      "properties": {
+        "update_kind": {"const": "evidence-index-only"},
+        "backend_selection_allowed": {"const": false},
+        "final_adr_claim_allowed": {"const": false},
+        "live_resources_allowed": {"const": false},
+        "empirical_backends": {"const": ["kubernetes", "node-vm", "cerebrium"]},
+        "external_comparator": {"const": "cerebrium"},
+        "documentation_only": {"const": ["modal"]}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exact_commit_required", "independent_acceptance_required", "source_blob_hash_required", "review_record_commit_required", "review_record_blob_hash_required", "reviewed_commit_must_equal_source_commit", "embedded_review_metadata_trusted", "label_change_can_promote"],
+      "properties": {
+        "exact_commit_required": {"const": true},
+        "independent_acceptance_required": {"const": true},
+        "source_blob_hash_required": {"const": true},
+        "review_record_commit_required": {"const": true},
+        "review_record_blob_hash_required": {"const": true},
+        "reviewed_commit_must_equal_source_commit": {"const": true},
+        "embedded_review_metadata_trusted": {"const": false},
+        "label_change_can_promote": {"const": false}
+      }
+    },
+    "bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit_sha", "commit_url", "path", "blob_sha256", "schema_path", "schema_blob_sha256"],
+      "properties": {
+        "repository": {"const": "https://github.com/nebius/nebius-solutions-library"},
+        "commit_sha": {"const": "0c47062047d19b3271350e66cd86ee0de87a57e0"},
+        "commit_url": {"const": "https://github.com/nebius/nebius-solutions-library/commit/0c47062047d19b3271350e66cd86ee0de87a57e0"},
+        "path": {"const": "nim-fast-start/faststart-v2/catalog-switch/architecture/review-records.v1.json"},
+        "blob_sha256": {"const": "30ce34f768d382c2b74873d681475a9b813f68483ec2037e6b02f8dcfe2d71f7"},
+        "schema_path": {"const": "nim-fast-start/faststart-v2/catalog-switch/architecture/review-records.v1.schema.json"},
+        "schema_blob_sha256": {"const": "69e67c47b269b92aed21c264aa3382a9a23964ace9eb9f9cf4c745d533732ba8"}
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "lane", "subject", "backends", "classification", "measurement_kind", "positive_evidence_eligible", "decision_score_eligible", "allowed_claim", "excluded_claims", "provenance", "review_record_id"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^EV3-[A-Z0-9-]+$"},
+        "lane": {"type": "string", "minLength": 1},
+        "subject": {"type": "string", "minLength": 1},
+        "backends": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["backend-neutral", "kubernetes", "node-vm", "cerebrium", "modal"]}},
+        "classification": {"enum": ["provenance-unverified", "rejected", "changes-requested", "pending", "unverified-observation", "reference-only"]},
+        "measurement_kind": {"enum": ["contract", "prepared-stage", "offline-test", "offline-projection", "read-only-preflight", "documentation", "review-artifact", "unverified-observation"]},
+        "positive_evidence_eligible": {"type": "boolean"},
+        "decision_score_eligible": {"const": false},
+        "allowed_claim": {"type": "string", "minLength": 1},
+        "excluded_claims": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "provenance": {"$ref": "#/$defs/provenance"},
+        "review_record_id": {"type": "string", "pattern": "^RR1-[A-Z0-9-]+$"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit_sha", "commit_url", "path", "blob_sha256"],
+      "properties": {
+        "repository": {"const": "https://github.com/nebius/nebius-solutions-library"},
+        "commit_sha": {"$ref": "#/$defs/sha"},
+        "commit_url": {"type": "string", "pattern": "^https://github\\.com/nebius/nebius-solutions-library/commit/[0-9a-f]{40}$"},
+        "path": {"type": "string", "pattern": "^nim-fast-start/faststart-v2/[A-Za-z0-9._/-]+$"},
+        "blob_sha256": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

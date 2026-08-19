@@ -126,7 +126,8 @@ REQUIRED_GATE_REQUIREMENTS = {
     "G-CHAOS": {"B-CHAOS", "BLK-CHAOS"},
     "G-INDEPENDENT-REVIEW": {
         "catalog-switch/architecture/INDEPENDENT_REVIEW.md",
-        "catalog-switch/architecture/evidence-index.v2.json",
+        "catalog-switch/architecture/review-records.v1.json@0c470620",
+        "catalog-switch/architecture/evidence-index.v3.json",
         "catalog-switch/architecture/decision-matrix.v1.json",
     },
 }
@@ -752,7 +753,8 @@ def validate_document(data: dict[str, Any], root: Path = FASTSTART_ROOT) -> list
         errors.append("rollout gate ids must match the exact normative v1 set")
     allowed_gate_refs = evidence_ids | matrix_ids | blocker_ids | {
         "catalog-switch/architecture/INDEPENDENT_REVIEW.md",
-        "catalog-switch/architecture/evidence-index.v2.json",
+        "catalog-switch/architecture/review-records.v1.json@0c470620",
+        "catalog-switch/architecture/evidence-index.v3.json",
         "catalog-switch/architecture/decision-matrix.v1.json",
         API_CONTRACT_PATH,
         CONTEXT_BINDING_PATH,

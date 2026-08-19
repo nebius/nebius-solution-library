@@ -9,17 +9,23 @@ only with Cerebrium. Modal appears only in `MODAL_REFERENCE.md`.
 
 ## Manager scope for the reopened revision
 
-Commit `1db7703e` is preserved as the prior conditional baseline. This revision
-adds only a versioned evidence index, an open decision matrix, exact provenance,
-explicit unknowns, and null latency/cost budget placeholders. It neither
-selects a backend nor upgrades the previous conditional sign-off.
+Commit `1db7703e` is preserved as the prior conditional baseline. Evidence-index
+commit `7dc39ea7` is also preserved as rejected history. Its review metadata was
+self-asserted and its snapshot incomplete. Direct child `0c470620` seals the
+review record content; evidence index v3 binds that historical Git blob and
+demotes every previously positive entry whose independent acceptance was not
+separately commit-bound. This revision neither selects a backend nor upgrades
+the previous conditional sign-off.
 
 The current decision matrix is open because matched Kubernetes/plain-VM/
 Cerebrium cohorts, all-ten Arm A/Arm B evidence, and an accepted safe
 drain/reclaim replacement are missing. Rejected commits `34d70fd0` and
 `f5f2706a` and all rejected replacements are negative review evidence, not
-production-design inputs. Cerebrium has zero measured cohorts. Modal remains
-documentation-only and unscored.
+production-design inputs. The refreshed negative snapshot includes the full
+`4e63e8dd` Kubernetes and `75e3b1fa` storage findings plus subsequent rejected
+node, drain, snapshot, cost, broker, and Qwen descendants known at capture.
+Cerebrium has zero measured cohorts. Modal remains documentation-only and
+unscored.
 
 ## Context and evidence boundary
 

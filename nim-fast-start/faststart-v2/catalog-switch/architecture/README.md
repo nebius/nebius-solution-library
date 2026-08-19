@@ -1,4 +1,4 @@
-# Catalog-switch evidence index and conditional architecture baseline
+# Catalog-switch provenance-bound evidence index and conditional baseline
 
 This directory is the integration point for the catalog-switch program. Commit
 `1db7703e` remains the preserved conditional architecture baseline. The current
@@ -16,8 +16,12 @@ The package's normative parts are:
 - `architecture.json` is the machine-readable decision, evidence ledger,
   scenario routing, backend dispositions, budgets, API ownership, benchmark
   matrix, rollout gates, and open blockers.
-- `evidence-index.v2.json` is the current exact-commit evidence authority;
-  `evidence-index.v2.schema.json` closes its shape.
+- `review-records.v1.json`, sealed at exact direct-child commit `0c470620`,
+  captures review text and mutable Task Deck snapshot hashes. The index binds
+  that historical Git blob and its schema rather than trusting review fields.
+- `evidence-index.v3.json` is the current exact-commit evidence authority;
+  `evidence-index.v3.schema.json` closes its shape. `evidence-index.v2.json` at
+  rejected predecessor `7dc39ea7` remains audit history only.
 - `decision-matrix.v1.json` keeps every backend/scenario winner, score, and rank
   null until matched evidence exists; its schema makes that state executable.
 - `budget-placeholders.v1.json` contains only null, unratified latency and cost
@@ -36,9 +40,11 @@ The package's normative parts are:
 - `validate_architecture.py` and `tests/` fail closed when scope, evidence,
   provenance, API, scenario, budget, security, or promotion constraints are
   weakened.
-- `validate_evidence_index.py` verifies exact Git commits/blobs, independent
-  acceptance, negative review history, zero cohorts, no winner, and null
-  budgets.
+- `build_evidence_index_v3.py --check` reproduces the index byte-for-byte.
+  `validate_evidence_index.py` resolves the committed review bundle and its
+  schema with `git show`, verifies both blob hashes and every subject blob,
+  rejects owner-asserted positive acceptance, and enforces complete negative
+  history, zero cohorts, no winner, and null budgets.
 
 `EVIDENCE_INDEX.md` is the human review map. `MODAL_REFERENCE.md` is a strictly
 separate documentation-only appendix. Modal is not an empirical backend, is
@@ -53,7 +59,7 @@ outcome of this pass. The current authoritative matrix has `winner: null`,
 disabled scoring, and zero matched cohorts for Kubernetes, node VM, Cerebrium,
 and the unscored Modal reference row.
 
-The reviewed v1 ledger remains valid for pre-resolved benchmark cohorts, but
+The v1 ledger remains a source contract for pre-resolved benchmark cohorts, but
 its T0 target already contains exact artifact identity. The product API accepts
 `model_id` plus input and resolves artifact identity after T0.
 `BLK-ACCEPTANCE-CONTRACT` keeps `G-CONTRACT` blocked until a reviewed v2 ledger
@@ -71,6 +77,8 @@ From `nim-fast-start/faststart-v2`:
 PYTHONDONTWRITEBYTECODE=1 python3 \
   catalog-switch/architecture/validate_architecture.py
 PYTHONDONTWRITEBYTECODE=1 python3 \
+  catalog-switch/architecture/build_evidence_index_v3.py --check
+PYTHONDONTWRITEBYTECODE=1 python3 \
   catalog-switch/architecture/validate_evidence_index.py
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v \
   catalog-switch/architecture/tests
@@ -83,9 +91,9 @@ offline and creates no cloud, cluster, GPU, endpoint, or provider resource.
 
 ## Promotion rule
 
-This reopened revision makes no implementation recommendation. A future
-positive item requires independent acceptance of its exact source commit and
-bounded claim, an intentional validator allowlist update, and a matching Git
-blob hash. Rejected `34d70fd0` and `f5f2706a`, all current replacement
-rejections, prepared-stage evidence, projections, and references cannot become
-design inputs by editing a label.
+This reopened revision makes no implementation recommendation and currently
+has zero positive decision inputs. A future positive item requires a separately
+committed independent acceptance record for the exact source commit, a bound
+review-record blob and source blob, and an intentional validator allowlist
+update. Rejected history, pending replacements, prepared-stage files,
+projections, and references cannot become design inputs by editing a label.

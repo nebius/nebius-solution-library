@@ -6,9 +6,17 @@ Reviewer: independent architecture review agent (separate review context)
 
 Verdict: **conditional sign-off**
 
-Scope note: this verdict applies to the preserved `1db7703e` baseline. The
-subsequent evidence-index v2 update is unreviewed, does not inherit this
-sign-off, and leaves `G-INDEPENDENT-REVIEW` pending.
+Scope note: this verdict applies only to preserved baseline `1db7703e`.
+Evidence-index v2 commit `7dc39ea7` was subsequently rejected for self-asserted
+review provenance, an incomplete negative snapshot, and an unjoined Boltz
+observation. Review-record bundle commit `0c470620` and evidence-index v3 do not
+inherit this sign-off. `G-INDEPENDENT-REVIEW` remains pending.
+
+The v3 handoff has 30 content-bound entries, zero positive decision inputs,
+18 rejected entries, and four pending successors. Its complete offline
+reproduction currently passes 376/376 tests, but that green suite is not a
+review verdict. A fresh exact review of the final descendant commit is still
+required.
 
 The reviewer signs off on this package as an independently reviewable,
 conditional ADR and implementation roadmap. This is not sign-off on a

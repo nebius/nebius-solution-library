@@ -1,0 +1,805 @@
+{
+  "$schema": "./evidence-index.v3.schema.json",
+  "schema_version": "catalog-switch-evidence-index/v3",
+  "index_version": 3,
+  "as_of": "2026-08-19T17:35:00Z",
+  "baseline_architecture_commit": "1db7703e3078ce3236c4655816312416145eb709",
+  "rejected_predecessor_commit": "7dc39ea7903c8aa19fe8a8269ab435268a7ae4b7",
+  "scope": {
+    "update_kind": "evidence-index-only",
+    "backend_selection_allowed": false,
+    "final_adr_claim_allowed": false,
+    "live_resources_allowed": false,
+    "empirical_backends": [
+      "kubernetes",
+      "node-vm",
+      "cerebrium"
+    ],
+    "external_comparator": "cerebrium",
+    "documentation_only": [
+      "modal"
+    ]
+  },
+  "positive_evidence_policy": {
+    "exact_commit_required": true,
+    "independent_acceptance_required": true,
+    "source_blob_hash_required": true,
+    "review_record_commit_required": true,
+    "review_record_blob_hash_required": true,
+    "reviewed_commit_must_equal_source_commit": true,
+    "embedded_review_metadata_trusted": false,
+    "label_change_can_promote": false
+  },
+  "review_record_bundle": {
+    "repository": "https://github.com/nebius/nebius-solutions-library",
+    "commit_sha": "0c47062047d19b3271350e66cd86ee0de87a57e0",
+    "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/0c47062047d19b3271350e66cd86ee0de87a57e0",
+    "path": "nim-fast-start/faststart-v2/catalog-switch/architecture/review-records.v1.json",
+    "blob_sha256": "30ce34f768d382c2b74873d681475a9b813f68483ec2037e6b02f8dcfe2d71f7",
+    "schema_path": "nim-fast-start/faststart-v2/catalog-switch/architecture/review-records.v1.schema.json",
+    "schema_blob_sha256": "69e67c47b269b92aed21c264aa3382a9a23964ace9eb9f9cf4c745d533732ba8"
+  },
+  "entries": [
+    {
+      "id": "EV3-METRIC-BA49",
+      "lane": "request-slo",
+      "subject": "Frozen external-T0 benchmark contract",
+      "backends": [
+        "backend-neutral"
+      ],
+      "classification": "provenance-unverified",
+      "measurement_kind": "contract",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact source blob exists, but positive use is blocked until an independently authored committed acceptance record is bound.",
+      "excluded_claims": [
+        "independently accepted positive evidence",
+        "backend decision input"
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "ba49c9e20f194e0f419d4209608904cc9335219d",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/ba49c9e20f194e0f419d4209608904cc9335219d",
+        "path": "nim-fast-start/faststart-v2/performance/request_slo/event.schema.json",
+        "blob_sha256": "a8371e8f0e3713ccbf3db8658ae144e2c62b2ace223dbfd6ae7761d1a2cf3a52"
+      },
+      "review_record_id": "RR1-METRIC-BA49-PROVENANCE-UNVERIFIED"
+    },
+    {
+      "id": "EV3-CATALOG-9ABD",
+      "lane": "catalog",
+      "subject": "Versioned catalog inventory",
+      "backends": [
+        "backend-neutral"
+      ],
+      "classification": "provenance-unverified",
+      "measurement_kind": "contract",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact source blob exists, but positive use is blocked until an independently authored committed acceptance record is bound.",
+      "excluded_claims": [
+        "independently accepted positive evidence",
+        "backend decision input"
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
+        "path": "nim-fast-start/faststart-v2/catalog/catalog.json",
+        "blob_sha256": "831c0517c0df3c92e3b8e802b609c08dbc5f2c0eb945fc0d21830e457a71d6ce"
+      },
+      "review_record_id": "RR1-CATALOG-9ABD-PROVENANCE-UNVERIFIED"
+    },
+    {
+      "id": "EV3-SECURITY-9CFB",
+      "lane": "security-reliability",
+      "subject": "Internal-backend threat model",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "provenance-unverified",
+      "measurement_kind": "contract",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact source blob exists, but positive use is blocked until an independently authored committed acceptance record is bound.",
+      "excluded_claims": [
+        "independently accepted positive evidence",
+        "backend decision input"
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "9cfbc1b1311a1f784a407889b215aaec5200fe0e",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/9cfbc1b1311a1f784a407889b215aaec5200fe0e",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/security-reliability/threat_model.json",
+        "blob_sha256": "a9bfccaf2425b75beb40ed6265736aa1d97b3a26327ac37db3a9b92877bbb765"
+      },
+      "review_record_id": "RR1-SECURITY-9CFB-PROVENANCE-UNVERIFIED"
+    },
+    {
+      "id": "EV3-BROKER-CPU-2291",
+      "lane": "resource-broker",
+      "subject": "Fresh CPU lease and exact-ID cleanup smoke",
+      "backends": [
+        "node-vm"
+      ],
+      "classification": "provenance-unverified",
+      "measurement_kind": "contract",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact source blob exists, but positive use is blocked until an independently authored committed acceptance record is bound.",
+      "excluded_claims": [
+        "independently accepted positive evidence",
+        "backend decision input"
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "229101bb5430143e78c4bc796b30715a2a0a14df",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/229101bb5430143e78c4bc796b30715a2a0a14df",
+        "path": "nim-fast-start/faststart-v2/resource-broker/SMOKE_EVIDENCE.md",
+        "blob_sha256": "28e03e04db7f9812dd68a7e345695620fca59a0080c3bb697ced3abdf5a2332a"
+      },
+      "review_record_id": "RR1-BROKER-2291-PROVENANCE-UNVERIFIED"
+    },
+    {
+      "id": "EV3-OF2-PREPARED-0180",
+      "lane": "prepared-node-feasibility",
+      "subject": "OpenFold2 prepared-node n20 cohort",
+      "backends": [
+        "kubernetes"
+      ],
+      "classification": "provenance-unverified",
+      "measurement_kind": "prepared-stage",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact prepared-stage source file exists; its review disposition is not independently commit-bound.",
+      "excluded_claims": [
+        "unknown-model product-boundary latency",
+        "independently accepted measurement"
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "0180915001fff47fbed0f82292fe32edc40e40ea",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/0180915001fff47fbed0f82292fe32edc40e40ea",
+        "path": "nim-fast-start/faststart-v2/performance/openfold2/fresh-cohort-n20-results.tsv",
+        "blob_sha256": "b5e3bf5d28c3da0b8a3407dee51aaff8b45fce73f16929b632ca971deb513b03"
+      },
+      "review_record_id": "RR1-PREPARED-0180-PROVENANCE-UNVERIFIED"
+    },
+    {
+      "id": "EV3-BOLTZ-PREPARED-0180",
+      "lane": "prepared-node-feasibility",
+      "subject": "Boltz2 prepared-node n20 cohort",
+      "backends": [
+        "kubernetes"
+      ],
+      "classification": "provenance-unverified",
+      "measurement_kind": "prepared-stage",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact prepared-stage source file exists; its review disposition is not independently commit-bound.",
+      "excluded_claims": [
+        "unknown-model product-boundary latency",
+        "independently accepted measurement"
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "0180915001fff47fbed0f82292fe32edc40e40ea",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/0180915001fff47fbed0f82292fe32edc40e40ea",
+        "path": "nim-fast-start/faststart-v2/boltz2-native/fresh-cohort-n20-results.tsv",
+        "blob_sha256": "ec36c85052f62878c22d3e6320845d5e74fb342612d5e1b367d422e9beedad58"
+      },
+      "review_record_id": "RR1-PREPARED-0180-PROVENANCE-UNVERIFIED"
+    },
+    {
+      "id": "EV3-DRAIN-34D-REJECTED",
+      "lane": "drain-reclaim",
+      "subject": "Original drain/reclaim implementation",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is negative review evidence for missing physical, fencing, durability, semantic, and rollback proof.",
+      "excluded_claims": [
+        "Must not be used as a production design input or live implementation."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "34d70fd0b4c84ddd2375a9db1ec9d9961f4aa5be",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/34d70fd0b4c84ddd2375a9db1ec9d9961f4aa5be",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/drain-reclaim/contract.json",
+        "blob_sha256": "7d639d545db3ee9a3411c7c729ab7925510728b589e9e782eaea62e949a93d29"
+      },
+      "review_record_id": "RR1-DRAIN-34D-REJECTED"
+    },
+    {
+      "id": "EV3-SNAPSHOT-F5F-REJECTED",
+      "lane": "snapshot-eligibility",
+      "subject": "Original snapshot classification replacement",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is negative review evidence for incomplete new-node, topology, pin, and per-model proof.",
+      "excluded_claims": [
+        "Must not drive snapshot routing or a production fallback decision."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "f5f2706a432bcc7795e51ab69fb64cd2e45ee2a2",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/f5f2706a432bcc7795e51ab69fb64cd2e45ee2a2",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/eligibility.json",
+        "blob_sha256": "298b809973766637ac6937f136b6cdedad657796e565a2171381c9d0b5166fbf"
+      },
+      "review_record_id": "RR1-SNAPSHOT-F5F-REJECTED"
+    },
+    {
+      "id": "EV3-BROKER-D40-REJECTED",
+      "lane": "resource-broker",
+      "subject": "Kubernetes lease v4 replacement",
+      "backends": [
+        "kubernetes"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit records a non-admitted plan and the review failures that keep creation disabled.",
+      "excluded_claims": [
+        "No Kubernetes lease, cleanup, absence, or live-creation acceptance."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "d40b6478275d5d5545786d5a3bf69ae46fe22c32",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/d40b6478275d5d5545786d5a3bf69ae46fe22c32",
+        "path": "nim-fast-start/faststart-v2/resource-broker/KUBERNETES_REVIEW_EVIDENCE.md",
+        "blob_sha256": "8483d0840a9fd73a6ac4bb155ce2d279e001980da7fd6d4b33a691f1036f62d8"
+      },
+      "review_record_id": "RR1-BROKER-D40-REJECTED"
+    },
+    {
+      "id": "EV3-K8S-4E63-PENDING",
+      "lane": "kubernetes-baseline",
+      "subject": "Causal switch campaign replacement",
+      "backends": [
+        "kubernetes"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "Exact 4e63e8dd is complete negative evidence for seven deterministic or release-gate blocker families.",
+      "excluded_claims": [
+        "approved Kubernetes baseline",
+        "measured Cerebrium cohort"
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "4e63e8dde2c2df79ee2c1a11fb850de25b6993cb",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/4e63e8dde2c2df79ee2c1a11fb850de25b6993cb",
+        "path": "nim-fast-start/faststart-v2/performance/k8s_baseline/LIVE_EVIDENCE.md",
+        "blob_sha256": "b9f5d0c4750b8552f4a07b161d856f5d35aff1045142981f0ff9e47a97c1c4ba"
+      },
+      "review_record_id": "RR1-K8S-4E63-REJECTED"
+    },
+    {
+      "id": "EV3-NODE-F4C9-DISCONNECTED",
+      "lane": "node-local-runtime",
+      "subject": "Integrated supervisor replacement v3",
+      "backends": [
+        "node-vm"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit contains an offline supervisor candidate whose production runtime connection is not proven.",
+      "excluded_claims": [
+        "No connected live runtime, H100 cohort, product latency, or production path acceptance."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "f4c9c1886ddd9c0bc04bd5804c348402ee429066",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/f4c9c1886ddd9c0bc04bd5804c348402ee429066",
+        "path": "nim-fast-start/faststart-v2/node-local-runtime/replacement_v3/supervisor.py",
+        "blob_sha256": "2e999d4e1bdd946a8114fc92493302c1da9fd1538ca1a25bb7c48b7630fe34f0"
+      },
+      "review_record_id": "RR1-NODE-F4C9-REJECTED"
+    },
+    {
+      "id": "EV3-DRAIN-E2DA-REJECTED",
+      "lane": "drain-reclaim",
+      "subject": "Drain/reclaim v3 replacement",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is negative review evidence for inventory and runtime-authority binding gaps.",
+      "excluded_claims": [
+        "No safe drain/reclaim design input or live A-to-B proof."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "e2dabf7a274f9db4287553154b625f838031a009",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/e2dabf7a274f9db4287553154b625f838031a009",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/drain-reclaim/contract.json",
+        "blob_sha256": "89bf910fad584ff2abad5c88e87d7077edd42dc36032184c7dffffae3af0f763"
+      },
+      "review_record_id": "RR1-DRAIN-E2DA-REJECTED"
+    },
+    {
+      "id": "EV3-SNAPSHOT-71E1-REJECTED",
+      "lane": "snapshot-eligibility",
+      "subject": "Digest-bound eligibility replacement",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is negative review evidence for an invalid n20 image-digest proof path.",
+      "excluded_claims": [
+        "No snapshot eligibility, routing, or promotion input."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "71e15616a745a747368d3b58d572432b416124cc",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/71e15616a745a747368d3b58d572432b416124cc",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/eligibility.json",
+        "blob_sha256": "36f96210dc7a0c31af0611012cf3187e7bea7d87c483b7b3e612f6c61d1c0984"
+      },
+      "review_record_id": "RR1-SNAPSHOT-71E1-REJECTED"
+    },
+    {
+      "id": "EV3-COST-2BC0-REJECTED",
+      "lane": "capacity-cost",
+      "subject": "Capacity and cost model v4 replacement",
+      "backends": [
+        "kubernetes",
+        "node-vm",
+        "cerebrium"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-projection",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit is negative review evidence for decision-changing intermediate rounding and incomplete relocation accounting.",
+      "excluded_claims": [
+        "No backend economics, break-even winner, or ratified cost budget."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "2bc0f76044e9e2e960c2519cce260d36aa23331f",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/2bc0f76044e9e2e960c2519cce260d36aa23331f",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/capacity-cost/results/frontier.json",
+        "blob_sha256": "fc33de732fecdff2563ba95f0762dd115a1f123be91115e201d11998d894dc81"
+      },
+      "review_record_id": "RR1-COST-2BC0-REJECTED"
+    },
+    {
+      "id": "EV3-QWEN-27C2-REJECTED",
+      "lane": "cerebrium-comparator",
+      "subject": "Internal Qwen scout precreation gate v4",
+      "backends": [
+        "node-vm",
+        "cerebrium"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "read-only-preflight",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "The exact commit records a precreation stop and the reasons the internal scout cannot run.",
+      "excluded_claims": [
+        "No internal Qwen cohort, Cerebrium cohort, entitlement proof, or comparator score."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "27c28e20e89193f3865b5aadf805d0e735f4e20e",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/27c28e20e89193f3865b5aadf805d0e735f4e20e",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/cerebrium-comparator/PRE_CREATION_REVIEW_V4.md",
+        "blob_sha256": "17a6c4496038936ca11ecc79340379b4247028a454172a3201407eef37c6e7f4"
+      },
+      "review_record_id": "RR1-QWEN-27C2-REJECTED"
+    },
+    {
+      "id": "EV3-BOLTZ-HIDDEN-SETUP-75E3",
+      "lane": "storage-cache",
+      "subject": "Boltz prepared-clone setup observation",
+      "backends": [
+        "kubernetes"
+      ],
+      "classification": "unverified-observation",
+      "measurement_kind": "unverified-observation",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "A sealed task-status snapshot reports hidden preparation, but no numeric byte or duration claim is admissible without raw receipts and a source join.",
+      "excluded_claims": [
+        "measured preparation bytes",
+        "measured preparation duration",
+        "product-boundary Boltz latency"
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "75e3b1faabc53a0c621d6efee84bd5b277bbc8bd",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/75e3b1faabc53a0c621d6efee84bd5b277bbc8bd",
+        "path": "nim-fast-start/faststart-v2/performance/storage_cache_matrix/catalog_boundary_analysis/source_manifest.json",
+        "blob_sha256": "ffcdd69e7fcee05fc1be724d31b5f787db2689f860655f8488ffd156ce5d11c4"
+      },
+      "review_record_id": "RR1-STORAGE-75E3-REJECTED"
+    },
+    {
+      "id": "EV3-STORAGE-75E3-REJECTED",
+      "lane": "storage-cache",
+      "subject": "Catalog-boundary A-D analysis package",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-projection",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "Exact 75e3b1fa is negative review evidence for missing causal, denominator, physical-identity, byte, cleanup, and provenance joins.",
+      "excluded_claims": [
+        "measured A-D storage package",
+        "canonical 200-model projection"
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "75e3b1faabc53a0c621d6efee84bd5b277bbc8bd",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/75e3b1faabc53a0c621d6efee84bd5b277bbc8bd",
+        "path": "nim-fast-start/faststart-v2/performance/storage_cache_matrix/catalog_boundary_analysis/source_manifest.json",
+        "blob_sha256": "ffcdd69e7fcee05fc1be724d31b5f787db2689f860655f8488ffd156ce5d11c4"
+      },
+      "review_record_id": "RR1-STORAGE-75E3-REJECTED"
+    },
+    {
+      "id": "EV3-MODAL-530F-REFERENCE",
+      "lane": "managed-runtime-reference",
+      "subject": "Modal documentation contract",
+      "backends": [
+        "modal"
+      ],
+      "classification": "reference-only",
+      "measurement_kind": "documentation",
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "allowed_claim": "Official-documentation concepts may inform later interface design.",
+      "excluded_claims": [
+        "No Modal execution, measured cohort, score, rank, spend, or rollout role."
+      ],
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "530fa21207d6d716e441b2494c1389a7fa3dba3b",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/530fa21207d6d716e441b2494c1389a7fa3dba3b",
+        "path": "nim-fast-start/faststart-v2/modal-pilot/MODAL_CONTRACT.md",
+        "blob_sha256": "0b113e664e2b2344d9a69ce0f57ad167ad2dd037ba6cfbab7f4d4b362a942502"
+      },
+      "review_record_id": "RR1-MODAL-530F-REFERENCE"
+    },
+    {
+      "id": "EV3-INDEX-7DC-REJECTED",
+      "lane": "architecture-evidence",
+      "subject": "evidence-index v2 review provenance",
+      "backends": [
+        "backend-neutral"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "review-artifact",
+      "allowed_claim": "Exact 7dc39ea7 is rejected evidence-index history and cannot authorize a backend decision.",
+      "excluded_claims": [
+        "review provenance is independently bound",
+        "evidence snapshot is complete"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "7dc39ea7903c8aa19fe8a8269ab435268a7ae4b7",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/7dc39ea7903c8aa19fe8a8269ab435268a7ae4b7",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/architecture/evidence-index.v2.json",
+        "blob_sha256": "efb4d00c44805d788c963250fe89178f36e7535ed19fca1e03d74428e3daee17"
+      },
+      "review_record_id": "RR1-INDEX-7DC-REJECTED"
+    },
+    {
+      "id": "EV3-BROKER-420D-REJECTED",
+      "lane": "resource-broker",
+      "subject": "Kubernetes lease v5 private-runner authority",
+      "backends": [
+        "kubernetes"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "allowed_claim": "Exact 420de387 is negative review evidence for an unbound executing-source attestation.",
+      "excluded_claims": [
+        "live creation admission",
+        "reviewed broker replacement"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "420de38752da1708f52b7e7f68486cb9debf923d",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/420de38752da1708f52b7e7f68486cb9debf923d",
+        "path": "nim-fast-start/faststart-v2/resource-broker/KUBERNETES_REVIEW_EVIDENCE.md",
+        "blob_sha256": "4d04b8c31dc823088e6566dcd14f2fd8d583eba6fa825cf5b8fa388f28a4668c"
+      },
+      "review_record_id": "RR1-BROKER-420D-REJECTED"
+    },
+    {
+      "id": "EV3-NODE-6246-REJECTED",
+      "lane": "node-local-runtime",
+      "subject": "disconnected node-runtime CLI",
+      "backends": [
+        "node-vm"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "allowed_claim": "Exact 6246c6ed is negative evidence for fabricated receipts and a missing OCI/containerd execution path.",
+      "excluded_claims": [
+        "production node runtime",
+        "live OCI evidence"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "6246c6ed2b6d13282d0c483aff258cb27786f305",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/6246c6ed2b6d13282d0c483aff258cb27786f305",
+        "path": "nim-fast-start/faststart-v2/node-local-runtime/node_runtime/cli.py",
+        "blob_sha256": "7aeece704a635198c010166bbcc9bf176b4c46fb36a827d6df93cf454b3369fe"
+      },
+      "review_record_id": "RR1-NODE-6246-REJECTED"
+    },
+    {
+      "id": "EV3-NODE-4302-REJECTED",
+      "lane": "node-local-runtime",
+      "subject": "supervisor-bypassing node-runtime CLI",
+      "backends": [
+        "node-vm"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "allowed_claim": "Exact 43026448 is negative evidence for bypassed Supervisor.run, fake adapters, missing durable cleanup, and a red canonical suite.",
+      "excluded_claims": [
+        "connected production runtime",
+        "passing release gate"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "43026448ff4f9a3ac65c006d1ef7dd6c0f774fd8",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/43026448ff4f9a3ac65c006d1ef7dd6c0f774fd8",
+        "path": "nim-fast-start/faststart-v2/node-local-runtime/node_runtime/cli.py",
+        "blob_sha256": "b20b2f191e91b650b3fb0d217e61db0c960cefbbae48993ccd4b3fc3027f5eb6"
+      },
+      "review_record_id": "RR1-NODE-4302-REJECTED"
+    },
+    {
+      "id": "EV3-DRAIN-3963-REJECTED",
+      "lane": "drain-reclaim",
+      "subject": "drain/reclaim v4 receiver occupancy",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "allowed_claim": "Exact 39635156 is negative evidence for unjoined receiver occupancy and mutable authority state.",
+      "excluded_claims": [
+        "safe A-to-B replacement",
+        "live H100 proof"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "396351565f64b20e0d59e25cd34dc5c8af73a7aa",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/396351565f64b20e0d59e25cd34dc5c8af73a7aa",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/drain-reclaim/contract.json",
+        "blob_sha256": "1c6c9415d64ffc3143a206d02d570405b0b92ec0132be9f25dcb5f534f2563b0"
+      },
+      "review_record_id": "RR1-DRAIN-3963-REJECTED"
+    },
+    {
+      "id": "EV3-DRAIN-E365-PENDING",
+      "lane": "drain-reclaim",
+      "subject": "drain/reclaim v5 replacement",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "pending",
+      "measurement_kind": "offline-test",
+      "allowed_claim": "Exact e365f4e7 is an offline candidate awaiting fresh exact review.",
+      "excluded_claims": [
+        "accepted drain/reclaim replacement",
+        "live switch evidence"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "e365f4e7dadb97d976649eb254d9c1d2cde53427",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/e365f4e7dadb97d976649eb254d9c1d2cde53427",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/drain-reclaim/contract.json",
+        "blob_sha256": "5fa33d5c5e7f2344385c50c60bd23b3f8e311446d6f27d15040e12ad122eb2b7"
+      },
+      "review_record_id": "RR1-DRAIN-E365-PENDING"
+    },
+    {
+      "id": "EV3-SNAPSHOT-3AF2-REJECTED",
+      "lane": "snapshot-eligibility",
+      "subject": "cross-section n20 image receipt join",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "allowed_claim": "Exact 3af2e7a9 is negative evidence for a prose-token image/cohort join.",
+      "excluded_claims": [
+        "exact snapshot image binding",
+        "production eligibility classification"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "3af2e7a9a04e6740efd985870ed6ae1c37cb18a6",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/3af2e7a9a04e6740efd985870ed6ae1c37cb18a6",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/eligibility.json",
+        "blob_sha256": "fa4b79868815b60e54e519e4e1cde0d7cf362d22301cc3ca5ecf8e7e017f8cfa"
+      },
+      "review_record_id": "RR1-SNAPSHOT-3AF2-REJECTED"
+    },
+    {
+      "id": "EV3-SNAPSHOT-2A70-PENDING",
+      "lane": "snapshot-eligibility",
+      "subject": "structured n20 snapshot evidence join",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "pending",
+      "measurement_kind": "offline-test",
+      "allowed_claim": "Exact 2a70321e is an offline structured-join candidate awaiting fresh exact review.",
+      "excluded_claims": [
+        "accepted snapshot eligibility",
+        "per-run machine image proof"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "2a70321e11e4f1b46dcfb17a873b69bf35408012",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/2a70321e11e4f1b46dcfb17a873b69bf35408012",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/eligibility.json",
+        "blob_sha256": "26d5c9c5dc6f739b7f0ce53f7c184b39660603d2e6d055df9e74b49ad72faa3b"
+      },
+      "review_record_id": "RR1-SNAPSHOT-2A70-PENDING"
+    },
+    {
+      "id": "EV3-COST-6310-REJECTED",
+      "lane": "capacity-cost",
+      "subject": "cost completeness labeling",
+      "backends": [
+        "kubernetes",
+        "node-vm",
+        "cerebrium"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-projection",
+      "allowed_claim": "Exact 6310caf6 is negative evidence for labeling incomplete Boltz subtotals as fully loaded.",
+      "excluded_claims": [
+        "accepted cost model",
+        "backend cost ranking"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "6310caf6e1a41f4b178a60b569f316e3ed99bc7e",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/6310caf6e1a41f4b178a60b569f316e3ed99bc7e",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/capacity-cost/results/frontier.json",
+        "blob_sha256": "940b58a9e1afbb4ab410531b2c83b9c4af7822f2920763699fb2f064c03b9e07"
+      },
+      "review_record_id": "RR1-COST-6310-REJECTED"
+    },
+    {
+      "id": "EV3-COST-B52A-PENDING",
+      "lane": "capacity-cost",
+      "subject": "cost completeness v6 replacement",
+      "backends": [
+        "kubernetes",
+        "node-vm",
+        "cerebrium"
+      ],
+      "classification": "pending",
+      "measurement_kind": "offline-projection",
+      "allowed_claim": "Exact b52ae52b is an offline cost candidate awaiting fresh exact review.",
+      "excluded_claims": [
+        "accepted cost values",
+        "backend cost ranking"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "b52ae52bcd5d39fd680173ee96bda973d3f50c7c",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/b52ae52bcd5d39fd680173ee96bda973d3f50c7c",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/capacity-cost/results/frontier.json",
+        "blob_sha256": "a3aa0ef8974dc0f0bc610058f4dea3f4aeb1c906c8aa9e77a0e2ff0b33b52f47"
+      },
+      "review_record_id": "RR1-COST-B52A-PENDING"
+    },
+    {
+      "id": "EV3-QWEN-548A-REJECTED",
+      "lane": "cerebrium-comparator",
+      "subject": "Qwen v5 bootstrap listener and egress ordering",
+      "backends": [
+        "node-vm",
+        "cerebrium"
+      ],
+      "classification": "rejected",
+      "measurement_kind": "offline-test",
+      "allowed_claim": "Exact 548a7bf1 is negative evidence for accepting application traffic before bootstrap egress narrows.",
+      "excluded_claims": [
+        "authorized live Qwen cohort",
+        "measured Cerebrium cohort"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "548a7bf1ce5f6ed5caa0e17f04b4afa4585079f9",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/548a7bf1ce5f6ed5caa0e17f04b4afa4585079f9",
+        "path": "nim-fast-start/faststart-v2/catalog-switch/cerebrium-comparator/PRE_CREATION_REVIEW_V5.md",
+        "blob_sha256": "a5fac21a2533dc6b43fae4659b79d260e0cbad47e831d3dce91e2375866e5077"
+      },
+      "review_record_id": "RR1-QWEN-548A-REJECTED"
+    },
+    {
+      "id": "EV3-STORAGE-999F-PENDING",
+      "lane": "storage-cache",
+      "subject": "storage catalog-boundary v2 offline replacement",
+      "backends": [
+        "kubernetes",
+        "node-vm"
+      ],
+      "classification": "pending",
+      "measurement_kind": "offline-projection",
+      "allowed_claim": "Exact 999f1bf6 is an offline candidate awaiting fresh exact review and has no live storage cohort.",
+      "excluded_claims": [
+        "measured A-D package",
+        "backend storage score"
+      ],
+      "positive_evidence_eligible": false,
+      "decision_score_eligible": false,
+      "provenance": {
+        "repository": "https://github.com/nebius/nebius-solutions-library",
+        "commit_sha": "999f1bf67082da618fdc949cde82384f9255af12",
+        "commit_url": "https://github.com/nebius/nebius-solutions-library/commit/999f1bf67082da618fdc949cde82384f9255af12",
+        "path": "nim-fast-start/faststart-v2/performance/storage_cache_matrix/catalog_boundary_analysis/source_manifest.json",
+        "blob_sha256": "ac6a1fa00d2e052d66b2be7da39bc782c4d484db272b9df279a9cd15805a964c"
+      },
+      "review_record_id": "RR1-STORAGE-999F-PENDING"
+    }
+  ]
+}
