@@ -16,8 +16,10 @@ from pathlib import Path
 from typing import Any
 
 from performance.request_slo.harness import (
+    HarnessError,
     IMAGE_DIGEST_RE,
     SCENARIOS,
+    _json_loads,
     canonical_json,
     canonical_sha256,
     file_sha256,
@@ -166,9 +168,16 @@ def _load_pinned_json(
         if hashlib.sha256(raw).hexdigest() != expected_sha256:
             raise BaselineError(f"{label} differs from its immutable plan hash")
         text = raw.decode("utf-8")
-        return json.loads(text), text
+        value = _json_loads(text, label)
+        if text != canonical_json(value) + "\n":
+            raise BaselineError(
+                f"{label} is not canonical JSON with one terminal newline"
+            )
+        return value, text
     except BaselineError:
         raise
+    except HarnessError as exc:
+        raise BaselineError(f"{label} is not duplicate-free JSON: {exc}") from exc
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise BaselineError(f"cannot load {label}: {type(exc).__name__}") from exc
 
@@ -194,9 +203,11 @@ def admitted_document(plan: dict[str, Any], name: str) -> dict[str, Any]:
     ):
         raise BaselineError(f"admitted {name} bytes differ from the pinned hash")
     try:
-        value = json.loads(source)
-    except json.JSONDecodeError as exc:
-        raise BaselineError(f"admitted {name} bytes are not JSON") from exc
+        value = _json_loads(source, f"admitted {name}")
+    except HarnessError as exc:
+        raise BaselineError(f"admitted {name} bytes are not duplicate-free JSON") from exc
+    if source != canonical_json(value) + "\n":
+        raise BaselineError(f"admitted {name} bytes are not canonical JSON")
     if not isinstance(value, dict):
         raise BaselineError(f"admitted {name} must be an object")
     return value

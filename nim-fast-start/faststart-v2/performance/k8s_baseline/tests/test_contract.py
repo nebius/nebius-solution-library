@@ -682,6 +682,33 @@ class ContractTests(unittest.TestCase):
             mutated_trace["requests"][0]["target"],
         )
 
+    def test_pinned_trace_and_lease_require_canonical_duplicate_free_json(self) -> None:
+        canonical_trace = self.trace_path.read_text()
+        self.trace_path.write_text(
+            '{"trace_id":"forged-first-wins",' + canonical_trace[1:]
+        )
+        self.plan["trace_sha256"] = file_sha256(self.trace_path)
+        self.reseal_lease()
+        self.assert_rejected("duplicate-free JSON")
+
+        write_canonical_json(self.trace_path, json.loads(canonical_trace))
+        self.plan["trace_sha256"] = file_sha256(self.trace_path)
+        self.reseal_lease()
+        self.trace_path.write_text(json.dumps(json.loads(canonical_trace), indent=2) + "\n")
+        self.plan["trace_sha256"] = file_sha256(self.trace_path)
+        self.reseal_lease()
+        self.assert_rejected("not canonical JSON")
+
+        write_canonical_json(self.trace_path, json.loads(canonical_trace))
+        self.plan["trace_sha256"] = file_sha256(self.trace_path)
+        self.reseal_lease()
+        canonical_lease = self.lease_path.read_text()
+        self.lease_path.write_text(
+            '{"node_ids":["forged-first-wins"],' + canonical_lease[1:]
+        )
+        self.plan["resource_lease"]["sha256"] = file_sha256(self.lease_path)
+        self.assert_rejected("duplicate-free JSON")
+
     def test_minimal_self_asserted_threat_model_cannot_replace_reviewed_validator_input(self) -> None:
         self.threat.write_text('{"status":"reviewed"}\n')
         self.plan["security"]["threat_model"]["path"] = str(self.threat)
