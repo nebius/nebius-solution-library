@@ -138,7 +138,7 @@ echo "== step 5: production-shaped trial =="
 # copy intermittently exceeds it. This precedes T0 and is not part of the
 # reported metric.
 for i in 1 2 3; do
-  kubectl exec -n "$NS" b2x-artifact-holder-t12 -- /bin/true >/dev/null 2>&1
+  kubectl exec -n "$NS" b2x-artifact-holder-t12 -- python3 -c pass >/dev/null 2>&1
 done
 "$REPO/run_one_external_tmp_trial.sh" \
   --run-id "$RUN_ID" \
