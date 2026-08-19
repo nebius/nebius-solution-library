@@ -308,21 +308,22 @@ post_restore_and_wait() {
   # Checkpoints dumped WITHOUT the CRIU cuda_plugin (manual cuda-checkpoint
   # lock/checkpoint before dump) come back with the CUDA context still in
   # 'checkpointed' state: HTTP health works, but the first kernel launch
-  # blocks forever. Detect and finish the GPU restore manually.
+  # blocks forever. Restore+unlock EVERY restored proc that has GPU state —
+  # multi-worker NIMs (boltz2) hold several CUDA contexts, all must be resumed.
+  # Each cuda-checkpoint call is wrapped in `timeout` so a wedged context cannot
+  # hang the whole restore. --timeout is only valid for lock (not restore/unlock).
   local CUDA_BIN="$WORK_DIR/criu/bin/cuda-checkpoint"
-  local PY_PID CUDA_STATE T_CUDA0 T_CUDA1
-  PY_PID=$(pgrep -f 'python.*start_serve[r]' | head -1 || true)
-  [ -z "$PY_PID" ] && PY_PID="$NIM_PID"
-  CUDA_STATE=$("$CUDA_BIN" --get-state --pid "$PY_PID" 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
-  if [ "$CUDA_STATE" = "checkpointed" ] || [ "$CUDA_STATE" = "locked" ]; then
-    T_CUDA0=$(date +%s%3N)
-    # NB: --timeout is only valid for the lock action; passing it to
-    # restore/unlock makes cuda-checkpoint print help and do nothing.
-    [ "$CUDA_STATE" = "checkpointed" ] && "$CUDA_BIN" --action restore --pid "$PY_PID"
-    "$CUDA_BIN" --action unlock --pid "$PY_PID"
-    T_CUDA1=$(date +%s%3N)
-    echo "[run $run_num] cuda-checkpoint restore+unlock: $((T_CUDA1-T_CUDA0))ms (state was: $CUDA_STATE)"
-  fi
+  local T_CUDA0 T_CUDA1 cp st n_cuda=0
+  T_CUDA0=$(date +%s%3N)
+  for cp in $(pgrep -f 'start_serve[r]|python' 2>/dev/null | sort -u); do
+    st=$(timeout 30 "$CUDA_BIN" --get-state --pid "$cp" 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)
+    case "$st" in
+      checkpointed) timeout 90 "$CUDA_BIN" --action restore --pid "$cp" 2>/dev/null; timeout 60 "$CUDA_BIN" --action unlock --pid "$cp" 2>/dev/null; n_cuda=$((n_cuda+1));;
+      locked)       timeout 60 "$CUDA_BIN" --action unlock --pid "$cp" 2>/dev/null; n_cuda=$((n_cuda+1));;
+    esac
+  done
+  T_CUDA1=$(date +%s%3N)
+  [ "$n_cuda" -gt 0 ] && echo "[run $run_num] cuda restore+unlock: $((T_CUDA1-T_CUDA0))ms ($n_cuda contexts)"
 
   T_SETUP=$(date +%s%3N)
   echo "[run $run_num] NIM PID=$NIM_PID post-restore setup: $((T_SETUP - T_CRIU))ms"
