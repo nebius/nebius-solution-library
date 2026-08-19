@@ -1,0 +1,124 @@
+{
+  "cost_estimate": {
+    "artifact_storage_full_quota_usd_per_hour": "0.001289",
+    "assumptions": "Public PAYG unified H100 price per GPU-hour, taxes and account discounts excluded. The attached 300 GiB Network SSD and full configured artifact quota are modeled separately.",
+    "boot_disk_usd_per_hour": "0.029178",
+    "compute_usd_per_hour": "2.150000",
+    "currency": "USD",
+    "expected_cost_usd": "8.721867",
+    "expected_duration_hours": "4",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+    "ttl_cost_ceiling_usd": "13.082801"
+  },
+  "created_at": "2026-08-19T14:22:36Z",
+  "events": [
+    {
+      "at": "2026-08-19T14:22:36Z",
+      "details": "immutable request hash, TTL, budget, ownership, and cleanup owner recorded",
+      "status": "PASS",
+      "type": "PLAN_CREATED"
+    }
+  ],
+  "expires_at": "2026-08-19T20:22:36Z",
+  "external_references": [],
+  "health_proof": null,
+  "isolation_proof": null,
+  "labels": {
+    "broker": "resource-broker-v1",
+    "expires": "20260819t202236z",
+    "lease": "node-local-runtime-nssd-control-20260819",
+    "owner": "catalog-switch-node-local-runtime",
+    "program": "catalog-switch",
+    "task": "catalog-switch-node-local-runtime"
+  },
+  "lease_id": "node-local-runtime-nssd-control-20260819",
+  "planned_resources": [
+    {
+      "kind": "network",
+      "name": "mlsp-csw-catalog-switch-nod-191dced2-net"
+    },
+    {
+      "kind": "subnet",
+      "name": "mlsp-csw-catalog-switch-nod-191dced2-subnet"
+    },
+    {
+      "kind": "security_group",
+      "name": "mlsp-csw-catalog-switch-nod-191dced2-sg"
+    },
+    {
+      "kind": "disk",
+      "name": "mlsp-csw-catalog-switch-nod-191dced2-boot"
+    },
+    {
+      "kind": "instance",
+      "name": "mlsp-csw-catalog-switch-nod-191dced2-vm"
+    },
+    {
+      "kind": "bucket",
+      "name": "mlsp-csw-catalog-switch-nod-191dced2-artifacts"
+    }
+  ],
+  "prefix": "mlsp-csw-catalog-switch-nod-191dced2",
+  "profile_snapshot": {
+    "boot_disk_gib": 300,
+    "cost_assumptions": "Public PAYG unified H100 price per GPU-hour, taxes and account discounts excluded. The attached 300 GiB Network SSD and full configured artifact quota are modeled separately.",
+    "gpu_count": 1,
+    "gpu_quota_name": "compute.instance.gpu.h100",
+    "hourly_compute_usd": {
+      "normal": "3.85",
+      "preemptible": "2.15"
+    },
+    "image_family": "ubuntu24.04-cuda12",
+    "local_nvme": {
+      "ephemeral": true,
+      "notes": "The API can request passthrough local disks, but support is not verified for the allowed eu-north1 H100 project; fail closed until a task-owned capability probe proves it.",
+      "request": false,
+      "verified_supported": false
+    },
+    "max_duration_hours": 12,
+    "max_ttl_hours": 24,
+    "network_ssd_usd_per_gib_month": "0.071",
+    "object_storage_usd_per_gib_month": "0.0147",
+    "platform": "gpu-h100-sxm",
+    "preset": "1gpu-16vcpu-200gb",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+    "regions": [
+      "eu-north1"
+    ]
+  },
+  "request": {
+    "artifact_storage": {
+      "enabled": true,
+      "max_size_gib": 64
+    },
+    "cleanup_owner": "catalog-switch-node-local-runtime",
+    "expected_duration_hours": "4",
+    "experiment": {
+      "cleanup_plan": "Stop workload; collect payload-free ledger/environment/receipts; run broker exact-ID reverse-order cleanup; prove instance, Network SSD boot disk, bucket, security group, subnet, network, provider children and allocations NotFound; run cloud orphan scan; desired final state ABSENT.",
+      "input_sha256": "42511546f59eb92479149df1fad8d713ae00176b89316b07a83d04586905938e",
+      "metric_contract_path": "node-local-runtime/METRIC_CONTRACT.json",
+      "metric_contract_sha256": "624c2a37ec6d8817da6788a4cf6bbe75c473273c4c20cb7e7cbee73e3b22b489",
+      "model_id": "faststart:proteinmpnn@sha256:b55a0aa6733e267e6e6fe06434e98aea61eff14bc5545127555607fef6f38aa5"
+    },
+    "health_proof": {
+      "marker": "CATALOG_SWITCH_NSSD_CONTROL_H100_OK",
+      "timeout_seconds": 900
+    },
+    "lease_id": "node-local-runtime-nssd-control-20260819",
+    "mode": "preemptible",
+    "owner": "catalog-switch-node-local-runtime",
+    "profile": "h100-single",
+    "project_id": "project-e00z6b02t8ddk96c49",
+    "purpose": "Fresh isolated H100 Network SSD direct-runtime control for external-T0 ProteinMPNN conventional and golden snapshot A-to-B switching; not a host-local NVMe result; no existing resource reuse.",
+    "region": "eu-north1",
+    "schema_version": "catalog-switch-lease-request/v1",
+    "task_id": "catalog-switch-node-local-runtime",
+    "ttl_hours": 6
+  },
+  "request_sha256": "191dced292d664c749163281b3f9a152199a56df9ef58d491023351f9b1b7cf0",
+  "resources": [],
+  "schema_version": "catalog-switch-resource-lease/v1",
+  "state": "PLANNED"
+}

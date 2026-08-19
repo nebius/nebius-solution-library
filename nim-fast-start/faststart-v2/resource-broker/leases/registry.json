@@ -1,6 +1,19 @@
 {
   "leases": [
     {
+      "cleanup_owner": "catalog-switch-node-local-runtime",
+      "estimated_ttl_cost_usd": "13.082801",
+      "expires_at": "2026-08-19T20:22:36Z",
+      "lease_file": "/home/tux/dashboard/data/worktrees/catalog-switch-node-local-runtime/nim-fast-start/faststart-v2/resource-broker/leases/node-local-runtime-nssd-control-20260819.json",
+      "lease_id": "node-local-runtime-nssd-control-20260819",
+      "prefix": "mlsp-csw-catalog-switch-nod-191dced2",
+      "profile": "h100-single",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1",
+      "state": "PLANNED",
+      "task_id": "catalog-switch-node-local-runtime"
+    },
+    {
       "cleanup_owner": "catalog-switch-resource-broker",
       "estimated_ttl_cost_usd": "0.051565",
       "expires_at": "2026-08-19T12:23:17Z",
@@ -41,5 +54,5 @@
     }
   ],
   "schema_version": "catalog-switch-lease-registry/v1",
-  "updated_at": "2026-08-19T11:39:33Z"
+  "updated_at": "2026-08-19T14:22:36Z"
 }

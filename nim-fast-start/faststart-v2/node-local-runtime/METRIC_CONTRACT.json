@@ -1,0 +1,45 @@
+{
+  "catalog_contract": {
+    "commit": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
+    "path": "catalog/catalog.json",
+    "sha256": "831c0517c0df3c92e3b8e802b609c08dbc5f2c0eb945fc0d21830e457a71d6ce"
+  },
+  "external_t0_contract": {
+    "commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
+    "files": [
+      {
+        "path": "performance/request_slo/event.schema.json",
+        "sha256": "a8371e8f0e3713ccbf3db8658ae144e2c62b2ace223dbfd6ae7761d1a2cf3a52"
+      },
+      {
+        "path": "performance/request_slo/trace.schema.json",
+        "sha256": "b25b9fdc1caacbf173e6575f687899f20c8ca8ad0d6701b1d656105182ec5c3a"
+      },
+      {
+        "path": "performance/request_slo/harness.py",
+        "sha256": "f8f040ef43cc19fce595397903579fa96ad6750cb53cb0ddacda8887fd2e4649"
+      },
+      {
+        "path": "performance/request_slo/cli.py",
+        "sha256": "1964323c904d1ea6dd48ee7d2743dc2c28e481391f03a4a11cdbb64c62121c1e"
+      }
+    ]
+  },
+  "schema_version": "catalog-switch-node-local-metric-contract/v1",
+  "security_contract": {
+    "commit": "9cfbc1b1311a1f784a407889b215aaec5200fe0e",
+    "path": "catalog-switch/security-reliability/threat_model.json",
+    "sha256": "a9bfccaf2425b75beb40ed6265736aa1d97b3a26327ac37db3a9b92877bbb765"
+  },
+  "workload": {
+    "artifact_bytes": 1867046505,
+    "artifact_digest": "sha256:b55a0aa6733e267e6e6fe06434e98aea61eff14bc5545127555607fef6f38aa5",
+    "input_path": "proteinmpnn-native/fixtures/1ubq-request.json",
+    "input_sha256": "42511546f59eb92479149df1fad8d713ae00176b89316b07a83d04586905938e",
+    "model_id": "faststart:proteinmpnn@sha256:b55a0aa6733e267e6e6fe06434e98aea61eff14bc5545127555607fef6f38aa5",
+    "restore_interface_path": "proteinmpnn-native/dynamo/restore-interface.live.json",
+    "restore_interface_sha256": "8202091d7811b7727c69b41c9e2f2cf906eefb7b99d117ad7b5d0fb5f69960e1",
+    "semantic_validator_path": "proteinmpnn-native/validate_proteinmpnn.py",
+    "semantic_validator_sha256": "2e3c21af0987f4b9c7da2cef3f3e4d210a7b223049f231c24e871e2a553b48d3"
+  }
+}
