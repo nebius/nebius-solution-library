@@ -1,0 +1,55 @@
+{
+  "audit_date": "2026-08-19",
+  "qwen3_claim_status": "UNVERIFIED",
+  "schema": "catalog-switch-cerebrium-source-manifest/v1",
+  "sources": [
+    {
+      "accessed_at": "2026-08-19T00:00:00Z",
+      "claim_use": "closest-published-suite-not-qwen3",
+      "commit": null,
+      "sha256": "258a130a8fcd7c063dc03f4d15038ea662dae7de68bca92914eb7f4c7621da9b",
+      "title": "Reducing GPU Cold Starts with Memory Snapshots",
+      "url": "https://cerebrium.ai/blog/reducing-gpu-cold-starts-with-memory-snapshots-restoring-cuda-workloads-in-second"
+    },
+    {
+      "accessed_at": "2026-08-19T00:00:00Z",
+      "claim_use": "closest-published-example",
+      "commit": "9820a5a5377fb3bf90b85652e0fd72f0dc6d6635",
+      "sha256": "ca74a80767942c78f62b5dca88984d8904a99887db21a5c7a25f4fb0dbf5bc2c",
+      "title": "Cerebrium snapshot examples README",
+      "url": "https://github.com/CerebriumAI/examples/tree/9820a5a5377fb3bf90b85652e0fd72f0dc6d6635/17-snapshots"
+    },
+    {
+      "accessed_at": "2026-08-19T00:00:00Z",
+      "claim_use": "closest-published-vllm-config",
+      "commit": "9820a5a5377fb3bf90b85652e0fd72f0dc6d6635",
+      "sha256": "62d9e32d383ffec83cc86de71216c0669a434917d4c5dcf9c763ae408cde048b",
+      "title": "Qwen2.5-0.5B vLLM cerebrium.toml",
+      "url": "https://raw.githubusercontent.com/CerebriumAI/examples/9820a5a5377fb3bf90b85652e0fd72f0dc6d6635/17-snapshots/vllm/cerebrium.toml"
+    },
+    {
+      "accessed_at": "2026-08-19T00:00:00Z",
+      "claim_use": "current-checkpoint-availability",
+      "commit": "b35c55a9deb74a535057d8755396b731875f6277",
+      "sha256": "16c19a38d5d9f3c30591ca93d95d62a74b748c337ea1b79c980dc6342f583691",
+      "title": "Cerebrium checkpointing documentation",
+      "url": "https://github.com/CerebriumAI/docs/blob/b35c55a9deb74a535057d8755396b731875f6277/pages/v4/performance/checkpointing.mdx"
+    },
+    {
+      "accessed_at": "2026-08-19T00:00:00Z",
+      "claim_use": "qwen-model-contract",
+      "commit": "b968826d9c46dd6066d109eabc6255188de91218",
+      "sha256": "f7c4eadfbbf522470667b797a3c89be2524832d2d599797248dc304fff447c30",
+      "title": "Qwen3-8B config.json",
+      "url": "https://huggingface.co/Qwen/Qwen3-8B/blob/b968826d9c46dd6066d109eabc6255188de91218/config.json"
+    },
+    {
+      "accessed_at": "2026-08-19T00:00:00Z",
+      "claim_use": "glm-model-contract",
+      "commit": "ba978f7d347eaf65d22f1a86833408afdb953541",
+      "sha256": "22e49334abf8562fecf70ca3292ba3f5b33f5602fb2bf10b52dd64a66cfe65ff",
+      "title": "GLM-5.2-FP8 config.json",
+      "url": "https://huggingface.co/zai-org/GLM-5.2-FP8/blob/ba978f7d347eaf65d22f1a86833408afdb953541/config.json"
+    }
+  ]
+}

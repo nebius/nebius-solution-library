@@ -174,6 +174,43 @@ class FakeCLI:
         raise AssertionError(f"unexpected fake CLI call: {args}")
 
 
+class FakeH200CLI(FakeCLI):
+    def __init__(self, availability_level, available=None):
+        super().__init__()
+        self.availability_level = availability_level
+        self.available = available
+
+    def run(self, args, **kwargs):
+        if args[:3] == ["compute", "platform", "list"]:
+            return {
+                "items": [
+                    {
+                        "metadata": {"name": "gpu-h200-sxm"},
+                        "spec": {"presets": [{"name": "8gpu-128vcpu-1600gb"}]},
+                    }
+                ]
+            }
+        if args[:3] == ["capacity", "resource-advice", "list"]:
+            status = {"availability_level": self.availability_level}
+            if self.available is not None:
+                status["available"] = self.available
+            return {
+                "items": [
+                    {
+                        "spec": {
+                            "region": "eu-north1",
+                            "compute_instance": {
+                                "platform": "gpu-h200-sxm",
+                                "preset": {"name": "8gpu-128vcpu-1600gb"},
+                            },
+                        },
+                        "status": {"on_demand": status, "preemptible": status},
+                    }
+                ]
+            }
+        return super().run(args, **kwargs)
+
+
 def request(**overrides):
     value = {
         "artifact_storage": {"enabled": True, "max_size_gib": 1},
@@ -242,6 +279,54 @@ class BrokerTests(unittest.TestCase):
             broker.plan(
                 self.request_path, self.lease_path, self.registry_path, self.profiles_path
             )
+
+    def test_h200_tp8_profile_freezes_exact_shape_and_whole_host_cost(self):
+        profiles = broker.load_profiles(self.profiles_path)
+        profile = profiles["profiles"]["h200-tp8"]
+        self.assertEqual(8, profile["gpu_count"])
+        self.assertEqual("gpu-h200-sxm", profile["platform"])
+        self.assertEqual("8gpu-128vcpu-1600gb", profile["preset"])
+        self.assertEqual(1600, profile["boot_disk_gib"])
+        self.assertEqual("36.00", profile["hourly_compute_usd"]["normal"])
+        self.assertFalse(profile["local_nvme"]["request"])
+
+    def test_gpu_preflight_rejects_exact_preset_when_mode_is_limit_reached(self):
+        profiles = broker.load_profiles(self.profiles_path)
+        profile = profiles["profiles"]["h200-tp8"]
+        frozen = request(
+            profile="h200-tp8",
+            mode="normal",
+            experiment={
+                "model_id": "zai-org/GLM-5.2-FP8@revision",
+                "input_sha256": "1" * 64,
+                "metric_contract_sha256": "2" * 64,
+                "metric_contract_path": "contract.json",
+                "cleanup_plan": "exact-ID cleanup",
+            },
+        )
+        with self.assertRaisesRegex(broker.BrokerError, "no eligible normal capacity"):
+            broker.run_preflight(
+                FakeH200CLI("AVAILABILITY_LEVEL_LIMIT_REACHED"), frozen, profile
+            )
+
+    def test_gpu_preflight_accepts_exact_preset_with_available_mode(self):
+        profiles = broker.load_profiles(self.profiles_path)
+        profile = profiles["profiles"]["h200-tp8"]
+        frozen = request(
+            profile="h200-tp8",
+            mode="preemptible",
+            experiment={
+                "model_id": "zai-org/GLM-5.2-FP8@revision",
+                "input_sha256": "1" * 64,
+                "metric_contract_sha256": "2" * 64,
+                "metric_contract_path": "contract.json",
+                "cleanup_plan": "exact-ID cleanup",
+            },
+        )
+        result = broker.run_preflight(
+            FakeH200CLI("AVAILABILITY_LEVEL_MEDIUM", available=9), frozen, profile
+        )
+        self.assertEqual(1, len(result["capacity_advice"]["eligible"]))
 
     def test_request_hash_collision_fails(self):
         self.make_plan()

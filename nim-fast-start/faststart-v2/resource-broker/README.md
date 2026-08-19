@@ -56,7 +56,10 @@ GPU profiles additionally require all of these immutable experiment fields:
 - `metric_contract_path`
 - `cleanup_plan`
 
-GPU provisioning also fails unless the live capacity-advice API succeeds.
+GPU provisioning also fails unless the live capacity-advice API succeeds,
+returns the exact requested region/platform/preset, and reports at least one
+eligible instance for the frozen normal/preemptible mode. A generic regional
+advice row or a different preset cannot satisfy this gate.
 Readiness alone is not a benchmark result; the child task remains responsible
 for the frozen external-request-to-valid-response metric and semantic input.
 
@@ -143,6 +146,7 @@ as a conservative ceiling. Estimates are budgets, not invoices.
 | `cpu-d3-standard` | all allowed regions | $0.0992 | $0.0992 ceiling | 40 GiB | disabled/unverified |
 | `h100-single` | `eu-north1` | $3.85 | $2.15 | 300 GiB | disabled/unverified |
 | `h200-single` | `eu-north1` | $4.50 | $2.45 | 300 GiB | disabled/unverified |
+| `h200-tp8` | `eu-north1` | $36.00 | $19.60 | 1,600 GiB | disabled/unverified |
 | `b200-single` | `me-west1` | $7.15 | $3.95 | 300 GiB | disabled/unverified |
 
 ## Tests
@@ -156,7 +160,9 @@ python3 -m json.tool lease.schema.json >/dev/null
 The unit suite covers policy validation, request-hash idempotency, unauthorized
 project rejection, the GPU experiment gate, mocked end-to-end provision/health/
 cleanup, reverse exact-ID deletion, `NotFound` receipts, orphan scanning, and the
-supervisor export contract.
+supervisor export contract. It also proves that capacity advice is matched on
+the nested exact platform/preset contract and that limit-reached modes fail
+before any create call.
 
 The live disposable-CPU run, exact resource IDs, isolation proof, fail-closed
 discoveries, and teardown receipts are summarized in `SMOKE_EVIDENCE.md` and

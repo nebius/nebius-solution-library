@@ -1,0 +1,118 @@
+{
+  "arms": [
+    {
+      "arm_id": "cerebrium-qwen-public-claim-native",
+      "backend": "cerebrium",
+      "cohort_family": "claim-native",
+      "enabled": false,
+      "model_contract_id": null,
+      "reason": "UNVERIFIED provenance: public source does not identify Qwen3-8B or a complete metric contract",
+      "status": "BLOCKED"
+    },
+    {
+      "arm_id": "cerebrium-qwen3-new-target-matched",
+      "backend": "cerebrium",
+      "cohort_family": "qwen3-new-target-matched",
+      "enabled": false,
+      "model_contract_id": "qwen3-8b-bf16-b968826",
+      "reason": "exact current-project private Nebius placement entitlement remains unproved",
+      "status": "ENTITLEMENT_BLOCKED"
+    },
+    {
+      "arm_id": "internal-qwen3-new-target-matched",
+      "backend": "internal-nebius",
+      "cohort_family": "qwen3-new-target-matched",
+      "enabled": false,
+      "model_contract_id": "qwen3-8b-bf16-b968826",
+      "reason": "campaign frozen offline; resource provisioning intentionally not yet authorized",
+      "status": "PLANNED"
+    },
+    {
+      "arm_id": "cerebrium-glm52-fp8-matched",
+      "backend": "cerebrium",
+      "cohort_family": "glm52-fp8-matched",
+      "enabled": false,
+      "model_contract_id": "glm-5.2-fp8-ba978f7",
+      "reason": "exact one-node 8xH200 entitlement, capacity, host RAM/storage, and compute identifier remain unproved",
+      "status": "ENTITLEMENT_BLOCKED"
+    },
+    {
+      "arm_id": "internal-glm52-fp8-matched",
+      "backend": "internal-nebius",
+      "cohort_family": "glm52-fp8-matched",
+      "enabled": false,
+      "model_contract_id": "glm-5.2-fp8-ba978f7",
+      "reason": "broker plan exists but live capacity advice and provisioning gate have not passed",
+      "status": "CAPACITY_BLOCKED"
+    },
+    {
+      "arm_id": "glm52-bf16-availability-only",
+      "backend": "availability-audit",
+      "cohort_family": "glm52-bf16-unmatched",
+      "enabled": false,
+      "model_contract_id": "glm-5.2-bf16-b4734de-availability-only",
+      "reason": "literal BF16 checkpoint is not matchable on the currently gated Cerebrium or 8xH200 shape",
+      "status": "INFEASIBLE_UNMATCHED"
+    }
+  ],
+  "boundaries": {
+    "cold_recorder": "performance/request_slo@ba49c9e2",
+    "complete": "first-complete-semantically-valid-response/v1",
+    "diagnostics": ["first_response_byte", "first_generated_token", "first_visible_answer_token"],
+    "t0": "client-monotonic-immediately-before-dispatch-of-model-id-plus-input/v1",
+    "warm_recorder": "aiperf-or-equivalent-with-same-receipt-fields"
+  },
+  "campaign_id": "cerebrium-qwen3-glm52-20260819-v1",
+  "cohorts": {
+    "cold": ["process-cold-artifact-hit", "fresh-node-artifact-miss", "capacity-miss"],
+    "platform_best": ["snapshot-restore", "local-nvme"],
+    "warm": ["warm-control", "steady-state-exploration"]
+  },
+  "cold_state_proof": [
+    "min_replicas_zero",
+    "no_live_replica_before_demand",
+    "unique_container_runtime_identity",
+    "conventional_or_restored_classification",
+    "image_state",
+    "model_artifact_state",
+    "cache_state",
+    "queue_capacity_state",
+    "exact_gpu_placement"
+  ],
+  "glm_primary": {
+    "checkpointing": false,
+    "gpu_count": 8,
+    "gpu_type": "H200",
+    "max_model_len": 131072,
+    "mtp": false,
+    "node_count": 1,
+    "prefix_cache": false,
+    "prompt_id": "glm52-nonthinking-exact",
+    "tensor_parallel_size": 8
+  },
+  "parity_smokes": {
+    "required_prompt_ids": [
+      "glm52-nonthinking-exact",
+      "glm52-thinking-high",
+      "glm52-thinking-default",
+      "glm52-tool-glm47"
+    ],
+    "structured_json_in_product_scope": false,
+    "timing_blocked_until_pass": true
+  },
+  "placement": {
+    "cerebrium_glm": {"gpu_count": 8, "gpu_type": "H200", "project_id": "p-12ff482a", "provider": "nebius", "region": "eu-north1-rsd"},
+    "cerebrium_qwen": {"gpu_count": 1, "gpu_type": "H100", "project_id": "p-12ff482a", "provider": "nebius", "region": "eu-north1-rsd"},
+    "internal_glm": {"gpu_count": 8, "gpu_type": "H200", "profile": "h200-tp8", "project_id": "project-e00z6b02t8ddk96c49", "provider": "nebius", "region": "eu-north1"},
+    "internal_qwen": {"gpu_count": 1, "gpu_type": "H100", "profile": "h100-single", "project_id": "project-e00z6b02t8ddk96c49", "provider": "nebius", "region": "eu-north1"}
+  },
+  "prompt_corpus_sha256": "31b5de1c606982d84692591221c0a3ff5d413296be3cf5c601a311ac3bb6ca28",
+  "schema": "catalog-switch-cerebrium-campaign/v1",
+  "statistics": {
+    "cold_claim_minimum_n": 30,
+    "cold_scout_minimum_n": 3,
+    "percentile_estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+    "promoted_steady_state_minimum_n": 1000,
+    "warm_exploration_minimum_n": 100
+  }
+}
