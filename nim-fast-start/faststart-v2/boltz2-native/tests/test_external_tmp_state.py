@@ -333,6 +333,8 @@ class ExternalTmpStateTests(unittest.TestCase):
                 "baseline_bytes": self.contract["baseline"]["pages_bytes"],
                 "growth_basis_points": 0.0,
                 "max_growth_basis_points": 200,
+                "effective_max_growth_basis_points": 200,
+                "growth_receipt_sha256": None,
             },
             "crit": {
                 "bundle_sha256": self.contract["crit_decoder"]["source_bundle_sha256"],

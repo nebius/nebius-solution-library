@@ -332,6 +332,60 @@ class ExternalTmpArtifactTests(unittest.TestCase):
         with self.assertRaisesRegex(artifact_validator.ArtifactError, "grew above"):
             self.validate()
 
+    def growth_receipt(self, observed: int, cap: int = 400) -> Path:
+        receipt = {
+            "schema": artifact_validator.PAGES_GROWTH_RECEIPT_SCHEMA,
+            "status": "REVIEWED",
+            "checkpoint_id": self.contract["candidate"]["checkpoint_id"],
+            "baseline_pages_bytes": self.contract["baseline"]["pages_bytes"],
+            "observed_pages_bytes": observed,
+            "max_allowed_basis_points": cap,
+            "tmp_backed_vma_bytes": 131072,
+            "tmp_backed_vma_count": 25,
+            "analysis": (
+                "Growth is isolated to the main worker pages image and matches "
+                "anonymous-memory run variance; tmp-backed VMAs total 131072 bytes."
+            ),
+            "reviewed_at": state._now(),
+        }
+        path = self.root / "pages-growth-receipt.json"
+        if path.exists():
+            path.unlink()
+        state._write_receipt(path, receipt)
+        return path
+
+    def test_pages_growth_receipt_admits_reviewed_overage_only(self) -> None:
+        baseline = self.contract["baseline"]["pages_bytes"]
+        observed = baseline * (10_000 + 300) // 10_000
+        with (self.artifact / "pages-1.img").open("wb") as handle:
+            handle.truncate(observed)
+
+        with self.assertRaisesRegex(artifact_validator.ArtifactError, "grew above"):
+            self.validate()
+
+        receipt_path = self.growth_receipt(observed)
+        result = self.validate(pages_growth_receipt=receipt_path)
+        self.assertEqual(400, result["pages"]["effective_max_growth_basis_points"])
+        self.assertRegex(result["pages"]["growth_receipt_sha256"], r"^[0-9a-f]{64}$")
+        gate_path = self.root / "gate-with-growth.json"
+        state._write_receipt(gate_path, result)
+        state._read_artifact_gate(gate_path, self.contract, self.contract_sha)
+
+        wrong = self.growth_receipt(observed + 4096)
+        with self.assertRaisesRegex(
+            artifact_validator.ArtifactError, "exactly cover the observed"
+        ):
+            self.validate(pages_growth_receipt=wrong)
+
+        beyond = baseline * (10_000 + 600) // 10_000
+        with (self.artifact / "pages-1.img").open("wb") as handle:
+            handle.truncate(beyond)
+        far = self.growth_receipt(beyond, cap=700)
+        with self.assertRaisesRegex(
+            artifact_validator.ArtifactError, "does not exactly cover|reviewed growth ceiling"
+        ):
+            self.validate(pages_growth_receipt=far)
+
     def test_tmpfs_images_are_inspected_and_capped(self) -> None:
         clean = _tar_bytes([(tarfile.TarInfo("torch_shm_segment"), b"shm-bytes")])
         (self.artifact / "tmpfs-2.tar.gz.img").write_bytes(gzip.compress(clean))
