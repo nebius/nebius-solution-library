@@ -1,0 +1,546 @@
+{
+  "aggregation_invariants": [
+    "product latency is computed per attempt from external T0 to terminal before percentiles",
+    "failed attempts remain in the denominator and never enter valid-response latency percentiles",
+    "phase distributions are diagnostic and are never summed into a product percentile"
+  ],
+  "all_attempt_terminal_seconds": {
+    "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+    "max": 0.086154938,
+    "min": 0.086154938,
+    "minimum_samples": {
+      "p50": 2,
+      "p95": 20,
+      "p99": 100
+    },
+    "p50": null,
+    "p95": null,
+    "p99": null,
+    "sample_count": 1
+  },
+  "attempts": {
+    "failure_classes": {
+      "cancelled": 1
+    },
+    "failure_rate": 1.0,
+    "failures": 1,
+    "observed": 1,
+    "offered": 1,
+    "results": [
+      {
+        "acceptance_schedule_error_ms": 0.0,
+        "artifact_id": "cpu-fixture-artifact-b",
+        "artifact_version": "v1",
+        "attempt_id": "node-local-attempt-cancelled-inference",
+        "bytes_moved_total": 0,
+        "cache": {
+          "artifact": "attached_storage_hit",
+          "checkpoint": "compatible_hit",
+          "image": "local_verified",
+          "storage": "ready"
+        },
+        "cleanup_status": "not_required",
+        "cost_usd": 0.0,
+        "current_node_occupant": {
+          "model_id": "cpu-fixture-a",
+          "model_version": "v1"
+        },
+        "environment_sha256": "39c7e11237825ce6c917ceab57ffb824da55634c0f2c2418e438c05f5d5b9dcf",
+        "failure_class": "cancelled",
+        "gpu_active_seconds": 0.0,
+        "gpu_idle_seconds": 0.0,
+        "model_id": "cpu-fixture-b",
+        "model_version": "v1",
+        "ownership_sha256": "5afba2c33ee0231439a2d709fc988aebde36dfcd6a2dd9349c150ce909b0921a",
+        "queue_depth": 0,
+        "request_id": "node-local-request-cancelled-inference",
+        "scenario": "a_to_b_local",
+        "success": false,
+        "terminal_seconds": 0.086154938,
+        "workload_id": "cpu-semantic-fixture"
+      }
+    ],
+    "valid_responses": 0
+  },
+  "boundary": {
+    "t0": "external-client-request-accepted/v1",
+    "terminal": "first-complete-semantically-valid-response/v1"
+  },
+  "cache": {
+    "artifact": {
+      "eligible": 1,
+      "hit_rate": 1.0,
+      "hits": 1,
+      "states": {
+        "attached_storage_hit": 1
+      }
+    },
+    "checkpoint": {
+      "eligible": 1,
+      "hit_rate": 1.0,
+      "hits": 1,
+      "states": {
+        "compatible_hit": 1
+      }
+    },
+    "image": {
+      "eligible": 1,
+      "hit_rate": 1.0,
+      "hits": 1,
+      "states": {
+        "local_verified": 1
+      }
+    },
+    "storage": {
+      "eligible": 1,
+      "hit_rate": 1.0,
+      "hits": 1,
+      "states": {
+        "ready": 1
+      }
+    }
+  },
+  "cleanup": {
+    "not_required": 1
+  },
+  "cost": {
+    "currency": "USD",
+    "per_valid_response": null,
+    "total": 0.0
+  },
+  "environments": [
+    {
+      "attempt_count": 1,
+      "environment": {
+        "backend": "node-vm-cpu-fixture",
+        "backend_version": "v1",
+        "code_revision": "0000000000000000000000000000000000000000",
+        "config_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "experiment_id": "node-local-cpu-integration",
+        "gpu_count": 0,
+        "gpu_type": "cpu-fixture",
+        "image_digest": "cpu-fixture@sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "node_id": "local-test-node",
+        "project_id": "local-cpu-integration",
+        "provider": "local",
+        "region": "local"
+      },
+      "environment_sha256": "39c7e11237825ce6c917ceab57ffb824da55634c0f2c2418e438c05f5d5b9dcf"
+    }
+  ],
+  "evidence_classification": "external-request-product-slo",
+  "gpu": {
+    "active_fraction": null,
+    "active_seconds": 0.0,
+    "idle_seconds": 0.0
+  },
+  "ledger_sha256": "64a76bf656f927bdd1ec349d86b9bafd839e28c8bf04f49f7bdf52968aa844aa",
+  "phases": {
+    "artifact_readiness": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.003167239,
+        "min": 0.003167239,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    },
+    "cache_readiness": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.005501219,
+        "min": 0.005501219,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    },
+    "catalog_selection": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.004026756,
+        "min": 0.004026756,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    },
+    "drain": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.002316664,
+        "min": 0.002316664,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    },
+    "gpu_release": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.003348214,
+        "min": 0.003348214,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    },
+    "image_readiness": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.003163573,
+        "min": 0.003163573,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    },
+    "inference": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.003107578,
+        "min": 0.003107578,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "failed": 1
+      }
+    },
+    "placement": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.002704415,
+        "min": 0.002704415,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    },
+    "queue": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.003972684,
+        "min": 0.003972684,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    },
+    "runtime_launch": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.003079596,
+        "min": 0.003079596,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    },
+    "service_readiness": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.003044162,
+        "min": 0.003044162,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    },
+    "storage_readiness": {
+      "additive_to_product_percentiles": false,
+      "operation_duration_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": 0.003438802,
+        "min": 0.003438802,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 1
+      },
+      "outcomes": {
+        "completed": 1
+      }
+    }
+  },
+  "product_latency_seconds": {
+    "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+    "max": null,
+    "min": null,
+    "minimum_samples": {
+      "p50": 2,
+      "p95": 20,
+      "p99": 100
+    },
+    "p50": null,
+    "p95": null,
+    "p99": null,
+    "sample_count": 0
+  },
+  "resource_ownership": [
+    {
+      "attempt_count": 1,
+      "ownership": {
+        "cleanup_required": false,
+        "dedicated": true,
+        "owner_task_id": "catalog-switch-node-local-runtime",
+        "resource_prefix": "mlsp-csw-node-local-cpu",
+        "resources": []
+      },
+      "ownership_sha256": "5afba2c33ee0231439a2d709fc988aebde36dfcd6a2dd9349c150ce909b0921a"
+    }
+  ],
+  "scenarios": {
+    "a_to_b_local": {
+      "attempts": 1,
+      "failures": 1,
+      "product_latency_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": null,
+        "min": null,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 0
+      },
+      "valid_responses": 0
+    },
+    "a_to_b_remote": {
+      "attempts": 0,
+      "failures": 0,
+      "product_latency_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": null,
+        "min": null,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 0
+      },
+      "valid_responses": 0
+    },
+    "capacity_miss": {
+      "attempts": 0,
+      "failures": 0,
+      "product_latency_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": null,
+        "min": null,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 0
+      },
+      "valid_responses": 0
+    },
+    "checkpoint_fallback": {
+      "attempts": 0,
+      "failures": 0,
+      "product_latency_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": null,
+        "min": null,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 0
+      },
+      "valid_responses": 0
+    },
+    "idle_local": {
+      "attempts": 0,
+      "failures": 0,
+      "product_latency_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": null,
+        "min": null,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 0
+      },
+      "valid_responses": 0
+    },
+    "same_model_hot": {
+      "attempts": 0,
+      "failures": 0,
+      "product_latency_seconds": {
+        "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+        "max": null,
+        "min": null,
+        "minimum_samples": {
+          "p50": 2,
+          "p95": 20,
+          "p99": 100
+        },
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "sample_count": 0
+      },
+      "valid_responses": 0
+    }
+  },
+  "schema": "archvteams.nebius.ai/catalog-switch-aggregate/v1",
+  "trace_id": "node-local-trace-cancelled-inference",
+  "trace_replay": {
+    "absolute_acceptance_schedule_error_ms": {
+      "estimator": "nearest-rank-on-per-attempt-raw-values/v1",
+      "max": 0.0,
+      "min": 0.0,
+      "minimum_samples": {
+        "p50": 2,
+        "p95": 20,
+        "p99": 100
+      },
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "sample_count": 1
+    },
+    "maximum_allowed_acceptance_schedule_error_ms": 100.0
+  },
+  "trace_sha256": "c81d0b08aa308fed50af1538a1a7f15e3a8d2eaea4abf14c921a99c2caa822ea",
+  "transfer": {
+    "bytes_moved_total": 0
+  }
+}

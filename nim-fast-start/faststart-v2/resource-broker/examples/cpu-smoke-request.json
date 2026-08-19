@@ -1,0 +1,23 @@
+{
+  "artifact_storage": {
+    "enabled": true,
+    "max_size_gib": 1
+  },
+  "cleanup_owner": "catalog-switch-resource-broker",
+  "expected_duration_hours": "0.25",
+  "experiment": null,
+  "health_proof": {
+    "marker": "CATALOG_SWITCH_HEALTH_OK",
+    "timeout_seconds": 600
+  },
+  "lease_id": "resource-broker-smoke3-20260819",
+  "mode": "preemptible",
+  "owner": "catalog-switch-resource-broker",
+  "profile": "cpu-e2-smoke",
+  "project_id": "project-e00z6b02t8ddk96c49",
+  "purpose": "Disposable end-to-end broker lifecycle and exact cleanup proof.",
+  "region": "eu-north1",
+  "schema_version": "catalog-switch-lease-request/v1",
+  "task_id": "catalog-switch-resource-broker",
+  "ttl_hours": 1
+}

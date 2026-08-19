@@ -22,6 +22,10 @@ shared metric contract and current ten-model matrix are in
 response-boundary audit is recorded in
 `performance/RESPONSE_BOUNDARY_REQUALIFICATION.md`:
 
+- `catalog-switch/security-reliability/` contains the catalog fast-switch
+  program's threat model: the fail-closed control and adversary matrix, per
+  backend, required before any switching backend can be recommended for
+  production, plus its consistency validator and tests;
 - `native-capture/` creates the qualified native Dynamo artifact;
 - `phase2-agent/` reproduces the generic one-shot restore-worker image;
 - `dynamo/` renders and validates target, binding, restore, semantic probe, and
@@ -33,6 +37,10 @@ response-boundary audit is recorded in
 - `performance/cost-ledger/` builds a fail-closed resource-usage ledger and
   joins only explicit, effective-dated price snapshots; latency remains
   distinct from billed cost;
+- `performance/request_slo/` defines the backend-neutral external-request T0,
+  first-valid-response terminal, deterministic catalog traces, canonical causal
+  ledger, strict validator/aggregator, and read-only prepared-node evidence
+  adapters used by the catalog-switch architecture program;
 - `openfold2-newnode/` contains the archived scale-from-zero preemptible-node
   harness, lifecycle verifier, automated node bootstrap, and two historical
   lifecycle results. Both remain useful operational evidence but contribute

@@ -1,0 +1,492 @@
+{
+  "cost_estimate": {
+    "artifact_storage_full_quota_usd_per_hour": "0.000020",
+    "assumptions": "Public PAYG list price, taxes and account discounts excluded. The preemptible CPU ceiling conservatively uses the normal CPU/RAM rate because the public table has no separate non-GPU preemptible row. Empty Object Storage costs zero; the estimate models its full configured quota as an upper bound.",
+    "boot_disk_usd_per_hour": "0.001945",
+    "compute_usd_per_hour": "0.049600",
+    "currency": "USD",
+    "expected_cost_usd": "0.012891",
+    "expected_duration_hours": "0.25",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+    "ttl_cost_ceiling_usd": "0.051565"
+  },
+  "created_at": "2026-08-19T11:34:43Z",
+  "events": [
+    {
+      "at": "2026-08-19T11:34:43Z",
+      "details": "immutable request hash, TTL, budget, ownership, and cleanup owner recorded",
+      "status": "PASS",
+      "type": "PLAN_CREATED"
+    },
+    {
+      "at": "2026-08-19T11:34:55Z",
+      "details": "auth, project, region, platform, preset, quotas checked",
+      "status": "PASS",
+      "type": "PREFLIGHT"
+    },
+    {
+      "at": "2026-08-19T11:34:58Z",
+      "details": "no exact planned names exist",
+      "status": "PASS",
+      "type": "COLLISION_SCAN"
+    },
+    {
+      "at": "2026-08-19T11:34:59Z",
+      "details": "network:vpcnetwork-e00gwkt616x6451rp8",
+      "status": "PASS",
+      "type": "RESOURCE_CREATED"
+    },
+    {
+      "at": "2026-08-19T11:34:59Z",
+      "details": "subnet:vpcsubnet-e00hjndwtftrka2rnd",
+      "status": "PASS",
+      "type": "RESOURCE_CREATED"
+    },
+    {
+      "at": "2026-08-19T11:35:00Z",
+      "details": "security_group:vpcsecuritygroup-e00dbs87mxsmj3xvfj",
+      "status": "PASS",
+      "type": "RESOURCE_CREATED"
+    },
+    {
+      "at": "2026-08-19T11:35:04Z",
+      "details": "bucket:storagebucket-e001442820741989981635",
+      "status": "PASS",
+      "type": "RESOURCE_CREATED"
+    },
+    {
+      "at": "2026-08-19T11:35:17Z",
+      "details": "disk:computedisk-e00vpvw5ebvnzjgsxf",
+      "status": "PASS",
+      "type": "RESOURCE_CREATED"
+    },
+    {
+      "at": "2026-08-19T11:36:00Z",
+      "details": "instance:computeinstance-e00ffdtdxxxq298cmk",
+      "status": "PASS",
+      "type": "RESOURCE_CREATED"
+    },
+    {
+      "at": "2026-08-19T11:36:56Z",
+      "details": "RUNNING plus serial-log marker",
+      "status": "PASS",
+      "type": "HEALTH_PROOF"
+    },
+    {
+      "at": "2026-08-19T11:36:56Z",
+      "details": "allocation:vpcallocation-e00fcx43228nsgnqy9 managed_by:computeinstance-e00ffdtdxxxq298cmk",
+      "status": "PASS",
+      "type": "MANAGED_RESOURCE_RECONCILED"
+    },
+    {
+      "at": "2026-08-19T11:36:56Z",
+      "details": "pool:vpcpool-e00nd4esyw6566rz2z managed_by:vpcnetwork-e00gwkt616x6451rp8",
+      "status": "PASS",
+      "type": "MANAGED_RESOURCE_RECONCILED"
+    },
+    {
+      "at": "2026-08-19T11:36:57Z",
+      "details": "route_table:vpcroutetable-e00bc5eg7p4rwe2fp4 managed_by:vpcnetwork-e00gwkt616x6451rp8",
+      "status": "PASS",
+      "type": "MANAGED_RESOURCE_RECONCILED"
+    },
+    {
+      "at": "2026-08-19T11:36:57Z",
+      "details": "VM running and newest serial-log marker observed",
+      "status": "PASS",
+      "type": "LEASE_ACTIVE"
+    },
+    {
+      "at": "2026-08-19T11:38:05Z",
+      "details": "9 exact IDs",
+      "status": "PASS",
+      "type": "CLEANUP_STARTED"
+    },
+    {
+      "at": "2026-08-19T11:39:10Z",
+      "details": "instance:computeinstance-e00ffdtdxxxq298cmk NotFound verified",
+      "status": "PASS",
+      "type": "RESOURCE_DELETED"
+    },
+    {
+      "at": "2026-08-19T11:39:11Z",
+      "details": "allocation:vpcallocation-e00fcx43228nsgnqy9 NotFound verified",
+      "status": "PASS",
+      "type": "RESOURCE_DELETED"
+    },
+    {
+      "at": "2026-08-19T11:39:26Z",
+      "details": "disk:computedisk-e00vpvw5ebvnzjgsxf NotFound verified",
+      "status": "PASS",
+      "type": "RESOURCE_DELETED"
+    },
+    {
+      "at": "2026-08-19T11:39:31Z",
+      "details": "bucket:storagebucket-e001442820741989981635 NotFound verified",
+      "status": "PASS",
+      "type": "RESOURCE_DELETED"
+    },
+    {
+      "at": "2026-08-19T11:39:32Z",
+      "details": "security_group:vpcsecuritygroup-e00dbs87mxsmj3xvfj NotFound verified",
+      "status": "PASS",
+      "type": "RESOURCE_DELETED"
+    },
+    {
+      "at": "2026-08-19T11:39:32Z",
+      "details": "subnet:vpcsubnet-e00hjndwtftrka2rnd NotFound verified",
+      "status": "PASS",
+      "type": "RESOURCE_DELETED"
+    },
+    {
+      "at": "2026-08-19T11:39:33Z",
+      "details": "network:vpcnetwork-e00gwkt616x6451rp8 NotFound verified",
+      "status": "PASS",
+      "type": "RESOURCE_DELETED"
+    },
+    {
+      "at": "2026-08-19T11:39:33Z",
+      "details": "pool:vpcpool-e00nd4esyw6566rz2z NotFound verified",
+      "status": "PASS",
+      "type": "RESOURCE_DELETED"
+    },
+    {
+      "at": "2026-08-19T11:39:33Z",
+      "details": "route_table:vpcroutetable-e00bc5eg7p4rwe2fp4 NotFound verified",
+      "status": "PASS",
+      "type": "RESOURCE_DELETED"
+    },
+    {
+      "at": "2026-08-19T11:39:33Z",
+      "details": "all exact resource IDs verified absent",
+      "status": "PASS",
+      "type": "LEASE_RELEASED"
+    }
+  ],
+  "expires_at": "2026-08-19T12:34:43Z",
+  "external_references": [],
+  "health_proof": {
+    "instance_id": "computeinstance-e00ffdtdxxxq298cmk",
+    "instance_state": "RUNNING",
+    "serial_log_marker": "CATALOG_SWITCH_HEALTH_OK",
+    "serial_log_marker_observed": true,
+    "verified_at": "2026-08-19T11:36:56Z"
+  },
+  "isolation_proof": {
+    "artifact_bucket": {
+      "id": "storagebucket-e001442820741989981635",
+      "max_size_bytes": "1073741824",
+      "object_audit_logging": "ALL",
+      "state": "ACTIVE",
+      "storage_class": "STANDARD"
+    },
+    "boot_disk": {
+      "id": "computedisk-e00vpvw5ebvnzjgsxf",
+      "size_bytes": "21474836480",
+      "source_image_id": "computeimage-e00ar5w73pjaw67cnp",
+      "type": "NETWORK_SSD"
+    },
+    "instance": {
+      "id": "computeinstance-e00ffdtdxxxq298cmk",
+      "local_disks": null,
+      "platform": "cpu-e2",
+      "preemptible": {
+        "on_preemption": "STOP",
+        "priority": 3
+      },
+      "preset": "2vcpu-8gb",
+      "public_ip_allocation_ids": [],
+      "service_account_id": null,
+      "state": "RUNNING"
+    },
+    "network": {
+      "external_reference_count": 0,
+      "id": "vpcnetwork-e00gwkt616x6451rp8",
+      "private_pool_ids": [
+        "vpcpool-e00nd4esyw6566rz2z"
+      ],
+      "public_pool_ids": []
+    },
+    "project_id": "project-e00z6b02t8ddk96c49",
+    "region": "eu-north1",
+    "security_group": {
+      "id": "vpcsecuritygroup-e00dbs87mxsmj3xvfj",
+      "rule_count": 0
+    },
+    "verified_at": "2026-08-19T11:37:57Z"
+  },
+  "labels": {
+    "broker": "resource-broker-v1",
+    "expires": "20260819t123443z",
+    "lease": "resource-broker-smoke3-20260819",
+    "owner": "catalog-switch-resource-broker",
+    "program": "catalog-switch",
+    "task": "catalog-switch-resource-broker"
+  },
+  "lease_id": "resource-broker-smoke3-20260819",
+  "planned_resources": [
+    {
+      "kind": "network",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-net"
+    },
+    {
+      "kind": "subnet",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-subnet"
+    },
+    {
+      "kind": "security_group",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-sg"
+    },
+    {
+      "kind": "disk",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-boot"
+    },
+    {
+      "kind": "instance",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-vm"
+    },
+    {
+      "kind": "bucket",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-artifacts"
+    }
+  ],
+  "prefix": "mlsp-csw-catalog-switch-res-1d8d3526",
+  "preflight": {
+    "auth_identity_type": "service_account_profile",
+    "auth_parent_id": "project-i00xz31gpr00xp9jhp982v",
+    "capacity_advice": {
+      "matched": [],
+      "reason": "Nebius command failed (5): /usr/local/bin/nebius capacity resource-advice list --parent-id: Error: rpc error: code = Internal desc = internal error request = 64511334-3f00-40b2-b03a-1474cda077ba\n\nThis issue may be linked to API request calls. The following information may be helpful while debugging the issue:\n  Trace ID: df8b9c57650eef171da7e9e15bda56c4",
+      "status": "UNAVAILABLE"
+    },
+    "checked_at": "2026-08-19T11:34:55Z",
+    "note": "Quota API exposed usage but no explicit allowance in this profile; create remains provider-enforced.",
+    "platform": "cpu-e2",
+    "platform_check": "PASS",
+    "preset": "2vcpu-8gb",
+    "profile": "sandbox",
+    "project_id": "project-e00z6b02t8ddk96c49",
+    "project_region": "eu-north1",
+    "project_state": "ACTIVE",
+    "quota_snapshot": [
+      {
+        "allowance": null,
+        "name": "compute.disk.count",
+        "region": "eu-north1",
+        "unit": "count",
+        "usage": "118",
+        "usage_state": "USAGE_STATE_USED"
+      },
+      {
+        "allowance": null,
+        "name": "compute.disk.size.network-ssd",
+        "region": "eu-north1",
+        "unit": "byte",
+        "usage": "19763292012544",
+        "usage_state": "USAGE_STATE_USED"
+      },
+      {
+        "allowance": null,
+        "name": "compute.instance.count",
+        "region": "eu-north1",
+        "unit": "count",
+        "usage": "67",
+        "usage_state": "USAGE_STATE_USED"
+      },
+      {
+        "allowance": null,
+        "name": "compute.instance.non-gpu.vcpu",
+        "region": "eu-north1",
+        "unit": "count",
+        "usage": "196",
+        "usage_state": "USAGE_STATE_USED"
+      },
+      {
+        "allowance": null,
+        "name": "compute.instance.preemptible.count",
+        "region": "eu-north1",
+        "unit": "count",
+        "usage": "18",
+        "usage_state": "USAGE_STATE_USED"
+      },
+      {
+        "allowance": null,
+        "name": "storage.bucket.count",
+        "region": "eu-north1",
+        "unit": "count",
+        "usage": "15",
+        "usage_state": "USAGE_STATE_USED"
+      },
+      {
+        "allowance": null,
+        "name": "vpc.network.count",
+        "region": "eu-north1",
+        "unit": "count",
+        "usage": "6",
+        "usage_state": "USAGE_STATE_USED"
+      },
+      {
+        "allowance": null,
+        "name": "vpc.subnet.count",
+        "region": "eu-north1",
+        "unit": "count",
+        "usage": "9",
+        "usage_state": "USAGE_STATE_USED"
+      }
+    ]
+  },
+  "profile_snapshot": {
+    "boot_disk_gib": 20,
+    "cost_assumptions": "Public PAYG list price, taxes and account discounts excluded. The preemptible CPU ceiling conservatively uses the normal CPU/RAM rate because the public table has no separate non-GPU preemptible row. Empty Object Storage costs zero; the estimate models its full configured quota as an upper bound.",
+    "gpu_count": 0,
+    "gpu_quota_name": null,
+    "hourly_compute_usd": {
+      "normal": "0.0496",
+      "preemptible": "0.0496"
+    },
+    "image_family": "ubuntu24.04-driverless",
+    "local_nvme": {
+      "ephemeral": true,
+      "notes": "Not requested: no local-NVMe support has been verified for cpu-e2.",
+      "request": false,
+      "verified_supported": false
+    },
+    "max_duration_hours": 2,
+    "max_ttl_hours": 4,
+    "network_ssd_usd_per_gib_month": "0.071",
+    "object_storage_usd_per_gib_month": "0.0147",
+    "platform": "cpu-e2",
+    "preset": "2vcpu-8gb",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+    "regions": [
+      "eu-north1"
+    ]
+  },
+  "released_at": "2026-08-19T11:39:33Z",
+  "request": {
+    "artifact_storage": {
+      "enabled": true,
+      "max_size_gib": 1
+    },
+    "cleanup_owner": "catalog-switch-resource-broker",
+    "expected_duration_hours": "0.25",
+    "experiment": null,
+    "health_proof": {
+      "marker": "CATALOG_SWITCH_HEALTH_OK",
+      "timeout_seconds": 600
+    },
+    "lease_id": "resource-broker-smoke3-20260819",
+    "mode": "preemptible",
+    "owner": "catalog-switch-resource-broker",
+    "profile": "cpu-e2-smoke",
+    "project_id": "project-e00z6b02t8ddk96c49",
+    "purpose": "Disposable end-to-end broker lifecycle and exact cleanup proof.",
+    "region": "eu-north1",
+    "schema_version": "catalog-switch-lease-request/v1",
+    "task_id": "catalog-switch-resource-broker",
+    "ttl_hours": 1
+  },
+  "request_sha256": "1d8d352697117501cd93dd7643304463f1783a3f925f194d4539951c1fe60513",
+  "resources": [
+    {
+      "created_at": "2026-08-19T11:34:59Z",
+      "delete_verified_at": "2026-08-19T11:39:33Z",
+      "deleted_at": "2026-08-19T11:39:33Z",
+      "id": "vpcnetwork-e00gwkt616x6451rp8",
+      "kind": "network",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-net",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1"
+    },
+    {
+      "created_at": "2026-08-19T11:34:59Z",
+      "delete_verified_at": "2026-08-19T11:39:32Z",
+      "deleted_at": "2026-08-19T11:39:32Z",
+      "id": "vpcsubnet-e00hjndwtftrka2rnd",
+      "kind": "subnet",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-subnet",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1"
+    },
+    {
+      "created_at": "2026-08-19T11:35:00Z",
+      "delete_verified_at": "2026-08-19T11:39:32Z",
+      "deleted_at": "2026-08-19T11:39:32Z",
+      "id": "vpcsecuritygroup-e00dbs87mxsmj3xvfj",
+      "kind": "security_group",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-sg",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1"
+    },
+    {
+      "created_at": "2026-08-19T11:35:04Z",
+      "delete_verified_at": "2026-08-19T11:39:31Z",
+      "deleted_at": "2026-08-19T11:39:31Z",
+      "id": "storagebucket-e001442820741989981635",
+      "kind": "bucket",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-artifacts",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1"
+    },
+    {
+      "created_at": "2026-08-19T11:35:17Z",
+      "delete_verified_at": "2026-08-19T11:39:26Z",
+      "deleted_at": "2026-08-19T11:39:26Z",
+      "id": "computedisk-e00vpvw5ebvnzjgsxf",
+      "kind": "disk",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-boot",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1"
+    },
+    {
+      "created_at": "2026-08-19T11:36:00Z",
+      "delete_verified_at": "2026-08-19T11:39:10Z",
+      "deleted_at": "2026-08-19T11:39:10Z",
+      "id": "computeinstance-e00ffdtdxxxq298cmk",
+      "kind": "instance",
+      "name": "mlsp-csw-catalog-switch-res-1d8d3526-vm",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1"
+    },
+    {
+      "created_at": "2026-08-19T11:35:40.824611Z",
+      "delete_verified_at": "2026-08-19T11:39:11Z",
+      "deleted_at": "2026-08-19T11:39:11Z",
+      "deletion_mode": "PROVIDER_CASCADE",
+      "id": "vpcallocation-e00fcx43228nsgnqy9",
+      "kind": "allocation",
+      "managed_by_resource_id": "computeinstance-e00ffdtdxxxq298cmk",
+      "name": "auto-allocation-p3ytvali",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1"
+    },
+    {
+      "created_at": "2026-08-19T11:34:58.893901Z",
+      "delete_verified_at": "2026-08-19T11:39:33Z",
+      "deleted_at": "2026-08-19T11:39:33Z",
+      "deletion_mode": "PROVIDER_CASCADE",
+      "id": "vpcpool-e00nd4esyw6566rz2z",
+      "kind": "pool",
+      "managed_by_resource_id": "vpcnetwork-e00gwkt616x6451rp8",
+      "name": "default-network-pool-2bikvaxm",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1"
+    },
+    {
+      "created_at": "2026-08-19T11:34:58.938599Z",
+      "delete_verified_at": "2026-08-19T11:39:33Z",
+      "deleted_at": "2026-08-19T11:39:33Z",
+      "deletion_mode": "PROVIDER_CASCADE",
+      "id": "vpcroutetable-e00bc5eg7p4rwe2fp4",
+      "kind": "route_table",
+      "managed_by_resource_id": "vpcnetwork-e00gwkt616x6451rp8",
+      "name": "default-route-table-ywgqide6",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1"
+    }
+  ],
+  "schema_version": "catalog-switch-resource-lease/v1",
+  "state": "RELEASED"
+}

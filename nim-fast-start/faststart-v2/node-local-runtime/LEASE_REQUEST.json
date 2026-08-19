@@ -1,0 +1,29 @@
+{
+  "artifact_storage": {
+    "enabled": true,
+    "max_size_gib": 64
+  },
+  "cleanup_owner": "catalog-switch-node-local-runtime",
+  "expected_duration_hours": "4",
+  "experiment": {
+    "cleanup_plan": "Stop workload; collect payload-free ledger/environment/receipts; run broker exact-ID reverse-order cleanup; prove instance, Network SSD boot disk, bucket, security group, subnet, network, provider children and allocations NotFound; run cloud orphan scan; desired final state ABSENT.",
+    "input_sha256": "42511546f59eb92479149df1fad8d713ae00176b89316b07a83d04586905938e",
+    "metric_contract_path": "node-local-runtime/METRIC_CONTRACT.json",
+    "metric_contract_sha256": "624c2a37ec6d8817da6788a4cf6bbe75c473273c4c20cb7e7cbee73e3b22b489",
+    "model_id": "faststart:proteinmpnn@sha256:b55a0aa6733e267e6e6fe06434e98aea61eff14bc5545127555607fef6f38aa5"
+  },
+  "health_proof": {
+    "marker": "CATALOG_SWITCH_NSSD_CONTROL_H100_OK",
+    "timeout_seconds": 900
+  },
+  "lease_id": "node-local-runtime-nssd-control-20260819",
+  "mode": "preemptible",
+  "owner": "catalog-switch-node-local-runtime",
+  "profile": "h100-single",
+  "project_id": "project-e00z6b02t8ddk96c49",
+  "purpose": "Fresh isolated H100 Network SSD direct-runtime control for external-T0 ProteinMPNN conventional and golden snapshot A-to-B switching; not a host-local NVMe result; no existing resource reuse.",
+  "region": "eu-north1",
+  "schema_version": "catalog-switch-lease-request/v1",
+  "task_id": "catalog-switch-node-local-runtime",
+  "ttl_hours": 6
+}

@@ -1,0 +1,2465 @@
+{
+  "schema": "archvteams.nebius.ai/catalog-switch-threat-model/v1",
+  "title": "Catalog fast-switch security, correctness, and failure-recovery threat model",
+  "scope": "Model switching (active model A to model B, or cold selection of B) across four candidate execution backends for a ~200-model inference catalog. Covers isolation correctness, artifact/checkpoint integrity, privilege, secrets, auditability, failure recovery, retries/idempotency, and rollback. Controls are gating requirements: no backend may be recommended for production while any required control for that backend is unimplemented or untested.",
+  "status": "reviewed",
+  "backends": [
+    {
+      "id": "k8s",
+      "name": "Kubernetes request-time switching",
+      "description": "Model instances are Pods; switching is Pod deletion plus Pod creation (or pre-created bound Pods), scheduled by kube-scheduler, with kubelet/containerd on GPU nodes.",
+      "attack_surface": [
+        "Kubernetes API server and RBAC (placement, secret, and manifest tampering)",
+        "kubelet and containerd on the shared GPU node",
+        "Container image supply chain (registry, tags vs digests)",
+        "Shared node filesystem paths mounted into Pods (hostPath, SFS, /tmp caches)",
+        "GPU device plugin and NVIDIA driver shared across successive Pods",
+        "Cluster network (Pod-to-Pod, Pod-to-metadata-service)",
+        "Privileged snapshot/restore DaemonSets if CRIU restore is used in-cluster"
+      ]
+    },
+    {
+      "id": "k8s-hotpath",
+      "name": "Kubernetes with node-local hot path",
+      "description": "Kubernetes owns placement and node lifecycle, but the A-to-B switch itself is executed by a node-local agent outside the API-server hot path (pre-bound processes, local restore, local routing flip).",
+      "attack_surface": [
+        "Everything in the k8s backend",
+        "The node-local switch agent itself (highest-privilege component on the node)",
+        "The local control channel between router/control plane and the node agent",
+        "State divergence between Kubernetes' view and the node agent's actual serving state",
+        "Locally staged checkpoints and artifacts not tracked by Kubernetes objects"
+      ]
+    },
+    {
+      "id": "node-vm",
+      "name": "Direct node-local runtime on bare VMs",
+      "description": "No Kubernetes. A fleet of GPU VMs runs a switch runtime directly (containers or processes started by a host agent); a thin control plane assigns models to VMs.",
+      "attack_surface": [
+        "The host switch agent running as root on the VM",
+        "VM image and cloud-init/bootstrap supply chain",
+        "Cloud API credentials present on or usable from the VM",
+        "Locally cached artifacts and checkpoints on VM disks (survive across models)",
+        "Absence of Kubernetes admission/audit machinery: all policy must be re-implemented and is only as strong as the agent",
+        "VM preemption and re-creation lifecycle (identity reuse)"
+      ]
+    },
+    {
+      "id": "modal",
+      "name": "Modal managed runtime",
+      "description": "Third-party managed serverless runtime. Isolation, scheduling, and snapshot/restore are delegated to Modal (gVisor-based sandboxes, provider-managed memory snapshots).",
+      "attack_surface": [
+        "Provider trust boundary: Nebius does not operate or attest the sandbox, hypervisor, or snapshot store",
+        "Credentials and secrets uploaded into Modal (registry pulls, artifact store tokens)",
+        "Tenant payloads and model weights transiting and resting in provider infrastructure",
+        "Provider account compromise (Modal API tokens become a control-plane key)",
+        "Data residency and licensing constraints on models and inputs",
+        "Opaque failure modes: cleanup and residue claims cannot be independently verified"
+      ],
+      "invariant_exceptions": [
+        {
+          "invariant": "INV-08",
+          "note": "Model-code privilege inside Modal sandboxes is provider-controlled (gVisor); no Nebius-required control can enforce least privilege there. Tracked as a provider claim under CTL-17 and scored via ADV-14.",
+          "scored_by": "ADV-14"
+        },
+        {
+          "invariant": "INV-09",
+          "note": "Occupancy and co-residency inside Modal are provider scheduling properties Nebius cannot enforce or observe. Tracked as a provider claim under CTL-17 and scored via ADV-14.",
+          "scored_by": "ADV-14"
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "AST-01",
+      "name": "Model artifacts and weights",
+      "classification": "licensed/proprietary",
+      "description": "Catalog model weights, engines, and containers; some are commercially licensed (NIM) with redistribution limits."
+    },
+    {
+      "id": "AST-02",
+      "name": "GPU memory checkpoints",
+      "classification": "secret-bearing",
+      "description": "CRIU/cuda-checkpoint process images. They capture full process memory and therefore may embed credentials, tenant payloads, and license tokens present at capture time."
+    },
+    {
+      "id": "AST-03",
+      "name": "Tenant requests and responses",
+      "classification": "tenant-confidential",
+      "description": "Inference inputs and outputs, including any per-request identifiers."
+    },
+    {
+      "id": "AST-04",
+      "name": "Platform credentials",
+      "classification": "secret",
+      "description": "NGC/registry keys, object-storage tokens, cloud API credentials, Modal API tokens, internal service credentials."
+    },
+    {
+      "id": "AST-05",
+      "name": "GPU node host state",
+      "classification": "integrity-critical",
+      "description": "Driver, device state, host filesystem, namespaces, and the switch/snapshot agent binaries on each GPU node or VM."
+    },
+    {
+      "id": "AST-06",
+      "name": "Artifact and checkpoint cache tiers",
+      "classification": "integrity-critical",
+      "description": "Node-local disk//tmp caches, shared filesystems (SFS), and object storage used to localize artifacts and checkpoints."
+    },
+    {
+      "id": "AST-07",
+      "name": "Audit and usage ledger",
+      "classification": "integrity-critical",
+      "description": "Per-switch causal event chains, timing evidence, and the billed-usage cost ledger; the basis for every performance and correctness claim."
+    },
+    {
+      "id": "AST-08",
+      "name": "Control-plane placement state",
+      "classification": "integrity-critical",
+      "description": "Catalog (model_id to digest resolution), placement decisions, node leases, and desired-state records."
+    }
+  ],
+  "trust_boundaries": [
+    {
+      "id": "TB-01",
+      "name": "Tenant to platform API",
+      "description": "External requests carrying model_id and input cross into the platform at T0.",
+      "backends": [
+        "k8s",
+        "k8s-hotpath",
+        "node-vm",
+        "modal"
+      ]
+    },
+    {
+      "id": "TB-02",
+      "name": "Control plane to node agent",
+      "description": "Placement, switch, and drain commands cross from the control plane to per-node executors; the node may be stale, partitioned, or replaced.",
+      "backends": [
+        "k8s",
+        "k8s-hotpath",
+        "node-vm"
+      ]
+    },
+    {
+      "id": "TB-03",
+      "name": "Model container to host",
+      "description": "Arbitrary OCI/NIM model code runs against the container runtime, kernel, and GPU driver on a node that previously ran and will next run other models.",
+      "backends": [
+        "k8s",
+        "k8s-hotpath",
+        "node-vm"
+      ]
+    },
+    {
+      "id": "TB-04",
+      "name": "Successive models on one GPU node",
+      "description": "Temporal boundary between model A (before the switch) and model B (after the accepted switch) sharing GPU, driver, kernel, and disks.",
+      "backends": [
+        "k8s",
+        "k8s-hotpath",
+        "node-vm",
+        "modal"
+      ]
+    },
+    {
+      "id": "TB-05",
+      "name": "Storage and cache to consumer",
+      "description": "Registries, object storage, SFS, and node-local caches feed bytes to nodes; contents may be tampered, stale, or partially written.",
+      "backends": [
+        "k8s",
+        "k8s-hotpath",
+        "node-vm",
+        "modal"
+      ]
+    },
+    {
+      "id": "TB-06",
+      "name": "Checkpoint producer to restore consumer",
+      "description": "A checkpoint captured on one node/driver/GPU/runtime is restored later, possibly elsewhere; the pairing is a forgeable claim unless bound and signed.",
+      "backends": [
+        "k8s",
+        "k8s-hotpath",
+        "node-vm"
+      ]
+    },
+    {
+      "id": "TB-07",
+      "name": "Nebius to Modal provider",
+      "description": "Everything sent to Modal (code, weights, secrets, payloads) leaves Nebius-operated infrastructure.",
+      "backends": [
+        "modal"
+      ]
+    }
+  ],
+  "threat_actors": [
+    {
+      "id": "TA-01",
+      "name": "Malicious tenant",
+      "description": "Sends crafted inputs to any catalog model; may target model-runtime parsing bugs, retry semantics, or timing side channels between switches."
+    },
+    {
+      "id": "TA-02",
+      "name": "Malicious or compromised model image",
+      "description": "A catalog model's OCI/NIM container executes attacker-chosen code with whatever privilege the backend grants it; 200 third-party images make this the baseline assumption, not an edge case."
+    },
+    {
+      "id": "TA-03",
+      "name": "Curious successor model",
+      "description": "Model B (not necessarily malicious; e.g. debug logging, crash dumps) observes residue from model A after an incomplete cleanup: GPU memory, files, processes, sockets, environment."
+    },
+    {
+      "id": "TA-04",
+      "name": "Storage/supply-chain tamperer",
+      "description": "Anyone with write access to a registry tag, shared cache, SFS path, or checkpoint bucket; substitutes or corrupts artifacts and checkpoints."
+    },
+    {
+      "id": "TA-05",
+      "name": "Operator error / configuration drift",
+      "description": "Non-malicious but adversarial for correctness: wrong digest promoted, audit collector disabled, drain deadline misconfigured, rollback to an incompatible version."
+    },
+    {
+      "id": "TA-06",
+      "name": "Infrastructure faults",
+      "description": "Preemption, node loss, network partition, control-plane API loss, disk corruption, partial writes. Modeled as an adversary that strikes at the worst possible instant of a switch."
+    },
+    {
+      "id": "TA-07",
+      "name": "Compromised provider account",
+      "description": "Stolen Modal or cloud API token used to read snapshots, redirect deployments, or exhaust budget."
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-01",
+      "statement": "Post-switch non-observability: after a switch is accepted, model B cannot observe or be influenced by any process, GPU memory content, file, socket, namespace, environment variable, or credential of model A.",
+      "rationale": "Core cross-tenant/cross-model isolation claim of the whole program."
+    },
+    {
+      "id": "INV-02",
+      "statement": "Verified pairing before restore: a checkpoint is only restored when checkpoint digest, artifact digest, runtime version, driver version, and GPU topology all match a signed binding record; any mismatch refuses the restore.",
+      "rationale": "Stale or foreign checkpoint restored onto mismatched state is silent corruption, not an error."
+    },
+    {
+      "id": "INV-03",
+      "statement": "Fail-closed cleanup: if any cleanup step cannot be positively verified, the node is quarantined out of placement rather than reused; absence of evidence is failure.",
+      "rationale": "Cleanup verification gaps are exactly where residue leaks hide; the prior faststart work already treats unproven host-log absence as unproven."
+    },
+    {
+      "id": "INV-04",
+      "statement": "No secret carryover: credentials are scoped to one model instance and revoked before the switch is accepted; no credential usable by model A remains valid for or visible to model B.",
+      "rationale": "Checkpoints and shared nodes otherwise turn one leaked key into catalog-wide compromise."
+    },
+    {
+      "id": "INV-05",
+      "statement": "At-most-once responses: each external request produces at most one externally visible complete response, and never a response mixing outputs of two model versions or instances.",
+      "rationale": "Switch-time retries must not duplicate side effects or splice A/B outputs."
+    },
+    {
+      "id": "INV-06",
+      "statement": "Audit completeness gates acceptance: a switch without a complete, causally ordered, hash-chained event record is not an accepted switch, regardless of whether serving works.",
+      "rationale": "Every latency and isolation claim in this program is only as good as its evidence chain."
+    },
+    {
+      "id": "INV-07",
+      "statement": "Cache honesty: bytes served from any cache tier are proven equal to the digest the placement decision named, at use time, not at write time.",
+      "rationale": "Caches are the highest-throughput write path in the system and the easiest place to substitute or corrupt bytes."
+    },
+    {
+      "id": "INV-08",
+      "statement": "Least privilege for model code: catalog model code never runs with host-level privilege; privileged operations (CRIU, cuda-checkpoint, mounts, scrubbing) are confined to a dedicated host agent with no tenant-facing interface.",
+      "rationale": "CRIU/cuda-checkpoint require CAP_SYS_ADMIN-class power; granting it to 200 third-party images is not defensible."
+    },
+    {
+      "id": "INV-09",
+      "statement": "Exclusive occupancy per trust epoch: at most one model instance occupies a GPU node (or an exclusively assigned MIG partition with its own scrub lifecycle) at any time between two accepted cleanups; placement enforces this and each switch records it.",
+      "rationale": "The whole isolation story is temporal (TB-04). Concurrent co-residency would silently replace it with a spatial boundary (shared L2/HBM/PCIe/NVLink, MPS, host kernel) that none of these controls defend. Bin-packing changes must therefore trip this invariant, not slip past it."
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-01",
+      "name": "Digest pinning at T0",
+      "statement": "The catalog resolves model_id to an immutable content digest (artifact set + image digest + optional checkpoint digest) at request acceptance (T0). All downstream placement, fetch, and launch steps carry digests, never tags.",
+      "invariants": [
+        "INV-02",
+        "INV-07"
+      ],
+      "threat_actors": [
+        "TA-04",
+        "TA-05"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "required"
+      },
+      "tests": [
+        "TST-09"
+      ],
+      "evidence_fields": [
+        "model_id",
+        "artifact_digest",
+        "checkpoint_digest",
+        "catalog_resolution_at"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "One catalog lookup (~1 ms) on the request path; removes tag-resolution races entirely.",
+        "risk_if_weakened": "Tag mutation mid-flight serves a different model than the one the request accepted."
+      }
+    },
+    {
+      "id": "CTL-02",
+      "name": "Signature verification before use",
+      "statement": "Artifacts, images, and checkpoints are signed at publication (cosign-style, key held by the publishing pipeline). Nodes verify the signature and digest before first mount/launch of a given digest; verification failure refuses use and raises an alert.",
+      "invariants": [
+        "INV-02",
+        "INV-07"
+      ],
+      "threat_actors": [
+        "TA-04",
+        "TA-07"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "delegated",
+        "delegation_note": "Modal pulls from our registry; signature verification happens at publication into the Modal-visible registry, not inside Modal."
+      },
+      "tests": [
+        "TST-04"
+      ],
+      "evidence_fields": [
+        "binding_signature_verified",
+        "signature_key_id",
+        "artifact_digest",
+        "checkpoint_digest"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "The signature check itself is O(ms), but verifying a signature over content requires a trustworthy content digest: CTL-02 consumes the single first-use hashing pass CTL-11 performs at node ingest (never a digest read back from cache metadata). That shared pass is cold-path critical and is costed under CTL-11.",
+        "risk_if_weakened": "Verifying signatures against cached metadata digests instead of hashed content defeats the control against TA-04 entirely; writable shared storage becomes a code-injection channel into GPU nodes."
+      }
+    },
+    {
+      "id": "CTL-03",
+      "name": "Signed checkpoint binding record",
+      "statement": "Every checkpoint carries a signed binding record: checkpoint digest, source artifact digest, runtime image digest, NVIDIA driver version, CUDA version, GPU model/topology hash, capture environment id, capture source, and capture time. Restore compares every field against the target node and refuses on any mismatch, recording the refusal reason. The record also attests capture state classes: capture refuses to proceed (or the record marks and restore refuses) if the process holds established external sockets or open descriptors to secret-bearing paths; and restore installs the instance's egress policy (CTL-08) and mount/privilege profile before the restored process resumes execution, so no restored descriptor outlives the policy that should confine it. This generalizes the existing faststart restore-interface/bind_target mechanism.",
+      "invariants": [
+        "INV-02"
+      ],
+      "threat_actors": [
+        "TA-04",
+        "TA-05",
+        "TA-06"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "not-applicable",
+        "delegation_note": "Modal owns its snapshot format; we do not restore our CRIU checkpoints there."
+      },
+      "tests": [
+        "TST-03",
+        "TST-05"
+      ],
+      "evidence_fields": [
+        "binding_record_digest",
+        "binding_signature_verified",
+        "driver_version",
+        "runtime_version",
+        "gpu_topology_hash",
+        "capture_state_classes",
+        "restore_refusal_reason"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "Field comparison is microseconds; the cost is operational: strict matching lowers checkpoint reuse across heterogeneous nodes and forces per-(driver,GPU) checkpoint variants.",
+        "risk_if_weakened": "Restoring across driver/topology skew produces undefined GPU state presented as a healthy model."
+      }
+    },
+    {
+      "id": "CTL-04",
+      "name": "GPU residue scrub and zero-verification",
+      "statement": "After the previous instance is stopped, the host agent actively scrubs GPU memory: a full-VRAM allocate-and-zero pass, a GPU reset, or MIG instance destroy/recreate. CUDA does not guarantee zeroing of freed framebuffer memory, so NVML counter checks (zero compute processes, baseline memory) are a secondary gate only and never a substitute for the scrub. The gpu_zero_receipt attests the scrub method, bytes scrubbed, and post-scrub counter state. Failure to complete or verify the scrub quarantines the node (INV-03). This strengthens the counter-only GPU-zero receipts used by the earlier faststart n20 cohorts.",
+      "invariants": [
+        "INV-01",
+        "INV-03"
+      ],
+      "threat_actors": [
+        "TA-02",
+        "TA-03"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "delegated",
+        "delegation_note": "Modal's sandbox owns GPU residue; we cannot verify it and must treat Modal GPU residue isolation as a provider claim (see CTL-17)."
+      },
+      "tests": [
+        "TST-01",
+        "TST-16"
+      ],
+      "evidence_fields": [
+        "gpu_zero_receipt",
+        "gpu_scrub_method",
+        "vram_bytes_scrubbed",
+        "gpu_uuid",
+        "residue_scan_result",
+        "quarantine_reason"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "Full-VRAM zero pass at HBM write bandwidth (~1-3 TB/s) costs roughly 30-80 ms for an 80 GB GPU; GPU reset 1-10 s on escalation; runs on every switch.",
+        "risk_if_weakened": "Freed-but-unscrubbed GPU memory is readable by the next allocator; model weights and tenant activations leak across the A/B boundary. Counter-only verification attests the wrong property and is explicitly insufficient."
+      }
+    },
+    {
+      "id": "CTL-05",
+      "name": "Host teardown verification keyed by switch UID",
+      "statement": "Every switch has a UID. All host objects created for an instance (cgroups, mount points, network namespaces, scratch dirs, PIDs, sockets) are labeled with it. Teardown enumerates by UID and must find zero survivors before the switch is accepted; the receipt lists what was checked. Kernel-level residue channels are attested in the same receipt: swap is disabled or encrypted with an ephemeral per-boot key; kernel.core_pattern pipes to a per-UID collector purged at teardown (no node-global crash dumps); kernel.dmesg_restrict=1; per-instance session/user keyrings are destroyed. Extends the existing uid_cleanup.sh pattern.",
+      "invariants": [
+        "INV-01",
+        "INV-03"
+      ],
+      "threat_actors": [
+        "TA-02",
+        "TA-03",
+        "TA-05"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "not-applicable",
+        "delegation_note": "No host access on Modal."
+      },
+      "tests": [
+        "TST-02"
+      ],
+      "evidence_fields": [
+        "switch_id",
+        "uid_cleanup_receipt",
+        "namespace_teardown_receipt",
+        "mount_teardown_receipt",
+        "kernel_residue_receipt",
+        "residue_scan_result"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "Enumeration of /proc, mounts, and cgroups scoped by UID: tens of ms. On the switch path but cheap.",
+        "risk_if_weakened": "Orphan mounts and PIDs are exactly how /tmp caches, FUSE mounts, and stale servers leak into the next model's view."
+      }
+    },
+    {
+      "id": "CTL-06",
+      "name": "Read-only model mounts and per-instance scratch",
+      "statement": "Model artifacts and shared caches are mounted read-only into model containers. Writable paths are per-instance tmpfs or per-switch-UID directories destroyed at teardown. No two model instances ever share a writable path. Cache population is done only by the host fetcher (CTL-11), never by model containers.",
+      "invariants": [
+        "INV-01",
+        "INV-07",
+        "INV-08"
+      ],
+      "threat_actors": [
+        "TA-02",
+        "TA-03",
+        "TA-04"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "delegated",
+        "delegation_note": "Modal volumes configured read-only for model code; enforcement is provider-side."
+      },
+      "tests": [
+        "TST-02",
+        "TST-11"
+      ],
+      "evidence_fields": [
+        "mount_policy_hash",
+        "mount_teardown_receipt",
+        "cache_write_denials"
+      ],
+      "cost": {
+        "critical_path": false,
+        "estimate": "Zero steady-state latency. One-time engineering cost: some NIMs assume writable model dirs and need overlay or env redirection.",
+        "risk_if_weakened": "A writable shared cache lets any model poison the artifacts every later model loads: catalog-wide code injection."
+      }
+    },
+    {
+      "id": "CTL-07",
+      "name": "Privilege separation: unprivileged models, dedicated snapshot agent",
+      "statement": "Model containers run unprivileged: no CAP_SYS_ADMIN/CAP_SYS_PTRACE, no privileged flag, default (or stricter) seccomp, no hostPID/hostNetwork, non-root UID where the image allows. CRIU/cuda-checkpoint, mounts, GPU reset, and teardown run only in a dedicated host agent whose API is local, authenticated, and never reachable from model containers or tenants. The agent's binary digest and profile hash are recorded per switch.",
+      "invariants": [
+        "INV-08",
+        "INV-01"
+      ],
+      "threat_actors": [
+        "TA-01",
+        "TA-02"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "delegated",
+        "delegation_note": "Modal sandboxes are provider-managed gVisor; we cannot add or remove privilege."
+      },
+      "tests": [
+        "TST-11"
+      ],
+      "evidence_fields": [
+        "privilege_profile_hash",
+        "host_agent_version",
+        "host_agent_digest"
+      ],
+      "cost": {
+        "critical_path": false,
+        "estimate": "No steady-state latency. Restores become a two-party handshake (agent restores, container namespace adopts), adding one local RPC (~ms) per switch.",
+        "risk_if_weakened": "A privileged model container plus 200 third-party images equals assumed node compromise; every other control then defends nothing."
+      }
+    },
+    {
+      "id": "CTL-08",
+      "name": "Default-deny egress per model instance",
+      "statement": "Each model instance gets a default-deny egress policy with an allowlist limited to its declared endpoints (none for most catalog models). Artifact fetches happen in the host fetcher, not the model container. Denied flows are counted and attributed to the switch UID.",
+      "invariants": [
+        "INV-01",
+        "INV-04"
+      ],
+      "threat_actors": [
+        "TA-01",
+        "TA-02"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "partial",
+        "delegation_note": "Modal supports restricted network config per function; granularity is provider-defined."
+      },
+      "tests": [
+        "TST-10"
+      ],
+      "evidence_fields": [
+        "egress_policy_hash",
+        "egress_denials"
+      ],
+      "cost": {
+        "critical_path": false,
+        "estimate": "Nil at request time (policy applied at instance creation). Breaks models with hidden phone-home behavior, which is a feature: they surface in the compatibility matrix.",
+        "risk_if_weakened": "A compromised image exfiltrates weights, checkpoints, and tenant payloads at line rate."
+      }
+    },
+    {
+      "id": "CTL-09",
+      "name": "Per-switch ephemeral scoped credentials",
+      "statement": "Every credential handed to a model instance or fetch step is short-TTL, scoped to the specific digests and buckets that placement named, and revoked (or expired) before switch acceptance. Model containers get no cloud API credentials and no instance metadata access. Credential issue/revoke events join the audit chain.",
+      "invariants": [
+        "INV-04",
+        "INV-01"
+      ],
+      "threat_actors": [
+        "TA-02",
+        "TA-03",
+        "TA-07"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "required",
+        "delegation_note": "For Modal this is the primary control: only scoped, revocable tokens are ever uploaded (see CTL-17)."
+      },
+      "tests": [
+        "TST-10"
+      ],
+      "evidence_fields": [
+        "credential_scope_id",
+        "credential_issued_at",
+        "credential_revoked_at"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "Token issue ~10 ms per switch; revoke verification is on the acceptance path. Requires a token service the current prototype lacks.",
+        "risk_if_weakened": "A checkpoint or residue leak of one long-lived key (e.g. NGC) compromises every model and bucket it can read."
+      }
+    },
+    {
+      "id": "CTL-10",
+      "name": "Hash-chained switch audit log",
+      "statement": "Every switch emits a causally ordered event chain (request accepted, resolution, placement, drain, scrub receipts, fetches with bytes, launch, readiness, semantic validation, acceptance) where each event carries a monotonic sequence number and the hash of its predecessor. The chain is written append-only off-node. Acceptance blocks on durability of the complete chain segment: the terminal event commits the segment hash and the switch is accepted only once the whole segment is durably stored off-node; async batching is permitted only before that point. A gap, reorder, or missing terminal event means the switch is not accepted (INV-06) and the node is not marked clean.",
+      "invariants": [
+        "INV-06",
+        "INV-03"
+      ],
+      "threat_actors": [
+        "TA-05",
+        "TA-06"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "required",
+        "delegation_note": "For Modal the chain covers our-side events plus Modal API responses; internals stay opaque."
+      },
+      "tests": [
+        "TST-12"
+      ],
+      "evidence_fields": [
+        "audit_chain_head",
+        "audit_seq_start",
+        "audit_seq_end",
+        "audit_chain_complete",
+        "switch_id"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "Hash-and-append ~1 ms per event, ~15 events per switch; events batch asynchronously during the switch, but acceptance blocks on one durable off-node write of the full segment (~10-50 ms), which is inside every switch budget.",
+        "risk_if_weakened": "Silent partial switches: a node that looks clean with no proof, and latency claims that cannot be audited."
+      }
+    },
+    {
+      "id": "CTL-11",
+      "name": "Cache verify-on-read with single-writer and quarantine",
+      "statement": "All cache tiers (node disk, SFS, object mirror) are content-addressed by digest. Writes are performed only by the host fetcher via write-temp-then-atomic-rename; a partially written entry is never visible under its final name. On ingest to node-local disk the fetcher computes the full content hash (one pass, shared with CTL-02 signature verification) and seals the entry with fs-verity, so every subsequent read is Merkle-verified per block by the kernel, fail-closed, with no re-hash window. Tiers that cannot carry fs-verity (SFS, object) are never read directly by runtimes: their bytes are verified by the full hash on copy to node-local disk. Verification failure quarantines the entry to a forensic path, refetches from the tier above, and is audited.",
+      "invariants": [
+        "INV-07",
+        "INV-02"
+      ],
+      "threat_actors": [
+        "TA-04",
+        "TA-06"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "delegated",
+        "delegation_note": "Modal volumes/images are provider-cached; our verification happens at publication."
+      },
+      "tests": [
+        "TST-04",
+        "TST-05"
+      ],
+      "evidence_fields": [
+        "cache_tier",
+        "cache_entry_digest",
+        "cache_verify_result",
+        "cache_quarantine_path",
+        "bytes_fetched"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "One full hash + fs-verity seal per artifact per node on ingest (a 20 GB artifact costs ~10 s single-core or ~2 s chunked 8-way, shared with CTL-02); per-read Merkle overhead is a few percent of read throughput. The ingest hash is the dominant cold-path cost and must be measured by the storage/cache-matrix task.",
+        "risk_if_weakened": "Bit rot and partial writes load as corrupted weights that fail semantically, or worse, don't visibly fail; tampered entries execute."
+      }
+    },
+    {
+      "id": "CTL-12",
+      "name": "Node leases and identity binding",
+      "statement": "The control plane owns a per-node lease (TTL ~15 s, renewed by the node agent) bound to the node's immutable identity: instance_id plus current boot_id. Placement only targets nodes with a live lease. On lease expiry the node's assignments re-place elsewhere. A node returning with the same name but a different boot_id or instance_id is a foreign replacement: it gets no prior state, no cached trust, and must re-verify everything before rejoining.",
+      "invariants": [
+        "INV-03",
+        "INV-06"
+      ],
+      "threat_actors": [
+        "TA-06",
+        "TA-04"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "not-applicable",
+        "delegation_note": "Modal owns worker identity."
+      },
+      "tests": [
+        "TST-06",
+        "TST-08",
+        "TST-16"
+      ],
+      "evidence_fields": [
+        "lease_id",
+        "lease_expires_at",
+        "boot_id",
+        "instance_id",
+        "node_identity_verified"
+      ],
+      "cost": {
+        "critical_path": false,
+        "estimate": "Lease renewal is background. Preemption detection latency equals lease TTL, trading ~15 s of re-placement delay against split-brain double-serving.",
+        "risk_if_weakened": "Preempted-and-recycled VMs inherit trust they no longer deserve; two nodes can both believe they serve the same assignment."
+      }
+    },
+    {
+      "id": "CTL-13",
+      "name": "Bounded drain with kill escalation",
+      "statement": "Drain of model A has a hard deadline (default 30 s, per-model override recorded in the catalog). In-flight requests past the deadline are failed with a retryable status; the instance is then SIGTERM'd, SIGKILL'd, and scrubbed (CTL-04/05). A model cannot extend its own drain. Partial drains are impossible states: the switch either reaches verified-clean or the node quarantines.",
+      "invariants": [
+        "INV-01",
+        "INV-05"
+      ],
+      "threat_actors": [
+        "TA-02",
+        "TA-01",
+        "TA-06"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "delegated",
+        "delegation_note": "Modal containers are stopped by the provider on scale-down; deadline is configuration."
+      },
+      "tests": [
+        "TST-06",
+        "TST-13"
+      ],
+      "evidence_fields": [
+        "drain_started_at",
+        "drain_deadline",
+        "drain_completed_at",
+        "kill_escalation",
+        "inflight_failed_count"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "Bounds worst-case switch latency by construction; the cost is failing long-running in-flight requests at the deadline, which the SLO must budget.",
+        "risk_if_weakened": "A wedged or hostile model holds the GPU indefinitely: unbounded switch latency and a trivial DoS."
+      }
+    },
+    {
+      "id": "CTL-14",
+      "name": "Idempotency journal and response commit point",
+      "statement": "Every external request carries (or is assigned at T0) an idempotency key. The router journals the request state machine: accepted, dispatched(instance, model digest), first-byte-committed, completed. Retries are allowed only before first-byte-committed and must target the same resolved digest; after first byte, the original response is the only response (duplicates are suppressed and counted). A response is attributed to exactly one instance and digest, so A/B-mixed responses cannot be represented.",
+      "invariants": [
+        "INV-05"
+      ],
+      "threat_actors": [
+        "TA-01",
+        "TA-06"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "required"
+      },
+      "tests": [
+        "TST-13"
+      ],
+      "evidence_fields": [
+        "idempotency_key",
+        "response_commit_state",
+        "duplicate_suppressed",
+        "request_id"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "One journal write per state transition (~1 ms each, 4 per request) on the request path; the journal store becomes an availability dependency of serving.",
+        "risk_if_weakened": "Switch-time retries duplicate side effects and can splice responses from two model versions."
+      }
+    },
+    {
+      "id": "CTL-15",
+      "name": "Fallback ladder with fail-closed default",
+      "statement": "On failure, a switch descends an explicit ladder: (1) snapshot restore, (2) conventional start from local cache, (3) conventional start with remote fetch, (4) re-place on another node. Each descent is audited with the triggering reason. Skipping rungs upward (retrying restore after it was refused) is forbidden. If the ladder is exhausted, the request fails with an honest error; the system never serves an unvalidated instance to salvage latency.",
+      "invariants": [
+        "INV-03",
+        "INV-05",
+        "INV-02"
+      ],
+      "threat_actors": [
+        "TA-06",
+        "TA-05"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "partial",
+        "delegation_note": "On Modal the ladder collapses to provider retry then re-place to a Nebius backend."
+      },
+      "tests": [
+        "TST-05",
+        "TST-07"
+      ],
+      "evidence_fields": [
+        "fallback_stage",
+        "fallback_reason",
+        "restore_refusal_reason"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "Ladder descent multiplies worst-case latency (restore timeout + conventional load); p99 budgets must include at least one descent. No steady-state cost.",
+        "risk_if_weakened": "Ad-hoc retries mask integrity refusals as flakiness and eventually serve what verification rejected."
+      }
+    },
+    {
+      "id": "CTL-16",
+      "name": "Checkpoint-at-rest protection",
+      "statement": "Checkpoints are classified secret-bearing (AST-02): encrypted at rest (AES-256-GCM, per-checkpoint DEK wrapped by a KMS key), readable only by node restore agents via scoped tokens (CTL-09), never world-readable on shared filesystems, and expired/deleted when their binding record is superseded. Capture is golden-only and this is an unconditional signing precondition: the capture pipeline refuses to sign any checkpoint whose capture_source is not a golden, pre-tenant-traffic instance, and an unsigned checkpoint is unrestorable by construction (CTL-03). Credentials present in the captured process are short-TTL and revoked at capture, so anything the image embeds is dead on arrival.",
+      "invariants": [
+        "INV-04",
+        "INV-02"
+      ],
+      "threat_actors": [
+        "TA-04",
+        "TA-03",
+        "TA-07"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "not-applicable",
+        "delegation_note": "We do not export CRIU checkpoints to Modal; Modal-native snapshots are provider-encrypted per their docs and gated by CTL-17."
+      },
+      "tests": [
+        "TST-04",
+        "TST-10"
+      ],
+      "evidence_fields": [
+        "checkpoint_digest",
+        "checkpoint_encrypted",
+        "checkpoint_key_id",
+        "checkpoint_expired_at",
+        "capture_source"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "AES-GCM at ~3-6 GB/s/core adds roughly 1-3 s to an 8 GB checkpoint read unless overlapped with transfer; measurable against the sub-30 s target and must be benchmarked, not assumed.",
+        "risk_if_weakened": "A checkpoint is a memory dump: whoever reads it gets weights, tokens, and whatever tenant data was in flight at capture."
+      }
+    },
+    {
+      "id": "CTL-17",
+      "name": "Modal boundary gate",
+      "statement": "Modal is a distinct trust domain gated by policy, not by our runtime controls: (a) only models whose license and data classification permit third-party execution are eligible; (b) only per-purpose scoped tokens are uploaded, never platform-wide credentials; (c) Modal API tokens are scoped per environment, rotated, and usage-monitored; (d) tenant payload flow to Modal requires an explicit data-processing decision recorded in the ADR; (e) provider isolation and snapshot-encryption claims are recorded as claims with doc references, marked unverifiable, and re-reviewed on provider changes.",
+      "invariants": [
+        "INV-04",
+        "INV-06"
+      ],
+      "threat_actors": [
+        "TA-07",
+        "TA-04"
+      ],
+      "backends": {
+        "k8s": "not-applicable",
+        "k8s-hotpath": "not-applicable",
+        "node-vm": "not-applicable",
+        "modal": "required",
+        "delegation_note": "This control exists solely for the third-party Modal trust domain; Nebius-operated backends are covered by the runtime controls instead."
+      },
+      "tests": [
+        "TST-14"
+      ],
+      "evidence_fields": [
+        "modal_token_scope",
+        "modal_region",
+        "data_classification",
+        "provider_claim_refs"
+      ],
+      "cost": {
+        "critical_path": false,
+        "estimate": "Policy and review cost only. Shrinks the catalog subset eligible for Modal, which is a real capacity/cost constraint the capacity-model task must carry.",
+        "risk_if_weakened": "License breach on NIM redistribution terms and uncontrolled tenant-data export to a third party."
+      }
+    },
+    {
+      "id": "CTL-18",
+      "name": "Switch-runtime rollback machine",
+      "statement": "The switch runtime itself (host agent, router, control plane) deploys with a pinned previous-known-good digest set. Rollback is a first-class state machine (see reliability.state_machines.rollback): triggered automatically on acceptance-rate or isolation-receipt regression, restores the pinned digests, and requires post-rollback verification that serving and receipts are healthy. Version skew rules: agent N must interoperate with control plane N-1 and N+1, so rollback never needs a coordinated big-bang.",
+      "invariants": [
+        "INV-06",
+        "INV-03"
+      ],
+      "threat_actors": [
+        "TA-05"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "required",
+        "delegation_note": "For Modal this is our deployment config rollback; Modal app versions are pinned by our CI."
+      },
+      "tests": [
+        "TST-15"
+      ],
+      "evidence_fields": [
+        "runtime_version",
+        "previous_good_digest",
+        "rollback_trigger",
+        "rollback_verified_at"
+      ],
+      "cost": {
+        "critical_path": false,
+        "estimate": "Off the request path. Engineering cost of N\u00b11 compatibility testing per release.",
+        "risk_if_weakened": "A bad runtime release can only be fixed forward, under incident pressure, on the component that owns isolation."
+      }
+    },
+    {
+      "id": "CTL-19",
+      "name": "Exclusive occupancy enforcement",
+      "statement": "Placement enforces at most one model instance per node (or per exclusively held MIG partition, which is then its own trust epoch scrubbed by mig-recreate). The node agent independently refuses a second concurrent launch regardless of what placement asks. Every switch records a co-residency check receipt. Relaxing this to co-scheduling is a threat-model revision, not a capacity optimization.",
+      "invariants": [
+        "INV-09",
+        "INV-01"
+      ],
+      "threat_actors": [
+        "TA-02",
+        "TA-03",
+        "TA-05"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "delegated",
+        "delegation_note": "Occupancy inside Modal is provider scheduling; tracked as a provider claim under CTL-17 and scored via ADV-14."
+      },
+      "tests": [
+        "TST-11"
+      ],
+      "evidence_fields": [
+        "co_residency_receipt",
+        "switch_id"
+      ],
+      "cost": {
+        "critical_path": false,
+        "estimate": "No request latency. Real cost is capacity: no bin-packing of small models onto one node within a trust epoch; the capacity/cost-model task must price this explicitly.",
+        "risk_if_weakened": "Temporal isolation silently becomes unmodeled spatial isolation; INV-01 claims stop being true while every receipt stays green."
+      }
+    },
+    {
+      "id": "CTL-20",
+      "name": "Authenticated switch command channel and agent-side admission",
+      "statement": "All switch/launch/drain commands to a node agent are control-plane-signed over a mutually authenticated channel with monotonic per-node command sequence numbers (replay refused). The agent enforces a local admission policy - allowed digests, privilege profiles, mount and egress policies - whose hash is recorded per switch, restoring the admission function that bypassing the Kubernetes API server removes. Agent-vs-control-plane state divergence is bounded: the agent reports authoritative serving state every lease renewal, and divergence beyond one lease TTL triggers a drain to a reconciled state.",
+      "invariants": [
+        "INV-08",
+        "INV-06"
+      ],
+      "threat_actors": [
+        "TA-04",
+        "TA-05"
+      ],
+      "backends": {
+        "k8s": "not-applicable",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "not-applicable",
+        "delegation_note": "Plain k8s switches flow through API-server authn/admission/audit; Modal commands flow through the provider API gated by CTL-17. This control exists for command paths that bypass both."
+      },
+      "tests": [
+        "TST-17"
+      ],
+      "evidence_fields": [
+        "agent_command_signature_verified",
+        "admission_policy_hash",
+        "host_agent_digest"
+      ],
+      "cost": {
+        "critical_path": true,
+        "estimate": "One signature verification and one admission evaluation per command (~1 ms) inside the hot path - the price of bypassing the API server without bypassing admission.",
+        "risk_if_weakened": "Anyone who reaches the node-local channel launches arbitrary digests with arbitrary privilege; the hot path becomes an unauthenticated control plane."
+      }
+    },
+    {
+      "id": "CTL-21",
+      "name": "Payload-confining logs, telemetry, and journal",
+      "statement": "Instance stdout/stderr and per-instance platform logs are written to switch-UID-labeled paths purged at teardown and covered by the teardown receipt - including runtime-owned paths like /var/log/pods and containerd state, which are either per-instance-relocated or purged by the host agent. Platform components log structured, payload-free records; telemetry never carries request/response bodies. The idempotency journal, which necessarily holds committed responses (AST-03), stores payloads encrypted with scoped access and a bounded TTL.",
+      "invariants": [
+        "INV-01",
+        "INV-04"
+      ],
+      "threat_actors": [
+        "TA-03",
+        "TA-05"
+      ],
+      "backends": {
+        "k8s": "required",
+        "k8s-hotpath": "required",
+        "node-vm": "required",
+        "modal": "partial",
+        "delegation_note": "Modal's log pipeline is provider-operated; our side enforces payload-free structured logging in code and journal encryption, and the provider pipeline is tracked as a claim under CTL-17."
+      },
+      "tests": [
+        "TST-02",
+        "TST-13"
+      ],
+      "evidence_fields": [
+        "log_teardown_receipt",
+        "log_policy_hash",
+        "journal_payload_encrypted"
+      ],
+      "cost": {
+        "critical_path": false,
+        "estimate": "Log relocation/purge is part of teardown (ms); journal payload encryption ~us per response. Engineering cost: auditing platform components for payload-free logging.",
+        "risk_if_weakened": "Tenant payloads persist across switches in node log paths no receipt covers, and the journal becomes an unclassified store of every response."
+      }
+    }
+  ],
+  "adversaries": [
+    {
+      "id": "ADV-01",
+      "name": "Crash mid-checkpoint",
+      "category": "crash",
+      "scenario": "The snapshot agent or node dies while writing a checkpoint; a truncated image and partial metadata exist in the cache tier.",
+      "actors": [
+        "TA-06"
+      ],
+      "trust_boundaries": [
+        "TB-06",
+        "TB-05"
+      ],
+      "invariants_at_risk": [
+        "INV-02",
+        "INV-07"
+      ],
+      "controls": [
+        "CTL-11",
+        "CTL-03",
+        "CTL-15"
+      ],
+      "expected_outcome": "The partial image is invisible under its final name (atomic rename never happened) or fails digest verification; no binding record was signed, so restore is impossible by construction. The next request for that model descends the ladder to conventional start. The orphan temp file is garbage-collected and audited.",
+      "fails_closed": true,
+      "fail_note": "Nothing restorable exists unless capture completed and was signed.",
+      "assets_at_risk": [
+        "AST-02",
+        "AST-06"
+      ]
+    },
+    {
+      "id": "ADV-02",
+      "name": "Preemption mid-switch",
+      "category": "preemption",
+      "scenario": "The preemptible GPU VM is reclaimed after model A was drained but before model B accepted; or mid-restore.",
+      "actors": [
+        "TA-06"
+      ],
+      "trust_boundaries": [
+        "TB-02",
+        "TB-04"
+      ],
+      "invariants_at_risk": [
+        "INV-05",
+        "INV-06",
+        "INV-03"
+      ],
+      "controls": [
+        "CTL-12",
+        "CTL-14",
+        "CTL-10",
+        "CTL-15"
+      ],
+      "expected_outcome": "The node lease expires within TTL; the control plane marks every in-flight switch on that node failed-incomplete (audit chain has no terminal event, so nothing was accepted). Journaled requests not yet first-byte-committed re-dispatch to another placement under the same idempotency key; committed ones return the committed response or an honest error. No response is duplicated.",
+      "fails_closed": true,
+      "fail_note": "Acceptance requires the terminal audit event; a vanished node cannot have produced it.",
+      "assets_at_risk": [
+        "AST-03",
+        "AST-08"
+      ]
+    },
+    {
+      "id": "ADV-03",
+      "name": "Control-plane API loss mid-drain",
+      "category": "api-loss",
+      "scenario": "The node agent loses the control plane (network partition or control-plane outage) after receiving a drain command for model A.",
+      "actors": [
+        "TA-06"
+      ],
+      "trust_boundaries": [
+        "TB-02"
+      ],
+      "invariants_at_risk": [
+        "INV-01",
+        "INV-03",
+        "INV-05"
+      ],
+      "controls": [
+        "CTL-13",
+        "CTL-05",
+        "CTL-12",
+        "CTL-10"
+      ],
+      "expected_outcome": "The agent completes the local drain-scrub-verify sequence autonomously (it never needs the control plane to finish a teardown), buffers audit events durably on-node, refuses any new model launch while partitioned, and lets its lease lapse. On reconnect it uploads the buffered chain; the control plane reconciles: teardown receipts are honored, but no switch is accepted retroactively unless its full chain is present. Split-brain serving is prevented by the lease.",
+      "fails_closed": true,
+      "fail_note": "Partition degrades to a drained idle node, never to an unsupervised serving node.",
+      "assets_at_risk": [
+        "AST-05",
+        "AST-08"
+      ]
+    },
+    {
+      "id": "ADV-04",
+      "name": "Unverifiable cleanup",
+      "category": "partial-write",
+      "scenario": "GPU scrub or UID teardown cannot be positively verified: NVML errors out, a process is unkillable in D-state, a mount refuses to unmount, or the receipt write itself fails.",
+      "actors": [
+        "TA-06",
+        "TA-02"
+      ],
+      "trust_boundaries": [
+        "TB-04",
+        "TB-03"
+      ],
+      "invariants_at_risk": [
+        "INV-01",
+        "INV-03"
+      ],
+      "controls": [
+        "CTL-04",
+        "CTL-05",
+        "CTL-12",
+        "CTL-15"
+      ],
+      "expected_outcome": "The switch is refused; the node self-quarantines (stops renewing serving eligibility on its lease), in-flight placement re-routes to other nodes, and the node is recycled (reboot or VM replacement) before it may serve again. A fresh boot_id then proves a clean slate. Latency degrades; isolation does not.",
+      "fails_closed": true,
+      "fail_note": "This is INV-03 verbatim: absence of a receipt equals failure.",
+      "assets_at_risk": [
+        "AST-05",
+        "AST-03"
+      ]
+    },
+    {
+      "id": "ADV-05",
+      "name": "Foreign replacement node",
+      "category": "foreign-replacement",
+      "scenario": "A preempted VM's name/IP is reused, either by cloud recycling, by another workstream, or maliciously; the returning node claims prior assignments and cached trust.",
+      "actors": [
+        "TA-06",
+        "TA-04"
+      ],
+      "trust_boundaries": [
+        "TB-02"
+      ],
+      "invariants_at_risk": [
+        "INV-02",
+        "INV-07",
+        "INV-06"
+      ],
+      "controls": [
+        "CTL-12",
+        "CTL-02",
+        "CTL-11"
+      ],
+      "expected_outcome": "Identity binding fails: boot_id/instance_id do not match the lease record. The node is treated as brand new: no assignments, no trusted cache entries (all local digests re-verify on first use), fresh credential issuance only after re-registration. The old lease's assignments were already re-placed at expiry.",
+      "fails_closed": true,
+      "fail_note": "Trust attaches to (instance_id, boot_id), never to name or address.",
+      "assets_at_risk": [
+        "AST-08",
+        "AST-06"
+      ]
+    },
+    {
+      "id": "ADV-06",
+      "name": "Stale cache / catalog version skew",
+      "category": "stale-cache",
+      "scenario": "Model X is republished (new digest); nodes hold the old artifact, checkpoint, or a stale catalog resolution. A request accepted before the publish races one accepted after.",
+      "actors": [
+        "TA-05",
+        "TA-06"
+      ],
+      "trust_boundaries": [
+        "TB-05",
+        "TB-01"
+      ],
+      "invariants_at_risk": [
+        "INV-02",
+        "INV-05",
+        "INV-07"
+      ],
+      "controls": [
+        "CTL-01",
+        "CTL-03",
+        "CTL-14"
+      ],
+      "expected_outcome": "Digests, not tags, flow through the system: the pre-publish request is served entirely by the old digest (a correct, consistent response), the post-publish request by the new one. A checkpoint bound to the old artifact digest never restores against the new artifact (binding mismatch). Old cache entries are valid content for their digest and are garbage-collected by policy, not by trust failure. Each response's digest is recorded, so skew is auditable per request.",
+      "fails_closed": true,
+      "fail_note": "Staleness becomes explicit versioning; there is no code path that resolves a tag twice for one request.",
+      "assets_at_risk": [
+        "AST-06",
+        "AST-08"
+      ]
+    },
+    {
+      "id": "ADV-07",
+      "name": "Malicious model image",
+      "category": "malicious-code",
+      "scenario": "A catalog OCI/NIM image (TA-02) attempts container escape, ptrace of the snapshot agent, GPU residue reading, cache poisoning, metadata-service credential theft, or exfiltration.",
+      "actors": [
+        "TA-02",
+        "TA-01"
+      ],
+      "trust_boundaries": [
+        "TB-03",
+        "TB-04"
+      ],
+      "invariants_at_risk": [
+        "INV-01",
+        "INV-04",
+        "INV-07",
+        "INV-08"
+      ],
+      "controls": [
+        "CTL-07",
+        "CTL-06",
+        "CTL-08",
+        "CTL-09",
+        "CTL-04",
+        "CTL-19"
+      ],
+      "expected_outcome": "Unprivileged execution denies ptrace/mount/admin syscalls; read-only mounts deny cache writes (denials counted); default-deny egress blocks exfiltration and metadata access; scoped short-TTL credentials bound what theft is worth; GPU scrub denies forward residue. Residual risk: kernel and GPU-driver 0-days are accepted and mitigated by node recycling cadence and by never co-scheduling two tenants' models concurrently on one node within a trust epoch.",
+      "fails_closed": false,
+      "fail_note": "Accepted-risk exception: defense-in-depth reduces but cannot eliminate kernel/driver 0-day risk; the explicit residual is recorded in the ADR and bounded by exclusive node occupancy per trust epoch, which is now an enforced invariant (INV-09, CTL-19), plus node recycling cadence.",
+      "assets_at_risk": [
+        "AST-05",
+        "AST-01",
+        "AST-03",
+        "AST-04"
+      ]
+    },
+    {
+      "id": "ADV-08",
+      "name": "Tampered checkpoint or artifact in shared storage",
+      "category": "supply-chain",
+      "scenario": "TA-04 replaces or modifies a checkpoint/artifact in SFS, object storage, or a node cache, hoping a node restores or loads it.",
+      "actors": [
+        "TA-04",
+        "TA-07"
+      ],
+      "trust_boundaries": [
+        "TB-05",
+        "TB-06"
+      ],
+      "invariants_at_risk": [
+        "INV-02",
+        "INV-07"
+      ],
+      "controls": [
+        "CTL-02",
+        "CTL-03",
+        "CTL-11",
+        "CTL-16",
+        "CTL-15"
+      ],
+      "expected_outcome": "Digest or signature verification fails at use time; the entry is quarantined for forensics, refetched from the signed source of truth, the event is audited with the mismatching digests, and serving proceeds via the ladder. Encrypted checkpoints additionally deny the tamperer read access to the original.",
+      "fails_closed": true,
+      "fail_note": "Verification is at use time, so a post-write tamper window does not help the attacker.",
+      "assets_at_risk": [
+        "AST-01",
+        "AST-02",
+        "AST-06"
+      ]
+    },
+    {
+      "id": "ADV-09",
+      "name": "Retry storm and duplicate delivery",
+      "category": "retry",
+      "scenario": "Timeouts during a slow switch cause client and router retries; the same logical request reaches two instances, or a retry lands after the original response committed.",
+      "actors": [
+        "TA-01",
+        "TA-06"
+      ],
+      "trust_boundaries": [
+        "TB-01"
+      ],
+      "invariants_at_risk": [
+        "INV-05"
+      ],
+      "controls": [
+        "CTL-14",
+        "CTL-13"
+      ],
+      "expected_outcome": "The idempotency journal admits one dispatch to commit; late duplicates are suppressed and counted (duplicate_suppressed). Retries before first byte re-dispatch against the same resolved digest, so no A/B mixing. Drain deadlines bound how long a request can dangle and thus the retry window.",
+      "fails_closed": true,
+      "fail_note": "The journal is the arbiter; without a journal row transition, no bytes go to the client.",
+      "assets_at_risk": [
+        "AST-03"
+      ]
+    },
+    {
+      "id": "ADV-10",
+      "name": "Corrupted local cache entry",
+      "category": "partial-write",
+      "scenario": "Bit rot, torn write after power loss, or filesystem bugs corrupt a node-local artifact or checkpoint that previously verified.",
+      "actors": [
+        "TA-06"
+      ],
+      "trust_boundaries": [
+        "TB-05"
+      ],
+      "invariants_at_risk": [
+        "INV-07",
+        "INV-02"
+      ],
+      "controls": [
+        "CTL-11",
+        "CTL-15"
+      ],
+      "expected_outcome": "fs-verity per-block Merkle verification catches corruption at read time, before the bytes reach a runtime, with no periodic-re-hash window: bit rot and torn sectors surface as read errors. The entry quarantines, refetch repairs, and the ladder covers the latency. Non-fs-verity tiers are only ever an ingest source, verified by full hash on copy.",
+      "fails_closed": true,
+      "fail_note": "Per-read kernel Merkle verification on every runtime-visible tier; no guard-check or re-hash-interval window remains.",
+      "assets_at_risk": [
+        "AST-06",
+        "AST-01"
+      ]
+    },
+    {
+      "id": "ADV-11",
+      "name": "Secrets embedded in checkpoint memory",
+      "category": "secrets",
+      "scenario": "A checkpoint captured while the runtime held NGC keys, storage tokens, or in-flight tenant payloads is later read by anyone with checkpoint access, or restored into a context where a different tenant observes them.",
+      "actors": [
+        "TA-03",
+        "TA-04",
+        "TA-07"
+      ],
+      "trust_boundaries": [
+        "TB-06",
+        "TB-04"
+      ],
+      "invariants_at_risk": [
+        "INV-04",
+        "INV-01"
+      ],
+      "controls": [
+        "CTL-16",
+        "CTL-09",
+        "CTL-06",
+        "CTL-21"
+      ],
+      "expected_outcome": "Capture is golden-only and enforced, not aspirational: the capture pipeline unconditionally refuses to sign a checkpoint whose capture_source is not a golden, pre-tenant-traffic instance (CTL-16), and an unsigned checkpoint is unrestorable (CTL-03) - so no tenant payload can be present in restorable memory by construction. Credentials in the captured process are short-TTL and revoked at capture, dead on arrival. The image is encrypted and access-scoped. Logs and the idempotency journal, the other places payloads rest, are covered by CTL-21.",
+      "fails_closed": true,
+      "fail_note": "Golden-capture is a signing precondition with a negative test (TST-04); unsigned means unrestorable, so the enforcement point is cryptographic, not procedural.",
+      "assets_at_risk": [
+        "AST-02",
+        "AST-04",
+        "AST-03"
+      ]
+    },
+    {
+      "id": "ADV-12",
+      "name": "Non-cooperative drain / GPU hold",
+      "category": "dos",
+      "scenario": "Model A (wedged or hostile) ignores SIGTERM, holds CUDA contexts, spawns children, or blocks in uninterruptible I/O to keep the GPU.",
+      "actors": [
+        "TA-02",
+        "TA-06"
+      ],
+      "trust_boundaries": [
+        "TB-04",
+        "TB-03"
+      ],
+      "invariants_at_risk": [
+        "INV-01",
+        "INV-03"
+      ],
+      "controls": [
+        "CTL-13",
+        "CTL-04",
+        "CTL-05",
+        "CTL-12"
+      ],
+      "expected_outcome": "Deadline expiry escalates SIGTERM to SIGKILL to GPU reset; UID-scoped enumeration catches children; a truly stuck node (D-state, reset failure) fails verification and quarantines for recycle (ADV-04 path). The GPU is recovered or the node is removed; either way placement latency degrades and isolation holds.",
+      "fails_closed": true,
+      "fail_note": "The escalation ladder ends in node replacement, which always terminates the hold.",
+      "assets_at_risk": [
+        "AST-05"
+      ]
+    },
+    {
+      "id": "ADV-13",
+      "name": "Audit gap injection",
+      "category": "audit",
+      "scenario": "TA-05/TA-06 (collector outage, disk-full, misconfiguration, or deliberate suppression) drops switch events, leaving cleanly-serving nodes with incomplete evidence chains.",
+      "actors": [
+        "TA-05",
+        "TA-06"
+      ],
+      "trust_boundaries": [
+        "TB-02"
+      ],
+      "invariants_at_risk": [
+        "INV-06",
+        "INV-03"
+      ],
+      "controls": [
+        "CTL-10",
+        "CTL-18"
+      ],
+      "expected_outcome": "Hash chaining makes gaps detectable (sequence break) rather than silent. A switch whose chain is incomplete is not accepted: the control plane treats the instance as unverified, drains it, and re-runs a verified switch. Sustained collector failure trips the rollback/health machinery rather than accumulating unaudited state.",
+      "fails_closed": true,
+      "fail_note": "Serving correctly is not sufficient; acceptance is an evidence property.",
+      "assets_at_risk": [
+        "AST-07"
+      ]
+    },
+    {
+      "id": "ADV-14",
+      "name": "Modal provider boundary breach",
+      "category": "provider",
+      "scenario": "A Modal-side incident (sandbox escape between customers, snapshot store exposure, insider access) or a stolen Modal API token exposes weights, payloads, or deployment control.",
+      "actors": [
+        "TA-07",
+        "TA-04"
+      ],
+      "trust_boundaries": [
+        "TB-07"
+      ],
+      "invariants_at_risk": [
+        "INV-04",
+        "INV-01"
+      ],
+      "controls": [
+        "CTL-17",
+        "CTL-09",
+        "CTL-01"
+      ],
+      "expected_outcome": "Blast radius is pre-bounded, not prevented: only license-and-classification-cleared models and scoped dead-endable tokens exist provider-side, so the worst case is loss of that cleared subset plus whatever payloads were routed there under the recorded data-processing decision. Token theft is bounded by scope, rotation, and usage monitoring. Provider isolation claims are tracked as unverifiable claims; a breach triggers re-placement of Modal-routed models to Nebius backends (CTL-15's re-place rung).",
+      "fails_closed": false,
+      "fail_note": "Accepted-risk exception: a third-party boundary cannot fail closed from our side; the control is ex-ante blast-radius restriction plus documented residual risk in the ADR. This is a scored input to backend selection, not a waiver.",
+      "assets_at_risk": [
+        "AST-01",
+        "AST-03",
+        "AST-04"
+      ]
+    },
+    {
+      "id": "ADV-15",
+      "name": "Cross-switch timing and cache side channels",
+      "category": "side-channel",
+      "scenario": "A tenant infers placement and cache state (which model is resident where, other tenants' usage patterns) from switch latency and warm/cold response timing; a later model probes page-cache residency of shared cache files (mincore/timing) to learn what ran before it.",
+      "actors": [
+        "TA-01",
+        "TA-03"
+      ],
+      "trust_boundaries": [
+        "TB-01",
+        "TB-04"
+      ],
+      "assets_at_risk": [
+        "AST-08",
+        "AST-03"
+      ],
+      "invariants_at_risk": [
+        "INV-01"
+      ],
+      "controls": [
+        "CTL-06",
+        "CTL-19"
+      ],
+      "expected_outcome": "Concurrent spatial channels are closed by exclusive occupancy (INV-09/CTL-19) and per-instance mounts/scratch (CTL-06); page-cache probing of another live model's files is impossible when no other model is live on the node. What remains is request-observable timing: warm-vs-cold switch latency necessarily reveals coarse cache/placement state to tenants, and shaping it away would destroy the product's purpose.",
+      "fails_closed": false,
+      "fail_note": "Accepted-risk exception: coarse timing observability of cache warmth is inherent to a latency-differentiated switching product; it is recorded in the ADR as an accepted, monitored information channel with the boundary that timing may reveal cache state but never content, identity of other tenants, or payloads."
+    },
+    {
+      "id": "ADV-16",
+      "name": "Spoofed or replayed node-agent commands",
+      "category": "control-plane",
+      "scenario": "An attacker or misbehaving component with reach to the node-local control channel (or a stale controller after a partition) injects, replays, or reorders switch/launch commands, trying to start an un-admitted digest, launch with elevated privilege, or drain a healthy instance; separately, Kubernetes' object state and the agent's actual serving state diverge.",
+      "actors": [
+        "TA-04",
+        "TA-05"
+      ],
+      "trust_boundaries": [
+        "TB-02"
+      ],
+      "assets_at_risk": [
+        "AST-05",
+        "AST-08"
+      ],
+      "invariants_at_risk": [
+        "INV-08",
+        "INV-06"
+      ],
+      "controls": [
+        "CTL-20",
+        "CTL-10",
+        "CTL-12"
+      ],
+      "expected_outcome": "Unsigned, replayed, or out-of-sequence commands are refused and audited; a command naming a digest or privilege profile outside the agent's admission policy is refused regardless of signature. Divergence is detected within one lease TTL and reconciled by draining to a consistent state; the agent's reported state, carried in the audit chain, is the authoritative record.",
+      "fails_closed": true,
+      "fail_note": "The agent refuses anything it cannot verify against both the channel signature and its local admission policy; unknown commands do nothing."
+    }
+  ],
+  "reliability": {
+    "slos": [
+      {
+        "id": "SLO-01",
+        "statement": "Switch acceptance success rate >= 99.5% over any rolling 24 h window without operator intervention, where acceptance includes complete receipts (INV-06)."
+      },
+      {
+        "id": "SLO-02",
+        "statement": "Fallback honesty: 100% of ladder descents carry a recorded fallback_reason; a descent without a reason is an SLO violation even if the request succeeded."
+      },
+      {
+        "id": "SLO-03",
+        "statement": "Quarantine recovery: a quarantined node is recycled and re-serving (or terminated) within 30 min, automatically."
+      },
+      {
+        "id": "SLO-04",
+        "statement": "Zero tolerated isolation regressions: any confirmed INV-01/INV-04 violation is a sev-1 stop-ship for the affected backend regardless of latency results."
+      },
+      {
+        "id": "SLO-05",
+        "statement": "At-most-once: duplicate externally visible responses per 1e6 requests = 0 tolerated; duplicate_suppressed counts are reported, not hidden."
+      }
+    ],
+    "fallback_ladder": [
+      "snapshot-restore",
+      "conventional-start-local-cache",
+      "conventional-start-remote-fetch",
+      "re-place-other-node",
+      "honest-failure"
+    ],
+    "state_machines": {
+      "switch": {
+        "states": [
+          "SERVING_A",
+          "DRAINING_A",
+          "SCRUBBING",
+          "VERIFIED_CLEAN",
+          "PREPARING_B",
+          "LAUNCHING_B",
+          "VALIDATING_B",
+          "ACCEPTED_B",
+          "QUARANTINED",
+          "FAILED_INCOMPLETE"
+        ],
+        "transitions": [
+          {
+            "from": "SERVING_A",
+            "to": "DRAINING_A",
+            "on": "switch command with switch_id"
+          },
+          {
+            "from": "DRAINING_A",
+            "to": "SCRUBBING",
+            "on": "in-flight zero or drain_deadline expiry with kill escalation (CTL-13)"
+          },
+          {
+            "from": "SCRUBBING",
+            "to": "VERIFIED_CLEAN",
+            "on": "active VRAM scrub receipt AND uid/namespace/mount/kernel-residue receipts all present for the instance just stopped - model A or a failed model-B attempt, keyed by its own attempt UID (CTL-04, CTL-05) - AND that instance's credentials revoked (CTL-09)"
+          },
+          {
+            "from": "SCRUBBING",
+            "to": "QUARANTINED",
+            "on": "any receipt unverifiable (INV-03)"
+          },
+          {
+            "from": "VERIFIED_CLEAN",
+            "to": "PREPARING_B",
+            "on": "ladder rung available: artifact/checkpoint digests verified locally (CTL-11), binding record checked (CTL-03)"
+          },
+          {
+            "from": "VERIFIED_CLEAN",
+            "to": "FAILED_INCOMPLETE",
+            "on": "ladder exhausted; the node returns to the eligible pool only from VERIFIED_CLEAN, with scrub receipts covering every launch attempt; the request re-places"
+          },
+          {
+            "from": "PREPARING_B",
+            "to": "LAUNCHING_B",
+            "on": "restore or conventional start per ladder rung (CTL-15)"
+          },
+          {
+            "from": "LAUNCHING_B",
+            "to": "SCRUBBING",
+            "on": "launch failure: the failed attempt ran arbitrary catalog code and is scrubbed and receipt-verified like any instance before the next rung"
+          },
+          {
+            "from": "LAUNCHING_B",
+            "to": "VALIDATING_B",
+            "on": "readiness"
+          },
+          {
+            "from": "VALIDATING_B",
+            "to": "SCRUBBING",
+            "on": "semantic probe FAIL: the failed attempt is scrubbed and receipt-verified (per-attempt UID) before any ladder descent (CTL-15), bounded retries"
+          },
+          {
+            "from": "VALIDATING_B",
+            "to": "ACCEPTED_B",
+            "on": "semantic probe PASS and audit chain terminal event durable with the full chain segment (CTL-10, INV-06)"
+          },
+          {
+            "from": "ANY",
+            "to": "FAILED_INCOMPLETE",
+            "on": "lease expiry or node loss (CTL-12); reconciliation honors receipts, accepts nothing without a full chain"
+          }
+        ]
+      },
+      "rollback": {
+        "states": [
+          "HEALTHY_N",
+          "CANARY_N1",
+          "PROMOTED_N1",
+          "ROLLBACK_TRIGGERED",
+          "RESTORED_N",
+          "VERIFIED_RESTORED"
+        ],
+        "transitions": [
+          {
+            "from": "HEALTHY_N",
+            "to": "CANARY_N1",
+            "on": "deploy N+1 to canary node subset with pinned previous_good_digest recorded (CTL-18)"
+          },
+          {
+            "from": "CANARY_N1",
+            "to": "PROMOTED_N1",
+            "on": "canary window passes: acceptance rate, receipt completeness, and probe pass-rate non-regressing"
+          },
+          {
+            "from": "CANARY_N1",
+            "to": "ROLLBACK_TRIGGERED",
+            "on": "regression in acceptance rate, isolation receipts, or duplicate counts"
+          },
+          {
+            "from": "PROMOTED_N1",
+            "to": "ROLLBACK_TRIGGERED",
+            "on": "same regression signals post-promotion"
+          },
+          {
+            "from": "ROLLBACK_TRIGGERED",
+            "to": "RESTORED_N",
+            "on": "redeploy previous_good_digest set; N and N+1 are wire-compatible so no coordinated stop"
+          },
+          {
+            "from": "RESTORED_N",
+            "to": "VERIFIED_RESTORED",
+            "on": "post-rollback verification: serving continuity, receipts healthy, rollback_verified_at recorded"
+          }
+        ]
+      }
+    }
+  },
+  "tests": [
+    {
+      "id": "TST-01",
+      "name": "GPU residue scan across a switch",
+      "pilots": [
+        "k8s",
+        "node-local"
+      ],
+      "procedure": "Run model A (or a surrogate CUDA workload) with sentinel byte patterns resident in GPU memory; execute a full switch; as model B run a probe that (a) asserts nvidia-smi/NVML shows zero foreign processes and baseline memory, and (b) allocates the full free VRAM and scans for sentinel patterns in uninitialized allocations. Any sentinel hit or nonzero residue fails. Include a failed-launch variant: force a model-B attempt to fail after partial GPU execution and verify the attempt is scrubbed with receipts before the node re-enters the eligible pool.",
+      "evidence_fields": [
+        "gpu_zero_receipt",
+        "residue_scan_result",
+        "gpu_uuid",
+        "gpu_scrub_method",
+        "switch_id",
+        "vram_bytes_scrubbed"
+      ]
+    },
+    {
+      "id": "TST-02",
+      "name": "Host residue scan across a switch",
+      "pilots": [
+        "k8s",
+        "node-local"
+      ],
+      "procedure": "Model A writes sentinel files in every writable path, opens sockets, and spawns a child process; after the switch, verify via the teardown receipts and an independent probe (running as model B and as the host agent) that no UID-labeled process, mount, namespace, socket, or file survives, and that model B cannot read any sentinel. Include a failed-launch variant (failed model-B attempt scrubbed with per-attempt UID receipts before re-eligibility), and assert the kernel-residue receipt: swap disabled or encrypted, core_pattern piping to a per-UID collector purged at teardown, dmesg_restrict=1, per-instance keyrings destroyed, and per-instance log paths purged (CTL-21). Record the log_policy_hash in force and verify telemetry emitted during the switch carries no request/response bodies.",
+      "evidence_fields": [
+        "uid_cleanup_receipt",
+        "namespace_teardown_receipt",
+        "mount_teardown_receipt",
+        "residue_scan_result",
+        "switch_id",
+        "kernel_residue_receipt",
+        "log_teardown_receipt",
+        "log_policy_hash"
+      ]
+    },
+    {
+      "id": "TST-03",
+      "name": "Binding mismatch refusal",
+      "pilots": [
+        "k8s",
+        "node-local"
+      ],
+      "procedure": "Present a valid signed checkpoint to a node whose driver_version (then, in separate cases, runtime_version, gpu_topology_hash, artifact_digest) differs from the binding record. Every case must refuse before any restore side effect, with the mismatching field named in restore_refusal_reason, and descend the ladder. Additionally verify state-class enforcement: a capture attempted while the process holds an established external socket or a secret-bearing fd is refused (or marked and refused at restore), and a successful restore has the instance egress policy and privilege profile in force before the process resumes.",
+      "evidence_fields": [
+        "binding_record_digest",
+        "restore_refusal_reason",
+        "driver_version",
+        "runtime_version",
+        "gpu_topology_hash",
+        "fallback_stage",
+        "capture_state_classes",
+        "egress_policy_hash"
+      ]
+    },
+    {
+      "id": "TST-04",
+      "name": "Tamper and signature negative tests",
+      "pilots": [
+        "k8s",
+        "node-local",
+        "modal"
+      ],
+      "procedure": "Flip one byte in a cached artifact and separately in a checkpoint; present an unsigned and a wrongly-signed binding record; and submit for signing a checkpoint whose capture_source is a tenant-serving instance - the pipeline must refuse the signature. Loads/restores must refuse; the corrupt entry must move to the quarantine path and a clean copy must be refetched. On Modal, the equivalent is publication-side: a tampered image digest must be unreferencable by the pinned deployment. Verify the checkpoint object at rest is encrypted under a KMS-wrapped key, and record the quarantine refetch's tier, entry digest, and bytes.",
+      "evidence_fields": [
+        "cache_verify_result",
+        "cache_quarantine_path",
+        "binding_signature_verified",
+        "signature_key_id",
+        "restore_refusal_reason",
+        "capture_source",
+        "checkpoint_digest",
+        "checkpoint_encrypted",
+        "checkpoint_key_id",
+        "cache_tier",
+        "cache_entry_digest",
+        "bytes_fetched"
+      ]
+    },
+    {
+      "id": "TST-05",
+      "name": "Partial-write crash injection",
+      "pilots": [
+        "k8s",
+        "node-local"
+      ],
+      "procedure": "SIGKILL the snapshot agent at randomized offsets during checkpoint write (before rename, during metadata write, after data before sign). In every case: no restorable checkpoint becomes visible, restore attempts refuse, the ladder serves the next request conventionally, and the orphan temp files are collected.",
+      "evidence_fields": [
+        "cache_verify_result",
+        "restore_refusal_reason",
+        "fallback_stage",
+        "fallback_reason"
+      ]
+    },
+    {
+      "id": "TST-06",
+      "name": "Real preemption mid-switch",
+      "pilots": [
+        "k8s",
+        "node-local"
+      ],
+      "procedure": "On a real preemptible GPU VM, trigger (or wait for, with induced stop as fallback) preemption at randomized switch phases while a request is in flight. Verify lease expiry timing, FAILED_INCOMPLETE recording, re-placement, exactly-one-response for the journaled request, and that the replacement node serves from verified state only.",
+      "evidence_fields": [
+        "lease_id",
+        "lease_expires_at",
+        "boot_id",
+        "instance_id",
+        "idempotency_key",
+        "response_commit_state",
+        "audit_chain_complete",
+        "drain_started_at",
+        "kill_escalation"
+      ]
+    },
+    {
+      "id": "TST-07",
+      "name": "Control-plane blackhole during drain",
+      "pilots": [
+        "k8s",
+        "node-local"
+      ],
+      "procedure": "Firewall the node agent from the control plane immediately after it acknowledges a drain command. Verify the node completes drain-scrub-verify locally, refuses new launches while partitioned, buffers its audit events, lets its lease lapse, and reconciles on reconnect with no retroactive acceptance and no double-serving during the partition.",
+      "evidence_fields": [
+        "drain_completed_at",
+        "uid_cleanup_receipt",
+        "audit_chain_complete",
+        "lease_expires_at",
+        "fallback_stage"
+      ]
+    },
+    {
+      "id": "TST-08",
+      "name": "Foreign replacement rejection",
+      "pilots": [
+        "k8s",
+        "node-local"
+      ],
+      "procedure": "Delete and recreate a GPU VM with the same name (and where possible the same IP); have it present itself to the control plane. Verify it is treated as new: identity mismatch recorded, no prior assignments, all local cache entries re-verified before use, no credential reuse.",
+      "evidence_fields": [
+        "node_identity_verified",
+        "boot_id",
+        "instance_id",
+        "lease_id",
+        "cache_verify_result"
+      ]
+    },
+    {
+      "id": "TST-09",
+      "name": "Publish-race digest pinning",
+      "pilots": [
+        "k8s",
+        "node-local",
+        "modal"
+      ],
+      "procedure": "Accept request R1 for model X, republish X to a new digest, then accept R2; let both complete across a switch. Verify R1 was served entirely by the old digest and R2 by the new one, each response carries its serving digest, and no component resolved a tag after T0. Verify the superseded digest's checkpoint binding is expired (checkpoint_expired_at recorded) once the republished digest is live.",
+      "evidence_fields": [
+        "model_id",
+        "artifact_digest",
+        "catalog_resolution_at",
+        "request_id",
+        "checkpoint_expired_at"
+      ]
+    },
+    {
+      "id": "TST-10",
+      "name": "Credential scope and revocation",
+      "pilots": [
+        "k8s",
+        "node-local",
+        "modal"
+      ],
+      "procedure": "From inside a model container, attempt: reading instance metadata, using the fetcher's token, using model A's token after the switch accepted, and egress to a non-allowlisted endpoint. All must fail (401/403/deny) and be counted. Verify credential_revoked_at precedes switch acceptance in the audit chain. On Modal, verify only the scoped token is present in the environment/secret store.",
+      "evidence_fields": [
+        "credential_scope_id",
+        "credential_issued_at",
+        "credential_revoked_at",
+        "egress_denials",
+        "egress_policy_hash",
+        "modal_token_scope"
+      ]
+    },
+    {
+      "id": "TST-11",
+      "name": "Privilege and mount policy audit",
+      "pilots": [
+        "k8s",
+        "node-local"
+      ],
+      "procedure": "For a representative model set (small snapshot-friendly, Boltz2-class storage-heavy, multi-GPU), assert at runtime: no added capabilities, seccomp enforced, no privileged flag, non-host PID/network, model mounts read-only (write attempts fail and are counted), scratch is per-UID, and the snapshot agent is not reachable (connect refused/denied) from the model container. Record the profile hashes. Additionally exercise exclusive occupancy (CTL-19): while an instance is serving, attempt a second concurrent launch on the same node both via placement and via a direct (validly signed) agent command; both must be refused by the node agent independently of the control plane, the refusals audited, and the switch's co_residency_receipt must attest single occupancy for the trust epoch.",
+      "evidence_fields": [
+        "privilege_profile_hash",
+        "mount_policy_hash",
+        "cache_write_denials",
+        "host_agent_version",
+        "host_agent_digest",
+        "co_residency_receipt"
+      ]
+    },
+    {
+      "id": "TST-12",
+      "name": "Audit chain gap detection",
+      "pilots": [
+        "k8s",
+        "node-local",
+        "modal"
+      ],
+      "procedure": "Suppress one mid-chain event (and separately the terminal event) for an otherwise successful switch. Verify the chain validator flags the sequence break, the switch is not marked accepted, the instance is drained and re-switched with a complete chain, and the gap is alarmed.",
+      "evidence_fields": [
+        "audit_chain_head",
+        "audit_seq_start",
+        "audit_seq_end",
+        "audit_chain_complete",
+        "switch_id"
+      ]
+    },
+    {
+      "id": "TST-13",
+      "name": "Idempotent retry under switch delay",
+      "pilots": [
+        "k8s",
+        "node-local",
+        "modal"
+      ],
+      "procedure": "Issue a request that lands during a slow switch; drive client retries with the same idempotency key at aggressive intervals, including one after first-byte commit. Verify exactly one externally visible response, duplicates suppressed and counted, all dispatches pinned to one digest, and drain-deadline expiry converting the oldest dangling dispatch into a retryable failure rather than a second response. Verify the journal entry holding the committed response is encrypted at rest with a recorded TTL.",
+      "evidence_fields": [
+        "idempotency_key",
+        "response_commit_state",
+        "duplicate_suppressed",
+        "request_id",
+        "inflight_failed_count",
+        "drain_deadline",
+        "journal_payload_encrypted"
+      ]
+    },
+    {
+      "id": "TST-14",
+      "name": "Modal boundary conformance",
+      "pilots": [
+        "modal"
+      ],
+      "procedure": "For the Modal pilot: verify only classification-cleared models are deployable (policy check blocks an uncleared model), only scoped tokens exist in the Modal workspace, the Modal API token in use has environment-limited scope, the data-processing decision reference resolves, and provider isolation/snapshot-encryption claims are recorded with doc references and marked unverifiable.",
+      "evidence_fields": [
+        "modal_token_scope",
+        "modal_region",
+        "data_classification",
+        "provider_claim_refs"
+      ]
+    },
+    {
+      "id": "TST-15",
+      "name": "Rollback drill",
+      "pilots": [
+        "k8s",
+        "node-local",
+        "modal"
+      ],
+      "procedure": "Deploy switch-runtime N+1 to a canary subset with a seeded regression (receipt completeness drop). Verify automatic ROLLBACK_TRIGGERED, restoration of the pinned previous_good_digest set without coordinated downtime (N/N+1 interop), post-rollback verification recorded, and no in-flight request lost beyond SLO budgets.",
+      "evidence_fields": [
+        "runtime_version",
+        "previous_good_digest",
+        "rollback_trigger",
+        "rollback_verified_at",
+        "audit_chain_complete"
+      ]
+    },
+    {
+      "id": "TST-16",
+      "name": "Forced-unverifiable-cleanup quarantine drill",
+      "pilots": [
+        "k8s",
+        "node-local"
+      ],
+      "procedure": "Force cleanup verification to fail in separate cases: injected NVML/scrub failure, an unkillable D-state process holding a UID-labeled resource, an unremovable mount, and a receipt-write failure. In every case verify: transition to QUARANTINED, quarantine_reason recorded, the node's serving eligibility revoked (lease not renewed for placement), no new placement lands on it, automatic recycle completes within the SLO-03 budget (30 min), and the replacement node presents a fresh boot_id before serving.",
+      "evidence_fields": [
+        "quarantine_reason",
+        "recycle_completed_at",
+        "lease_id",
+        "boot_id",
+        "gpu_zero_receipt",
+        "vram_bytes_scrubbed"
+      ]
+    },
+    {
+      "id": "TST-17",
+      "name": "Agent command authentication and divergence drill",
+      "pilots": [
+        "k8s",
+        "node-local"
+      ],
+      "procedure": "Against the node agent: replay a previously captured signed switch command, send an unsigned command, send a signed command whose digest or privilege profile is outside the local admission policy - all must be refused and audited with agent_command_signature_verified/admission outcomes. Then induce state divergence (delete the controlling object behind the agent's back, and separately kill the serving instance behind the control plane's back) and verify detection within one lease TTL and reconciliation by drain to a consistent, receipted state. Gates the k8s-hotpath backend via the k8s and node-local pilots.",
+      "evidence_fields": [
+        "agent_command_signature_verified",
+        "admission_policy_hash",
+        "audit_chain_complete",
+        "switch_id"
+      ]
+    }
+  ],
+  "evidence_fields": [
+    {
+      "name": "switch_id",
+      "type": "uuid",
+      "description": "Unique id of one switch attempt; labels every host object and audit event."
+    },
+    {
+      "name": "request_id",
+      "type": "uuid",
+      "description": "External request id from T0."
+    },
+    {
+      "name": "model_id",
+      "type": "string",
+      "description": "Catalog model identifier named by the request."
+    },
+    {
+      "name": "artifact_digest",
+      "type": "sha256",
+      "description": "Immutable digest of the resolved artifact set/image."
+    },
+    {
+      "name": "checkpoint_digest",
+      "type": "sha256",
+      "description": "Digest of the checkpoint image, when the restore rung is used."
+    },
+    {
+      "name": "catalog_resolution_at",
+      "type": "timestamp",
+      "description": "When model_id was resolved to digests (must be at/after T0, before dispatch)."
+    },
+    {
+      "name": "binding_record_digest",
+      "type": "sha256",
+      "description": "Digest of the signed checkpoint binding record."
+    },
+    {
+      "name": "binding_signature_verified",
+      "type": "bool",
+      "description": "Signature verification outcome for artifact/checkpoint/binding."
+    },
+    {
+      "name": "signature_key_id",
+      "type": "string",
+      "description": "Key id that signed the verified object."
+    },
+    {
+      "name": "runtime_version",
+      "type": "string",
+      "description": "Runtime/agent version involved (also used by rollback evidence)."
+    },
+    {
+      "name": "driver_version",
+      "type": "string",
+      "description": "NVIDIA driver version on the node at the event."
+    },
+    {
+      "name": "gpu_topology_hash",
+      "type": "sha256",
+      "description": "Hash of GPU model/count/MIG layout used for binding comparison."
+    },
+    {
+      "name": "gpu_uuid",
+      "type": "string",
+      "description": "UUID(s) of the GPUs scrubbed/assigned."
+    },
+    {
+      "name": "gpu_zero_receipt",
+      "type": "object",
+      "description": "Post-scrub evidence: active VRAM scrub attestation (method, bytes) plus NVML zero-process/baseline counters as a secondary check, per GPU."
+    },
+    {
+      "name": "gpu_scrub_method",
+      "type": "enum",
+      "description": "zero-fill|gpu-reset|mig-recreate active scrub method used (kill/context-teardown alone is not a scrub)."
+    },
+    {
+      "name": "residue_scan_result",
+      "type": "object",
+      "description": "Probe results scanning GPU allocations and host paths for sentinels."
+    },
+    {
+      "name": "quarantine_reason",
+      "type": "string",
+      "description": "Why a node or cache entry was quarantined."
+    },
+    {
+      "name": "uid_cleanup_receipt",
+      "type": "object",
+      "description": "UID-scoped enumeration proving zero surviving processes/files."
+    },
+    {
+      "name": "namespace_teardown_receipt",
+      "type": "object",
+      "description": "Proof that model A's namespaces are gone."
+    },
+    {
+      "name": "mount_teardown_receipt",
+      "type": "object",
+      "description": "Proof that model A's mounts are gone."
+    },
+    {
+      "name": "mount_policy_hash",
+      "type": "sha256",
+      "description": "Hash of the effective mount policy applied to the instance."
+    },
+    {
+      "name": "privilege_profile_hash",
+      "type": "sha256",
+      "description": "Hash of the effective caps/seccomp/securityContext profile."
+    },
+    {
+      "name": "host_agent_version",
+      "type": "string",
+      "description": "Version of the privileged host agent."
+    },
+    {
+      "name": "host_agent_digest",
+      "type": "sha256",
+      "description": "Binary/image digest of the privileged host agent."
+    },
+    {
+      "name": "egress_policy_hash",
+      "type": "sha256",
+      "description": "Hash of the applied egress policy."
+    },
+    {
+      "name": "egress_denials",
+      "type": "int",
+      "description": "Count of denied egress flows attributed to the instance."
+    },
+    {
+      "name": "cache_write_denials",
+      "type": "int",
+      "description": "Count of denied writes to read-only mounts/caches from the instance."
+    },
+    {
+      "name": "credential_scope_id",
+      "type": "string",
+      "description": "Identifier of the issued scoped credential."
+    },
+    {
+      "name": "credential_issued_at",
+      "type": "timestamp",
+      "description": "Issue time of the scoped credential."
+    },
+    {
+      "name": "credential_revoked_at",
+      "type": "timestamp",
+      "description": "Revocation time; must precede switch acceptance."
+    },
+    {
+      "name": "audit_chain_head",
+      "type": "sha256",
+      "description": "Hash of the last event in the switch's chain."
+    },
+    {
+      "name": "audit_seq_start",
+      "type": "int",
+      "description": "First sequence number of the switch's chain."
+    },
+    {
+      "name": "audit_seq_end",
+      "type": "int",
+      "description": "Last sequence number of the switch's chain."
+    },
+    {
+      "name": "audit_chain_complete",
+      "type": "bool",
+      "description": "Whether the chain verifies gap-free from start to terminal event."
+    },
+    {
+      "name": "lease_id",
+      "type": "uuid",
+      "description": "Control-plane lease under which the node serves."
+    },
+    {
+      "name": "lease_expires_at",
+      "type": "timestamp",
+      "description": "Lease expiry at the event time."
+    },
+    {
+      "name": "boot_id",
+      "type": "uuid",
+      "description": "Kernel boot_id binding node identity to one boot."
+    },
+    {
+      "name": "instance_id",
+      "type": "string",
+      "description": "Cloud instance id binding node identity to one VM."
+    },
+    {
+      "name": "node_identity_verified",
+      "type": "bool",
+      "description": "Outcome of (instance_id, boot_id) verification against the lease record."
+    },
+    {
+      "name": "cache_tier",
+      "type": "enum",
+      "description": "node-disk|sfs|object tier the bytes came from."
+    },
+    {
+      "name": "cache_entry_digest",
+      "type": "sha256",
+      "description": "Digest the cache entry claims; compared on read."
+    },
+    {
+      "name": "cache_verify_result",
+      "type": "enum",
+      "description": "pass|fail-quarantined|refetched result of verify-on-read."
+    },
+    {
+      "name": "cache_quarantine_path",
+      "type": "string",
+      "description": "Forensic path of a quarantined entry."
+    },
+    {
+      "name": "bytes_fetched",
+      "type": "int",
+      "description": "Bytes moved to satisfy the fetch, per tier."
+    },
+    {
+      "name": "drain_started_at",
+      "type": "timestamp",
+      "description": "Drain start for model A."
+    },
+    {
+      "name": "drain_deadline",
+      "type": "timestamp",
+      "description": "Hard drain deadline."
+    },
+    {
+      "name": "drain_completed_at",
+      "type": "timestamp",
+      "description": "When in-flight reached zero or deadline forced completion."
+    },
+    {
+      "name": "kill_escalation",
+      "type": "enum",
+      "description": "none|sigterm|sigkill|gpu-reset|node-recycle highest escalation used."
+    },
+    {
+      "name": "inflight_failed_count",
+      "type": "int",
+      "description": "Requests failed retryably at the drain deadline."
+    },
+    {
+      "name": "idempotency_key",
+      "type": "string",
+      "description": "Client-supplied or T0-assigned idempotency key."
+    },
+    {
+      "name": "response_commit_state",
+      "type": "enum",
+      "description": "accepted|dispatched|first-byte-committed|completed journal state."
+    },
+    {
+      "name": "duplicate_suppressed",
+      "type": "int",
+      "description": "Count of suppressed duplicate deliveries for the key."
+    },
+    {
+      "name": "fallback_stage",
+      "type": "enum",
+      "description": "Ladder rung that ultimately served: restore|conv-local|conv-remote|re-place|failed."
+    },
+    {
+      "name": "fallback_reason",
+      "type": "string",
+      "description": "Recorded trigger for each ladder descent."
+    },
+    {
+      "name": "restore_refusal_reason",
+      "type": "string",
+      "description": "Named field/cause when a restore is refused."
+    },
+    {
+      "name": "checkpoint_encrypted",
+      "type": "bool",
+      "description": "Whether the checkpoint object is encrypted at rest."
+    },
+    {
+      "name": "checkpoint_key_id",
+      "type": "string",
+      "description": "KMS key id wrapping the checkpoint DEK."
+    },
+    {
+      "name": "checkpoint_expired_at",
+      "type": "timestamp",
+      "description": "When the checkpoint was expired/deleted after supersession."
+    },
+    {
+      "name": "previous_good_digest",
+      "type": "sha256",
+      "description": "Pinned known-good runtime digest set for rollback."
+    },
+    {
+      "name": "rollback_trigger",
+      "type": "string",
+      "description": "Signal that triggered rollback."
+    },
+    {
+      "name": "rollback_verified_at",
+      "type": "timestamp",
+      "description": "When post-rollback verification completed."
+    },
+    {
+      "name": "modal_token_scope",
+      "type": "string",
+      "description": "Scope of the token(s) present in the Modal workspace."
+    },
+    {
+      "name": "modal_region",
+      "type": "string",
+      "description": "Provider region serving the Modal deployment."
+    },
+    {
+      "name": "data_classification",
+      "type": "enum",
+      "description": "Classification decision permitting third-party execution."
+    },
+    {
+      "name": "provider_claim_refs",
+      "type": "array",
+      "description": "Doc references for provider isolation/encryption claims, marked unverifiable."
+    },
+    {
+      "name": "vram_bytes_scrubbed",
+      "type": "int",
+      "description": "Bytes actively zeroed (or covered by reset/mig-recreate) by the GPU scrub, per GPU."
+    },
+    {
+      "name": "capture_source",
+      "type": "enum",
+      "description": "golden|tenant-serving provenance of a checkpoint capture; only golden is signable."
+    },
+    {
+      "name": "capture_state_classes",
+      "type": "object",
+      "description": "Attested state classes at capture: external sockets, secret-bearing fds; restore refuses marked classes."
+    },
+    {
+      "name": "kernel_residue_receipt",
+      "type": "object",
+      "description": "Attestation of swap policy, per-UID core_pattern collector purge, dmesg_restrict, and keyring teardown."
+    },
+    {
+      "name": "co_residency_receipt",
+      "type": "object",
+      "description": "Proof that exactly one model instance occupied the node/partition during the trust epoch."
+    },
+    {
+      "name": "agent_command_signature_verified",
+      "type": "bool",
+      "description": "Outcome of control-plane signature and sequence verification for a node-agent command."
+    },
+    {
+      "name": "admission_policy_hash",
+      "type": "sha256",
+      "description": "Hash of the agent-side admission policy in force for the switch."
+    },
+    {
+      "name": "log_teardown_receipt",
+      "type": "object",
+      "description": "Proof that per-instance log paths (including runtime-owned ones) were purged at teardown."
+    },
+    {
+      "name": "log_policy_hash",
+      "type": "sha256",
+      "description": "Hash of the payload-free structured-logging policy applied to platform components."
+    },
+    {
+      "name": "journal_payload_encrypted",
+      "type": "bool",
+      "description": "Whether the idempotency journal stores the committed response encrypted with a bounded TTL."
+    },
+    {
+      "name": "recycle_completed_at",
+      "type": "timestamp",
+      "description": "When a quarantined node finished automatic recycle (SLO-03 evidence)."
+    }
+  ],
+  "review_findings": [
+    {
+      "id": "RF-01",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "high",
+      "finding": "CTL-04 verified NVML counters, not GPU memory contents: CUDA does not zero freed framebuffer memory, so the happy path failed open - model B could read model A's residue while the receipt was green.",
+      "resolution": "CTL-04 rewritten as an active scrub (full-VRAM allocate-and-zero, GPU reset, or mig-recreate) with counters demoted to a secondary gate; gpu_zero_receipt/gpu_scrub_method redefined to attest the scrub, vram_bytes_scrubbed added, cost re-estimated (30-80 ms zero pass).",
+      "status": "closed"
+    },
+    {
+      "id": "RF-02",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "high",
+      "finding": "Golden-capture was hedged in the JSON ('wherever possible') while the MD claimed a hard refusal; no test or evidence field covered capture provenance, so ADV-11's fails_closed was overclaimed.",
+      "resolution": "CTL-16 makes golden capture an unconditional signing precondition; capture_source evidence field added to the binding record; TST-04 gains the negative case (tenant-serving capture must be refused a signature); ADV-11 outcome rewritten without hedges.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-03",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "high",
+      "finding": "ADV-07's accepted-risk bound rested on single-model-per-node scheduling that no invariant, control, test, or evidence field enforced - a capacity change could silently replace temporal isolation with unmodeled spatial isolation.",
+      "resolution": "Added INV-09 (exclusive occupancy per trust epoch) and CTL-19 (placement plus agent-side enforcement, co_residency_receipt, TST-11 coverage); ADV-07's bound now cites the enforced invariant. Closure verification (RF-16) found the test leg initially missing; TST-11 now attempts a second concurrent launch via placement and via a direct signed agent command, asserts independent agent-side refusal, and produces co_residency_receipt.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-04",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "high",
+      "finding": "Fail-open path in the switch state machine: failed model-B launch attempts looped back to PREPARING_B and, on ladder exhaustion, the node returned to the eligible pool on model A's receipts, with the failed B instances never scrubbed.",
+      "resolution": "State machine reworked: LAUNCHING_B/VALIDATING_B failures route through SCRUBBING with per-attempt UID receipts; re-eligibility only ever from VERIFIED_CLEAN covering every attempt; TST-01/TST-02 gained failed-launch variants.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-05",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "medium",
+      "finding": "ADV-10 overclaimed fails_closed: size+mtime+xattr guards cannot detect bit rot and the re-hash granularity was never declared, leaving an undeclared open window.",
+      "resolution": "CTL-11 now requires fs-verity sealing at node ingest (per-block Merkle verification on every read, fail-closed, no re-hash window); non-fs-verity tiers are ingest-only sources verified by full hash on copy.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-06",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "medium",
+      "finding": "CTL-10's cost note allowed async mid-chain flush with acceptance blocking only on the terminal event, so a node lost right after acceptance left an accepted switch with an incompletable chain, contradicting INV-06.",
+      "resolution": "CTL-10 now blocks acceptance on durability of the complete off-node chain segment (terminal event commits the segment hash); async batching is permitted only before the acceptance point; cost updated.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-07",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "medium",
+      "finding": "Kernel residue channels missing from CTL-05: swap pages, node-global core dumps (core_pattern), dmesg, and kernel keyrings survive UID-scoped teardown enumeration.",
+      "resolution": "CTL-05 extended: swap off or ephemeral-key encrypted, per-UID core_pattern collector purged at teardown, dmesg_restrict=1, keyring destruction - all attested in the new kernel_residue_receipt and asserted by TST-02.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-08",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "medium",
+      "finding": "Timing/cache side channels were attributed to TA-01 but modeled nowhere - no adversary, control, or accepted-risk entry, despite INV-01's 'observe' claim.",
+      "resolution": "Added ADV-15 (side-channel): spatial channels closed by INV-09/CTL-19 and CTL-06; residual coarse timing observability of cache warmth recorded as an explicit accepted-risk exception entering ADR scoring.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-09",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "medium",
+      "finding": "k8s-hotpath's distinctive attack surface (agent command channel, admission/audit bypass, K8s-vs-agent divergence) had no adversary, control, or pilot mapping.",
+      "resolution": "Added CTL-20 (signed, replay-proof command channel plus agent-side admission policy with recorded hash and bounded divergence reconciliation), ADV-16, and TST-17; THREAT_MODEL.md section 9 states k8s-hotpath is gated via the k8s and node-local pilots.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-10",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "medium",
+      "finding": "INV-03's quarantine machinery - the most load-bearing fail-closed mechanism - had no negative test, and SLO-03 had no mapped evidence.",
+      "resolution": "Added TST-16 (forced-unverifiable-cleanup quarantine drill: injected NVML/scrub failure, D-state process, unremovable mount, receipt-write failure) with quarantine_reason and new recycle_completed_at evidence proving the SLO-03 budget.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-11",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "medium",
+      "finding": "The validator enforced only global invariant coverage: an invariant counted as enforced even if every serving control was delegated/not-applicable on a backend; adversary trust boundaries could be empty; assets were decorative.",
+      "resolution": "Validator now enforces per-backend invariant coverage (each invariant needs a required control per backend, or an explicit invariant_exceptions entry with a note - flagging redundant exceptions too); adversaries must name trust boundaries and assets_at_risk; every asset must be referenced. Modal carries explicit exceptions for INV-08 and INV-09. Mutation tests added for each rule.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-12",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "medium",
+      "finding": "CRIU restore of network connections and inherited fds was unaddressed: a restored checkpoint could resume established sockets and secret-bearing descriptors before any policy applied.",
+      "resolution": "CTL-03 extended with capture state-class attestation (capture or restore refuses established external sockets and secret-bearing fds) and the requirement that egress/privilege policy is in force before the restored process resumes; TST-03 asserts both; capture_state_classes evidence field added.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-13",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "medium",
+      "finding": "Tenant payloads leaked through channels no control covered: runtime-owned log paths (/var/log/pods, containerd state) persisting across switches, payload-bearing telemetry, and the idempotency journal as an unclassified response store.",
+      "resolution": "Added CTL-21: switch-UID-labeled per-instance log paths purged at teardown (including runtime-owned paths), payload-free structured logging and telemetry, journal payload encryption with bounded TTL; evidenced by log_teardown_receipt/log_policy_hash/journal_payload_encrypted and asserted in TST-02/TST-13.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-14",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "low",
+      "finding": "THREAT_MODEL.md referenced REVIEW_FINDINGS.md, which did not exist.",
+      "resolution": "REVIEW_FINDINGS.md created, summarizing all findings and closures with the review provenance.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-15",
+      "source": "independent-review-2026-08-19 (fresh-context adversarial review agent)",
+      "severity": "low",
+      "finding": "CTL-02 was classified off-path although first-use signature verification requires the same full content hash CTL-11 calls the dominant cold-path cost, inviting implementations that verify signatures against cached metadata digests.",
+      "resolution": "CTL-02 marked critical-path and now states it consumes CTL-11's single first-use hashing pass, never a metadata digest; the shared cost is counted once under CTL-11.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-16",
+      "source": "independent-review-closure-verification-2026-08-19",
+      "severity": "medium",
+      "finding": "RF-03's closure recreated the original defect one level down: CTL-19 mapped to TST-11, but TST-11's procedure contained no co-residency or second-concurrent-launch case and co_residency_receipt had no producing test - the agent-side refusal was a claimed property with no test or evidence production.",
+      "resolution": "TST-11 extended: while serving, a second concurrent launch is attempted via placement and via a direct validly-signed agent command; both must be refused agent-side independently of the control plane, audited, and co_residency_receipt produced and asserted. Validator gap that hid this closed under RF-17.",
+      "status": "closed"
+    },
+    {
+      "id": "RF-17",
+      "source": "independent-review-closure-verification-2026-08-19",
+      "severity": "low",
+      "finding": "Four residuals from the fix pass: THREAT_MODEL.md section 11 still said TST-01..TST-15; vram_bytes_scrubbed and log_policy_hash (and on inspection eight further fields) were produced by no test; the validator never checked that a control's mapped tests produce its evidence fields - the blind spot that let RF-16 look closed; and invariant_exceptions were open-ended notes any backend could use.",
+      "resolution": "MD section 11 corrected to TST-01..TST-17. Every declared evidence field now has a producing test (checkpoint encryption/expiry and refetch tier/digest/bytes added to TST-04/TST-09, scrub bytes to TST-01/TST-16, log policy to TST-02). Validator now enforces: every evidence field is produced by at least one test; each control's evidence fields intersect its mapped tests' produced fields; and every invariant exception names the adversary (scored_by) that scores the accepted risk. Mutation tests added for each rule.",
+      "status": "closed"
+    }
+  ]
+}

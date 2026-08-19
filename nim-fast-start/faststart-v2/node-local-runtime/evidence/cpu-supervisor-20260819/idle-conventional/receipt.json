@@ -1,0 +1,275 @@
+{
+  "accounting_failure": null,
+  "artifact": "/home/tux/dashboard/data/worktrees/catalog-switch-node-local-runtime/nim-fast-start/faststart-v2/node-local-runtime/evidence/cpu-supervisor-20260819/idle-conventional/cache/sha256/4ff89e0c9e86927d20f8453f7cca31906e651b6fb7b1656910bf8c15d95927e6/payload",
+  "attempt": {
+    "acceptance_schedule_error_ms": 0.0,
+    "accounting": {
+      "billed_seconds": 0.0,
+      "bytes_moved_total": 0,
+      "cost_usd": 0.0,
+      "currency": "USD",
+      "gpu_active_seconds": 0.0,
+      "gpu_idle_seconds": 0.0
+    },
+    "artifact_id": "cpu-fixture-artifact-b",
+    "artifact_version": "v1",
+    "attempt_id": "node-local-attempt-idle-conventional",
+    "cache": {
+      "artifact": "attached_storage_hit",
+      "checkpoint": "compatible_hit",
+      "image": "local_verified",
+      "storage": "ready"
+    },
+    "cleanup": {
+      "reason": "attempt owns no cleanup-scoped resources",
+      "receipt_sha256": "bb5d368a50a23a6923d56c72b4fe95ae3b13fd8a0e178fc80bc9d86b2856f1a8",
+      "required": false,
+      "resources_deleted": [],
+      "resources_retained": [],
+      "status": "not_required"
+    },
+    "current_node_occupant": null,
+    "environment": {
+      "backend": "node-vm-cpu-fixture",
+      "backend_version": "v1",
+      "code_revision": "0000000000000000000000000000000000000000",
+      "config_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "experiment_id": "node-local-cpu-integration",
+      "gpu_count": 0,
+      "gpu_type": "cpu-fixture",
+      "image_digest": "cpu-fixture@sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "node_id": "local-test-node",
+      "project_id": "local-cpu-integration",
+      "provider": "local",
+      "region": "local"
+    },
+    "failure_class": null,
+    "model_id": "cpu-fixture-b",
+    "model_version": "v1",
+    "ownership": {
+      "cleanup_required": false,
+      "dedicated": true,
+      "owner_task_id": "catalog-switch-node-local-runtime",
+      "resource_prefix": "mlsp-csw-node-local-cpu",
+      "resources": []
+    },
+    "phase_records": [
+      {
+        "outcome": "completed",
+        "phase": "catalog_selection"
+      },
+      {
+        "outcome": "completed",
+        "phase": "queue"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "drain"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "gpu_release"
+      },
+      {
+        "outcome": "completed",
+        "phase": "placement"
+      },
+      {
+        "outcome": "completed",
+        "phase": "image_readiness"
+      },
+      {
+        "outcome": "completed",
+        "phase": "artifact_readiness"
+      },
+      {
+        "outcome": "completed",
+        "phase": "storage_readiness"
+      },
+      {
+        "outcome": "completed",
+        "phase": "cache_readiness"
+      },
+      {
+        "outcome": "completed",
+        "phase": "runtime_launch"
+      },
+      {
+        "outcome": "completed",
+        "phase": "service_readiness"
+      },
+      {
+        "outcome": "completed",
+        "phase": "inference"
+      }
+    ],
+    "phase_samples": [
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "catalog_selection",
+        "seconds": 0.00383226
+      },
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "queue",
+        "seconds": 0.003375095
+      },
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "placement",
+        "seconds": 0.003426503
+      },
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "image_readiness",
+        "seconds": 0.002049017
+      },
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "artifact_readiness",
+        "seconds": 0.002301071
+      },
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "storage_readiness",
+        "seconds": 0.002803535
+      },
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "cache_readiness",
+        "seconds": 0.002969277
+      },
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "runtime_launch",
+        "seconds": 0.00279332
+      },
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "service_readiness",
+        "seconds": 0.003336477
+      },
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "inference",
+        "seconds": 0.002685465
+      }
+    ],
+    "queue_depth": 0,
+    "request_id": "node-local-request-idle-conventional",
+    "scenario": "idle_local",
+    "success": true,
+    "t0_monotonic_ns": 5703408498651190,
+    "terminal_seconds": 0.072041345,
+    "workload_id": "cpu-semantic-fixture"
+  },
+  "audit": {
+    "chain_head": "21d4ce9464a464e237f722fc4982e44bd2313b688e9180b84536dc1fb81a4286",
+    "complete": true,
+    "record_count": 26
+  },
+  "audit_file_sha256": "ba712685a29b242ffa08c30bbe1bcf16111169be4c1b1b5a5fbc879192d547e8",
+  "cleanup_backend_receipt": {
+    "logs": 0,
+    "mounts": 0,
+    "namespaces": 0,
+    "uid_processes": 0
+  },
+  "cleanup_failure": null,
+  "effective_launch_mode": "conventional",
+  "phase_receipts": {
+    "artifact_readiness": {
+      "evidence": {
+        "bytes_moved": 0,
+        "cache_state": "attached_storage_hit",
+        "digest": "4ff89e0c9e86927d20f8453f7cca31906e651b6fb7b1656910bf8c15d95927e6",
+        "path": "/home/tux/dashboard/data/worktrees/catalog-switch-node-local-runtime/nim-fast-start/faststart-v2/node-local-runtime/evidence/cpu-supervisor-20260819/idle-conventional/cache/sha256/4ff89e0c9e86927d20f8453f7cca31906e651b6fb7b1656910bf8c15d95927e6/payload",
+        "seal": "readonly-full-rehash",
+        "size_bytes": 31,
+        "state": "verified_hit"
+      },
+      "receipt_sha256": "e1641a0481235eb9a6cc2e2e09080ab928266fcbfde08569d135fad98676aaad"
+    },
+    "cache_readiness": {
+      "evidence": {
+        "checkpoint_binding": null,
+        "launch_mode": "conventional",
+        "mount": {
+          "reason": "read-only artifact mount prepared"
+        }
+      },
+      "receipt_sha256": "11f87fb3a1c14985a2508e72dade4eb0a8e6b665e4455e3154995e4970b884c2"
+    },
+    "catalog_selection": {
+      "evidence": {
+        "key_id": "cpu-test-command-key",
+        "launch_mode": "conventional",
+        "policy_sha256": "a2897811c62e650bedbbc3d3898d1205979ee5b3135eb8fb68002234fdf42fea",
+        "signature_verified": true
+      },
+      "receipt_sha256": "16284ebe29891490773019ff057f9a93e3ed962d37f62b545b589c32c2dcc56c"
+    },
+    "image_readiness": {
+      "evidence": {
+        "reason": "task-owned fixture image identity verified"
+      },
+      "receipt_sha256": "bbfc1ef865f63946d577724dded967560a897a4da74cdfa22cc794b873f0aa7a"
+    },
+    "inference": {
+      "evidence": {
+        "response_bytes": 300,
+        "response_sha256": "f49bcad7be387c216201038415b3212eb7a8a4d307e3a6df5bbbc6c190b599df",
+        "semantic": {
+          "semantically_valid": true
+        },
+        "validator_id": "cpu-semantic-validator-v1",
+        "validator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "receipt_sha256": "44c8a37904cb9161933ac23b8861fc9a891ae2c07358669ced3b00ab98680f19"
+    },
+    "placement": {
+      "evidence": {
+        "reason": "target digest assigned to the exclusive fixture slot"
+      },
+      "receipt_sha256": "51bc8794acbbb42cf89d7bdd63fb4158d61d1326f5ac512e6ff687bda6fd0713"
+    },
+    "queue": {
+      "evidence": {
+        "attempt_id": "node-local-attempt-idle-conventional",
+        "exclusive_occupancy": true,
+        "second_launch_policy": "deny"
+      },
+      "receipt_sha256": "3cb14c9e4029ce63ea67acf69a65f3ba7c2caaca2345a1da17bd6feb2576671a"
+    },
+    "runtime_launch": {
+      "evidence": {
+        "reason": "conventional CPU fixture launch completed"
+      },
+      "receipt_sha256": "678365ab8c92fcc4cd312fcfc1481b6884d896b8c49d6479beadca8a8221aad2"
+    },
+    "service_readiness": {
+      "evidence": {
+        "reason": "fixture readiness probe passed"
+      },
+      "receipt_sha256": "c879c1a05632d1ffba6e04eacdafe011957d8b0a2c48677b480d8b4665b42d5c"
+    },
+    "storage_readiness": {
+      "evidence": {
+        "reason": "attached storage control ready"
+      },
+      "receipt_sha256": "e6c379f319cf98e6a6e35bad9f40f2fc6dde7253e5921787490a2683841bfb02"
+    }
+  },
+  "schema": "catalog-switch-node-run-receipt/v1",
+  "terminal_failure": null
+}

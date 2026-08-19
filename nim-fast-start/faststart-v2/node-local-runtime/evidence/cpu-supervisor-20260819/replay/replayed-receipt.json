@@ -1,0 +1,142 @@
+{
+  "accounting_failure": null,
+  "artifact": null,
+  "attempt": {
+    "acceptance_schedule_error_ms": 0.0,
+    "accounting": {
+      "billed_seconds": 0.0,
+      "bytes_moved_total": 0,
+      "cost_usd": 0.0,
+      "currency": "USD",
+      "gpu_active_seconds": 0.0,
+      "gpu_idle_seconds": 0.0
+    },
+    "artifact_id": "cpu-fixture-artifact-b",
+    "artifact_version": "v1",
+    "attempt_id": "node-local-attempt-replay",
+    "cache": {
+      "artifact": "attached_storage_hit",
+      "checkpoint": "compatible_hit",
+      "image": "local_verified",
+      "storage": "ready"
+    },
+    "cleanup": {
+      "reason": "attempt owns no cleanup-scoped resources",
+      "receipt_sha256": "bb5d368a50a23a6923d56c72b4fe95ae3b13fd8a0e178fc80bc9d86b2856f1a8",
+      "required": false,
+      "resources_deleted": [],
+      "resources_retained": [],
+      "status": "not_required"
+    },
+    "current_node_occupant": {
+      "model_id": "cpu-fixture-a",
+      "model_version": "v1"
+    },
+    "environment": {
+      "backend": "node-vm-cpu-fixture",
+      "backend_version": "v1",
+      "code_revision": "0000000000000000000000000000000000000000",
+      "config_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "experiment_id": "node-local-cpu-integration",
+      "gpu_count": 0,
+      "gpu_type": "cpu-fixture",
+      "image_digest": "cpu-fixture@sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "node_id": "local-test-node",
+      "project_id": "local-cpu-integration",
+      "provider": "local",
+      "region": "local"
+    },
+    "failure_class": "validation",
+    "model_id": "cpu-fixture-b",
+    "model_version": "v1",
+    "ownership": {
+      "cleanup_required": false,
+      "dedicated": true,
+      "owner_task_id": "catalog-switch-node-local-runtime",
+      "resource_prefix": "mlsp-csw-node-local-cpu",
+      "resources": []
+    },
+    "phase_records": [
+      {
+        "outcome": "failed",
+        "phase": "catalog_selection"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "queue"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "drain"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "gpu_release"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "placement"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "image_readiness"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "artifact_readiness"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "storage_readiness"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "cache_readiness"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "runtime_launch"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "service_readiness"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "inference"
+      }
+    ],
+    "phase_samples": [
+      {
+        "occurrence": 0,
+        "outcome": "failed",
+        "phase": "catalog_selection",
+        "seconds": 0.002278657
+      }
+    ],
+    "queue_depth": 0,
+    "request_id": "node-local-request-replay",
+    "scenario": "a_to_b_local",
+    "success": false,
+    "t0_monotonic_ns": 5703409619089850,
+    "terminal_seconds": 0.041344402,
+    "workload_id": "cpu-semantic-fixture"
+  },
+  "audit": {
+    "chain_head": "edc88e1c904117a9a2f9e82c2b40b218ca5168d27403ed55c85116be64d83c7d",
+    "complete": true,
+    "record_count": 17
+  },
+  "audit_file_sha256": "6ed672b2c7634368ca03a47bbe409af383a1811ee60df4e729c270793a8b6a41",
+  "cleanup_backend_receipt": {
+    "logs": 0,
+    "mounts": 0,
+    "namespaces": 0,
+    "uid_processes": 0
+  },
+  "cleanup_failure": null,
+  "effective_launch_mode": "snapshot",
+  "phase_receipts": {},
+  "schema": "catalog-switch-node-run-receipt/v1",
+  "terminal_failure": "command nonce was replayed"
+}

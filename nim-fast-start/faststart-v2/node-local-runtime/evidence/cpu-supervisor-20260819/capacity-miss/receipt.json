@@ -1,0 +1,169 @@
+{
+  "accounting_failure": null,
+  "artifact": null,
+  "attempt": {
+    "acceptance_schedule_error_ms": 0.0,
+    "accounting": {
+      "billed_seconds": 0.0,
+      "bytes_moved_total": 0,
+      "cost_usd": 0.0,
+      "currency": "USD",
+      "gpu_active_seconds": 0.0,
+      "gpu_idle_seconds": 0.0
+    },
+    "artifact_id": "cpu-fixture-artifact-b",
+    "artifact_version": "v1",
+    "attempt_id": "node-local-attempt-capacity-miss",
+    "cache": {
+      "artifact": "unavailable",
+      "checkpoint": "missing",
+      "image": "unavailable",
+      "storage": "unavailable"
+    },
+    "cleanup": {
+      "reason": "attempt owns no cleanup-scoped resources",
+      "receipt_sha256": "bb5d368a50a23a6923d56c72b4fe95ae3b13fd8a0e178fc80bc9d86b2856f1a8",
+      "required": false,
+      "resources_deleted": [],
+      "resources_retained": [],
+      "status": "not_required"
+    },
+    "current_node_occupant": null,
+    "environment": {
+      "backend": "node-vm-cpu-fixture",
+      "backend_version": "v1",
+      "code_revision": "0000000000000000000000000000000000000000",
+      "config_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "experiment_id": "node-local-cpu-integration",
+      "gpu_count": 0,
+      "gpu_type": "cpu-fixture",
+      "image_digest": "cpu-fixture@sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "node_id": "local-test-node",
+      "project_id": "local-cpu-integration",
+      "provider": "local",
+      "region": "local"
+    },
+    "failure_class": "capacity",
+    "model_id": "cpu-fixture-b",
+    "model_version": "v1",
+    "ownership": {
+      "cleanup_required": false,
+      "dedicated": true,
+      "owner_task_id": "catalog-switch-node-local-runtime",
+      "resource_prefix": "mlsp-csw-node-local-cpu",
+      "resources": []
+    },
+    "phase_records": [
+      {
+        "outcome": "completed",
+        "phase": "catalog_selection"
+      },
+      {
+        "outcome": "completed",
+        "phase": "queue"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "drain"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "gpu_release"
+      },
+      {
+        "outcome": "failed",
+        "phase": "placement"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "image_readiness"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "artifact_readiness"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "storage_readiness"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "cache_readiness"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "runtime_launch"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "service_readiness"
+      },
+      {
+        "outcome": "skipped",
+        "phase": "inference"
+      }
+    ],
+    "phase_samples": [
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "catalog_selection",
+        "seconds": 0.003758018
+      },
+      {
+        "occurrence": 0,
+        "outcome": "completed",
+        "phase": "queue",
+        "seconds": 0.003406082
+      },
+      {
+        "occurrence": 0,
+        "outcome": "failed",
+        "phase": "placement",
+        "seconds": 0.002857066
+      }
+    ],
+    "queue_depth": 3,
+    "request_id": "node-local-request-capacity-miss",
+    "scenario": "capacity_miss",
+    "success": false,
+    "t0_monotonic_ns": 5703409259099553,
+    "terminal_seconds": 0.050267097,
+    "workload_id": "cpu-semantic-fixture"
+  },
+  "audit": {
+    "chain_head": "35688699dbda87f99efb131786dcda2ca2d423185b5aa9f149ab152c016e9357",
+    "complete": true,
+    "record_count": 19
+  },
+  "audit_file_sha256": "1c060a5bf54c1df6b639279a1d85dfd30a312c9f773e690ffb0f2b5fa8b1ed3c",
+  "cleanup_backend_receipt": {
+    "logs": 0,
+    "mounts": 0,
+    "namespaces": 0,
+    "uid_processes": 0
+  },
+  "cleanup_failure": null,
+  "effective_launch_mode": "snapshot",
+  "phase_receipts": {
+    "catalog_selection": {
+      "evidence": {
+        "key_id": "cpu-test-command-key",
+        "launch_mode": "snapshot",
+        "policy_sha256": "a2897811c62e650bedbbc3d3898d1205979ee5b3135eb8fb68002234fdf42fea",
+        "signature_verified": true
+      },
+      "receipt_sha256": "da57db3dcc0aebeb9b57c6ba3b6c2e7dc3d16b446314db1a6a83d7437f5eeb5f"
+    },
+    "queue": {
+      "evidence": {
+        "attempt_id": "node-local-attempt-capacity-miss",
+        "exclusive_occupancy": true,
+        "second_launch_policy": "deny"
+      },
+      "receipt_sha256": "bde3082472b03117a47f6510d113d16f35dafd76d11800128c58367b4cdb5a97"
+    }
+  },
+  "schema": "catalog-switch-node-run-receipt/v1",
+  "terminal_failure": "injected placement failure"
+}

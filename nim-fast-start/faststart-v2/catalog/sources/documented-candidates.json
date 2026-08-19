@@ -1,0 +1,33 @@
+{
+ "meta": {
+  "source": "documented-candidates",
+  "provenance": {
+   "repo_kind": "this-repository",
+   "note": "Models named in repository documentation or example configurations without a deployable catalog entry or any recorded run evidence. These are candidates, never inventory."
+  }
+ },
+ "entries": [
+  {
+   "key": "llama-2-7b-hf",
+   "name": "Llama 2 7B (base)",
+   "artifact_id": "meta-llama/Llama-2-7b-hf",
+   "workload": "chat-llm",
+   "runtime": "vllm",
+   "gpu_note": "example config requests H200:8 with TENSOR_PARALLEL_SIZE=1",
+   "license_gate": "Meta Llama 2 license acceptance and Hugging Face access grant required",
+   "paths": ["skypilot/multiregion/skypilot/llama7b_serve.yaml", "skypilot/multiregion/skypilot/llama7b_finetune.yaml"],
+   "evidence": "serve/finetune example configuration only; no recorded run"
+  },
+  {
+   "key": "llama-2-7b-chat-hf",
+   "name": "Llama 2 7B Chat",
+   "artifact_id": "meta-llama/Llama-2-7b-chat-hf",
+   "workload": "chat-llm",
+   "runtime": "vllm",
+   "gpu_note": "mentioned only in README curl examples",
+   "license_gate": "Meta Llama 2 license acceptance and Hugging Face access grant required",
+   "paths": ["skypilot/multiregion/README.md"],
+   "evidence": "README mention only"
+  }
+ ]
+}
