@@ -430,17 +430,48 @@ def validate_contract(value: dict[str, Any]) -> dict[str, Any]:
         },
         "contract.artifact_gates",
     )
-    if gates != {
+    expected_simple_gates = {
         "rootfs_diff_max_bytes": 134217728,
         "pages_growth_max_basis_points": 200,
         "forbidden_rootfs_prefixes": ["tmp", "tmp/"],
         "required_external_mount": "/tmp",
         "tmpfs_images_max_total_bytes": 134217728,
         "allowed_extra_files": ["stats-dump"],
-        "ext_mnt_exact": {"/": "/", "/tmp": "/tmp"},
-        "bind_mount_dests_exact": ["/opt/nim/.cache", "/tmp"],
-    }:
-        raise StateError("contract artifact gates changed")
+    }
+    for key, expected in expected_simple_gates.items():
+        if gates[key] != expected:
+            raise StateError(f"contract artifact gate {key} changed")
+    # The full expected mount sets come from the measured baseline manifest
+    # (SHA-256 6539b9f5...) plus exactly the new /tmp externalization; they
+    # live in the contract JSON, whose digest every receipt binds.  The tool
+    # pins the invariants no reviewed set may lose.
+    ext_mnt = gates["ext_mnt_exact"]
+    if (
+        not isinstance(ext_mnt, dict)
+        or ext_mnt.get("/") != "/"
+        or ext_mnt.get("/tmp") != "/tmp"
+        or any(
+            not isinstance(key, str)
+            or not key.startswith("/")
+            or not isinstance(item, str)
+            or not item.startswith("/")
+            for key, item in ext_mnt.items()
+        )
+    ):
+        raise StateError(
+            "contract ext_mnt_exact must be a rooted mapping containing /:/ and /tmp:/tmp"
+        )
+    dests = gates["bind_mount_dests_exact"]
+    if (
+        not isinstance(dests, list)
+        or dests != sorted(set(dests))
+        or "/tmp" not in dests
+        or "/opt/nim/.cache" not in dests
+        or any(not isinstance(item, str) or not item.startswith("/") for item in dests)
+    ):
+        raise StateError(
+            "contract bind_mount_dests_exact must be sorted, unique, rooted, and /tmp-inclusive"
+        )
     for field in ("rootfs_diff_max_bytes", "pages_growth_max_basis_points", "tmpfs_images_max_total_bytes"):
         _strict_nonnegative_int(gates[field], f"contract artifact gate {field}")
     return value
