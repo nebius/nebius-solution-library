@@ -1,0 +1,8 @@
+{
+  "schema": "archvteams.nebius.ai/catalog-boundary-source-verification/v1",
+  "source_manifest_sha256": "edd881cf04bff89b6b99c5836b9d9a97074d08665bbcb912ddc8b08d78756294",
+  "verified_file_count": 10,
+  "boltz_status_observation": "verified-in-task-deck",
+  "live_execution_permitted": false,
+  "created_resource_ids": []
+}

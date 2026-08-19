@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archvteams.nebius.ai/schemas/catalog-boundary-storage-attempt-v1.json",
+  "title": "Catalog-boundary storage attempt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "source_manifest_sha256", "evidence_classification", "attempt_id", "request_id", "cache_state", "demand_label", "target", "starting_state", "request", "request_slo_binding", "pre_t0_investment", "operations", "accounting", "concurrency", "cleanup", "supporting_evidence"],
+  "properties": {
+    "schema": {"const": "archvteams.nebius.ai/catalog-boundary-storage-attempt/v1"},
+    "source_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "evidence_classification": {"enum": ["measured-live-product-slo", "synthetic-contract-smoke-not-performance-evidence"]},
+    "attempt_id": {"$ref": "#/$defs/id"},
+    "request_id": {"$ref": "#/$defs/id"},
+    "cache_state": {"enum": ["A_materialized_hit", "B_node_seed_post_t0_materialization", "C_remote_miss_post_t0", "D_active_a_to_b_reclaim"]},
+    "demand_label": {"enum": ["cache_hit", "unknown_model_cold_start", "active_a_to_b_switch"]},
+    "target": {"$ref": "#/$defs/target"},
+    "starting_state": {"$ref": "#/$defs/startingState"},
+    "request": {"$ref": "#/$defs/request"},
+    "request_slo_binding": {"$ref": "#/$defs/binding"},
+    "pre_t0_investment": {"$ref": "#/$defs/investment"},
+    "operations": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "outcome", "started_monotonic_ns", "finished_monotonic_ns", "logical_bytes", "bytes_read", "bytes_written", "bytes_network", "bytes_deleted", "reason", "evidence_sha256"],
+        "properties": {
+          "name": {"enum": ["catalog_selection", "queue", "drain", "gpu_release", "eviction", "artifact_fetch", "clone", "materialization", "hash", "first_read"]},
+          "outcome": {"enum": ["completed", "failed", "skipped"]},
+          "started_monotonic_ns": {"type": ["integer", "null"], "minimum": 1},
+          "finished_monotonic_ns": {"type": ["integer", "null"], "minimum": 1},
+          "logical_bytes": {"type": "integer", "minimum": 0},
+          "bytes_read": {"type": "integer", "minimum": 0},
+          "bytes_written": {"type": "integer", "minimum": 0},
+          "bytes_network": {"type": "integer", "minimum": 0},
+          "bytes_deleted": {"type": "integer", "minimum": 0},
+          "reason": {"type": "string", "minLength": 1},
+          "evidence_sha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    },
+    "accounting": {"$ref": "#/$defs/accounting"},
+    "concurrency": {"$ref": "#/$defs/concurrency"},
+    "cleanup": {"$ref": "#/$defs/cleanup"},
+    "supporting_evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}$"},
+    "bytes": {"type": "integer", "minimum": 0},
+    "nonnegative": {"type": "number", "minimum": 0},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "model_version", "artifact_id", "artifact_version", "artifact_sha256", "artifact_bytes"],
+      "properties": {
+        "model_id": {"$ref": "#/$defs/id"},
+        "model_version": {"$ref": "#/$defs/id"},
+        "artifact_id": {"$ref": "#/$defs/id"},
+        "artifact_version": {"$ref": "#/$defs/id"},
+        "artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "artifact_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "activeModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "model_version"],
+      "properties": {
+        "model_id": {"$ref": "#/$defs/id"},
+        "model_version": {"$ref": "#/$defs/id"}
+      }
+    },
+    "startingState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selected_node_id", "target_materialized", "immutable_node_local_seed_present", "remote_artifact_required", "target_source", "source_artifact_version", "source_artifact_sha256", "source_age_seconds", "active_model"],
+      "properties": {
+        "selected_node_id": {"$ref": "#/$defs/id"},
+        "target_materialized": {"type": "boolean"},
+        "immutable_node_local_seed_present": {"type": "boolean"},
+        "remote_artifact_required": {"type": "boolean"},
+        "target_source": {"enum": ["materialized_generation", "immutable_node_local_seed", "immutable_remote_artifact"]},
+        "source_artifact_version": {"$ref": "#/$defs/id"},
+        "source_artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "source_age_seconds": {"$ref": "#/$defs/nonnegative"},
+        "active_model": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/activeModel"}]}
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["t0_boundary", "accepted_at_utc", "accepted_monotonic_ns", "input_id", "input_sha256", "input_bytes"],
+      "properties": {
+        "t0_boundary": {"const": "external-client-request-accepted/v1"},
+        "accepted_at_utc": {"type": "string"},
+        "accepted_monotonic_ns": {"type": "integer", "minimum": 1},
+        "input_id": {"$ref": "#/$defs/id"},
+        "input_sha256": {"$ref": "#/$defs/sha256"},
+        "input_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trace_path", "ledger_path", "trace_sha256", "ledger_sha256", "trace_id", "ledger_id", "request_id", "attempt_id"],
+      "properties": {
+        "trace_path": {"type": "string"},
+        "ledger_path": {"type": "string"},
+        "trace_sha256": {"$ref": "#/$defs/sha256"},
+        "ledger_sha256": {"$ref": "#/$defs/sha256"},
+        "trace_id": {"$ref": "#/$defs/id"},
+        "ledger_id": {"$ref": "#/$defs/id"},
+        "request_id": {"$ref": "#/$defs/id"},
+        "attempt_id": {"$ref": "#/$defs/id"}
+      }
+    },
+    "investment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["publication_bytes", "publication_cost_usd", "node_seed_bytes", "node_seed_prehydration_bytes", "node_seed_prehydration_cost_usd", "node_seed_residency_seconds", "node_seed_residency_cost_usd", "materialized_bytes", "materialized_prehydration_bytes", "materialized_prehydration_cost_usd", "materialized_residency_seconds", "materialized_residency_cost_usd", "price_source", "included_in_request_totals"],
+      "properties": {
+        "publication_bytes": {"$ref": "#/$defs/bytes"},
+        "publication_cost_usd": {"$ref": "#/$defs/nonnegative"},
+        "node_seed_bytes": {"$ref": "#/$defs/bytes"},
+        "node_seed_prehydration_bytes": {"$ref": "#/$defs/bytes"},
+        "node_seed_prehydration_cost_usd": {"$ref": "#/$defs/nonnegative"},
+        "node_seed_residency_seconds": {"$ref": "#/$defs/nonnegative"},
+        "node_seed_residency_cost_usd": {"$ref": "#/$defs/nonnegative"},
+        "materialized_bytes": {"$ref": "#/$defs/bytes"},
+        "materialized_prehydration_bytes": {"$ref": "#/$defs/bytes"},
+        "materialized_prehydration_cost_usd": {"$ref": "#/$defs/nonnegative"},
+        "materialized_residency_seconds": {"$ref": "#/$defs/nonnegative"},
+        "materialized_residency_cost_usd": {"$ref": "#/$defs/nonnegative"},
+        "price_source": {"type": "string", "minLength": 1},
+        "included_in_request_totals": {"const": false}
+      }
+    },
+    "accounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bytes_read_total", "bytes_written_total", "bytes_network_total", "bytes_deleted_total", "request_slo_bytes_moved_total", "request_slo_cost_usd"],
+      "properties": {
+        "bytes_read_total": {"$ref": "#/$defs/bytes"},
+        "bytes_written_total": {"$ref": "#/$defs/bytes"},
+        "bytes_network_total": {"$ref": "#/$defs/bytes"},
+        "bytes_deleted_total": {"$ref": "#/$defs/bytes"},
+        "request_slo_bytes_moved_total": {"$ref": "#/$defs/bytes"},
+        "request_slo_cost_usd": {"$ref": "#/$defs/nonnegative"}
+      }
+    },
+    "concurrency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["group_id", "peer_attempt_ids", "mutable_namespace_id", "source_read_only"],
+      "properties": {
+        "group_id": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/id"}]},
+        "peer_attempt_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "mutable_namespace_id": {"$ref": "#/$defs/id"},
+        "source_read_only": {"const": true}
+      }
+    },
+    "cleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generation_id", "final_state", "dirty", "reusable", "verified_absent", "receipt_sha256"],
+      "properties": {
+        "generation_id": {"$ref": "#/$defs/id"},
+        "final_state": {"enum": ["ABSENT", "SEALED_RETAINED"]},
+        "dirty": {"type": "boolean"},
+        "reusable": {"type": "boolean"},
+        "verified_absent": {"type": "boolean"},
+        "receipt_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "sha256"],
+      "properties": {
+        "kind": {"$ref": "#/$defs/id"},
+        "path": {"type": "string"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

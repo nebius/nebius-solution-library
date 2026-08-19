@@ -1,0 +1,35 @@
+{
+  "schema": "archvteams.nebius.ai/catalog-boundary-capacity-analysis/v1",
+  "evidence_classification": "projection-from-pinned-sources-not-measurement",
+  "catalog_size": 200,
+  "cache_sizes_gib": [0, 128, 256, 512, 1024, 2048, 4096],
+  "top_k_values": [0, 1, 5, 10, 20, 50, 100, 200],
+  "reuse_exponents": [0.0, 0.8, 1.0, 1.2, 1.5, 2.0],
+  "state_mix_top_k_values": [20, 50, 100],
+  "active_switch_probabilities": [0.0, 0.25, 0.5],
+  "node_local_seed_fractions": [0.0, 0.5, 1.0],
+  "size_profiles": [
+    {"id": "catalog-known-canonical-median", "bytes_per_model": 8669299461, "source": "pinned catalog known-positive canonical median; 55 of 200 planning slots remain imputed"},
+    {"id": "catalog-known-canonical-p90", "bytes_per_model": 13463571700, "source": "pinned catalog known-positive canonical nearest-rank p90; 55 of 200 planning slots remain imputed"}
+  ],
+  "known_catalog_lower_bound": {
+    "known_models": 145,
+    "unknown_or_added_models": 55,
+    "known_bytes": 1615275734485
+  },
+  "row_level_high_ceiling": {
+    "source_rows": 220,
+    "source_bytes": 23295735419434,
+    "scaled_catalog_models": 200,
+    "scaling_rule": "source_bytes * 200 / 220; row-level ceiling is not a canonical-model measurement"
+  },
+  "cost_semantics": {
+    "currency": "USD",
+    "network_ssd_residency_usd_per_gib_month": 0.071,
+    "object_storage_publication_usd_per_gib_month": 0.0147,
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_source_commit": "229101bb5430143e78c4bc796b30715a2a0a14df",
+    "prehydration_transfer_and_compute_cost_usd": null,
+    "reason": "Storage residency uses the pinned resource-broker public PAYG assumptions. Per-attempt prehydration transfer/compute remains separately required in receipts and unquantified until external-T0 execution."
+  }
+}

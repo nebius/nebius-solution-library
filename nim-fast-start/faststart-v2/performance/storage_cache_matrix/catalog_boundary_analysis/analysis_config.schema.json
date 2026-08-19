@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archvteams.nebius.ai/schemas/catalog-boundary-capacity-analysis-v1.json",
+  "title": "Catalog-boundary capacity analysis config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "evidence_classification", "catalog_size", "cache_sizes_gib", "top_k_values", "reuse_exponents", "state_mix_top_k_values", "active_switch_probabilities", "node_local_seed_fractions", "size_profiles", "known_catalog_lower_bound", "row_level_high_ceiling", "cost_semantics"],
+  "properties": {
+    "schema": {"const": "archvteams.nebius.ai/catalog-boundary-capacity-analysis/v1"},
+    "evidence_classification": {"const": "projection-from-pinned-sources-not-measurement"},
+    "catalog_size": {"const": 200},
+    "cache_sizes_gib": {"$ref": "#/$defs/nonnegativeIntegers"},
+    "top_k_values": {"$ref": "#/$defs/nonnegativeIntegers"},
+    "reuse_exponents": {"$ref": "#/$defs/nonnegativeNumbers"},
+    "state_mix_top_k_values": {"$ref": "#/$defs/nonnegativeIntegers"},
+    "active_switch_probabilities": {"$ref": "#/$defs/probabilities"},
+    "node_local_seed_fractions": {"$ref": "#/$defs/probabilities"},
+    "size_profiles": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "bytes_per_model", "source"],
+        "properties": {
+          "id": {"type": "string"},
+          "bytes_per_model": {"type": "integer", "minimum": 1},
+          "source": {"type": "string"}
+        }
+      }
+    },
+    "known_catalog_lower_bound": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["known_models", "unknown_or_added_models", "known_bytes"],
+      "properties": {
+        "known_models": {"type": "integer", "minimum": 1},
+        "unknown_or_added_models": {"type": "integer", "minimum": 0},
+        "known_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "row_level_high_ceiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_rows", "source_bytes", "scaled_catalog_models", "scaling_rule"],
+      "properties": {
+        "source_rows": {"type": "integer", "minimum": 1},
+        "source_bytes": {"type": "integer", "minimum": 1},
+        "scaled_catalog_models": {"const": 200},
+        "scaling_rule": {"type": "string"}
+      }
+    },
+    "cost_semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["currency", "network_ssd_residency_usd_per_gib_month", "object_storage_publication_usd_per_gib_month", "price_observed_at", "price_source_commit", "prehydration_transfer_and_compute_cost_usd", "reason"],
+      "properties": {
+        "currency": {"const": "USD"},
+        "network_ssd_residency_usd_per_gib_month": {"const": 0.071},
+        "object_storage_publication_usd_per_gib_month": {"const": 0.0147},
+        "price_observed_at": {"const": "2026-08-19T00:00:00Z"},
+        "price_source_commit": {"const": "229101bb5430143e78c4bc796b30715a2a0a14df"},
+        "prehydration_transfer_and_compute_cost_usd": {"type": "null"},
+        "reason": {"type": "string"}
+      }
+    }
+  },
+  "$defs": {
+    "nonnegativeIntegers": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
+    "nonnegativeNumbers": {"type": "array", "minItems": 1, "items": {"type": "number", "minimum": 0}},
+    "probabilities": {"type": "array", "minItems": 1, "items": {"type": "number", "minimum": 0, "maximum": 1}}
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "schema": "archvteams.nebius.ai/catalog-boundary-source-manifest/v1",
+  "created_at_utc": "2026-08-19T16:20:00.000000Z",
+  "evidence_classification": "offline-source-pinned-analysis-not-performance-evidence",
+  "request_slo": {
+    "integrated_commit": "65e81b9d0c926dbd1897c512c88fc12cc328ddd5",
+    "reviewed_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
+    "t0_boundary": "external-client-request-accepted/v1",
+    "terminal_boundary": "first-complete-semantically-valid-response/v1",
+    "files": [
+      {"path": "nim-fast-start/faststart-v2/performance/request_slo/README.md", "sha256": "7e8bb358e29b033eb7b7a1b425676d98b00ed14ccbe204f9bd6af74bffcd944f"},
+      {"path": "nim-fast-start/faststart-v2/performance/request_slo/cli.py", "sha256": "1964323c904d1ea6dd48ee7d2743dc2c28e481391f03a4a11cdbb64c62121c1e"},
+      {"path": "nim-fast-start/faststart-v2/performance/request_slo/event.schema.json", "sha256": "a8371e8f0e3713ccbf3db8658ae144e2c62b2ace223dbfd6ae7761d1a2cf3a52"},
+      {"path": "nim-fast-start/faststart-v2/performance/request_slo/harness.py", "sha256": "f8f040ef43cc19fce595397903579fa96ad6750cb53cb0ddacda8887fd2e4649"},
+      {"path": "nim-fast-start/faststart-v2/performance/request_slo/trace.schema.json", "sha256": "b25b9fdc1caacbf173e6575f687899f20c8ca8ad0d6701b1d656105182ec5c3a"}
+    ]
+  },
+  "catalog": {
+    "commit": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
+    "path": "nim-fast-start/faststart-v2/catalog/catalog.json",
+    "sha256": "831c0517c0df3c92e3b8e802b609c08dbc5f2c0eb945fc0d21830e457a71d6ce",
+    "catalog_version": "sha256:e66c8043728c85726c1efcb8f9148445e7f1227077567201441dbc81f2fc2c22",
+    "row_count": 220,
+    "canonical_model_count": 171,
+    "known_canonical_model_count": 145,
+    "known_canonical_bytes": 1615275734485,
+    "known_canonical_median_bytes": 8669299461,
+    "known_canonical_p90_bytes": 13463571700,
+    "row_storage_low_bytes": 1765943322021,
+    "row_storage_high_bytes": 23295735419434,
+    "row_storage_high_is_planning_ceiling": true
+  },
+  "cost_source": {
+    "commit": "229101bb5430143e78c4bc796b30715a2a0a14df",
+    "path": "nim-fast-start/faststart-v2/resource-broker/profiles.json",
+    "sha256": "f24b7b5ca8efe71a21825bdf64349f151d038a0afa5461c29e7e237c1f1b78ae",
+    "profile": "h100-single",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "network_ssd_usd_per_gib_month": "0.071",
+    "object_storage_usd_per_gib_month": "0.0147",
+    "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing"
+  },
+  "boltz_external_tmp": {
+    "commit": "26d9002b6d0529f4d286f28702ad7241d2b3e2a7",
+    "files": [
+      {"path": "nim-fast-start/faststart-v2/boltz2-native/external-tmp-contract.json", "sha256": "facc5ef8d4a9ed4247f827d5807a314a73ef8eea57745e0beecb5b8d17e98bab"},
+      {"path": "nim-fast-start/faststart-v2/boltz2-native/external_tmp_state.py", "sha256": "00ca6fbacdd51ef46e86005946353a75ca22c1b201d0b7385d2fd4adaab350de"},
+      {"path": "nim-fast-start/faststart-v2/boltz2-native/HANDOFF.md", "sha256": "c621667a48735dc8ecf01bb313e8dd9e8394647cbcada53d73847ee0d28cac94"}
+    ],
+    "status_observation": {
+      "source_path": "epics/ml-specialist-tasks/tasks/catalog-fast-switch-architecture-program/task.md",
+      "text": "Every successful attempt still copies and hashes 1,826,220,898 bytes in roughly 440--442 s before admission/T0, so this is prepared-clone evidence rather than unknown-model demand startup.",
+      "text_sha256": "8168e86929b689d61e20c5ce8f64c926d0ad264af0fcf8817e1219a18c1259e9",
+      "bytes_per_attempt": 1826220898,
+      "elapsed_seconds_range": [440, 442],
+      "classification": "prepared-clone-evidence-not-unknown-model-demand-startup",
+      "raw_attempt_receipts_present_in_this_package": false
+    }
+  },
+  "execution_gate": {
+    "live_execution_permitted": false,
+    "created_resource_ids": [],
+    "required_before_execution": [
+      "cleanly committed task-specific broker capability contract",
+      "cleanly committed external-T0 bootstrap capability contract",
+      "independent approval covering both exact commits and the experiment plan"
+    ],
+    "local_nvme": {
+      "status": "unavailable-entitlement-not-proven",
+      "substitution_permitted": false
+    }
+  }
+}

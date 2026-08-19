@@ -1,0 +1,74 @@
+{
+  "schema": "archvteams.nebius.ai/catalog-boundary-capacity-summary/v1",
+  "evidence_classification": "projection-from-pinned-sources-not-measurement",
+  "source_manifest_sha256": "edd881cf04bff89b6b99c5836b9d9a97074d08665bbcb912ddc8b08d78756294",
+  "analysis_config_sha256": "99a1bd3a151bed3d5384b5607b1bb161363f7b3185d04f5268d98ad34570b638",
+  "planning_models": 200,
+  "known_canonical_models": 145,
+  "unknown_or_added_models": 55,
+  "known_canonical_bytes_lower_bound": 1615275734485,
+  "scaled_row_level_high_planning_ceiling_bytes": 21177941290395,
+  "scaled_high_is_not_canonical_model_measurement": true,
+  "full_catalog_capacity": [
+    {
+      "size_profile": "catalog-known-canonical-median",
+      "bytes": 1733859892200,
+      "gib": 1614.782859,
+      "tib": 1.576936,
+      "models_imputed": 55,
+      "network_ssd_residency_usd_per_month": 114.649583,
+      "object_storage_publication_usd_per_month": 23.737308,
+      "prehydration_transfer_and_compute_cost_usd": null
+    },
+    {
+      "size_profile": "catalog-known-canonical-p90",
+      "bytes": 2692714340000,
+      "gib": 2507.785652,
+      "tib": 2.449009,
+      "models_imputed": 55,
+      "network_ssd_residency_usd_per_month": 178.052781,
+      "object_storage_publication_usd_per_month": 36.864449,
+      "prehydration_transfer_and_compute_cost_usd": null
+    }
+  ],
+  "cache_budget_fit_models": [
+    {"cache_gib": 128, "catalog-known-canonical-median": 15, "catalog-known-canonical-p90": 10},
+    {"cache_gib": 256, "catalog-known-canonical-median": 31, "catalog-known-canonical-p90": 20},
+    {"cache_gib": 512, "catalog-known-canonical-median": 63, "catalog-known-canonical-p90": 40},
+    {"cache_gib": 1024, "catalog-known-canonical-median": 126, "catalog-known-canonical-p90": 81},
+    {"cache_gib": 2048, "catalog-known-canonical-median": 200, "catalog-known-canonical-p90": 163},
+    {"cache_gib": 4096, "catalog-known-canonical-median": 200, "catalog-known-canonical-p90": 200}
+  ],
+  "selected_top_k_hit_probabilities": [
+    {"reuse_exponent": 0.0, "top_k": 20, "cache_hit_probability": 0.1},
+    {"reuse_exponent": 0.0, "top_k": 50, "cache_hit_probability": 0.25},
+    {"reuse_exponent": 0.0, "top_k": 100, "cache_hit_probability": 0.5},
+    {"reuse_exponent": 1.0, "top_k": 20, "cache_hit_probability": 0.61206544996},
+    {"reuse_exponent": 1.0, "top_k": 50, "cache_hit_probability": 0.765427296664},
+    {"reuse_exponent": 1.0, "top_k": 100, "cache_hit_probability": 0.882502586908},
+    {"reuse_exponent": 1.2, "top_k": 20, "cache_hit_probability": 0.740694956785},
+    {"reuse_exponent": 1.2, "top_k": 50, "cache_hit_probability": 0.857504413234},
+    {"reuse_exponent": 1.2, "top_k": 100, "cache_hit_probability": 0.93352842469},
+    {"reuse_exponent": 2.0, "top_k": 20, "cache_hit_probability": 0.97330199438},
+    {"reuse_exponent": 2.0, "top_k": 50, "cache_hit_probability": 0.990966893141},
+    {"reuse_exponent": 2.0, "top_k": 100, "cache_hit_probability": 0.996973897813}
+  ],
+  "cost_source": {
+    "commit": "229101bb5430143e78c4bc796b30715a2a0a14df",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "network_ssd_usd_per_gib_month": 0.071,
+    "object_storage_usd_per_gib_month": 0.0147
+  },
+  "prehydration_transfer_and_compute_cost_usd": null,
+  "cost_reason": "Storage residency uses pinned public PAYG assumptions; future state-A receipts separately record the measured prehydration transfer/compute cost.",
+  "boltz_external_tmp": {
+    "classification": "prepared-clone-evidence-not-unknown-model-demand-startup",
+    "bytes_per_attempt": 1826220898,
+    "elapsed_seconds_range": [440, 442],
+    "external_t0_latency_distribution": null
+  },
+  "local_nvme": {
+    "status": "unavailable-entitlement-not-proven",
+    "substitution_permitted": false
+  }
+}
