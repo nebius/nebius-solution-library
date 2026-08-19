@@ -1,0 +1,3 @@
+# Replacement v2 (fresh review candidate)
+
+This candidate follows rejected `c1cc12f5`; that commit remains immutable and no H100 lease is authorized. The executable adversary suite covers all seven review families: trusted external T0 freshness/recorder binding, distinct inputs and non-self-oracled semantic validation, post-cleanup non-empty absence receipts, trusted-state admission/deadline/replay, environment-bound storage observations, and fail-closed fabricated drain/GPU/storage evidence. Network SSD remains an explicitly observed control arm; host-local NVMe is a separate tier and cannot be inferred from it.
