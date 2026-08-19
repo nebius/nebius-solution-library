@@ -1,0 +1,30 @@
+{
+ "meta": {
+  "source": "nims-terraform-catalog",
+  "provenance": {
+   "repo_kind": "this-repository",
+   "path": "modules/nims/catalog.tf",
+   "related_paths": ["modules/nims/proxies.tf", "modules/nims/Readme.md", "modules/nims/tests/catalog.tftest.hcl"],
+   "note": "local.default_model_catalog in modules/nims/catalog.tf. The module only requests nvidia.com/gpu counts; no GPU SKU is bound anywhere in the module. All entries default enabled=false, replicas=1, port 8000, cache under /opt/nim/.cache. Version 'latest' means the module deploys an unpinned tag."
+  }
+ },
+ "entries": [
+  {"key": "openfold3", "display_name": "OpenFold3", "kind": "nim", "image": "nvcr.io/nim/openfold/openfold3", "version": "latest", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 64, "scaling": "fixed", "workload": "protein-structure-prediction"},
+  {"key": "boltz2", "display_name": "Boltz2", "kind": "nim", "image": "nvcr.io/nim/mit/boltz2", "version": "latest", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 64, "scaling": "fixed", "workload": "protein-structure-prediction"},
+  {"key": "evo2_40b", "display_name": "Evo2-40B", "kind": "nim", "image": "nvcr.io/nim/arc/evo2-40b", "version": "latest", "gpu_count": 2, "cpu": 32, "memory_gi": 256, "shm_gi": 16, "scaling": "fixed", "workload": "genomic-sequence-generation", "notes": "2-GPU request conflicts with the faststart lane's single-H200 profile; the module's msa_search entry also carries a container_name copy-paste from this entry"},
+  {"key": "msa_search", "display_name": "MSA Search", "kind": "nim", "image": "nvcr.io/nim/colabfold/msa-search", "version": "latest", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 16, "scaling": "fixed", "workload": "msa-retrieval", "notes": "catalog.tf sets container_name = \"evo2-40b\" for this entry, a likely copy-paste bug"},
+  {"key": "openfold2", "display_name": "OpenFold2", "kind": "nim", "image": "nvcr.io/nim/openfold/openfold2", "version": "latest", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 64, "scaling": "fixed", "workload": "protein-structure-prediction"},
+  {"key": "genmol", "display_name": "GenMol", "kind": "nim", "image": "nvcr.io/nim/nvidia/genmol", "version": "latest", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 16, "scaling": "fixed", "workload": "molecule-generation"},
+  {"key": "molmim", "display_name": "MolMIM", "kind": "nim", "image": "nvcr.io/nim/nvidia/molmim", "version": "1.0.0", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 16, "scaling": "fixed", "workload": "molecule-generation", "notes": "default entrypoint; no root security context override"},
+  {"key": "diffdock", "display_name": "DiffDock", "kind": "nim", "image": "nvcr.io/nim/mit/diffdock", "version": "latest", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 16, "scaling": "fixed", "workload": "molecular-docking"},
+  {"key": "qwen3-next-80b-a3b-instruct", "display_name": "Qwen3 Next 80B A3B Instruct", "kind": "nim", "image": "nvcr.io/nim/qwen/qwen3-next-80b-a3b-instruct", "version": "latest", "gpu_count": 2, "cpu": 32, "memory_gi": 256, "shm_gi": 16, "scaling": "vllm-hpa-min1-max2", "workload": "chat-llm"},
+  {"key": "proteinmpnn", "display_name": "ProteinMPNN", "kind": "nim", "image": "nvcr.io/nim/ipd/proteinmpnn", "version": "1.0.2", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 16, "scaling": "fixed", "workload": "protein-sequence-design", "notes": "default entrypoint"},
+  {"key": "rfdiffusion", "display_name": "RFdiffusion", "kind": "nim", "image": "nvcr.io/nim/ipd/rfdiffusion", "version": "2.2.0", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 16, "scaling": "fixed", "workload": "protein-backbone-generation", "notes": "default entrypoint"},
+  {"key": "cosmos_reason1_7b", "display_name": "Cosmos-Reason1-7B", "kind": "nim", "image": "nvcr.io/nim/nvidia/cosmos-reason1-7b", "version": "latest", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 32, "scaling": "vllm-hpa-min1-max3", "workload": "vision-language-reasoning"},
+  {"key": "cosmos_reason2_8b", "display_name": "Cosmos-Reason2-8B", "kind": "nim", "image": "nvcr.io/nim/nvidia/cosmos-reason2-8b", "version": "1.6.0", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 32, "scaling": "vllm-hpa-min1-max3", "workload": "vision-language-reasoning"},
+  {"key": "cosmos_reason2_2b", "display_name": "Cosmos-Reason2-2B", "kind": "nim", "image": "nvcr.io/nim/nvidia/cosmos-reason2-2b", "version": "1.6.0", "gpu_count": 1, "cpu": 8, "memory_gi": 64, "shm_gi": 16, "scaling": "vllm-hpa-min1-max3", "workload": "vision-language-reasoning"},
+  {"key": "cosmos_embed1", "display_name": "Cosmos-Embed1", "kind": "nim", "image": "nvcr.io/nim/nvidia/cosmos-embed1", "version": "1.0.0", "gpu_count": 1, "cpu": 8, "memory_gi": 64, "shm_gi": 16, "scaling": "fixed", "workload": "video-embedding"},
+  {"key": "nemotron_nano_12b_v2_vl", "display_name": "Nemotron Nano 12B v2 VL", "kind": "nim", "image": "nvcr.io/nim/nvidia/nemotron-nano-12b-v2-vl", "version": "1.6.0", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": 32, "scaling": "vllm-hpa-min1-max3", "workload": "vision-language-reasoning"},
+  {"key": "bionemo", "display_name": "BioNeMo Notebook", "kind": "bionemo_notebook", "image": "nvcr.io/nvidia/clara/bionemo-framework", "version": "nightly", "gpu_count": 1, "cpu": 16, "memory_gi": 128, "shm_gi": null, "scaling": "fixed", "workload": "notebook-environment", "notes": "JupyterLab environment, not a request-serving inference model; excluded from switch pilots"}
+ ]
+}
