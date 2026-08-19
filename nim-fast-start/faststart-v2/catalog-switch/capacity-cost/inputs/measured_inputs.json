@@ -1,7 +1,7 @@
 {
-  "schema_version": "capacity-cost-measured-inputs/v1",
+  "schema_version": "capacity-cost-measured-inputs/v2",
   "as_of_date": "2026-08-19",
-  "statement": "Every entry in 'measured' points at a committed artifact on this branch with its SHA-256 pinned; the frontier builder refuses to run if a checksum drifts. Entries in 'assumptions' are explicitly not measurements and every frontier output that depends on one names it. Backends in 'unmeasured_backends' receive no measured latency, no per-request cost, and no empirical rank.",
+  "statement": "Provenance is strictly separated. 'measured' entries point at committed artifacts on this branch with pinned SHA-256; the frontier builder refuses to run on drift. 'simulation' entries are placeholder-derived discrete-event outputs and are NEVER presented as measurement; only their capacity outputs are consumed and re-priced. 'assumptions' are explicitly not measurements and every dependent output names its assumption. Backends in 'unmeasured_backends' and cost classes in 'unmeasured_cost_classes' receive no latency, no per-request cost, and no empirical rank.",
   "measured": [
     {
       "id": "of2-n20-fresh",
@@ -11,10 +11,11 @@
       "file": "performance/openfold2/fresh-cohort-n20-results.tsv",
       "sha256": "b5e3bf5d28c3da0b8a3407dee51aaff8b45fce73f16929b632ca971deb513b03",
       "metric": "demand_to_two_semantic_boottime_upper_seconds",
+      "warm_hit_metric": "semantic_request_2_seconds",
       "n": 20,
       "failed_attempt_denominator": "0/20",
       "environment": "already provisioned t12 H100 (gpu-h100-sxm), storage attached, exact image residency proven before T0; see performance/COLD_START_METRICS.md",
-      "notes": "Fresh fail-closed cohort; conservative CLOCK_BOOTTIME upper bound; nearest-rank percentiles."
+      "notes": "Fresh fail-closed cohort; conservative CLOCK_BOOTTIME upper bound; nearest-rank percentiles. semantic_request_2_seconds is the measured warm-hit (already-serving) latency of the same runs."
     },
     {
       "id": "boltz2-n20-fresh",
@@ -24,23 +25,27 @@
       "file": "boltz2-native/fresh-cohort-n20-results.tsv",
       "sha256": "ec36c85052f62878c22d3e6320845d5e74fb342612d5e1b367d422e9beedad58",
       "metric": "demand_to_two_semantic_boottime_upper_seconds",
+      "warm_hit_metric": "semantic_request_2_seconds",
       "n": 20,
       "failed_attempt_denominator": "0/20",
       "environment": "same t12 H100 cohort protocol as of2-n20-fresh",
       "notes": "All 20 attempts measured and qualified; the cohort outcome is SLO_FAIL against the separate 20 s p95 target, which does not remove any sample from this cost model."
     },
     {
-      "id": "catalog-sim-reports",
-      "kind": "simulation",
+      "id": "boltz2-pret0-cache-read",
+      "kind": "pre_t0_preparation",
       "backend": "internal-k8s-snapshot",
-      "model": "catalog-wide traces",
-      "file": "catalog-sim/results/reports.json",
-      "sha256": "6954d454eb2630279b3e42126ea36afdc1c16540804ec224bd49a0d6f4097f2a",
-      "metric": "reserved_gpu_hours, busy_gpu_hours, fetched_gib, latency p50/p95/p99, slo_goodput, hit rates",
-      "n": null,
+      "model": "Boltz2",
+      "file": "performance/COLD_START_METRICS.md",
+      "sha256": "db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1",
+      "metric": "pre-T0 cache full read seconds",
+      "value_seconds": "422.854590",
+      "cache_bytes": 13341111872,
+      "artifact_bytes": 16241056616,
+      "n": 1,
       "failed_attempt_denominator": null,
-      "environment": "deterministic discrete-event simulator seeded with measured faststart lane inputs; commit 2d17c187 cherry-picked onto this branch",
-      "notes": "The simulator's own cost_usd uses explicitly-declared placeholder prices and is IGNORED here; this model re-prices reserved GPU-hours and fetched GiB with the sourced price snapshot."
+      "environment": "n20 cohort pre-T0 identity table; cache receipt SHA-256 e9c4a57dc2aed5795e9bef1b233154816862d84bb8f33c7dbd947629a9e46a25",
+      "notes": "LOWER BOUND for a request-triggered cold switch: the 13,341,111,872-byte attached cache was fully read pre-T0 (422.854590 s); the 16,241,056,616-byte M3 artifact was NOT read pre-T0 (O_DIRECT reads happen inside the T0 window and are already charged there); container image pull is excluded because image residency was proven before T0. A fully cold node would additionally pay image pull and any remote artifact localization."
     },
     {
       "id": "cold-start-metrics-doc",
@@ -54,6 +59,26 @@
       "failed_attempt_denominator": null,
       "environment": "warm provisioned nodes, storage attached",
       "notes": "n=3 lanes are reference-only in this model; only the n=20 cohorts drive per-request frontier rows because n=3 cannot support a p95 claim."
+    }
+  ],
+  "simulation": [
+    {
+      "id": "catalog-sim-reports",
+      "kind": "placeholder_derived_simulation",
+      "file": "catalog-sim/results/reports.json",
+      "sha256": "6954d454eb2630279b3e42126ea36afdc1c16540804ec224bd49a0d6f4097f2a",
+      "consumed_fields": "reserved_gpu_hours, busy_gpu_hours, fetched_gib, latency p50/p95/p99, slo_goodput, hit rates, utilization",
+      "input_provenance": "The simulator's MTBF, bandwidth, cache, conventional-init, drain, and reprovision inputs carry provenance:placeholder in reports.json; its low/base/high sensitivity levels move ALL placeholders together. Its placeholder cost_usd is ignored; this model re-prices capacity outputs with the sourced price snapshot.",
+      "notes": "Commit 2d17c187 cherry-picked onto this branch. These rows must never be described as measured."
+    },
+    {
+      "id": "capacity-cost-sweeps",
+      "kind": "placeholder_derived_simulation",
+      "file": "catalog-switch/capacity-cost/results/sweeps.json",
+      "sha256": "9bfc805479bc37ddde1330497a8984789acb25561102aebde4c463c6caad4c90",
+      "consumed_fields": "per-point reserved_gpu_hours, fetched_gib, latency p50/p95/p99, slo_goodput, hit rates, utilization along the warm_top_k and l1_capacity_gib axes",
+      "input_provenance": "Generated by costmodel/run_sweeps.py: each sweep isolates exactly one axis (warm-K grid 1/2/4/8/16; L1 cache 150/200/400/800/1600 GiB, floor set by the largest 143.19 GiB base-catalog artifact) with every other placeholder fixed at base and trace checksums asserted against catalog-sim/traces/CHECKSUMS.json. Placeholder-derived simulation, never measurement.",
+      "notes": "Deterministic; regenerable byte-identically via run_sweeps.py."
     }
   ],
   "assumptions": [
@@ -70,6 +95,20 @@
       "unit": "probability that a preemptible attempt is lost and retried",
       "basis": "modeling grid; 0.44155844 is the computed break-even for H100 (1 - 2.15/3.85)",
       "why_assumption": "No measured preemption-loss rate exists for the measured lanes; the 0/20 observed failure count bounds but does not estimate it."
+    },
+    {
+      "name": "prep_reuse_grid",
+      "value": [1, 2, 5, 10, 50],
+      "unit": "prepared-switch requests served per pre-T0 preparation",
+      "basis": "amortization grid for the cold-switch class; S=1 is the fully request-triggered worst case, larger S amortizes one preparation over subsequent switches on the same node",
+      "why_assumption": "Reuse depends on routing policy and demand mix, which are not measured; the frontier reports the full grid instead of assuming one point."
+    },
+    {
+      "name": "restores_between_captures_grid",
+      "value": [1, 10, 100, 1000],
+      "unit": "restores served by one snapshot capture",
+      "basis": "amortization grid for capture cost per model-version",
+      "why_assumption": "Recapture cadence is a policy choice tied to model-version churn, which is not measured."
     },
     {
       "name": "monthly_demand_grid_requests",
@@ -93,11 +132,25 @@
       "why_assumption": "Statistical bound derived from the measured 0/20 denominators, not an observed rate; used only for the pessimistic retry multiplier."
     },
     {
+      "name": "on_demand_loss_negligible",
+      "value": "0",
+      "unit": "probability",
+      "basis": "on-demand instances are not preempted by policy; other failure modes are covered by the retry multiplier",
+      "why_assumption": "Used only inside the preemptible-then-on-demand fallback blend; not a measured availability claim."
+    },
+    {
       "name": "l2_fetch_billing_variants",
       "value": ["egress_billed", "egress_free"],
       "unit": "variant",
       "basis": "Object Storage egress is $0.0150/GiB on the dated price page while VPC networking egress/ingress is listed free; which meter applies to remote artifact fetches depends on artifact placement",
       "why_assumption": "Billing attribution of intra-cloud object reads was not verified against an invoice; both variants are computed and labeled."
+    },
+    {
+      "name": "cross_region_relocalization",
+      "value": "cost-only",
+      "unit": "modeling scope",
+      "basis": "regional-loss fallback rows price the measured Boltz2 artifact+cache bytes (27.550541 GiB) under both egress variants",
+      "why_assumption": "Cross-region switch latency is unmeasured in this program; regional fallback rows therefore carry prices and capacity levels but no latency."
     }
   ],
   "unmeasured_backends": [
@@ -105,7 +158,7 @@
       "backend": "cerebrium",
       "status": "PENDING_MEASUREMENT",
       "reason": "The sibling task catalog-switch-cerebrium-qwen3-glm52-benchmark is implemented but fail-closed at entitlement/capacity gates; no measured Cerebrium latency exists in this program as of 2026-08-19.",
-      "what_exists": "Dated public per-second prices in price_snapshot.json only."
+      "what_exists": "Dated public per-second prices in price_snapshot.json only, hash-bound to the archived payload."
     },
     {
       "backend": "internal-node-local-vm",
@@ -117,7 +170,21 @@
       "backend": "modal",
       "status": "EXCLUDED_DOCUMENTATION_ONLY",
       "reason": "Program scope correction of 2026-08-19: Modal is documentation-only; it must never receive a measured value or an empirical rank.",
-      "what_exists": "Dated public terms in MODAL_APPENDIX.md, outside every computation."
+      "what_exists": "Dated public terms in MODAL_APPENDIX.md, hash-bound to an archived payload, outside every computation."
+    }
+  ],
+  "unmeasured_cost_classes": [
+    {
+      "cost_class": "cold_switch",
+      "model": "OpenFold2",
+      "status": "PENDING_MEASUREMENT",
+      "reason": "OpenFold2's pre-T0 table records 'full read not applicable' (artifact identity-bound, payload not page-preloaded); no measured preparation duration exists, so no cold-switch cost is computed for it."
+    },
+    {
+      "cost_class": "node_provision_miss",
+      "model": "all",
+      "status": "PENDING_MEASUREMENT",
+      "reason": "The legacy new-node lane is fail-closed on this branch (commit 730ca566) and no qualified fresh-node provisioning cohort exists here; the class is declared but receives no numbers."
     }
   ]
 }

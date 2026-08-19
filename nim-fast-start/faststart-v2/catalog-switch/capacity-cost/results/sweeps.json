@@ -1,0 +1,3310 @@
+{
+ "base_placeholders": {
+  "conventional_init_seconds": {
+   "base": 90.0,
+   "high": 240.0,
+   "low": 45.0,
+   "name": "conventional_init_seconds",
+   "provenance": "placeholder",
+   "rationale": "conventional (non-snapshot) NIM start time excluding artifact load I/O; only the MSA Search cached conventional route is measured",
+   "selected": 90.0,
+   "selected_level": "base",
+   "unit": "seconds"
+  },
+  "conventional_load_bytes_per_s": {
+   "base": 700000000.0,
+   "high": 1500000000.0,
+   "low": 300000000.0,
+   "name": "conventional_load_bytes_per_s",
+   "provenance": "placeholder",
+   "rationale": "effective artifact ingest bandwidth during a conventional load",
+   "selected": 700000000.0,
+   "selected_level": "base",
+   "unit": "bytes/s"
+  },
+  "gpu_hour_usd": {
+   "base": 2.95,
+   "high": 4.2,
+   "low": 1.9,
+   "name": "gpu_hour_usd",
+   "provenance": "placeholder",
+   "rationale": "H100-class hourly price used for reserved GPU-hour cost",
+   "selected": 2.95,
+   "selected_level": "base",
+   "unit": "USD/GPU-hour"
+  },
+  "gpu_release_seconds": {
+   "base": 2.0,
+   "high": 5.0,
+   "low": 0.5,
+   "name": "gpu_release_seconds",
+   "provenance": "placeholder",
+   "rationale": "drain/teardown time to release the GPU from model A before starting model B; not yet measured as an isolated phase",
+   "selected": 2.0,
+   "selected_level": "base",
+   "unit": "seconds"
+  },
+  "l1_capacity_gib": {
+   "base": 400.0,
+   "high": 800.0,
+   "low": 200.0,
+   "name": "l1_capacity_gib",
+   "provenance": "placeholder",
+   "rationale": "node-local NVMe budget reserved for the L1 artifact cache",
+   "selected": 400.0,
+   "selected_level": "base",
+   "unit": "GiB"
+  },
+  "l2_egress_usd_per_gib": {
+   "base": 0.02,
+   "high": 0.09,
+   "low": 0.0,
+   "name": "l2_egress_usd_per_gib",
+   "provenance": "placeholder",
+   "rationale": "remote artifact read/egress cost per GiB fetched into L1",
+   "selected": 0.02,
+   "selected_level": "base",
+   "unit": "USD/GiB"
+  },
+  "l2_fetch_bytes_per_s": {
+   "base": 1000000000.0,
+   "high": 2400000000.0,
+   "low": 300000000.0,
+   "name": "l2_fetch_bytes_per_s",
+   "provenance": "placeholder",
+   "rationale": "remote artifact localization bandwidth per node; Phase 5 observed ~483 MB/s single-stream and ~2356 MB/s 4-way parallel NRD reads, but no task-scoped L2 benchmark exists for this fleet",
+   "selected": 1000000000.0,
+   "selected_level": "base",
+   "unit": "bytes/s"
+  },
+  "node_mtbf_hours": {
+   "base": 6.0,
+   "high": 24.0,
+   "low": 2.0,
+   "name": "node_mtbf_hours",
+   "provenance": "placeholder",
+   "rationale": "preemptible node mean time between preemptions",
+   "selected": 6.0,
+   "selected_level": "base",
+   "unit": "hours"
+  },
+  "node_reprovision_seconds": {
+   "base": 300.0,
+   "high": 900.0,
+   "low": 120.0,
+   "name": "node_reprovision_seconds",
+   "provenance": "placeholder",
+   "rationale": "time from preemption to a replacement node Ready with empty caches",
+   "selected": 300.0,
+   "selected_level": "base",
+   "unit": "seconds"
+  },
+  "synthetic_scale_max": {
+   "base": 1.6,
+   "high": 2.2,
+   "low": 1.3,
+   "name": "synthetic_scale_max",
+   "provenance": "placeholder",
+   "rationale": "upper bound of per-model timing/size scale relative to its anchor",
+   "selected": 1.6,
+   "selected_level": "base",
+   "unit": "ratio"
+  },
+  "synthetic_scale_min": {
+   "base": 0.7,
+   "high": 0.8,
+   "low": 0.6,
+   "name": "synthetic_scale_min",
+   "provenance": "placeholder",
+   "rationale": "lower bound of per-model timing/size scale relative to its anchor; no catalog-wide measurement exists yet",
+   "selected": 0.7,
+   "selected_level": "base",
+   "unit": "ratio"
+  }
+ },
+ "cache_sweep": [
+  {
+   "bytes": {
+    "fetched_gib": 18788.221193565987,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 15497.968979579397,
+    "eviction_count": 715,
+    "hot_hit_rate": 0.14253773057574065,
+    "l1_hit_rate": 0.45947456679709336,
+    "tier_counts": {
+     "L0": 255,
+     "L1-cold": 0,
+     "L1-warm": 567,
+     "L2": 967
+    }
+   },
+   "cost_usd": {
+    "gpu": 142.99872446566667,
+    "l2_egress": 375.76442387131976,
+    "total": 518.7631483369864
+   },
+   "gpu": {
+    "busy_gpu_hours": 27.05254746388889,
+    "reserved_gpu_hours": 48.47414388666667,
+    "utilization": 0.5580820060925301,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 881.08534,
+   "latency_mean_seconds": 67.27871888485187,
+   "latency_seconds": {
+    "p50": 27.85802,
+    "p95": 258.665133,
+    "p99": 658.893343
+   },
+   "n_completed": 1789,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1789,
+   "n_retried_completions": 6,
+   "node_failures": 12,
+   "phase_mean_seconds": {
+    "fetch": 11.15704596590274,
+    "inference": 2.850315388485187,
+    "prewarm": 22.001100800447176,
+    "setup": 16.387589346003352,
+    "teardown": 1.6757965343767467,
+    "wait": 13.206870849636669
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.8451648965902739,
+    "within_30s": 0.5422023476802683,
+    "within_60s": 0.7842370039128005
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 150,
+   "trace": "adversarial-n200-h7200-s4207",
+   "trace_checksum": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+   "trace_family": "adversarial"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 12632.169891773723,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 7607.135160982609,
+    "eviction_count": 401,
+    "hot_hit_rate": 0.14980435997764113,
+    "l1_hit_rate": 0.5953046394633874,
+    "tier_counts": {
+     "L0": 268,
+     "L1-cold": 0,
+     "L1-warm": 797,
+     "L2": 724
+    }
+   },
+   "cost_usd": {
+    "gpu": 139.3626902246667,
+    "l2_egress": 252.64339783547447,
+    "total": 392.00608806014117
+   },
+   "gpu": {
+    "busy_gpu_hours": 22.580842273888887,
+    "reserved_gpu_hours": 47.24158990666667,
+    "utilization": 0.4779865012693468,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 1184.230836,
+   "latency_mean_seconds": 56.51812695695919,
+   "latency_seconds": {
+    "p50": 24.85777,
+    "p95": 206.488442,
+    "p99": 656.17737
+   },
+   "n_completed": 1789,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1789,
+   "n_retried_completions": 7,
+   "node_failures": 10,
+   "phase_mean_seconds": {
+    "fetch": 7.507421874790385,
+    "inference": 2.8512765310229176,
+    "prewarm": 16.704909855785356,
+    "setup": 16.294740062604806,
+    "teardown": 1.664617104527669,
+    "wait": 11.49516152822806
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.8960313024035774,
+    "within_30s": 0.5908328675237563,
+    "within_60s": 0.8233650083845724
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 200,
+   "trace": "adversarial-n200-h7200-s4207",
+   "trace_checksum": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+   "trace_family": "adversarial"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7173.875161654316,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 706.9915043851361,
+    "eviction_count": 60,
+    "hot_hit_rate": 0.1542761319172722,
+    "l1_hit_rate": 0.7356064840693125,
+    "tier_counts": {
+     "L0": 276,
+     "L1-cold": 0,
+     "L1-warm": 1040,
+     "L2": 473
+    }
+   },
+   "cost_usd": {
+    "gpu": 139.40089614666667,
+    "l2_egress": 143.4775032330863,
+    "total": 282.878399379753
+   },
+   "gpu": {
+    "busy_gpu_hours": 17.464503268055555,
+    "reserved_gpu_hours": 47.25454106666667,
+    "utilization": 0.3695835971280865,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 763.051041,
+   "latency_mean_seconds": 43.39853253940749,
+   "latency_seconds": {
+    "p50": 22.715281,
+    "p95": 127.676381,
+    "p99": 546.59792
+   },
+   "n_completed": 1789,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1789,
+   "n_retried_completions": 2,
+   "node_failures": 12,
+   "phase_mean_seconds": {
+    "fetch": 4.290517144773617,
+    "inference": 2.854116304080492,
+    "prewarm": 9.804969657909446,
+    "setup": 16.525863848518725,
+    "teardown": 1.6534376746785915,
+    "wait": 8.26962790944662
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9390721073225266,
+    "within_30s": 0.6495248742314143,
+    "within_60s": 0.864169927333706
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 400,
+   "trace": "adversarial-n200-h7200-s4207",
+   "trace_checksum": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+   "trace_family": "adversarial"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6639.120800613426,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 0.0,
+    "eviction_count": 0,
+    "hot_hit_rate": 0.15148127445500278,
+    "l1_hit_rate": 0.7501397428731135,
+    "tier_counts": {
+     "L0": 271,
+     "L1-cold": 0,
+     "L1-warm": 1071,
+     "L2": 447
+    }
+   },
+   "cost_usd": {
+    "gpu": 139.89256281333337,
+    "l2_egress": 132.78241601226853,
+    "total": 272.6749788256019
+   },
+   "gpu": {
+    "busy_gpu_hours": 17.23680571722222,
+    "reserved_gpu_hours": 47.42120773333334,
+    "utilization": 0.3634830604515818,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 763.051041,
+   "latency_mean_seconds": 43.63162639686976,
+   "latency_seconds": {
+    "p50": 22.463466,
+    "p95": 129.103587,
+    "p99": 582.940474
+   },
+   "n_completed": 1789,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1789,
+   "n_retried_completions": 3,
+   "node_failures": 10,
+   "phase_mean_seconds": {
+    "fetch": 3.9556666847400783,
+    "inference": 2.856622212409167,
+    "prewarm": 9.459024132476245,
+    "setup": 16.715765843487983,
+    "teardown": 1.6612632755729457,
+    "wait": 8.983284248183343
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9390721073225266,
+    "within_30s": 0.6545556176634991,
+    "within_60s": 0.8652878703186138
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 800,
+   "trace": "adversarial-n200-h7200-s4207",
+   "trace_checksum": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+   "trace_family": "adversarial"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6639.120800613426,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 0.0,
+    "eviction_count": 0,
+    "hot_hit_rate": 0.15148127445500278,
+    "l1_hit_rate": 0.7501397428731135,
+    "tier_counts": {
+     "L0": 271,
+     "L1-cold": 0,
+     "L1-warm": 1071,
+     "L2": 447
+    }
+   },
+   "cost_usd": {
+    "gpu": 139.89256281333337,
+    "l2_egress": 132.78241601226853,
+    "total": 272.6749788256019
+   },
+   "gpu": {
+    "busy_gpu_hours": 17.23680571722222,
+    "reserved_gpu_hours": 47.42120773333334,
+    "utilization": 0.3634830604515818,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 763.051041,
+   "latency_mean_seconds": 43.63162639686976,
+   "latency_seconds": {
+    "p50": 22.463466,
+    "p95": 129.103587,
+    "p99": 582.940474
+   },
+   "n_completed": 1789,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1789,
+   "n_retried_completions": 3,
+   "node_failures": 10,
+   "phase_mean_seconds": {
+    "fetch": 3.9556666847400783,
+    "inference": 2.856622212409167,
+    "prewarm": 9.459024132476245,
+    "setup": 16.715765843487983,
+    "teardown": 1.6612632755729457,
+    "wait": 8.983284248183343
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9390721073225266,
+    "within_30s": 0.6545556176634991,
+    "within_60s": 0.8652878703186138
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 1600,
+   "trace": "adversarial-n200-h7200-s4207",
+   "trace_checksum": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+   "trace_family": "adversarial"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 12730.427657531574,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 8248.79323334992,
+    "eviction_count": 411,
+    "hot_hit_rate": 0.4722502522704339,
+    "l1_hit_rate": 0.8140766902119072,
+    "tier_counts": {
+     "L0": 1872,
+     "L1-cold": 0,
+     "L1-warm": 1355,
+     "L2": 737
+    }
+   },
+   "cost_usd": {
+    "gpu": 279.3979757686667,
+    "l2_egress": 254.60855315063148,
+    "total": 534.0065289192981
+   },
+   "gpu": {
+    "busy_gpu_hours": 26.73587737277778,
+    "reserved_gpu_hours": 94.71117822666668,
+    "utilization": 0.282288509903154,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 7181.937926,
+   "latency_mean_seconds": 821.8036551775983,
+   "latency_seconds": {
+    "p50": 36.898211,
+    "p95": 5467.76214,
+    "p99": 6830.589162
+   },
+   "n_completed": 3964,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 3964,
+   "n_retried_completions": 41,
+   "node_failures": 14,
+   "phase_mean_seconds": {
+    "fetch": 3.446620124369324,
+    "inference": 4.4646584452573155,
+    "prewarm": 6.082982433905146,
+    "setup": 9.23283961579213,
+    "teardown": 1.0373360242179617,
+    "wait": 797.5392185340564
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.6818869828456104,
+    "within_30s": 0.45408678102926336,
+    "within_60s": 0.5961150353178607
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 150,
+   "trace": "bursty-n200-h7200-s4207",
+   "trace_checksum": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+   "trace_family": "bursty"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 11124.343493619934,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 6329.027143161744,
+    "eviction_count": 305,
+    "hot_hit_rate": 0.47805247225025227,
+    "l1_hit_rate": 0.8342583249243188,
+    "tier_counts": {
+     "L0": 1895,
+     "L1-cold": 0,
+     "L1-warm": 1412,
+     "L2": 657
+    }
+   },
+   "cost_usd": {
+    "gpu": 248.60114935733336,
+    "l2_egress": 222.48686987239867,
+    "total": 471.088019229732
+   },
+   "gpu": {
+    "busy_gpu_hours": 26.040596625,
+    "reserved_gpu_hours": 84.27157605333333,
+    "utilization": 0.3090080646945486,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 5590.9976,
+   "latency_mean_seconds": 695.3895874457619,
+   "latency_seconds": {
+    "p50": 34.537044,
+    "p95": 4267.34279,
+    "p99": 5252.456858
+   },
+   "n_completed": 3964,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 3964,
+   "n_retried_completions": 34,
+   "node_failures": 12,
+   "phase_mean_seconds": {
+    "fetch": 3.0071021004036327,
+    "inference": 4.46792456962664,
+    "prewarm": 5.775269247477295,
+    "setup": 9.334118603178608,
+    "teardown": 1.027245206861756,
+    "wait": 671.777927718214
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.7028254288597376,
+    "within_30s": 0.468970736629667,
+    "within_60s": 0.6178102926337034
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 200,
+   "trace": "bursty-n200-h7200-s4207",
+   "trace_checksum": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+   "trace_family": "bursty"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7331.52605516091,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 647.8336190935224,
+    "eviction_count": 41,
+    "hot_hit_rate": 0.4883955600403633,
+    "l1_hit_rate": 0.8713420787083754,
+    "tier_counts": {
+     "L0": 1936,
+     "L1-cold": 0,
+     "L1-warm": 1518,
+     "L2": 510
+    }
+   },
+   "cost_usd": {
+    "gpu": 236.6220502577917,
+    "l2_egress": 146.6305211032182,
+    "total": 383.2525713610099
+   },
+   "gpu": {
+    "busy_gpu_hours": 23.188320195,
+    "reserved_gpu_hours": 80.21086449416667,
+    "utilization": 0.2890920119267181,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 5009.317412,
+   "latency_mean_seconds": 593.9937808269425,
+   "latency_seconds": {
+    "p50": 28.070925,
+    "p95": 3748.099011,
+    "p99": 4704.66665
+   },
+   "n_completed": 3964,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 3964,
+   "n_retried_completions": 40,
+   "node_failures": 15,
+   "phase_mean_seconds": {
+    "fetch": 1.9554163970736629,
+    "inference": 4.461959503027246,
+    "prewarm": 4.40919237739657,
+    "setup": 9.163766949041372,
+    "teardown": 1.0060544904137234,
+    "wait": 572.9973911099898
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.7192230070635721,
+    "within_30s": 0.5174066599394551,
+    "within_60s": 0.6458123107971746
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 400,
+   "trace": "bursty-n200-h7200-s4207",
+   "trace_checksum": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+   "trace_family": "bursty"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7027.4674902986735,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 0.0,
+    "eviction_count": 0,
+    "hot_hit_rate": 0.4863773965691221,
+    "l1_hit_rate": 0.8715943491422805,
+    "tier_counts": {
+     "L0": 1928,
+     "L1-cold": 0,
+     "L1-warm": 1527,
+     "L2": 509
+    }
+   },
+   "cost_usd": {
+    "gpu": 233.95377464566667,
+    "l2_egress": 140.54934980597346,
+    "total": 374.50312445164013
+   },
+   "gpu": {
+    "busy_gpu_hours": 23.012497829444445,
+    "reserved_gpu_hours": 79.30636428666666,
+    "utilization": 0.2901721449020379,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 4858.715835,
+   "latency_mean_seconds": 578.2935484697275,
+   "latency_seconds": {
+    "p50": 28.32188,
+    "p95": 3674.405856,
+    "p99": 4522.854014
+   },
+   "n_completed": 3964,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 3964,
+   "n_retried_completions": 43,
+   "node_failures": 13,
+   "phase_mean_seconds": {
+    "fetch": 1.901840365792129,
+    "inference": 4.46358225025227,
+    "prewarm": 4.333304464682139,
+    "setup": 9.162004324672049,
+    "teardown": 1.0100908173562058,
+    "wait": 557.4227262469727
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.7146821392532795,
+    "within_30s": 0.5151362260343088,
+    "within_60s": 0.6455600403632694
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 800,
+   "trace": "bursty-n200-h7200-s4207",
+   "trace_checksum": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+   "trace_family": "bursty"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7027.4674902986735,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 0.0,
+    "eviction_count": 0,
+    "hot_hit_rate": 0.4863773965691221,
+    "l1_hit_rate": 0.8715943491422805,
+    "tier_counts": {
+     "L0": 1928,
+     "L1-cold": 0,
+     "L1-warm": 1527,
+     "L2": 509
+    }
+   },
+   "cost_usd": {
+    "gpu": 233.95377464566667,
+    "l2_egress": 140.54934980597346,
+    "total": 374.50312445164013
+   },
+   "gpu": {
+    "busy_gpu_hours": 23.012497829444445,
+    "reserved_gpu_hours": 79.30636428666666,
+    "utilization": 0.2901721449020379,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 4858.715835,
+   "latency_mean_seconds": 578.2935484697275,
+   "latency_seconds": {
+    "p50": 28.32188,
+    "p95": 3674.405856,
+    "p99": 4522.854014
+   },
+   "n_completed": 3964,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 3964,
+   "n_retried_completions": 43,
+   "node_failures": 13,
+   "phase_mean_seconds": {
+    "fetch": 1.901840365792129,
+    "inference": 4.46358225025227,
+    "prewarm": 4.333304464682139,
+    "setup": 9.162004324672049,
+    "teardown": 1.0100908173562058,
+    "wait": 557.4227262469727
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.7146821392532795,
+    "within_30s": 0.5151362260343088,
+    "within_60s": 0.6455600403632694
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 1600,
+   "trace": "bursty-n200-h7200-s4207",
+   "trace_checksum": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+   "trace_family": "bursty"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 18339.965627316386,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 14895.37456481997,
+    "eviction_count": 696,
+    "hot_hit_rate": 0.11604499703966845,
+    "l1_hit_rate": 0.46181172291296624,
+    "tier_counts": {
+     "L0": 196,
+     "L1-cold": 0,
+     "L1-warm": 584,
+     "L2": 909
+    }
+   },
+   "cost_usd": {
+    "gpu": 147.862587155,
+    "l2_egress": 366.7993125463277,
+    "total": 514.6618997013277
+   },
+   "gpu": {
+    "busy_gpu_hours": 26.99490457888889,
+    "reserved_gpu_hours": 50.122910899999994,
+    "utilization": 0.5385741588860693,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 1180.000511,
+   "latency_mean_seconds": 72.60884462640615,
+   "latency_seconds": {
+    "p50": 30.460998,
+    "p95": 364.743994,
+    "p99": 684.307054
+   },
+   "n_completed": 1689,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1689,
+   "n_retried_completions": 4,
+   "node_failures": 8,
+   "phase_mean_seconds": {
+    "fetch": 11.61169669034932,
+    "inference": 2.9256295671995263,
+    "prewarm": 23.209959194789814,
+    "setup": 17.677735786264062,
+    "teardown": 1.7300177619893429,
+    "wait": 15.453805625814091
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.8401420959147424,
+    "within_30s": 0.49141503848431023,
+    "within_60s": 0.7613972764949675
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 150,
+   "trace": "correlated-n200-h7200-s4207",
+   "trace_checksum": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+   "trace_family": "correlated"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 13849.847735106945,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 9977.68438531924,
+    "eviction_count": 470,
+    "hot_hit_rate": 0.12788632326820604,
+    "l1_hit_rate": 0.5784487862640616,
+    "tier_counts": {
+     "L0": 216,
+     "L1-cold": 0,
+     "L1-warm": 761,
+     "L2": 712
+    }
+   },
+   "cost_usd": {
+    "gpu": 145.467877691,
+    "l2_egress": 276.9969547021389,
+    "total": 422.4648323931389
+   },
+   "gpu": {
+    "busy_gpu_hours": 22.668130675277776,
+    "reserved_gpu_hours": 49.31114498,
+    "utilization": 0.45969588993465255,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 878.068871,
+   "latency_mean_seconds": 59.51471691355832,
+   "latency_seconds": {
+    "p50": 27.138373,
+    "p95": 250.181902,
+    "p99": 616.393009
+   },
+   "n_completed": 1689,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1689,
+   "n_retried_completions": 2,
+   "node_failures": 9,
+   "phase_mean_seconds": {
+    "fetch": 8.784887306690349,
+    "inference": 2.921057539964476,
+    "prewarm": 17.029418533451746,
+    "setup": 17.677776159265836,
+    "teardown": 1.7063351095322676,
+    "wait": 11.39524226465364
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.8792184724689165,
+    "within_30s": 0.5482534043812907,
+    "within_60s": 0.8040260509177027
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 200,
+   "trace": "correlated-n200-h7200-s4207",
+   "trace_checksum": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+   "trace_family": "correlated"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6993.687665230595,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1509.8547761207446,
+    "eviction_count": 86,
+    "hot_hit_rate": 0.1267021906453523,
+    "l1_hit_rate": 0.7347542924807579,
+    "tier_counts": {
+     "L0": 214,
+     "L1-cold": 0,
+     "L1-warm": 1027,
+     "L2": 448
+    }
+   },
+   "cost_usd": {
+    "gpu": 145.32047765666667,
+    "l2_egress": 139.87375330461188,
+    "total": 285.19423096127855
+   },
+   "gpu": {
+    "busy_gpu_hours": 17.676166116944444,
+    "reserved_gpu_hours": 49.26117886666667,
+    "utilization": 0.35882547928436387,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.081476,
+   "latency_mean_seconds": 46.92617271047958,
+   "latency_seconds": {
+    "p50": 24.47182,
+    "p95": 149.165312,
+    "p99": 491.120027
+   },
+   "n_completed": 1689,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1689,
+   "n_retried_completions": 1,
+   "node_failures": 9,
+   "phase_mean_seconds": {
+    "fetch": 4.446071741859088,
+    "inference": 2.9250530390763765,
+    "prewarm": 10.444959939609236,
+    "setup": 18.150564081113085,
+    "teardown": 1.7087033747779752,
+    "wait": 9.250820534043813
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9271758436944938,
+    "within_30s": 0.6080521018354056,
+    "within_60s": 0.8312611012433393
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 400,
+   "trace": "correlated-n200-h7200-s4207",
+   "trace_checksum": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+   "trace_family": "correlated"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6251.870068257675,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 0.0,
+    "eviction_count": 0,
+    "hot_hit_rate": 0.12551805802249852,
+    "l1_hit_rate": 0.7513321492007105,
+    "tier_counts": {
+     "L0": 212,
+     "L1-cold": 0,
+     "L1-warm": 1057,
+     "L2": 420
+    }
+   },
+   "cost_usd": {
+    "gpu": 141.00791236366666,
+    "l2_egress": 125.0374013651535,
+    "total": 266.04531372882013
+   },
+   "gpu": {
+    "busy_gpu_hours": 16.850387055,
+    "reserved_gpu_hours": 47.79929232666667,
+    "utilization": 0.3525237767087059,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.081476,
+   "latency_mean_seconds": 44.49863793191237,
+   "latency_seconds": {
+    "p50": 24.00957,
+    "p95": 143.455942,
+    "p99": 484.951196
+   },
+   "n_completed": 1689,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1689,
+   "n_retried_completions": 2,
+   "node_failures": 8,
+   "phase_mean_seconds": {
+    "fetch": 3.954798644168147,
+    "inference": 2.924183404381291,
+    "prewarm": 9.294713811722913,
+    "setup": 18.011086910005922,
+    "teardown": 1.7110716400236827,
+    "wait": 8.60278352161042
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9384251036116045,
+    "within_30s": 0.6181172291296625,
+    "within_60s": 0.8442865600947306
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 800,
+   "trace": "correlated-n200-h7200-s4207",
+   "trace_checksum": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+   "trace_family": "correlated"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6251.870068257675,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 0.0,
+    "eviction_count": 0,
+    "hot_hit_rate": 0.12551805802249852,
+    "l1_hit_rate": 0.7513321492007105,
+    "tier_counts": {
+     "L0": 212,
+     "L1-cold": 0,
+     "L1-warm": 1057,
+     "L2": 420
+    }
+   },
+   "cost_usd": {
+    "gpu": 141.00791236366666,
+    "l2_egress": 125.0374013651535,
+    "total": 266.04531372882013
+   },
+   "gpu": {
+    "busy_gpu_hours": 16.850387055,
+    "reserved_gpu_hours": 47.79929232666667,
+    "utilization": 0.3525237767087059,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.081476,
+   "latency_mean_seconds": 44.49863793191237,
+   "latency_seconds": {
+    "p50": 24.00957,
+    "p95": 143.455942,
+    "p99": 484.951196
+   },
+   "n_completed": 1689,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1689,
+   "n_retried_completions": 2,
+   "node_failures": 8,
+   "phase_mean_seconds": {
+    "fetch": 3.954798644168147,
+    "inference": 2.924183404381291,
+    "prewarm": 9.294713811722913,
+    "setup": 18.011086910005922,
+    "teardown": 1.7110716400236827,
+    "wait": 8.60278352161042
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9384251036116045,
+    "within_30s": 0.6181172291296625,
+    "within_60s": 0.8442865600947306
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 1600,
+   "trace": "correlated-n200-h7200-s4207",
+   "trace_checksum": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+   "trace_family": "correlated"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 17726.690481517464,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 14554.440977454185,
+    "eviction_count": 725,
+    "hot_hit_rate": 0.1252783964365256,
+    "l1_hit_rate": 0.48329621380846327,
+    "tier_counts": {
+     "L0": 225,
+     "L1-cold": 0,
+     "L1-warm": 643,
+     "L2": 928
+    }
+   },
+   "cost_usd": {
+    "gpu": 148.38413000402778,
+    "l2_egress": 354.5338096303493,
+    "total": 502.9179396343771
+   },
+   "gpu": {
+    "busy_gpu_hours": 27.279748289166665,
+    "reserved_gpu_hours": 50.29970508611111,
+    "utilization": 0.5423441000790127,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.878496,
+   "latency_mean_seconds": 67.99596072995546,
+   "latency_seconds": {
+    "p50": 28.567337,
+    "p95": 360.997624,
+    "p99": 631.25128
+   },
+   "n_completed": 1796,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1796,
+   "n_retried_completions": 5,
+   "node_failures": 8,
+   "phase_mean_seconds": {
+    "fetch": 10.555769255011135,
+    "inference": 3.003655409242762,
+    "prewarm": 22.51718290311804,
+    "setup": 16.701745082962137,
+    "teardown": 1.7160356347438752,
+    "wait": 13.501572444877507
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.8541202672605791,
+    "within_30s": 0.5267260579064588,
+    "within_60s": 0.7700445434298441
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 150,
+   "trace": "uniform-n200-h7200-s4207",
+   "trace_checksum": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+   "trace_family": "uniform"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 12638.329145382158,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 8654.597286517732,
+    "eviction_count": 411,
+    "hot_hit_rate": 0.11915367483296214,
+    "l1_hit_rate": 0.6146993318485523,
+    "tier_counts": {
+     "L0": 214,
+     "L1-cold": 0,
+     "L1-warm": 890,
+     "L2": 692
+    }
+   },
+   "cost_usd": {
+    "gpu": 148.38402966141666,
+    "l2_egress": 252.76658290764317,
+    "total": 401.15061256905983
+   },
+   "gpu": {
+    "busy_gpu_hours": 22.13468964,
+    "reserved_gpu_hours": 50.299671071666666,
+    "utilization": 0.44005634964218016,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.878496,
+   "latency_mean_seconds": 54.902054694877506,
+   "latency_seconds": {
+    "p50": 25.246419,
+    "p95": 216.440006,
+    "p99": 546.198249
+   },
+   "n_completed": 1796,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1796,
+   "n_retried_completions": 4,
+   "node_failures": 8,
+   "phase_mean_seconds": {
+    "fetch": 7.518156487193764,
+    "inference": 3.0203859348552338,
+    "prewarm": 14.484163697104677,
+    "setup": 17.466060765033408,
+    "teardown": 1.7271714922048997,
+    "wait": 10.686116318485524
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.8947661469933185,
+    "within_30s": 0.5701559020044543,
+    "within_60s": 0.8056792873051225
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 200,
+   "trace": "uniform-n200-h7200-s4207",
+   "trace_checksum": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+   "trace_family": "uniform"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7371.462213685736,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1765.343445702456,
+    "eviction_count": 72,
+    "hot_hit_rate": 0.13140311804008908,
+    "l1_hit_rate": 0.7438752783964365,
+    "tier_counts": {
+     "L0": 236,
+     "L1-cold": 0,
+     "L1-warm": 1100,
+     "L2": 460
+    }
+   },
+   "cost_usd": {
+    "gpu": 151.40668344633335,
+    "l2_egress": 147.42924427371472,
+    "total": 298.83592772004806
+   },
+   "gpu": {
+    "busy_gpu_hours": 18.432930255,
+    "reserved_gpu_hours": 51.32429947333333,
+    "utilization": 0.3591462610137959,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.878496,
+   "latency_mean_seconds": 46.76835758240534,
+   "latency_seconds": {
+    "p50": 23.462981,
+    "p95": 147.840545,
+    "p99": 555.649811
+   },
+   "n_completed": 1796,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1796,
+   "n_retried_completions": 5,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 4.373429963808463,
+    "inference": 3.0086253986636975,
+    "prewarm": 10.740067652004454,
+    "setup": 16.959209807906458,
+    "teardown": 1.7037861915367483,
+    "wait": 9.983238568485524
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9276169265033407,
+    "within_30s": 0.6353006681514477,
+    "within_60s": 0.8446547884187082
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 400,
+   "trace": "uniform-n200-h7200-s4207",
+   "trace_checksum": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+   "trace_family": "uniform"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6367.969969069585,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 176.40415954124182,
+    "eviction_count": 8,
+    "hot_hit_rate": 0.12472160356347439,
+    "l1_hit_rate": 0.762249443207127,
+    "tier_counts": {
+     "L0": 224,
+     "L1-cold": 0,
+     "L1-warm": 1145,
+     "L2": 427
+    }
+   },
+   "cost_usd": {
+    "gpu": 151.24125751566666,
+    "l2_egress": 127.35939938139171,
+    "total": 278.60065689705834
+   },
+   "gpu": {
+    "busy_gpu_hours": 17.697080431944443,
+    "reserved_gpu_hours": 51.26822288666666,
+    "utilization": 0.3451861491486752,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.878496,
+   "latency_mean_seconds": 45.69600834855234,
+   "latency_seconds": {
+    "p50": 23.451483,
+    "p95": 147.642425,
+    "p99": 512.851705
+   },
+   "n_completed": 1796,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1796,
+   "n_retried_completions": 4,
+   "node_failures": 8,
+   "phase_mean_seconds": {
+    "fetch": 3.7734903140311804,
+    "inference": 3.021239272828508,
+    "prewarm": 9.462456404231627,
+    "setup": 17.3446944766147,
+    "teardown": 1.7171492204899776,
+    "wait": 10.376978660356347
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.928173719376392,
+    "within_30s": 0.6364142538975501,
+    "within_60s": 0.8446547884187082
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 800,
+   "trace": "uniform-n200-h7200-s4207",
+   "trace_checksum": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+   "trace_family": "uniform"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6386.332529229112,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 0.0,
+    "eviction_count": 0,
+    "hot_hit_rate": 0.12249443207126949,
+    "l1_hit_rate": 0.7639198218262806,
+    "tier_counts": {
+     "L0": 220,
+     "L1-cold": 0,
+     "L1-warm": 1152,
+     "L2": 424
+    }
+   },
+   "cost_usd": {
+    "gpu": 150.57020357706946,
+    "l2_egress": 127.72665058458225,
+    "total": 278.2968541616517
+   },
+   "gpu": {
+    "busy_gpu_hours": 17.71195220888889,
+    "reserved_gpu_hours": 51.04074697527778,
+    "utilization": 0.34701592861616803,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.878496,
+   "latency_mean_seconds": 45.69663981458797,
+   "latency_seconds": {
+    "p50": 23.46868,
+    "p95": 150.189021,
+    "p99": 483.662529
+   },
+   "n_completed": 1796,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1796,
+   "n_retried_completions": 4,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 3.781224555122494,
+    "inference": 3.02140174610245,
+    "prewarm": 9.440918692093542,
+    "setup": 17.391167649220492,
+    "teardown": 1.7216035634743876,
+    "wait": 10.34032360857461
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9270601336302895,
+    "within_30s": 0.6358574610244989,
+    "within_60s": 0.844097995545657
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 1600,
+   "trace": "uniform-n200-h7200-s4207",
+   "trace_checksum": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+   "trace_family": "uniform"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 8742.301827255636,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 6559.509157226421,
+    "eviction_count": 351,
+    "hot_hit_rate": 0.45966432051976175,
+    "l1_hit_rate": 0.7227937195452084,
+    "tier_counts": {
+     "L0": 849,
+     "L1-cold": 0,
+     "L1-warm": 486,
+     "L2": 512
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.28678869866667,
+    "l2_egress": 174.84603654511272,
+    "total": 315.1328252437794
+   },
+   "gpu": {
+    "busy_gpu_hours": 14.058147658333334,
+    "reserved_gpu_hours": 47.55484362666667,
+    "utilization": 0.2956196800624141,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 999.061953,
+   "latency_mean_seconds": 34.878113465078506,
+   "latency_seconds": {
+    "p50": 9.175125,
+    "p95": 148.172663,
+    "p99": 451.712973
+   },
+   "n_completed": 1847,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1847,
+   "n_retried_completions": 3,
+   "node_failures": 9,
+   "phase_mean_seconds": {
+    "fetch": 4.944550779642665,
+    "inference": 1.8477932615051436,
+    "prewarm": 9.492821723876556,
+    "setup": 9.775291811586357,
+    "teardown": 1.044937736870601,
+    "wait": 7.772718151597185
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9290741743367623,
+    "within_30s": 0.7417433676231727,
+    "within_60s": 0.8819707634001083
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 150,
+   "trace": "zipf-n200-h7200-s4207",
+   "trace_checksum": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c",
+   "trace_family": "zipf"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7621.372306586243,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 4439.1335232695565,
+    "eviction_count": 209,
+    "hot_hit_rate": 0.4574986464537087,
+    "l1_hit_rate": 0.7531131564699513,
+    "tier_counts": {
+     "L0": 845,
+     "L1-cold": 0,
+     "L1-warm": 546,
+     "L2": 456
+    }
+   },
+   "cost_usd": {
+    "gpu": 139.92307782966665,
+    "l2_egress": 152.42744613172488,
+    "total": 292.35052396139156
+   },
+   "gpu": {
+    "busy_gpu_hours": 13.4670840925,
+    "reserved_gpu_hours": 47.43155180666666,
+    "utilization": 0.28392670236454626,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.238094,
+   "latency_mean_seconds": 32.607445305901464,
+   "latency_seconds": {
+    "p50": 8.410857,
+    "p95": 144.061025,
+    "p99": 451.897269
+   },
+   "n_completed": 1847,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1847,
+   "n_retried_completions": 4,
+   "node_failures": 10,
+   "phase_mean_seconds": {
+    "fetch": 4.414551959393611,
+    "inference": 1.8499817428262046,
+    "prewarm": 9.158555929074176,
+    "setup": 9.703821185165134,
+    "teardown": 1.0481862479696806,
+    "wait": 6.432348241472658
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9371954520844613,
+    "within_30s": 0.7552788305360043,
+    "within_60s": 0.8906334596643205
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 200,
+   "trace": "zipf-n200-h7200-s4207",
+   "trace_checksum": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c",
+   "trace_family": "zipf"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6163.152628383599,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1896.8039083164185,
+    "eviction_count": 95,
+    "hot_hit_rate": 0.44883595018949646,
+    "l1_hit_rate": 0.7937195452084461,
+    "tier_counts": {
+     "L0": 829,
+     "L1-cold": 0,
+     "L1-warm": 637,
+     "L2": 381
+    }
+   },
+   "cost_usd": {
+    "gpu": 143.062086198,
+    "l2_egress": 123.26305256767199,
+    "total": 266.325138765672
+   },
+   "gpu": {
+    "busy_gpu_hours": 12.608448305833333,
+    "reserved_gpu_hours": 48.49562244,
+    "utilization": 0.25999147286815055,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.258011,
+   "latency_mean_seconds": 34.1455133946941,
+   "latency_seconds": {
+    "p50": 9.440329,
+    "p95": 149.972938,
+    "p99": 449.603369
+   },
+   "n_completed": 1847,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1847,
+   "n_retried_completions": 4,
+   "node_failures": 9,
+   "phase_mean_seconds": {
+    "fetch": 3.5507401358960475,
+    "inference": 1.8551264336762316,
+    "prewarm": 7.89957813102328,
+    "setup": 10.115527461829995,
+    "teardown": 1.0665944775311316,
+    "wait": 9.657946754737411
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9334055224688684,
+    "within_30s": 0.7612344342176502,
+    "within_60s": 0.8868435300487276
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 400,
+   "trace": "zipf-n200-h7200-s4207",
+   "trace_checksum": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c",
+   "trace_family": "zipf"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 5392.48027734831,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 163.70001772977412,
+    "eviction_count": 10,
+    "hot_hit_rate": 0.45533297238765563,
+    "l1_hit_rate": 0.8132106118029236,
+    "tier_counts": {
+     "L0": 841,
+     "L1-cold": 0,
+     "L1-warm": 661,
+     "L2": 345
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.1696901596667,
+    "l2_egress": 107.8496055469662,
+    "total": 248.01929570663287
+   },
+   "gpu": {
+    "busy_gpu_hours": 11.611526876388888,
+    "reserved_gpu_hours": 47.51514920666667,
+    "utilization": 0.24437525863350795,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 760.834425,
+   "latency_mean_seconds": 28.11364578722252,
+   "latency_seconds": {
+    "p50": 8.14361,
+    "p95": 103.340251,
+    "p99": 441.932246
+   },
+   "n_completed": 1847,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1847,
+   "n_retried_completions": 5,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 3.086799623714131,
+    "inference": 1.8446465582024907,
+    "prewarm": 6.927228054683271,
+    "setup": 9.363484293448836,
+    "teardown": 1.0557661072008662,
+    "wait": 5.835721149972929
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9545208446128858,
+    "within_30s": 0.7861396859772605,
+    "within_60s": 0.9117487818083378
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 800,
+   "trace": "zipf-n200-h7200-s4207",
+   "trace_checksum": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c",
+   "trace_family": "zipf"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 5386.063253562897,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 0.0,
+    "eviction_count": 0,
+    "hot_hit_rate": 0.4547915538711424,
+    "l1_hit_rate": 0.8137520303194369,
+    "tier_counts": {
+     "L0": 840,
+     "L1-cold": 0,
+     "L1-warm": 663,
+     "L2": 344
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.1696901596667,
+    "l2_egress": 107.72126507125795,
+    "total": 247.89095523092465
+   },
+   "gpu": {
+    "busy_gpu_hours": 11.612569286666666,
+    "reserved_gpu_hours": 47.51514920666667,
+    "utilization": 0.2443971971161852,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 760.834425,
+   "latency_mean_seconds": 28.115677556036818,
+   "latency_seconds": {
+    "p50": 8.182258,
+    "p95": 103.340251,
+    "p99": 441.932246
+   },
+   "n_completed": 1847,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1847,
+   "n_retried_completions": 5,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 3.0830691272333515,
+    "inference": 1.844881816459123,
+    "prewarm": 6.924253315646996,
+    "setup": 9.370903202490526,
+    "teardown": 1.0568489442338929,
+    "wait": 5.835721149972929
+   },
+   "policy": "snapshot+shortest-switch-cost+lru",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9545208446128858,
+    "within_30s": 0.7866811044937737,
+    "within_60s": 0.9117487818083378
+   },
+   "sweep_axis": "l1_capacity_gib",
+   "sweep_value": 1600,
+   "trace": "zipf-n200-h7200-s4207",
+   "trace_checksum": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c",
+   "trace_family": "zipf"
+  }
+ ],
+ "generator": "catalog_sim 1.0.0 via capacity-cost run_sweeps",
+ "k_sweep": [
+  {
+   "bytes": {
+    "fetched_gib": 6397.336797080934,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 772.0356385465711,
+    "eviction_count": 47,
+    "hot_hit_rate": 0.14812744550027948,
+    "l1_hit_rate": 0.7495807713806596,
+    "tier_counts": {
+     "L0": 265,
+     "L1-cold": 0,
+     "L1-warm": 1076,
+     "L2": 448
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.65204093119448,
+    "l2_egress": 127.94673594161868,
+    "total": 268.5987768728132
+   },
+   "gpu": {
+    "busy_gpu_hours": 16.883096661666666,
+    "reserved_gpu_hours": 47.67865794277778,
+    "utilization": 0.3541017593643083,
+    "warm_setup_gpu_hours": 0.016894965833333334
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.920462,
+   "latency_mean_seconds": 43.95428674734489,
+   "latency_seconds": {
+    "p50": 23.133284,
+    "p95": 146.824425,
+    "p99": 512.154145
+   },
+   "n_completed": 1789,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1789,
+   "n_retried_completions": 3,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 3.830705704863052,
+    "inference": 2.8624925366126326,
+    "prewarm": 9.231974046953605,
+    "setup": 16.320812461710453,
+    "teardown": 1.670206819452208,
+    "wait": 10.038095177752934
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k1",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9346003353828954,
+    "within_30s": 0.6389044158747904,
+    "within_60s": 0.8624930128563443
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 1,
+   "trace": "adversarial-n200-h7200-s4207",
+   "trace_checksum": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+   "trace_family": "adversarial"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6368.584781228565,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 338.0614250199869,
+    "eviction_count": 24,
+    "hot_hit_rate": 0.14645053102291783,
+    "l1_hit_rate": 0.7613191727221912,
+    "tier_counts": {
+     "L0": 262,
+     "L1-cold": 0,
+     "L1-warm": 1100,
+     "L2": 427
+    }
+   },
+   "cost_usd": {
+    "gpu": 144.5445549096667,
+    "l2_egress": 127.3716956245713,
+    "total": 271.916250534238
+   },
+   "gpu": {
+    "busy_gpu_hours": 16.783174886944444,
+    "reserved_gpu_hours": 48.99815420666667,
+    "utilization": 0.3425266759265175,
+    "warm_setup_gpu_hours": 0.0168290975
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.588625,
+   "latency_mean_seconds": 41.2238412314142,
+   "latency_seconds": {
+    "p50": 22.218473,
+    "p95": 125.071315,
+    "p99": 452.110015
+   },
+   "n_completed": 1789,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1789,
+   "n_retried_completions": 3,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 3.7995391799888205,
+    "inference": 2.862336648406931,
+    "prewarm": 8.723046524874231,
+    "setup": 16.647417313024036,
+    "teardown": 1.6735606484069312,
+    "wait": 7.517940916713247
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k2",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9429849077697038,
+    "within_30s": 0.6512017887087759,
+    "within_60s": 0.8742314141978759
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 2,
+   "trace": "adversarial-n200-h7200-s4207",
+   "trace_checksum": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+   "trace_family": "adversarial"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 5674.6253369525075,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 518.6452481718734,
+    "eviction_count": 26,
+    "hot_hit_rate": 0.15036333147009504,
+    "l1_hit_rate": 0.7769703745108999,
+    "tier_counts": {
+     "L0": 269,
+     "L1-cold": 0,
+     "L1-warm": 1121,
+     "L2": 399
+    }
+   },
+   "cost_usd": {
+    "gpu": 141.23576609600002,
+    "l2_egress": 113.49250673905016,
+    "total": 254.72827283505018
+   },
+   "gpu": {
+    "busy_gpu_hours": 16.17365872,
+    "reserved_gpu_hours": 47.876530880000004,
+    "utilization": 0.33782018919746754,
+    "warm_setup_gpu_hours": 0.11671938166666668
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 761.957548,
+   "latency_mean_seconds": 39.43008925712688,
+   "latency_seconds": {
+    "p50": 21.972491,
+    "p95": 121.055893,
+    "p99": 450.753039
+   },
+   "n_completed": 1789,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1789,
+   "n_retried_completions": 1,
+   "node_failures": 5,
+   "phase_mean_seconds": {
+    "fetch": 3.301246698714366,
+    "inference": 2.850354562884293,
+    "prewarm": 8.027774880939072,
+    "setup": 16.44537087367244,
+    "teardown": 1.6668529904974847,
+    "wait": 7.138489250419228
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k4",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9485746226942426,
+    "within_30s": 0.6567915036333147,
+    "within_60s": 0.8775852431525992
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 4,
+   "trace": "adversarial-n200-h7200-s4207",
+   "trace_checksum": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+   "trace_family": "adversarial"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6842.28231311962,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1245.4780839979649,
+    "eviction_count": 102,
+    "hot_hit_rate": 0.15371716042481834,
+    "l1_hit_rate": 0.7411961989938514,
+    "tier_counts": {
+     "L0": 275,
+     "L1-cold": 0,
+     "L1-warm": 1051,
+     "L2": 463
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.66548541033333,
+    "l2_egress": 136.8456462623924,
+    "total": 277.5111316727257
+   },
+   "gpu": {
+    "busy_gpu_hours": 17.10876842472222,
+    "reserved_gpu_hours": 47.683215393333334,
+    "utilization": 0.358800644704724,
+    "warm_setup_gpu_hours": 0.23028855583333332
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 761.70889,
+   "latency_mean_seconds": 42.69591921743991,
+   "latency_seconds": {
+    "p50": 23.088953,
+    "p95": 126.055837,
+    "p99": 482.413454
+   },
+   "n_completed": 1789,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1789,
+   "n_retried_completions": 0,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 4.001641815539408,
+    "inference": 2.8571723024035776,
+    "prewarm": 8.83981623979877,
+    "setup": 16.607980893236444,
+    "teardown": 1.6579094466182225,
+    "wait": 8.731398519843488
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k8",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9401900503074343,
+    "within_30s": 0.6411403018446059,
+    "within_60s": 0.8574622694242594
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 8,
+   "trace": "adversarial-n200-h7200-s4207",
+   "trace_checksum": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+   "trace_family": "adversarial"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7066.178229426034,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1388.762581042014,
+    "eviction_count": 107,
+    "hot_hit_rate": 0.14812744550027948,
+    "l1_hit_rate": 0.7680268306316378,
+    "tier_counts": {
+     "L0": 265,
+     "L1-cold": 0,
+     "L1-warm": 1109,
+     "L2": 415
+    }
+   },
+   "cost_usd": {
+    "gpu": 141.807454384,
+    "l2_egress": 141.32356458852067,
+    "total": 283.1310189725207
+   },
+   "gpu": {
+    "busy_gpu_hours": 17.32984939527778,
+    "reserved_gpu_hours": 48.07032352,
+    "utilization": 0.3605103549608434,
+    "warm_setup_gpu_hours": 0.8468377405555555
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 761.580988,
+   "latency_mean_seconds": 40.98527347959754,
+   "latency_seconds": {
+    "p50": 22.259201,
+    "p95": 129.698721,
+    "p99": 451.128457
+   },
+   "n_completed": 1789,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1789,
+   "n_retried_completions": 0,
+   "node_failures": 3,
+   "phase_mean_seconds": {
+    "fetch": 3.7544849401900504,
+    "inference": 2.8577314415874793,
+    "prewarm": 8.20170426998323,
+    "setup": 16.527132026830632,
+    "teardown": 1.6735606484069312,
+    "wait": 7.970660152599217
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k16",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.941307993292342,
+    "within_30s": 0.6495248742314143,
+    "within_60s": 0.8602571268865288
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 16,
+   "trace": "adversarial-n200-h7200-s4207",
+   "trace_checksum": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+   "trace_family": "adversarial"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 5751.178336527199,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 433.7378933299333,
+    "eviction_count": 40,
+    "hot_hit_rate": 0.4624117053481332,
+    "l1_hit_rate": 0.8869828456104945,
+    "tier_counts": {
+     "L0": 1833,
+     "L1-cold": 0,
+     "L1-warm": 1683,
+     "L2": 448
+    }
+   },
+   "cost_usd": {
+    "gpu": 196.997980852,
+    "l2_egress": 115.02356673054398,
+    "total": 312.021547582544
+   },
+   "gpu": {
+    "busy_gpu_hours": 22.839498828333333,
+    "reserved_gpu_hours": 66.77897656,
+    "utilization": 0.3420163052036647,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 2918.836408,
+   "latency_mean_seconds": 328.87227122098886,
+   "latency_seconds": {
+    "p50": 30.289993,
+    "p95": 1965.569744,
+    "p99": 2558.501732
+   },
+   "n_completed": 3964,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 3964,
+   "n_retried_completions": 7,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 1.5573410141271444,
+    "inference": 4.467323466448033,
+    "prewarm": 3.733077884964682,
+    "setup": 9.910778087033298,
+    "teardown": 1.0615539858728558,
+    "wait": 308.1421967825429
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k1",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.7015640766902119,
+    "within_30s": 0.4979818365287588,
+    "within_60s": 0.6256306760847629
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 1,
+   "trace": "bursty-n200-h7200-s4207",
+   "trace_checksum": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+   "trace_family": "bursty"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6177.037279625423,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 667.8350453339517,
+    "eviction_count": 45,
+    "hot_hit_rate": 0.4694752774974773,
+    "l1_hit_rate": 0.8789101917255298,
+    "tier_counts": {
+     "L0": 1861,
+     "L1-cold": 0,
+     "L1-warm": 1623,
+     "L2": 480
+    }
+   },
+   "cost_usd": {
+    "gpu": 184.00339785969445,
+    "l2_egress": 123.54074559250847,
+    "total": 307.5441434522029
+   },
+   "gpu": {
+    "busy_gpu_hours": 23.031029026944445,
+    "reserved_gpu_hours": 62.37403317277778,
+    "utilization": 0.3692406576170546,
+    "warm_setup_gpu_hours": 0.04142778416666667
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 2572.238683,
+   "latency_mean_seconds": 304.8175325065591,
+   "latency_seconds": {
+    "p50": 30.018299,
+    "p95": 1762.985044,
+    "p99": 2362.647883
+   },
+   "n_completed": 3964,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 3964,
+   "n_retried_completions": 84,
+   "node_failures": 16,
+   "phase_mean_seconds": {
+    "fetch": 1.631280891271443,
+    "inference": 4.466380381180626,
+    "prewarm": 3.984075683652876,
+    "setup": 9.73077384308779,
+    "teardown": 1.0443995963673058,
+    "wait": 283.960622110999
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k2",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.6950050454086781,
+    "within_30s": 0.49974772956609487,
+    "within_60s": 0.6198284561049445
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 2,
+   "trace": "bursty-n200-h7200-s4207",
+   "trace_checksum": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+   "trace_family": "bursty"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6253.4397443132475,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 509.2888422384858,
+    "eviction_count": 30,
+    "hot_hit_rate": 0.45988900100908175,
+    "l1_hit_rate": 0.8801715438950555,
+    "tier_counts": {
+     "L0": 1823,
+     "L1-cold": 0,
+     "L1-warm": 1666,
+     "L2": 475
+    }
+   },
+   "cost_usd": {
+    "gpu": 158.38620953400002,
+    "l2_egress": 125.06879488626495,
+    "total": 283.45500442026497
+   },
+   "gpu": {
+    "busy_gpu_hours": 23.1619839975,
+    "reserved_gpu_hours": 53.69024052,
+    "utilization": 0.4314002651724384,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 1499.376011,
+   "latency_mean_seconds": 220.03313153733603,
+   "latency_seconds": {
+    "p50": 37.792023,
+    "p95": 1113.25749,
+    "p99": 1347.76293
+   },
+   "n_completed": 3964,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 3964,
+   "n_retried_completions": 11,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 1.680625905903128,
+    "inference": 4.4766216596871855,
+    "prewarm": 3.7438721584258325,
+    "setup": 9.935215367810294,
+    "teardown": 1.0645812310797174,
+    "wait": 199.1322152144299
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k4",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.6710393541876892,
+    "within_30s": 0.44601412714429867,
+    "within_60s": 0.577699293642785
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 4,
+   "trace": "bursty-n200-h7200-s4207",
+   "trace_checksum": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+   "trace_family": "bursty"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6405.349434615113,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 574.6091687232256,
+    "eviction_count": 46,
+    "hot_hit_rate": 0.4760343087790111,
+    "l1_hit_rate": 0.8736125126135217,
+    "tier_counts": {
+     "L0": 1887,
+     "L1-cold": 0,
+     "L1-warm": 1576,
+     "L2": 501
+    }
+   },
+   "cost_usd": {
+    "gpu": 172.37516165066668,
+    "l2_egress": 128.10698869230225,
+    "total": 300.4821503429689
+   },
+   "gpu": {
+    "busy_gpu_hours": 23.7626461225,
+    "reserved_gpu_hours": 58.43225818666667,
+    "utilization": 0.4066699946216055,
+    "warm_setup_gpu_hours": 0.015439808611111112
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 2059.857321,
+   "latency_mean_seconds": 233.77561636326942,
+   "latency_seconds": {
+    "p50": 32.250728,
+    "p95": 1383.160029,
+    "p99": 1809.035651
+   },
+   "n_completed": 3964,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 3964,
+   "n_retried_completions": 1,
+   "node_failures": 11,
+   "phase_mean_seconds": {
+    "fetch": 1.7042775635721492,
+    "inference": 4.465448129414733,
+    "prewarm": 4.612771208123108,
+    "setup": 9.71879008173562,
+    "teardown": 1.0322906155398588,
+    "wait": 212.24203876488397
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k8",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.7174571140262361,
+    "within_30s": 0.48562058526740665,
+    "within_60s": 0.6266397578203835
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 8,
+   "trace": "bursty-n200-h7200-s4207",
+   "trace_checksum": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+   "trace_family": "bursty"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7444.469545275904,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1041.513718597591,
+    "eviction_count": 70,
+    "hot_hit_rate": 0.48915237134207873,
+    "l1_hit_rate": 0.8718466195761857,
+    "tier_counts": {
+     "L0": 1939,
+     "L1-cold": 0,
+     "L1-warm": 1517,
+     "L2": 508
+    }
+   },
+   "cost_usd": {
+    "gpu": 177.52360037733334,
+    "l2_egress": 148.8893909055181,
+    "total": 326.4129912828514
+   },
+   "gpu": {
+    "busy_gpu_hours": 23.304410099722222,
+    "reserved_gpu_hours": 60.177491653333334,
+    "utilization": 0.3872612410296658,
+    "warm_setup_gpu_hours": 0.15505352444444445
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 2101.333083,
+   "latency_mean_seconds": 202.76692359006054,
+   "latency_seconds": {
+    "p50": 30.12816,
+    "p95": 1335.366954,
+    "p99": 1919.692396
+   },
+   "n_completed": 3964,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 3964,
+   "n_retried_completions": 4,
+   "node_failures": 9,
+   "phase_mean_seconds": {
+    "fetch": 1.966135751261352,
+    "inference": 4.458319945761857,
+    "prewarm": 4.3150928370332995,
+    "setup": 9.267777010343089,
+    "teardown": 1.0055499495459133,
+    "wait": 181.75404809611504
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k16",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.7419273461150353,
+    "within_30s": 0.49924318869828455,
+    "within_60s": 0.6485872855701312
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 16,
+   "trace": "bursty-n200-h7200-s4207",
+   "trace_checksum": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+   "trace_family": "bursty"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6433.961611980572,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1255.9605450602248,
+    "eviction_count": 47,
+    "hot_hit_rate": 0.13084665482534044,
+    "l1_hit_rate": 0.7702782711663706,
+    "tier_counts": {
+     "L0": 221,
+     "L1-cold": 0,
+     "L1-warm": 1080,
+     "L2": 388
+    }
+   },
+   "cost_usd": {
+    "gpu": 146.9210920786667,
+    "l2_egress": 128.67923223961145,
+    "total": 275.6003243182781
+   },
+   "gpu": {
+    "busy_gpu_hours": 16.54386431027778,
+    "reserved_gpu_hours": 49.80376002666667,
+    "utilization": 0.332181030135468,
+    "warm_setup_gpu_hours": 0.012547537777777777
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.892308,
+   "latency_mean_seconds": 42.757733198342216,
+   "latency_seconds": {
+    "p50": 23.310383,
+    "p95": 125.825261,
+    "p99": 482.545543
+   },
+   "n_completed": 1689,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1689,
+   "n_retried_completions": 0,
+   "node_failures": 2,
+   "phase_mean_seconds": {
+    "fetch": 4.0846190722320905,
+    "inference": 2.931003629958555,
+    "prewarm": 8.553014582593251,
+    "setup": 17.95814802072232,
+    "teardown": 1.7087033747779752,
+    "wait": 7.522244518058023
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k1",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9402013025458852,
+    "within_30s": 0.6376554174067496,
+    "within_60s": 0.8579040852575488
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 1,
+   "trace": "correlated-n200-h7200-s4207",
+   "trace_checksum": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+   "trace_family": "correlated"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7407.88827946689,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1192.772414601408,
+    "eviction_count": 69,
+    "hot_hit_rate": 0.11012433392539965,
+    "l1_hit_rate": 0.7329780935464772,
+    "tier_counts": {
+     "L0": 186,
+     "L1-cold": 0,
+     "L1-warm": 1052,
+     "L2": 451
+    }
+   },
+   "cost_usd": {
+    "gpu": 141.03427155766667,
+    "l2_egress": 148.1577655893378,
+    "total": 289.1920371470045
+   },
+   "gpu": {
+    "busy_gpu_hours": 18.10072715277778,
+    "reserved_gpu_hours": 47.808227646666666,
+    "utilization": 0.378611131258697,
+    "warm_setup_gpu_hours": 0.38665187805555556
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 760.796244,
+   "latency_mean_seconds": 48.670172361160446,
+   "latency_seconds": {
+    "p50": 24.456987,
+    "p95": 160.309117,
+    "p99": 547.214795
+   },
+   "n_completed": 1689,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1689,
+   "n_retried_completions": 4,
+   "node_failures": 9,
+   "phase_mean_seconds": {
+    "fetch": 4.458307658377738,
+    "inference": 2.943017608644168,
+    "prewarm": 9.96292517643576,
+    "setup": 18.316272763173476,
+    "teardown": 1.7418590882178804,
+    "wait": 11.247790066311428
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k2",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9236234458259325,
+    "within_30s": 0.6027235050325637,
+    "within_60s": 0.8312611012433393
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 2,
+   "trace": "correlated-n200-h7200-s4207",
+   "trace_checksum": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+   "trace_family": "correlated"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6859.679379633628,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1414.2595590539277,
+    "eviction_count": 61,
+    "hot_hit_rate": 0.1267021906453523,
+    "l1_hit_rate": 0.7424511545293073,
+    "tier_counts": {
+     "L0": 214,
+     "L1-cold": 0,
+     "L1-warm": 1040,
+     "L2": 435
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.02230412554167,
+    "l2_egress": 137.19358759267257,
+    "total": 277.21589171821427
+   },
+   "gpu": {
+    "busy_gpu_hours": 17.2248134375,
+    "reserved_gpu_hours": 47.46518783916667,
+    "utilization": 0.3628936115425349,
+    "warm_setup_gpu_hours": 0.2617292461111111
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 765.12433,
+   "latency_mean_seconds": 44.8475552125518,
+   "latency_seconds": {
+    "p50": 24.146874,
+    "p95": 144.927424,
+    "p99": 482.713206
+   },
+   "n_completed": 1689,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1689,
+   "n_retried_completions": 2,
+   "node_failures": 8,
+   "phase_mean_seconds": {
+    "fetch": 4.220218445233867,
+    "inference": 2.9263812084073413,
+    "prewarm": 9.404190001184134,
+    "setup": 17.808048146240377,
+    "teardown": 1.7098875074008288,
+    "wait": 8.778829904085258
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k4",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9336885731201895,
+    "within_30s": 0.6169330965068087,
+    "within_60s": 0.8401420959147424
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 4,
+   "trace": "correlated-n200-h7200-s4207",
+   "trace_checksum": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+   "trace_family": "correlated"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7809.804225755855,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1663.9413778353482,
+    "eviction_count": 97,
+    "hot_hit_rate": 0.11190053285968028,
+    "l1_hit_rate": 0.7140319715808171,
+    "tier_counts": {
+     "L0": 189,
+     "L1-cold": 0,
+     "L1-warm": 1017,
+     "L2": 483
+    }
+   },
+   "cost_usd": {
+    "gpu": 144.81343264,
+    "l2_egress": 156.19608451511712,
+    "total": 301.0095171551171
+   },
+   "gpu": {
+    "busy_gpu_hours": 18.760459188333332,
+    "reserved_gpu_hours": 49.0892992,
+    "utilization": 0.3821700348970012,
+    "warm_setup_gpu_hours": 0.6557880041666666
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.932669,
+   "latency_mean_seconds": 47.632978763173476,
+   "latency_seconds": {
+    "p50": 24.828551,
+    "p95": 149.165312,
+    "p99": 490.417988
+   },
+   "n_completed": 1689,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1689,
+   "n_retried_completions": 2,
+   "node_failures": 11,
+   "phase_mean_seconds": {
+    "fetch": 4.706929123741859,
+    "inference": 2.941084355239787,
+    "prewarm": 10.855545082889284,
+    "setup": 18.317063359384253,
+    "teardown": 1.7359384251036116,
+    "wait": 9.076418416814683
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k8",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9295441089402013,
+    "within_30s": 0.5932504440497336,
+    "within_60s": 0.8259325044404974
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 8,
+   "trace": "correlated-n200-h7200-s4207",
+   "trace_checksum": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+   "trace_family": "correlated"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 9225.049784242176,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 2408.376820700243,
+    "eviction_count": 113,
+    "hot_hit_rate": 0.11545293072824156,
+    "l1_hit_rate": 0.7246891651865008,
+    "tier_counts": {
+     "L0": 195,
+     "L1-cold": 0,
+     "L1-warm": 1029,
+     "L2": 465
+    }
+   },
+   "cost_usd": {
+    "gpu": 141.25321072433334,
+    "l2_egress": 184.5009956848435,
+    "total": 325.75420640917685
+   },
+   "gpu": {
+    "busy_gpu_hours": 20.114807195833333,
+    "reserved_gpu_hours": 47.88244431333334,
+    "utilization": 0.42008730933212124,
+    "warm_setup_gpu_hours": 2.394157458611111
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 762.014745,
+   "latency_mean_seconds": 45.967226843102424,
+   "latency_seconds": {
+    "p50": 24.508408,
+    "p95": 149.521733,
+    "p99": 490.858669
+   },
+   "n_completed": 1689,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1689,
+   "n_retried_completions": 4,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 4.884745129662522,
+    "inference": 2.937950201894612,
+    "prewarm": 9.67420711722913,
+    "setup": 18.0194591107164,
+    "teardown": 1.7323860272350504,
+    "wait": 8.718479256364713
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k16",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9271758436944938,
+    "within_30s": 0.6121965660153937,
+    "within_60s": 0.8478389579632919
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 16,
+   "trace": "correlated-n200-h7200-s4207",
+   "trace_checksum": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+   "trace_family": "correlated"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6818.440941669047,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1317.1587711572647,
+    "eviction_count": 85,
+    "hot_hit_rate": 0.12082405345211582,
+    "l1_hit_rate": 0.755011135857461,
+    "tier_counts": {
+     "L0": 217,
+     "L1-cold": 0,
+     "L1-warm": 1139,
+     "L2": 440
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.98374238433334,
+    "l2_egress": 136.36881883338094,
+    "total": 277.3525612177143
+   },
+   "gpu": {
+    "busy_gpu_hours": 18.100671581944443,
+    "reserved_gpu_hours": 47.79109911333333,
+    "utilization": 0.37874566431334705,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 1140.929217,
+   "latency_mean_seconds": 45.62323909966592,
+   "latency_seconds": {
+    "p50": 23.482878,
+    "p95": 147.110295,
+    "p99": 494.474615
+   },
+   "n_completed": 1796,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1796,
+   "n_retried_completions": 3,
+   "node_failures": 7,
+   "phase_mean_seconds": {
+    "fetch": 4.0295989170378625,
+    "inference": 3.0292404387527836,
+    "prewarm": 9.821329091314032,
+    "setup": 17.446708646436527,
+    "teardown": 1.7249443207126949,
+    "wait": 9.571417685412026
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k1",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9292873051224945,
+    "within_30s": 0.6330734966592427,
+    "within_60s": 0.8413140311804009
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 1,
+   "trace": "uniform-n200-h7200-s4207",
+   "trace_checksum": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+   "trace_family": "uniform"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 8034.6832273397595,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1882.4123184578493,
+    "eviction_count": 100,
+    "hot_hit_rate": 0.11525612472160357,
+    "l1_hit_rate": 0.7216035634743875,
+    "tier_counts": {
+     "L0": 207,
+     "L1-cold": 0,
+     "L1-warm": 1089,
+     "L2": 500
+    }
+   },
+   "cost_usd": {
+    "gpu": 148.01543342033332,
+    "l2_egress": 160.6936645467952,
+    "total": 308.7090979671285
+   },
+   "gpu": {
+    "busy_gpu_hours": 19.29767145972222,
+    "reserved_gpu_hours": 50.17472319333333,
+    "utilization": 0.38460942545441457,
+    "warm_setup_gpu_hours": 0.007147198333333334
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 765.281692,
+   "latency_mean_seconds": 49.23898969821826,
+   "latency_seconds": {
+    "p50": 24.268107,
+    "p95": 160.309117,
+    "p99": 512.863903
+   },
+   "n_completed": 1796,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1796,
+   "n_retried_completions": 2,
+   "node_failures": 9,
+   "phase_mean_seconds": {
+    "fetch": 4.79660945545657,
+    "inference": 3.0225213190423164,
+    "prewarm": 11.59979527115813,
+    "setup": 17.49887062973274,
+    "teardown": 1.7327394209354121,
+    "wait": 10.588453601893095
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k2",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9153674832962138,
+    "within_30s": 0.6052338530066815,
+    "within_60s": 0.8162583518930958
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 2,
+   "trace": "uniform-n200-h7200-s4207",
+   "trace_checksum": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+   "trace_family": "uniform"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 7855.612381788902,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1749.5280143246055,
+    "eviction_count": 88,
+    "hot_hit_rate": 0.11859688195991092,
+    "l1_hit_rate": 0.7293986636971047,
+    "tier_counts": {
+     "L0": 213,
+     "L1-cold": 0,
+     "L1-warm": 1097,
+     "L2": 486
+    }
+   },
+   "cost_usd": {
+    "gpu": 147.669246212625,
+    "l2_egress": 157.11224763577803,
+    "total": 304.78149384840304
+   },
+   "gpu": {
+    "busy_gpu_hours": 18.260626461666668,
+    "reserved_gpu_hours": 50.0573715975,
+    "utilization": 0.36479395299649836,
+    "warm_setup_gpu_hours": 0.1353373102777778
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 1013.149881,
+   "latency_mean_seconds": 45.59437519153675,
+   "latency_seconds": {
+    "p50": 23.810833,
+    "p95": 147.740893,
+    "p99": 442.259707
+   },
+   "n_completed": 1796,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1796,
+   "n_retried_completions": 3,
+   "node_failures": 11,
+   "phase_mean_seconds": {
+    "fetch": 4.59666185857461,
+    "inference": 3.029563822939866,
+    "prewarm": 9.007188177616927,
+    "setup": 17.632896729398663,
+    "teardown": 1.7260579064587973,
+    "wait": 9.602006696547884
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k4",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9226057906458798,
+    "within_30s": 0.6180400890868597,
+    "within_60s": 0.8279510022271714
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 4,
+   "trace": "uniform-n200-h7200-s4207",
+   "trace_checksum": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+   "trace_family": "uniform"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 6985.762423249893,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1550.4282340845093,
+    "eviction_count": 97,
+    "hot_hit_rate": 0.10968819599109131,
+    "l1_hit_rate": 0.7633630289532294,
+    "tier_counts": {
+     "L0": 197,
+     "L1-cold": 0,
+     "L1-warm": 1174,
+     "L2": 425
+    }
+   },
+   "cost_usd": {
+    "gpu": 141.73521051633335,
+    "l2_egress": 139.71524846499787,
+    "total": 281.4504589813312
+   },
+   "gpu": {
+    "busy_gpu_hours": 18.139272908888888,
+    "reserved_gpu_hours": 48.04583407333334,
+    "utilization": 0.37754101388275507,
+    "warm_setup_gpu_hours": 0.9086837697222222
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 763.223076,
+   "latency_mean_seconds": 44.28277456124722,
+   "latency_seconds": {
+    "p50": 23.656043,
+    "p95": 147.154489,
+    "p99": 446.39708
+   },
+   "n_completed": 1796,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1796,
+   "n_retried_completions": 1,
+   "node_failures": 5,
+   "phase_mean_seconds": {
+    "fetch": 3.9313064660356347,
+    "inference": 3.038819441536748,
+    "prewarm": 8.106778720489977,
+    "setup": 17.707672033964364,
+    "teardown": 1.7494432071269488,
+    "wait": 9.748754692093542
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k8",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9226057906458798,
+    "within_30s": 0.6224944320712695,
+    "within_60s": 0.8402004454342984
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 8,
+   "trace": "uniform-n200-h7200-s4207",
+   "trace_checksum": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+   "trace_family": "uniform"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 9171.663179941475,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 2552.5832501323894,
+    "eviction_count": 121,
+    "hot_hit_rate": 0.11971046770601336,
+    "l1_hit_rate": 0.727728285077951,
+    "tier_counts": {
+     "L0": 215,
+     "L1-cold": 0,
+     "L1-warm": 1092,
+     "L2": 489
+    }
+   },
+   "cost_usd": {
+    "gpu": 142.31428232000002,
+    "l2_egress": 183.4332635988295,
+    "total": 325.74754591882953
+   },
+   "gpu": {
+    "busy_gpu_hours": 20.33360505888889,
+    "reserved_gpu_hours": 48.242129600000005,
+    "utilization": 0.4214906188322351,
+    "warm_setup_gpu_hours": 1.7777173733333334
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 758.982177,
+   "latency_mean_seconds": 47.95270848997773,
+   "latency_seconds": {
+    "p50": 23.598128,
+    "p95": 151.94445,
+    "p99": 515.683524
+   },
+   "n_completed": 1796,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1796,
+   "n_retried_completions": 6,
+   "node_failures": 8,
+   "phase_mean_seconds": {
+    "fetch": 4.8757499432071265,
+    "inference": 3.023243851336303,
+    "prewarm": 9.999967064031182,
+    "setup": 17.34192237026726,
+    "teardown": 1.7249443207126949,
+    "wait": 10.986880940423163
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k16",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9226057906458798,
+    "within_30s": 0.621380846325167,
+    "within_60s": 0.8273942093541202
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 16,
+   "trace": "uniform-n200-h7200-s4207",
+   "trace_checksum": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+   "trace_family": "uniform"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 5397.963957681321,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1831.5851532323286,
+    "eviction_count": 101,
+    "hot_hit_rate": 0.4851109907958852,
+    "l1_hit_rate": 0.8018408229561451,
+    "tier_counts": {
+     "L0": 896,
+     "L1-cold": 0,
+     "L1-warm": 585,
+     "L2": 366
+    }
+   },
+   "cost_usd": {
+    "gpu": 139.97889556469445,
+    "l2_egress": 107.95927915362641,
+    "total": 247.93817471832085
+   },
+   "gpu": {
+    "busy_gpu_hours": 11.421333612222222,
+    "reserved_gpu_hours": 47.450473072777775,
+    "utilization": 0.24070009996959577,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 761.98548,
+   "latency_mean_seconds": 27.4189423946941,
+   "latency_seconds": {
+    "p50": 8.033475,
+    "p95": 101.33618,
+    "p99": 391.56505
+   },
+   "n_completed": 1847,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1847,
+   "n_retried_completions": 1,
+   "node_failures": 9,
+   "phase_mean_seconds": {
+    "fetch": 3.1380724667027615,
+    "inference": 1.84107790146183,
+    "prewarm": 6.882561787763941,
+    "setup": 9.398692349214944,
+    "teardown": 0.9951272333513806,
+    "wait": 5.163410656199242
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k1",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9561451001624256,
+    "within_30s": 0.7780184082295615,
+    "within_60s": 0.9090416892257716
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 1,
+   "trace": "zipf-n200-h7200-s4207",
+   "trace_checksum": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c",
+   "trace_family": "zipf"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 5504.141370275058,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1276.4128680890426,
+    "eviction_count": 70,
+    "hot_hit_rate": 0.49431510557661074,
+    "l1_hit_rate": 0.8142934488359502,
+    "tier_counts": {
+     "L0": 913,
+     "L1-cold": 0,
+     "L1-warm": 591,
+     "L2": 343
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.50312395933332,
+    "l2_egress": 110.08282740550116,
+    "total": 250.5859513648345
+   },
+   "gpu": {
+    "busy_gpu_hours": 11.2675842625,
+    "reserved_gpu_hours": 47.62817761333333,
+    "utilization": 0.23657391122488974,
+    "warm_setup_gpu_hours": 0.0
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 761.764464,
+   "latency_mean_seconds": 27.12831892474283,
+   "latency_seconds": {
+    "p50": 7.660304,
+    "p95": 118.96275,
+    "p99": 391.80352
+   },
+   "n_completed": 1847,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1847,
+   "n_retried_completions": 2,
+   "node_failures": 6,
+   "phase_mean_seconds": {
+    "fetch": 3.1948285051434757,
+    "inference": 1.8075887845154304,
+    "prewarm": 6.886560902003248,
+    "setup": 9.082939246886843,
+    "teardown": 0.9788846778559827,
+    "wait": 5.177516808337845
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k2",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9512723335138061,
+    "within_30s": 0.7953438007579859,
+    "within_60s": 0.9068760151597185
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 2,
+   "trace": "zipf-n200-h7200-s4207",
+   "trace_checksum": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c",
+   "trace_family": "zipf"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 5286.8837848082185,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1697.7243698947132,
+    "eviction_count": 107,
+    "hot_hit_rate": 0.466161342717921,
+    "l1_hit_rate": 0.8218733080671359,
+    "tier_counts": {
+     "L0": 861,
+     "L1-cold": 0,
+     "L1-warm": 657,
+     "L2": 329
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.99481448166668,
+    "l2_egress": 105.73767569616437,
+    "total": 246.73249017783104
+   },
+   "gpu": {
+    "busy_gpu_hours": 11.167835756666667,
+    "reserved_gpu_hours": 47.79485236666667,
+    "utilization": 0.23366189461138281,
+    "warm_setup_gpu_hours": 0.0057217025
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 898.303785,
+   "latency_mean_seconds": 27.623764415268003,
+   "latency_seconds": {
+    "p50": 8.142181,
+    "p95": 109.125978,
+    "p99": 391.268684
+   },
+   "n_completed": 1847,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1847,
+   "n_retried_completions": 1,
+   "node_failures": 4,
+   "phase_mean_seconds": {
+    "fetch": 3.0549974807796425,
+    "inference": 1.830052309149973,
+    "prewarm": 6.379689588521927,
+    "setup": 9.266814757444504,
+    "teardown": 1.0384407146724417,
+    "wait": 6.053769564699513
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k4",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9539794260963725,
+    "within_30s": 0.7899296155928532,
+    "within_60s": 0.9057931781266919
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 4,
+   "trace": "zipf-n200-h7200-s4207",
+   "trace_checksum": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c",
+   "trace_family": "zipf"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 5368.977885690518,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 1204.469077244401,
+    "eviction_count": 50,
+    "hot_hit_rate": 0.47969680563075257,
+    "l1_hit_rate": 0.8170005414185165,
+    "tier_counts": {
+     "L0": 886,
+     "L1-cold": 0,
+     "L1-warm": 623,
+     "L2": 338
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.80649498094445,
+    "l2_egress": 107.37955771381036,
+    "total": 248.1860526947548
+   },
+   "gpu": {
+    "busy_gpu_hours": 11.653594025833334,
+    "reserved_gpu_hours": 47.731015247777776,
+    "utilization": 0.24415139643139883,
+    "warm_setup_gpu_hours": 0.04290428222222222
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 760.816921,
+   "latency_mean_seconds": 28.252357523551705,
+   "latency_seconds": {
+    "p50": 8.091174,
+    "p95": 107.822938,
+    "p99": 429.789915
+   },
+   "n_completed": 1847,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1847,
+   "n_retried_completions": 5,
+   "node_failures": 10,
+   "phase_mean_seconds": {
+    "fetch": 3.0015424618299944,
+    "inference": 1.8479223838657282,
+    "prewarm": 7.508876682187331,
+    "setup": 9.117909329723878,
+    "teardown": 1.0070384407146724,
+    "wait": 5.769068225230103
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k8",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.9534380075798592,
+    "within_30s": 0.7948023822414727,
+    "within_60s": 0.9144558743909041
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 8,
+   "trace": "zipf-n200-h7200-s4207",
+   "trace_checksum": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c",
+   "trace_family": "zipf"
+  },
+  {
+   "bytes": {
+    "fetched_gib": 5838.089177062735,
+    "prefetch_gib": 0.0
+   },
+   "cache": {
+    "evicted_gib": 991.4671975262463,
+    "eviction_count": 56,
+    "hot_hit_rate": 0.42772062804547917,
+    "l1_hit_rate": 0.8299945858148349,
+    "tier_counts": {
+     "L0": 790,
+     "L1-cold": 0,
+     "L1-warm": 743,
+     "L2": 314
+    }
+   },
+   "cost_usd": {
+    "gpu": 140.69771201584723,
+    "l2_egress": 116.7617835412547,
+    "total": 257.45949555710195
+   },
+   "gpu": {
+    "busy_gpu_hours": 12.389584520555555,
+    "reserved_gpu_hours": 47.694139666388885,
+    "utilization": 0.25977163247347074,
+    "warm_setup_gpu_hours": 1.0864154863888889
+   },
+   "input_provenance": "placeholder-derived simulation; only this sweep axis varies, all other inputs fixed at base",
+   "latency_max_seconds": 761.74696,
+   "latency_mean_seconds": 27.290461939361126,
+   "latency_seconds": {
+    "p50": 8.14361,
+    "p95": 102.557568,
+    "p99": 391.118884
+   },
+   "n_completed": 1847,
+   "n_failed": 0,
+   "n_rejected": 0,
+   "n_requests": 1847,
+   "n_retried_completions": 2,
+   "node_failures": 5,
+   "phase_mean_seconds": {
+    "fetch": 2.9145394612885758,
+    "inference": 1.843659067135896,
+    "prewarm": 6.068520755820249,
+    "setup": 9.707690079588524,
+    "teardown": 1.1142393069842988,
+    "wait": 5.641813268543584
+   },
+   "policy": "snapshot+shortest-switch-cost+lru+topk-adaptive-k16",
+   "sensitivity": "base",
+   "slo_goodput": {
+    "within_120s": 0.955062263129399,
+    "within_30s": 0.7953438007579859,
+    "within_60s": 0.9095831077422848
+   },
+   "sweep_axis": "warm_top_k",
+   "sweep_value": 16,
+   "trace": "zipf-n200-h7200-s4207",
+   "trace_checksum": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c",
+   "trace_family": "zipf"
+  }
+ ],
+ "scenario": {
+  "cache_gib_grid": [
+   150,
+   200,
+   400,
+   800,
+   1600
+  ],
+  "horizon_seconds": 7200.0,
+  "k_grid": [
+   1,
+   2,
+   4,
+   8,
+   16
+  ],
+  "mean_rate_per_s": 0.25,
+  "n_models": 200,
+  "n_nodes": 24,
+  "sim_seed": 7
+ },
+ "schema_version": "1.0.0",
+ "statement": "Placeholder-derived simulation, never measurement. Each sweep isolates one axis; every other placeholder stays at base. The simulator's placeholder prices are ignored downstream; build_frontier re-prices reserved GPU-hours and fetched GiB with the sourced price snapshot.",
+ "trace_checksums": {
+  "adversarial": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+  "bursty": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+  "correlated": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+  "uniform": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+  "zipf": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c"
+ }
+}

@@ -52,7 +52,7 @@ class Inputs:
         for doc, expect in (
             (self.price, "capacity-cost-price-snapshot/v1"),
             (self.capacity, "capacity-cost-capacity-snapshot/v1"),
-            (self.measured, "capacity-cost-measured-inputs/v1"),
+            (self.measured, "capacity-cost-measured-inputs/v2"),
         ):
             if doc.get("schema_version") != expect:
                 raise InputError(f"schema mismatch: want {expect}")
@@ -65,10 +65,12 @@ class Inputs:
         self._verify_measured_files()
 
     def _verify_measured_files(self) -> None:
-        for entry in self.measured["measured"]:
+        entries = (list(self.measured["measured"])
+                   + list(self.measured.get("simulation", [])))
+        for entry in entries:
             path = self.root / entry["file"]
             if not path.is_file():
-                raise InputError(f"measured file missing: {entry['file']}")
+                raise InputError(f"pinned file missing: {entry['file']}")
             actual = sha256_file(path)
             if actual != entry["sha256"]:
                 raise InputError(
@@ -102,6 +104,20 @@ class Inputs:
                 return entry
         raise InputError(f"no measured entry {entry_id}")
 
+    def simulation_entry(self, entry_id: str) -> dict:
+        for entry in self.measured.get("simulation", []):
+            if entry["id"] == entry_id:
+                return entry
+        raise InputError(f"no simulation entry {entry_id}")
+
+    def unmeasured_cost_class(self, cost_class: str, model: str) -> dict:
+        for entry in self.measured.get("unmeasured_cost_classes", []):
+            if entry["cost_class"] == cost_class and entry["model"] in (
+                    model, "all"):
+                return entry
+        raise InputError(
+            f"cost class {cost_class}/{model} is not declared unmeasured")
+
     def unmeasured(self, backend: str) -> dict:
         for entry in self.measured["unmeasured_backends"]:
             if entry["backend"] == backend:
@@ -123,10 +139,14 @@ class Inputs:
 
 # ---- cohort parsing -----------------------------------------------------
 
-def load_cohort_seconds(inputs: Inputs, entry_id: str) -> list[Decimal]:
+def load_cohort_seconds(inputs: Inputs, entry_id: str,
+                        metric: str | None = None) -> list[Decimal]:
     """Return the per-run metric values of an n=20 cohort as Decimals."""
     entry = inputs.measured_entry(entry_id)
-    metric = entry["metric"]
+    if metric is None:
+        metric = entry["metric"]
+    elif metric not in (entry["metric"], entry.get("warm_hit_metric")):
+        raise InputError(f"{entry_id}: metric {metric} is not declared")
     values: list[Decimal] = []
     with open(inputs.root / entry["file"], newline="") as fh:
         for row in csv.DictReader(fh, delimiter="\t"):
@@ -177,6 +197,19 @@ def preemption_breakeven(pre_hourly: Decimal, od_hourly: Decimal) -> Decimal:
 def expected_cost_per_success(attempt_cost: Decimal,
                               loss_probability: Decimal) -> Decimal:
     return (attempt_cost * retry_multiplier(loss_probability)).quantize(CENT6)
+
+
+def fallback_blend_cost(attempt_seconds: Decimal, pre_hourly: Decimal,
+                        od_hourly: Decimal, loss_probability: Decimal) -> Decimal:
+    """Expected cost per success for 'one preemptible attempt, then on-demand'.
+
+    The first attempt always pays the preemptible rate; with probability p it
+    is lost and one on-demand attempt (assumed loss-free per the
+    on_demand_loss_negligible assumption) completes the request.
+    """
+    pre_cost = gpu_seconds_cost(attempt_seconds, pre_hourly)
+    od_cost = gpu_seconds_cost(attempt_seconds, od_hourly)
+    return (pre_cost + loss_probability * od_cost).quantize(CENT6)
 
 
 def warm_breakeven_requests_per_month(warm_gpu_month_usd: Decimal,

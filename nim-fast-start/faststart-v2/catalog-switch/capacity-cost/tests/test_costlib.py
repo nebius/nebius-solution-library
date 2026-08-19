@@ -59,6 +59,17 @@ class CostMathTest(unittest.TestCase):
         with self.assertRaises(lib.InputError):
             lib.warm_breakeven_requests_per_month(Decimal(1), Decimal(0))
 
+    def test_fallback_blend(self):
+        # 3600 s attempt: pre $2.15 + p * od $3.85.
+        self.assertEqual(
+            lib.fallback_blend_cost(Decimal(3600), Decimal("2.15"),
+                                    Decimal("3.85"), Decimal(0)),
+            Decimal("2.150000"))
+        self.assertEqual(
+            lib.fallback_blend_cost(Decimal(3600), Decimal("2.15"),
+                                    Decimal("3.85"), Decimal("0.5")),
+            Decimal("4.075000"))
+
     def test_storage_breakeven(self):
         be = lib.storage_breakeven_refetches_per_gib_month(
             Decimal("0.08"), Decimal("0.0147"), Decimal("0.015"))

@@ -29,6 +29,11 @@
       "region_scope": "published-list",
       "sku": "cerebrium/A10",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/cerebrium-pricing.html",
+          "retrieved_at_utc": "2026-08-19T15:33:50Z",
+          "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://www.cerebrium.ai/pricing"
@@ -63,6 +68,11 @@
       "region_scope": "published-list",
       "sku": "cerebrium/A100-80GB",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/cerebrium-pricing.html",
+          "retrieved_at_utc": "2026-08-19T15:33:50Z",
+          "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://www.cerebrium.ai/pricing"
@@ -97,6 +107,11 @@
       "region_scope": "published-list",
       "sku": "cerebrium/B200",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/cerebrium-pricing.html",
+          "retrieved_at_utc": "2026-08-19T15:33:50Z",
+          "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://www.cerebrium.ai/pricing"
@@ -113,6 +128,11 @@
       "region_scope": "published-list",
       "sku": "cerebrium/vCPU",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/cerebrium-pricing.html",
+          "retrieved_at_utc": "2026-08-19T15:33:50Z",
+          "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://www.cerebrium.ai/pricing"
@@ -147,6 +167,11 @@
       "region_scope": "published-list",
       "sku": "cerebrium/H100",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/cerebrium-pricing.html",
+          "retrieved_at_utc": "2026-08-19T15:33:50Z",
+          "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://www.cerebrium.ai/pricing"
@@ -181,6 +206,11 @@
       "region_scope": "published-list",
       "sku": "cerebrium/H200",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/cerebrium-pricing.html",
+          "retrieved_at_utc": "2026-08-19T15:33:50Z",
+          "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://www.cerebrium.ai/pricing"
@@ -215,6 +245,11 @@
       "region_scope": "published-list",
       "sku": "cerebrium/L40S",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/cerebrium-pricing.html",
+          "retrieved_at_utc": "2026-08-19T15:33:50Z",
+          "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://www.cerebrium.ai/pricing"
@@ -231,6 +266,11 @@
       "region_scope": "published-list",
       "sku": "cerebrium/memory",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/cerebrium-pricing.html",
+          "retrieved_at_utc": "2026-08-19T15:33:50Z",
+          "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://www.cerebrium.ai/pricing"
@@ -247,6 +287,11 @@
       "region_scope": "published-list",
       "sku": "cerebrium/plan-standard",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/cerebrium-pricing.html",
+          "retrieved_at_utc": "2026-08-19T15:33:50Z",
+          "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://www.cerebrium.ai/pricing"
@@ -263,6 +308,11 @@
       "region_scope": "published-list",
       "sku": "cerebrium/storage",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/cerebrium-pricing.html",
+          "retrieved_at_utc": "2026-08-19T15:33:50Z",
+          "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://www.cerebrium.ai/pricing"
@@ -441,6 +491,11 @@
       "region_scope": "published-list",
       "sku": "gpu-b200-sxm",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"
@@ -457,6 +512,11 @@
       "region_scope": "published-list",
       "sku": "gpu-b200-sxm",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"
@@ -473,6 +533,11 @@
       "region_scope": "published-list",
       "sku": "gpu-b300-sxm",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"
@@ -489,6 +554,11 @@
       "region_scope": "published-list",
       "sku": "gpu-b300-sxm",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"
@@ -505,6 +575,11 @@
       "region_scope": "published-list",
       "sku": "gpu-h100-sxm",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"
@@ -521,6 +596,11 @@
       "region_scope": "published-list",
       "sku": "gpu-h100-sxm",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"
@@ -537,6 +617,11 @@
       "region_scope": "published-list",
       "sku": "gpu-h200-sxm",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"
@@ -553,6 +638,11 @@
       "region_scope": "published-list",
       "sku": "gpu-h200-sxm",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"
@@ -569,6 +659,11 @@
       "region_scope": "published-list",
       "sku": "object-storage/egress",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"
@@ -585,6 +680,11 @@
       "region_scope": "published-list",
       "sku": "object-storage/standard",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"
@@ -601,6 +701,11 @@
       "region_scope": "published-list",
       "sku": "filesystem/network_ssd",
       "source": {
+        "archived_payload": {
+          "file": "inputs/raw/sources/nebius-prices.html",
+          "retrieved_at_utc": "2026-08-19T15:33:48Z",
+          "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f"
+        },
         "kind": "public_list_price",
         "retrieved_at_utc": "2026-08-19T15:05:00Z",
         "url": "https://nebius.com/prices"

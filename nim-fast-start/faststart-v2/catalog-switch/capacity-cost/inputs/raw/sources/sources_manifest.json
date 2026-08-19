@@ -1,0 +1,30 @@
+{
+  "schema_version": "capacity-cost-source-archive/v1",
+  "statement": "Raw HTML payloads of every public pricing page transcribed into price_snapshot.json or MODAL_APPENDIX.md, archived for offline verification. Each transcribed unit price is present verbatim in its payload (grep-verifiable without network). Fetched with curl -sL -A 'Mozilla/5.0 (X11; Linux x86_64)'.",
+  "archives": [
+    {
+      "file": "nebius-prices.html",
+      "url": "https://nebius.com/prices",
+      "retrieved_at_utc": "2026-08-19T15:33:48Z",
+      "sha256": "712aebe164da013dbaadea64962d12cf2526f062f4f04e7bb5bad56b325ae16f",
+      "bytes": 339441,
+      "binds_records": "nebius-list-*"
+    },
+    {
+      "file": "cerebrium-pricing.html",
+      "url": "https://www.cerebrium.ai/pricing",
+      "retrieved_at_utc": "2026-08-19T15:33:50Z",
+      "sha256": "6cae36065371f67b03ecd4ea7ea8becec7c19b031d5524860543b04d65bffd73",
+      "bytes": 380897,
+      "binds_records": "cerebrium-*"
+    },
+    {
+      "file": "modal-pricing.html",
+      "url": "https://modal.com/pricing",
+      "retrieved_at_utc": "2026-08-19T15:33:50Z",
+      "sha256": "62792057ed20b18b1994a1695243560fbc8ed1b732a0f5a9fd38d594ccf587d2",
+      "bytes": 135053,
+      "binds_records": "MODAL_APPENDIX.md only; Modal has no price records by design"
+    }
+  ]
+}

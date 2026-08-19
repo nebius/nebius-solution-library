@@ -23,6 +23,7 @@ deterministic from the committed raw files.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from decimal import Decimal
@@ -30,6 +31,33 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 RAW = HERE / "raw"
+SOURCES = RAW / "sources"
+
+_MANIFEST = json.loads((SOURCES / "sources_manifest.json").read_text())
+_ARCHIVES_BY_URL = {a["url"]: a for a in _MANIFEST["archives"]}
+
+
+def _archive_binding(url: str, unit_price: str) -> dict:
+    """Return the archived-payload binding for a public price record.
+
+    Fails closed if the archive is missing, its hash drifted, or the quoted
+    price string is not literally present in the payload (offline check).
+    """
+    arch = _ARCHIVES_BY_URL.get(url)
+    if arch is None:
+        raise SystemExit(f"no archived payload for {url}")
+    payload = (SOURCES / arch["file"]).read_bytes()
+    actual = hashlib.sha256(payload).hexdigest()
+    if actual != arch["sha256"]:
+        raise SystemExit(f"payload hash drift for {arch['file']}: {actual}")
+    if unit_price.encode() not in payload:
+        raise SystemExit(
+            f"price {unit_price} not found in archived {arch['file']}")
+    return {
+        "file": f"inputs/raw/sources/{arch['file']}",
+        "sha256": arch["sha256"],
+        "retrieved_at_utc": arch["retrieved_at_utc"],
+    }
 
 NEBIUS_PRICES_URL = "https://nebius.com/prices"
 NEBIUS_PRICES_RETRIEVED = "2026-08-19T15:05:00Z"
@@ -93,6 +121,7 @@ def public_record(record_id: str, sku: str, unit: str, unit_price: str,
             "kind": "public_list_price",
             "url": url,
             "retrieved_at_utc": retrieved,
+            "archived_payload": _archive_binding(url, unit_price),
         },
         "notes": notes,
     }
