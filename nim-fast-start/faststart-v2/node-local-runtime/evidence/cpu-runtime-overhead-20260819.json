@@ -1,0 +1,171 @@
+{
+  "classification": "cpu-local-runtime-overhead-not-product-or-gpu-evidence",
+  "cleanup": {
+    "containers_absent": true,
+    "image_removed": true
+  },
+  "direct_process": {
+    "command": [
+      "/tmp/mlsp-csw-node-runtime-build-rncmuwwf/semantic-fixture"
+    ],
+    "raw_total_ms": [
+      0.686425,
+      0.508583,
+      0.458197,
+      0.448763,
+      0.651011,
+      0.525108,
+      0.424526,
+      0.640094,
+      0.44007,
+      0.451297,
+      0.419578,
+      0.464086,
+      0.464437,
+      0.625211,
+      0.44743,
+      0.43367,
+      1.891268,
+      0.459388,
+      0.46664,
+      0.472919,
+      0.443064,
+      0.459449,
+      0.427089,
+      0.429914,
+      0.431476,
+      0.46011,
+      0.602717,
+      0.625391,
+      0.49925,
+      0.527102
+    ],
+    "summary": {
+      "maximum_ms": 1.891268,
+      "minimum_ms": 0.419578,
+      "p50_ms": 0.46011,
+      "p95_ms": 0.686425,
+      "p99_ms": null,
+      "sample_count": 30
+    }
+  },
+  "environment": {
+    "containerd_version": "containerd containerd.io v2.2.3 77c84241c7cbdd9b4eca2591793e3d4f4317c590",
+    "docker_server_version": "29.4.1",
+    "image_parent": "",
+    "kernel": "6.11.0-1016-nvidia",
+    "machine": "x86_64",
+    "runc_version": "runc version 1.3.5",
+    "task_owned_image_id": "sha256:452bcd9282a10b69174f1c31d1e415a44e10bd20a99d10c19e1e08dc9081d880",
+    "task_owned_image_user": "65532:65532"
+  },
+  "fixture": {
+    "input_sha256": "1e291240ba6a9b693c353b25e86b8a70ab5a052ef476dfd7a3c87398bd5adc28",
+    "semantic_contract": [
+      "READY",
+      "{\"model_id\":\"cpu-fixture-b\",\"model_version\":\"v1\",\"result\":\"semantically-valid\"}"
+    ],
+    "source_sha256": "3c24c8cf3cc836c69e5424b02575fd1e29877a6883fd70fe3657fa0f0bce8acd"
+  },
+  "microvm": {
+    "measured": false,
+    "reason": "Firecracker absent and its documented device model does not expose an H100 passthrough path; no proxy timing invented."
+  },
+  "oci_containerd_runc": {
+    "command_template": [
+      "docker",
+      "run",
+      "--rm",
+      "--name",
+      "mlsp-csw-node-runtime-67e25d7be8d6-NNN",
+      "--network=none",
+      "--read-only",
+      "--cap-drop=ALL",
+      "--security-opt=no-new-privileges:true",
+      "--pids-limit=32",
+      "--memory=32m",
+      "--cpus=1",
+      "--user=65532:65532",
+      "--ipc=none",
+      "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=1048576",
+      "--ulimit=core=0",
+      "--label",
+      "mlsp.catalog-switch.task=catalog-switch-node-local-runtime",
+      "--interactive",
+      "sha256:452bcd9282a10b69174f1c31d1e415a44e10bd20a99d10c19e1e08dc9081d880"
+    ],
+    "enforced_flags": [
+      "network=none",
+      "read-only",
+      "cap-drop=ALL",
+      "no-new-privileges",
+      "pids-limit=32",
+      "memory=32m",
+      "cpus=1",
+      "uid=65532",
+      "ipc=none",
+      "tmpfs=/tmp:noexec,nosuid,nodev,size=1MiB",
+      "core=0"
+    ],
+    "enforcement_inspection": {
+      "checks": {
+        "all_capabilities_dropped": true,
+        "bounded_tmpfs": true,
+        "core_dump_disabled": true,
+        "cpu_limit": true,
+        "ipc_disabled": true,
+        "memory_limit": true,
+        "network_namespace_disabled": true,
+        "no_new_privileges": true,
+        "non_root_uid": true,
+        "not_privileged": true,
+        "pid_limit": true,
+        "read_only_rootfs": true,
+        "task_label": true
+      },
+      "status": "PASS"
+    },
+    "raw_total_ms": [
+      273.272142,
+      207.826091,
+      277.168821,
+      244.110996,
+      207.999515,
+      206.748852,
+      230.237849,
+      206.667478,
+      232.365085,
+      197.733756,
+      211.319296,
+      193.404169,
+      256.704365,
+      189.305063,
+      189.944485,
+      183.838516,
+      261.159183,
+      184.940502,
+      241.278947,
+      195.756789,
+      281.513581,
+      284.443579,
+      205.632754,
+      213.547907,
+      201.08189,
+      220.855324,
+      200.040967,
+      202.634142,
+      230.539918,
+      187.244948
+    ],
+    "summary": {
+      "maximum_ms": 284.443579,
+      "minimum_ms": 183.838516,
+      "p50_ms": 207.826091,
+      "p95_ms": 281.513581,
+      "p99_ms": null,
+      "sample_count": 30
+    }
+  },
+  "run_id": "67e25d7be8d6",
+  "schema": "catalog-switch-runtime-overhead/v1"
+}

@@ -31,8 +31,8 @@ commands, complete audit-chain durability, and fail-closed fallback.
 
 | Candidate | Evidence | Isolation conclusion | Prototype disposition |
 | --- | --- | --- | --- |
-| Direct process | No runtime daemon or namespace setup; it is the theoretical launch-overhead lower bound. It shares the host PID/mount/network/kernel view and cannot meet CTL-05/07/19 for arbitrary catalog code. | Rejected for serving; useful only as a measured lower bound with the same fixture. | CPU/local overhead comparator only. |
-| OCI via containerd/runc | The development host has containerd `2.2.3`, runc `1.3.5`, OCI spec `1.2.1`, and Docker Engine `29.4.1`. The OCI runtime specification exposes namespaces, cgroups, capabilities, filesystem jails, masked/read-only paths, and seccomp; containerd's runc-v2 shim invokes an OCI runtime without Kubernetes. NVIDIA Container Toolkit provides the GPU device/runtime integration. | Smallest option that can enforce the reviewed model/host privilege split while retaining the existing CRIU/containerd restore lineage. | **Selected.** Measure its create/start overhead and use it for live model paths if the fresh host passes enforcement probes. |
+| Direct process | Matched static CPU fixture n=30: 0.460 ms p50 / 0.686 ms p95 total launch-to-semantic-response. It shares the host PID/mount/network/kernel view and cannot meet CTL-05/07/19 for arbitrary catalog code. | Rejected for serving; measured lower bound only. | CPU/local overhead comparator only. |
+| OCI via containerd/runc | Matched fixture n=30: 207.826 ms p50 / 281.514 ms p95. All 13 inspected enforcement assertions passed. The development host has containerd `2.2.3`, runc `1.3.5`, OCI spec `1.2.1`, and Docker Engine `29.4.1`. | Smallest option that can enforce the reviewed model/host privilege split while retaining the existing CRIU/containerd restore lineage. | **Selected.** Live use remains blocked until every fresh-host gate passes. |
 | Firecracker microVM | Firecracker's documented minimal device model is virtio-net, virtio-balloon, virtio-block, virtio-vsock, serial console, and a minimal keyboard controller; it does not document an H100/VFIO device. `firecracker` is absent on the development host. | Stronger guest-kernel boundary, but no evidenced H100 path and a different snapshot format; adding one would exceed the bounded prototype. | Documented rejection for this experiment; no synthetic latency claim. |
 
 Primary references (accessed 2026-08-19):
@@ -139,5 +139,6 @@ failure, the restore result is `BLOCKED`, not an imported historical timing.
   switch, failed B launch followed by scrub, control-plane/API unavailability,
   and real preemption (or an explicitly labeled provider stop fallback).
 
-Security review outcome: **PASS for CPU implementation. CONDITIONAL PASS for
-live GPU work only when every live preflight gate above passes.**
+Security review outcome: **PASS for CPU implementation and the fail-closed
+architecture; BLOCKED for live GPU execution until every live preflight and
+runtime-evidence gate passes.** See `SECURITY_REVIEW.md`.

@@ -1,0 +1,26 @@
+{
+  "forbidden_control_plane_or_object_store_clients": [],
+  "imports": [
+    "AdmissionError",
+    "Any",
+    "AuditChain",
+    "CacheError",
+    "CommandAuthenticator",
+    "ContentAddressedCache",
+    "Path",
+    "Protocol",
+    "annotations",
+    "dataclass",
+    "harness",
+    "hashlib",
+    "hmac",
+    "json",
+    "math",
+    "os",
+    "time",
+    "verify_checkpoint_binding"
+  ],
+  "schema": "catalog-switch-hot-path-import-proof/v1",
+  "source": "node-local-runtime/node_runtime/supervisor.py",
+  "status": "PASS"
+}

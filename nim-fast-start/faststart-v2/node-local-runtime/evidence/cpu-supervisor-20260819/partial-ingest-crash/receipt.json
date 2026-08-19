@@ -1,0 +1,7 @@
+{
+  "incoming_empty_after_cleanup": true,
+  "injected_crash_observed": true,
+  "orphan_count_removed": 1,
+  "partial_entry_published": false,
+  "schema": "catalog-switch-cache-crash-evidence/v1"
+}
