@@ -1,0 +1,14 @@
+{
+ "horizon_seconds": 7200.0,
+ "mean_rate_per_s": 0.25,
+ "n_models": 200,
+ "schema_version": "1.0.0",
+ "sha256": {
+  "adversarial": "08e87896c221b1d381aed4b143f6ab1dcea757562c99df09d52d1842744275e6",
+  "bursty": "b084245a2af2b0578a427931ec97565e07308bf732910d39901168a100e7f578",
+  "correlated": "03d9f083819fba50b5efc244abe5d2e595eba824d6f27fc748f8d85117d324e4",
+  "uniform": "bb7080bb1c8fb2470b95ab972a2e10016da84be6b9deb168ad3113db95f2cc91",
+  "zipf": "5db7b5bf016a916eafe00832c8d758ff8c25afbfadff67133a0ad9d7ba939d2c"
+ },
+ "trace_seed": 4207
+}
