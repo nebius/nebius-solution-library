@@ -41,6 +41,10 @@ response-boundary audit is recorded in
   first-valid-response terminal, deterministic catalog traces, canonical causal
   ledger, strict validator/aggregator, and read-only prepared-node evidence
   adapters used by the catalog-switch architecture program;
+- `performance/k8s_baseline/` defines the isolated Kubernetes request-time
+  baseline: separate prepared-node and new-preemptible-node campaign arms,
+  causal switch controller, one-support-object comparison, frozen broker v2
+  interface, two-semantic-call qualification, and ten-NIM coverage plan;
 - `openfold2-newnode/` contains the archived scale-from-zero preemptible-node
   harness, lifecycle verifier, automated node bootstrap, and two historical
   lifecycle results. Both remain useful operational evidence but contribute

@@ -1,0 +1,1 @@
+{"diffusion_samples":1,"output_format":"mmcif","polymers":[{"id":"B","molecule_type":"protein","msa":{"msa_search":{"a3m":{"alignment":">query\nYWVTSRQPNMLKIHGFEDCA","format":"a3m","rank":0}}},"sequence":"YWVTSRQPNMLKIHGFEDCA"}],"recycling_steps":1,"sampling_steps":10}

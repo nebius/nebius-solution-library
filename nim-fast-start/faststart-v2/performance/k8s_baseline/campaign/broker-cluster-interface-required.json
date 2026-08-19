@@ -1,0 +1,161 @@
+{
+  "schema": "archvteams.nebius.ai/k8s-broker-interface-requirement/v1",
+  "consumer": "catalog-switch-k8s-baseline",
+  "required_provider_contract": "catalog-switch-kubernetes-resource-lease/v2",
+  "project_allowlist": {
+    "project-e00z6b02t8ddk96c49": "eu-north1",
+    "project-u00tds8vpr00jaxa76s22d": "us-central1",
+    "project-i00xz31gpr00xp9jhp982v": "me-west1"
+  },
+  "common": {
+    "profile": "sandbox",
+    "fresh_resources_only": true,
+    "resource_prefix": "mlsp-csw-<task>-<immutable-request-hash>",
+    "cluster": {
+      "kind": "nebius-managed-kubernetes",
+      "task_owned": true,
+      "reuse_forbidden": true,
+      "kubernetes_version_pinned": true,
+      "network_and_service_account_task_owned": true
+    },
+    "gpu_node_group": {
+      "platform": "gpu-h100-sxm",
+      "preset": "1gpu-16vcpu-200gb",
+      "gpu_count_per_node": 1,
+      "node_count": 1,
+      "mode": "preemptible",
+      "task_owned": true,
+      "reuse_forbidden": true
+    },
+    "immutable_request_fields": [
+      "lease_id",
+      "task_id",
+      "campaign_arm",
+      "project_id",
+      "region",
+      "cluster_version",
+      "node_group_profile",
+      "expected_duration_hours",
+      "ttl_hours",
+      "hard_cost_cap_usd",
+      "metric_contract_sha256",
+      "trace_sha256",
+      "model_input_sha256s",
+      "cleanup_owner",
+      "cleanup_deadline_utc"
+    ],
+    "lease_evidence_fields": [
+      "schema_version",
+      "request",
+      "state",
+      "request_sha256",
+      "prefix",
+      "project_id",
+      "region",
+      "cluster_id",
+      "node_group_ids",
+      "node_ids",
+      "kubeconfig_path",
+      "kubernetes_context",
+      "api_server",
+      "gpu_product",
+      "preemptible",
+      "resource_create_operations",
+      "readiness_timestamps",
+      "isolation_proof",
+      "cost_estimate",
+      "resources",
+      "cleanup_plan"
+    ],
+    "fail_closed": [
+      "authentication_or_authorization_failure",
+      "project_or_region_mismatch",
+      "resource_name_collision",
+      "non_task_owned_dependency",
+      "non_preemptible_node_group",
+      "gpu_product_or_count_mismatch",
+      "capacity_advice_unavailable",
+      "unsealed_metric_or_trace_hash",
+      "missing_exact_id_cleanup_plan"
+    ],
+    "cleanup": {
+      "delete_exact_ids_only": true,
+      "reverse_dependency_order": true,
+      "not_found_receipt_required": true,
+      "provider_children_reconciled": true,
+      "final_gpu_process_count": 0,
+      "final_gpu_memory_must_equal_baseline": true,
+      "desired_final_state": "ABSENT"
+    }
+  },
+  "arm_a_prepared_node": {
+    "separate_lease_required": true,
+    "state_before_cohort_t0": "ACTIVE",
+    "allowed_before_cohort_t0": [
+      "fresh cluster creation",
+      "fresh preemptible H100 node-group creation",
+      "task-neutral GPU sentinel installation",
+      "declared cohort cache and initial-occupant precondition establishment"
+    ],
+    "required_before_cohort_t0": [
+      "cluster and node group isolation proof",
+      "one Ready H100 node identity",
+      "preemptible=true proof",
+      "exclusive task namespace ownership proof",
+      "initial occupant and cache-state receipt"
+    ],
+    "request_boundary": "Each measured demand is accepted only after the declared prepared-node precondition exists; all request-specific switching follows that demand T0."
+  },
+  "arm_b_new_preemptible_node": {
+    "separate_lease_required": true,
+    "state_before_request_t0": "SUPPORT_ACTIVE_NO_GPU_NODE_GROUP",
+    "allowed_before_request_t0": [
+      "fresh task-owned target-neutral cluster/control-plane/network support"
+    ],
+    "forbidden_before_request_t0": [
+      "GPU node-group demand or create",
+      "GPU node creation",
+      "model image pull",
+      "artifact localization",
+      "checkpoint selection or restore",
+      "model Pod creation",
+      "model-specific DaemonSet, init job, or supervisor work"
+    ],
+    "demand_call": {
+      "must_follow": "durable request.accepted event",
+      "inputs": [
+        "lease_id",
+        "attempt_id",
+        "accepted_event_sha256",
+        "t0_observed_at_utc",
+        "t0_observed_monotonic_ns"
+      ],
+      "creates": "one fresh unique preemptible single-H100 node group for this attempt",
+      "required_receipt": [
+        "attempt_id",
+        "accepted_event_sha256",
+        "demand_received_at_utc",
+        "create_operation_started_at_utc",
+        "node_group_id",
+        "node_id",
+        "node_ready_at_utc",
+        "gpu_product",
+        "gpu_count",
+        "preemptible",
+        "causal_order_pass"
+      ],
+      "causal_rule": "demand_received and every create/localize/model-work timestamp must be greater than or equal to the accepted request T0"
+    },
+    "attempt_cleanup": {
+      "node_group_deleted_before_next_independent_attempt": true,
+      "node_and_provider_children_not_found_receipts_required": true,
+      "failures_and_partially_created_exact_ids_retained_in_evidence": true
+    }
+  },
+  "arm_separation": {
+    "lease_ids_must_differ": true,
+    "gpu_node_group_ids_must_differ": true,
+    "evidence_denominators_must_not_mix": true,
+    "percentiles_and_costs_reported_per_arm": true
+  }
+}
