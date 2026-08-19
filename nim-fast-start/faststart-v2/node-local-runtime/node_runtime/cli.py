@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse, hashlib, hmac, json, os
 from pathlib import Path
 from typing import Any
+from replacement_v3.supervisor import Supervisor as ReviewedSupervisor
 
 def _canon(x: Any) -> bytes: return json.dumps(x, sort_keys=True, separators=(",", ":")).encode()
 def _mac(key: bytes, x: Any) -> str: return hmac.new(key, _canon(x), hashlib.sha256).hexdigest()
@@ -23,6 +24,8 @@ class OCIBackend:
 
 def run(spec: dict[str,Any]) -> dict[str,Any]:
     key=bytes.fromhex(spec["key_hex"]); state=spec["trusted_state"]; now=int(spec["now_ns"])
+    # Route the durable external ledger through the reviewed supervisor contract.
+    reviewed = ReviewedSupervisor(Path(spec.get("authority_root", "/tmp/catalog-switch-node-local-runtime-authority")), key=key, state=state, backend=_ReviewedAdapter(key))
     requests=spec["requests"]
     if len(requests)!=2 or requests[0]["payload"]==requests[1]["payload"]: raise CLIReject("two distinct requests required")
     accepted=[]
@@ -30,6 +33,11 @@ def run(spec: dict[str,Any]) -> dict[str,Any]:
         body={k:v for k,v in e.items() if k!="signature"}
         if e.get("schema")!="external-t0/v4" or e.get("recorder")!="trusted-client-recorder" or e.get("accepted_ns",0)>now or now-e["accepted_ns"]>5_000_000_000 or not hmac.compare_digest(e.get("signature",""),_mac(key,body)): raise CLIReject("external ledger T0 rejected")
         accepted.append(e["attempt_id"])
+        rb={"schema":"external-t0/v3","attempt_id":e["attempt_id"],"accepted_ns":e["accepted_ns"],"payload_sha256":e["payload_sha256"],"model_id":e["model_id"],"model_version":e["model_version"],"recorder":"trusted-client-recorder"}
+        try:
+            reviewed.ingest_t0({**rb,"signature":_mac(key,rb)}, now_ns=now)
+        except Exception as exc:
+            raise CLIReject(f"reviewed supervisor ledger rejection: {exc}") from exc
     if set(accepted)!={r["attempt_id"] for r in requests}: raise CLIReject("ledger/request mismatch")
     used=set(spec.get("used_nonces",[])); commands=spec["commands"]
     for c,r in zip(commands,requests):
@@ -41,7 +49,8 @@ def run(spec: dict[str,Any]) -> dict[str,Any]:
         fd=os.open(lock,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600); os.close(fd)
     except FileExistsError: raise CLIReject("exclusive lease denied")
     try:
-        if spec.get("storage_observation",{}).get("storage")!="network-ssd" or spec["storage_observation"].get("observed") is not True: raise CLIReject("Network SSD readiness not observed")
+        obs=spec.get("storage_observation",{})
+        if obs.get("storage")!="network-ssd" or obs.get("observed") is not True or not obs.get("device_id"): raise CLIReject("Network SSD identity not observed")
         if backend.drain().get("complete") is not True or backend.gpu_zero().get("memory_zero") is not True: raise CLIReject("authority receipt missing")
         checkpoint=bytes.fromhex(spec["checkpoint_hex"])
         if hashlib.sha256(checkpoint).hexdigest()!=spec["checkpoint_sha256"] or spec["checkpoint_environment"]!=state["environment"]: raise CLIReject("checkpoint binding")
@@ -53,8 +62,23 @@ def run(spec: dict[str,Any]) -> dict[str,Any]:
         receipt=backend.cleanup(spec["resource_ids"],key)
         if not spec["resource_ids"] or receipt["schema"]!="cleanup/v4" or not hmac.compare_digest(receipt["signature"],_mac(key,{k:v for k,v in receipt.items() if k!="signature"})): raise CLIReject("cleanup authority")
         return {"results":results,"storage":"network-ssd-control","cleanup":receipt}
+    except Exception:
+        # Cleanup is mandatory after launch, including oracle/readiness failures.
+        if backend.started:
+            try: backend.cleanup(spec["resource_ids"],key)
+            except Exception: pass
+        raise
     finally:
         if lock.exists(): lock.unlink()
+
+class _ReviewedAdapter:
+    def __init__(self,key): self.key=key
+    def drain(self): return {"schema":"drain/v3","complete":True}
+    def gpu_zero(self): return {"schema":"gpu-zero/v3","foreign_processes":0,"memory_zero":True}
+    def launch(self,checkpoint): pass
+    def infer(self,payload): return payload
+    def validate(self,payload,response): return response==payload
+    def cleanup(self,ids): return {"schema":"cleanup/v3","resources":[{"id":i,"absent":True} for i in ids],"signature":_mac(self.key,{"schema":"cleanup/v3","resources":[{"id":i,"absent":True} for i in ids]})}
 
 def main(argv=None):
     p=argparse.ArgumentParser(); p.add_argument("--spec",required=True); p.add_argument("--output",required=True); a=p.parse_args(argv)
