@@ -103,9 +103,18 @@ receipts, scoped NGC credential plus hashed repository manifest, reviewed
 threat-model hash, and a broker-bound runtime-source manifest covering every
 template, exact container/init-container allowlist, support-image build
 receipt, semantic oracle, and request bundle. Files are rehashed immediately
-before use to close admission-to-execution drift. Kubernetes uses bounded label-safe model and
-version IDs; full model, artifact, image, strategy, and checkpoint identities
-remain exact Pod annotations and runtime receipts.
+before use to close admission-to-execution drift. Trace and lease files are
+read, hashed, and parsed from one descriptor at admission, then execution
+consumes only those retained exact bytes; later path replacement cannot change
+the selected request or resource graph. Kubernetes uses bounded label-safe
+model and version IDs; full model, artifact, image, strategy, and checkpoint
+identities remain exact Pod annotations and runtime receipts.
+
+An ACTIVE registry credential must already be issued at live admission. Every
+workload GPU-zero receipt is v2 and binds lease, node UID/boot, broker node,
+sentinel source, and exact per-GPU UUID/product/total-VRAM inventory.
+`full-vram-zero` requires every admitted VRAM byte plus both compute and
+graphics process counts at zero.
 
 Outputs contain raw global counts only. Product and second-semantic-response
 percentiles are emitted per NIM, arm, scenario, strategy, variant, cache state,

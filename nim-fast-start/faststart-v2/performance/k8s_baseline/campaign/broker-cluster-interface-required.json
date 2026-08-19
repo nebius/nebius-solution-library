@@ -67,6 +67,8 @@
       "gpu_product",
       "gpu_count",
       "preemptible",
+      "node_boot_id",
+      "gpu_inventory",
       "resource_create_operations",
       "readiness_timestamps",
       "isolation_proof",
@@ -91,16 +93,43 @@
       "live_kubernetes_bindings": [
         "namespace UID plus task/prefix/lease/broker-resource annotations",
         "workload ServiceAccount UID plus task/prefix/lease/broker-resource annotations",
-        "node UID plus broker node ID/node-group ID/lease/prefix/preemptible annotations"
+        "node UID and status.nodeInfo.bootID plus broker node ID/node-group ID/lease/prefix/preemptible annotations"
       ]
     },
     "source_bound_evidence": {
-      "isolation": "path, file SHA-256, exact graph/GPU content",
+      "isolation": "path, file SHA-256, exact graph, node boot ID, and per-GPU UUID/index/product/total-VRAM inventory",
       "initial_state": "path, file SHA-256, exact occupant plus every target image/artifact/checkpoint identity and bytes",
       "audit": "events path/file SHA-256; genesis/previous/event/head hashes recomputed",
       "registry_scope": "task-owned nvcr.io repository/image manifest path and SHA-256 joined to secret UID and receipt",
       "runtime_sources": "broker request binds one reviewed Git-blob manifest covering every semantic validator, target template, exact container/init-container allowlist, support image, and support-image build/receipt provenance",
       "strategy": "v2 snapshot RESTORED or conventional LOADED receipt with exact checkpoint/null identity, same-node monotonic work duration, refreshed total GPU-active elapsed duration, process state, and evidence hash"
+    },
+    "workload_gpu_zero_receipt": {
+      "schema": "archvteams.nebius.ai/gpu-zero-receipt/v2",
+      "method": "full-vram-zero",
+      "identity_fields": [
+        "switch_uid",
+        "lease_id",
+        "node_name",
+        "node_uid",
+        "broker_node_id",
+        "node_boot_id",
+        "sentinel_image_digest",
+        "sentinel_source_receipt_sha256",
+        "observed_at_utc"
+      ],
+      "per_gpu_fields": [
+        "gpu_uuid",
+        "gpu_index",
+        "product",
+        "memory_bytes_total",
+        "bytes_scrubbed exactly equal memory_bytes_total",
+        "compute_process_count=0",
+        "graphics_process_count=0",
+        "observed_memory_bytes exactly equal baseline_memory_bytes"
+      ],
+      "inventory_must_exactly_equal_broker_lease": true,
+      "transferable_receipts_forbidden": true
     },
     "fail_closed": [
       "authentication_or_authorization_failure",
@@ -113,8 +142,10 @@
       "unsealed_metric_or_trace_hash",
       "unreviewed_metric_inventory_threat_or_strategy_source_commit",
       "expired_credential_or_cleanup_deadline",
+      "future_issued_active_credential",
       "registry_scope_or_live_object_identity_mismatch",
       "hidden_or_duplicate_cluster_gpu_capacity",
+      "partial_or_foreign_gpu_vram_zero_receipt",
       "missing_exact_id_cleanup_plan"
     ],
     "cleanup": {

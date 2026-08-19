@@ -26,7 +26,8 @@ Live admission is blocked on:
 4. exact task-owned image/artifact/checkpoint bytes and digest-pinned OpenFold2 artifact;
 5. a reviewed, broker-bound runtime-source manifest for exact target templates,
    semantic validators, allowed containers/init containers, support-image build
-   receipts, cache/strategy-state sentinel, and GPU-zero sentinel;
+   receipts, cache/strategy-state sentinel, and exact v2 GPU-zero sentinel bound
+   to lease/node/boot/per-GPU inventory/full-VRAM/source identity;
 6. a versioned broker pair-handoff/rearm backend for any baseline-versus-
    precreated-Service promotion; and
 7. successful capacity, isolation, cost, TTL, and cleanup-plan preflight.

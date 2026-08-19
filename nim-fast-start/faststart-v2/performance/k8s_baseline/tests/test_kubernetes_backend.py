@@ -54,6 +54,7 @@ class KubernetesBackendTests(unittest.TestCase):
                 "support_images": {
                     "sentinel_digest": "example.invalid/sentinel@sha256:" + "e" * 64,
                     "readiness_gate_digest": "example.invalid/gate@sha256:" + "f" * 64,
+                    "source_receipt_sha256": "7" * 64,
                 },
             },
             "cost": {
@@ -112,6 +113,14 @@ class KubernetesBackendTests(unittest.TestCase):
         backend._port = None
         backend.lease = {
             "state": "PLANNED", "node_ids": ["computeinstance-node-1"],
+            "node_boot_id": "boot-test-0001",
+            "gpu_inventory": [
+                {
+                    "gpu_uuid": "GPU-test-0001", "gpu_index": 0,
+                    "product": "NVIDIA-H100-80GB-HBM3",
+                    "memory_bytes_total": 80 * 1024**3,
+                }
+            ],
             "initial_state_receipt": {
                 "schema": "archvteams.nebius.ai/k8s-initial-state/v2",
                 "node_id": "computeinstance-node-1", "node_uid": "node-uid-1",
@@ -184,6 +193,62 @@ class KubernetesBackendTests(unittest.TestCase):
         backend._sentinel = Mock(return_value=json.dumps(receipt))
         with self.assertRaisesRegex(BaselineError, "live cache state differs"):
             backend._verify_trace_precondition(request)
+
+    def test_gpu_scrub_binds_full_vram_and_exact_node_lease_gpu_source(self) -> None:
+        backend = self.backend()
+        request = self.request()
+        inventory = backend.lease["gpu_inventory"][0]
+        receipt = {
+            "schema": "archvteams.nebius.ai/gpu-zero-receipt/v2",
+            "switch_uid": request["attempt_id"],
+            "method": "full-vram-zero",
+            "lease_id": backend.plan["resource_lease"]["lease_id"],
+            "node_name": backend.plan["kubernetes"]["node_name"],
+            "node_uid": backend.plan["kubernetes"]["node_uid"],
+            "broker_node_id": backend.plan["kubernetes"]["broker_node_id"],
+            "node_boot_id": backend.lease["node_boot_id"],
+            "sentinel_image_digest": backend.plan["security"]["support_images"][
+                "sentinel_digest"
+            ],
+            "sentinel_source_receipt_sha256": backend.plan["security"]["support_images"][
+                "source_receipt_sha256"
+            ],
+            "observed_at_utc": "2026-08-19T00:00:00Z",
+            "gpus": [
+                {
+                    **inventory,
+                    "bytes_scrubbed": inventory["memory_bytes_total"],
+                    "compute_process_count": 0,
+                    "graphics_process_count": 0,
+                    "baseline_memory_bytes": 128 * 1024**2,
+                    "observed_memory_bytes": 128 * 1024**2,
+                }
+            ],
+            "status": "PASS",
+        }
+        backend._sentinel = Mock(return_value=json.dumps(receipt))
+        self.assertEqual(backend._gpu_scrub(request), receipt)
+
+        adversaries = []
+        one_byte = json.loads(json.dumps(receipt))
+        one_byte["gpus"][0]["bytes_scrubbed"] = 1
+        adversaries.append(one_byte)
+        graphics_process = json.loads(json.dumps(receipt))
+        graphics_process["gpus"][0]["graphics_process_count"] = 1
+        adversaries.append(graphics_process)
+        foreign_boot = json.loads(json.dumps(receipt))
+        foreign_boot["node_boot_id"] = "boot-foreign"
+        adversaries.append(foreign_boot)
+        foreign_gpu = json.loads(json.dumps(receipt))
+        foreign_gpu["gpus"][0]["gpu_uuid"] = "GPU-foreign"
+        adversaries.append(foreign_gpu)
+        foreign_source = json.loads(json.dumps(receipt))
+        foreign_source["sentinel_source_receipt_sha256"] = "0" * 64
+        adversaries.append(foreign_source)
+        for adversary in adversaries:
+            backend._sentinel = Mock(return_value=json.dumps(adversary))
+            with self.assertRaisesRegex(BaselineError, "GPU scrub"):
+                backend._gpu_scrub(request)
 
     def test_environment_uses_exact_admitted_gpu_profile(self) -> None:
         backend = self.backend()
@@ -705,7 +770,9 @@ class KubernetesBackendTests(unittest.TestCase):
             "status": {
                 "conditions": [{"type": "Ready", "status": "True"}],
                 "allocatable": {"nvidia.com/gpu": "1"},
-                "nodeInfo": {"kubeletVersion": "v1.31.8"},
+                "nodeInfo": {
+                    "kubeletVersion": "v1.31.8", "bootID": "boot-test-0001"
+                },
             },
         }
         secret = {

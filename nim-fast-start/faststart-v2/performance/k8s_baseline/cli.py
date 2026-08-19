@@ -16,12 +16,12 @@ from performance.request_slo.harness import (
     canonical_json,
     generate_trace,
     load_ledger,
-    load_trace,
     validate_ledger,
+    validate_trace,
     write_canonical_json,
 )
 
-from .contract import BaselineError, load_plan, safe_output_path
+from .contract import BaselineError, admitted_document, load_plan, safe_output_path
 from .controller import ScriptedBackend, run_trace
 from .kubernetes_backend import KubernetesBackend
 from .sealing import (
@@ -148,7 +148,7 @@ def _run_live(args: argparse.Namespace) -> dict[str, Any]:
             "the prepared-node backend cannot execute it"
         )
     output.mkdir(mode=0o700)
-    trace = load_trace(Path(plan["_resolved"]["trace_path"]))
+    trace = validate_trace(admitted_document(plan, "trace"))
     backend = KubernetesBackend(plan)
     ledger_path = output / "ledger.jsonl"
     evidence_path = output / "backend-evidence.json"

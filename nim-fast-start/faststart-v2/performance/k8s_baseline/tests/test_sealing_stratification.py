@@ -360,6 +360,11 @@ class SealingAndStratificationTests(unittest.TestCase):
                         "revoke_by_utc": "2026-08-20T00:00:00Z",
                     }
                 },
+                "trace_sha256": file_sha256(trace_path),
+                "_admitted_sources": {
+                    "trace": trace_path.read_text(),
+                    "lease": None,
+                },
                 "_resolved": {"trace_path": str(trace_path), "config_sha256": "e" * 64},
             }
             atomic_write_json(root / "plan.json", {})

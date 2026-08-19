@@ -20,7 +20,7 @@ from typing import Any
 
 from performance.request_slo.harness import canonical_json
 
-from .contract import BaselineError
+from .contract import BaselineError, admitted_document
 from .controller import (
     AccountingResult,
     CleanupResult,
@@ -140,7 +140,7 @@ class KubernetesBackend:
         self.models = {
             (item["model_id"], item["model_version"]): item for item in plan["models"]
         }
-        self.lease = json.loads(Path(plan["_resolved"]["lease_path"]).read_text())
+        self.lease = admitted_document(plan, "lease")
         self._attempt: dict[str, dict[str, Any]] = {}
         self._events: list[dict[str, Any]] = []
         self._active_pod: str | None = None
@@ -340,6 +340,8 @@ class KubernetesBackend:
             not ready
             or node.get("status", {}).get("nodeInfo", {}).get("kubeletVersion")
             != self.plan["kubernetes"]["cluster_version"]
+            or node.get("status", {}).get("nodeInfo", {}).get("bootID")
+            != self.lease["node_boot_id"]
             or metadata.get("uid") != self.plan["kubernetes"]["node_uid"]
             or self.lease["node_ids"] != [self.plan["kubernetes"]["broker_node_id"]]
             or allocatable != profile["gpu_count"]
@@ -749,24 +751,79 @@ class KubernetesBackend:
             "schema",
             "switch_uid",
             "method",
-            "bytes_scrubbed",
-            "compute_process_count",
-            "baseline_memory_bytes",
-            "observed_memory_bytes",
+            "lease_id",
+            "node_name",
+            "node_uid",
+            "broker_node_id",
+            "node_boot_id",
+            "sentinel_image_digest",
+            "sentinel_source_receipt_sha256",
+            "observed_at_utc",
+            "gpus",
             "status",
         }
         if set(receipt) != required:
             raise BaselineError("GPU scrub receipt has the wrong shape")
         if (
-            receipt["schema"] != "archvteams.nebius.ai/gpu-zero-receipt/v1"
+            receipt["schema"] != "archvteams.nebius.ai/gpu-zero-receipt/v2"
             or receipt["switch_uid"] != request["attempt_id"]
-            or receipt["method"] not in {"full-vram-zero", "gpu-reset"}
-            or receipt["bytes_scrubbed"] <= 0
-            or receipt["compute_process_count"] != 0
-            or receipt["observed_memory_bytes"] != receipt["baseline_memory_bytes"]
+            or receipt["method"] != "full-vram-zero"
+            or receipt["lease_id"] != self.plan["resource_lease"]["lease_id"]
+            or receipt["node_name"] != self.plan["kubernetes"]["node_name"]
+            or receipt["node_uid"] != self.plan["kubernetes"]["node_uid"]
+            or receipt["broker_node_id"] != self.plan["kubernetes"]["broker_node_id"]
+            or receipt["node_boot_id"] != self.lease["node_boot_id"]
+            or receipt["sentinel_image_digest"]
+            != self.plan["security"]["support_images"]["sentinel_digest"]
+            or receipt["sentinel_source_receipt_sha256"]
+            != self.plan["security"]["support_images"]["source_receipt_sha256"]
             or receipt["status"] != "PASS"
         ):
             raise BaselineError("GPU scrub/zero proof failed; node must be quarantined")
+        if not isinstance(receipt["observed_at_utc"], str) or not receipt[
+            "observed_at_utc"
+        ].endswith("Z"):
+            raise BaselineError("GPU scrub receipt has an invalid UTC observation")
+        try:
+            observed_at = datetime.fromisoformat(
+                receipt["observed_at_utc"].removesuffix("Z") + "+00:00"
+            )
+        except (AttributeError, ValueError) as exc:
+            raise BaselineError("GPU scrub receipt has an invalid UTC observation") from exc
+        if observed_at.tzinfo != UTC:
+            raise BaselineError("GPU scrub receipt observation is not UTC")
+        gpus = receipt["gpus"]
+        inventory = sorted(self.lease["gpu_inventory"], key=lambda item: item["gpu_index"])
+        if not isinstance(gpus, list) or len(gpus) != len(inventory):
+            raise BaselineError("GPU scrub receipt does not cover the admitted inventory")
+        gpu_required = {
+            "gpu_uuid", "gpu_index", "product", "memory_bytes_total", "bytes_scrubbed",
+            "compute_process_count", "graphics_process_count", "baseline_memory_bytes",
+            "observed_memory_bytes",
+        }
+        if any(not isinstance(item, dict) or set(item) != gpu_required for item in gpus):
+            raise BaselineError("GPU scrub receipt has a malformed per-GPU proof")
+        for actual, expected in zip(
+            sorted(gpus, key=lambda item: item["gpu_index"]), inventory, strict=True
+        ):
+            numeric = (
+                "gpu_index", "memory_bytes_total", "bytes_scrubbed",
+                "compute_process_count", "graphics_process_count",
+                "baseline_memory_bytes", "observed_memory_bytes",
+            )
+            if (
+                any(
+                    not isinstance(actual[key], int) or isinstance(actual[key], bool)
+                    for key in numeric
+                )
+                or any(actual[key] != expected[key] for key in expected)
+                or actual["bytes_scrubbed"] != expected["memory_bytes_total"]
+                or actual["compute_process_count"] != 0
+                or actual["graphics_process_count"] != 0
+                or actual["baseline_memory_bytes"] < 0
+                or actual["observed_memory_bytes"] != actual["baseline_memory_bytes"]
+            ):
+                raise BaselineError("GPU scrub receipt is not a full per-GPU VRAM-zero proof")
         self._record("gpu_zero", attempt_id=request["attempt_id"], receipt=receipt)
         return receipt
 
@@ -1266,7 +1323,9 @@ class KubernetesBackend:
             receipt = self._gpu_scrub(request)
             return PhaseResult(
                 "completed",
-                f"{receipt['method']} scrubbed {receipt['bytes_scrubbed']} bytes with zero processes",
+                f"{receipt['method']} scrubbed "
+                f"{sum(item['bytes_scrubbed'] for item in receipt['gpus'])} bytes "
+                "with zero compute/graphics processes",
             )
         if phase == "placement":
             if self.plan["variant"] == "per_run_service":

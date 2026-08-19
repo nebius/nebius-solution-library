@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 from datetime import UTC, datetime
@@ -20,7 +21,7 @@ from performance.request_slo.harness import (
     canonical_json,
     canonical_sha256,
     file_sha256,
-    load_trace,
+    validate_trace,
 )
 
 
@@ -141,6 +142,64 @@ def _load_json(path: Path, label: str) -> Any:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise BaselineError(f"cannot load {label}: {type(exc).__name__}") from exc
+
+
+def _load_pinned_json(
+    path: Path, expected_sha256: str, label: str
+) -> tuple[Any, str]:
+    """Read, hash, and parse one regular file through the same descriptor."""
+
+    if not path.is_absolute():
+        raise BaselineError(f"{label} must be absolute")
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        descriptor = os.open(path, flags)
+        try:
+            if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+                raise BaselineError(f"{label} must be a regular file")
+            with os.fdopen(descriptor, "rb", closefd=False) as stream:
+                raw = stream.read()
+        finally:
+            os.close(descriptor)
+        if hashlib.sha256(raw).hexdigest() != expected_sha256:
+            raise BaselineError(f"{label} differs from its immutable plan hash")
+        text = raw.decode("utf-8")
+        return json.loads(text), text
+    except BaselineError:
+        raise
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise BaselineError(f"cannot load {label}: {type(exc).__name__}") from exc
+
+
+def admitted_document(plan: dict[str, Any], name: str) -> dict[str, Any]:
+    """Return a copy of the exact source bytes retained during admission."""
+
+    if name not in {"trace", "lease"}:
+        raise BaselineError("admitted document name is invalid")
+    sources = plan.get("_admitted_sources")
+    if not isinstance(sources, dict) or set(sources) != {"trace", "lease"}:
+        raise BaselineError("plan lacks exact admitted trace/lease sources")
+    source = sources.get(name)
+    expected = (
+        plan.get("trace_sha256")
+        if name == "trace"
+        else plan.get("resource_lease", {}).get("sha256")
+    )
+    if (
+        not isinstance(source, str)
+        or not isinstance(expected, str)
+        or hashlib.sha256(source.encode("utf-8")).hexdigest() != expected
+    ):
+        raise BaselineError(f"admitted {name} bytes differ from the pinned hash")
+    try:
+        value = json.loads(source)
+    except json.JSONDecodeError as exc:
+        raise BaselineError(f"admitted {name} bytes are not JSON") from exc
+    if not isinstance(value, dict):
+        raise BaselineError(f"admitted {name} must be an object")
+    return value
 
 
 def _same_path(left: Path, right: Path) -> bool:
@@ -379,6 +438,8 @@ def _validate_security(
         raise BaselineError("registry credential lifecycle does not cover cleanup/revocation")
     if require_live:
         now = datetime.now(UTC)
+        if issued > now:
+            raise BaselineError("registry credential was issued after live admission time")
         if now >= expires or now >= cleanup_deadline:
             raise BaselineError("registry credential or cleanup deadline has expired at live admission")
 
@@ -928,8 +989,8 @@ def _validate_resource_graph(
         lease["isolation_proof"],
         {
             "fresh", "task_owned", "preemptible", "gpu_product", "gpu_count", "cluster_id",
-            "node_group_ids", "node_ids", "resource_graph_sha256", "evidence_path",
-            "evidence_sha256",
+            "node_group_ids", "node_ids", "node_boot_id", "gpu_inventory_sha256",
+            "resource_graph_sha256", "evidence_path", "evidence_sha256",
         },
         "resource lease isolation_proof",
     )
@@ -938,6 +999,8 @@ def _validate_resource_graph(
         or proof["preemptible"] is not True or proof["gpu_product"] != lease["gpu_product"]
         or proof["gpu_count"] != lease["gpu_count"] or proof["cluster_id"] != lease["cluster_id"]
         or proof["node_group_ids"] != lease["node_group_ids"] or proof["node_ids"] != lease["node_ids"]
+        or proof["node_boot_id"] != lease["node_boot_id"]
+        or proof["gpu_inventory_sha256"] != canonical_sha256(lease["gpu_inventory"])
         or proof["resource_graph_sha256"] != canonical_sha256(resources)
     ):
         raise BaselineError("broker isolation proof is not bound to the exact resource graph")
@@ -955,7 +1018,8 @@ def _validate_resource_graph(
         key: proof[key]
         for key in (
             "fresh", "task_owned", "preemptible", "gpu_product", "gpu_count", "cluster_id",
-            "node_group_ids", "node_ids", "resource_graph_sha256",
+            "node_group_ids", "node_ids", "node_boot_id", "gpu_inventory_sha256",
+            "resource_graph_sha256",
         )
     }
     if _load_json(evidence_path, "broker isolation evidence") != expected_evidence:
@@ -965,7 +1029,7 @@ def _validate_resource_graph(
 def _validate_lease(
     plan: dict[str, Any], plan_path: Path, trace: dict[str, Any], models: list[dict[str, Any]],
     profiles: dict[str, dict[str, Any]], *, require_live: bool
-) -> tuple[dict[str, Any] | None, Path]:
+) -> tuple[dict[str, Any] | None, Path, str | None]:
     lease_ref = _expect_keys(
         plan["resource_lease"],
         {"path", "sha256", "request_sha256", "lease_id", "prefix", "admitted_states"},
@@ -983,16 +1047,19 @@ def _validate_lease(
         raise BaselineError("resource lease states differ from the frozen arm transition")
     lease_path = _resolve(plan_path, lease_ref["path"], "resource_lease.path", live=require_live)
     if not lease_path.exists():
-        return None, lease_path
-    if file_sha256(lease_path) != _digest(lease_ref["sha256"], "resource_lease.sha256"):
-        raise BaselineError("resource lease differs from its immutable plan hash")
+        return None, lease_path, None
+    lease_value, lease_source = _load_pinned_json(
+        lease_path,
+        _digest(lease_ref["sha256"], "resource_lease.sha256"),
+        "resource lease",
+    )
     lease = _expect_keys(
-        _load_json(lease_path, "resource lease"),
+        lease_value,
         {
             "schema_version", "lease_id", "request_sha256", "request", "prefix", "state",
             "project_id", "region", "cluster_id", "node_group_ids", "node_ids",
             "kubeconfig_path", "kubernetes_context", "api_server", "gpu_product", "gpu_count",
-            "preemptible", "resources", "isolation_proof", "initial_state_receipt",
+            "preemptible", "node_boot_id", "gpu_inventory", "resources", "isolation_proof", "initial_state_receipt",
             "resource_create_operations", "readiness_timestamps", "cost_estimate",
             "cleanup_plan", "audit_chain",
         },
@@ -1050,6 +1117,37 @@ def _validate_lease(
     profile = profiles[plan["kubernetes"]["gpu_profile"]]
     if lease["preemptible"] is not True or lease["gpu_product"] != profile["product"] or lease["gpu_count"] != profile["gpu_count"]:
         raise BaselineError("broker lease is not the exact preemptible GPU profile")
+    inventory = lease["gpu_inventory"]
+    if plan["campaign_arm"] == "A_prepared_node":
+        _identifier(lease["node_boot_id"], "resource lease node_boot_id")
+        if not isinstance(inventory, list) or len(inventory) != lease["gpu_count"]:
+            raise BaselineError("broker GPU inventory does not cover the exact admitted GPU count")
+        expected_indices = set(range(lease["gpu_count"]))
+        observed_indices: set[int] = set()
+        observed_uuids: set[str] = set()
+        for index, raw_gpu in enumerate(inventory):
+            gpu = _expect_keys(
+                raw_gpu,
+                {"gpu_uuid", "gpu_index", "product", "memory_bytes_total"},
+                f"resource lease gpu_inventory[{index}]",
+            )
+            _identifier(gpu["gpu_uuid"], f"resource lease gpu_inventory[{index}].gpu_uuid")
+            if (
+                not isinstance(gpu["gpu_index"], int)
+                or isinstance(gpu["gpu_index"], bool)
+                or gpu["gpu_index"] < 0
+                or gpu["product"] != profile["product"]
+                or not isinstance(gpu["memory_bytes_total"], int)
+                or isinstance(gpu["memory_bytes_total"], bool)
+                or gpu["memory_bytes_total"] <= 0
+            ):
+                raise BaselineError("broker GPU inventory identity/profile is invalid")
+            observed_indices.add(gpu["gpu_index"])
+            observed_uuids.add(gpu["gpu_uuid"])
+        if observed_indices != expected_indices or len(observed_uuids) != len(inventory):
+            raise BaselineError("broker GPU inventory has duplicate or noncontiguous identities")
+    elif lease["node_boot_id"] is not None or inventory != []:
+        raise BaselineError("new-node arm cannot admit a node boot or GPU inventory before T0")
     _validate_resource_graph(lease, plan, lease_ref, plan_path)
     operations = lease["resource_create_operations"]
     if not isinstance(operations, list) or len(operations) != len(lease["resources"]):
@@ -1211,7 +1309,7 @@ def _validate_lease(
         or readiness["node_ready_at_utc"] is not None
     ):
         raise BaselineError("new-node arm must enter T0 with support only and no GPU node identities")
-    return lease, lease_path
+    return lease, lease_path, lease_source
 
 
 def validate_plan(value: Any, plan_path: Path, *, require_live: bool = False) -> dict[str, Any]:
@@ -1274,9 +1372,10 @@ def validate_plan(value: Any, plan_path: Path, *, require_live: bool = False) ->
         raise BaselineError("promoted stratified cohorts require at least 30 repetitions")
 
     trace_path = _resolve(plan_path, plan["trace_path"], "trace_path", live=True)
-    trace = load_trace(trace_path)
-    if file_sha256(trace_path) != _digest(plan["trace_sha256"], "trace_sha256"):
-        raise BaselineError("trace digest differs from the pinned file")
+    trace_value, trace_source = _load_pinned_json(
+        trace_path, _digest(plan["trace_sha256"], "trace_sha256"), "trace"
+    )
+    trace = validate_trace(trace_value)
     profiles = _validate_gpu_profiles(plan)
     minimum_models = 1 if set(plan["promoted_scenarios"]) == {"same_model_hot"} else 2
     if not isinstance(plan["models"], list) or len(plan["models"]) < minimum_models:
@@ -1353,7 +1452,9 @@ def validate_plan(value: Any, plan_path: Path, *, require_live: bool = False) ->
     if not isinstance(cleanup["plan"], str) or len(cleanup["plan"].strip()) < 20:
         raise BaselineError("cleanup.plan is too vague")
 
-    lease, lease_path = _validate_lease(plan, plan_path, trace, models, profiles, require_live=require_live)
+    lease, lease_path, lease_source = _validate_lease(
+        plan, plan_path, trace, models, profiles, require_live=require_live
+    )
     normalized = json.loads(canonical_json(plan))
     normalized["_resolved"] = {
         "plan_path": str(plan_path.resolve()), "trace_path": str(trace_path),
@@ -1367,6 +1468,10 @@ def validate_plan(value: Any, plan_path: Path, *, require_live: bool = False) ->
         "config_sha256": hashlib.sha256(canonical_json(plan).encode()).hexdigest(),
     }
     normalized["models"] = models
+    normalized["_admitted_sources"] = {
+        "trace": trace_source,
+        "lease": lease_source,
+    }
     return normalized
 
 

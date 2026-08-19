@@ -9,7 +9,12 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from performance.k8s_baseline.build_trace import build_trace
-from performance.k8s_baseline.contract import BaselineError, _validate_resource_graph, load_plan
+from performance.k8s_baseline.contract import (
+    BaselineError,
+    _validate_resource_graph,
+    admitted_document,
+    load_plan,
+)
 from performance.k8s_baseline.contract import (
     FROZEN_METRIC_FILES,
     RUNTIME_ROOT,
@@ -19,8 +24,10 @@ from performance.k8s_baseline.contract import (
     THREAT_MODEL_SHA256,
     THREAT_VALIDATOR_PATH,
     THREAT_VALIDATOR_SHA256,
+    _validate_security,
     _validate_live_source_revision,
 )
+from performance.k8s_baseline.kubernetes_backend import KubernetesBackend
 from performance.request_slo.harness import (
     CATALOG_SCHEMA,
     canonical_sha256,
@@ -427,6 +434,19 @@ class ContractTests(unittest.TestCase):
             }
             for kind, resource_id in resource_pairs
         ]
+        node_boot_id = "boot-contract-0001" if arm_a else None
+        gpu_inventory = (
+            [
+                {
+                    "gpu_uuid": "GPU-contract-0001",
+                    "gpu_index": 0,
+                    "product": profile["product"],
+                    "memory_bytes_total": 80 * 1024**3,
+                }
+            ]
+            if arm_a
+            else []
+        )
         request_sha256 = canonical_sha256(request)
         isolation_core = {
             "fresh": True, "task_owned": True, "preemptible": True,
@@ -434,6 +454,8 @@ class ContractTests(unittest.TestCase):
             "cluster_id": "mk8scluster-contract",
             "node_group_ids": ["mk8snodegroup-contract"] if arm_a else [],
             "node_ids": [self.plan["kubernetes"]["broker_node_id"]] if arm_a else [],
+            "node_boot_id": node_boot_id,
+            "gpu_inventory_sha256": canonical_sha256(gpu_inventory),
             "resource_graph_sha256": canonical_sha256(resources),
         }
         write_canonical_json(self.isolation_evidence, isolation_core)
@@ -476,6 +498,7 @@ class ContractTests(unittest.TestCase):
             "region": self.plan["region"], "cluster_id": "mk8scluster-contract",
             "node_group_ids": ["mk8snodegroup-contract"] if arm_a else [],
             "node_ids": [self.plan["kubernetes"]["broker_node_id"]] if arm_a else [],
+            "node_boot_id": node_boot_id, "gpu_inventory": gpu_inventory,
             "kubeconfig_path": str(self.root / "future-kubeconfig"),
             "kubernetes_context": self.plan["kubernetes"]["context"],
             "api_server": self.plan["kubernetes"]["expected_server"],
@@ -616,6 +639,48 @@ class ContractTests(unittest.TestCase):
         self.plan["security"]["credentials"]["receipt_sha256"] = file_sha256(self.credential)
         self.plan["security"]["threat_model"]["sha256"] = "f" * 64
         self.assert_rejected("threat-model document")
+
+    def test_future_issued_active_credential_is_rejected_at_live_admission(self) -> None:
+        receipt = json.loads(self.credential.read_text())
+        receipt["issued_at_utc"] = "2099-08-19T23:30:00Z"
+        receipt["expires_at_utc"] = "2099-08-20T00:00:00Z"
+        receipt["revoke_by_utc"] = "2099-08-20T01:00:00Z"
+        write_canonical_json(self.credential, receipt)
+        credentials = self.plan["security"]["credentials"]
+        credentials["receipt_sha256"] = file_sha256(self.credential)
+        credentials["expires_at_utc"] = receipt["expires_at_utc"]
+        credentials["revoke_by_utc"] = receipt["revoke_by_utc"]
+        self.plan["cleanup"]["deadline_utc"] = "2099-08-19T23:50:00Z"
+        with self.assertRaisesRegex(BaselineError, "issued after live admission"):
+            _validate_security(self.plan, self.plan_path, require_live=True)
+
+    def test_execution_uses_retained_admitted_trace_and_lease_bytes(self) -> None:
+        self.write_plan()
+        admitted = load_plan(self.plan_path)
+        original_trace = admitted_document(admitted, "trace")
+        original_lease = admitted_document(admitted, "lease")
+
+        mutated_trace = json.loads(self.trace_path.read_text())
+        mutated_trace["requests"][0]["target"] = dict(
+            mutated_trace["requests"][1]["target"]
+        )
+        mutated_trace["trace_sha256"] = canonical_sha256(
+            {key: value for key, value in mutated_trace.items() if key != "trace_sha256"}
+        )
+        write_canonical_json(self.trace_path, mutated_trace)
+        mutated_lease = json.loads(self.lease_path.read_text())
+        mutated_lease["node_ids"] = ["attacker-node"]
+        write_canonical_json(self.lease_path, mutated_lease)
+
+        self.assertEqual(admitted_document(admitted, "trace"), original_trace)
+        self.assertEqual(admitted_document(admitted, "lease"), original_lease)
+        with patch("performance.k8s_baseline.kubernetes_backend.Kubectl"):
+            backend = KubernetesBackend(admitted)
+        self.assertEqual(backend.lease["node_ids"], original_lease["node_ids"])
+        self.assertNotEqual(
+            admitted_document(admitted, "trace")["requests"][0]["target"],
+            mutated_trace["requests"][0]["target"],
+        )
 
     def test_minimal_self_asserted_threat_model_cannot_replace_reviewed_validator_input(self) -> None:
         self.threat.write_text('{"status":"reviewed"}\n')
