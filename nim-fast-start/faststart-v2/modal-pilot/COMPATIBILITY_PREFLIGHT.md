@@ -29,7 +29,15 @@ Conclusions:
   `REGISTRY_PASSWORD=<NGC key>`) without creating any new NVIDIA credential.
   No Nebius resources are needed for the Modal-side pilot itself.
 
-## 2. NIM lifecycle → Modal mapping (from the pinned contract)
+## 2. NIM lifecycle → Modal mapping and adapter boundary
+
+The pilot's first-class deliverable is exact NIM/Modal lifecycle
+compatibility plus a clean **adapter boundary**: everything Modal-specific
+(app template, deploy modes, pool configuration, Modal observability
+scraping) stays behind `harness/modal_nim_app.py` and the provisional event
+emitter, so that when `catalog-switch-request-slo-harness` publishes the
+shared external-client ledger, only the emitter is swapped — the workload,
+validators, and T0 discipline do not change.
 
 The candidate wrapper keeps the NIM workload byte-identical (same nvcr.io
 image digest, same internal server, same API), which the task requires

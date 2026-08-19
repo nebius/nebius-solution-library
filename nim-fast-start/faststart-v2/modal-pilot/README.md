@@ -19,18 +19,26 @@ completion = first complete semantically valid response.
     Boltz2, one multi-GPU representative), mode matrix (snapshots off, CPU
     snapshot, GPU snapshot alpha, one bounded warm config, A→B switch,
     burst, capacity), n≥30 / p99-needs-n≥100 gates, $250 budget cap,
+    TTL (cohort + 24 h, ≤ 7 days) with this task as cleanup owner,
     tagging (`mlspec-catswitch-*`) and teardown receipts.
 - **Phase 2 (live spend): BLOCKED** — no Modal workspace credentials or
   billing exist on this host (see the preflight's exact check table). Per
   the task rules this is reported as a blocker; no credential workaround is
   attempted. NGC pull credentials for nvcr.io are already present.
 
-## Harness (`harness/`, offline-testable)
+## Harness (`harness/`, offline-testable, PROVISIONAL)
 
-- `event_schema.py` — frozen per-request event schema v1: causal
+The schema and aggregator below are a **provisional adapter**, not the
+program metric contract: the shared external-client ledger owned by
+`catalog-switch-request-slo-harness` supersedes them, and no local aggregate
+is promotable as a backend comparison until events are re-emitted through
+that ledger. The adapter boundary keeps all Modal-specific code behind
+`modal_nim_app.py` and the event emitter so only the emitter swaps later.
+
+- `event_schema.py` — provisional adapter event schema v1: causal
   client-owned T0, digest-pinned `image_ref`, attempt accounting,
   phase provenance labels including `unobservable(managed)`.
-- `aggregate.py` — fail-closed cohort aggregation: conservative
+- `aggregate.py` — fail-closed adapter-cohort aggregation: conservative
   nearest-rank percentiles, p50/p95/p99 sample-size gates (5/20/100),
   promoted cold/switch cohorts require n≥30 valid responses, failures always
   reported.

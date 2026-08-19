@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""Fail-closed aggregation for Modal pilot cohorts.
+"""Fail-closed aggregation for PROVISIONAL Modal pilot adapter cohorts.
 
-Sample-size gates are hard rules, not warnings:
+Outputs are adapter-test summaries only, never promotable backend
+comparisons: the shared external-client ledger owned by
+``catalog-switch-request-slo-harness`` supersedes this module, and cohorts
+must be re-aggregated through it before any cross-backend claim.
+
+Sample-size gates are local hard floors, not warnings:
 - p50 requires n >= 5 valid responses,
 - p95 requires n >= 20,
 - p99 requires n >= 100,
