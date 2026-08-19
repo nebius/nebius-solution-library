@@ -22,6 +22,10 @@ shared metric contract and current ten-model matrix are in
 response-boundary audit is recorded in
 `performance/RESPONSE_BOUNDARY_REQUALIFICATION.md`:
 
+- `catalog-switch/security-reliability/` contains the catalog fast-switch
+  program's threat model: the fail-closed control and adversary matrix, per
+  backend, required before any switching backend can be recommended for
+  production, plus its consistency validator and tests;
 - `native-capture/` creates the qualified native Dynamo artifact;
 - `phase2-agent/` reproduces the generic one-shot restore-worker image;
 - `dynamo/` renders and validates target, binding, restore, semantic probe, and
