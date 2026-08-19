@@ -37,6 +37,7 @@ cpu_nodes_preset   = "4vcpu-16gb" # CPU nodes preset
 gpu_nodes_platform = "gpu-h200-sxm"        # GPU nodes platform: gpu-h100-sxm, gpu-h200-sxm, gpu-b200-sxm
 gpu_nodes_preset   = "8gpu-128vcpu-1600gb" # GPU nodes preset: 8gpu-128vcpu-1600gb, 8gpu-128vcpu-1600gb, 8gpu-160vcpu-1792gb
 # Infiniband fabrics: https://docs.nebius.com/compute/clusters/gpu#fabrics
+# New B300 region fabrics: eu-west2-a (eu-west2), us-north1-a (us-north1).
 infiniband_fabric = "" # Leave empty to disable GPU clustering for RTX6000 deployments or single-node deployments.
 
 # Node-group rollout strategy. GB300 requires max_surge to be zero and the
