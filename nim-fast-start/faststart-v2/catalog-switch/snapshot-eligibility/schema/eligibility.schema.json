@@ -1,0 +1,275 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://github.com/nebius/nebius-solutions-library/nim-fast-start/faststart-v2/catalog-switch/snapshot-eligibility/schema/eligibility.schema.json",
+ "title": "Catalog-switch snapshot-eligibility classification",
+ "type": "object",
+ "required": ["meta", "rows"],
+ "additionalProperties": false,
+ "properties": {
+  "meta": {
+   "type": "object",
+   "required": [
+    "artifact", "task", "catalog_version", "pins", "classes", "rules",
+    "gates", "blockers", "class_counts", "rule_counts", "fleet_counts",
+    "fallback_policy", "canary_plan", "scope_notes"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "artifact": {"type": "string"},
+    "task": {"const": "catalog-switch-snapshot-eligibility"},
+    "catalog_version": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "pins": {
+     "type": "object",
+     "required": [
+      "catalog_commit", "catalog_branch", "catalog_path", "catalog_sha256",
+      "catalog_schema_sha256", "threat_model_commit", "threat_model_branch",
+      "threat_model_path", "threat_model_sha256"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "catalog_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+      "catalog_branch": {"type": "string"},
+      "catalog_path": {"type": "string"},
+      "catalog_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+      "catalog_schema_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+      "threat_model_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+      "threat_model_branch": {"type": "string"},
+      "threat_model_path": {"type": "string"},
+      "threat_model_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+     }
+    },
+    "classes": {
+     "type": "object",
+     "required": [
+      "direct-snapshot-safe", "snapshot-after-state-externalization",
+      "conventional-only", "unresolved"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "direct-snapshot-safe": {"type": "string"},
+      "snapshot-after-state-externalization": {"type": "string"},
+      "conventional-only": {"type": "string"},
+      "unresolved": {"type": "string"}
+     }
+    },
+    "rules": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "required": ["id", "order", "condition", "class"],
+      "additionalProperties": false,
+      "properties": {
+       "id": {"type": "string", "pattern": "^R[0-9]{2}-[a-z-]+$"},
+       "order": {"type": "integer", "minimum": 1},
+       "condition": {"type": "string"},
+       "class": {"type": "string"}
+      }
+     }
+    },
+    "gates": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "required": ["id", "title", "requirement", "bindings"],
+      "additionalProperties": false,
+      "properties": {
+       "id": {"type": "string", "pattern": "^G-[A-Z]+$"},
+       "title": {"type": "string"},
+       "requirement": {"type": "string"},
+       "bindings": {
+        "type": "array",
+        "minItems": 1,
+        "items": {"type": "string", "pattern": "^(INV|CTL)-[0-9]{2}$"}
+       }
+      }
+     }
+    },
+    "blockers": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "required": ["id", "rule", "fail_closed_behavior", "resolution_path"],
+      "additionalProperties": false,
+      "properties": {
+       "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+       "rule": {"type": "string"},
+       "fail_closed_behavior": {"type": "string"},
+       "resolution_path": {"type": "string"}
+      }
+     }
+    },
+    "class_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "rule_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "fleet_counts": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "fallback_policy": {
+     "type": "object",
+     "required": ["statement", "admission_values"],
+     "additionalProperties": false,
+     "properties": {
+      "statement": {"type": "string"},
+      "admission_values": {"type": "object", "additionalProperties": {"type": "string"}}
+     }
+    },
+    "canary_plan": {
+     "type": "object",
+     "required": ["process", "entries", "deferred"],
+     "additionalProperties": false,
+     "properties": {
+      "process": {"type": "string"},
+      "entries": {
+       "type": "array",
+       "minItems": 1,
+       "items": {
+        "type": "object",
+        "required": [
+         "canary_id", "purpose", "row_id", "snapshot_attempt_allowed",
+         "requested_via", "status"
+        ],
+        "additionalProperties": false,
+        "properties": {
+         "canary_id": {"type": "string", "pattern": "^canary-[a-z0-9-]+$"},
+         "purpose": {"type": "string"},
+         "row_id": {"type": "string"},
+         "snapshot_attempt_allowed": {"type": "boolean"},
+         "requested_via": {
+          "type": "object",
+          "required": ["resource_broker", "request_slo_harness"],
+          "additionalProperties": false,
+          "properties": {
+           "resource_broker": {"type": "string"},
+           "request_slo_harness": {"type": "string"}
+          }
+         },
+         "status": {"const": "requested-not-run"}
+        }
+       }
+      },
+      "deferred": {
+       "type": "array",
+       "items": {
+        "type": "object",
+        "required": ["row_id", "reason", "status"],
+        "additionalProperties": false,
+        "properties": {
+         "row_id": {"type": "string"},
+         "reason": {"type": "string"},
+         "status": {"const": "deferred-not-requested"}
+        }
+       }
+      }
+     }
+    },
+    "scope_notes": {"type": "array", "items": {"type": "string"}}
+   }
+  },
+  "rows": {
+   "type": "array",
+   "minItems": 1,
+   "items": {"$ref": "#/$defs/row"}
+  }
+ },
+ "$defs": {
+  "row": {
+   "type": "object",
+   "required": [
+    "id", "canonical_key", "name", "source", "catalog", "fleet_status",
+    "snapshot_class", "decision_rule", "confidence", "evidence",
+    "storage_bound", "blockers", "promotion_gates", "fallback", "canary_ids"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "id": {"type": "string", "minLength": 3},
+    "canonical_key": {"type": "string", "minLength": 3},
+    "name": {"type": "string", "minLength": 1},
+    "source": {
+     "enum": [
+      "forge-manifests", "faststart-v2-lanes", "nims-terraform-catalog",
+      "documented-candidates"
+     ]
+    },
+    "catalog": {
+     "type": "object",
+     "required": [
+      "availability_class", "availability_gates", "snapshot_eligibility",
+      "startup_path", "runtime_family", "multi_gpu_required", "min_gpus",
+      "image_digest", "registry_visibility", "tag_pinned",
+      "local_bytes_known", "validator"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "availability_class": {"enum": ["verified", "discoverable", "gated", "hypothetical"]},
+      "availability_gates": {"type": "array", "items": {"type": "string"}},
+      "snapshot_eligibility": {
+       "enum": [
+        "proven", "candidate-family-proven", "candidate-unproven",
+        "unproven-multi-gpu", "excluded", "blocked-pending-capture",
+        "not-applicable"
+       ]
+      },
+      "startup_path": {
+       "enum": [
+        "native-snapshot-restore", "conventional-cached-start",
+        "conventional-pull-and-load", "notebook", "unknown"
+       ]
+      },
+      "runtime_family": {"type": "string"},
+      "multi_gpu_required": {"type": ["boolean", "null"]},
+      "min_gpus": {"type": ["integer", "null"]},
+      "image_digest": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+      "registry_visibility": {"enum": ["public", "private-mirror", "local-build", "unknown"]},
+      "tag_pinned": {"type": ["boolean", "null"]},
+      "local_bytes_known": {"type": "integer", "minimum": 0},
+      "validator": {"type": ["string", "null"]}
+     }
+    },
+    "fleet_status": {"enum": ["active", "excluded-non-serving", "excluded-hypothetical"]},
+    "snapshot_class": {
+     "enum": [
+      "direct-snapshot-safe", "snapshot-after-state-externalization",
+      "conventional-only", "unresolved"
+     ]
+    },
+    "decision_rule": {"type": "string", "pattern": "^R[0-9]{2}-[a-z-]+$"},
+    "confidence": {"enum": ["high", "medium", "low"]},
+    "evidence": {
+     "type": "object",
+     "required": ["tier", "refs", "detail"],
+     "additionalProperties": false,
+     "properties": {
+      "tier": {"enum": ["measured-local", "measured-source", "catalog-listed", "referenced-only"]},
+      "refs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+      "detail": {"type": "string", "minLength": 10}
+     }
+    },
+    "storage_bound": {"type": "boolean"},
+    "blockers": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9:-]+$"}},
+    "promotion_gates": {
+     "type": "array",
+     "minItems": 1,
+     "items": {"type": "string", "pattern": "^G-[A-Z]+$"}
+    },
+    "fallback": {
+     "type": "object",
+     "required": ["path", "admission", "measured", "measurement_refs", "measurement_owner"],
+     "additionalProperties": false,
+     "properties": {
+      "path": {"enum": ["conventional-cached-start", "conventional-pull-and-load"]},
+      "admission": {
+       "enum": [
+        "measured", "measurement-required", "blocked-until-digest-bound",
+        "excluded"
+       ]
+      },
+      "measured": {"type": "boolean"},
+      "measurement_refs": {"type": "array", "items": {"type": "string"}},
+      "measurement_owner": {"type": "string"}
+     }
+    },
+    "canary_ids": {"type": "array", "items": {"type": "string"}}
+   }
+  }
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "comment": "Hand-encoded per-lane dispositions for the ten faststart-v2 lanes, derived only from committed lane evidence at the pinned catalog commit. Evidence refs and measured timings are pulled from the vendored catalog row (provenance + startup.measured); this file records only the classification decision and its basis. The Boltz external-/tmp worktree was read as evidence only and never edited.",
+ "pinned_catalog_commit": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
+ "lanes": {
+  "faststart:boltz2@sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98": {
+   "disposition": "direct-snapshot-safe",
+   "basis": "fresh fail-closed n=20 with 20/20 semantically valid restores on the exact pinned digest; the proven route restores in-Pod process state directly (a writeback variant was evaluated and rejected).",
+   "caveats": [
+    "Conservative-upper p95 30.310246 s fails the <30 s SLO; this is a latency result, not a safety failure.",
+    "An external-/tmp state-externalization optimization is tracked by a sibling task (boltz2-under-20-optimization); if adopted, that variant must be re-qualified and would reclassify to snapshot-after-state-externalization."
+   ]
+  },
+  "faststart:diffdock@sha256:300696eb8331d78face40f84d835cc1e278c7d3c391c5aabbbee5884366da480": {
+   "disposition": "direct-snapshot-safe",
+   "basis": "exact response-boundary n=3 restores with strict semantic validation on the pinned digest; restored process state in Pod with a prewarmed read-only artifact volume.",
+   "caveats": []
+  },
+  "faststart:genmol@sha256:139b909a450fe1fb81198214784a15f67e172e766a93a1569827ba5aa05b4541": {
+   "disposition": "direct-snapshot-safe",
+   "basis": "exact response-boundary n=3 restores with strict semantic validation on the pinned digest; restored process state in Pod with a prewarmed read-only artifact volume.",
+   "caveats": []
+  },
+  "faststart:molmim@sha256:7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa": {
+   "disposition": "direct-snapshot-safe",
+   "basis": "exact response-boundary n=3 restores with strict semantic validation on the pinned digest; restored process state in Pod with prewarmed artifact and cache volumes.",
+   "caveats": []
+  },
+  "faststart:openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4": {
+   "disposition": "direct-snapshot-safe",
+   "basis": "fresh fail-closed n=20 with 20/20 semantically valid restores on the exact pinned digest; restored process state in Pod, no external writeback volume in the selected route, direct/O_DIRECT artifact reads.",
+   "caveats": []
+  },
+  "faststart:openfold3@sha256:6286cc7c02247ed3efe42f0f1af6c2f6f6a680b1e5cae669512c44b636aa42d2": {
+   "disposition": "direct-snapshot-safe",
+   "basis": "exact response-boundary n=3 restores with strict semantic validation on the pinned digest; restored process state in Pod with a prewarmed artifact volume.",
+   "caveats": [
+    "T0-to-call-2 median 30.564921 s exceeds the 30 s SLO; latency result only."
+   ]
+  },
+  "faststart:proteinmpnn@sha256:b55a0aa6733e267e6e6fe06434e98aea61eff14bc5545127555607fef6f38aa5": {
+   "disposition": "direct-snapshot-safe",
+   "basis": "exact response-boundary n=3 restores with strict semantic validation on the pinned digest; restored process state in Pod with a prewarmed artifact volume; smallest measured lane.",
+   "caveats": []
+  },
+  "faststart:rfdiffusion@sha256:15e40e466d8ebe9a53f1feea599373720428c9de65da750bf4271c96ec35ceb4": {
+   "disposition": "direct-snapshot-safe",
+   "basis": "exact response-boundary n=3 restores with strict semantic validation on the pinned digest; restored process state in Pod with prewarmed artifact and cache volumes.",
+   "caveats": [
+    "T0-to-call-2 median 31.379359 s exceeds the 30 s SLO; latency result only."
+   ]
+  },
+  "faststart:msa-search@sha256:944f3cf845761be8e42b33147ae08b68c61eca7cad67bf5251e1708d03c0165c": {
+   "disposition": "conventional-only",
+   "basis": "native capture was excluded as topology-mismatched: the runtime's process topology at load differs from the captured topology, so restore identity cannot hold. The selected route is a measured conventional cached start (exact response-boundary conventional n=3, T0-to-call-2 median 4.942788 s) under the same T0/readiness/request boundaries.",
+   "fallback_measured": true,
+   "caveats": []
+  },
+  "faststart:evo2-40b@sha256:561886bab1d2d0da836ebf5bec403f9de2baf6e92deb7eedf1b316aa994b5dd2": {
+   "disposition": "unresolved",
+   "basis": "only manual/provisional restore-trigger evidence exists (65.377 s median from an in-Pod trigger, not target-create T0); production-shaped capture is deferred pending an explicit owner decision to release the only allowed H200; writable state on the production-shaped route is unknown.",
+   "extra_blockers": ["hardware-gate-h200", "production-capture-missing"],
+   "caveats": [
+    "The lane profile pins a single-H200 configuration while the Terraform catalog requests 2 GPUs for the same image; this discrepancy must be resolved before any capture qualification."
+   ]
+  }
+ }
+}
