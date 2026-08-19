@@ -1,0 +1,74 @@
+{
+  "$id": "https://nebius.ai/schemas/catalog-switch-trace-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "catalog_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "distribution": {"enum": ["uniform", "skewed", "adversarial"]},
+    "request_count": {"minimum": 1, "type": "integer"},
+    "requests": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt_id": {"minLength": 1, "type": "string"},
+          "input": {"type": "object"},
+          "offered_at_offset_ms": {"minimum": 0, "type": "integer"},
+          "precondition": {"type": "object"},
+          "request_id": {"minLength": 1, "type": "string"},
+          "scenario": {
+            "enum": [
+              "same_model_hot",
+              "idle_local",
+              "a_to_b_local",
+              "a_to_b_remote",
+              "checkpoint_fallback",
+              "capacity_miss"
+            ]
+          },
+          "sequence": {"minimum": 0, "type": "integer"},
+          "target": {"type": "object"}
+        },
+        "required": [
+          "attempt_id",
+          "input",
+          "offered_at_offset_ms",
+          "precondition",
+          "request_id",
+          "scenario",
+          "sequence",
+          "target"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "scenario_labels": {
+      "const": [
+        "same_model_hot",
+        "idle_local",
+        "a_to_b_local",
+        "a_to_b_remote",
+        "checkpoint_fallback",
+        "capacity_miss"
+      ]
+    },
+    "schema": {"const": "archvteams.nebius.ai/catalog-switch-trace/v1"},
+    "seed": {"minimum": 0, "type": "integer"},
+    "trace_id": {"minLength": 1, "type": "string"},
+    "trace_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+  },
+  "required": [
+    "catalog_sha256",
+    "distribution",
+    "request_count",
+    "requests",
+    "scenario_labels",
+    "schema",
+    "seed",
+    "trace_id",
+    "trace_sha256"
+  ],
+  "title": "Catalog switch deterministic trace v1",
+  "type": "object"
+}
