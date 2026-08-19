@@ -121,260 +121,7 @@
           }
         }
       ],
-      "cost_classes": [
-        {
-          "cold_switch": {
-            "latency_seconds": null,
-            "per_request_cost_usd": null,
-            "reason": "OpenFold2's pre-T0 table records 'full read not applicable' (artifact identity-bound, payload not page-preloaded); no measured preparation duration exists, so no cold-switch cost is computed for it.",
-            "status": "PENDING_MEASUREMENT"
-          },
-          "model": "OpenFold2",
-          "node_provision_miss": {
-            "latency_seconds": null,
-            "per_request_cost_usd": null,
-            "reason": "The legacy new-node lane is fail-closed on this branch (commit 730ca566) and no qualified fresh-node provisioning cohort exists here; the class is declared but receives no numbers.",
-            "status": "PENDING_MEASUREMENT"
-          },
-          "prepared_switch": {
-            "evidence": "of2-n20-fresh:demand_to_two_semantic_boottime_upper_seconds",
-            "failed_attempt_denominator": "0/20",
-            "latency_seconds": {
-              "max": "18.063099",
-              "min": "16.716039",
-              "p50": "17.302540",
-              "p95": "17.629887"
-            },
-            "n": 20,
-            "notes": "Request-triggered switch on a prepared node (image resident, storage attached, pre-T0 preparation already done). GPU critical path T0 through second semantic response; pessimistic = rule-of-three retry bound from the measured 0/20 denominator.",
-            "per_request_cost_usd": {
-              "p50": {
-                "on_demand": {
-                  "gpu_usd": "0.018504",
-                  "gpu_usd_pessimistic": "0.021770"
-                },
-                "preemptible": {
-                  "gpu_usd": "0.010333",
-                  "gpu_usd_pessimistic": "0.012157"
-                }
-              },
-              "p95": {
-                "on_demand": {
-                  "gpu_usd": "0.018854",
-                  "gpu_usd_pessimistic": "0.022181"
-                },
-                "preemptible": {
-                  "gpu_usd": "0.010529",
-                  "gpu_usd_pessimistic": "0.012387"
-                }
-              }
-            },
-            "slo_goodput": {
-              "within_20s": "1.0000",
-              "within_30s": "1.0000",
-              "within_60s": "1.0000"
-            },
-            "status": "MEASURED"
-          },
-          "warm_hit": {
-            "evidence": "of2-n20-fresh:semantic_request_2_seconds",
-            "latency_seconds": {
-              "max": "1.035316",
-              "min": "0.981909",
-              "p50": "1.015083",
-              "p95": "1.032614"
-            },
-            "notes": "Marginal GPU-seconds of an already-serving model; the node itself is paid for by the warm-pool or switching economics below.",
-            "per_request_cost_usd": {
-              "on_demand": {
-                "gpu_usd": "0.001086",
-                "gpu_usd_pessimistic": "0.001277"
-              },
-              "preemptible": {
-                "gpu_usd": "0.000606",
-                "gpu_usd_pessimistic": "0.000713"
-              }
-            },
-            "slo_goodput": {
-              "within_20s": "1.0000",
-              "within_30s": "1.0000",
-              "within_60s": "1.0000"
-            },
-            "status": "MEASURED"
-          }
-        },
-        {
-          "cold_switch": {
-            "amortization": [
-              {
-                "amortized_gpu_seconds_p95": "453.164836",
-                "per_request_cost_usd": {
-                  "on_demand": {
-                    "gpu_usd": "0.484635",
-                    "gpu_usd_pessimistic": "0.570158"
-                  },
-                  "preemptible": {
-                    "gpu_usd": "0.270640",
-                    "gpu_usd_pessimistic": "0.318400"
-                  }
-                },
-                "prep_reuse": 1
-              },
-              {
-                "amortized_gpu_seconds_p95": "241.737541",
-                "per_request_cost_usd": {
-                  "on_demand": {
-                    "gpu_usd": "0.258525",
-                    "gpu_usd_pessimistic": "0.304147"
-                  },
-                  "preemptible": {
-                    "gpu_usd": "0.144371",
-                    "gpu_usd_pessimistic": "0.169848"
-                  }
-                },
-                "prep_reuse": 2
-              },
-              {
-                "amortized_gpu_seconds_p95": "114.881164",
-                "per_request_cost_usd": {
-                  "on_demand": {
-                    "gpu_usd": "0.122859",
-                    "gpu_usd_pessimistic": "0.144540"
-                  },
-                  "preemptible": {
-                    "gpu_usd": "0.068610",
-                    "gpu_usd_pessimistic": "0.080717"
-                  }
-                },
-                "prep_reuse": 5
-              },
-              {
-                "amortized_gpu_seconds_p95": "72.595705",
-                "per_request_cost_usd": {
-                  "on_demand": {
-                    "gpu_usd": "0.077637",
-                    "gpu_usd_pessimistic": "0.091338"
-                  },
-                  "preemptible": {
-                    "gpu_usd": "0.043356",
-                    "gpu_usd_pessimistic": "0.051007"
-                  }
-                },
-                "prep_reuse": 10
-              },
-              {
-                "amortized_gpu_seconds_p95": "38.767338",
-                "per_request_cost_usd": {
-                  "on_demand": {
-                    "gpu_usd": "0.041460",
-                    "gpu_usd_pessimistic": "0.048776"
-                  },
-                  "preemptible": {
-                    "gpu_usd": "0.023153",
-                    "gpu_usd_pessimistic": "0.027238"
-                  }
-                },
-                "prep_reuse": 50
-              }
-            ],
-            "evidence": "boltz2-pret0-cache-read + boltz2-n20-fresh",
-            "notes": "Lower bound: measured 422.854590 s pre-T0 cache full read from attached SFS; the M3 artifact is read O_DIRECT inside the T0 window (already charged) and image pull is excluded because residency was proven pre-T0. prep_reuse=1 is the fully request-triggered worst case; larger reuse amortizes one preparation over later switches, whose own latency is the prepared_switch class.",
-            "prep_seconds": "422.854590",
-            "status": "MEASURED_LOWER_BOUND",
-            "triggering_request_latency_seconds_p95": "453.164836",
-            "understatement_vs_prepared": "14.951",
-            "unmeasured_relocation": {
-              "per_preparation_usd": {
-                "egress_billed": "0.413258",
-                "egress_free": "0.000000"
-              },
-              "provenance": "UNMEASURED scenario, kept separate from the measured lower-bound timing above: the measured preparation read the bytes from attached SFS, not from object storage. If the bytes must first move from object storage, this add-on prices the measured byte counts; its duration is unmeasured.",
-              "traffic_bytes": 29582168488,
-              "traffic_gib": "27.550541"
-            }
-          },
-          "model": "Boltz2",
-          "node_provision_miss": {
-            "latency_seconds": null,
-            "per_request_cost_usd": null,
-            "reason": "The legacy new-node lane is fail-closed on this branch (commit 730ca566) and no qualified fresh-node provisioning cohort exists here; the class is declared but receives no numbers.",
-            "status": "PENDING_MEASUREMENT"
-          },
-          "prepared_switch": {
-            "evidence": "boltz2-n20-fresh:demand_to_two_semantic_boottime_upper_seconds",
-            "failed_attempt_denominator": "0/20",
-            "latency_seconds": {
-              "max": "31.022641",
-              "min": "24.364138",
-              "p50": "28.892235",
-              "p95": "30.310246"
-            },
-            "n": 20,
-            "notes": "Request-triggered switch on a prepared node (image resident, storage attached, pre-T0 preparation already done). GPU critical path T0 through second semantic response; pessimistic = rule-of-three retry bound from the measured 0/20 denominator.",
-            "per_request_cost_usd": {
-              "p50": {
-                "on_demand": {
-                  "gpu_usd": "0.030899",
-                  "gpu_usd_pessimistic": "0.036351"
-                },
-                "preemptible": {
-                  "gpu_usd": "0.017255",
-                  "gpu_usd_pessimistic": "0.020300"
-                }
-              },
-              "p95": {
-                "on_demand": {
-                  "gpu_usd": "0.032415",
-                  "gpu_usd_pessimistic": "0.038135"
-                },
-                "preemptible": {
-                  "gpu_usd": "0.018102",
-                  "gpu_usd_pessimistic": "0.021296"
-                }
-              }
-            },
-            "slo_goodput": {
-              "within_20s": "0.0000",
-              "within_30s": "0.9000",
-              "within_60s": "1.0000"
-            },
-            "status": "MEASURED"
-          },
-          "warm_hit": {
-            "evidence": "boltz2-n20-fresh:semantic_request_2_seconds",
-            "latency_seconds": {
-              "max": "0.361623",
-              "min": "0.272755",
-              "p50": "0.282071",
-              "p95": "0.300494"
-            },
-            "notes": "Marginal GPU-seconds of an already-serving model; the node itself is paid for by the warm-pool or switching economics below.",
-            "per_request_cost_usd": {
-              "on_demand": {
-                "gpu_usd": "0.000302",
-                "gpu_usd_pessimistic": "0.000355"
-              },
-              "preemptible": {
-                "gpu_usd": "0.000168",
-                "gpu_usd_pessimistic": "0.000198"
-              }
-            },
-            "slo_goodput": {
-              "within_20s": "1.0000",
-              "within_30s": "1.0000",
-              "within_60s": "1.0000"
-            },
-            "status": "MEASURED"
-          }
-        }
-      ],
-      "fixed_monthly_overheads_usd": {
-        "controller_cpu_d3_4vcpu_16gb": "72.416",
-        "notes": "As-deployed measured-tier shapes: one 4 TiB network_ssd SFS holding artifacts/caches and one cpu-d3 controller node; included in every fully-loaded row.",
-        "sfs_4096gib_artifact_tier": "327.67987712",
-        "total": "400.09587712"
-      },
-      "fully_loaded": [
+      "complete_cost_totals": [
         {
           "capacity_model": "dedicated_prepared_node",
           "capture_status": "APPLIED",
@@ -1622,7 +1369,263 @@
           "restores_between_captures": 1000,
           "retention_note": "",
           "utilization_busy_fraction": "0.940560"
+        }
+      ],
+      "cost_classes": [
+        {
+          "cold_switch": {
+            "latency_seconds": null,
+            "per_request_cost_usd": null,
+            "reason": "OpenFold2's pre-T0 table records 'full read not applicable' (artifact identity-bound, payload not page-preloaded); no measured preparation duration exists, so no cold-switch cost is computed for it.",
+            "status": "PENDING_MEASUREMENT"
+          },
+          "model": "OpenFold2",
+          "node_provision_miss": {
+            "latency_seconds": null,
+            "per_request_cost_usd": null,
+            "reason": "The legacy new-node lane is fail-closed on this branch (commit 730ca566) and no qualified fresh-node provisioning cohort exists here; the class is declared but receives no numbers.",
+            "status": "PENDING_MEASUREMENT"
+          },
+          "prepared_switch": {
+            "evidence": "of2-n20-fresh:demand_to_two_semantic_boottime_upper_seconds",
+            "failed_attempt_denominator": "0/20",
+            "latency_seconds": {
+              "max": "18.063099",
+              "min": "16.716039",
+              "p50": "17.302540",
+              "p95": "17.629887"
+            },
+            "n": 20,
+            "notes": "Request-triggered switch on a prepared node (image resident, storage attached, pre-T0 preparation already done). GPU critical path T0 through second semantic response; pessimistic = rule-of-three retry bound from the measured 0/20 denominator.",
+            "per_request_cost_usd": {
+              "p50": {
+                "on_demand": {
+                  "gpu_usd": "0.018504",
+                  "gpu_usd_pessimistic": "0.021770"
+                },
+                "preemptible": {
+                  "gpu_usd": "0.010333",
+                  "gpu_usd_pessimistic": "0.012157"
+                }
+              },
+              "p95": {
+                "on_demand": {
+                  "gpu_usd": "0.018854",
+                  "gpu_usd_pessimistic": "0.022181"
+                },
+                "preemptible": {
+                  "gpu_usd": "0.010529",
+                  "gpu_usd_pessimistic": "0.012387"
+                }
+              }
+            },
+            "slo_goodput": {
+              "within_20s": "1.0000",
+              "within_30s": "1.0000",
+              "within_60s": "1.0000"
+            },
+            "status": "MEASURED"
+          },
+          "warm_hit": {
+            "evidence": "of2-n20-fresh:semantic_request_2_seconds",
+            "latency_seconds": {
+              "max": "1.035316",
+              "min": "0.981909",
+              "p50": "1.015083",
+              "p95": "1.032614"
+            },
+            "notes": "Marginal GPU-seconds of an already-serving model; the node itself is paid for by the warm-pool or switching economics below.",
+            "per_request_cost_usd": {
+              "on_demand": {
+                "gpu_usd": "0.001086",
+                "gpu_usd_pessimistic": "0.001277"
+              },
+              "preemptible": {
+                "gpu_usd": "0.000606",
+                "gpu_usd_pessimistic": "0.000713"
+              }
+            },
+            "slo_goodput": {
+              "within_20s": "1.0000",
+              "within_30s": "1.0000",
+              "within_60s": "1.0000"
+            },
+            "status": "MEASURED"
+          }
         },
+        {
+          "cold_switch": {
+            "amortization": [
+              {
+                "amortized_gpu_seconds_p95": "453.164836",
+                "per_request_cost_usd": {
+                  "on_demand": {
+                    "gpu_usd": "0.484635",
+                    "gpu_usd_pessimistic": "0.570158"
+                  },
+                  "preemptible": {
+                    "gpu_usd": "0.270640",
+                    "gpu_usd_pessimistic": "0.318400"
+                  }
+                },
+                "prep_reuse": 1
+              },
+              {
+                "amortized_gpu_seconds_p95": "241.737541",
+                "per_request_cost_usd": {
+                  "on_demand": {
+                    "gpu_usd": "0.258525",
+                    "gpu_usd_pessimistic": "0.304147"
+                  },
+                  "preemptible": {
+                    "gpu_usd": "0.144371",
+                    "gpu_usd_pessimistic": "0.169848"
+                  }
+                },
+                "prep_reuse": 2
+              },
+              {
+                "amortized_gpu_seconds_p95": "114.881164",
+                "per_request_cost_usd": {
+                  "on_demand": {
+                    "gpu_usd": "0.122859",
+                    "gpu_usd_pessimistic": "0.144540"
+                  },
+                  "preemptible": {
+                    "gpu_usd": "0.068610",
+                    "gpu_usd_pessimistic": "0.080717"
+                  }
+                },
+                "prep_reuse": 5
+              },
+              {
+                "amortized_gpu_seconds_p95": "72.595705",
+                "per_request_cost_usd": {
+                  "on_demand": {
+                    "gpu_usd": "0.077637",
+                    "gpu_usd_pessimistic": "0.091338"
+                  },
+                  "preemptible": {
+                    "gpu_usd": "0.043356",
+                    "gpu_usd_pessimistic": "0.051007"
+                  }
+                },
+                "prep_reuse": 10
+              },
+              {
+                "amortized_gpu_seconds_p95": "38.767338",
+                "per_request_cost_usd": {
+                  "on_demand": {
+                    "gpu_usd": "0.041460",
+                    "gpu_usd_pessimistic": "0.048776"
+                  },
+                  "preemptible": {
+                    "gpu_usd": "0.023153",
+                    "gpu_usd_pessimistic": "0.027238"
+                  }
+                },
+                "prep_reuse": 50
+              }
+            ],
+            "evidence": "boltz2-pret0-cache-read + boltz2-n20-fresh",
+            "notes": "Lower bound: measured 422.854590 s pre-T0 cache full read from attached SFS; the M3 artifact is read O_DIRECT inside the T0 window (already charged) and image pull is excluded because residency was proven pre-T0. prep_reuse=1 is the fully request-triggered worst case; larger reuse amortizes one preparation over later switches, whose own latency is the prepared_switch class.",
+            "prep_seconds": "422.854590",
+            "status": "MEASURED_LOWER_BOUND",
+            "triggering_request_latency_seconds_p95": "453.164836",
+            "understatement_vs_prepared": "14.951",
+            "unmeasured_relocation": {
+              "per_preparation_usd": {
+                "egress_billed": "0.413258",
+                "egress_free": "0.000000"
+              },
+              "provenance": "UNMEASURED scenario, kept separate from the measured lower-bound timing above: the measured preparation read the bytes from attached SFS, not from object storage. If the bytes must first move from object storage, this add-on prices the measured byte counts; its duration is unmeasured.",
+              "traffic_bytes": 29582168488,
+              "traffic_gib": "27.550541"
+            }
+          },
+          "model": "Boltz2",
+          "node_provision_miss": {
+            "latency_seconds": null,
+            "per_request_cost_usd": null,
+            "reason": "The legacy new-node lane is fail-closed on this branch (commit 730ca566) and no qualified fresh-node provisioning cohort exists here; the class is declared but receives no numbers.",
+            "status": "PENDING_MEASUREMENT"
+          },
+          "prepared_switch": {
+            "evidence": "boltz2-n20-fresh:demand_to_two_semantic_boottime_upper_seconds",
+            "failed_attempt_denominator": "0/20",
+            "latency_seconds": {
+              "max": "31.022641",
+              "min": "24.364138",
+              "p50": "28.892235",
+              "p95": "30.310246"
+            },
+            "n": 20,
+            "notes": "Request-triggered switch on a prepared node (image resident, storage attached, pre-T0 preparation already done). GPU critical path T0 through second semantic response; pessimistic = rule-of-three retry bound from the measured 0/20 denominator.",
+            "per_request_cost_usd": {
+              "p50": {
+                "on_demand": {
+                  "gpu_usd": "0.030899",
+                  "gpu_usd_pessimistic": "0.036351"
+                },
+                "preemptible": {
+                  "gpu_usd": "0.017255",
+                  "gpu_usd_pessimistic": "0.020300"
+                }
+              },
+              "p95": {
+                "on_demand": {
+                  "gpu_usd": "0.032415",
+                  "gpu_usd_pessimistic": "0.038135"
+                },
+                "preemptible": {
+                  "gpu_usd": "0.018102",
+                  "gpu_usd_pessimistic": "0.021296"
+                }
+              }
+            },
+            "slo_goodput": {
+              "within_20s": "0.0000",
+              "within_30s": "0.9000",
+              "within_60s": "1.0000"
+            },
+            "status": "MEASURED"
+          },
+          "warm_hit": {
+            "evidence": "boltz2-n20-fresh:semantic_request_2_seconds",
+            "latency_seconds": {
+              "max": "0.361623",
+              "min": "0.272755",
+              "p50": "0.282071",
+              "p95": "0.300494"
+            },
+            "notes": "Marginal GPU-seconds of an already-serving model; the node itself is paid for by the warm-pool or switching economics below.",
+            "per_request_cost_usd": {
+              "on_demand": {
+                "gpu_usd": "0.000302",
+                "gpu_usd_pessimistic": "0.000355"
+              },
+              "preemptible": {
+                "gpu_usd": "0.000168",
+                "gpu_usd_pessimistic": "0.000198"
+              }
+            },
+            "slo_goodput": {
+              "within_20s": "1.0000",
+              "within_30s": "1.0000",
+              "within_60s": "1.0000"
+            },
+            "status": "MEASURED"
+          }
+        }
+      ],
+      "fixed_monthly_overheads_usd": {
+        "controller_cpu_d3_4vcpu_16gb": "72.416",
+        "notes": "As-deployed measured-tier shapes: one 4 TiB network_ssd SFS holding artifacts/caches and one cpu-d3 controller node; included in every cost row of both collections.",
+        "sfs_4096gib_artifact_tier": "327.67987712",
+        "total": "400.09587712"
+      },
+      "gpu_platform": "gpu-h100-sxm 1gpu-16vcpu-200gb, eu-north1",
+      "incomplete_lower_bound_subtotals": [
         {
           "capacity_model": "marginal_zero_idle_bound",
           "capture_status": "APPLIED",
@@ -7336,7 +7339,6 @@
           }
         }
       ],
-      "gpu_platform": "gpu-h100-sxm 1gpu-16vcpu-200gb, eu-north1",
       "snapshot_capture_cost": {
         "amortization": [
           {
@@ -7474,7 +7476,7 @@
     ]
   },
   "generated_by": "catalog-switch/capacity-cost/costmodel/build_frontier.py",
-  "schema_version": "capacity-cost-frontier/v4",
+  "schema_version": "capacity-cost-frontier/v6",
   "simulation_frontier": {
     "cache_sweep": {
       "axis": "l1_capacity_gib",
@@ -13744,7 +13746,7 @@
       }
     }
   },
-  "statement": "Corrected candidate v4. Prepared versus request-triggered cost classes with explicit amortization; model-scoped inputs stay model-scoped (the OpenFold2 capture assumption is never applied to Boltz2); unmeasured relocation is separated from the measured cold-switch lower bound and emitted under both egress variants; fully-loaded totals span the capture-reuse grid with nominal and pessimistic monthly values; the preemption sweep exposes its full grid, where the pre-then-on-demand fallback beats on-demand only below the break-even loss probability; rows missing a required component carry null complete totals and null decisions, publishing only explicitly-named lower-bound subtotals on which ranking and break-even decisions are forbidden; idle/reserved GPU capacity is explicitly allocated in the dedicated_prepared_node capacity model (whole-instance monthly quotes, node counts, utilization), while the marginal zero-idle bound is always an incomplete lower bound and the warm-vs-switch break-even is published only as a decision-forbidden upper bound; public prices are hash-bound to archived payloads whose exact fetch timestamps are the recorded retrieval times; all composite arithmetic is exact with one quantization at emission. Cerebrium is PENDING_MEASUREMENT (prices only, never measured) and Modal documentation-only. Cost is always paired with the latency and goodput of the same evidence.",
+  "statement": "Corrected candidate v6. Prepared versus request-triggered cost classes with explicit amortization; model-scoped inputs stay model-scoped (the OpenFold2 capture assumption is never applied to Boltz2); unmeasured relocation is separated from the measured cold-switch lower bound and emitted under both egress variants; complete totals and incomplete lower-bound subtotals are published in disjoint collections spanning the capture-reuse grid with nominal and pessimistic monthly values; the preemption sweep exposes its full grid, where the pre-then-on-demand fallback beats on-demand only below the break-even loss probability; rows missing a required component carry null complete totals and null decisions, publishing only explicitly-named lower-bound subtotals on which ranking and break-even decisions are forbidden; idle/reserved GPU capacity is explicitly allocated in the dedicated_prepared_node capacity model (whole-instance monthly quotes, node counts, utilization), while the marginal zero-idle bound is always an incomplete lower bound and the warm-vs-switch break-even is published only as a decision-forbidden upper bound; public prices are hash-bound to archived payloads whose exact fetch timestamps are the recorded retrieval times; all composite arithmetic is exact with one quantization at emission. Cerebrium is PENDING_MEASUREMENT (prices only, never measured) and Modal documentation-only. Cost is always paired with the latency and goodput of the same evidence.",
   "sweeps": {
     "preemption": {
       "breakeven_loss_probability": {

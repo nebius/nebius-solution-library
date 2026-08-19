@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the measured capacity/cost frontier (corrected candidate, v4).
+"""Build the measured capacity/cost frontier (corrected candidate, v6).
 
 Reads the committed snapshots and checksum-pinned artifacts, consumes the
 isolated top-K/cache sweeps and the legacy simulator matrix as
@@ -25,10 +25,14 @@ Cost classes per model (prepared versus request-triggered, with amortization):
 
 Model-scoped inputs stay model-scoped: the OpenFold2-only capture-time
 assumption is applied to OpenFold2 alone; Boltz2 capture cost is UNAVAILABLE
-and fails closed. Completeness contract: a fully-loaded row whose required
-component is unavailable carries null complete totals and null decision
-fields; its numbers exist only under explicit measured-anchored LOWER-BOUND
-SUBTOTAL names, on which ranking and break-even decisions are forbidden.
+and fails closed. Completeness contract: cost rows are published in two
+disjoint collections — ``complete_cost_totals`` (every required component
+available and idle capacity allocated) and
+``incomplete_lower_bound_subtotals`` (anything else). An incomplete row
+carries null complete totals and null decision fields; its numbers exist
+only under explicit measured-anchored LOWER-BOUND SUBTOTAL names, on which
+ranking and break-even decisions are forbidden. No incomplete subtotal ever
+appears under a complete/total-sounding label.
 All composite arithmetic is exact (28-digit Decimal context) with a single
 quantization at emission; monthly totals are computed from unrounded
 per-success values.
@@ -237,10 +241,10 @@ def model_cost_classes(ctx: Ctx, entry_id: str) -> dict:
 
 
 # --------------------------------------------------------------------------
-# Fully-loaded per-success and monthly totals
+# Complete cost totals and incomplete lower-bound subtotals
 # --------------------------------------------------------------------------
 
-def fully_loaded_rows(ctx: Ctx, classes: dict) -> list[dict]:
+def cost_total_rows(ctx: Ctx, classes: dict) -> list[dict]:
     """Per-success and monthly totals across the demand grid, under two
     explicit capacity models.
 
@@ -662,12 +666,15 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
             "total": str(ctx.fixed_month),
             "notes": ("As-deployed measured-tier shapes: one 4 TiB "
                       "network_ssd SFS holding artifacts/caches and one "
-                      "cpu-d3 controller node; included in every "
-                      "fully-loaded row."),
+                      "cpu-d3 controller node; included in every cost "
+                      "row of both collections."),
         },
-        "fully_loaded": (fully_loaded_rows(ctx, of2)
-                         + fully_loaded_rows(ctx, boltz2)),
     }
+    all_cost_rows = cost_total_rows(ctx, of2) + cost_total_rows(ctx, boltz2)
+    internal["complete_cost_totals"] = [
+        r for r in all_cost_rows if r["completeness"] == "COMPLETE"]
+    internal["incomplete_lower_bound_subtotals"] = [
+        r for r in all_cost_rows if r["completeness"] != "COMPLETE"]
 
     cere = inputs.unmeasured("cerebrium")
     cerebrium = {
@@ -782,16 +789,18 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
     } for k in WARM_POOL_K]
 
     frontier = {
-        "schema_version": "capacity-cost-frontier/v4",
+        "schema_version": "capacity-cost-frontier/v6",
         "as_of_date": inputs.price["as_of_date"],
         "generated_by": "catalog-switch/capacity-cost/costmodel/build_frontier.py",
         "statement": (
-            "Corrected candidate v4. Prepared versus request-triggered cost "
+            "Corrected candidate v6. Prepared versus request-triggered cost "
             "classes with explicit amortization; model-scoped inputs stay "
             "model-scoped (the OpenFold2 capture assumption is never applied "
             "to Boltz2); unmeasured relocation is separated from the "
             "measured cold-switch lower bound and emitted under both egress "
-            "variants; fully-loaded totals span the capture-reuse grid with "
+            "variants; complete totals and incomplete lower-bound "
+            "subtotals are published in disjoint collections spanning the "
+            "capture-reuse grid with "
             "nominal and pessimistic monthly values; the preemption sweep "
             "exposes its full grid, where the pre-then-on-demand fallback "
             "beats on-demand only below the break-even loss probability; "
@@ -846,7 +855,7 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
 def render_markdown(f: dict) -> str:
     internal = f["backends"]["internal-k8s-snapshot"]
     lines = [
-        "# Capacity/cost frontier v4 (as of %s)" % f["as_of_date"],
+        "# Capacity/cost frontier v6 (as of %s)" % f["as_of_date"],
         "",
         f["statement"],
         "",
@@ -927,7 +936,8 @@ def render_markdown(f: dict) -> str:
         "| Model | Completeness | D req/mo | Nodes | Utilization | Per-success | Monthly nom/pess |",
         "|---|---|---:|---:|---:|---:|---:|",
     ]
-    for row in internal["fully_loaded"]:
+    for row in (internal["complete_cost_totals"]
+                + internal["incomplete_lower_bound_subtotals"]):
         if (row["capacity_model"] != "dedicated_prepared_node"
                 or row["offer"] != "preemptible"
                 or row["restores_between_captures"] not in (None, 100)
@@ -954,7 +964,7 @@ def render_markdown(f: dict) -> str:
         "| Model | Class | GPU p50 | Capture | Fixed share | Per-success | Monthly nom/pess | +Relocation (billed/free) |",
         "|---|---|---:|---:|---:|---:|---:|---|",
     ]
-    for row in internal["fully_loaded"]:
+    for row in internal["incomplete_lower_bound_subtotals"]:
         if (row["capacity_model"] != "marginal_zero_idle_bound"
                 or row["requests_per_month"] != 100000
                 or row["offer"] != "preemptible"
@@ -1086,7 +1096,8 @@ def render_tsv(f: dict) -> str:
                         r["breakeven_requests_per_month_upper_bound"],
                         r["per_switch_usd_p95"],
                         r["warm_gpu_month_usd_on_demand"]))
-    for r in internal["fully_loaded"]:
+    for r in (internal["complete_cost_totals"]
+              + internal["incomplete_lower_bound_subtotals"]):
         key = "D=%s,offer=%s,reuse=%s,R=%s" % (
             r["requests_per_month"], r["offer"], r["prep_reuse"],
             r["restores_between_captures"])
@@ -1095,7 +1106,7 @@ def render_tsv(f: dict) -> str:
             key += ",nodes=%d" % r["nodes_required"]
             if r["completeness"] == "COMPLETE":
                 rows.append(
-                    "fully_loaded_dedicated\t%s\t%s\t%s\t%s\t%s\t"
+                    "complete_dedicated_totals\t%s\t%s\t%s\t%s\t%s\t"
                     "complete" % (
                         r["model"], r["cost_class"], key,
                         r["per_success_usd_nominal"],
@@ -1104,7 +1115,7 @@ def render_tsv(f: dict) -> str:
             else:
                 lb = r["lower_bound_subtotals_usd"]
                 rows.append(
-                    "fully_loaded_dedicated_lower_bound\t%s\t%s\t%s\t%s"
+                    "incomplete_dedicated_lower_bound\t%s\t%s\t%s\t%s"
                     "\t%s\tincomplete_lower_bound_no_decision" % (
                         r["model"], r["cost_class"], key,
                         lb["per_success_nominal"],
@@ -1113,7 +1124,7 @@ def render_tsv(f: dict) -> str:
             continue
         lb = r["lower_bound_subtotals_usd"]
         rows.append(
-            "fully_loaded_marginal_lower_bound\t%s\t%s\t%s\t%s\t%s\t"
+            "incomplete_marginal_lower_bound\t%s\t%s\t%s\t%s\t%s\t"
             "incomplete_lower_bound_no_decision" % (
                 r["model"], r["cost_class"], key,
                 lb["per_success_nominal"],
@@ -1122,7 +1133,7 @@ def render_tsv(f: dict) -> str:
         if addon:
             with_addon = addon["per_success_lower_bound_with_addon"]
             rows.append(
-                "fully_loaded_relocation_addon_lower_bound\t%s\t%s\t%s"
+                "incomplete_relocation_addon_lower_bound\t%s\t%s\t%s"
                 "\t%s\t%s\tunmeasured_scenario_no_decision" % (
                     r["model"], r["cost_class"], key,
                     "%s/%s" % (with_addon["nominal"]["egress_billed"],
@@ -1164,8 +1175,10 @@ def main() -> int:
     print("backends:", len(frontier["backends"]))
     print("legacy repriced:",
           len(frontier["simulation_frontier"]["legacy_matrix"]))
-    print("fully-loaded rows:",
-          len(frontier["backends"]["internal-k8s-snapshot"]["fully_loaded"]))
+    internal = frontier["backends"]["internal-k8s-snapshot"]
+    print("complete cost totals:", len(internal["complete_cost_totals"]))
+    print("incomplete lower-bound subtotals:",
+          len(internal["incomplete_lower_bound_subtotals"]))
     return 0
 
 

@@ -24,6 +24,8 @@ class PublishedResultsTest(unittest.TestCase):
         cls.inputs = lib.Inputs(ROOT)
         cls.frontier, cls.md, cls.tsv = build_frontier.build(cls.inputs)
         cls.internal = cls.frontier["backends"]["internal-k8s-snapshot"]
+        cls.cost_rows = (cls.internal["complete_cost_totals"]
+                         + cls.internal["incomplete_lower_bound_subtotals"])
 
     def test_frontier_json_regenerates_identically(self):
         committed = (CC / "results" / "frontier.json").read_text()
@@ -106,10 +108,13 @@ class PublishedResultsTest(unittest.TestCase):
         boltz = self.internal["cost_classes"][1]["prepared_switch"]
         self.assertEqual(boltz["slo_goodput"]["within_20s"], "0.0000")
 
-    # ---- fully loaded: two capacity models, strict completeness ---------
-    def test_fully_loaded_row_count_and_capacity_models(self):
-        rows = self.internal["fully_loaded"]
+    # ---- cost rows: two capacity models, strict completeness ------------
+    def test_cost_row_count_and_capacity_models(self):
+        rows = self.cost_rows
         self.assertEqual(len(rows), 180)
+        self.assertEqual(len(self.internal["complete_cost_totals"]), 48)
+        self.assertEqual(
+            len(self.internal["incomplete_lower_bound_subtotals"]), 132)
         dedicated = [r for r in rows
                      if r["capacity_model"] == "dedicated_prepared_node"]
         marginal = [r for r in rows
@@ -117,12 +122,36 @@ class PublishedResultsTest(unittest.TestCase):
         self.assertEqual(len(dedicated), 60)
         self.assertEqual(len(marginal), 120)
 
+    def test_adversary_collections_match_completeness_exactly(self):
+        """Adversary: an incomplete subtotal must never sit in the complete
+        collection, and vice versa — membership IS the label."""
+        for row in self.internal["complete_cost_totals"]:
+            self.assertEqual(row["completeness"], "COMPLETE")
+        for row in self.internal["incomplete_lower_bound_subtotals"]:
+            self.assertEqual(row["completeness"], "INCOMPLETE_LOWER_BOUND")
+        self.assertNotIn("fully_loaded", self.internal)
+
+    def test_adversary_no_fully_loaded_label_in_any_output(self):
+        """Whole-output adversary: the fully_loaded label (any spelling)
+        must not appear anywhere in frontier.json, FRONTIER.md, or
+        breakeven.tsv — an incomplete lower-bound subtotal under such a
+        label misreads as a full cost."""
+        outputs = (
+            json.dumps(self.frontier, indent=2, sort_keys=True),
+            self.md,
+            self.tsv,
+        )
+        for text in outputs:
+            low = text.lower()
+            for token in ("fully_loaded", "fully-loaded", "fully loaded"):
+                self.assertNotIn(token, low)
+
     def test_adversary_incomplete_rows_null_totals_and_no_decisions(self):
         """Adversary: a row with any unavailable/unallocated required
         component must carry null complete totals, publish numbers only
         under lower-bound names, and forbid decisions. No decision field
         may exist anywhere in fully_loaded."""
-        for row in self.internal["fully_loaded"]:
+        for row in self.cost_rows:
             self.assertNotIn("cheaper_than_one_warm_gpu", row)
             self.assertNotIn("one_warm_gpu_plus_fixed_monthly_usd", row)
             if row["completeness"] == "COMPLETE":
@@ -149,7 +178,7 @@ class PublishedResultsTest(unittest.TestCase):
     def test_adversary_only_dedicated_of2_rows_are_complete(self):
         """COMPLETE requires every component: idle allocated (dedicated
         capacity model) AND capture available (OpenFold2 only)."""
-        for row in self.internal["fully_loaded"]:
+        for row in self.cost_rows:
             expect_complete = (
                 row["capacity_model"] == "dedicated_prepared_node"
                 and row["model"] == "OpenFold2")
@@ -170,7 +199,7 @@ class PublishedResultsTest(unittest.TestCase):
                  + self.inputs.monthly_price("nebius-cpu-d3-4v16g-od"))
         pre = self.inputs.unit_price("nebius-h100-1g-pre")
         od = self.inputs.unit_price("nebius-h100-1g-od")
-        for row in self.internal["fully_loaded"]:
+        for row in self.cost_rows:
             if row["capacity_model"] != "dedicated_prepared_node":
                 continue
             model_idx = 0 if row["model"] == "OpenFold2" else 1
@@ -201,7 +230,7 @@ class PublishedResultsTest(unittest.TestCase):
         """Adversary: monthly totals must come from unrounded per-success
         values. Recompute one high-demand marginal row exactly; the rounded
         per-success shortcut must differ."""
-        row = next(r for r in self.internal["fully_loaded"]
+        row = next(r for r in self.cost_rows
                    if r["model"] == "OpenFold2"
                    and r["capacity_model"] == "marginal_zero_idle_bound"
                    and r["cost_class"] == "prepared_switch"
@@ -225,7 +254,7 @@ class PublishedResultsTest(unittest.TestCase):
                             "rounded shortcut coincides; pick another row")
 
     def test_adversary_of2_capture_never_applied_to_boltz2(self):
-        rows = self.internal["fully_loaded"]
+        rows = self.cost_rows
         for row in rows:
             comp = row["components_usd"]
             if row["model"] == "Boltz2":
@@ -251,7 +280,7 @@ class PublishedResultsTest(unittest.TestCase):
         """Adversary: the relocation add-on must publish nominal AND
         pessimistic totals under BOTH egress variants, per-success and
         monthly, consistent with the lower-bound subtotals."""
-        cold_rows = [r for r in self.internal["fully_loaded"]
+        cold_rows = [r for r in self.cost_rows
                      if r["cost_class"] == "cold_switch"]
         self.assertTrue(cold_rows)
         for row in cold_rows:
@@ -303,7 +332,7 @@ class PublishedResultsTest(unittest.TestCase):
                                  ["egress_billed"]),
                          (exact_gib * egress).quantize(lib.CENT6))
         # Addon per-success at reuse=1 must equal the exact chain.
-        row = next(r for r in self.internal["fully_loaded"]
+        row = next(r for r in self.cost_rows
                    if r["cost_class"] == "cold_switch"
                    and r["prep_reuse"] == 1)
         self.assertEqual(
@@ -312,7 +341,7 @@ class PublishedResultsTest(unittest.TestCase):
             (exact_gib * egress).quantize(lib.CENT6))
 
     def test_fully_loaded_covers_grids(self):
-        rows = self.internal["fully_loaded"]
+        rows = self.cost_rows
         boltz_cold = {r["prep_reuse"] for r in rows
                       if r["model"] == "Boltz2"
                       and r["cost_class"] == "cold_switch"}
@@ -323,15 +352,23 @@ class PublishedResultsTest(unittest.TestCase):
         self.assertFalse([r for r in rows if r["model"] == "OpenFold2"
                           and r["cost_class"] == "cold_switch"])
 
-    def test_adversary_tsv_and_markdown_never_claim_complete_fully_loaded(self):
-        """Adversary: no output may present a lower-bound subtotal under a
-        bare fully_loaded/complete label."""
+    def test_adversary_tsv_tables_named_by_completeness(self):
+        """Adversary: TSV table names must state completeness explicitly —
+        complete_* only for COMPLETE rows, incomplete_*_lower_bound with a
+        no_decision flag for everything else; no fully_loaded prefix."""
         for line in self.tsv.splitlines():
-            self.assertFalse(line.startswith("fully_loaded\t"), line)
-            if line.startswith("fully_loaded_dedicated\t"):
+            table = line.split("\t")[0]
+            self.assertFalse(table.startswith("fully_loaded"), line)
+            if table == "complete_dedicated_totals":
                 self.assertTrue(line.endswith("\tcomplete"), line)
-            if "lower_bound" in line.split("\t")[0]:
+            if table.startswith("incomplete_"):
+                self.assertIn("lower_bound", table, line)
                 self.assertIn("no_decision", line, line)
+        tables = {l.split("\t")[0] for l in self.tsv.splitlines()}
+        self.assertIn("complete_dedicated_totals", tables)
+        self.assertIn("incomplete_dedicated_lower_bound", tables)
+        self.assertIn("incomplete_marginal_lower_bound", tables)
+        self.assertIn("incomplete_relocation_addon_lower_bound", tables)
         self.assertIn("marginal_zero_idle_bound", self.md)
         self.assertIn("dedicated_prepared_node", self.md)
 
