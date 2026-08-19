@@ -1523,11 +1523,18 @@ def collect_writer_exclusion(
     pv_doc = _run_kubectl_json(
         kubectl, ["get", "persistentvolume", pv_name, "-o", "json"], "PV evidence"
     )
+    # List documents come from the raw API so the evidence carries the
+    # server's true PodList/VolumeAttachmentList kinds, not the client-side
+    # "List" wrapper kubectl substitutes for table gets.
     pods_doc = _run_kubectl_json(
-        kubectl, ["get", "pods", "-n", namespace, "-o", "json"], "pod inventory"
+        kubectl,
+        ["get", "--raw", f"/api/v1/namespaces/{namespace}/pods"],
+        "pod inventory",
     )
     attachments_doc = _run_kubectl_json(
-        kubectl, ["get", "volumeattachments", "-o", "json"], "volume attachments"
+        kubectl,
+        ["get", "--raw", "/apis/storage.k8s.io/v1/volumeattachments"],
+        "volume attachments",
     )
     donor_argv = [*kubectl, "get", "pod", DONOR_POD_NAME, "-n", namespace, "-o", "json"]
     try:
