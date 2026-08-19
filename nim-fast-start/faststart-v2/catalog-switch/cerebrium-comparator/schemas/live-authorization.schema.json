@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nebius.ai/catalog-switch/internal-live-authorization-v2.schema.json",
+  "additionalProperties": false,
+  "properties": {
+    "authorization_id": {"const": "internal-qwen3-h100-scout-v2-20260819"},
+    "authorized_at": {"format": "date-time", "type": "string"},
+    "authorized_by": {"const": "explicit-user-manager-intervention-20260819"},
+    "bearer_token_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "bootstrap_artifacts": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {"pattern": "^catalog-switch/cerebrium-comparator/live/", "type": "string"},
+          "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+          "target": {"pattern": "^/opt/catswitch/", "type": "string"}
+        },
+        "required": ["path", "sha256", "target"],
+        "type": "object"
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "campaign": {
+      "additionalProperties": false,
+      "properties": {
+        "arm_id": {"const": "internal-qwen3-new-target-matched"},
+        "cold_attempts": {"const": 3},
+        "cold_classification": {"const": "process-cold-artifact-hit"},
+        "prompt_id": {"const": "qwen3-nonthinking-exact"},
+        "semantic_smokes": {"const": 1}
+      },
+      "required": ["arm_id", "cold_attempts", "cold_classification", "prompt_id", "semantic_smokes"],
+      "type": "object"
+    },
+    "cleanup": {
+      "additionalProperties": false,
+      "properties": {
+        "desired_final_state": {"const": "ABSENT"},
+        "foreign_replacement_policy": {"const": "fail-closed-no-delete"},
+        "idempotent": {"const": true},
+        "partial_create_cleanup": {"const": true},
+        "verification": {"const": "exact-id-not-found-plus-cascade-child-absence"}
+      },
+      "required": ["desired_final_state", "foreign_replacement_policy", "idempotent", "partial_create_cleanup", "verification"],
+      "type": "object"
+    },
+    "expires_at": {"const": "2026-08-19T18:25:41Z"},
+    "frozen": {
+      "additionalProperties": false,
+      "properties": {
+        "campaign_sha256": {"const": "e6a36c56455cdb5a603eadc1d01781692899ba789a4459bc26e631b5d4d11cba"},
+        "expected_cost_usd": {"const": "4.360934"},
+        "image_amd64_digest": {"const": "sha256:7c2c59db86a9a64138c5c675b98e3e05b7f37a34a344d4aa461b1529ed60262d"},
+        "input_sha256": {"const": "c3e3250abbb92869b7a51325a5fd5358eb98122d73698956cf064ed491d3291d"},
+        "lease_plan_sha256": {"const": "e9379995eabb09ef0e44fefbd8e1a88a71505924872728ac5209c962204960c0"},
+        "model_id": {"const": "Qwen/Qwen3-8B"},
+        "model_revision": {"const": "b968826d9c46dd6066d109eabc6255188de91218"},
+        "request_sha256": {"const": "6507dfc4df35c9b242c91f5fcf05856faa98c1cd199bb9c208dfb396998516aa"},
+        "source_parent_commit": {"const": "94cd1c9999dfe7ca7626661b89352b6d41727cd4"},
+        "ttl_cost_ceiling_usd": {"const": "8.721867"}
+      },
+      "required": ["campaign_sha256", "expected_cost_usd", "image_amd64_digest", "input_sha256", "lease_plan_sha256", "model_id", "model_revision", "request_sha256", "source_parent_commit", "ttl_cost_ceiling_usd"],
+      "type": "object"
+    },
+    "implementation": {
+      "additionalProperties": false,
+      "properties": {
+        "broker_path": {"const": "resource-broker/broker.py"},
+        "broker_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "broker_tests_path": {"const": "resource-broker/tests/test_broker.py"},
+        "broker_tests_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "schema_path": {"const": "catalog-switch/cerebrium-comparator/schemas/live-authorization.schema.json"},
+        "schema_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": ["broker_path", "broker_sha256", "broker_tests_path", "broker_tests_sha256", "schema_path", "schema_sha256"],
+      "type": "object"
+    },
+    "network": {
+      "additionalProperties": false,
+      "properties": {
+        "direct_container_ingress": {"const": false},
+        "egress": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "destination_cidrs": {"const": ["0.0.0.0/0"]},
+              "ports": {"items": {"maximum": 65535, "minimum": 1, "type": "integer"}, "type": "array"},
+              "protocol": {"enum": ["TCP", "UDP"]},
+              "purpose": {"type": "string"}
+            },
+            "required": ["destination_cidrs", "ports", "protocol", "purpose"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "ingress": {
+          "additionalProperties": false,
+          "properties": {
+            "authentication": {"const": "bearer-sha256-pinned"},
+            "port": {"const": 8080},
+            "protocol": {"const": "TCP"},
+            "source": {"const": "runtime-observed-ipv4-32-sha256-pinned"}
+          },
+          "required": ["authentication", "port", "protocol", "source"],
+          "type": "object"
+        },
+        "public_ipv4_count": {"const": 1},
+        "recorder_cidr_published": {"const": false},
+        "recorder_cidr_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "ssh_ingress": {"const": false}
+      },
+      "required": ["direct_container_ingress", "egress", "ingress", "public_ipv4_count", "recorder_cidr_published", "recorder_cidr_sha256", "ssh_ingress"],
+      "type": "object"
+    },
+    "scope": {
+      "additionalProperties": false,
+      "properties": {
+        "backend": {"const": "internal-nebius"},
+        "forbidden_backends": {"const": ["cerebrium", "modal"]},
+        "forbidden_models": {"const": ["zai-org/GLM-5.2", "zai-org/GLM-5.2-FP8"]},
+        "gpu_count": {"const": 1},
+        "gpu_type": {"const": "H100"},
+        "lease_id": {"const": "catswitch-qwen3-h100-scout-20260819"},
+        "mode": {"const": "preemptible"},
+        "profile": {"const": "h100-single"},
+        "project_id": {"const": "project-e00z6b02t8ddk96c49"},
+        "region": {"const": "eu-north1"},
+        "task_id": {"const": "catalog-switch-cerebrium-qwen3-glm52-benchmark"}
+      },
+      "required": ["backend", "forbidden_backends", "forbidden_models", "gpu_count", "gpu_type", "lease_id", "mode", "profile", "project_id", "region", "task_id"],
+      "type": "object"
+    },
+    "schema": {"const": "catalog-switch-internal-live-authorization/v2"},
+    "secret_values_published": {"const": false},
+    "state": {"const": "PRE_CREATION_REVIEW"}
+  },
+  "required": ["authorization_id", "authorized_at", "authorized_by", "bearer_token_sha256", "bootstrap_artifacts", "campaign", "cleanup", "expires_at", "frozen", "implementation", "network", "scope", "schema", "secret_values_published", "state"],
+  "type": "object"
+}
