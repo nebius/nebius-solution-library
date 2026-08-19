@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Offline artifact gates for the Boltz2 external-``/tmp`` candidate.
 
-This validator does not run CRIU and never contacts Kubernetes.  It consumes a
-separately produced, source-pinned ``crit`` decode receipt and verifies every
-referenced byte before inspecting decoded metadata.  A PASS remains explicitly
-pending the mandatory live clone canary.
+This validator does not run CRIU and never contacts Kubernetes, but it does
+execute the source-pinned ``crit`` decoder itself: the reviewed bundle bytes
+are hash-verified, safely extracted, and every CRIU metadata image is decoded
+by a subprocess this validator launches.  No pre-decoded JSON and no
+separately produced decode receipt is ever trusted as input.  A PASS remains
+explicitly pending the mandatory live clone canary.
 """
 
 from __future__ import annotations
@@ -15,8 +17,10 @@ import json
 import os
 import posixpath
 import re
+import subprocess
 import sys
 import tarfile
+import tempfile
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -25,10 +29,21 @@ import yaml
 import external_tmp_state as state
 
 
-CRIT_RECEIPT_SCHEMA = "archvteams.nebius.ai/boltz2-pinned-crit-decode/v1"
 VALIDATOR_PATH = Path(__file__).resolve()
 PAGES = re.compile(r"^pages-[1-9][0-9]*\.img$")
 OPAQUE_IMAGE = re.compile(r"^tmpfs-.+\.tar\.gz\.img$")
+ROOT_ARTIFACT_FILES = frozenset(
+    {"manifest.yaml", "rootfs-diff.tar", "deleted-files.json"}
+)
+_ALLOWED_TAR_TYPES = frozenset(
+    {
+        tarfile.REGTYPE,
+        tarfile.AREGTYPE,
+        tarfile.DIRTYPE,
+        tarfile.SYMTYPE,
+        tarfile.LNKTYPE,
+    }
+)
 CRITICAL_IMAGE_PATTERNS = (
     re.compile(r"^inventory\.img$"),
     re.compile(r"^pstree\.img$"),
@@ -163,21 +178,110 @@ def _read_manifest(
     ):
         raise ArtifactError("manifest does not retain direct CRIU image I/O")
     ext_mnt = criu_dump.get("extMnt")
-    if not isinstance(ext_mnt, dict) or ext_mnt.get("/tmp") != "/tmp":
-        raise ArtifactError("manifest CRIU ExtMnt does not map exact /tmp to /tmp")
+    expected_ext_mnt = contract["artifact_gates"]["ext_mnt_exact"]
+    if not isinstance(ext_mnt, dict) or ext_mnt != expected_ext_mnt:
+        raise ArtifactError(
+            "manifest CRIU ExtMnt is not exactly the reviewed mapping set: "
+            f"observed {sorted(ext_mnt) if isinstance(ext_mnt, dict) else ext_mnt!r}"
+        )
     overlay = manifest.get("overlay")
     destinations = overlay.get("bindMountDests") if isinstance(overlay, dict) else None
+    expected_dests = sorted(contract["artifact_gates"]["bind_mount_dests_exact"])
     if (
         not isinstance(destinations, list)
         or any(not isinstance(item, str) for item in destinations)
-        or destinations.count("/tmp") != 1
+        or len(destinations) != len(set(destinations))
+        or sorted(destinations) != expected_dests
     ):
-        raise ArtifactError("manifest Overlay.BindMountDests must contain /tmp once")
+        raise ArtifactError(
+            "manifest Overlay.BindMountDests is not exactly the reviewed destination "
+            f"set: observed {destinations!r}"
+        )
     return manifest, {
         "path": "/tmp",
-        "ext_mnt_value": "/tmp",
-        "bind_mount_dest_count": 1,
+        "ext_mnt": dict(expected_ext_mnt),
+        "bind_mount_dests": expected_dests,
     }, _sha256_bytes(raw)
+
+
+def _symlink_target_forbidden(normalized: str, linkname: str) -> str | None:
+    if not linkname or "\x00" in linkname:
+        return "empty or unsafe symlink target"
+    if linkname.startswith("/"):
+        collapsed = posixpath.normpath(linkname)
+        if collapsed == "/tmp" or collapsed.startswith("/tmp/"):
+            return f"absolute symlink into /tmp: {linkname!r}"
+        return None
+    resolved = posixpath.normpath(
+        posixpath.join(posixpath.dirname(normalized), linkname)
+    )
+    if resolved == ".." or resolved.startswith("../"):
+        return f"symlink escapes the archive root: {linkname!r}"
+    if _is_tmp_path(resolved):
+        return f"relative symlink into tmp: {linkname!r}"
+    return None
+
+
+def _inspect_tar_members(
+    archive: tarfile.TarFile, label: str
+) -> dict[str, Any]:
+    """Fail-closed structural inspection of every tar member.
+
+    Beyond name normalization and /tmp exclusion, each member's *type* and
+    *linkname* are gated: devices, FIFOs, sockets, and sparse members are
+    rejected; symlink and hardlink targets must not couple back into /tmp,
+    escape the archive root, or route later members through a symlink.
+    """
+
+    seen: dict[str, bytes] = {}
+    counts = {"regular": 0, "directory": 0, "symlink": 0, "hardlink": 0}
+    for member in archive:
+        normalized = _normalized_artifact_path(member.name, f"{label} member")
+        if normalized in seen:
+            raise ArtifactError(f"{label} contains duplicate member: {normalized}")
+        parts = normalized.split("/")
+        for index in range(1, len(parts)):
+            ancestor_type = seen.get("/".join(parts[:index]))
+            if ancestor_type is not None and ancestor_type != tarfile.DIRTYPE:
+                raise ArtifactError(
+                    f"{label} member routes through a non-directory member: {normalized}"
+                )
+        if member.type not in _ALLOWED_TAR_TYPES:
+            raise ArtifactError(
+                f"{label} member {normalized} has forbidden type {member.type!r} "
+                "(devices, FIFOs, and specials are rejected)"
+            )
+        if member.issparse():
+            raise ArtifactError(f"{label} member is sparse: {normalized}")
+        if _is_tmp_path(normalized):
+            raise ArtifactError(
+                f"{label} still contains forbidden /tmp payload: {normalized}"
+            )
+        if member.type == tarfile.SYMTYPE:
+            reason = _symlink_target_forbidden(normalized, member.linkname)
+            if reason is not None:
+                raise ArtifactError(f"{label} member {normalized}: {reason}")
+            counts["symlink"] += 1
+        elif member.type == tarfile.LNKTYPE:
+            target = _normalized_artifact_path(
+                member.linkname, f"{label} hardlink target"
+            )
+            if _is_tmp_path(target):
+                raise ArtifactError(
+                    f"{label} hardlink couples into tmp: {normalized} -> {target}"
+                )
+            if seen.get(target) not in {tarfile.REGTYPE, tarfile.AREGTYPE}:
+                raise ArtifactError(
+                    f"{label} hardlink target is not an earlier regular member: "
+                    f"{normalized} -> {target}"
+                )
+            counts["hardlink"] += 1
+        elif member.type == tarfile.DIRTYPE:
+            counts["directory"] += 1
+        else:
+            counts["regular"] += 1
+        seen[normalized] = member.type
+    return {"member_count": len(seen), "member_type_counts": counts}
 
 
 def _inspect_rootfs(artifact: Path, contract: dict[str, Any]) -> dict[str, Any]:
@@ -185,30 +289,96 @@ def _inspect_rootfs(artifact: Path, contract: dict[str, Any]) -> dict[str, Any]:
     size = path.stat().st_size
     if size <= 0 or size > contract["artifact_gates"]["rootfs_diff_max_bytes"]:
         raise ArtifactError("rootfs diff exceeds 128 MiB or is empty")
-    members: list[str] = []
     try:
         with tarfile.open(path, mode="r:*") as archive:
-            for member in archive:
-                normalized = _normalized_artifact_path(
-                    member.name, "rootfs tar member"
-                )
-                if normalized in members:
-                    raise ArtifactError(
-                        f"rootfs tar contains duplicate member: {normalized}"
-                    )
-                members.append(normalized)
-                if _is_tmp_path(normalized):
-                    raise ArtifactError(
-                        f"rootfs tar still contains forbidden /tmp payload: {normalized}"
-                    )
+            inspected = _inspect_tar_members(archive, "rootfs tar")
     except (tarfile.TarError, OSError) as exc:
         raise ArtifactError(f"cannot inspect rootfs diff: {exc}") from exc
     return {
         "path": "rootfs-diff.tar",
         "sha256": _sha256_file(path),
         "bytes": size,
-        "member_count": len(members),
+        "member_count": inspected["member_count"],
+        "member_type_counts": inspected["member_type_counts"],
         "forbidden_tmp_member_count": 0,
+    }
+
+
+def _inspect_artifact_entries(
+    artifact: Path, contract: dict[str, Any]
+) -> list[str]:
+    """Reject any artifact-directory entry no gate accounts for."""
+
+    allowed_extra = set(contract["artifact_gates"]["allowed_extra_files"])
+    names: list[str] = []
+    with os.scandir(artifact) as entries:
+        for entry in entries:
+            if entry.is_symlink() or not entry.is_file(follow_symlinks=False):
+                raise ArtifactError(
+                    f"artifact contains a non-regular entry: {entry.name}"
+                )
+            name = entry.name
+            if (
+                name in ROOT_ARTIFACT_FILES
+                or name in allowed_extra
+                or PAGES.fullmatch(name)
+                or OPAQUE_IMAGE.fullmatch(name)
+                or name.endswith(".img")
+            ):
+                names.append(name)
+                continue
+            raise ArtifactError(
+                f"artifact contains an unreviewed entry outside every gate: {name}"
+            )
+    names.sort()
+    return names
+
+
+def _inspect_tmpfs_images(artifact: Path, contract: dict[str, Any]) -> dict[str, Any]:
+    """Gate the previously opaque tmpfs payload images byte-for-byte.
+
+    Every ``tmpfs-*.tar.gz.img`` must be a well-formed gzip tar whose members
+    pass the same type/linkname/tmp gates as the rootfs diff, and the total
+    byte count is capped so no payload can hide there uninspected.
+    """
+
+    maximum = contract["artifact_gates"]["tmpfs_images_max_total_bytes"]
+    entries = sorted(
+        (entry for entry in os.scandir(artifact) if OPAQUE_IMAGE.fullmatch(entry.name)),
+        key=lambda item: item.name,
+    )
+    sizes: dict[str, int] = {}
+    for entry in entries:
+        path = _regular(Path(entry.path), f"tmpfs image {entry.name}")
+        sizes[entry.name] = path.stat().st_size
+    total = sum(sizes.values())
+    if total > maximum:
+        raise ArtifactError(
+            f"tmpfs images exceed the reviewed total byte cap: {total}>{maximum}"
+        )
+    images: list[dict[str, Any]] = []
+    for entry in entries:
+        path = Path(entry.path)
+        try:
+            with tarfile.open(path, mode="r:gz") as archive:
+                inspected = _inspect_tar_members(archive, f"tmpfs image {entry.name}")
+        except (tarfile.TarError, OSError) as exc:
+            raise ArtifactError(
+                f"tmpfs image {entry.name} is not an inspectable gzip tar: {exc}"
+            ) from exc
+        images.append(
+            {
+                "name": entry.name,
+                "sha256": _sha256_file(path),
+                "bytes": sizes[entry.name],
+                "member_count": inspected["member_count"],
+            }
+        )
+    return {
+        "file_count": len(images),
+        "total_bytes": total,
+        "max_total_bytes": maximum,
+        "images": images,
     }
 
 
@@ -287,14 +457,15 @@ def _inspect_pages(artifact: Path, contract: dict[str, Any]) -> dict[str, Any]:
 
 def _metadata_image_names(artifact: Path) -> list[str]:
     names: list[str] = []
-    for entry in os.scandir(artifact):
-        if not entry.name.endswith(".img") or PAGES.fullmatch(entry.name):
-            continue
-        if OPAQUE_IMAGE.fullmatch(entry.name):
-            _regular(Path(entry.path), f"opaque CRIU payload {entry.name}")
-            continue
-        _regular(Path(entry.path), f"CRIU metadata image {entry.name}")
-        names.append(entry.name)
+    with os.scandir(artifact) as entries:
+        for entry in entries:
+            if not entry.name.endswith(".img") or PAGES.fullmatch(entry.name):
+                continue
+            if OPAQUE_IMAGE.fullmatch(entry.name):
+                _regular(Path(entry.path), f"opaque CRIU payload {entry.name}")
+                continue
+            _regular(Path(entry.path), f"CRIU metadata image {entry.name}")
+            names.append(entry.name)
     names.sort()
     for pattern in CRITICAL_IMAGE_PATTERNS:
         if not any(pattern.fullmatch(name) for name in names):
@@ -362,82 +533,137 @@ def _tmp_mount_ids(decoded: dict[str, Any]) -> set[int | str]:
     return ids
 
 
+def _safe_extract_bundle(bundle: Path, destination: Path) -> int:
+    """Extract the hash-verified decoder bundle without trusting its members.
+
+    Only regular files at normalized, root-confined paths are written; any
+    symlink, hardlink, device, or traversal member fails the extraction.
+    """
+
+    count = 0
+    try:
+        with tarfile.open(bundle, mode="r:gz") as archive:
+            for member in archive:
+                normalized = _normalized_artifact_path(
+                    member.name, "decoder bundle member"
+                )
+                if member.type == tarfile.DIRTYPE:
+                    (destination / normalized).mkdir(parents=True, exist_ok=True)
+                    continue
+                if member.type not in {tarfile.REGTYPE, tarfile.AREGTYPE}:
+                    raise ArtifactError(
+                        f"decoder bundle member is not a regular file: {normalized}"
+                    )
+                extracted = archive.extractfile(member)
+                if extracted is None:
+                    raise ArtifactError(
+                        f"decoder bundle member is unreadable: {normalized}"
+                    )
+                target = destination / normalized
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(extracted.read())
+                count += 1
+    except (tarfile.TarError, OSError) as exc:
+        raise ArtifactError(f"cannot extract decoder bundle: {exc}") from exc
+    if count == 0:
+        raise ArtifactError("decoder bundle extracted zero files")
+    return count
+
+
+def _run_decoder_subprocess(
+    argv: list[str], cwd: Path, decoder_dir: Path
+) -> subprocess.CompletedProcess[str]:
+    environment = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "PYTHONPATH": str(decoder_dir),
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LC_ALL": "C.UTF-8",
+        "HOME": str(cwd),
+    }
+    try:
+        return subprocess.run(
+            argv,
+            cwd=cwd,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=900,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise ArtifactError(
+            f"pinned decoder subprocess failed to run: {type(exc).__name__}: {exc}"
+        ) from exc
+
+
 def _inspect_crit(
     artifact: Path,
     decoded_dir: Path,
-    receipt_path: Path,
     contract: dict[str, Any],
+    bundle_path: Path,
+    python_executable: str,
 ) -> dict[str, Any]:
-    decoded_dir = _directory(decoded_dir, "decoded CRIU directory")
-    value, receipt_raw = _read_json(receipt_path, "pinned-crit decode receipt")
-    if not isinstance(value, dict):
-        raise ArtifactError("pinned-crit decode receipt must be an object")
-    _exact_keys(
-        value,
-        {"schema", "status", "checkpoint_id", "generated_at", "decoder", "images"},
-        "pinned-crit decode receipt",
-    )
-    if (
-        value["schema"] != CRIT_RECEIPT_SCHEMA
-        or value["status"] != "PASS"
-        or value["checkpoint_id"] != contract["candidate"]["checkpoint_id"]
-        or value["decoder"] != contract["crit_decoder"]
-    ):
-        raise ArtifactError("pinned-crit decode identity does not match the contract")
-    state._timestamp(value["generated_at"], "pinned-crit generated_at")
-    records = value["images"]
-    if not isinstance(records, list):
-        raise ArtifactError("pinned-crit images must be a list")
+    decoded_dir = _directory(decoded_dir, "decoded CRIU output directory")
+    if os.listdir(decoded_dir):
+        raise ArtifactError("decoded CRIU output directory must start empty")
+    bundle_path = _regular(bundle_path, "pinned decoder bundle")
+    expected_bundle_sha256 = contract["crit_decoder"]["source_bundle_sha256"]
+    if _sha256_file(bundle_path) != expected_bundle_sha256:
+        raise ArtifactError("pinned decoder bundle digest does not match the contract")
     expected_names = _metadata_image_names(artifact)
-    observed_names: list[str] = []
+    records: list[dict[str, Any]] = []
     decoded_values: dict[str, Any] = {}
-    for record in records:
-        if not isinstance(record, dict):
-            raise ArtifactError("pinned-crit image record must be an object")
-        _exact_keys(
-            record,
-            {
-                "raw_name",
-                "raw_sha256",
-                "decoded_name",
-                "decoded_sha256",
-                "decode_argv",
-            },
-            "pinned-crit image record",
-        )
-        raw_name = record["raw_name"]
-        if (
-            not isinstance(raw_name, str)
-            or Path(raw_name).name != raw_name
-            or raw_name in observed_names
-        ):
-            raise ArtifactError("pinned-crit raw image name is unsafe or duplicated")
-        decoded_name = f"{raw_name}.json"
-        if record["decoded_name"] != decoded_name:
-            raise ArtifactError("pinned-crit decoded filename is not deterministic")
-        expected_argv = [
-            contract["crit_decoder"]["python_command"],
-            *[
-                item.format(raw_image=raw_name, decoded_json=decoded_name)
-                for item in contract["crit_decoder"]["decode_argument_template"]
-            ],
+    with tempfile.TemporaryDirectory(prefix="boltz2-crit-decoder-") as scratch:
+        scratch_path = Path(scratch)
+        decoder_dir = scratch_path / "decoder"
+        decoder_dir.mkdir()
+        _safe_extract_bundle(bundle_path, decoder_dir)
+        preflight_argv = [
+            python_executable,
+            "-c",
+            "import " + ", ".join(contract["crit_decoder"]["python_imports"]),
         ]
-        if record["decode_argv"] != expected_argv:
-            raise ArtifactError("pinned-crit decode argv changed")
-        raw_path = _regular(artifact / raw_name, f"raw CRIU image {raw_name}")
-        decoded_path = _regular(
-            decoded_dir / decoded_name, f"decoded CRIU image {decoded_name}"
-        )
-        if (
-            record["raw_sha256"] != _sha256_file(raw_path)
-            or record["decoded_sha256"] != _sha256_file(decoded_path)
-        ):
-            raise ArtifactError("pinned-crit raw or decoded digest mismatch")
-        decoded, _ = _read_json(decoded_path, f"decoded CRIU image {decoded_name}")
-        decoded_values[raw_name] = decoded
-        observed_names.append(raw_name)
-    if sorted(observed_names) != expected_names:
-        raise ArtifactError("pinned-crit receipt does not decode every metadata image")
+        preflight = _run_decoder_subprocess(preflight_argv, scratch_path, decoder_dir)
+        if preflight.returncode != 0:
+            raise ArtifactError(
+                "pinned decoder import preflight failed: "
+                f"{preflight.stderr.strip()[:400]}"
+            )
+        template = contract["crit_decoder"]["decode_argument_template"]
+        for raw_name in expected_names:
+            decoded_name = f"{raw_name}.json"
+            raw_path = _regular(artifact / raw_name, f"raw CRIU image {raw_name}")
+            decoded_path = decoded_dir / decoded_name
+            argv = [
+                python_executable,
+                *[
+                    item.format(
+                        raw_image=str(raw_path), decoded_json=str(decoded_path)
+                    )
+                    for item in template
+                ],
+            ]
+            completed = _run_decoder_subprocess(argv, scratch_path, decoder_dir)
+            if completed.returncode != 0:
+                raise ArtifactError(
+                    f"pinned decoder failed on {raw_name} "
+                    f"(exit {completed.returncode}): {completed.stderr.strip()[:400]}"
+                )
+            decoded_path = _regular(
+                decoded_path, f"decoded CRIU image {decoded_name}"
+            )
+            decoded, _ = _read_json(decoded_path, f"decoded CRIU image {decoded_name}")
+            decoded_values[raw_name] = decoded
+            records.append(
+                {
+                    "raw_name": raw_name,
+                    "raw_sha256": _sha256_file(raw_path),
+                    "decoded_name": decoded_name,
+                    "decoded_sha256": _sha256_file(decoded_path),
+                    "decode_argv": argv,
+                    "exit_code": 0,
+                }
+            )
 
     mount_names = [name for name in expected_names if name.startswith("mountpoints-")]
     if len(mount_names) != 1:
@@ -469,7 +695,10 @@ def _inspect_crit(
             f"decoded CRIU retains /tmp identity-sensitive references: {nonzero}"
         )
     return {
-        "decoder_receipt_sha256": _sha256_bytes(receipt_raw),
+        "bundle_sha256": expected_bundle_sha256,
+        "python_executable": python_executable,
+        "imports_preflight_ok": True,
+        "images": records,
         "metadata_image_count": len(expected_names),
         "decoded_image_count": len(decoded_values),
         "tmp_identity_reference_count": 0,
@@ -481,11 +710,19 @@ def _inspect_crit(
 def validate_artifact(
     artifact: Path,
     decoded_dir: Path,
-    crit_receipt: Path,
     contract: dict[str, Any],
     contract_sha256: str,
+    *,
+    bundle_path: Path | None = None,
+    python_executable: str | None = None,
 ) -> dict[str, Any]:
     artifact = _directory(artifact, "candidate artifact")
+    if bundle_path is None:
+        bundle_path = (
+            VALIDATOR_PATH.parent / contract["crit_decoder"]["source_bundle_filename"]
+        )
+    if python_executable is None:
+        python_executable = contract["crit_decoder"]["python_command"]
     _, external_mount, manifest_sha256 = _read_manifest(artifact, contract)
     receipt = {
         "schema": state.ARTIFACT_GATE_SCHEMA,
@@ -497,11 +734,15 @@ def validate_artifact(
         "artifact_version": contract["candidate"]["artifact_version"],
         "artifact_manifest_sha256": manifest_sha256,
         "validated_at": state._now(),
+        "artifact_entries": _inspect_artifact_entries(artifact, contract),
         "external_mount": external_mount,
         "rootfs": _inspect_rootfs(artifact, contract),
         "deleted_files": _inspect_deleted_files(artifact, contract),
         "pages": _inspect_pages(artifact, contract),
-        "crit": _inspect_crit(artifact, decoded_dir, crit_receipt, contract),
+        "tmpfs_images": _inspect_tmpfs_images(artifact, contract),
+        "crit": _inspect_crit(
+            artifact, decoded_dir, contract, bundle_path, python_executable
+        ),
         "live_clone_canary_required": True,
         "live_clone_canary_completed": False,
     }
@@ -512,8 +753,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--contract", type=Path, required=True)
     parser.add_argument("--artifact", type=Path, required=True)
-    parser.add_argument("--decoded-dir", type=Path, required=True)
-    parser.add_argument("--crit-receipt", type=Path, required=True)
+    parser.add_argument(
+        "--decoded-dir",
+        type=Path,
+        required=True,
+        help="empty directory this validator fills with its own decoded JSON",
+    )
+    parser.add_argument(
+        "--decoder-python",
+        default=None,
+        help="python interpreter with google.protobuf (default: contract value)",
+    )
     parser.add_argument("--receipt-output", type=Path, required=True)
     return parser.parse_args(argv)
 
@@ -528,9 +778,9 @@ def main(argv: list[str] | None = None) -> int:
         receipt = validate_artifact(
             args.artifact,
             args.decoded_dir,
-            args.crit_receipt,
             contract,
             contract_sha256,
+            python_executable=args.decoder_python,
         )
         state._write_receipt(args.receipt_output, receipt)
     except (ArtifactError, state.StateError, OSError) as exc:

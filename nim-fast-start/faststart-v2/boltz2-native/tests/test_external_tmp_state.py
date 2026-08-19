@@ -76,14 +76,139 @@ class ExternalTmpStateTests(unittest.TestCase):
             "volume_handle": "computedisk-e00tmpstateidentity",
         }
 
+    def holder_pod_evidence(self, pvc: dict[str, object]) -> dict[str, object]:
+        return {
+            "kind": "Pod",
+            "metadata": {
+                "name": state.HOLDER_POD_NAME,
+                "namespace": self.contract["storage"]["namespace"],
+                "uid": HOLDER_UID,
+            },
+            "spec": {
+                "nodeName": state.HOLDER_NODE_NAME,
+                "restartPolicy": "Never",
+                "containers": [
+                    {
+                        "name": "holder",
+                        "image": self.contract["images"]["probe"],
+                        "volumeMounts": [
+                            {
+                                "name": "tmp-state",
+                                "mountPath": state.HOLDER_MOUNT_PATH,
+                                "subPath": self.contract["layout"]["seed_subpath"],
+                                "readOnly": True,
+                            }
+                        ],
+                    }
+                ],
+                "volumes": [
+                    {
+                        "name": "tmp-state",
+                        "persistentVolumeClaim": {
+                            "claimName": pvc["name"],
+                            "readOnly": True,
+                        },
+                    }
+                ],
+            },
+            "status": {
+                "phase": "Running",
+                "conditions": [{"type": "Ready", "status": "True"}],
+            },
+        }
+
+    def writer_evidence(
+        self, pvc: dict[str, object], holder_pod: dict[str, object]
+    ) -> dict[str, object]:
+        namespace = self.contract["storage"]["namespace"]
+        return {
+            "pvc": {
+                "kind": "PersistentVolumeClaim",
+                "metadata": {
+                    "name": pvc["name"],
+                    "namespace": namespace,
+                    "uid": pvc["uid"],
+                },
+                "spec": {
+                    "volumeName": pvc["pv_name"],
+                    "accessModes": ["ReadWriteOnce"],
+                },
+                "status": {"phase": "Bound"},
+            },
+            "pv": {
+                "kind": "PersistentVolume",
+                "metadata": {"name": pvc["pv_name"], "uid": pvc["pv_uid"]},
+                "spec": {
+                    "csi": {
+                        "driver": pvc["csi_driver"],
+                        "volumeHandle": pvc["volume_handle"],
+                    },
+                    "claimRef": {
+                        "namespace": namespace,
+                        "name": pvc["name"],
+                        "uid": pvc["uid"],
+                    },
+                },
+            },
+            "pods": {
+                "kind": "PodList",
+                "items": [
+                    holder_pod,
+                    {
+                        "kind": "Pod",
+                        "metadata": {
+                            "name": "unrelated-workload",
+                            "namespace": namespace,
+                            "uid": "99999999-9999-4999-8999-999999999999",
+                        },
+                        "spec": {"volumes": [{"name": "scratch", "emptyDir": {}}]},
+                        "status": {"phase": "Running"},
+                    },
+                ],
+            },
+            "volumeattachments": {
+                "kind": "VolumeAttachmentList",
+                "items": [
+                    {
+                        "kind": "VolumeAttachment",
+                        "spec": {
+                            "nodeName": state.HOLDER_NODE_NAME,
+                            "source": {"persistentVolumeName": pvc["pv_name"]},
+                        },
+                    }
+                ],
+            },
+            "donor_get_attempt": {
+                "argv": [
+                    "kubectl",
+                    "get",
+                    "pod",
+                    state.DONOR_POD_NAME,
+                    "-n",
+                    namespace,
+                    "-o",
+                    "json",
+                ],
+                "exit_code": 1,
+                "stderr": (
+                    'Error from server (NotFound): pods '
+                    f'"{state.DONOR_POD_NAME}" not found'
+                ),
+            },
+        }
+
     def writer_receipt(
         self,
         purpose: str,
         *,
         deleted_at: str,
         checked_at: str | None = None,
+        volume_handle: str | None = None,
     ) -> dict[str, object]:
         pvc = self.pvc_identity()
+        if volume_handle is not None:
+            pvc["volume_handle"] = volume_handle
+        holder_pod = self.holder_pod_evidence(pvc)
         return {
             "schema": state.WRITER_EXCLUSION_SCHEMA,
             "status": "PASS",
@@ -92,20 +217,20 @@ class ExternalTmpStateTests(unittest.TestCase):
             "namespace": self.contract["storage"]["namespace"],
             "pvc": pvc,
             "donor": {
-                "name": "boltz2-native-f7-external-tmp-donor",
+                "name": state.DONOR_POD_NAME,
                 "uid": DONOR_UID,
                 "absent": True,
                 "uid_preconditioned_delete": True,
                 "deleted_at": deleted_at,
             },
             "holder": {
-                "name": "boltz2-tmp-seed-holder-v2-t12",
+                "name": state.HOLDER_POD_NAME,
                 "uid": HOLDER_UID,
-                "node_name": "computeinstance-e00t12crqg6tw0kz65",
+                "node_name": state.HOLDER_NODE_NAME,
                 "ready": True,
                 "read_only": True,
                 "seed_subpath": self.contract["layout"]["seed_subpath"],
-                "mount_path": "/seed",
+                "mount_path": state.HOLDER_MOUNT_PATH,
                 "image": self.contract["images"]["probe"],
                 "restart_policy": "Never",
                 "pvc_name": pvc["name"],
@@ -114,10 +239,11 @@ class ExternalTmpStateTests(unittest.TestCase):
                 "pv_uid": pvc["pv_uid"],
                 "csi_driver": pvc["csi_driver"],
                 "volume_handle": pvc["volume_handle"],
-                "pod_spec_sha256": "7" * 64,
+                "pod_spec_sha256": state._pod_spec_sha256(holder_pod),
             },
             "active_writer_count": 0,
             "active_read_write_users": [],
+            "evidence": self.writer_evidence(pvc, holder_pod),
         }
 
     def artifact_gate(self, validated_at: str | None = None) -> dict[str, object]:
@@ -134,6 +260,17 @@ class ExternalTmpStateTests(unittest.TestCase):
                 "other_identity",
             )
         }
+        decode_images = [
+            {
+                "raw_name": name,
+                "raw_sha256": "c" * 64,
+                "decoded_name": f"{name}.json",
+                "decoded_sha256": "d" * 64,
+                "decode_argv": ["python3", "-m", "crit", "decode"],
+                "exit_code": 0,
+            }
+            for name in ("inventory.img", "pstree.img")
+        ]
         return {
             "schema": state.ARTIFACT_GATE_SCHEMA,
             "status": "PASS",
@@ -144,17 +281,40 @@ class ExternalTmpStateTests(unittest.TestCase):
             "artifact_version": self.contract["candidate"]["artifact_version"],
             "artifact_manifest_sha256": "8" * 64,
             "validated_at": validated_at or state._now(),
+            "artifact_entries": [
+                "inventory.img",
+                "manifest.yaml",
+                "pages-1.img",
+                "pstree.img",
+                "rootfs-diff.tar",
+            ],
             "external_mount": {
                 "path": "/tmp",
-                "ext_mnt_value": "/tmp",
-                "bind_mount_dest_count": 1,
+                "ext_mnt": dict(self.contract["artifact_gates"]["ext_mnt_exact"]),
+                "bind_mount_dests": sorted(
+                    self.contract["artifact_gates"]["bind_mount_dests_exact"]
+                ),
             },
             "rootfs": {
                 "path": "rootfs-diff.tar",
                 "sha256": "9" * 64,
                 "bytes": 1024,
                 "member_count": 2,
+                "member_type_counts": {
+                    "regular": 1,
+                    "directory": 1,
+                    "symlink": 0,
+                    "hardlink": 0,
+                },
                 "forbidden_tmp_member_count": 0,
+            },
+            "tmpfs_images": {
+                "file_count": 0,
+                "total_bytes": 0,
+                "max_total_bytes": self.contract["artifact_gates"][
+                    "tmpfs_images_max_total_bytes"
+                ],
+                "images": [],
             },
             "deleted_files": {
                 "path": "deleted-files.json",
@@ -175,9 +335,12 @@ class ExternalTmpStateTests(unittest.TestCase):
                 "max_growth_basis_points": 200,
             },
             "crit": {
-                "decoder_receipt_sha256": "a" * 64,
-                "metadata_image_count": 10,
-                "decoded_image_count": 10,
+                "bundle_sha256": self.contract["crit_decoder"]["source_bundle_sha256"],
+                "python_executable": "python3",
+                "imports_preflight_ok": True,
+                "images": decode_images,
+                "metadata_image_count": len(decode_images),
+                "decoded_image_count": len(decode_images),
                 "tmp_identity_reference_count": 0,
                 "category_counts": categories,
                 "decoder": self.contract["crit_decoder"],
@@ -509,9 +672,11 @@ class ExternalTmpStateTests(unittest.TestCase):
                 self.receipts / "artifact.json",
             )
 
-        drifted = self.writer_receipt("pre-clone", deleted_at=deleted_at)
-        drifted["pvc"]["volume_handle"] = "computedisk-otheridentity"  # type: ignore[index]
-        drifted["holder"]["volume_handle"] = "computedisk-otheridentity"  # type: ignore[index]
+        drifted = self.writer_receipt(
+            "pre-clone",
+            deleted_at=deleted_at,
+            volume_handle="computedisk-otheridentity",
+        )
         drifted_path = self.write_receipt("writer-drifted.json", drifted)
         with self.assertRaisesRegex(state.StateError, "storage identity drifted"):
             state.prepare_clone(
@@ -538,6 +703,195 @@ class ExternalTmpStateTests(unittest.TestCase):
                 seal_path,
                 stale_path,
             )
+
+    def test_writer_exclusion_declared_facts_must_be_evidence_derived(self) -> None:
+        deleted_at = state._now()
+
+        def receipt() -> dict[str, object]:
+            return self.writer_receipt("pre-clone", deleted_at=deleted_at)
+
+        def read(value: dict[str, object], name: str) -> None:
+            path = self.write_receipt(name, value)
+            state._read_writer_exclusion(path, self.contract, "pre-clone")
+
+        forged = receipt()
+        forged["evidence"]["pods"]["items"].append(  # type: ignore[index]
+            {
+                "kind": "Pod",
+                "metadata": {
+                    "name": "rogue-writer",
+                    "namespace": self.contract["storage"]["namespace"],
+                    "uid": "88888888-8888-4888-8888-888888888888",
+                },
+                "spec": {
+                    "volumes": [
+                        {
+                            "name": "tmp-state",
+                            "persistentVolumeClaim": {
+                                "claimName": self.contract["storage"]["pvc_name"]
+                            },
+                        }
+                    ]
+                },
+                "status": {"phase": "Running"},
+            }
+        )
+        with self.assertRaisesRegex(state.StateError, "re-derivation contradicts"):
+            read(forged, "writer-forged-count.json")
+
+        forged = receipt()
+        forged["evidence"]["pv"]["spec"]["csi"]["volumeHandle"] = (  # type: ignore[index]
+            "computedisk-differenthandle"
+        )
+        with self.assertRaisesRegex(state.StateError, "PV evidence contradicts"):
+            read(forged, "writer-forged-pv.json")
+
+        forged = receipt()
+        forged["evidence"]["pods"]["items"][0]["metadata"]["uid"] = (  # type: ignore[index]
+            "12121212-1212-4212-8212-121212121212"
+        )
+        with self.assertRaisesRegex(state.StateError, "read-only holder"):
+            read(forged, "writer-forged-holder.json")
+
+        forged = receipt()
+        forged["evidence"]["pods"]["items"].append(  # type: ignore[index]
+            {
+                "kind": "Pod",
+                "metadata": {
+                    "name": state.DONOR_POD_NAME,
+                    "namespace": self.contract["storage"]["namespace"],
+                    "uid": DONOR_UID,
+                },
+                "spec": {"volumes": []},
+                "status": {"phase": "Running"},
+            }
+        )
+        with self.assertRaisesRegex(state.StateError, "still contains the donor"):
+            read(forged, "writer-forged-donor.json")
+
+        forged = receipt()
+        forged["evidence"]["volumeattachments"]["items"].append(  # type: ignore[index]
+            {
+                "kind": "VolumeAttachment",
+                "spec": {
+                    "nodeName": "computeinstance-foreignnode",
+                    "source": {
+                        "persistentVolumeName": self.pvc_identity()["pv_name"]
+                    },
+                },
+            }
+        )
+        with self.assertRaisesRegex(state.StateError, "attached beyond the holder"):
+            read(forged, "writer-forged-attachment.json")
+
+        forged = receipt()
+        forged["evidence"]["donor_get_attempt"]["exit_code"] = 0  # type: ignore[index]
+        with self.assertRaisesRegex(state.StateError, "NotFound donor"):
+            read(forged, "writer-forged-attempt.json")
+
+        forged = receipt()
+        forged["holder"]["pod_spec_sha256"] = "7" * 64  # type: ignore[index]
+        with self.assertRaisesRegex(state.StateError, "holder evidence contradicts"):
+            read(forged, "writer-forged-spec-hash.json")
+
+        forged = receipt()
+        del forged["evidence"]
+        with self.assertRaisesRegex(state.StateError, "keys do not match"):
+            read(forged, "writer-missing-evidence.json")
+
+    def test_collect_writer_exclusion_runs_kubectl_and_fails_closed(self) -> None:
+        deleted_at = state._now()
+        reference = self.writer_receipt("pre-clone", deleted_at=deleted_at)
+        evidence = reference["evidence"]
+        stub = self.base / "kubectl-stub"
+        responses = self.base / "kubectl-responses"
+        responses.mkdir()
+        for name, document in (
+            ("pvc.json", evidence["pvc"]),  # type: ignore[index]
+            ("pv.json", evidence["pv"]),  # type: ignore[index]
+            ("pods.json", evidence["pods"]),  # type: ignore[index]
+            ("volumeattachments.json", evidence["volumeattachments"]),  # type: ignore[index]
+        ):
+            (responses / name).write_text(json.dumps(document), encoding="utf-8")
+        stub.write_text(
+            "#!/bin/sh\n"
+            f"root='{responses}'\n"
+            'case "$*" in\n'
+            '  *persistentvolumeclaim*) cat "$root/pvc.json" ;;\n'
+            '  *persistentvolume*) cat "$root/pv.json" ;;\n'
+            '  *volumeattachments*) cat "$root/volumeattachments.json" ;;\n'
+            f'  *"pod {state.DONOR_POD_NAME}"*) echo \'Error from server (NotFound): pods "{state.DONOR_POD_NAME}" not found\' >&2; exit 1 ;;\n'
+            '  *pods*) cat "$root/pods.json" ;;\n'
+            "  *) exit 3 ;;\n"
+            "esac\n",
+            encoding="utf-8",
+        )
+        stub.chmod(0o755)
+        collected = state.collect_writer_exclusion(
+            self.contract,
+            "pre-clone",
+            [str(stub)],
+            DONOR_UID,
+            deleted_at,
+        )
+        collected_path = self.write_receipt("writer-collected.json", collected)
+        readback, _ = state._read_writer_exclusion(
+            collected_path, self.contract, "pre-clone"
+        )
+        self.assertEqual(0, readback["active_writer_count"])
+        self.assertEqual(HOLDER_UID, readback["holder"]["uid"])
+        self.assertEqual(
+            readback["holder"]["pod_spec_sha256"],
+            state._pod_spec_sha256(evidence["pods"]["items"][0]),  # type: ignore[index]
+        )
+
+        rogue_pods = json.loads((responses / "pods.json").read_text(encoding="utf-8"))
+        rogue_pods["items"].append(
+            {
+                "kind": "Pod",
+                "metadata": {
+                    "name": "rogue-writer",
+                    "namespace": self.contract["storage"]["namespace"],
+                    "uid": "88888888-8888-4888-8888-888888888888",
+                },
+                "spec": {
+                    "volumes": [
+                        {
+                            "name": "tmp-state",
+                            "persistentVolumeClaim": {
+                                "claimName": self.contract["storage"]["pvc_name"]
+                            },
+                        }
+                    ]
+                },
+                "status": {"phase": "Running"},
+            }
+        )
+        (responses / "pods.json").write_text(json.dumps(rogue_pods), encoding="utf-8")
+        with self.assertRaises(state.StateError):
+            state.collect_writer_exclusion(
+                self.contract,
+                "pre-clone",
+                [str(stub)],
+                DONOR_UID,
+                deleted_at,
+            )
+
+    def test_stale_delete_authorization_is_rejected(self) -> None:
+        clone, clone_path = self.prepared_clone()
+        stale = self.delete_authorization(clone, clone_path)
+        stale["authorized_at"] = "2000-01-01T00:00:00Z"
+        stale_path = self.write_receipt("delete-stale.json", stale)
+        with self.assertRaisesRegex(state.StateError, "no more than"):
+            state.delete_clone(
+                self.root,
+                self.contract,
+                self.contract_sha,
+                "run-one",
+                clone_path,
+                stale_path,
+            )
+        self.assertTrue((self.root / "runs" / "run-one").is_dir())
 
     def test_contract_pins_exact_tool_sources(self) -> None:
         expected = json.loads(self.contract_path.read_text(encoding="utf-8"))
