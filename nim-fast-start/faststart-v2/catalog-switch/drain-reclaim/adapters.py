@@ -28,16 +28,19 @@ from state_machine import (
     GpuReleaseProof,
     LaunchOperationAbsenceProof,
     LaunchReservation,
+    MachineSnapshot,
     NvmlObservation,
     ProofRejected,
     RuntimeAbsenceProof,
     RuntimeAuthority,
     RuntimeIdentity,
     ScrubReceipt,
+    SwitchState,
     canonical_json,
     canonical_sha256,
     key_sha256,
     sign_payload,
+    validate_machine_snapshot,
 )
 
 
@@ -51,6 +54,24 @@ KUBERNETES_POD_INVENTORY_SPEC = {
     "missing_null_or_non_list": "reject",
     "operation_absence_empty_default_forbidden": True,
     "top_level_type": "object",
+}
+RECEIVER_MACHINE_JOIN_SPEC = {
+    "bootstrap_active_runtime_joined_before_command": True,
+    "durable_before_dispatch": True,
+    "exact_launch_states": ["ROLLING_BACK", "STARTING_B"],
+    "hash_validated_machine_snapshot_required": True,
+    "key_fields": [
+        "gpu_uuid",
+        "operation_id",
+        "runtime_generation",
+        "reservation_sha256",
+        "state_machine_revision",
+        "state_machine_transition_sha256",
+    ],
+    "node_local_and_kubernetes": True,
+    "reservation_and_controller_fence_exact_match": True,
+    "second_valid_launch_refused_before_runner": True,
+    "unconfigured_machine_snapshot_fails_closed": True,
 }
 
 
@@ -367,6 +388,9 @@ class ActionJournal:
             "command_envelope_sha256",
             "idempotency_key",
             "state",
+            "source_kind",
+            "state_machine_revision",
+            "state_machine_transition_sha256",
         }
         for gpu_uuid, occupant in value["occupancy"].items():
             if (
@@ -374,10 +398,29 @@ class ActionJournal:
                 or set(occupant) != expected_occupancy
                 or occupant.get("gpu_uuid") != gpu_uuid
                 or occupant.get("state") not in {"launching", "occupied", "ambiguous"}
+                or occupant.get("source_kind")
+                not in {"bootstrap-runtime", "launch-reservation"}
                 or not isinstance(occupant.get("runtime_generation"), int)
                 or occupant["runtime_generation"] < 1
+                or not isinstance(occupant.get("state_machine_revision"), int)
+                or occupant["state_machine_revision"] < 1
             ):
                 raise ProofRejected("action journal occupancy record differs")
+            for field in (
+                "reservation_sha256",
+                "command_envelope_sha256",
+                "state_machine_transition_sha256",
+            ):
+                digest = occupant.get(field)
+                if (
+                    not isinstance(digest, str)
+                    or len(digest) != 64
+                    or any(
+                        character not in "0123456789abcdef"
+                        for character in digest
+                    )
+                ):
+                    raise ProofRejected("action journal occupancy digest differs")
         return value
 
     def store(self, value: dict[str, Any]) -> None:
@@ -409,24 +452,168 @@ class FencedActionExecutor:
         self,
         *,
         authority: RuntimeAuthority,
+        gpu_uuid: str,
         controller_keys: dict[str, bytes],
         agent_key: bytes,
         current_fence: Callable[[], ControllerFence],
         admission_policy: CommandAdmissionPolicy,
         journal: ActionJournal,
+        machine_snapshot: Callable[[], MachineSnapshot] | None = None,
         runner: CommandRunner | None = None,
         clock_ns: Callable[[], int] = time.monotonic_ns,
     ):
         self.authority = authority
+        self.gpu_uuid = gpu_uuid
         self.controller_keys = controller_keys
         self.agent_key = agent_key
         self.current_fence = current_fence
+        self.machine_snapshot = machine_snapshot
         self.admission_policy = admission_policy
         self.journal = journal
         self.runner = runner or SubprocessRunner()
         self.clock_ns = clock_ns
         if key_sha256(agent_key) != authority.node_agent_key_sha256:
             raise ValueError("agent key differs from authority binding")
+        if not gpu_uuid:
+            raise ValueError("receiving agent GPU UUID is required")
+        if self.machine_snapshot is not None:
+            self.synchronize_machine_state()
+
+    @staticmethod
+    def _transition_head(snapshot: MachineSnapshot) -> str:
+        if not snapshot.transitions:
+            raise ProofRejected(
+                "receiving agent requires a transitioned durable machine snapshot"
+            )
+        return snapshot.transitions[-1].record_sha256
+
+    def _load_machine_snapshot(
+        self, current_fence: ControllerFence
+    ) -> MachineSnapshot:
+        if self.machine_snapshot is None:
+            raise ProofRejected(
+                "launch lacks a durable state-machine snapshot authority"
+            )
+        snapshot = self.machine_snapshot()
+        if not isinstance(snapshot, MachineSnapshot):
+            raise ProofRejected("state-machine snapshot authority returned wrong type")
+        validate_machine_snapshot(snapshot)
+        if (
+            snapshot.authority != self.authority
+            or snapshot.gpu_uuid != self.gpu_uuid
+        ):
+            raise ProofRejected("state-machine snapshot node/GPU authority differs")
+        if (
+            snapshot.controller_id,
+            snapshot.controller_generation,
+        ) != (current_fence.controller_id, current_fence.generation):
+            raise ProofRejected(
+                "state-machine snapshot and receiving-agent fence differ"
+            )
+        return snapshot
+
+    @staticmethod
+    def _completed_runtime_stop(
+        journal: dict[str, Any], runtime: RuntimeIdentity
+    ) -> bool:
+        return any(
+            receipt.get("operation") == "stop-runtime"
+            and receipt.get("subject_sha256") == runtime.digest
+            and receipt.get("outcome") == "completed"
+            for receipt in journal["receipts"].values()
+            if isinstance(receipt, dict)
+        )
+
+    def _join_bootstrap_occupancy(
+        self,
+        journal: dict[str, Any],
+        snapshot: MachineSnapshot,
+    ) -> bool:
+        """Join authoritative active runtime state into receiver durability."""
+
+        runtime = snapshot.active_runtime
+        if runtime is None or self._completed_runtime_stop(journal, runtime):
+            return False
+        if runtime.authority != self.authority or runtime.gpu_uuid != snapshot.gpu_uuid:
+            raise ProofRejected("active runtime cannot join a different receiver")
+        occupant = journal["occupancy"].get(runtime.gpu_uuid)
+        if occupant is not None:
+            if (
+                occupant["operation_id"] != runtime.launch_operation_id
+                or occupant["runtime_generation"] != runtime.runtime_generation
+            ):
+                raise ProofRejected(
+                    "receiver occupancy differs from authoritative active runtime"
+                )
+            return False
+        snapshot_head = self._transition_head(snapshot)
+        journal["occupancy"][runtime.gpu_uuid] = {
+            "gpu_uuid": runtime.gpu_uuid,
+            "operation_id": runtime.launch_operation_id,
+            "runtime_generation": runtime.runtime_generation,
+            "reservation_sha256": runtime.digest,
+            "command_envelope_sha256": canonical_sha256(
+                {
+                    "kind": "authoritative-bootstrap-runtime",
+                    "runtime_identity_sha256": runtime.digest,
+                    "state_machine_revision": snapshot.revision,
+                    "state_machine_transition_sha256": snapshot_head,
+                }
+            ),
+            "idempotency_key": f"bootstrap-{runtime.digest}",
+            "state": "occupied",
+            "source_kind": "bootstrap-runtime",
+            "state_machine_revision": snapshot.revision,
+            "state_machine_transition_sha256": snapshot_head,
+        }
+        return True
+
+    def synchronize_machine_state(self) -> None:
+        """Durably seed bootstrap/runtime occupancy before accepting commands."""
+
+        with self.journal.locked():
+            current = self.current_fence()
+            snapshot = self._load_machine_snapshot(current)
+            journal = self.journal.load()
+            if self._join_bootstrap_occupancy(journal, snapshot):
+                self.journal.store(journal)
+
+    def _require_durable_launch_authorization(
+        self,
+        *,
+        snapshot: MachineSnapshot,
+        envelope: CommandEnvelope,
+        options: dict[str, str],
+        generation: int | None,
+    ) -> LaunchReservation:
+        if snapshot.state not in {SwitchState.STARTING_B, SwitchState.ROLLING_BACK}:
+            raise ProofRejected(
+                "launch is not authorized by a durable state-machine launch state"
+            )
+        reservation = snapshot.launch_reservation
+        if reservation is None or snapshot.active_runtime is not None:
+            raise ProofRejected(
+                "launch lacks an exact durable state-machine reservation"
+            )
+        if (
+            reservation.digest != envelope.subject_sha256
+            or reservation.switch_id != envelope.switch_id
+            or reservation.idempotency_key != envelope.idempotency_key
+            or reservation.operation_id != options.get("--operation-id")
+            or reservation.runtime_generation != generation
+            or reservation.gpu_uuid != options.get("--gpu-uuid")
+            or reservation.model.artifact_sha256
+            != options.get("--artifact-sha256")
+            or reservation.authority_sha256 != self.authority.digest
+            or reservation.backend != self.authority.backend
+            or reservation.controller_id != envelope.controller_id
+            or reservation.controller_generation
+            != envelope.controller_generation
+        ):
+            raise ProofRejected(
+                "launch differs from exact durable state-machine reservation/fence"
+            )
+        return reservation
 
     def execute(self, envelope: CommandEnvelope, argv: Sequence[str]) -> ActionReceipt:
         with self.journal.locked():
@@ -462,6 +649,14 @@ class FencedActionExecutor:
         if not envelope.issued_at_ns <= now < envelope.expires_at_ns:
             raise ProofRejected("command is not within its signed validity window")
         journal = self.journal.load()
+        machine_state: MachineSnapshot | None = None
+        if self.machine_snapshot is not None:
+            machine_state = self._load_machine_snapshot(current)
+            if self._join_bootstrap_occupancy(journal, machine_state):
+                # Bootstrap occupancy is durable even when this command is
+                # subsequently refused. The state/journal join cannot be an
+                # in-memory preflight that disappears with the controller.
+                self.journal.store(journal)
         previous = journal["receipts"].get(envelope.idempotency_key)
         if previous is not None:
             if previous["command_envelope_sha256"] != envelope.digest:
@@ -499,6 +694,14 @@ class FencedActionExecutor:
         if envelope.operation == "launch-runtime":
             if gpu_uuid is None:
                 raise ProofRejected("launch command omits its exact GPU occupancy key")
+            if machine_state is None:
+                machine_state = self._load_machine_snapshot(current)
+            reservation = self._require_durable_launch_authorization(
+                snapshot=machine_state,
+                envelope=envelope,
+                options=options,
+                generation=generation,
+            )
             if occupant is not None:
                 raise ProofRejected(
                     "receiving agent refused launch: GPU already has durable occupancy"
@@ -509,10 +712,15 @@ class FencedActionExecutor:
                 "gpu_uuid": gpu_uuid,
                 "operation_id": options["--operation-id"],
                 "runtime_generation": generation,
-                "reservation_sha256": envelope.subject_sha256,
+                "reservation_sha256": reservation.digest,
                 "command_envelope_sha256": envelope.digest,
                 "idempotency_key": envelope.idempotency_key,
                 "state": "launching",
+                "source_kind": "launch-reservation",
+                "state_machine_revision": machine_state.revision,
+                "state_machine_transition_sha256": self._transition_head(
+                    machine_state
+                ),
             }
             journal["occupancy"][gpu_uuid] = occupant
         elif envelope.operation == "cleanup-launch-operation":

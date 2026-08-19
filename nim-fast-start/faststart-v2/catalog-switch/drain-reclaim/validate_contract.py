@@ -21,7 +21,7 @@ import state_machine
 from state_machine import PROOF_GATE_SPEC, STATE_SEMANTICS, TRANSITION_SPECS, SwitchState
 
 
-CONTRACT_SCHEMA = "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v4"
+CONTRACT_SCHEMA = "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v5"
 EXPECTED_SOURCE = {
     "request_slo_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
     "request_slo_path": "performance/request_slo",
@@ -44,7 +44,7 @@ EXPECTED_INVARIANTS = {
     "DR-INV-07": "Reclaim cannot begin while an active lease belongs to the retiring runtime; the bounded drain durably completes or times out every admitted lease before stop.",
     "DR-INV-08": "Canonical snapshots use compare-and-swap revisions whose predecessor-hash records embed every complete post-transition state detail; state restart and agent actions reject stale controller generations.",
     "DR-INV-09": "Every launch has a durable pre-launch operation identity and agent-side executing intent; bound and ambiguous failed launches require exact-authority-signed generation cleanup and GPU-zero proof before rollback or any new generation, Kubernetes operation absence requires an explicit authoritative PodList items array, and ambiguous commands are never replayed.",
-    "DR-INV-10": "Exact duplicate reservations and commands are idempotent, conflicting retries are rejected, and both node-local and exact-cluster Kubernetes receiving agents fsync GPU/operation/generation occupancy before dispatch and refuse a second valid launch before its physical runner.",
+    "DR-INV-10": "Exact duplicate reservations and commands are idempotent and conflicting retries are rejected; before either node-local or exact-cluster Kubernetes dispatch, the receiver validates the complete hash-bound machine snapshot, durably joins bootstrap runtime occupancy, requires STARTING_B or ROLLING_BACK plus the exact state-machine reservation and controller fence, and refuses caller-made or second launches before the physical runner.",
 }
 EXPECTED_BINDING_REQUIREMENTS = {
     "DR-INV-01": {
@@ -102,9 +102,9 @@ EXPECTED_BINDING_REQUIREMENTS = {
         "threat_tests": {"TST-01", "TST-02", "TST-12"},
     },
     "DR-INV-10": {
-        "code": {"DrainReclaimStateMachine.begin_start_b", "ActionJournal.load", "FencedActionExecutor.execute", "KubernetesActions.launch", "NodeLocalActions.launch"},
+        "code": {"DrainReclaimStateMachine.begin_start_b", "ActionJournal.load", "FencedActionExecutor.execute", "FencedActionExecutor.synchronize_machine_state", "FencedActionExecutor._require_durable_launch_authorization", "KubernetesActions.launch", "NodeLocalActions.launch", "validate_machine_snapshot"},
         "controls": {"CTL-19", "CTL-20"},
-        "tests": {"test_concurrent_duplicate_b_reserves_one_generation", "test_duplicate_launch_reservation_is_idempotent_and_conflict_rejects", "test_receiving_agent_refuses_second_valid_launch_before_physical_dispatch", "test_kubernetes_adapter_pins_kubeconfig_context_cluster_ca_namespace_node"},
+        "tests": {"test_concurrent_duplicate_b_reserves_one_generation", "test_duplicate_launch_reservation_is_idempotent_and_conflict_rejects", "test_receiving_agent_refuses_second_valid_launch_before_physical_dispatch", "test_kubernetes_adapter_pins_kubeconfig_context_cluster_ca_namespace_node", "test_node_local_direct_launch_cannot_bypass_serving_a", "test_kubernetes_direct_launch_cannot_bypass_serving_a", "test_launch_without_machine_snapshot_authority_fails_closed"},
         "threat_tests": {"TST-11", "TST-17"},
     },
 }
@@ -136,6 +136,10 @@ def _git(repo: Path, *args: str) -> str:
 
 
 def _resolve_symbol(name: str) -> None:
+    if "." not in name:
+        if any(callable(getattr(module, name, None)) for module in (state_machine, ledger, adapters)):
+            return
+        raise ContractError(f"binding function does not exist: {name}")
     class_name, method = name.split(".", 1)
     for module in (state_machine, ledger, adapters):
         owner = getattr(module, class_name, None)
@@ -168,8 +172,8 @@ def validate(
 ) -> dict[str, Any]:
     package_root = package_root or Path(__file__).resolve().parent
     repo_root = repo_root or Path(__file__).resolve().parents[4]
-    if contract.get("schema") != CONTRACT_SCHEMA or contract.get("version") != 4:
-        raise ContractError("contract schema/version differs from v4")
+    if contract.get("schema") != CONTRACT_SCHEMA or contract.get("version") != 5:
+        raise ContractError("contract schema/version differs from v5")
     if contract.get("status") != "independent-review-required":
         raise ContractError("replacement cannot claim approval before independent review")
     if contract.get("state_schema") != state_machine.STATE_SCHEMA:
@@ -189,7 +193,7 @@ def validate(
         raise ContractError("invariants must be a list")
     invariant_map = {item.get("id"): item.get("statement") for item in invariants}
     if invariant_map != EXPECTED_INVARIANTS or len(invariants) != len(EXPECTED_INVARIANTS):
-        raise ContractError("invariant identifiers/statements differ from executable v4 semantics")
+        raise ContractError("invariant identifiers/statements differ from executable v5 semantics")
     if contract.get("transitions") != TRANSITION_SPECS:
         raise ContractError("transition relation differs from implementation")
     backends = contract.get("backends")
@@ -253,17 +257,7 @@ def validate(
         "switch_attempt_target_bound": True,
     }:
         raise ContractError("request acceptance exact gate differs from implementation")
-    if occupancy != {
-        "durable_before_dispatch": True,
-        "key_fields": [
-            "gpu_uuid",
-            "operation_id",
-            "runtime_generation",
-            "reservation_sha256",
-        ],
-        "node_local_and_kubernetes": True,
-        "second_valid_launch_refused_before_runner": True,
-    }:
+    if occupancy != adapters.RECEIVER_MACHINE_JOIN_SPEC:
         raise ContractError("receiver occupancy exact gate differs from implementation")
     if authority != PROOF_GATE_SPEC["evidence_authority"]:
         raise ContractError("evidence authority exact gate differs from implementation")

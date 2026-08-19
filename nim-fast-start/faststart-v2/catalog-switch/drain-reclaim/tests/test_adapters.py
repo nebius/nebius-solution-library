@@ -26,7 +26,13 @@ from adapters import (  # noqa: E402
     NodeLocalEvidenceAdapter,
     NvidiaSmiNvmlProbe,
 )
-from state_machine import ControllerFence, ProofRejected  # noqa: E402
+from state_machine import (  # noqa: E402
+    ControllerFence,
+    DrainReclaimStateMachine,
+    InMemoryStateStore,
+    MachineSnapshot,
+    ProofRejected,
+)
 
 
 class FakeRunner:
@@ -438,17 +444,90 @@ class FencedActionTests(unittest.TestCase):
             allowed_artifact_sha256s=(MODEL_B.artifact_sha256,),  # noqa: F405
         )
 
-    def _executor(self, root: Path, authority, runner, current):
+    def _executor(self, root: Path, authority, runner, current, *, machine=None):
         return FencedActionExecutor(
             authority=authority,
+            gpu_uuid=GPU_UUID,  # noqa: F405
             controller_keys={"controller-signer": CONTROLLER_KEY},  # noqa: F405
             agent_key=NODE_KEY,  # noqa: F405
             current_fence=lambda: current[0],
             admission_policy=self._policy(),
             journal=ActionJournal(root / "journal.json"),
+            machine_snapshot=None if machine is None else machine.snapshot,
             runner=runner,
             clock_ns=FakeClock(10_000),  # noqa: F405
         )
+
+    def _new_machine(self, root: Path, authority):
+        acceptance, verifier, _ = exact_acceptance_gate(root / "ledger")  # noqa: F405
+        clock = FakeClock(acceptance.accepted_t0_ns + 1_000)  # noqa: F405
+        machine = DrainReclaimStateMachine(
+            InMemoryStateStore(MachineSnapshot.initial(authority, GPU_UUID)),  # noqa: F405
+            evidence_trust=trust_store(authority=authority),  # noqa: F405
+            ledger_verifier=verifier,
+            clock_ns=clock,
+        )
+        fence = machine.claim_controller("controller-1")
+        return machine, fence, acceptance, clock
+
+    def _serving_machine(self, root: Path, authority):
+        machine, fence, acceptance, clock = self._new_machine(root, authority)
+        active = runtime(  # noqa: F405
+            MODEL_A,
+            1,
+            operation_id="bootstrap-a",
+            suffix=f"bootstrap-{authority.backend}",
+            authority=authority,
+        )
+        machine.install_serving_a(fence, active)
+        return machine, fence, active, acceptance, clock
+
+    def _machine_ready_to_launch(
+        self,
+        root: Path,
+        authority,
+        *,
+        operation_id: str,
+        idempotency_key: str,
+    ):
+        machine, fence, active, acceptance, clock = self._serving_machine(
+            root, authority
+        )
+        machine.begin_switch(
+            fence,
+            switch_id="switch-1",
+            trace_id="switch-trace-1",
+            request_id="switch-request-1",
+            attempt_id="switch-attempt-1",
+            target=MODEL_B,  # noqa: F405
+            validator=VALIDATOR_B,  # noqa: F405
+            acceptance_receipt=acceptance,
+            drain_timeout_ns=1_000,
+        )
+        ready, _ = machine.advance_drain(fence, switch_id="switch-1")
+        self.assertTrue(ready)
+        reclaim_started = machine.snapshot().transitions[-1].at_ns
+        stop, absence, gpu = reclaim_bundle(  # noqa: F405
+            switch_id="switch-1",
+            target=active,
+            fence=fence,
+            reclaim_started=reclaim_started,
+        )
+        clock.advance(100)
+        machine.record_reclaim(
+            fence,
+            switch_id="switch-1",
+            stop_receipt=stop,
+            absence=absence,
+            gpu_release=gpu,
+        )
+        reservation = machine.begin_start_b(
+            fence,
+            switch_id="switch-1",
+            operation_id=operation_id,
+            idempotency_key=idempotency_key,
+        )
+        return machine, fence, reservation
 
     def _envelope(self, *, signer, authority, fence, argv, sequence, operation, subject, idem):
         return signer.create(
@@ -534,14 +613,16 @@ class FencedActionTests(unittest.TestCase):
 
     def test_node_local_and_kubernetes_adapters_surface_runner_and_cluster_refusal(self) -> None:
         signer = ControllerCommandSigner(signer_id="controller-signer", key=CONTROLLER_KEY)  # noqa: F405
-        fence = ControllerFence("controller-1", 1)
-        current = [fence]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             node_auth = node_authority()  # noqa: F405
-            reservation = LaunchReservation(
-                "switch-1", "launch-b", "launch-b-idem", 2, MODEL_B, GPU_UUID, node_auth.digest, "node-local", fence.controller_id, fence.generation, 100  # noqa: F405
+            node_machine, fence, reservation = self._machine_ready_to_launch(
+                root / "node-machine",
+                node_auth,
+                operation_id="launch-b",
+                idempotency_key="launch-b-idem",
             )
+            current = [fence]
             node_argv = (
                 DEFAULT_NODE_AGENT_EXECUTABLE,
                 "launch",
@@ -555,7 +636,13 @@ class FencedActionTests(unittest.TestCase):
                 reservation.model.artifact_sha256,
             )
             node_runner = FakeRunner({node_argv: result(node_argv, code=1, stderr="exclusive occupancy")})
-            node_executor = self._executor(root / "node", node_auth, node_runner, current)
+            node_executor = self._executor(
+                root / "node",
+                node_auth,
+                node_runner,
+                current,
+                machine=node_machine,
+            )
             node_envelope = self._envelope(
                 signer=signer,
                 authority=node_auth,
@@ -580,9 +667,15 @@ class FencedActionTests(unittest.TestCase):
                     kubectl.read_bytes()
                 ).hexdigest(),
             )
-            k8s_reservation = LaunchReservation(
-                "switch-1", "launch-k8s-b", "launch-k8s-b-idem", 2, MODEL_B, GPU_UUID, k8s_auth.digest, "kubernetes", fence.controller_id, fence.generation, 100  # noqa: F405
+            k8s_machine, k8s_fence, k8s_reservation = (
+                self._machine_ready_to_launch(
+                    root / "k8s-machine",
+                    k8s_auth,
+                    operation_id="launch-k8s-b",
+                    idempotency_key="launch-k8s-b-idem",
+                )
             )
+            k8s_current = [k8s_fence]
             k8s_argv = (
                 DEFAULT_K8S_AGENT_EXECUTABLE,
                 "launch",
@@ -672,11 +765,17 @@ class FencedActionTests(unittest.TestCase):
                     ),
                 }
             )
-            k8s_executor = self._executor(root / "k8s", k8s_auth, k8s_runner, current)
+            k8s_executor = self._executor(
+                root / "k8s",
+                k8s_auth,
+                k8s_runner,
+                k8s_current,
+                machine=k8s_machine,
+            )
             k8s_envelope = self._envelope(
                 signer=signer,
                 authority=k8s_auth,
-                fence=fence,
+                fence=k8s_fence,
                 argv=k8s_argv,
                 sequence=1,
                 operation="launch-runtime",
@@ -702,8 +801,8 @@ class FencedActionTests(unittest.TestCase):
                 GPU_UUID,  # noqa: F405
                 k8s_auth.digest,
                 "kubernetes",
-                fence.controller_id,
-                fence.generation,
+                k8s_fence.controller_id,
+                k8s_fence.generation,
                 101,
             )
             k8s_argv_2 = (
@@ -730,7 +829,7 @@ class FencedActionTests(unittest.TestCase):
             wrong_cluster = self._envelope(
                 signer=signer,
                 authority=k8s_auth,
-                fence=fence,
+                fence=k8s_fence,
                 argv=k8s_argv_2,
                 sequence=2,
                 operation="launch-runtime",
@@ -747,16 +846,98 @@ class FencedActionTests(unittest.TestCase):
                 ).launch(wrong_cluster, k8s_reservation_2)
             self.assertNotIn(k8s_argv_2, k8s_runner.calls[before:])
 
-    def test_receiving_agent_refuses_second_valid_launch_before_physical_dispatch(self) -> None:
+    def test_node_local_direct_launch_cannot_bypass_serving_a(self) -> None:
         authority = node_authority()  # noqa: F405
-        fence = ControllerFence("controller-1", 1)
         signer = ControllerCommandSigner(  # noqa: F405
             signer_id="controller-signer", key=CONTROLLER_KEY
         )
-        first = LaunchReservation(
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            machine, fence, _, _ = self._new_machine(
+                root / "machine", authority
+            )
+            active = runtime(  # noqa: F405
+                MODEL_A,
+                1,
+                operation_id="bootstrap-a",
+                suffix="bootstrap-node-local-bypass",
+                authority=authority,
+            )
+            forged = LaunchReservation(
+                "switch-1",
+                "caller-made-node-launch",
+                "caller-made-node-launch-idem",
+                2,
+                MODEL_B,  # noqa: F405
+                GPU_UUID,  # noqa: F405
+                authority.digest,
+                "node-local",
+                fence.controller_id,
+                fence.generation,
+                active.process_start_ticks + 1,
+            )
+            argv = (
+                DEFAULT_NODE_AGENT_EXECUTABLE,
+                "launch",
+                "--operation-id",
+                forged.operation_id,
+                "--generation",
+                str(forged.runtime_generation),
+                "--gpu-uuid",
+                forged.gpu_uuid,
+                "--artifact-sha256",
+                forged.model.artifact_sha256,
+            )
+            runner = FakeRunner({argv: result(argv)})
+            executor = self._executor(
+                root / "receiver",
+                authority,
+                runner,
+                [fence],
+                machine=machine,
+            )
+            self.assertEqual(
+                ActionJournal(root / "receiver" / "journal.json").load()[
+                    "occupancy"
+                ],
+                {},
+            )
+            machine.install_serving_a(fence, active)
+            envelope = self._envelope(
+                signer=signer,
+                authority=authority,
+                fence=fence,
+                argv=argv,
+                sequence=1,
+                operation="launch-runtime",
+                subject=forged.digest,
+                idem=forged.idempotency_key,
+            )
+            with self.assertRaisesRegex(
+                ProofRejected, "durable state-machine launch state"
+            ):
+                NodeLocalActions(executor).launch(envelope, forged)
+            self.assertEqual(runner.calls, [])
+            snapshot = machine.snapshot()
+            occupant = ActionJournal(root / "receiver" / "journal.json").load()[
+                "occupancy"
+            ][GPU_UUID]  # noqa: F405
+            self.assertEqual(occupant["source_kind"], "bootstrap-runtime")
+            self.assertEqual(occupant["operation_id"], active.launch_operation_id)
+            self.assertEqual(occupant["runtime_generation"], 1)
+            self.assertEqual(occupant["state_machine_revision"], snapshot.revision)
+            self.assertEqual(
+                occupant["state_machine_transition_sha256"],
+                snapshot.transitions[-1].record_sha256,
+            )
+
+    def test_launch_without_machine_snapshot_authority_fails_closed(self) -> None:
+        authority = node_authority()  # noqa: F405
+        fence = ControllerFence("controller-1", 1)
+        reservation = LaunchReservation(
             "switch-1",
-            "launch-b-first",
-            "launch-b-first-idem",
+            "unjoined-launch",
+            "unjoined-launch-idem",
             2,
             MODEL_B,  # noqa: F405
             GPU_UUID,  # noqa: F405
@@ -766,18 +947,217 @@ class FencedActionTests(unittest.TestCase):
             fence.generation,
             100,
         )
-        second = LaunchReservation(
-            "switch-1",
-            "launch-b-second",
-            "launch-b-second-idem",
-            3,
-            MODEL_B,  # noqa: F405
-            GPU_UUID,  # noqa: F405
-            authority.digest,
-            "node-local",
-            fence.controller_id,
-            fence.generation,
-            101,
+        argv = (
+            DEFAULT_NODE_AGENT_EXECUTABLE,
+            "launch",
+            "--operation-id",
+            reservation.operation_id,
+            "--generation",
+            str(reservation.runtime_generation),
+            "--gpu-uuid",
+            reservation.gpu_uuid,
+            "--artifact-sha256",
+            reservation.model.artifact_sha256,
+        )
+        runner = FakeRunner({argv: result(argv)})
+        signer = ControllerCommandSigner(  # noqa: F405
+            signer_id="controller-signer", key=CONTROLLER_KEY
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            executor = self._executor(
+                Path(directory), authority, runner, [fence]
+            )
+            envelope = self._envelope(
+                signer=signer,
+                authority=authority,
+                fence=fence,
+                argv=argv,
+                sequence=1,
+                operation="launch-runtime",
+                subject=reservation.digest,
+                idem=reservation.idempotency_key,
+            )
+            with self.assertRaisesRegex(
+                ProofRejected, "lacks a durable state-machine snapshot authority"
+            ):
+                NodeLocalActions(executor).launch(envelope, reservation)
+            self.assertEqual(runner.calls, [])
+
+    def test_kubernetes_direct_launch_cannot_bypass_serving_a(self) -> None:
+        signer = ControllerCommandSigner(  # noqa: F405
+            signer_id="controller-signer", key=CONTROLLER_KEY
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            kubeconfig = root / "kubeconfig"
+            kubeconfig.write_bytes(b"fresh")
+            kubectl = root / "kubectl"
+            kubectl.write_bytes(b"pinned-test-kubectl")
+            kubectl.chmod(0o700)
+            authority = k8s_authority(  # noqa: F405
+                kubeconfig_sha256=hashlib.sha256(
+                    kubeconfig.read_bytes()
+                ).hexdigest(),
+                kubectl_executable_sha256=hashlib.sha256(
+                    kubectl.read_bytes()
+                ).hexdigest(),
+            )
+            machine, fence, _, _ = self._new_machine(
+                root / "machine", authority
+            )
+            active = runtime(  # noqa: F405
+                MODEL_A,
+                1,
+                operation_id="bootstrap-a",
+                suffix="bootstrap-k8s-bypass",
+                authority=authority,
+            )
+            forged = LaunchReservation(
+                "switch-1",
+                "caller-made-k8s-launch",
+                "caller-made-k8s-launch-idem",
+                2,
+                MODEL_B,  # noqa: F405
+                GPU_UUID,  # noqa: F405
+                authority.digest,
+                "kubernetes",
+                fence.controller_id,
+                fence.generation,
+                active.process_start_ticks + 1,
+            )
+            argv = (
+                DEFAULT_K8S_AGENT_EXECUTABLE,
+                "launch",
+                "--operation-id",
+                forged.operation_id,
+                "--generation",
+                str(forged.runtime_generation),
+                "--gpu-uuid",
+                forged.gpu_uuid,
+                "--artifact-sha256",
+                forged.model.artifact_sha256,
+                "--cluster-uid",
+                str(authority.cluster_uid),
+                "--namespace",
+                str(authority.namespace),
+            )
+            base = (
+                str(kubectl),
+                "--kubeconfig",
+                str(kubeconfig.resolve()),
+                "--context",
+                str(authority.kube_context),
+            )
+            config_cmd = (
+                *base,
+                "config",
+                "view",
+                "--minify",
+                "--raw",
+                "--output",
+                "json",
+            )
+            uid_cmd = (
+                *base,
+                "get",
+                "namespace",
+                "kube-system",
+                "--output",
+                "json",
+            )
+            node_cmd = (
+                *base,
+                "get",
+                "node",
+                authority.node_id,
+                "--output",
+                "json",
+            )
+            runner = FakeRunner(
+                {
+                    config_cmd: result(
+                        config_cmd,
+                        stdout=json.dumps(
+                            {
+                                "clusters": [
+                                    {
+                                        "cluster": {
+                                            "server": authority.api_server_url,
+                                            "certificate-authority-data": base64.b64encode(
+                                                b"test-ca"
+                                            ).decode("ascii"),
+                                        }
+                                    }
+                                ]
+                            }
+                        ),
+                    ),
+                    uid_cmd: result(
+                        uid_cmd,
+                        stdout=json.dumps(
+                            {"metadata": {"uid": authority.cluster_uid}}
+                        ),
+                    ),
+                    node_cmd: result(
+                        node_cmd,
+                        stdout=json.dumps(
+                            {
+                                "metadata": {"uid": authority.node_uid},
+                                "status": {
+                                    "nodeInfo": {
+                                        "bootID": authority.node_boot_id
+                                    }
+                                },
+                            }
+                        ),
+                    ),
+                    argv: result(argv),
+                }
+            )
+            executor = self._executor(
+                root / "receiver",
+                authority,
+                runner,
+                [fence],
+                machine=machine,
+            )
+            self.assertEqual(
+                ActionJournal(root / "receiver" / "journal.json").load()[
+                    "occupancy"
+                ],
+                {},
+            )
+            machine.install_serving_a(fence, active)
+            envelope = self._envelope(
+                signer=signer,
+                authority=authority,
+                fence=fence,
+                argv=argv,
+                sequence=1,
+                operation="launch-runtime",
+                subject=forged.digest,
+                idem=forged.idempotency_key,
+            )
+            with self.assertRaisesRegex(
+                ProofRejected, "durable state-machine launch state"
+            ):
+                KubernetesActions(
+                    executor,
+                    kubeconfig=kubeconfig,
+                    context=str(authority.kube_context),
+                    kubectl_executable=kubectl,
+                ).launch(envelope, forged)
+            self.assertNotIn(argv, runner.calls)
+            occupant = ActionJournal(root / "receiver" / "journal.json").load()[
+                "occupancy"
+            ][GPU_UUID]  # noqa: F405
+            self.assertEqual(occupant["source_kind"], "bootstrap-runtime")
+            self.assertEqual(occupant["operation_id"], active.launch_operation_id)
+
+    def test_receiving_agent_refuses_second_valid_launch_before_physical_dispatch(self) -> None:
+        authority = node_authority()  # noqa: F405
+        signer = ControllerCommandSigner(  # noqa: F405
+            signer_id="controller-signer", key=CONTROLLER_KEY
         )
 
         def launch_argv(reservation):
@@ -794,17 +1174,37 @@ class FencedActionTests(unittest.TestCase):
                 reservation.model.artifact_sha256,
             )
 
-        first_argv, second_argv = launch_argv(first), launch_argv(second)
-        # This runner would accept both. The receiver-side journal, not the
-        # physical launcher, is the exclusivity authority under test.
-        runner = FakeRunner(
-            {
-                first_argv: result(first_argv),
-                second_argv: result(second_argv),
-            }
-        )
         with tempfile.TemporaryDirectory() as directory:
-            executor = self._executor(Path(directory), authority, runner, [fence])
+            root = Path(directory)
+            machine, fence, first = self._machine_ready_to_launch(
+                root / "node-machine",
+                authority,
+                operation_id="launch-b-first",
+                idempotency_key="launch-b-first-idem",
+            )
+            second = replace(
+                first,
+                operation_id="launch-b-second",
+                idempotency_key="launch-b-second-idem",
+                runtime_generation=first.runtime_generation + 1,
+                reserved_at_ns=first.reserved_at_ns + 1,
+            )
+            first_argv, second_argv = launch_argv(first), launch_argv(second)
+            # This runner would accept both. The exact state-machine
+            # reservation and receiver journal jointly gate dispatch.
+            runner = FakeRunner(
+                {
+                    first_argv: result(first_argv),
+                    second_argv: result(second_argv),
+                }
+            )
+            executor = self._executor(
+                root,
+                authority,
+                runner,
+                [fence],
+                machine=machine,
+            )
             actions = NodeLocalActions(executor)
             first_envelope = self._envelope(
                 signer=signer,
@@ -827,7 +1227,9 @@ class FencedActionTests(unittest.TestCase):
                 idem=second.idempotency_key,
             )
             actions.launch(first_envelope, first)
-            with self.assertRaisesRegex(ProofRejected, "durable occupancy"):
+            with self.assertRaisesRegex(
+                ProofRejected, "exact durable state-machine reservation"
+            ):
                 actions.launch(second_envelope, second)
             self.assertEqual(runner.calls, [first_argv])
             journal = ActionJournal(Path(directory) / "journal.json").load()
@@ -838,8 +1240,23 @@ class FencedActionTests(unittest.TestCase):
                 journal["occupancy"][GPU_UUID]["runtime_generation"],  # noqa: F405
                 first.runtime_generation,
             )
+            authorized = machine.snapshot()
+            self.assertEqual(
+                journal["occupancy"][GPU_UUID]["source_kind"],  # noqa: F405
+                "launch-reservation",
+            )
+            self.assertEqual(
+                journal["occupancy"][GPU_UUID]["state_machine_revision"],  # noqa: F405
+                authorized.revision,
+            )
+            self.assertEqual(
+                journal["occupancy"][GPU_UUID][
+                    "state_machine_transition_sha256"
+                ],  # noqa: F405
+                authorized.transitions[-1].record_sha256,
+            )
 
-            kubeconfig = Path(directory) / "k8s-kubeconfig"
+            kubeconfig = root / "k8s-kubeconfig"
             kubeconfig.write_bytes(b"fresh")
             kubectl = Path(directory) / "k8s-kubectl"
             kubectl.write_bytes(b"pinned-test-kubectl")
@@ -852,19 +1269,18 @@ class FencedActionTests(unittest.TestCase):
                     kubectl.read_bytes()
                 ).hexdigest(),
             )
-            k8s_first = replace(
-                first,
+            k8s_machine, k8s_fence, k8s_first = self._machine_ready_to_launch(
+                root / "k8s-machine",
+                k8s_authority_value,
                 operation_id="launch-k8s-first",
                 idempotency_key="launch-k8s-first-idem",
-                authority_sha256=k8s_authority_value.digest,
-                backend="kubernetes",
             )
             k8s_second = replace(
-                second,
+                k8s_first,
                 operation_id="launch-k8s-second",
                 idempotency_key="launch-k8s-second-idem",
-                authority_sha256=k8s_authority_value.digest,
-                backend="kubernetes",
+                runtime_generation=k8s_first.runtime_generation + 1,
+                reserved_at_ns=k8s_first.reserved_at_ns + 1,
             )
             k8s_first_argv = (
                 DEFAULT_K8S_AGENT_EXECUTABLE,
@@ -951,10 +1367,11 @@ class FencedActionTests(unittest.TestCase):
                 }
             )
             k8s_executor = self._executor(
-                Path(directory) / "k8s-occupancy",
+                root / "k8s-occupancy",
                 k8s_authority_value,
                 k8s_runner,
-                [fence],
+                [k8s_fence],
+                machine=k8s_machine,
             )
             k8s_actions = KubernetesActions(
                 k8s_executor,
@@ -965,7 +1382,7 @@ class FencedActionTests(unittest.TestCase):
             k8s_first_envelope = self._envelope(
                 signer=signer,
                 authority=k8s_authority_value,
-                fence=fence,
+                fence=k8s_fence,
                 argv=k8s_first_argv,
                 sequence=1,
                 operation="launch-runtime",
@@ -975,7 +1392,7 @@ class FencedActionTests(unittest.TestCase):
             k8s_second_envelope = self._envelope(
                 signer=signer,
                 authority=k8s_authority_value,
-                fence=fence,
+                fence=k8s_fence,
                 argv=k8s_second_argv,
                 sequence=2,
                 operation="launch-runtime",
@@ -983,7 +1400,9 @@ class FencedActionTests(unittest.TestCase):
                 idem=k8s_second.idempotency_key,
             )
             k8s_actions.launch(k8s_first_envelope, k8s_first)
-            with self.assertRaisesRegex(ProofRejected, "durable occupancy"):
+            with self.assertRaisesRegex(
+                ProofRejected, "exact durable state-machine reservation"
+            ):
                 k8s_actions.launch(k8s_second_envelope, k8s_second)
             self.assertEqual(k8s_runner.calls.count(k8s_first_argv), 1)
             self.assertNotIn(k8s_second_argv, k8s_runner.calls)

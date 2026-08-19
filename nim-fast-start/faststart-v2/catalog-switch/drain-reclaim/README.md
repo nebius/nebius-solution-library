@@ -1,4 +1,4 @@
-# Generation-fenced A-to-B drain and GPU reclaim v4
+# Generation-fenced A-to-B drain and GPU reclaim v5
 
 This directory contains the backend-neutral reference implementation for
 switching one exclusively occupied GPU from model A to model B. It consumes the
@@ -11,15 +11,16 @@ authenticate to, deploy, run, benchmark, simulate, rank, or implement an
 adapter for Modal. Cerebrium is the parent program's sole external measured
 comparator and is not an adapter in this package.
 
-The v1 candidate at `34d70fd0`, v2 candidate at `6c2c06d`, and v3 candidate at
-`e2dabf7a274f9db4287553154b625f838031a009` are rejected and preserved.
-Version 4 is a fresh direct-child replacement of exact `e2dabf7a` and remains
+The v1 candidate at `34d70fd0`, v2 candidate at `6c2c06d`, v3 candidate at
+`e2dabf7a`, and v4 candidate at
+`396351565f64b20e0d59e25cd34dc5c8af73a7aa` are rejected and preserved.
+Version 5 is a fresh direct-child replacement of exact `39635156` and remains
 `independent-review-required`; passing its own tests is not approval or live
 H100 evidence.
 
 ## Delivered interfaces
 
-- `contract.json` freezes the v4 states, transitions, ten exact invariants,
+- `contract.json` freezes the v5 states, transitions, ten exact invariants,
   proof gates, prerequisite commit/tree/content hashes, resolved control/test
   bindings, and the backend scope.
 - `state_machine.py` implements durable compare-and-swap state, controller and
@@ -39,9 +40,12 @@ H100 evidence.
   key, exact runtime authority, policy hash, and source digest. The receiving
   agent independently enforces the operation/executable, artifact, and
   privilege allowlist; a valid signature alone never authorizes a command. Its
-  fsynced receiving-agent journal reserves GPU/operation/generation occupancy
-  before launch dispatch and blocks a second valid launch independently of the
-  physical runner.
+  fsynced receiving-agent journal first joins any active bootstrap runtime from
+  the complete hash-validated machine snapshot. Every launch then requires
+  `STARTING_B` or `ROLLING_BACK` and the snapshot's exact reservation and
+  controller fence; its occupancy binds the state-machine revision and
+  transition head before dispatch. Caller-made and second launches are blocked
+  independently of the physical runner.
 - `validate_contract.py` verifies contract-to-code/test equivalence and the
   exact prerequisite commit, Git tree, and content-manifest hashes. Nonempty
   prose is never treated as proof of an invariant.
@@ -88,8 +92,13 @@ reported. Its generation is retired, so a late response cannot escape.
 
 Every B or rollback-A launch has a durable reservation before any physical
 side effect. It pins the launch operation, generation, model/artifact,
-idempotency key, and exact runtime authority. The launch receipt must be issued
-by the concrete fenced adapter before a runtime can be bound. If a create/exec
+idempotency key, exact runtime authority, and controller fence. The receiving
+agent validates the complete machine hash chain and joins `active_runtime` into
+its own fsynced occupancy journal. An absent machine-snapshot authority fails
+closed. Only `STARTING_B` or `ROLLING_BACK` may dispatch, and the command must
+equal the snapshot's exact reservation; a signed caller-created reservation
+while `SERVING_A` cannot reach either backend runner. The launch receipt must
+be issued by the concrete fenced adapter before a runtime can be bound. If a create/exec
 response is lost, or the controller crashes between launch and bind, the
 reservation remains unresolved. Rollback or another generation is forbidden
 until the adapter proves exact operation/runtime absence and a new GPU-release
@@ -122,7 +131,6 @@ transition. Broker-owned placement-revocation and recycle proofs are likewise
 bound to the exact configured `resource-broker` source rather than any trusted
 key. Kubernetes evidence additionally binds an
 absolute kubeconfig hash, an absolute non-symlink `kubectl` executable and its
-content hash, context, API server URL, server-CA hash, cluster UID, namespace,
 node UID, Pod UID, and container ID. `nvidia-smi pmon` supplies observed
 graphics contexts; successful exit with empty or header-only output fails.
 Zero processes require both a parseable `gpu pid type` header and an exact
@@ -213,6 +221,8 @@ transition-detail tampering, wrong cluster/context/CA/namespace/node/boot,
 wrong node-agent authority, stale-controller side effects, command replay,
 cross-node proof re-signing by another trusted key, missing/null/non-list
 Kubernetes Pod inventories,
+node-local and Kubernetes caller-made launches while A is serving, missing
+machine-snapshot authority, exact reservation/fence mismatch,
 two valid node-local and Kubernetes launches against a runner that would accept
 both, empty/header-only graphics evidence, graphics processes,
 incomplete/full-size scrub, and full

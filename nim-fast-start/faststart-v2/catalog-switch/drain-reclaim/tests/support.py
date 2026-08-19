@@ -445,7 +445,7 @@ def acceptance_data(trace: dict) -> dict:
         "precondition": request["precondition"],
         "environment": {
             "backend": "node-vm",
-            "backend_version": "drain-reclaim-v3",
+            "backend_version": "drain-reclaim-v5",
             "provider": "local-test",
             "project_id": "local-test",
             "region": "local",
@@ -455,7 +455,7 @@ def acceptance_data(trace: dict) -> dict:
             "image_digest": None,
             "code_revision": "0" * 40,
             "config_sha256": "d" * 64,
-            "experiment_id": "drain-reclaim-v3-test",
+            "experiment_id": "drain-reclaim-v5-test",
         },
         "ownership": {
             "owner_task_id": "catalog-switch-drain-reclaim-state-machine",

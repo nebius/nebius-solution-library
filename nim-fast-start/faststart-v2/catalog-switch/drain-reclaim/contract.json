@@ -201,8 +201,11 @@
         "DrainReclaimStateMachine.begin_start_b",
         "ActionJournal.load",
         "FencedActionExecutor.execute",
+        "FencedActionExecutor.synchronize_machine_state",
+        "FencedActionExecutor._require_durable_launch_authorization",
         "KubernetesActions.launch",
-        "NodeLocalActions.launch"
+        "NodeLocalActions.launch",
+        "validate_machine_snapshot"
       ],
       "controls": [
         "CTL-19",
@@ -212,7 +215,10 @@
         "test_concurrent_duplicate_b_reserves_one_generation",
         "test_duplicate_launch_reservation_is_idempotent_and_conflict_rejects",
         "test_receiving_agent_refuses_second_valid_launch_before_physical_dispatch",
-        "test_kubernetes_adapter_pins_kubeconfig_context_cluster_ca_namespace_node"
+        "test_kubernetes_adapter_pins_kubeconfig_context_cluster_ca_namespace_node",
+        "test_node_local_direct_launch_cannot_bypass_serving_a",
+        "test_kubernetes_direct_launch_cannot_bypass_serving_a",
+        "test_launch_without_machine_snapshot_authority_fails_closed"
       ],
       "threat_tests": [
         "TST-11",
@@ -259,7 +265,7 @@
     },
     {
       "id": "DR-INV-10",
-      "statement": "Exact duplicate reservations and commands are idempotent, conflicting retries are rejected, and both node-local and exact-cluster Kubernetes receiving agents fsync GPU/operation/generation occupancy before dispatch and refuse a second valid launch before its physical runner."
+      "statement": "Exact duplicate reservations and commands are idempotent and conflicting retries are rejected; before either node-local or exact-cluster Kubernetes dispatch, the receiver validates the complete hash-bound machine snapshot, durably joins bootstrap runtime occupancy, requires STARTING_B or ROLLING_BACK plus the exact state-machine reservation and controller fence, and refuses caller-made or second launches before the physical runner."
     }
   ],
   "ledger": {
@@ -365,15 +371,25 @@
       "strict_call_order": true
     },
     "receiver_occupancy": {
+      "bootstrap_active_runtime_joined_before_command": true,
       "durable_before_dispatch": true,
+      "exact_launch_states": [
+        "ROLLING_BACK",
+        "STARTING_B"
+      ],
+      "hash_validated_machine_snapshot_required": true,
       "key_fields": [
         "gpu_uuid",
         "operation_id",
         "runtime_generation",
-        "reservation_sha256"
+        "reservation_sha256",
+        "state_machine_revision",
+        "state_machine_transition_sha256"
       ],
       "node_local_and_kubernetes": true,
-      "second_valid_launch_refused_before_runner": true
+      "reservation_and_controller_fence_exact_match": true,
+      "second_valid_launch_refused_before_runner": true,
+      "unconfigured_machine_snapshot_fails_closed": true
     },
     "kubernetes_pod_inventory": {
       "explicit_items_field": true,
@@ -383,7 +399,7 @@
       "top_level_type": "object"
     }
   },
-  "schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v4",
+  "schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v5",
   "source_contracts": {
     "request_slo_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
     "request_slo_path": "performance/request_slo",
@@ -412,7 +428,7 @@
       "TST-17"
     ]
   },
-  "state_schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v4",
+  "state_schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v5",
   "states": [
     {"admission": "closed", "name": "IDLE", "runtime": "absent"},
     {"admission": "open", "name": "SERVING_A", "runtime": "exactly-one-bootstrap-or-ledger-qualified"},
@@ -451,5 +467,5 @@
     "reject_reclaim_proof": {"from": ["RECLAIMING_A", "RECLAIMING_B"], "to": ["QUARANTINED"]},
     "seal_switch": {"from": ["SERVING_B", "ROLLBACK_SERVING"], "to": ["SERVING_A"]}
   },
-  "version": 4
+  "version": 5
 }

@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Callable, Protocol, TypeVar
 
 
-STATE_SCHEMA = "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v4"
+STATE_SCHEMA = "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v5"
 ABSENCE_SCHEMA = "archvteams.nebius.ai/catalog-switch-runtime-absence/v2"
 OPERATION_ABSENCE_SCHEMA = "archvteams.nebius.ai/catalog-switch-operation-absence/v1"
 GPU_RELEASE_SCHEMA = "archvteams.nebius.ai/catalog-switch-gpu-release/v2"
@@ -1276,7 +1276,7 @@ def _snapshot_detail(snapshot: MachineSnapshot) -> dict[str, Any]:
 def snapshot_from_dict(value: dict[str, Any]) -> MachineSnapshot:
     payload = copy.deepcopy(value)
     if payload.get("schema") != STATE_SCHEMA:
-        raise StateMachineError("state snapshot schema is not v2")
+        raise StateMachineError("state snapshot schema differs from v5")
     payload["state"] = SwitchState(payload["state"])
     payload["authority"] = RuntimeAuthority(**payload["authority"])
     payload["quarantine_old_authority"] = _authority_from(payload["quarantine_old_authority"])
@@ -2579,6 +2579,12 @@ class DrainReclaimStateMachine:
             previous = transition.record_sha256
         if snapshot.transitions and snapshot.transitions[-1].state_after != _snapshot_detail(snapshot):
             raise StateMachineError("current snapshot differs from hash-bound transition detail")
+
+
+def validate_machine_snapshot(snapshot: MachineSnapshot) -> None:
+    """Public fail-closed validator for receiving-agent state-store joins."""
+
+    DrainReclaimStateMachine._validate_snapshot(snapshot)
 
 
 STATE_SEMANTICS = {

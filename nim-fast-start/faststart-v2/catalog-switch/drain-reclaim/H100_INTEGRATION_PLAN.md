@@ -5,7 +5,7 @@ does not authorize an existing resource, does not claim that either run has
 occurred, and must be refreshed with exact immutable lease files immediately
 before live work.
 
-Both lanes are gated on fresh independent acceptance of the v4 state-machine
+Both lanes are gated on fresh independent acceptance of the v5 state-machine
 candidate and on task-owned pilot images/artifacts with pinned semantic
 validators. No live resource is created in this commit.
 
@@ -68,7 +68,13 @@ node agent over the authenticated task-local channel.
   `ActionReceipt` and independently refuses stale generation, replay, policy
   drift, or second occupancy.
 - Occupancy gate: the receiving agent must fsync GPU UUID, operation ID,
-  generation, reservation digest, and command digest before launch dispatch.
+  generation, reservation digest, command digest, state-machine revision, and
+  transition head before launch dispatch. It first hash-validates the complete
+  machine snapshot and durably seeds the active bootstrap runtime. Launch is
+  allowed only for the snapshot's exact `STARTING_B`/`ROLLING_BACK`
+  reservation and controller fence. Remove the snapshot source, and separately
+  submit a signed caller-made reservation while A serves; neither may reach the
+  runner.
   Submit a second distinct, correctly signed launch while the first remains
   occupied; the second physical runner invocation count must remain zero.
 - Evidence-authority gate: re-sign otherwise exact action, runtime-absence,
@@ -141,7 +147,9 @@ accounting, and cleanup; no row is discarded. Run at least:
 2. A request completing inside the drain window -> B;
 3. hung A crossing the deadline, timeout persistence, kill, and late-response
    rejection;
-4. duplicate B and competing controller commands, proving one physical launch;
+4. duplicate B and competing controller commands, plus signed caller-made
+   node-local and Kubernetes launches while A serves, proving one physical
+   launch and zero bypass dispatches;
 5. lost launch response before bind and controller crash after launch;
 6. B failure after a GPU process exists, exact B cleanup, separate B failure
    terminal, then a causally linked rollback-A trace;
@@ -174,7 +182,7 @@ that lane's audit segment.
 | --- | --- |
 | TST-01 GPU residue | A allocates sentinel VRAM. After exact runtime absence, run a full-total-byte scrub and two zero-process/zero-graphics/zero-byte NVML samples. B allocates all available VRAM and scans for the sentinel. Repeat after partial B launch. Any hit, short scrub, foreign context, or nonzero byte fails and quarantines. |
 | TST-02 host residue | A writes sentinels to every writable path, opens a socket, spawns a child, and creates labeled runtime objects. B plus the node agent prove no PID/cgroup/container/Pod, mount, namespace, socket, scratch, keyring, log, core, or readable sentinel remains; verify swap/core/dmesg/log-policy controls. Repeat after failed B. In Kubernetes, replace the PodList with missing, null, object, and string `items`; every form must fail closed. |
-| TST-11 occupancy and privilege | Assert the pinned capability/seccomp/namespace/mount/egress profile. While A serves, submit a second launch through placement and a different validly signed direct command. The node agent must refuse both and issue a single-occupancy receipt. |
+| TST-11 occupancy and privilege | Assert the pinned capability/seccomp/namespace/mount/egress profile. Join the hash-bound machine snapshot and prove bootstrap A appears durably in the receiver journal. While A serves, submit caller-made reservations through node-local and Kubernetes adapters, remove the snapshot source, and submit a second launch through placement. No bypass may reach the runner. After genuine `begin_start_b`, only the exact reservation/fence may dispatch and its occupancy must bind machine revision and transition head. |
 | TST-12 audit continuity | Drop a middle event, then a terminal event, and separately fail the off-node immutable write. The verifier must reject each segment, admission must remain closed, and the gap/failure must remain in the denominator. A later complete switch uses a new linked segment rather than rewriting history. |
 | TST-16 quarantine/recycle | Independently inject NVML failure, scrub failure, unkillable labeled process, unremovable mount, and receipt-write loss. Prove placement lease revocation, no new placement, old-resource deletion, replacement creation within the 30-minute control budget, changed resource and boot IDs, then full requalification before GPU_FREE. |
 | TST-17 command auth/replay | Send unsigned, altered-policy, wrong-generation, wrong-lease, wrong-node, expired, captured replay, and lower-sequence commands. Re-sign exact action/runtime/operation/GPU proofs with a second separately trusted node key. None may mutate state or call the physical runner. Then create agent/controller divergence and require detection within one controller lease plus a receipted drain to consistency. |

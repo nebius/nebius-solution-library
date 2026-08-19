@@ -83,6 +83,31 @@ class ContractEquivalenceTests(unittest.TestCase):
             ("receiver_occupancy", "durable_before_dispatch", False),
             (
                 "receiver_occupancy",
+                "bootstrap_active_runtime_joined_before_command",
+                False,
+            ),
+            (
+                "receiver_occupancy",
+                "hash_validated_machine_snapshot_required",
+                False,
+            ),
+            (
+                "receiver_occupancy",
+                "exact_launch_states",
+                ["STARTING_B"],
+            ),
+            (
+                "receiver_occupancy",
+                "reservation_and_controller_fence_exact_match",
+                False,
+            ),
+            (
+                "receiver_occupancy",
+                "unconfigured_machine_snapshot_fails_closed",
+                False,
+            ),
+            (
+                "receiver_occupancy",
                 "key_fields",
                 ["gpu_uuid", "runtime_generation"],
             ),
