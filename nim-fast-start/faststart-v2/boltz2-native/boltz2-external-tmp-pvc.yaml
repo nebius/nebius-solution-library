@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: boltz2-tmp-state-native-f7-v2
+  namespace: nim-fast-start
+  labels:
+    app.kubernetes.io/name: boltz2
+    app.kubernetes.io/component: external-tmp-state
+    app.kubernetes.io/part-of: archvteams-2407-faststart
+    archvteams.nebius.ai/state-layout: serial-seed-clone-v1
+  annotations:
+    archvteams.nebius.ai/expected-csi-driver: compute.csi.nebius.com
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      # One working tree, one immutable seed, one run clone, and one atomic
+      # partial copy fit with ample headroom.  The serial experiment must roll
+      # the run clone back before preparing the next run.
+      storage: 20Gi
+  storageClassName: compute-csi-default-sc
