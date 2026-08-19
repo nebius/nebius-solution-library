@@ -1,0 +1,19 @@
+{
+  "cloud_resources": [],
+  "cloud_scan": false,
+  "expired_lease_count": 0,
+  "leases": [
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "expired": false,
+      "expires_at": "2026-08-19T12:23:17Z",
+      "lease_id": "resource-broker-smoke-20260819",
+      "resource_ids": [],
+      "state": "PLANNED"
+    }
+  ],
+  "policy": "unregistered resources are reported for manual review and never auto-deleted",
+  "scanned_at": "2026-08-19T11:23:17Z",
+  "schema_version": "catalog-switch-orphan-scan/v1",
+  "unregistered_cloud_resource_count": 0
+}

@@ -1,0 +1,51 @@
+{
+  "delete_plan": [
+    {
+      "command": "/usr/local/bin/nebius compute instance delete computeinstance-e00ffdtdxxxq298cmk --profile sandbox",
+      "id": "computeinstance-e00ffdtdxxxq298cmk",
+      "kind": "instance"
+    },
+    {
+      "command": "VERIFY ABSENT after provider cascade from computeinstance-e00ffdtdxxxq298cmk",
+      "id": "vpcallocation-e00fcx43228nsgnqy9",
+      "kind": "allocation"
+    },
+    {
+      "command": "/usr/local/bin/nebius compute disk delete computedisk-e00vpvw5ebvnzjgsxf --profile sandbox",
+      "id": "computedisk-e00vpvw5ebvnzjgsxf",
+      "kind": "disk"
+    },
+    {
+      "command": "/usr/local/bin/nebius storage bucket delete storagebucket-e001442820741989981635 --ttl 0s --profile sandbox",
+      "id": "storagebucket-e001442820741989981635",
+      "kind": "bucket"
+    },
+    {
+      "command": "/usr/local/bin/nebius vpc security-group delete vpcsecuritygroup-e00dbs87mxsmj3xvfj --profile sandbox",
+      "id": "vpcsecuritygroup-e00dbs87mxsmj3xvfj",
+      "kind": "security_group"
+    },
+    {
+      "command": "/usr/local/bin/nebius vpc subnet delete vpcsubnet-e00hjndwtftrka2rnd --profile sandbox",
+      "id": "vpcsubnet-e00hjndwtftrka2rnd",
+      "kind": "subnet"
+    },
+    {
+      "command": "/usr/local/bin/nebius vpc network delete vpcnetwork-e00gwkt616x6451rp8 --profile sandbox",
+      "id": "vpcnetwork-e00gwkt616x6451rp8",
+      "kind": "network"
+    },
+    {
+      "command": "VERIFY ABSENT after provider cascade from vpcnetwork-e00gwkt616x6451rp8",
+      "id": "vpcpool-e00nd4esyw6566rz2z",
+      "kind": "pool"
+    },
+    {
+      "command": "VERIFY ABSENT after provider cascade from vpcnetwork-e00gwkt616x6451rp8",
+      "id": "vpcroutetable-e00bc5eg7p4rwe2fp4",
+      "kind": "route_table"
+    }
+  ],
+  "lease_id": "resource-broker-smoke3-20260819",
+  "mode": "DRY_RUN"
+}
