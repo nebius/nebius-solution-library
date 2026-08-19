@@ -8,6 +8,15 @@ C="$EV/canary"
 NS=nim-fast-start
 REPO=/home/tux/releases/agent-task-deck-20260804091844/data/worktrees/boltz2-under-20-optimization/nim-fast-start/faststart-v2/boltz2-native
 RUN_ID=${1:?run id required}
+COHORT_ID=${2:-}
+ATTEMPT_INDEX=${3:-}
+ATTEMPT_LEDGER=${4:-}
+IC_SHA=${5:-}
+COHORT_ARGS=()
+if [ -n "$COHORT_ID" ]; then
+  COHORT_ARGS=(--cohort-id "$COHORT_ID" --attempt-index "$ATTEMPT_INDEX" \
+    --attempt-ledger "$ATTEMPT_LEDGER" --instrumentation-contract-sha256 "$IC_SHA")
+fi
 mkdir -p "$C/runs" "$C/lifecycle/$RUN_ID"
 L="$C/lifecycle/$RUN_ID"
 DONOR_UID=$(python3 -c "import json;print(json.load(open('$F/donor-pod.json'))['metadata']['uid'])")
@@ -123,6 +132,14 @@ PY
 fi
 
 echo "== step 5: production-shaped trial =="
+# Warm the API exec channel to the anchor holder immediately before the
+# driver runs: the boot-time anchor's kubectl exec must fit a 1.25 s
+# controller budget, and a channel gone cold during the multi-minute clone
+# copy intermittently exceeds it. This precedes T0 and is not part of the
+# reported metric.
+for i in 1 2 3; do
+  kubectl exec -n "$NS" b2x-artifact-holder-t12 -- /bin/true >/dev/null 2>&1
+done
 "$REPO/run_one_external_tmp_trial.sh" \
   --run-id "$RUN_ID" \
   --evidence-root "$C" \
@@ -131,7 +148,7 @@ echo "== step 5: production-shaped trial =="
   --artifact-holder b2x-artifact-holder-t12 \
   --cache-holder boltz2-cache-holder-r3-t12 \
   --external-tmp-fields "$L/external-tmp-fields.json" \
-  --cleanup || fail "trial"
+  --cleanup "${COHORT_ARGS[@]}" || fail "trial"
 echo "trial complete"
 
 echo "== step 6: delete authorization + clone deletion =="
