@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nebius.example/schemas/catalog-switch-review-records-v1.json",
+  "title": "Immutable catalog-switch review record bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "captured_at",
+    "base_evidence_commit",
+    "source_snapshots",
+    "records",
+    "raw_observations"
+  ],
+  "properties": {
+    "$schema": {"const": "./review-records.v1.schema.json"},
+    "schema_version": {"const": "catalog-switch-review-records/v1"},
+    "captured_at": {"type": "string", "format": "date-time"},
+    "base_evidence_commit": {
+      "const": "7dc39ea7903c8aa19fe8a8269ab435268a7ae4b7"
+    },
+    "source_snapshots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/sourceSnapshot"}
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/record"}
+    },
+    "raw_observations": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/rawObservation"}
+    }
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "sourceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source_system",
+        "source_locator",
+        "source_file_sha256",
+        "source_updated_at",
+        "captured_excerpt"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^SRC-[A-Z0-9-]+$"},
+        "source_system": {"enum": ["agent-task-deck", "manager-exact-review"]},
+        "source_locator": {"type": "string", "minLength": 1},
+        "source_file_sha256": {
+          "oneOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]
+        },
+        "source_updated_at": {
+          "oneOf": [{"type": "string", "format": "date-time"}, {"type": "null"}]
+        },
+        "captured_excerpt": {"type": "string", "minLength": 1}
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "subject_commit",
+        "disposition",
+        "authority_claim",
+        "authority_proven",
+        "positive_acceptance_eligible",
+        "reviewed_at",
+        "source_snapshot_id",
+        "findings"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^RR1-[A-Z0-9-]+$"},
+        "subject_commit": {"$ref": "#/$defs/sha"},
+        "disposition": {
+          "enum": [
+            "accepted",
+            "accepted-limited",
+            "rejected",
+            "changes-requested",
+            "pending",
+            "provenance-unverified",
+            "reference-only"
+          ]
+        },
+        "authority_claim": {
+          "enum": [
+            "independent-review",
+            "manager-exact-review",
+            "task-owner-status",
+            "documentation"
+          ]
+        },
+        "authority_proven": {"type": "boolean"},
+        "positive_acceptance_eligible": {"type": "boolean"},
+        "reviewed_at": {
+          "oneOf": [{"type": "string", "format": "date-time"}, {"type": "null"}]
+        },
+        "source_snapshot_id": {"type": "string", "pattern": "^SRC-[A-Z0-9-]+$"},
+        "findings": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "rawObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "record_id",
+        "reported_bytes",
+        "reported_elapsed_seconds_range",
+        "raw_receipt_paths",
+        "raw_receipt_sha256",
+        "source_join_status",
+        "numeric_claim_admissible"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^OBS-[A-Z0-9-]+$"},
+        "record_id": {"type": "string", "pattern": "^RR1-[A-Z0-9-]+$"},
+        "reported_bytes": {"type": "integer", "minimum": 0},
+        "reported_elapsed_seconds_range": {
+          "type": "array",
+          "prefixItems": [
+            {"type": "number", "minimum": 0},
+            {"type": "number", "minimum": 0}
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "raw_receipt_paths": {"const": []},
+        "raw_receipt_sha256": {"const": []},
+        "source_join_status": {"const": "missing-raw-receipt-source-join"},
+        "numeric_claim_admissible": {"const": false}
+      }
+    }
+  }
+}

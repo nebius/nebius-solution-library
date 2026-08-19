@@ -1,0 +1,447 @@
+{
+  "$schema": "./review-records.v1.schema.json",
+  "schema_version": "catalog-switch-review-records/v1",
+  "captured_at": "2026-08-19T17:35:00Z",
+  "base_evidence_commit": "7dc39ea7903c8aa19fe8a8269ab435268a7ae4b7",
+  "source_snapshots": [
+    {
+      "id": "SRC-MANAGER-7DC",
+      "source_system": "manager-exact-review",
+      "source_locator": "manager review supplied to catalog-switch-integrated-architecture-adr",
+      "source_file_sha256": null,
+      "source_updated_at": "2026-08-19T17:30:00Z",
+      "captured_excerpt": "Exact review provisionally REJECTS 7dc39ea7: structural zero-cohort/null-winner/Modal-docs-only claims are honest, but review provenance is self-asserted. validate_evidence_index hashes candidate blobs yet trusts verdict/authority/timestamp/reasons from JSON; task-deck:// review_reference values are never resolved or hashed. Boltz 440-442s/1,826,220,898-byte observation lacks raw receipt/source join. Snapshot 17:05 predates and omits known K8s/storage adverse findings logged before seal. Preserve 7dc; fresh child must content/commit-bind review records and refresh complete negative evidence. No live."
+    },
+    {
+      "id": "SRC-METRIC",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-request-slo-harness/task.md",
+      "source_file_sha256": "7e177094fa365c72bef29db8c0c83c3006cb4c6ec89ac45c639a23d46ad503c7",
+      "source_updated_at": "2026-08-19T11:26:15.550Z",
+      "captured_excerpt": "Commit ba49c9e2 is pushed and ready for boundary review; downstream live experiments remain gated on that review. The task record does not contain a separately committed independent acceptance record."
+    },
+    {
+      "id": "SRC-CATALOG",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-model-inventory/task.md",
+      "source_file_sha256": "bcf32a1bbe51bd6fea38eaf066cbd2a28b3021793f1462efa38b739c74ed13b2",
+      "source_updated_at": "2026-08-19T14:16:35.614Z",
+      "captured_excerpt": "Manager reconciled the stale Task Deck card with commit 9abd4920, 220 rows / 171 canonical models, 18/18 tests, and no live resources. No separately committed independent acceptance record is named."
+    },
+    {
+      "id": "SRC-SECURITY",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-security-reliability/task.md",
+      "source_file_sha256": "b936d418c8870926dd1bd02ecef55350fe149ffc502e56ec79ec8399d386b82b",
+      "source_updated_at": "2026-08-19T14:25:47.549Z",
+      "captured_excerpt": "The task record states that a fresh-context adversarial subagent reviewed the threat model and all findings were closed, but the evidence index linked only the mutable task record and did not bind a separately committed reviewer-authored acceptance record."
+    },
+    {
+      "id": "SRC-BROKER",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-resource-broker/task.md",
+      "source_file_sha256": "ab461676243d26408ce64ae733bb4c6fd560e642d70180cc0860b9fa2148d7a3",
+      "source_updated_at": "2026-08-19T17:33:54.268Z",
+      "captured_excerpt": "Review rejected d40b6478 for self-asserted runner authority, cross-lease replay, forged cleanup of a still-live resource, missing public-interface inspection, and authentication-as-absence. Review later rejected 420de387 because the private-runner attestation was not bound to the sealed broker commit or executing source."
+    },
+    {
+      "id": "SRC-K8S",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-k8s-baseline/task.md",
+      "source_file_sha256": "7e87b06a9b6864c7f9ba9ce7188d8c70dc9e4cdf130f7ae47092ea0ea1484588",
+      "source_updated_at": "2026-08-19T17:34:17.472Z",
+      "captured_excerpt": "Exact 4e63e8dd review found a timing-sensitive canonical suite, mutable trace/lease reopen drift, promotion after a raw failed stratum, Kubernetes empty-object inventory accepted as zero Pods, a one-byte full-VRAM-zero claim without exact binding, a future-dated ACTIVE credential receipt, and false wording that Cerebrium was measured."
+    },
+    {
+      "id": "SRC-NODE",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-node-local-runtime/task.md",
+      "source_file_sha256": "d8b51a9f269ab2af4b06c22b6b13d003f18c3bbe476d07b71075f34283a46f62",
+      "source_updated_at": "2026-08-19T17:26:41.868Z",
+      "captured_excerpt": "Reviews rejected f4c9c188 because production did not import its standalone supervisor, 6246c6ed because it was another disconnected implementation with fabricated receipts and no OCI/containerd path, and 43026448 because it called only T0 ingestion while bypassing Supervisor.run through fabricated adapters and caller-authoritative state. The canonical 23-test core suite was also red."
+    },
+    {
+      "id": "SRC-DRAIN",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-drain-reclaim-state-machine/task.md",
+      "source_file_sha256": "83c56a5439afddb307fbe6673632446a053528e7e75f9b89755cc29669512881",
+      "source_updated_at": "2026-08-19T17:33:08.049Z",
+      "captured_excerpt": "Review rejected 34d70fd0 for optional ledger, unbound GPU scrub, unsafe partial-B rollback, and missing Kubernetes integration; e2dabf7a for accepting Kubernetes inventory without items and a signer not equal to exact runtime authority; and 39635156 for unjoined receiver occupancy, fabricated rollback T0, and mutable parsed validator state. e365f4e7 is pending fresh review."
+    },
+    {
+      "id": "SRC-SNAPSHOT",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-snapshot-eligibility/task.md",
+      "source_file_sha256": "57a0b7773896d2d59655fe3444406d8d9dacd3039590618703fc1da74f2aab3f",
+      "source_updated_at": "2026-08-19T17:22:48.294Z",
+      "captured_excerpt": "Review rejected f5f2706a for weakened new-node evidence and other scope gaps, 71e15616 for accepting all-zero image digests from n20 TSVs with no image column, and 3af2e7a9 because unrelated Markdown sections could satisfy cohort-plus-digest token checks. 2a70321e is pending fresh review."
+    },
+    {
+      "id": "SRC-COST",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-capacity-cost-model/task.md",
+      "source_file_sha256": "f4ac1cd1d6e047e52a2a4bd9fb2a5de8ad3df522f7332b4cad5b9e5fbc2abafa",
+      "source_updated_at": "2026-08-19T17:17:29.277Z",
+      "captured_excerpt": "Review rejected 2bc0f760 because intermediate q6 rounding changed strategy selection and traffic arithmetic while relocation variants were incomplete. Review rejected 6310caf6 because incomplete Boltz subtotals and rendered labels still claimed fully_loaded. b52ae52b is pending fresh review."
+    },
+    {
+      "id": "SRC-QWEN",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-cerebrium-qwen3-glm52-benchmark/task.md",
+      "source_file_sha256": "fe2118db2d54db8929fa86ec069f8d5bdd69d44350ed6c5e5136062a4f576b87",
+      "source_updated_at": "2026-08-19T17:34:18.445Z",
+      "captured_excerpt": "Review rejected 27c28e20 for a bearer-forgeable gate, foreign/open network acceptance, response-lost create escaping the ledger, and ordinal reuse. Review rejected 548a7bf1 because the application listener starts before bootstrap egress is narrowed. All leases remain planned with zero resources."
+    },
+    {
+      "id": "SRC-STORAGE",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-storage-cache-matrix/task.md",
+      "source_file_sha256": "e978ee13dc46c16ab6a478a1d4d2af0702c17966e2eae5811f30d8c1c9ba0e85",
+      "source_updated_at": "2026-08-19T17:30:50.836Z",
+      "captured_excerpt": "Independent exact review rejected 75e3b1fa for missing all-attempt denominator, cross-clock causality, trace scenario/source/success binding, physical-byte reconciliation, authoritative operation and cleanup evidence, physical storage identity, dirty-generation ownership, reviewed-commit enforcement, and a mislabeled 220-row canonical projection. 999f1bf6 is pending fresh review. The reported Boltz copy/hash numbers have no raw attempt receipts in the package."
+    },
+    {
+      "id": "SRC-MODAL",
+      "source_system": "agent-task-deck",
+      "source_locator": "data/epics/ml-specialist-tasks/tasks/catalog-switch-modal-pilot/task.md",
+      "source_file_sha256": "2d838392f537a3c032f2b7bf0f528abff9a75069978fd74c9e133ebcc5b6a80b",
+      "source_updated_at": "2026-08-19T14:25:47.280Z",
+      "captured_excerpt": "Manager scope marks Modal documentation-only. No Modal app, benchmark, measured cohort, score, or spend is permitted."
+    }
+  ],
+  "records": [
+    {
+      "id": "RR1-INDEX-7DC-REJECTED",
+      "subject_commit": "7dc39ea7903c8aa19fe8a8269ab435268a7ae4b7",
+      "disposition": "rejected",
+      "authority_claim": "manager-exact-review",
+      "authority_proven": true,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:30:00Z",
+      "source_snapshot_id": "SRC-MANAGER-7DC",
+      "findings": [
+        "Review verdict, authority, timestamp, and reasons were trusted from evidence JSON.",
+        "Task Deck review references were neither resolved nor content-hashed.",
+        "The negative snapshot omitted K8s, storage, node, snapshot, and cost findings already known before seal.",
+        "The Boltz preparation observation lacked a raw receipt and source join."
+      ]
+    },
+    {
+      "id": "RR1-METRIC-BA49-PROVENANCE-UNVERIFIED",
+      "subject_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
+      "disposition": "provenance-unverified",
+      "authority_claim": "task-owner-status",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": null,
+      "source_snapshot_id": "SRC-METRIC",
+      "findings": ["No independently authored, committed acceptance record is bound to the exact commit."]
+    },
+    {
+      "id": "RR1-CATALOG-9ABD-PROVENANCE-UNVERIFIED",
+      "subject_commit": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
+      "disposition": "provenance-unverified",
+      "authority_claim": "task-owner-status",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": null,
+      "source_snapshot_id": "SRC-CATALOG",
+      "findings": ["Manager reconciliation is not an independently authored, committed acceptance record."]
+    },
+    {
+      "id": "RR1-SECURITY-9CFB-PROVENANCE-UNVERIFIED",
+      "subject_commit": "9cfbc1b1311a1f784a407889b215aaec5200fe0e",
+      "disposition": "provenance-unverified",
+      "authority_claim": "task-owner-status",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": null,
+      "source_snapshot_id": "SRC-SECURITY",
+      "findings": ["The review claim exists in owner-controlled artifacts but no separately committed reviewer-authored acceptance record is bound by the index."]
+    },
+    {
+      "id": "RR1-BROKER-2291-PROVENANCE-UNVERIFIED",
+      "subject_commit": "229101bb5430143e78c4bc796b30715a2a0a14df",
+      "disposition": "provenance-unverified",
+      "authority_claim": "task-owner-status",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": null,
+      "source_snapshot_id": "SRC-BROKER",
+      "findings": ["The v1 broker result has no separately committed reviewer-authored acceptance record bound by the index."]
+    },
+    {
+      "id": "RR1-PREPARED-0180-PROVENANCE-UNVERIFIED",
+      "subject_commit": "0180915001fff47fbed0f82292fe32edc40e40ea",
+      "disposition": "provenance-unverified",
+      "authority_claim": "task-owner-status",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": null,
+      "source_snapshot_id": "SRC-STORAGE",
+      "findings": ["Prepared-stage files remain source evidence only; the evidence-index review disposition was not backed by a committed reviewer record."]
+    },
+    {
+      "id": "RR1-DRAIN-34D-REJECTED",
+      "subject_commit": "34d70fd0b4c84ddd2375a9db1ec9d9961f4aa5be",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T14:49:00Z",
+      "source_snapshot_id": "SRC-DRAIN",
+      "findings": ["Canonical ledger optional; GPU scrub cross-binding absent; partial-B rollback ambiguous; physical Kubernetes/H100 integration missing."]
+    },
+    {
+      "id": "RR1-SNAPSHOT-F5F-REJECTED",
+      "subject_commit": "f5f2706a432bcc7795e51ab69fb64cd2e45ee2a2",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T14:48:00Z",
+      "source_snapshot_id": "SRC-SNAPSHOT",
+      "findings": ["New-node evidence was weakened and topology, interface pins, and per-model proof remained incomplete."]
+    },
+    {
+      "id": "RR1-BROKER-D40-REJECTED",
+      "subject_commit": "d40b6478275d5d5545786d5a3bf69ae46fe22c32",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:01:00Z",
+      "source_snapshot_id": "SRC-BROKER",
+      "findings": ["Self-asserted runner authority; cross-lease replay; forged cleanup of a still-live resource; public-interface inspection absent; authentication failure accepted as absence."]
+    },
+    {
+      "id": "RR1-BROKER-420D-REJECTED",
+      "subject_commit": "420de38752da1708f52b7e7f68486cb9debf923d",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:31:00Z",
+      "source_snapshot_id": "SRC-BROKER",
+      "findings": ["Private-runner attestation was not bound to the sealed broker commit, tree, executing source, or runner bytes; an unrelated signed source reached fake creates."]
+    },
+    {
+      "id": "RR1-K8S-4E63-REJECTED",
+      "subject_commit": "4e63e8dde2c2df79ee2c1a11fb850de25b6993cb",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:07:00Z",
+      "source_snapshot_id": "SRC-K8S",
+      "findings": [
+        "Canonical suite was timing-sensitive rather than deterministic.",
+        "Reopened trace and lease bytes were not rehashed, allowing target and resource drift.",
+        "A self-asserted qualification could promote a raw failed stratum.",
+        "Kubernetes empty-object inventory was treated as an empty Pod list.",
+        "One scrubbed byte could satisfy a full-VRAM-zero claim without exact runtime binding.",
+        "A future-dated ACTIVE credential receipt was accepted.",
+        "Documentation falsely described Cerebrium as measured although it has zero cohorts."
+      ]
+    },
+    {
+      "id": "RR1-NODE-F4C9-REJECTED",
+      "subject_commit": "f4c9c1886ddd9c0bc04bd5804c348402ee429066",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T16:05:00Z",
+      "source_snapshot_id": "SRC-NODE",
+      "findings": ["The replacement supervisor was standalone and disconnected from the executable production path."]
+    },
+    {
+      "id": "RR1-NODE-6246-REJECTED",
+      "subject_commit": "6246c6ed2b6d13282d0c483aff258cb27786f305",
+      "disposition": "rejected",
+      "authority_claim": "manager-exact-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:00:00Z",
+      "source_snapshot_id": "SRC-NODE",
+      "findings": ["Another disconnected implementation fabricated receipts, never invoked OCI/containerd, and omitted fail-path cleanup."]
+    },
+    {
+      "id": "RR1-NODE-4302-REJECTED",
+      "subject_commit": "43026448ff4f9a3ac65c006d1ef7dd6c0f774fd8",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:17:00Z",
+      "source_snapshot_id": "SRC-NODE",
+      "findings": ["Execution bypassed Supervisor.run through fake adapters and caller state, cleanup evidence was absent, non-fake OCI did not exist, and the canonical suite was red."]
+    },
+    {
+      "id": "RR1-DRAIN-E2DA-REJECTED",
+      "subject_commit": "e2dabf7a274f9db4287553154b625f838031a009",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T16:57:00Z",
+      "source_snapshot_id": "SRC-DRAIN",
+      "findings": ["Kubernetes inventory without a list-valued items field was accepted as absence, and proof signer identity was not equal to exact runtime authority."]
+    },
+    {
+      "id": "RR1-DRAIN-3963-REJECTED",
+      "subject_commit": "396351565f64b20e0d59e25cd34dc5c8af73a7aa",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:22:00Z",
+      "source_snapshot_id": "SRC-DRAIN",
+      "findings": ["Receiver occupancy was not joined to authoritative serving-A state; rollback could use fabricated scalar T0; mutable parsed validator state could change semantics after source hashing."]
+    },
+    {
+      "id": "RR1-DRAIN-E365-PENDING",
+      "subject_commit": "e365f4e7dadb97d976649eb254d9c1d2cde53427",
+      "disposition": "pending",
+      "authority_claim": "task-owner-status",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": null,
+      "source_snapshot_id": "SRC-DRAIN",
+      "findings": ["Fresh v5 replacement is awaiting exact independent review and has no live evidence."]
+    },
+    {
+      "id": "RR1-SNAPSHOT-71E1-REJECTED",
+      "subject_commit": "71e15616a745a747368d3b58d572432b416124cc",
+      "disposition": "rejected",
+      "authority_claim": "manager-exact-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T16:53:00Z",
+      "source_snapshot_id": "SRC-SNAPSHOT",
+      "findings": ["All-zero Boltz2 and OpenFold2 catalog image digests passed because n20 TSVs without an image column were treated as digest evidence."]
+    },
+    {
+      "id": "RR1-SNAPSHOT-3AF2-REJECTED",
+      "subject_commit": "3af2e7a9a04e6740efd985870ed6ae1c37cb18a6",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:11:00Z",
+      "source_snapshot_id": "SRC-SNAPSHOT",
+      "findings": ["Cross-section Markdown token presence allowed unrelated cohort and digest text to satisfy the purported receipt join."]
+    },
+    {
+      "id": "RR1-SNAPSHOT-2A70-PENDING",
+      "subject_commit": "2a70321e11e4f1b46dcfb17a873b69bf35408012",
+      "disposition": "pending",
+      "authority_claim": "task-owner-status",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": null,
+      "source_snapshot_id": "SRC-SNAPSHOT",
+      "findings": ["Structured-join replacement is awaiting exact independent review; per-run machine image receipts remain missing."]
+    },
+    {
+      "id": "RR1-COST-2BC0-REJECTED",
+      "subject_commit": "2bc0f76044e9e2e960c2519cce260d36aa23331f",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:01:00Z",
+      "source_snapshot_id": "SRC-COST",
+      "findings": ["Intermediate rounding changed strategy selection and traffic arithmetic; pessimistic billed/free relocation variants were missing."]
+    },
+    {
+      "id": "RR1-COST-6310-REJECTED",
+      "subject_commit": "6310caf6e1a41f4b178a60b569f316e3ed99bc7e",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:12:00Z",
+      "source_snapshot_id": "SRC-COST",
+      "findings": ["Incomplete Boltz subtotals remained structurally and textually labeled fully_loaded."]
+    },
+    {
+      "id": "RR1-COST-B52A-PENDING",
+      "subject_commit": "b52ae52bcd5d39fd680173ee96bda973d3f50c7c",
+      "disposition": "pending",
+      "authority_claim": "task-owner-status",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": null,
+      "source_snapshot_id": "SRC-COST",
+      "findings": ["Renamed completeness model is awaiting exact independent review and no cost result is promoted."]
+    },
+    {
+      "id": "RR1-QWEN-27C2-REJECTED",
+      "subject_commit": "27c28e20e89193f3865b5aadf805d0e735f4e20e",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T16:50:00Z",
+      "source_snapshot_id": "SRC-QWEN",
+      "findings": ["Client bearer could forge the gate; foreign/open network attachment passed; response-lost create escaped the ledger; ordinal reuse was admitted."]
+    },
+    {
+      "id": "RR1-QWEN-548A-REJECTED",
+      "subject_commit": "548a7bf1ce5f6ed5caa0e17f04b4afa4585079f9",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:33:00Z",
+      "source_snapshot_id": "SRC-QWEN",
+      "findings": ["The application listener starts while broad bootstrap egress remains, before broker narrowing and the runtime gate."]
+    },
+    {
+      "id": "RR1-STORAGE-75E3-REJECTED",
+      "subject_commit": "75e3b1faabc53a0c621d6efee84bd5b277bbc8bd",
+      "disposition": "rejected",
+      "authority_claim": "independent-review",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T17:08:00Z",
+      "source_snapshot_id": "SRC-STORAGE",
+      "findings": ["Missing all-attempt denominator, one-clock causality, trace scenario/source/success joins, physical-byte reconciliation, authoritative operation and cleanup evidence, physical identity, dirty-generation ownership, reviewed-commit enforcement, and canonical-only projection labeling."]
+    },
+    {
+      "id": "RR1-STORAGE-999F-PENDING",
+      "subject_commit": "999f1bf67082da618fdc949cde82384f9255af12",
+      "disposition": "pending",
+      "authority_claim": "task-owner-status",
+      "authority_proven": false,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": null,
+      "source_snapshot_id": "SRC-STORAGE",
+      "findings": ["Offline review-fix package is awaiting exact independent review; no live storage cohort exists."]
+    },
+    {
+      "id": "RR1-MODAL-530F-REFERENCE",
+      "subject_commit": "530fa21207d6d716e441b2494c1389a7fa3dba3b",
+      "disposition": "reference-only",
+      "authority_claim": "documentation",
+      "authority_proven": true,
+      "positive_acceptance_eligible": false,
+      "reviewed_at": "2026-08-19T14:25:00Z",
+      "source_snapshot_id": "SRC-MODAL",
+      "findings": ["Modal remains documentation-only with no measured cohort, score, rank, deployment, or spend."]
+    }
+  ],
+  "raw_observations": [
+    {
+      "id": "OBS-BOLTZ-PRE-T0-COPY-HASH",
+      "record_id": "RR1-STORAGE-75E3-REJECTED",
+      "reported_bytes": 1826220898,
+      "reported_elapsed_seconds_range": [440, 442],
+      "raw_receipt_paths": [],
+      "raw_receipt_sha256": [],
+      "source_join_status": "missing-raw-receipt-source-join",
+      "numeric_claim_admissible": false
+    }
+  ]
+}
