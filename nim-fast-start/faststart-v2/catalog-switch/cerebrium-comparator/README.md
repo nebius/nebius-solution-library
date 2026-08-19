@@ -1,10 +1,5 @@
 # Cerebrium Qwen3 / GLM-5.2 comparator
 
-The internal Qwen network/bootstrap candidate is frozen at
-`PRE-CREATION REVIEW`; see `PRE_CREATION_REVIEW.md`. It cannot create resources
-without a separate independent clearance receipt bound to the candidate digest
-and reviewed commit.
-
 This lane is a fail-closed scientific comparator for Cerebrium and fresh,
 broker-owned Nebius resources. It deliberately does **not** claim to reproduce
 a public Cerebrium Qwen3-8B result: no authoritative source for that exact
