@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import io
 import json
 import tempfile
 import unittest
@@ -16,10 +17,10 @@ SPEC.loader.exec_module(comparator)
 
 
 class FakeResponse:
-    status = 200
-
-    def __init__(self, lines):
-        self.lines = iter(lines)
+    def __init__(self, lines, *, headers=None, status=200):
+        self.status = status
+        self.headers = headers or {}
+        self.stream = io.BytesIO(b"".join(lines))
 
     def __enter__(self):
         return self
@@ -28,7 +29,10 @@ class FakeResponse:
         return False
 
     def readline(self):
-        return next(self.lines, b"")
+        return self.stream.readline()
+
+    def read(self, size=-1):
+        return self.stream.read(size)
 
 
 def sse(*chunks):
@@ -66,6 +70,23 @@ def backend(*, gpu_type="H100", gpu_count=1):
                 "dedicated": True,
             }
         ],
+        "broker_evidence": {
+            "authorization_sha256": "1" * 64,
+            "clearance_expires_at": "2026-08-19T17:00:00Z",
+            "health_proof_sha256": "2" * 64,
+            "instance_id": "computeinstance-task-owned",
+            "isolation_proof_sha256": "3" * 64,
+            "lease_id": comparator.QWEN_V4_LEASE_ID,
+            "lease_plan_sha256": "4" * 64,
+            "lease_state": "ACTIVE",
+            "observed_gpu": {
+                "count": 1,
+                "name": "NVIDIA H100 80GB HBM3",
+                "uuid_sha256": "5" * 64,
+            },
+            "runtime_egress_rule_count": 0,
+            "runtime_gate_sha256": "6" * 64,
+        },
     }
 
 
@@ -130,6 +151,7 @@ def receipt(
             "complete": t0 + 900_000_000,
         },
         "response": response,
+        "response_identity": None,
         "outcome": {
             "status": "success" if success else "failed",
             "semantically_valid": success,
@@ -193,7 +215,15 @@ class ComparatorTests(unittest.TestCase):
                         "model": "Qwen/Qwen3-8B",
                         "choices": [{"delta": {"content": "QWEN3_CATALOG_SWITCH_OK"}}],
                     }
-                )
+                ),
+                headers={
+                    "X-Catswitch-Attempt-ID": "attempt-pair-1",
+                    "X-Catswitch-Runtime-Group-ID": "qwen-smoke-01",
+                    "X-Catswitch-Qualification-Ordinal": "1",
+                    "X-Catswitch-Container-ID": "a" * 64,
+                    "X-Catswitch-Lease-ID": comparator.QWEN_V4_LEASE_ID,
+                    "X-Catswitch-Runtime-Gate-SHA256": "6" * 64,
+                },
             )
 
         comparator.stream_request(
@@ -202,13 +232,52 @@ class ComparatorTests(unittest.TestCase):
             "secret-not-printed",
             opener=opener,
             attempt_id="attempt-pair-1",
-            runtime_group_id="runtime-group-1",
+            runtime_group_id="qwen-smoke-01",
             qualification_ordinal=1,
         )
         lowered = {key.lower(): value for key, value in captured["headers"].items()}
         self.assertEqual("attempt-pair-1", lowered["x-catswitch-attempt-id"])
-        self.assertEqual("runtime-group-1", lowered["x-catswitch-runtime-group-id"])
+        self.assertEqual("qwen-smoke-01", lowered["x-catswitch-runtime-group-id"])
         self.assertEqual("1", lowered["x-catswitch-qualification-ordinal"])
+
+    def test_response_identity_headers_are_required_and_first_byte_is_body_read(self):
+        lines = sse(
+            {
+                "model": "Qwen/Qwen3-8B",
+                "choices": [{"delta": {"content": "QWEN3_CATALOG_SWITCH_OK"}}],
+            }
+        )
+        headers = {
+            "X-Catswitch-Attempt-ID": "attempt-identity-1",
+            "X-Catswitch-Runtime-Group-ID": "qwen-smoke-01",
+            "X-Catswitch-Qualification-Ordinal": "1",
+            "X-Catswitch-Container-ID": "a" * 64,
+            "X-Catswitch-Lease-ID": comparator.QWEN_V4_LEASE_ID,
+            "X-Catswitch-Runtime-Gate-SHA256": "6" * 64,
+        }
+        result = comparator.stream_request(
+            "https://example.invalid/v1/chat/completions",
+            {"model": "Qwen/Qwen3-8B", "messages": [], "stream": True},
+            "secret-not-printed",
+            opener=lambda *_args, **_kwargs: FakeResponse(lines, headers=headers),
+            attempt_id="attempt-identity-1",
+            runtime_group_id="qwen-smoke-01",
+            qualification_ordinal=1,
+        )
+        self.assertIsNotNone(result["timing_ns"]["first_response_byte"])
+        self.assertEqual("a" * 64, result["response_identity"]["container_id"])
+        bad = dict(headers)
+        bad["X-Catswitch-Attempt-ID"] = "different-attempt"
+        with self.assertRaisesRegex(comparator.ComparatorError, "response identity"):
+            comparator.stream_request(
+                "https://example.invalid/v1/chat/completions",
+                {"model": "Qwen/Qwen3-8B", "messages": [], "stream": True},
+                "secret-not-printed",
+                opener=lambda *_args, **_kwargs: FakeResponse(lines, headers=bad),
+                attempt_id="attempt-identity-1",
+                runtime_group_id="qwen-smoke-01",
+                qualification_ordinal=1,
+            )
 
     def test_reasoning_and_tool_oracles_require_exact_parity(self):
         prompts = comparator._prompt_map()
@@ -238,6 +307,87 @@ class ComparatorTests(unittest.TestCase):
         with self.assertRaisesRegex(comparator.ComparatorError, "semantic"):
             comparator.validate_receipt(value)
 
+    def test_internal_receipt_binds_active_lease_health_h100_and_zero_egress(self):
+        for path, replacement in (
+            (("lease_state",), "CREATING"),
+            (("runtime_egress_rule_count",), 1),
+            (("lease_id",), "foreign-lease"),
+            (("observed_gpu", "name"), "NVIDIA H200"),
+            (("health_proof_sha256",), "not-a-digest"),
+        ):
+            value = receipt()
+            target = value["backend"]["broker_evidence"]
+            if len(path) == 1:
+                target[path[0]] = replacement
+            else:
+                target[path[0]][path[1]] = replacement
+            with self.subTest(path=path), self.assertRaises(comparator.ComparatorError):
+                comparator.validate_receipt(value)
+
+    def test_backend_evidence_is_derived_from_exact_active_broker_ledger(self):
+        health = {
+            "instance_id": "computeinstance-task-owned",
+            "observed_gpu": {
+                "count": 1,
+                "name": "NVIDIA H100 80GB HBM3",
+                "uuid_sha256": "5" * 64,
+            },
+        }
+        isolation = {"security_group": {"rules": []}}
+        gate = {
+            "schema": "catalog-switch-internal-runtime-gate/v4",
+            "authorization_sha256": "1" * 64,
+            "clearance_expires_at": "2026-08-19T17:00:00Z",
+            "health_proof_sha256": comparator.digest(health),
+            "hmac_sha256": "7" * 64,
+            "instance_id": "computeinstance-task-owned",
+            "isolation_proof_sha256": comparator.digest(isolation),
+            "issued_at_utc": "2026-08-19T16:30:00Z",
+            "lease_id": comparator.QWEN_V4_LEASE_ID,
+            "lease_plan_sha256": "4" * 64,
+            "lease_state": "ACTIVE",
+            "observed_gpu": health["observed_gpu"],
+            "runtime_egress_rule_count": 0,
+        }
+        lease = {
+            "state": "ACTIVE",
+            "lease_id": comparator.QWEN_V4_LEASE_ID,
+            "prefix": "mlsp-csw-task-owned",
+            "health_proof": health,
+            "isolation_proof": isolation,
+            "runtime_gate": gate,
+            "resources": [
+                {
+                    "kind": "instance",
+                    "id": "computeinstance-task-owned",
+                    "project_id": "project-e00z6b02t8ddk96c49",
+                    "region": "eu-north1",
+                    "deleted_at": None,
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "lease.json"
+            path.write_text(json.dumps(lease))
+            bound = comparator.bind_internal_backend(backend(), path)
+            self.assertEqual(
+                comparator.digest(gate),
+                bound["broker_evidence"]["runtime_gate_sha256"],
+            )
+            lease["runtime_gate"]["runtime_egress_rule_count"] = 1
+            path.write_text(json.dumps(lease))
+            with self.assertRaisesRegex(comparator.ComparatorError, "zero-egress"):
+                comparator.bind_internal_backend(backend(), path)
+
+    def test_attempt_and_runtime_ids_use_one_lowercase_grammar(self):
+        value = receipt()
+        value["attempt_id"] = "Attempt/Upper"
+        with self.assertRaisesRegex(comparator.ComparatorError, "canonical"):
+            comparator.validate_receipt(value)
+        self.assertEqual(
+            r"^[a-z0-9][a-z0-9._-]{0,95}$", comparator.ID_RE.pattern
+        )
+
     def test_all_failures_remain_in_denominator_and_p95_waits_for_30(self):
         values = [receipt(index, success=index != 28) for index in range(29)]
         result = comparator.aggregate(values)
@@ -263,6 +413,7 @@ class ComparatorTests(unittest.TestCase):
                 "backend_id": "cerebrium",
                 "project_id": "p-12ff482a",
                 "region": "eu-north1-rsd",
+                "broker_evidence": None,
             }
         )
         other["backend"]["resources"][0].update(
@@ -306,9 +457,19 @@ class ComparatorTests(unittest.TestCase):
     def test_two_independent_semantic_receipts_and_server_verdicts_are_required(self):
         first = receipt(1)
         second = receipt(2, classification="warm-control", cohort_id="qwen3-runtime-companion")
+        for ordinal, value in enumerate((first, second), 1):
+            value["backend"]["container_id"] = "a" * 64
+            value["response_identity"] = {
+                "attempt_id": value["attempt_id"],
+                "container_id": "a" * 64,
+                "lease_id": comparator.QWEN_V4_LEASE_ID,
+                "qualification_ordinal": ordinal,
+                "runtime_gate_sha256": "6" * 64,
+                "runtime_group_id": "qwen-smoke-01",
+            }
         evidence = {
-            "schema": "catalog-switch-qwen-runtime-qualification/v3",
-            "runtime_group_id": "runtime-group-1",
+            "schema": "catalog-switch-qwen-runtime-qualification/v4",
+            "runtime_group_id": "qwen-smoke-01",
             "container_id": "a" * 64,
             "cold_start_count": 1,
             "requests": [
@@ -342,6 +503,65 @@ class ComparatorTests(unittest.TestCase):
         evidence["requests"][1]["semantically_valid"] = False
         with self.assertRaisesRegex(comparator.ComparatorError, "backend semantic verdict"):
             comparator.validate_qualification_pair([first, second], evidence)
+
+    def test_campaign_requires_exactly_four_runtime_groups(self):
+        pairs = []
+        for index, group in enumerate(sorted(comparator.QWEN_V4_RUNTIME_GROUPS)):
+            first = receipt(10 + index * 2)
+            second = receipt(
+                11 + index * 2,
+                classification="warm-control",
+                cohort_id=f"qwen3-runtime-companion-{index}",
+            )
+            container_id = f"{index + 1:064x}"
+            for ordinal, value in enumerate((first, second), 1):
+                value["backend"]["container_id"] = container_id
+                value["response_identity"] = {
+                    "attempt_id": value["attempt_id"],
+                    "container_id": container_id,
+                    "lease_id": comparator.QWEN_V4_LEASE_ID,
+                    "qualification_ordinal": ordinal,
+                    "runtime_gate_sha256": "6" * 64,
+                    "runtime_group_id": group,
+                }
+            evidence = {
+                "schema": "catalog-switch-qwen-runtime-qualification/v4",
+                "runtime_group_id": group,
+                "container_id": container_id,
+                "cold_start_count": 1,
+                "requests": [
+                    {
+                        "attempt_id": value["attempt_id"],
+                        "model_id": value["model"]["model_id"],
+                        "ordinal": ordinal,
+                        "oracle_reason": "exact content matched",
+                        "response_sha256": value["outcome"]["response_sha256"],
+                        "semantically_valid": True,
+                        "stream_complete": True,
+                    }
+                    for ordinal, value in enumerate((first, second), 1)
+                ],
+                "teardown": {
+                    "container_absent": True,
+                    "verified_at_utc": "2026-08-19T00:00:03Z",
+                },
+                "completed_at_utc": "2026-08-19T00:00:03Z",
+                "status": "QUALIFIED",
+            }
+            replay = comparator.validate_qualification_pair([first, second], evidence)
+            pairs.append(
+                {"receipts": [first, second], "backend_evidence": evidence, "replay": replay}
+            )
+        campaign = {
+            "schema": "catalog-switch-qwen-runtime-campaign/v4",
+            "required_runtime_groups": sorted(comparator.QWEN_V4_RUNTIME_GROUPS),
+            "completed_runtime_groups": sorted(comparator.QWEN_V4_RUNTIME_GROUPS),
+            "complete": True,
+        }
+        replay = comparator.validate_qualification_campaign(pairs, campaign)
+        self.assertEqual(4, replay["runtime_group_count"])
+        with self.assertRaisesRegex(comparator.ComparatorError, "exactly four"):
+            comparator.validate_qualification_campaign(pairs[:3], campaign)
 
 
 if __name__ == "__main__":

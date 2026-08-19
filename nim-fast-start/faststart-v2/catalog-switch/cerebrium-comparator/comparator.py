@@ -34,7 +34,7 @@ if str(FASTSTART_ROOT) not in sys.path:
 from performance.request_slo import harness as slo  # noqa: E402
 
 
-SCHEMA = "catalog-switch-cerebrium-attempt/v1"
+SCHEMA = "catalog-switch-cerebrium-attempt/v2"
 CAMPAIGN = ROOT / "contracts" / "campaign.json"
 MODELS = ROOT / "contracts" / "models.json"
 PROMPTS = ROOT / "contracts" / "prompts.json"
@@ -43,7 +43,7 @@ PROFILES = FASTSTART_ROOT / "resource-broker" / "profiles.json"
 BROKER = FASTSTART_ROOT / "resource-broker" / "broker.py"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 IMAGE_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}$")
+ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,95}$")
 ATTEMPT_KEYS = {
     "accounting",
     "arm_id",
@@ -57,6 +57,7 @@ ATTEMPT_KEYS = {
     "outcome",
     "request",
     "response",
+    "response_identity",
     "schema",
     "started_at_utc",
     "timing_ns",
@@ -94,6 +95,36 @@ BACKEND_KEYS = {
     "placement_verified",
     "resource_prefix",
     "resources",
+    "broker_evidence",
+}
+BROKER_EVIDENCE_KEYS = {
+    "authorization_sha256",
+    "clearance_expires_at",
+    "health_proof_sha256",
+    "instance_id",
+    "isolation_proof_sha256",
+    "lease_id",
+    "lease_plan_sha256",
+    "lease_state",
+    "observed_gpu",
+    "runtime_egress_rule_count",
+    "runtime_gate_sha256",
+}
+OBSERVED_GPU_KEYS = {"count", "name", "uuid_sha256"}
+RESPONSE_IDENTITY_KEYS = {
+    "attempt_id",
+    "container_id",
+    "lease_id",
+    "qualification_ordinal",
+    "runtime_gate_sha256",
+    "runtime_group_id",
+}
+QWEN_V4_LEASE_ID = "catswitch-qwen3-h100-scout-v4-20260819"
+QWEN_V4_RUNTIME_GROUPS = {
+    "qwen-smoke-01",
+    "qwen-scout-01",
+    "qwen-scout-02",
+    "qwen-scout-03",
 }
 MODEL_KEYS = {"contract_id", "model_id", "revision", "artifact_identity_sha256"}
 REQUEST_KEYS = {"prompt_id", "payload_sha256", "payload_bytes"}
@@ -225,6 +256,64 @@ def _load_broker() -> Any:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def bind_internal_backend(backend: dict[str, Any], lease_path: Path) -> dict[str, Any]:
+    """Build receipt identity from the exact ACTIVE broker ledger, never declarations."""
+    lease = load_json(lease_path)
+    health = lease.get("health_proof")
+    isolation = lease.get("isolation_proof")
+    gate = lease.get("runtime_gate")
+    if (
+        lease.get("state") != "ACTIVE"
+        or not isinstance(health, dict)
+        or not isinstance(isolation, dict)
+        or not isinstance(gate, dict)
+        or gate.get("schema") != "catalog-switch-internal-runtime-gate/v4"
+        or gate.get("lease_id") != lease.get("lease_id")
+        or gate.get("lease_state") != "ACTIVE"
+        or gate.get("runtime_egress_rule_count") != 0
+        or gate.get("health_proof_sha256") != digest(health)
+        or gate.get("isolation_proof_sha256") != digest(isolation)
+        or gate.get("instance_id") != health.get("instance_id")
+        or gate.get("observed_gpu") != health.get("observed_gpu")
+    ):
+        raise ComparatorError("broker ledger cannot produce ACTIVE zero-egress receipt evidence")
+    resources = [
+        {
+            "kind": item["kind"],
+            "id": item["id"],
+            "project_id": item["project_id"],
+            "region": item["region"],
+            "dedicated": True,
+        }
+        for item in lease.get("resources", [])
+        if not item.get("deleted_at") and item.get("deletion_mode") != "PROVIDER_CASCADE"
+    ]
+    if len([item for item in resources if item["kind"] == "instance"]) != 1:
+        raise ComparatorError("broker ledger must contain exactly one live instance")
+    result = json.loads(canonical(backend))
+    result.update(
+        {
+            "node_id": health["instance_id"],
+            "resource_prefix": lease["prefix"],
+            "resources": resources,
+            "broker_evidence": {
+                "authorization_sha256": gate["authorization_sha256"],
+                "clearance_expires_at": gate["clearance_expires_at"],
+                "health_proof_sha256": gate["health_proof_sha256"],
+                "instance_id": gate["instance_id"],
+                "isolation_proof_sha256": gate["isolation_proof_sha256"],
+                "lease_id": gate["lease_id"],
+                "lease_plan_sha256": gate["lease_plan_sha256"],
+                "lease_state": gate["lease_state"],
+                "observed_gpu": gate["observed_gpu"],
+                "runtime_egress_rule_count": gate["runtime_egress_rule_count"],
+                "runtime_gate_sha256": digest(gate),
+            },
+        }
+    )
+    return result
 
 
 def validate_contracts() -> dict[str, Any]:
@@ -463,18 +552,54 @@ def stream_request(
     calls: dict[int, dict[str, str]] = {}
     observed_model: str | None = None
     generated_tokens: int | None = None
+    response_identity: dict[str, Any] | None = None
     with opener(request, timeout=timeout_seconds) as response:
         status = getattr(response, "status", 200)
         if status != 200:
             raise ComparatorError(f"unexpected HTTP status {status}")
+        if runtime_group_id is not None:
+            response_headers = getattr(response, "headers", {})
+
+            def header(name: str) -> str | None:
+                getter = getattr(response_headers, "get", None)
+                if callable(getter):
+                    return getter(name)
+                getheader = getattr(response, "getheader", None)
+                return getheader(name) if callable(getheader) else None
+
+            response_identity = {
+                "attempt_id": header("X-Catswitch-Attempt-ID"),
+                "container_id": header("X-Catswitch-Container-ID"),
+                "lease_id": header("X-Catswitch-Lease-ID"),
+                "qualification_ordinal": header("X-Catswitch-Qualification-Ordinal"),
+                "runtime_gate_sha256": header("X-Catswitch-Runtime-Gate-SHA256"),
+                "runtime_group_id": header("X-Catswitch-Runtime-Group-ID"),
+            }
+            if (
+                response_identity["attempt_id"] != attempt_id
+                or response_identity["runtime_group_id"] != runtime_group_id
+                or response_identity["lease_id"] != QWEN_V4_LEASE_ID
+                or response_identity["qualification_ordinal"]
+                != str(qualification_ordinal)
+                or not re.fullmatch(
+                    r"[0-9a-f]{64}", str(response_identity["container_id"] or "")
+                )
+                or not SHA256_RE.fullmatch(
+                    str(response_identity["runtime_gate_sha256"] or "")
+                )
+            ):
+                raise ComparatorError("response identity headers differ from the request/broker gate")
+            response_identity["qualification_ordinal"] = qualification_ordinal
+        first_fragment = response.read(1)
+        if first_fragment:
+            first_byte = time.monotonic_ns()
         while True:
-            raw = response.readline()
+            raw = first_fragment + response.readline()
+            first_fragment = b""
             observed = time.monotonic_ns()
             if not raw:
                 break
             received += len(raw)
-            if first_byte is None:
-                first_byte = observed
             line = raw.strip()
             if not line or line.startswith(b":"):
                 continue
@@ -544,6 +669,7 @@ def stream_request(
         "bytes_sent": len(encoded),
         "bytes_received": received,
         "generated_tokens": generated_tokens,
+        "response_identity": response_identity,
     }
 
 
@@ -579,6 +705,46 @@ def validate_backend(arm: dict[str, Any], backend: dict[str, Any], campaign: dic
     for resource in resources:
         if set(resource) != {"kind", "id", "project_id", "region", "dedicated"} or resource["dedicated"] is not True:
             raise ComparatorError("backend resource is not exact and task-dedicated")
+    broker_evidence = backend["broker_evidence"]
+    if arm["backend"] == "internal-nebius":
+        expect_keys(broker_evidence, BROKER_EVIDENCE_KEYS, "backend broker evidence")
+        observed_gpu = expect_keys(
+            broker_evidence["observed_gpu"], OBSERVED_GPU_KEYS, "observed GPU proof"
+        )
+        if (
+            broker_evidence["lease_state"] != "ACTIVE"
+            or broker_evidence["runtime_egress_rule_count"] != 0
+            or not re.fullmatch(
+                r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z",
+                str(broker_evidence["clearance_expires_at"]),
+            )
+            or broker_evidence["instance_id"] != backend["node_id"]
+            or observed_gpu["count"] != 1
+            or not re.fullmatch(r"NVIDIA H100(?: |$).*", str(observed_gpu["name"]))
+            or not all(
+                SHA256_RE.fullmatch(str(broker_evidence[key]))
+                for key in (
+                    "authorization_sha256",
+                    "health_proof_sha256",
+                    "isolation_proof_sha256",
+                    "lease_plan_sha256",
+                    "runtime_gate_sha256",
+                )
+            )
+            or not SHA256_RE.fullmatch(str(observed_gpu["uuid_sha256"]))
+        ):
+            raise ComparatorError(
+                "internal receipt lacks ACTIVE zero-egress broker/health/H100 proof"
+            )
+        if arm["arm_id"] == "internal-qwen3-new-target-matched" and broker_evidence[
+            "lease_id"
+        ] != QWEN_V4_LEASE_ID:
+            raise ComparatorError("internal Qwen receipt is not bound to the v4 lease")
+        instance_resources = [item for item in resources if item["kind"] == "instance"]
+        if len(instance_resources) != 1 or instance_resources[0]["id"] != backend["node_id"]:
+            raise ComparatorError("broker instance proof differs from backend resources")
+    elif broker_evidence is not None:
+        raise ComparatorError("non-internal backend cannot claim broker evidence")
     placement_key = {
         "cerebrium-qwen3-new-target-matched": "cerebrium_qwen",
         "internal-qwen3-new-target-matched": "internal_qwen",
@@ -717,6 +883,9 @@ def run_attempt(
             "billed_seconds": None,
             "cost_usd": None,
         }
+    receipt_backend = json.loads(canonical(backend))
+    if raw is not None and raw["response_identity"] is not None:
+        receipt_backend["container_id"] = raw["response_identity"]["container_id"]
     receipt = {
         "schema": SCHEMA,
         "attempt_id": attempt_id,
@@ -736,10 +905,11 @@ def run_attempt(
             "payload_sha256": hashlib.sha256(canonical(payload).encode()).hexdigest(),
             "payload_bytes": len(canonical(payload).encode()),
         },
-        "backend": backend,
+        "backend": receipt_backend,
         "cold_state": cold_state,
         "timing_ns": timing,
         "response": response,
+        "response_identity": raw["response_identity"] if raw is not None else None,
         "outcome": outcome,
         "accounting": accounting,
     }
@@ -758,6 +928,7 @@ def run_qwen_qualification_pair(
     cold_attempt_id: str,
     companion_attempt_id: str,
     cohort_id: str,
+    runtime_gate: dict[str, Any],
     opener: Any = urllib.request.urlopen,
 ) -> dict[str, Any]:
     """Run and independently validate the required two-request cold-runtime pair."""
@@ -765,6 +936,33 @@ def run_qwen_qualification_pair(
         raise ComparatorError("qualification endpoint must be the exact chat-completions path")
     if cold_attempt_id == companion_attempt_id:
         raise ComparatorError("qualification attempt IDs must be distinct")
+    runtime_gate_sha256 = digest(runtime_gate)
+    if (
+        runtime_group_id not in QWEN_V4_RUNTIME_GROUPS
+        or backend.get("broker_evidence", {}).get("runtime_gate_sha256")
+        != runtime_gate_sha256
+    ):
+        raise ComparatorError("qualification is not bound to the exact broker runtime gate")
+    activation_endpoint = endpoint.removesuffix("/v1/chat/completions") + "/broker/activate"
+    activation_payload = canonical(runtime_gate).encode()
+    activation_request = urllib.request.Request(
+        activation_endpoint,
+        data=activation_payload,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with opener(activation_request, timeout=60) as response:
+        if getattr(response, "status", 200) != 200:
+            raise ComparatorError("broker runtime-gate activation did not return HTTP 200")
+        try:
+            activation = json.loads(response.read(), object_pairs_hook=_duplicates)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ComparatorError("runtime-gate activation response is invalid") from exc
+    if activation != {
+        "schema": "catalog-switch-runtime-gate-activation/v4",
+        "runtime_gate_sha256": runtime_gate_sha256,
+    }:
+        raise ComparatorError("runtime-gate activation identity differs")
     cold_receipt = run_attempt(
         arm_id="internal-qwen3-new-target-matched",
         cohort_id=cohort_id,
@@ -850,6 +1048,21 @@ def validate_receipt(receipt: dict[str, Any]) -> dict[str, Any]:
     if receipt["request"]["payload_sha256"] != hashlib.sha256(payload_bytes).hexdigest() or receipt["request"]["payload_bytes"] != len(payload_bytes):
         raise ComparatorError("receipt request payload differs from the frozen prompt/model")
     validate_backend(arm, receipt["backend"], campaign)
+    identity = receipt["response_identity"]
+    if identity is not None:
+        expect_keys(identity, RESPONSE_IDENTITY_KEYS, "attempt.response_identity")
+        if (
+            identity["attempt_id"] != receipt["attempt_id"]
+            or not ID_RE.fullmatch(str(identity["runtime_group_id"]))
+            or identity["runtime_group_id"] not in QWEN_V4_RUNTIME_GROUPS
+            or identity["lease_id"] != QWEN_V4_LEASE_ID
+            or identity["qualification_ordinal"] not in {1, 2}
+            or not re.fullmatch(r"[0-9a-f]{64}", str(identity["container_id"]))
+            or identity["container_id"] != receipt["backend"]["container_id"]
+            or identity["runtime_gate_sha256"]
+            != receipt["backend"]["broker_evidence"]["runtime_gate_sha256"]
+        ):
+            raise ComparatorError("response identity does not bind request, runtime, and broker gate")
     timing = receipt["timing_ns"]
     if not isinstance(timing["t0"], int) or not isinstance(timing["complete"], int) or timing["complete"] <= timing["t0"]:
         raise ComparatorError("complete boundary does not follow external T0")
@@ -893,6 +1106,15 @@ def validate_qualification_pair(
             raise ComparatorError("each qualification receipt must independently pass its oracle")
     if len({item["attempt_id"] for item in receipts}) != 2:
         raise ComparatorError("qualification attempts must be distinct")
+    identities = [item["response_identity"] for item in receipts]
+    if any(identity is None for identity in identities):
+        raise ComparatorError("qualification requires validated response identity headers")
+    if (
+        identities[0]["runtime_group_id"] != identities[1]["runtime_group_id"]
+        or identities[0]["container_id"] != identities[1]["container_id"]
+        or [identity["qualification_ordinal"] for identity in identities] != [1, 2]
+    ):
+        raise ComparatorError("qualification response identities do not prove one runtime")
     if receipts[0]["cold_state"]["classification"] != "process-cold-artifact-hit":
         raise ComparatorError("qualification ordinal 1 must be the conventional cold request")
     if receipts[1]["cold_state"]["classification"] != "warm-control":
@@ -908,14 +1130,16 @@ def validate_qualification_pair(
         "teardown",
     }
     expect_keys(backend_evidence, expected_keys, "qualification backend evidence")
-    if backend_evidence["schema"] != "catalog-switch-qwen-runtime-qualification/v3":
+    if backend_evidence["schema"] != "catalog-switch-qwen-runtime-qualification/v4":
         raise ComparatorError("unsupported qualification evidence schema")
     if backend_evidence["status"] != "QUALIFIED" or backend_evidence["cold_start_count"] != 1:
         raise ComparatorError("backend did not prove one cold start with two valid requests")
-    if not ID_RE.fullmatch(str(backend_evidence["runtime_group_id"])):
+    if backend_evidence["runtime_group_id"] not in QWEN_V4_RUNTIME_GROUPS:
         raise ComparatorError("qualification runtime-group ID is not canonical")
-    if not re.fullmatch(r"[0-9a-f]{12,64}", str(backend_evidence["container_id"])):
+    if not re.fullmatch(r"[0-9a-f]{64}", str(backend_evidence["container_id"])):
         raise ComparatorError("qualification container identity is not canonical")
+    if backend_evidence["container_id"] != identities[0]["container_id"]:
+        raise ComparatorError("backend container ID differs from response identity headers")
     requests = backend_evidence["requests"]
     if not isinstance(requests, list) or len(requests) != 2:
         raise ComparatorError("backend evidence does not contain two request results")
@@ -959,6 +1183,56 @@ def validate_qualification_pair(
         "cold_start_count": 1,
         "teardown_verified": True,
         "backend_evidence_sha256": digest(backend_evidence),
+    }
+    result["replay_sha256"] = digest(result)
+    return result
+
+
+def validate_qualification_campaign(
+    pairs: list[dict[str, Any]], server_campaign: dict[str, Any]
+) -> dict[str, Any]:
+    """Admit only one smoke plus three scouts: exactly four runtime groups."""
+    if len(pairs) != 4:
+        raise ComparatorError("qualification campaign requires exactly four runtime groups")
+    groups: list[str] = []
+    attempts: list[str] = []
+    for pair in pairs:
+        if set(pair) != {"backend_evidence", "receipts", "replay"}:
+            raise ComparatorError("qualification pair bundle fields differ")
+        replay = validate_qualification_pair(pair["receipts"], pair["backend_evidence"])
+        if replay != pair["replay"]:
+            raise ComparatorError("qualification pair replay differs")
+        groups.append(replay["runtime_group_id"])
+        attempts.extend(replay["attempt_ids"])
+    if set(groups) != QWEN_V4_RUNTIME_GROUPS or len(set(groups)) != 4:
+        raise ComparatorError("qualification campaign runtime groups differ from the exact four")
+    if len(set(attempts)) != 8:
+        raise ComparatorError("qualification campaign requires eight distinct attempts")
+    expect_keys(
+        server_campaign,
+        {
+            "complete",
+            "completed_runtime_groups",
+            "required_runtime_groups",
+            "schema",
+        },
+        "server qualification campaign",
+    )
+    if (
+        server_campaign["schema"] != "catalog-switch-qwen-runtime-campaign/v4"
+        or server_campaign["complete"] is not True
+        or set(server_campaign["required_runtime_groups"]) != QWEN_V4_RUNTIME_GROUPS
+        or set(server_campaign["completed_runtime_groups"]) != QWEN_V4_RUNTIME_GROUPS
+        or len(server_campaign["completed_runtime_groups"]) != 4
+    ):
+        raise ComparatorError("server did not prove exactly four completed runtime groups")
+    result = {
+        "schema": "catalog-switch-qwen-runtime-campaign-replay/v1",
+        "runtime_group_ids": sorted(groups),
+        "attempt_ids": sorted(attempts),
+        "runtime_group_count": 4,
+        "request_count": 8,
+        "server_campaign_sha256": digest(server_campaign),
     }
     result["replay_sha256"] = digest(result)
     return result

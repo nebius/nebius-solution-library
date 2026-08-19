@@ -31,7 +31,7 @@ those recorded IDs. It never adopts or mutates a pre-existing project resource.
   deadline, not provider-side magic: the hourly supervisor must run the scanner
   and exact-ID cleanup for expired leases.
 - On this comparator task branch, every `provision` and `verify-health` path is
-  additionally sealed behind the versioned Qwen v3 authorization and a
+  additionally sealed behind the versioned Qwen v4 authorization and a
   separate, exact-commit independent clearance. Missing authorization blocks
   CPU, Qwen, and GLM leases before provider preflight. This is intentionally
   narrower than the reviewed broker's general interface.
@@ -86,8 +86,8 @@ external clearance, and a mode-0600 bearer file:
 
 ```bash
 python3 broker.py provision \
-  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v3.lease.json \
-  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v3.json \
+  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v4.lease.json \
+  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v4.json \
   --clearance /secure/external/exact-commit-clearance.json \
   --bearer-token /secure/external/qwen-scout-bearer \
   --execute
@@ -98,17 +98,21 @@ same fail-closed health gate without creating anything new:
 
 ```bash
 python3 broker.py verify-health \
-  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v3.lease.json \
-  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v3.json \
+  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v4.lease.json \
+  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v4.json \
   --clearance /secure/external/exact-commit-clearance.json \
   --bearer-token /secure/external/qwen-scout-bearer \
   --execute
 ```
 
-The Qwen v3 health proof requires live `RUNNING`, the lease marker, an observed
-exactly-one-H100 serial proof, and deletion/absence of all bootstrap egress
-before `ACTIVE`. Inspect the exact reverse-order cleanup plan before executing
-it. Cleanup deliberately does not require a still-valid performance clearance,
+The Qwen v4 API accepts no caller-created authorization context or supplied
+clock/Git/recorder observation. It re-observes those inputs before every live
+mutation or resumed use. The health proof requires live `RUNNING`, the lease
+marker, an observed exactly-one-H100 serial proof, and deletion/absence of all
+bootstrap egress before `ACTIVE`. Only then does it issue the authenticated
+runtime-gate receipt consumed by the application and comparator. Inspect the
+exact reverse-order cleanup plan before executing it. Cleanup deliberately does
+not require a still-valid performance clearance,
 so an expired or failed lease can always be made absent:
 
 ```bash

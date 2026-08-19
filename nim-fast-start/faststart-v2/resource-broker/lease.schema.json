@@ -11,6 +11,7 @@
     "health_proof": {"type": ["null", "object"]},
     "isolation_proof": {"type": ["null", "object"]},
     "labels": {"additionalProperties": {"type": "string"}, "type": "object"},
+    "live_authorization": {"type": "object"},
     "lease_id": {"pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$", "type": "string"},
     "planned_resources": {"items": {"type": "object"}, "type": "array"},
     "preflight": {"type": "object"},
@@ -20,6 +21,7 @@
     "request": {"type": "object"},
     "request_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
     "resources": {"items": {"type": "object"}, "type": "array"},
+    "runtime_gate": {"type": "object"},
     "schema_version": {"const": "catalog-switch-resource-lease/v1"},
     "state": {
       "enum": ["PLANNED", "CREATING", "ACTIVE", "FAILED", "CLEANING", "CLEANUP_FAILED", "RELEASED"]

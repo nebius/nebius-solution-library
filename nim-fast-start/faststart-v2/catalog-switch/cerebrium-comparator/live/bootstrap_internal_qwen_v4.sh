@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly lease_id='catswitch-qwen3-h100-scout-v3-20260819'
-readonly marker='CATSWITCH_QWEN3_H100_V3_OK'
+readonly lease_id='catswitch-qwen3-h100-scout-v4-20260819'
+readonly marker='CATSWITCH_QWEN3_H100_V4_OK'
 readonly image='vllm/vllm-openai@sha256:7c2c59db86a9a64138c5c675b98e3e05b7f37a34a344d4aa461b1529ed60262d'
 readonly image_digest='sha256:7c2c59db86a9a64138c5c675b98e3e05b7f37a34a344d4aa461b1529ed60262d'
 
 # shellcheck disable=SC2317
 on_error() {
   local rc=$?
-  echo "CATSWITCH_BOOTSTRAP_V3_FAILED rc=${rc}" >/dev/console
+  echo "CATSWITCH_BOOTSTRAP_V4_FAILED rc=${rc}" >/dev/console
   exit "${rc}"
 }
 
-exec > >(tee -a /var/log/catswitch-bootstrap-v3.log | logger -t catswitch-bootstrap-v3 -s 2>/dev/console) 2>&1
+exec > >(tee -a /var/log/catswitch-bootstrap-v4.log | logger -t catswitch-bootstrap-v4 -s 2>/dev/console) 2>&1
 trap on_error ERR
 
-# The image must already provide the container/GPU runtime. The v3 network
+# The image must already provide the container/GPU runtime. The v4 network
 # contract intentionally has no TCP/80 package-install exception.
 for binary in docker nvidia-smi python3 systemctl ss; do
   command -v "${binary}" >/dev/null 2>&1 || {
@@ -109,7 +109,7 @@ rows = [line.strip() for line in subprocess.check_output(
     text=True,
 ).splitlines() if line.strip()]
 proof = {
-    'schema': 'catalog-switch-internal-qwen-bootstrap-proof/v3',
+    'schema': 'catalog-switch-internal-qwen-bootstrap-proof/v4',
     'observed_at': datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
     'model_id': 'Qwen/Qwen3-8B',
     'model_revision': 'b968826d9c46dd6066d109eabc6255188de91218',
@@ -130,7 +130,7 @@ os.chmod(temporary, 0o600)
 os.replace(temporary, '/var/lib/catswitch/bootstrap-proof.json')
 PY
 
-cat >/etc/systemd/system/catalog-switch-qwen-scout-v3.service <<'UNIT'
+cat >/etc/systemd/system/catalog-switch-qwen-scout-v4.service <<'UNIT'
 [Unit]
 Description=Catalog-switch authenticated two-request Qwen qualification server
 After=docker.service network-online.target
@@ -138,7 +138,7 @@ Requires=docker.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /opt/catswitch/internal_scout_server_v3.py
+ExecStart=/usr/bin/python3 /opt/catswitch/internal_scout_server_v4.py
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
@@ -150,7 +150,7 @@ PrivateTmp=true
 WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
-systemctl enable --now catalog-switch-qwen-scout-v3.service
+systemctl enable --now catalog-switch-qwen-scout-v4.service
 for _ in $(seq 1 60); do
   if ss -lnt | grep -q ':8080 '; then
     echo "${marker} lease=${lease_id}" | tee /dev/console

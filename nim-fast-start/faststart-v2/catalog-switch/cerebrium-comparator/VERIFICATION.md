@@ -11,8 +11,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v performance/request_sl
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v resource-broker/tests
 ```
 
-Results at the v3 pre-creation candidate: comparator/server 19/19, reviewed
-request-SLO 24/24, broker 25/25 PASS (68/68 total).
+Results at the v4 pre-creation candidate: comparator/server 27/27, reviewed
+request-SLO 24/24, broker 29/29 PASS (80/80 total).
 The comparator reports exactly one measured external backend, `cerebrium`, and
 `live_mutation_authorized=false`.
 
@@ -58,6 +58,7 @@ Immutable PLANNED leases contain no resources:
 |---|---|---:|---:|---|
 | `catswitch-qwen3-h100-scout-20260819` | preemptible 1xH100, 2h/4h | $4.360934 | $8.721867 | `mlsp-csw-catalog-switch-cer-6507dfc4` |
 | `catswitch-qwen3-h100-scout-v3-20260819` | preemptible 1xH100, 2h/4h; PRE-CREATION REVIEW | $4.360934 | $8.721867 | `mlsp-csw-catalog-switch-cer-4b0835a1` |
+| `catswitch-qwen3-h100-scout-v4-20260819` | preemptible 1xH100, 2h/4h; PRE-CREATION REVIEW | $4.360934 | $8.721867 | `mlsp-csw-catalog-switch-cer-e0f72a45` |
 | `catswitch-glm52-fp8-tp8-smoke-20260819` | normal 8xH200, 4h/8h | $144.704947 | $289.409894 | `mlsp-csw-catalog-switch-cer-0799ac8e` |
 
 Inventory file:
@@ -67,18 +68,19 @@ Inventory file:
 ## Cleanup and deployment disposition
 
 No cloud or provider resource was created, so there was nothing to clean up.
-All three planned broker leases have `resources=[]`. No Cerebrium app/file was
-created or deleted. The v3 authorization remains at `PRE-CREATION REVIEW`; the
+All four planned broker leases have `resources=[]`. No Cerebrium app/file was
+created or deleted. The v4 authorization remains at `PRE-CREATION REVIEW`; the
 required external clearance does not exist. Deployment/model/GPU benchmarking
 was therefore prohibited, not silently skipped or reported as performance.
 
-## V3 pre-creation safety evidence
+## V4 pre-creation safety evidence
 
-The v3 broker makes authorization mandatory before provider preflight for every
-lease. The Qwen and GLM no-authorization fake paths both stop with zero CLI
-calls. Clearance validates the exact nonzero current commit, exact reviewer,
-canonical review/expiry time, exact branch, and clean worktree. A serialized or
-plain-dictionary proof cannot enter the live path.
+The v4 broker makes authorization paths mandatory before provider preflight for
+every lease. The Qwen and GLM no-authorization fake paths both stop with zero
+CLI calls. No context/seal object exists and no API accepts supplied clock,
+Git, worktree, or recorder observations. Clearance is freshly revalidated
+against internally observed state before every mutation/use; expired and
+wrong-commit resume attempts fail before provider calls.
 
 Bootstrap network rules are TCP/443, UDP/53, TCP/53, and UDP/123 only. TCP/80
 is absent. All four bootstrap egress rule IDs are deleted and absence-verified
@@ -86,7 +88,10 @@ before `ACTIVE`; runtime has authenticated recorder-only TCP/8080 ingress and
 zero egress. Tests cover interruption/resume and a foreign replacement.
 
 Observed GPU qualification comes from a serial-log `nvidia-smi` proof, not the
-declared preset. One H100 passes; H200 and two-GPU proofs fail. The recorder now
-sends the exact attempt/runtime-group/ordinal headers consumed by the server.
-Each cold runtime requires two distinct, independently oracle-valid results on
-the same container, explicit server semantic verdicts, and teardown absence.
+declared preset. One H100 passes; H200 and two-GPU proofs fail. An authenticated
+ACTIVE/zero-egress runtime gate binds lease, health, isolation, instance and GPU
+evidence into comparator receipts. The recorder uses the same lowercase ID
+grammar as the server, timestamps the actual first body byte, and validates all
+response identity headers. Exactly four runtime groups are permitted, each
+with two independently valid requests on the same full 64-character running
+container ID and final teardown absence.

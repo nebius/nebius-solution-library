@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-internal-live-authorization-v3.schema.json",
-  "title": "Catalog-switch internal live authorization v3",
+  "$id": "catalog-switch-internal-live-authorization-v4.schema.json",
+  "title": "Catalog-switch internal live authorization v4",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,8 +21,8 @@
     "state"
   ],
   "properties": {
-    "schema": {"const": "catalog-switch-internal-live-authorization/v3"},
-    "authorization_id": {"const": "internal-qwen3-h100-scout-v3-20260819"},
+    "schema": {"const": "catalog-switch-internal-live-authorization/v4"},
+    "authorization_id": {"const": "internal-qwen3-h100-scout-v4-20260819"},
     "state": {"const": "PRE_CREATION_REVIEW"},
     "issued_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
     "expires_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
@@ -30,8 +30,8 @@
     "required_reviewer": {"const": "catalog-switch-independent-precreation-reviewer-v2"},
     "artifacts": {
       "type": "array",
-      "minItems": 5,
-      "maxItems": 5,
+      "minItems": 6,
+      "maxItems": 6,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -52,7 +52,7 @@
         "branch": {"const": "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark"},
         "gpu_count": {"const": 1},
         "gpu_type": {"const": "H100"},
-        "lease_id": {"const": "catswitch-qwen3-h100-scout-v3-20260819"},
+        "lease_id": {"const": "catswitch-qwen3-h100-scout-v4-20260819"},
         "mode": {"const": "preemptible"},
         "profile": {"const": "h100-single"},
         "project_id": {"const": "project-e00z6b02t8ddk96c49"},
@@ -63,7 +63,21 @@
     "frozen": {"type": "object"},
     "network": {"type": "object"},
     "observed_gpu": {"type": "object"},
-    "qualification": {"type": "object"},
+    "qualification": {
+      "type": "object",
+      "required": ["headline_request_ordinal", "independent_recorder_oracle_validation", "requests_per_runtime", "runtime_group_ids", "server_oracle_verdict_required", "teardown_after_request_ordinal"],
+      "additionalProperties": false,
+      "properties": {
+        "headline_request_ordinal": {"const": 1},
+        "independent_recorder_oracle_validation": {"const": true},
+        "requests_per_runtime": {"const": 2},
+        "runtime_group_ids": {
+          "const": ["qwen-smoke-01", "qwen-scout-01", "qwen-scout-02", "qwen-scout-03"]
+        },
+        "server_oracle_verdict_required": {"const": true},
+        "teardown_after_request_ordinal": {"const": 2}
+      }
+    },
     "cleanup": {"type": "object"}
   }
 }

@@ -353,10 +353,10 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual([], fake.created)
         self.assertEqual("PLANNED", broker.load_json(self.lease_path)["state"])
 
-    def test_fabricated_unvalidated_context_cannot_bypass_live_gate(self):
+    def test_fabricated_context_keyword_is_not_a_mutation_api(self):
         self.make_plan()
         fake = FakeCLI()
-        with self.assertRaisesRegex(broker.BrokerError, "not produced by the validator"):
+        with self.assertRaises(TypeError):
             broker.provision(
                 self.lease_path,
                 self.registry_path,

@@ -9,23 +9,24 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "broker.py"
 FASTSTART_ROOT = MODULE_PATH.parent.parent
 AUTH_SOURCE = (
     FASTSTART_ROOT
-    / "catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v3.json"
+    / "catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v4.json"
 )
 LEASE_SOURCE = (
     FASTSTART_ROOT
-    / "catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v3.lease.json"
+    / "catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v4.lease.json"
 )
 GLM_LEASE_SOURCE = (
     FASTSTART_ROOT
     / "catalog-switch/cerebrium-comparator/resource-requests/glm52-fp8-h200-tp8-smoke.lease.json"
 )
-SPEC = importlib.util.spec_from_file_location("resource_broker_live_v3", MODULE_PATH)
+SPEC = importlib.util.spec_from_file_location("resource_broker_live_v4", MODULE_PATH)
 assert SPEC and SPEC.loader
 broker = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(broker)
@@ -158,7 +159,7 @@ class ManagedChildrenCLI:
                 "status": {"network_interfaces": [{"ip_address": {"allocation_id": "private-allocation"}, "public_ip_address": {"allocation_id": "public-allocation"}}]},
             }
         if args[:3] == ["vpc", "allocation", "get"]:
-            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2026-08-19T15:28:00Z"}}
+            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2026-08-19T16:28:00Z"}}
         if args[:3] == ["vpc", "network", "get"]:
             return {
                 "metadata": {"id": args[3]},
@@ -171,13 +172,13 @@ class ManagedChildrenCLI:
                 "spec": {"ipv4_private_pools": {"pools": [{"id": "network-private-pool"}]}, "ipv4_public_pools": {"pools": [{"id": "subnet-public-pool"}]}},
             }
         if args[:3] == ["vpc", "pool", "get"]:
-            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2026-08-19T15:28:00Z"}}
+            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2026-08-19T16:28:00Z"}}
         if args[:3] == ["vpc", "route-table", "get"]:
-            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2026-08-19T15:28:00Z"}}
+            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2026-08-19T16:28:00Z"}}
         raise AssertionError(f"unexpected managed-child call: {args}")
 
 
-class LiveGateV3Tests(unittest.TestCase):
+class LiveGateV4Tests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
@@ -210,48 +211,76 @@ class LiveGateV3Tests(unittest.TestCase):
     def write_clearance(self, **updates):
         value = {
             "schema": "catalog-switch-independent-precreation-clearance/v2",
-            "authorization_id": "internal-qwen3-h100-scout-v3-20260819",
+            "authorization_id": "internal-qwen3-h100-scout-v4-20260819",
             "authorization_sha256": broker.file_sha256(self.auth_path),
-            "clearance_id": "independent-review-v3-unit",
+            "clearance_id": "independent-review-v4-unit",
             "decision": "CLEARED",
-            "reviewed_at": "2026-08-19T15:29:00Z",
+            "reviewed_at": "2026-08-19T16:29:00Z",
             "reviewed_commit": "a" * 40,
             "reviewer": "catalog-switch-independent-precreation-reviewer-v2",
-            "expires_at": "2026-08-19T16:00:00Z",
+            "expires_at": "2026-08-19T17:00:00Z",
         }
         value.update(updates)
         self.clearance_path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
 
-    def validate(self, **updates):
-        defaults = {
-            "observed_recorder_cidr": "203.0.113.10/32",
-            "current_commit": "a" * 40,
-            "current_branch": "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark",
-            "worktree_clean": True,
-            "now": dt.datetime(2026, 8, 19, 15, 30, tzinfo=dt.timezone.utc),
-        }
-        defaults.update(updates)
-        return broker.validate_live_authorization(
-            self.auth_path,
-            self.clearance_path,
-            self.lease_path,
-            self.token_path,
-            **defaults,
+    def validate(self, *, cidr="203.0.113.10/32", commit="a" * 40, branch=None, clean=True, now=None):
+        branch = branch or "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark"
+        now = now or dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc)
+        with mock.patch.object(broker, "observe_recorder_cidr", return_value=cidr), mock.patch.object(
+            broker, "_git_state", return_value=(commit, branch, clean)
+        ), mock.patch.object(broker, "utc_now", return_value=now):
+            return broker._validate_live_authorization_snapshot(
+                self.auth_path,
+                self.clearance_path,
+                self.lease_path,
+                self.token_path,
+            )
+
+    def live_environment(self, *, now=None, commit="a" * 40):
+        now = now or dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc)
+        return mock.patch.multiple(
+            broker,
+            observe_recorder_cidr=mock.Mock(return_value="203.0.113.10/32"),
+            _git_state=mock.Mock(
+                return_value=(
+                    commit,
+                    "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark",
+                    True,
+                )
+            ),
+            utc_now=mock.Mock(return_value=now),
         )
 
-    def test_exact_gate_returns_nonserializable_validated_context(self):
-        context = self.validate()
-        self.assertIsInstance(context, broker.LiveAuthorizationContext)
-        self.assertNotIn(self.token, repr(context))
-        self.assertEqual("CLEARED", context["public"]["clearance"]["decision"])
+    def test_opaque_boundary_exports_no_constructible_context_or_observation_api(self):
+        snapshot = self.validate()
+        self.assertEqual("CLEARED", snapshot["public"]["clearance"]["decision"])
+        self.assertFalse(hasattr(broker, "LiveAuthorizationContext"))
+        self.assertFalse(hasattr(broker, "_LIVE_CONTEXT_SEAL"))
+        self.assertFalse(hasattr(broker, "validate_live_authorization"))
+        self.assertFalse(hasattr(broker, "validate_live_resume"))
+        for keyword, value in {
+            "observed_recorder_cidr": "203.0.113.10/32",
+            "current_commit": "a" * 40,
+            "current_branch": broker.QWEN_SCOUT_BRANCH,
+            "worktree_clean": True,
+            "now": dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc),
+        }.items():
+            with self.subTest(keyword=keyword), self.assertRaises(TypeError):
+                broker._validate_live_authorization_snapshot(
+                    self.auth_path,
+                    self.clearance_path,
+                    self.lease_path,
+                    self.token_path,
+                    **{keyword: value},
+                )
 
     def test_forged_or_zero_reviewed_commit_is_rejected(self):
         self.write_clearance(reviewed_commit="0" * 40)
         with self.assertRaisesRegex(broker.BrokerError, "exact current candidate commit"):
-            self.validate(current_commit="0" * 40)
+            self.validate(commit="0" * 40)
         self.write_clearance(reviewed_commit="b" * 40)
         with self.assertRaisesRegex(broker.BrokerError, "exact current candidate commit"):
-            self.validate(current_commit="a" * 40)
+            self.validate(commit="a" * 40)
 
     def test_invalid_timestamp_and_wrong_reviewer_are_rejected(self):
         self.write_clearance(reviewed_at="not-a-time")
@@ -263,15 +292,60 @@ class LiveGateV3Tests(unittest.TestCase):
 
     def test_dirty_or_wrong_branch_candidate_is_rejected(self):
         with self.assertRaisesRegex(broker.BrokerError, "clean reviewed worktree"):
-            self.validate(worktree_clean=False)
+            self.validate(clean=False)
         with self.assertRaisesRegex(broker.BrokerError, "reviewed branch"):
-            self.validate(current_branch="main")
+            self.validate(branch="main")
 
     def test_recorder_ip_drift_is_rejected_without_disclosing_address(self):
         with self.assertRaisesRegex(broker.BrokerError, "recorder IP drift") as caught:
-            self.validate(observed_recorder_cidr="203.0.113.11/32")
+            self.validate(cidr="203.0.113.11/32")
         self.assertNotIn("203.0.113", str(caught.exception))
 
+    def test_resume_reobserves_clock_and_git_and_rejects_replay(self):
+        snapshot = self.validate()
+        lease = broker.load_json(self.lease_path)
+        lease["state"] = "CREATING"
+        lease["live_authorization"] = snapshot["public"]
+        self.lease_path.write_text(json.dumps(lease, indent=2, sort_keys=True) + "\n")
+        with self.live_environment(
+            now=dt.datetime(2026, 8, 19, 17, 1, tzinfo=dt.timezone.utc)
+        ):
+            with self.assertRaisesRegex(broker.BrokerError, "clearance expiry is stale"):
+                broker._validate_live_resume_snapshot(
+                    self.auth_path,
+                    self.clearance_path,
+                    self.lease_path,
+                    self.token_path,
+                )
+        with self.live_environment(commit="b" * 40):
+            with self.assertRaisesRegex(broker.BrokerError, "exact current candidate commit"):
+                broker._validate_live_resume_snapshot(
+                    self.auth_path,
+                    self.clearance_path,
+                    self.lease_path,
+                    self.token_path,
+                )
+
+    def test_expired_clearance_blocks_health_use_before_provider_calls(self):
+        snapshot = self.validate()
+        lease = broker.load_json(self.lease_path)
+        lease["state"] = "CREATING"
+        lease["live_authorization"] = snapshot["public"]
+        self.lease_path.write_text(json.dumps(lease, indent=2, sort_keys=True) + "\n")
+        fake = NoCallCLI()
+        with self.live_environment(
+            now=dt.datetime(2026, 8, 19, 17, 1, tzinfo=dt.timezone.utc)
+        ):
+            with self.assertRaisesRegex(broker.BrokerError, "clearance expiry is stale"):
+                broker.verify_health_lease(
+                    self.lease_path,
+                    self.root / "health-registry.json",
+                    fake,
+                    authorization_path=self.auth_path,
+                    clearance_path=self.clearance_path,
+                    bearer_token_path=self.token_path,
+                )
+        self.assertEqual([], fake.calls)
     def test_authorization_requires_two_requests_and_post_bootstrap_zero_egress(self):
         auth = json.loads(self.auth_path.read_text())
         auth["qualification"]["requests_per_runtime"] = 1
@@ -310,18 +384,47 @@ class LiveGateV3Tests(unittest.TestCase):
                 marker({"count": 2, "names": ["NVIDIA H100", "NVIDIA H100"], "uuids": ["GPU-aaaaaaaa-bbbb", "GPU-cccccccc-dddd"]})
             )
 
+    def test_runtime_gate_binds_active_lease_health_h100_and_zero_egress(self):
+        lease = broker.load_json(self.lease_path)
+        lease["state"] = "ACTIVE"
+        lease["health_proof"] = {
+            "instance_id": "computeinstance-task-owned",
+            "observed_gpu": {
+                "count": 1,
+                "name": "NVIDIA H100 80GB HBM3",
+                "uuid_sha256": "5" * 64,
+            },
+        }
+        lease["isolation_proof"] = {"security_group": {"rules": []}}
+        lease["live_authorization"] = {
+            "authorization_sha256": "1" * 64,
+            "clearance": {"expires_at": "2026-08-19T17:00:00Z"},
+            "frozen": {"lease_plan_sha256": "2" * 64},
+        }
+        with mock.patch.object(
+            broker,
+            "utc_now",
+            return_value=dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc),
+        ):
+            gate = broker.build_runtime_gate(lease, self.token)
+        self.assertEqual("ACTIVE", gate["lease_state"])
+        self.assertEqual(0, gate["runtime_egress_rule_count"])
+        lease["isolation_proof"]["security_group"]["rules"] = [{"direction": "egress"}]
+        with self.assertRaisesRegex(broker.BrokerError, "zero-egress"):
+            broker.build_runtime_gate(lease, self.token)
+
     def test_qwen_and_glm_provision_paths_both_fail_without_authorization(self):
         for source in (LEASE_SOURCE, GLM_LEASE_SOURCE):
             lease = self.root / (source.stem + ".json")
             shutil.copyfile(source, lease)
             fake = NoCallCLI()
-            with self.assertRaisesRegex(broker.BrokerError, "mandatory live authorization"):
+            with self.assertRaisesRegex(broker.BrokerError, "authorization/clearance paths"):
                 broker.provision(lease, self.root / "registry.json", fake)
             self.assertEqual([], fake.calls)
 
-    def test_plain_dictionary_cannot_forge_validated_context(self):
+    def test_context_injection_keyword_is_not_part_of_the_mutation_api(self):
         fake = NoCallCLI()
-        with self.assertRaisesRegex(broker.BrokerError, "not produced by the validator"):
+        with self.assertRaises(TypeError):
             broker.provision(
                 self.lease_path,
                 self.root / "registry.json",
@@ -333,15 +436,25 @@ class LiveGateV3Tests(unittest.TestCase):
         self.assertEqual([], fake.calls)
 
     def test_interruption_after_first_create_keeps_exact_recoverable_ledger(self):
-        context = self.validate()
         fake = PartialCreateCLI()
-        with self.assertRaises(KeyboardInterrupt):
-            broker.provision(
-                self.lease_path,
-                self.root / "registry.json",
-                fake,
-                live_authorization=context,
-            )
+        with mock.patch.object(broker, "observe_recorder_cidr", return_value="203.0.113.10/32"), mock.patch.object(
+            broker,
+            "_git_state",
+            return_value=("a" * 40, "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark", True),
+        ), mock.patch.object(
+            broker,
+            "utc_now",
+            return_value=dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc),
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                broker.provision(
+                    self.lease_path,
+                    self.root / "registry.json",
+                    fake,
+                    authorization_path=self.auth_path,
+                    clearance_path=self.clearance_path,
+                    bearer_token_path=self.token_path,
+                )
         lease = broker.load_json(self.lease_path)
         self.assertEqual("CREATING", lease["state"])
         self.assertEqual(["network-partial"], [item["id"] for item in lease["resources"]])
@@ -398,8 +511,11 @@ class LiveGateV3Tests(unittest.TestCase):
         self.assertLess(len(foreign.deleted), 2)
 
     def rule_lease(self):
+        shutil.copyfile(LEASE_SOURCE, self.lease_path)
+        snapshot = self.validate()
         lease = broker.load_json(self.lease_path)
         lease["state"] = "CREATING"
+        lease["live_authorization"] = snapshot["public"]
         lease["resources"] = [
             {
                 "kind": "security_rule",
@@ -417,42 +533,68 @@ class LiveGateV3Tests(unittest.TestCase):
         self.lease_path.write_text(json.dumps(lease, indent=2, sort_keys=True) + "\n")
         return lease
 
+    def narrow(self, registry_path, fake):
+        with self.live_environment():
+            return broker.narrow_bootstrap_egress(
+                self.lease_path,
+                registry_path,
+                fake,
+                authorization_path=self.auth_path,
+                clearance_path=self.clearance_path,
+                bearer_token_path=self.token_path,
+            )
+
+    def test_clearance_freshness_is_rechecked_before_each_network_mutation(self):
+        lease = self.rule_lease()
+        fake = RuleCLI(lease)
+        clock = mock.Mock(
+            side_effect=[
+                dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2026, 8, 19, 17, 1, tzinfo=dt.timezone.utc),
+            ]
+        )
+        with mock.patch.object(broker, "observe_recorder_cidr", return_value="203.0.113.10/32"), mock.patch.object(
+            broker,
+            "_git_state",
+            return_value=("a" * 40, "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark", True),
+        ), mock.patch.object(broker, "utc_now", clock):
+            with self.assertRaisesRegex(broker.BrokerError, "clearance expiry is stale"):
+                broker.narrow_bootstrap_egress(
+                    self.lease_path,
+                    self.root / "freshness-registry.json",
+                    fake,
+                    authorization_path=self.auth_path,
+                    clearance_path=self.clearance_path,
+                    bearer_token_path=self.token_path,
+                )
+        self.assertEqual([], fake.deleted)
+
     def test_post_bootstrap_narrowing_removes_all_egress_and_is_idempotent(self):
         lease = self.rule_lease()
         fake = RuleCLI(lease)
-        broker.narrow_bootstrap_egress(
-            self.lease_path, self.root / "rule-registry.json", fake
-        )
+        self.narrow(self.root / "rule-registry.json", fake)
         narrowed = broker.load_json(self.lease_path)
         self.assertTrue(all(item["deleted_at"] for item in narrowed["resources"]))
         self.assertEqual(4, len(fake.deleted))
-        broker.narrow_bootstrap_egress(
-            self.lease_path, self.root / "rule-registry.json", fake
-        )
+        self.narrow(self.root / "rule-registry.json", fake)
         self.assertEqual(4, len(fake.deleted))
 
     def test_interrupted_narrowing_resumes_and_foreign_rule_is_never_deleted(self):
         lease = self.rule_lease()
         interrupted = RuleCLI(lease, interrupt_on_delete=2)
         with self.assertRaises(KeyboardInterrupt):
-            broker.narrow_bootstrap_egress(
-                self.lease_path, self.root / "interrupt-registry.json", interrupted
-            )
+            self.narrow(self.root / "interrupt-registry.json", interrupted)
         partial = broker.load_json(self.lease_path)
         self.assertEqual(1, sum(item["deleted_at"] is not None for item in partial["resources"]))
         resumed = RuleCLI(partial)
         resumed.values.pop("security-rule-1", None)
-        broker.narrow_bootstrap_egress(
-            self.lease_path, self.root / "interrupt-registry.json", resumed
-        )
+        self.narrow(self.root / "interrupt-registry.json", resumed)
         self.assertTrue(all(item["deleted_at"] for item in broker.load_json(self.lease_path)["resources"]))
 
         lease = self.rule_lease()
         foreign = RuleCLI(lease, foreign_id="security-rule-1")
         with self.assertRaisesRegex(broker.BrokerError, "foreign replacement"):
-            broker.narrow_bootstrap_egress(
-                self.lease_path, self.root / "foreign-rule-registry.json", foreign
-            )
+            self.narrow(self.root / "foreign-rule-registry.json", foreign)
         self.assertNotIn("security-rule-1", foreign.deleted)
 
     def test_public_ip_pool_allocations_and_route_are_lease_bound_children(self):
