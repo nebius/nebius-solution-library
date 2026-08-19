@@ -1,9 +1,9 @@
 {
-  "schema": "catalog-switch-internal-live-authorization/v4",
-  "authorization_id": "internal-qwen3-h100-scout-v4-20260819",
+  "schema": "catalog-switch-internal-live-authorization/v5",
+  "authorization_id": "internal-qwen3-h100-scout-v5-20260819",
   "state": "PRE_CREATION_REVIEW",
-  "issued_at": "2026-08-19T16:24:48Z",
-  "expires_at": "2026-08-19T20:24:48Z",
+  "issued_at": "2026-08-19T17:10:07Z",
+  "expires_at": "2026-08-19T21:10:07Z",
   "authorized_by": "explicit-user-manager-intervention-20260819",
   "required_reviewer": "catalog-switch-independent-precreation-reviewer-v2",
   "scope": {
@@ -12,7 +12,7 @@
     "branch": "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark",
     "gpu_count": 1,
     "gpu_type": "H100",
-    "lease_id": "catswitch-qwen3-h100-scout-v4-20260819",
+    "lease_id": "catswitch-qwen3-h100-scout-v5-20260819",
     "mode": "preemptible",
     "profile": "h100-single",
     "project_id": "project-e00z6b02t8ddk96c49",
@@ -24,23 +24,24 @@
     "expected_cost_usd": "4.360934",
     "image_amd64_digest": "sha256:7c2c59db86a9a64138c5c675b98e3e05b7f37a34a344d4aa461b1529ed60262d",
     "input_sha256": "c3e3250abbb92869b7a51325a5fd5358eb98122d73698956cf064ed491d3291d",
-    "lease_plan_sha256": "a6f2282098ceb6584aa3dd8e4a60d241bf0fb5d4e7ab33f2bfa7ab4605ea2151",
+    "lease_plan_sha256": "5a758ff9cfc971947a8d05a38461f6a6ff5d7511b272c597f7d91687967bb212",
     "model_id": "Qwen/Qwen3-8B",
     "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
-    "request_sha256": "e0f72a45e6798d2d4dba74b2f9d07dacf2ed5cb6b26946134739a5f9c69f5573",
-    "source_parent_commit": "94cd1c9999dfe7ca7626661b89352b6d41727cd4",
+    "request_sha256": "711d39a8a89aa98dac0eb0c874fd8b3bd67ca6a9827695ef074bd51a6532c919",
+    "source_parent_commit": "27c28e20e89193f3865b5aadf805d0e735f4e20e",
     "ttl_cost_ceiling_usd": "8.721867"
   },
   "artifacts": [
-    {"path": "resource-broker/broker.py", "sha256": "7b2e82d33fa347e19fd58ebd23863031d80a4478d26fef22158e76c18498f85b"},
-    {"path": "catalog-switch/cerebrium-comparator/comparator.py", "sha256": "5ef9a1b9840d7841e3adad69a79ea0b527e1c0502e7b45d30bdb923f37777442"},
-    {"path": "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v4.sh", "sha256": "d0ba96b7fe784df7ac8ab88ebf67c2d5b7da0c398a85701f99ad6180115549e2"},
-    {"path": "catalog-switch/cerebrium-comparator/live/internal_scout_server_v4.py", "sha256": "ae99f4f8d78e4e827a7a031c1572b796f59186f933b1edc27788a21149df5a71"},
-    {"path": "catalog-switch/cerebrium-comparator/schemas/live-authorization-v4.schema.json", "sha256": "98da684789e607372d07cdc16db8711ad6913989a1866ce45051e9f562fc2cfe"},
-    {"path": "catalog-switch/cerebrium-comparator/schemas/attempt.schema.json", "sha256": "2f234303283813c498349b99537e7512bfe92e01db2ad03574dfd41b42ac7739"}
+    {"path": "resource-broker/broker.py", "sha256": "6933acb4067a221802927725e2d1eb4839fcbca87a5cee21b219b27d37c54af1"},
+    {"path": "catalog-switch/cerebrium-comparator/comparator.py", "sha256": "8afb8cf00dffec924ef653bc94cc68a91140bb32f1965ae5478215e5356739bf"},
+    {"path": "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v5.sh", "sha256": "744c9beeb21f2559ff393dee494584576a4279dc1407de4d3d3dead3406e4e5a"},
+    {"path": "catalog-switch/cerebrium-comparator/live/internal_scout_server_v5.py", "sha256": "6cfe43a464f63d23a5708c0ffa414af6409dc290af3917089f6b9070528d80cc"},
+    {"path": "catalog-switch/cerebrium-comparator/schemas/live-authorization-v5.schema.json", "sha256": "79d3b0f563e1af874303a7a3e3ff3b24fedce97231fde8885ede97cca4479dcb"},
+    {"path": "catalog-switch/cerebrium-comparator/schemas/attempt.schema.json", "sha256": "7eb5695b3848bf617e6d39f8316a1f0364a493fc93c1a73c6522e742ecf859db"}
   ],
   "network": {
     "bearer_token_sha256": "05d63fab4f79a7e460368d4950fa15297a342d7efc02c874e3ac71e264095b12",
+    "gate_signing_key_sha256": "f0a228a7881bad76e1d489479263ac1fe24c626c77eb70b87ba4c61d68d7c744",
     "bootstrap_egress": [
       {"destination_cidrs": ["0.0.0.0/0"], "ports": [443], "protocol": "TCP", "purpose": "TLS image/model localization"},
       {"destination_cidrs": ["0.0.0.0/0"], "ports": [53], "protocol": "UDP", "purpose": "DNS resolution"},

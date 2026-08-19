@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "catalog-switch-internal-live-authorization-v5.schema.json",
+  "title": "Catalog-switch internal live authorization v5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifacts",
+    "authorization_id",
+    "authorized_by",
+    "cleanup",
+    "expires_at",
+    "frozen",
+    "issued_at",
+    "network",
+    "observed_gpu",
+    "qualification",
+    "required_reviewer",
+    "schema",
+    "scope",
+    "state"
+  ],
+  "properties": {
+    "schema": {"const": "catalog-switch-internal-live-authorization/v5"},
+    "authorization_id": {"const": "internal-qwen3-h100-scout-v5-20260819"},
+    "state": {"const": "PRE_CREATION_REVIEW"},
+    "issued_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "expires_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "authorized_by": {"const": "explicit-user-manager-intervention-20260819"},
+    "required_reviewer": {"const": "catalog-switch-independent-precreation-reviewer-v2"},
+    "artifacts": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["arm_id", "backend", "branch", "gpu_count", "gpu_type", "lease_id", "mode", "profile", "project_id", "region", "task_id"],
+      "properties": {
+        "arm_id": {"const": "internal-qwen3-new-target-matched"},
+        "backend": {"const": "internal-nebius"},
+        "branch": {"const": "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark"},
+        "gpu_count": {"const": 1},
+        "gpu_type": {"const": "H100"},
+        "lease_id": {"const": "catswitch-qwen3-h100-scout-v5-20260819"},
+        "mode": {"const": "preemptible"},
+        "profile": {"const": "h100-single"},
+        "project_id": {"const": "project-e00z6b02t8ddk96c49"},
+        "region": {"const": "eu-north1"},
+        "task_id": {"const": "catalog-switch-cerebrium-qwen3-glm52-benchmark"}
+      }
+    },
+    "frozen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["campaign_sha256", "expected_cost_usd", "image_amd64_digest", "input_sha256", "lease_plan_sha256", "model_id", "model_revision", "request_sha256", "source_parent_commit", "ttl_cost_ceiling_usd"],
+      "properties": {
+        "campaign_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "expected_cost_usd": {"pattern": "^[0-9]+\\.[0-9]+$", "type": "string"},
+        "image_amd64_digest": {"pattern": "^sha256:[0-9a-f]{64}$", "type": "string"},
+        "input_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "lease_plan_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "model_id": {"const": "Qwen/Qwen3-8B"},
+        "model_revision": {"const": "b968826d9c46dd6066d109eabc6255188de91218"},
+        "request_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "source_parent_commit": {"const": "27c28e20e89193f3865b5aadf805d0e735f4e20e"},
+        "ttl_cost_ceiling_usd": {"pattern": "^[0-9]+\\.[0-9]+$", "type": "string"}
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bearer_token_sha256", "bootstrap_egress", "direct_container_ingress", "gate_signing_key_sha256", "ingress", "lifecycle_transition", "public_ipv4_count", "recorder_cidr_published", "recorder_cidr_sha256", "runtime_egress", "secret_values_published", "ssh_ingress"],
+      "properties": {
+        "bearer_token_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "gate_signing_key_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "recorder_cidr_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "bootstrap_egress": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["destination_cidrs", "ports", "protocol", "purpose"],
+            "properties": {
+              "destination_cidrs": {"const": ["0.0.0.0/0"]},
+              "ports": {"type": "array", "minItems": 1, "maxItems": 1, "items": {"type": "integer"}},
+              "protocol": {"enum": ["TCP", "UDP"]},
+              "purpose": {"minLength": 1, "type": "string"}
+            }
+          }
+        },
+        "direct_container_ingress": {"const": false},
+        "ingress": {
+          "const": {"authentication": "bearer-sha256-pinned", "port": 8080, "protocol": "TCP", "source": "runtime-observed-ipv4-32-sha256-pinned"}
+        },
+        "lifecycle_transition": {"const": "controller-delete-bootstrap-egress-before-active"},
+        "public_ipv4_count": {"const": 1},
+        "recorder_cidr_published": {"const": false},
+        "runtime_egress": {"maxItems": 0, "type": "array"},
+        "secret_values_published": {"const": false},
+        "ssh_ingress": {"const": false}
+      }
+    },
+    "observed_gpu": {
+      "const": {"count": 1, "marker": "CATSWITCH_GPU_PROOF_B64", "name_regex": "^NVIDIA H100(?: |$)", "source": "bootstrap-nvidia-smi-serial-proof"}
+    },
+    "qualification": {
+      "type": "object",
+      "required": ["headline_request_ordinal", "independent_recorder_oracle_validation", "requests_per_runtime", "runtime_group_ids", "server_oracle_verdict_required", "teardown_after_request_ordinal"],
+      "additionalProperties": false,
+      "properties": {
+        "headline_request_ordinal": {"const": 1},
+        "independent_recorder_oracle_validation": {"const": true},
+        "requests_per_runtime": {"const": 2},
+        "runtime_group_ids": {
+          "const": ["qwen-smoke-01", "qwen-scout-01", "qwen-scout-02", "qwen-scout-03"]
+        },
+        "server_oracle_verdict_required": {"const": true},
+        "teardown_after_request_ordinal": {"const": 2}
+      }
+    },
+    "cleanup": {
+      "const": {"desired_final_state": "ABSENT", "foreign_replacement_policy": "fail-closed-no-delete", "idempotent": true, "partial_create_cleanup": true, "verification": "exact-id-not-found-plus-cascade-child-absence"}
+    }
+  }
+}

@@ -10,8 +10,8 @@ from pathlib import Path
 from unittest import mock
 
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "live" / "internal_scout_server_v4.py"
-SPEC = importlib.util.spec_from_file_location("internal_scout_server_v4", MODULE_PATH)
+MODULE_PATH = Path(__file__).resolve().parents[1] / "live" / "internal_scout_server_v5.py"
+SPEC = importlib.util.spec_from_file_location("internal_scout_server_v5", MODULE_PATH)
 assert SPEC and SPEC.loader
 server = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(server)
@@ -21,16 +21,18 @@ def line(value):
     return b"data: " + json.dumps(value).encode() + b"\n"
 
 
-class InternalScoutServerV4Tests(unittest.TestCase):
-    def runtime_gate(self, token_value="a" * 64):
+class InternalScoutServerV5Tests(unittest.TestCase):
+    def runtime_gate(self, signing_key="b" * 64, *, issued_at="2026-08-19T16:30:00Z"):
         payload = {
-            "schema": "catalog-switch-internal-runtime-gate/v4",
+            "schema": "catalog-switch-internal-runtime-gate/v5",
+            "authorization_id": "internal-qwen3-h100-scout-v5-20260819",
             "authorization_sha256": "1" * 64,
+            "broker_receipt_sha256": "6" * 64,
             "clearance_expires_at": "2099-08-19T17:00:00Z",
             "health_proof_sha256": "2" * 64,
             "instance_id": "computeinstance-task-owned",
             "isolation_proof_sha256": "3" * 64,
-            "issued_at_utc": "2026-08-19T16:00:00Z",
+            "issued_at_utc": issued_at,
             "lease_id": server.LEASE_ID,
             "lease_plan_sha256": "4" * 64,
             "lease_state": "ACTIVE",
@@ -39,12 +41,21 @@ class InternalScoutServerV4Tests(unittest.TestCase):
                 "name": "NVIDIA H100 80GB HBM3",
                 "uuid_sha256": "5" * 64,
             },
+            "network_binding": {
+                "instance_id": "computeinstance-task-owned",
+                "security_group_id": "securitygroup-task-owned",
+                "subnet_id": "subnet-task-owned",
+            },
+            "profile": {
+                "platform": "gpu-h100-sxm",
+                "preset": "1gpu-16vcpu-200gb",
+            },
             "runtime_egress_rule_count": 0,
         }
         signature = hmac.new(
-            token_value.encode(), server.canonical(payload), hashlib.sha256
+            signing_key.encode(), server.canonical(payload), hashlib.sha256
         ).hexdigest()
-        return {**payload, "hmac_sha256": signature}
+        return {**payload, "gate_hmac_sha256": signature}
 
     def test_stream_oracle_records_complete_exact_semantic_verdict(self):
         oracle = server.StreamOracle()
@@ -78,7 +89,9 @@ class InternalScoutServerV4Tests(unittest.TestCase):
         self.assertEqual("exact content mismatch", reason)
 
     def test_first_request_does_not_require_an_active_runtime(self):
-        with mock.patch.object(server, "completed_runtime_groups", return_value=[]):
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(
+            server, "GROUP_STATE_DIR", Path(directory)
+        ), mock.patch.object(server, "completed_runtime_groups", return_value=[]):
             server.validate_transition(None, "qwen-smoke-01", "attempt-1", 1)
 
     def test_second_request_requires_same_runtime_group_and_distinct_attempt(self):
@@ -86,11 +99,22 @@ class InternalScoutServerV4Tests(unittest.TestCase):
             "runtime_group_id": "qwen-smoke-01",
             "requests": [{"attempt_id": "attempt-1"}],
         }
-        server.validate_transition(active, "qwen-smoke-01", "attempt-2", 2)
-        with self.assertRaisesRegex(ValueError, "changed runtime group"):
-            server.validate_transition(active, "qwen-scout-01", "attempt-2", 2)
-        with self.assertRaisesRegex(ValueError, "distinct attempt"):
-            server.validate_transition(active, "qwen-smoke-01", "attempt-1", 2)
+        active["container_id"] = "a" * 64
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(
+            server, "GROUP_STATE_DIR", Path(directory)
+        ):
+            server.GROUP_STATE_DIR.mkdir(parents=True, exist_ok=True)
+            server.claim_runtime_ordinal("qwen-smoke-01", "attempt-1", 1)
+            server.update_group_state(
+                "qwen-smoke-01",
+                state="AWAITING_ORDINAL2",
+                container_id="a" * 64,
+            )
+            server.validate_transition(active, "qwen-smoke-01", "attempt-2", 2)
+            with self.assertRaisesRegex(ValueError, "changed runtime group"):
+                server.validate_transition(active, "qwen-scout-01", "attempt-2", 2)
+            with self.assertRaisesRegex(ValueError, "distinct attempt"):
+                server.validate_transition(active, "qwen-smoke-01", "attempt-1", 2)
 
     def test_single_request_cannot_claim_pair_qualification(self):
         active = {"runtime_group_id": "qwen-smoke-01", "requests": []}
@@ -120,8 +144,16 @@ class InternalScoutServerV4Tests(unittest.TestCase):
     def test_inference_gate_requires_authenticated_active_zero_egress_h100(self):
         with tempfile.TemporaryDirectory() as directory:
             token_path = Path(directory) / "token"
+            gate_key_path = Path(directory) / "gate-key"
             token_path.write_text("a" * 64 + "\n")
-            with mock.patch.object(server, "TOKEN_PATH", token_path):
+            gate_key_path.write_text("b" * 64 + "\n")
+            with mock.patch.object(server, "TOKEN_PATH", token_path), mock.patch.object(
+                server, "GATE_VERIFIER_KEY_PATH", gate_key_path
+            ), mock.patch.object(
+                server,
+                "current_utc",
+                return_value=server.datetime(2026, 8, 19, 16, 30, tzinfo=server.UTC),
+            ):
                 gate = self.runtime_gate()
                 self.assertEqual("ACTIVE", server.validate_runtime_gate(gate)["lease_state"])
                 for key, value in (
@@ -134,17 +166,84 @@ class InternalScoutServerV4Tests(unittest.TestCase):
                     payload = {
                         item_key: item_value
                         for item_key, item_value in changed.items()
-                        if item_key != "hmac_sha256"
+                        if item_key != "gate_hmac_sha256"
                     }
-                    changed["hmac_sha256"] = hmac.new(
-                        ("a" * 64).encode(), server.canonical(payload), hashlib.sha256
+                    changed["gate_hmac_sha256"] = hmac.new(
+                        ("b" * 64).encode(), server.canonical(payload), hashlib.sha256
                     ).hexdigest()
-                    with self.assertRaisesRegex(ValueError, "ACTIVE"):
+                    with self.assertRaisesRegex(ValueError, "fresh exact ACTIVE"):
                         server.validate_runtime_gate(changed)
                 forged = dict(gate)
-                forged["hmac_sha256"] = "0" * 64
+                forged["gate_hmac_sha256"] = "0" * 64
                 with self.assertRaisesRegex(ValueError, "signature"):
                     server.validate_runtime_gate(forged)
+
+                client_forgery = dict(gate)
+                payload = {
+                    key: value
+                    for key, value in client_forgery.items()
+                    if key != "gate_hmac_sha256"
+                }
+                client_forgery["gate_hmac_sha256"] = hmac.new(
+                    ("a" * 64).encode(), server.canonical(payload), hashlib.sha256
+                ).hexdigest()
+                with self.assertRaisesRegex(ValueError, "signature"):
+                    server.validate_runtime_gate(client_forgery)
+
+                stale = self.runtime_gate(issued_at="1970-01-01T00:00:00Z")
+                with self.assertRaisesRegex(ValueError, "fresh exact ACTIVE"):
+                    server.validate_runtime_gate(stale)
+
+    def test_runtime_group_ordinal_is_atomically_consumed_before_runtime_start(self):
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(
+            server, "GROUP_STATE_DIR", Path(directory)
+        ):
+            server.GROUP_STATE_DIR.mkdir(parents=True, exist_ok=True)
+            first = server.claim_runtime_ordinal(
+                "qwen-smoke-01", "attempt-first", 1
+            )
+            self.assertEqual("ORDINAL1_IN_PROGRESS", first["state"])
+            with self.assertRaisesRegex(ValueError, "already consumed"):
+                server.claim_runtime_ordinal(
+                    "qwen-smoke-01", "attempt-race", 1
+                )
+            server.update_group_state(
+                "qwen-smoke-01",
+                state="AWAITING_ORDINAL2",
+                container_id="a" * 64,
+            )
+            active = {
+                "runtime_group_id": "qwen-smoke-01",
+                "container_id": "a" * 64,
+                "requests": [{"attempt_id": "attempt-first"}],
+            }
+            second = server.claim_runtime_ordinal(
+                "qwen-smoke-01", "attempt-second", 2
+            )
+            self.assertEqual("ORDINAL2_IN_PROGRESS", second["state"])
+            with self.assertRaisesRegex(ValueError, "not exactly claimable"):
+                server.claim_runtime_ordinal(
+                    "qwen-smoke-01", "attempt-second-retry", 2
+                )
+
+    def test_crash_recovery_is_terminal_and_retry_is_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(
+            server, "GROUP_STATE_DIR", Path(directory)
+        ), mock.patch.object(
+            server, "remove_runtime", return_value={"status": "removed"}
+        ) as remove:
+            server.GROUP_STATE_DIR.mkdir(parents=True, exist_ok=True)
+            state = server.claim_runtime_ordinal(
+                "qwen-smoke-01", "attempt-crashed", 1
+            )
+            server.recover_runtime_groups()
+            recovered = server.load_group_state("qwen-smoke-01")
+            self.assertEqual("FAILED_CRASH_RECOVERED", recovered["state"])
+            remove.assert_called_once_with("catswitch-vllm-qwen-smoke-01")
+            with self.assertRaisesRegex(ValueError, "already consumed"):
+                server.claim_runtime_ordinal(
+                    "qwen-smoke-01", "attempt-retry", 1
+                )
 
     def test_container_identity_uses_no_trunc_and_exact_running_inspect_id(self):
         calls = []

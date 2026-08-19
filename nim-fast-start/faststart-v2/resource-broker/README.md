@@ -14,14 +14,21 @@ those recorded IDs. It never adopts or mutates a pre-existing project resource.
 - Every resource is named with a collision-resistant `mlsp-csw-...` prefix and
   labeled with program, broker, lease, task, owner, and UTC expiry. Provisioning
   first lists every broker-prefixed resource and rejects exact-name collisions.
-- A VM gets a fresh VPC, private subnet, deny-all security group, automatically
-  encrypted Network SSD boot disk, and no public IP or attached service account. Artifact
-  buckets are private, capped, versioning-disabled, and configured for full
-  object audit logging.
+- The broker default remains air-gapped: a VM gets a fresh VPC, private subnet,
+  deny-all security group, automatically encrypted Network SSD boot disk, and
+  no public IP or attached service account. The versioned Qwen v5 authorization
+  is the only narrower exception: one lease-bound public `/32`, authenticated
+  TCP/8080 from the hash-pinned recorder `/32`, no SSH/direct-container
+  ingress, and zero egress before `ACTIVE`. Artifact buckets are private,
+  capped, versioning-disabled, and configured for full object audit logging.
 - Cleanup reads immutable IDs from the lease, deletes in reverse dependency
   order, and records a successful `get -> NotFound` observation. Unregistered
   prefixed resources are reported as `MANUAL_REVIEW`; the scanner never deletes
   them automatically.
+- Every provider create is preceded by a durable intent containing exact kind,
+  name, parent, and payload hash. Lost responses are reconciled by exact
+  ownership identity; an in-doubt intent is never redispatched and prevents a
+  false `RELEASED` cleanup result.
 - Provider-created children are reconciled before release. Private IP
   allocations are verified absent after their VM is deleted; default private/
   public pools and the default route table are verified absent after their VPC
@@ -31,7 +38,7 @@ those recorded IDs. It never adopts or mutates a pre-existing project resource.
   deadline, not provider-side magic: the hourly supervisor must run the scanner
   and exact-ID cleanup for expired leases.
 - On this comparator task branch, every `provision` and `verify-health` path is
-  additionally sealed behind the versioned Qwen v4 authorization and a
+  additionally sealed behind the versioned Qwen v5 authorization and a
   separate, exact-commit independent clearance. Missing authorization blocks
   CPU, Qwen, and GLM leases before provider preflight. This is intentionally
   narrower than the reviewed broker's general interface.
@@ -82,14 +89,18 @@ python3 broker.py plan \
 Review the lease's prefix, estimated cost, expiry, cleanup owner, resource list,
 and exact request hash. A plan alone never authorizes provisioning. On this
 task branch, provisioning additionally requires the reviewed authorization,
-external clearance, and a mode-0600 bearer file:
+external clearance, a mode-0600 bearer file, and a separate mode-0600 broker
+gate signing key:
 
 ```bash
-python3 broker.py provision \
-  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v4.lease.json \
-  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v4.json \
+python3 broker.py \
+  --registry ../catalog-switch/cerebrium-comparator/resource-requests/registry.json \
+  provision \
+  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v5.lease.json \
+  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v5.json \
   --clearance /secure/external/exact-commit-clearance.json \
   --bearer-token /secure/external/qwen-scout-bearer \
+  --gate-signing-key /secure/external/qwen-scout-gate-key \
   --execute
 ```
 
@@ -97,20 +108,26 @@ If a controller process is interrupted after the VM ID is ledgered, resume the
 same fail-closed health gate without creating anything new:
 
 ```bash
-python3 broker.py verify-health \
-  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v4.lease.json \
-  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v4.json \
+python3 broker.py \
+  --registry ../catalog-switch/cerebrium-comparator/resource-requests/registry.json \
+  verify-health \
+  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v5.lease.json \
+  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v5.json \
   --clearance /secure/external/exact-commit-clearance.json \
   --bearer-token /secure/external/qwen-scout-bearer \
+  --gate-signing-key /secure/external/qwen-scout-gate-key \
   --execute
 ```
 
-The Qwen v4 API accepts no caller-created authorization context or supplied
+The Qwen v5 API accepts no caller-created authorization context or supplied
 clock/Git/recorder observation. It re-observes those inputs before every live
 mutation or resumed use. The health proof requires live `RUNNING`, the lease
 marker, an observed exactly-one-H100 serial proof, and deletion/absence of all
-bootstrap egress before `ACTIVE`. Only then does it issue the authenticated
-runtime-gate receipt consumed by the application and comparator. Inspect the
+bootstrap egress before `ACTIVE`. The live VM interface must join the exact
+reviewed network/subnet/security group. Only then does the broker issue a
+short-lived runtime gate signed with the non-client key and bound to the exact
+ledger/health/isolation/GPU receipt consumed by the application and comparator.
+Inspect the
 exact reverse-order cleanup plan before executing it. Cleanup deliberately does
 not require a still-valid performance clearance,
 so an expired or failed lease can always be made absent:
@@ -176,12 +193,14 @@ python3 -m json.tool profiles.json >/dev/null
 python3 -m json.tool lease.schema.json >/dev/null
 ```
 
-The 25-test unit suite covers policy validation, request-hash idempotency,
+The 32-test unit suite covers policy validation, request-hash idempotency,
 unauthorized project rejection, the GPU experiment gate, mandatory live
 authorization, exact commit/reviewer/time binding, source drift, observed GPU
 shape, interrupted partial creation, lifecycle egress narrowing, public/private
-child reconciliation, foreign replacement preservation, idempotent cleanup,
-orphan scanning, and the supervisor export contract. It also proves that
+child reconciliation, exact VM-interface binding, response-loss create
+reconciliation, unresolved-intent cleanup refusal, foreign replacement
+preservation, idempotent cleanup, non-client runtime-gate authority, orphan
+scanning, and the supervisor export contract. It also proves that
 capacity advice is matched on the nested exact platform/preset contract and
 that limit-reached modes fail before any create call.
 

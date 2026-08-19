@@ -1,5 +1,5 @@
 {
-  "$id": "https://nebius.ai/schemas/catalog-switch-cerebrium-attempt-v2.json",
+  "$id": "https://nebius.ai/schemas/catalog-switch-cerebrium-attempt-v3.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
@@ -27,7 +27,7 @@
     "request": {"type": "object"},
     "response": {"type": "object"},
     "response_identity": {"type": ["object", "null"]},
-    "schema": {"const": "catalog-switch-cerebrium-attempt/v2"},
+    "schema": {"const": "catalog-switch-cerebrium-attempt/v3"},
     "started_at_utc": {"format": "date-time", "type": "string"},
     "timing_ns": {
       "additionalProperties": false,

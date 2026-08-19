@@ -52,10 +52,10 @@ AUTH_FAILURES = (
 NOT_FOUND_MARKERS = ("notfound", "not found", "code = not_found")
 SAFE_LABEL = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,62}$")
 GPU_PLATFORM_PREFIX = "gpu-"
-LIVE_AUTH_SCHEMA_VERSION = "catalog-switch-internal-live-authorization/v4"
+LIVE_AUTH_SCHEMA_VERSION = "catalog-switch-internal-live-authorization/v5"
 LIVE_CLEARANCE_SCHEMA_VERSION = "catalog-switch-independent-precreation-clearance/v2"
-QWEN_SCOUT_AUTHORIZATION_ID = "internal-qwen3-h100-scout-v4-20260819"
-QWEN_SCOUT_LEASE_ID = "catswitch-qwen3-h100-scout-v4-20260819"
+QWEN_SCOUT_AUTHORIZATION_ID = "internal-qwen3-h100-scout-v5-20260819"
+QWEN_SCOUT_LEASE_ID = "catswitch-qwen3-h100-scout-v5-20260819"
 QWEN_SCOUT_TASK_ID = "catalog-switch-cerebrium-qwen3-glm52-benchmark"
 QWEN_SCOUT_ARM_ID = "internal-qwen3-new-target-matched"
 QWEN_SCOUT_MODEL = "Qwen/Qwen3-8B"
@@ -172,19 +172,27 @@ def observe_recorder_cidr() -> str:
     return f"{address}/32"
 
 
-def _load_runtime_bearer(path: Path) -> str:
+def _load_hex_secret(path: Path, label: str) -> str:
     try:
         info = path.lstat()
     except OSError as exc:
-        raise BrokerError("runtime bearer-token file is unavailable") from exc
+        raise BrokerError(f"{label} file is unavailable") from exc
     if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
-        raise BrokerError("runtime bearer-token path must be a regular non-symlink file")
+        raise BrokerError(f"{label} path must be a regular non-symlink file")
     if info.st_mode & 0o077:
-        raise BrokerError("runtime bearer-token file must have mode 0600 or stricter")
+        raise BrokerError(f"{label} file must have mode 0600 or stricter")
     value = path.read_text().strip()
     if not re.fullmatch(r"[0-9a-f]{64}", value):
-        raise BrokerError("runtime bearer token must be a 32-byte lowercase hex value")
+        raise BrokerError(f"{label} must be a 32-byte lowercase hex value")
     return value
+
+
+def _load_runtime_bearer(path: Path) -> str:
+    return _load_hex_secret(path, "runtime bearer token")
+
+
+def _load_gate_signing_key(path: Path) -> str:
+    return _load_hex_secret(path, "broker gate signing key")
 
 
 def _git_state() -> tuple[str, str, bool]:
@@ -278,15 +286,16 @@ def _validate_live_authorization_snapshot(
     clearance_path: Path,
     lease_path: Path,
     bearer_token_path: Path,
+    gate_signing_key_path: Path,
 ) -> dict[str, Any]:
     """Observe and validate the sole live gate; never accepts caller observations."""
     authorization = load_json(authorization_path)
     if set(authorization) != LIVE_AUTH_TOP_KEYS:
-        raise BrokerError("live authorization top-level fields differ from v4")
+        raise BrokerError("live authorization top-level fields differ from v5")
     if authorization.get("schema") != LIVE_AUTH_SCHEMA_VERSION:
         raise BrokerError("unsupported live authorization schema")
     if authorization.get("authorization_id") != QWEN_SCOUT_AUTHORIZATION_ID:
-        raise BrokerError("authorization is not the exact Qwen v4 scout authorization")
+        raise BrokerError("authorization is not the exact Qwen v5 scout authorization")
     if authorization.get("state") != "PRE_CREATION_REVIEW":
         raise BrokerError("versioned authorization must remain PRE_CREATION_REVIEW")
     if authorization.get("authorized_by") != "explicit-user-manager-intervention-20260819":
@@ -302,7 +311,11 @@ def _validate_live_authorization_snapshot(
     lease = load_json(lease_path)
     if lease.get("schema_version") != SCHEMA_VERSION:
         raise BrokerError("authorization references an unsupported lease")
-    if lease.get("state") != "PLANNED" or lease.get("resources"):
+    if (
+        lease.get("state") != "PLANNED"
+        or lease.get("resources")
+        or lease.get("create_intents") != []
+    ):
         raise BrokerError("authorization requires a clean PLANNED zero-resource lease")
     if sha256_json(lease.get("request")) != lease.get("request_sha256"):
         raise BrokerError("lease request body differs from its immutable digest")
@@ -355,7 +368,7 @@ def _validate_live_authorization_snapshot(
         "model_id": QWEN_SCOUT_MODEL,
         "model_revision": QWEN_SCOUT_REVISION,
         "request_sha256": lease["request_sha256"],
-        "source_parent_commit": "94cd1c9999dfe7ca7626661b89352b6d41727cd4",
+        "source_parent_commit": "27c28e20e89193f3865b5aadf805d0e735f4e20e",
         "ttl_cost_ceiling_usd": lease["cost_estimate"]["ttl_cost_ceiling_usd"],
     }
     if frozen != expected_frozen:
@@ -367,9 +380,9 @@ def _validate_live_authorization_snapshot(
     allowed_artifacts = {
         "resource-broker/broker.py",
         "catalog-switch/cerebrium-comparator/comparator.py",
-        "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v4.sh",
-        "catalog-switch/cerebrium-comparator/live/internal_scout_server_v4.py",
-        "catalog-switch/cerebrium-comparator/schemas/live-authorization-v4.schema.json",
+        "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v5.sh",
+        "catalog-switch/cerebrium-comparator/live/internal_scout_server_v5.py",
+        "catalog-switch/cerebrium-comparator/schemas/live-authorization-v5.schema.json",
         "catalog-switch/cerebrium-comparator/schemas/attempt.schema.json",
     }
     if {item.get("path") for item in artifacts if isinstance(item, dict)} != allowed_artifacts:
@@ -433,6 +446,7 @@ def _validate_live_authorization_snapshot(
         "bearer_token_sha256",
         "bootstrap_egress",
         "direct_container_ingress",
+        "gate_signing_key_sha256",
         "ingress",
         "lifecycle_transition",
         "public_ipv4_count",
@@ -454,7 +468,7 @@ def _validate_live_authorization_snapshot(
         or network["ssh_ingress"] is not False
         or network["direct_container_ingress"] is not False
     ):
-        raise BrokerError("authorization network lifecycle is not the exact v4 boundary")
+        raise BrokerError("authorization network lifecycle is not the exact v5 boundary")
     if any(80 in item["ports"] for item in network["bootstrap_egress"]):
         raise BrokerError("unconditional TCP/80 is forbidden")
     cidr = observe_recorder_cidr()
@@ -470,6 +484,13 @@ def _validate_live_authorization_snapshot(
     bearer_token = _load_runtime_bearer(bearer_token_path)
     if hashlib.sha256(bearer_token.encode()).hexdigest() != network["bearer_token_sha256"]:
         raise BrokerError("runtime bearer token differs from the pinned hash")
+    gate_signing_key = _load_gate_signing_key(gate_signing_key_path)
+    if hashlib.sha256(gate_signing_key.encode()).hexdigest() != network[
+        "gate_signing_key_sha256"
+    ]:
+        raise BrokerError("broker gate signing key differs from the pinned hash")
+    if hmac.compare_digest(gate_signing_key, bearer_token):
+        raise BrokerError("broker gate signing key must differ from the benchmark bearer")
 
     clearance_public = _validate_clearance(
         load_json(clearance_path),
@@ -484,6 +505,7 @@ def _validate_live_authorization_snapshot(
         "network": {
             "bearer_token_sha256": network["bearer_token_sha256"],
             "bootstrap_egress_rule_count": 4,
+            "gate_signing_key_sha256": network["gate_signing_key_sha256"],
             "ingress_port": 8080,
             "recorder_cidr_sha256": network["recorder_cidr_sha256"],
             "runtime_egress_rule_count": 0,
@@ -498,6 +520,7 @@ def _validate_live_authorization_snapshot(
         "authorization": authorization,
         "public": public,
         "_bearer_token": bearer_token,
+        "_gate_signing_key": gate_signing_key,
         "_recorder_cidr": canonical_cidr,
     }
 
@@ -507,6 +530,7 @@ def _validate_live_resume_snapshot(
     clearance_path: Path,
     lease_path: Path,
     bearer_token_path: Path,
+    gate_signing_key_path: Path,
 ) -> dict[str, Any]:
     """Reobserve code, time, recorder and clearance for every resumed use."""
     authorization = load_json(authorization_path)
@@ -540,10 +564,18 @@ def _validate_live_resume_snapshot(
     bearer_token = _load_runtime_bearer(bearer_token_path)
     if hashlib.sha256(bearer_token.encode()).hexdigest() != stored["network"]["bearer_token_sha256"]:
         raise BrokerError("runtime bearer token differs during live resume")
+    gate_signing_key = _load_gate_signing_key(gate_signing_key_path)
+    if hashlib.sha256(gate_signing_key.encode()).hexdigest() != stored["network"][
+        "gate_signing_key_sha256"
+    ]:
+        raise BrokerError("broker gate signing key differs during live resume")
+    if hmac.compare_digest(gate_signing_key, bearer_token):
+        raise BrokerError("broker gate signing key must differ from the benchmark bearer")
     return {
         "authorization": authorization,
         "public": stored,
         "_bearer_token": bearer_token,
+        "_gate_signing_key": gate_signing_key,
         "_recorder_cidr": canonical_cidr,
     }
 
@@ -553,15 +585,24 @@ def _fresh_live_snapshot(
     clearance_path: Path,
     lease_path: Path,
     bearer_token_path: Path,
+    gate_signing_key_path: Path,
 ) -> dict[str, Any]:
     """Reobserve every security input immediately before a live mutation/use."""
     lease = load_json(lease_path)
     if lease.get("state") == "PLANNED":
         return _validate_live_authorization_snapshot(
-            authorization_path, clearance_path, lease_path, bearer_token_path
+            authorization_path,
+            clearance_path,
+            lease_path,
+            bearer_token_path,
+            gate_signing_key_path,
         )
     return _validate_live_resume_snapshot(
-        authorization_path, clearance_path, lease_path, bearer_token_path
+        authorization_path,
+        clearance_path,
+        lease_path,
+        bearer_token_path,
+        gate_signing_key_path,
     )
 
 
@@ -844,6 +885,7 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any], now: dt.datet
         "profile_snapshot": profile,
         "cost_estimate": cost_estimate(request, profile),
         "planned_resources": resource_names(prefix, request["artifact_storage"]["enabled"]),
+        "create_intents": [],
         "resources": [],
         "external_references": [],
         "health_proof": None,
@@ -1188,6 +1230,236 @@ def add_resource(
     return resource
 
 
+def _intent_identity(kind: str, name: str, parent_id: str) -> str:
+    return hashlib.sha256(
+        canonical({"kind": kind, "name": name, "parent_id": parent_id}).encode()
+    ).hexdigest()
+
+
+def record_create_intent(
+    lease_path: Path,
+    registry_path: Path,
+    lease: dict[str, Any],
+    *,
+    kind: str,
+    name: str,
+    parent_id: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Durably record a provider create before dispatching it."""
+    intent_id = _intent_identity(kind, name, parent_id)
+    existing = next(
+        (item for item in lease.setdefault("create_intents", []) if item["intent_id"] == intent_id),
+        None,
+    )
+    if existing is not None:
+        if (
+            existing["kind"] != kind
+            or existing["name"] != name
+            or existing["parent_id"] != parent_id
+            or existing["payload_sha256"] != sha256_json(payload)
+        ):
+            raise BrokerError("create intent identity was reused with different content")
+        if existing["state"] != "RESOLVED":
+            raise BrokerError("create intent was already dispatched and remains unresolved")
+        return existing
+    intent = {
+        "intent_id": intent_id,
+        "kind": kind,
+        "name": name,
+        "parent_id": parent_id,
+        "payload_sha256": sha256_json(payload),
+        "state": "DISPATCHED",
+        "dispatched_at": iso(utc_now()),
+        "resolved_at": None,
+        "resource_id": None,
+    }
+    lease["create_intents"].append(intent)
+    add_event(lease, "CREATE_INTENT_DISPATCHED", "PASS", f"{kind}:{name}")
+    save_lease(lease_path, registry_path, lease)
+    return intent
+
+
+def _list_create_intent_matches(
+    lease: dict[str, Any], cli: NebiusCLI, intent: dict[str, Any]
+) -> list[dict[str, Any]]:
+    kind = intent["kind"]
+    command = (
+        ["vpc", "security-rule", "list"]
+        if kind == "security_rule"
+        else LIST_COMMANDS.get(kind)
+    )
+    if command is None:
+        raise BrokerError(f"create intent kind cannot be reconciled: {kind}")
+    response = cli.run([*command, "--parent-id", intent["parent_id"], "--all"])
+    same_name = [
+        item
+        for item in response.get("items", [])
+        if item.get("metadata", {}).get("name") == intent["name"]
+    ]
+    expected_labels = lease["labels"]
+    owned = []
+    for item in same_name:
+        metadata = item.get("metadata", {})
+        labels = metadata.get("labels", {}) or {}
+        if metadata.get("parent_id") != intent["parent_id"] or any(
+            labels.get(key) != expected_labels[key]
+            for key in ("program", "lease", "task", "owner")
+        ):
+            raise BrokerError(
+                f"foreign replacement detected while reconciling {kind}:{intent['name']}"
+            )
+        owned.append(item)
+    if len(owned) > 1:
+        raise BrokerError(f"multiple provider resources match create intent {kind}:{intent['name']}")
+    return owned
+
+
+def reconcile_create_intent(
+    lease_path: Path,
+    registry_path: Path,
+    lease: dict[str, Any],
+    cli: NebiusCLI,
+    intent: dict[str, Any],
+    *,
+    require_resolution: bool,
+) -> dict[str, Any] | None:
+    """Join a response-lost create to its exact provider identity."""
+    if intent["state"] == "RESOLVED":
+        matches = [
+            item for item in lease["resources"] if item["id"] == intent["resource_id"]
+        ]
+        if len(matches) != 1:
+            raise BrokerError("resolved create intent lacks exactly one ledger resource")
+        return matches[0]
+    matches = _list_create_intent_matches(lease, cli, intent)
+    if not matches:
+        if require_resolution:
+            raise BrokerError(
+                f"dispatched create intent remains unresolved: {intent['kind']}:{intent['name']}; refusing RELEASED"
+            )
+        return None
+    matched_id = metadata_id(matches[0], intent["kind"])
+    ledger_matches = [
+        item for item in lease["resources"] if item["id"] == matched_id
+    ]
+    if len(ledger_matches) > 1:
+        raise BrokerError("provider create identity appears more than once in the ledger")
+    if ledger_matches:
+        resource = ledger_matches[0]
+        if resource["kind"] != intent["kind"] or resource["name"] != intent["name"]:
+            raise BrokerError("provider create identity conflicts with the ledger")
+    else:
+        resource = add_resource(
+            lease,
+            intent["kind"],
+            intent["name"],
+            matches[0],
+            parent_id=(
+                intent["parent_id"]
+                if intent["kind"] == "security_rule"
+                else None
+            ),
+        )
+    intent["state"] = "RESOLVED"
+    intent["resource_id"] = resource["id"]
+    intent["resolved_at"] = iso(utc_now())
+    add_event(
+        lease,
+        "CREATE_INTENT_RECONCILED",
+        "PASS",
+        f"{intent['kind']}:{resource['id']}",
+    )
+    save_lease(lease_path, registry_path, lease)
+    return resource
+
+
+def run_durable_create(
+    lease_path: Path,
+    registry_path: Path,
+    lease: dict[str, Any],
+    cli: NebiusCLI,
+    *,
+    kind: str,
+    name: str,
+    parent_id: str,
+    args: list[str],
+    payload: dict[str, Any],
+    timeout: int,
+    freshness_check: Any,
+) -> dict[str, Any]:
+    """Dispatch a create only after intent persistence; reconcile lost responses."""
+    intent_id = _intent_identity(kind, name, parent_id)
+    previous = next(
+        (
+            item
+            for item in lease.setdefault("create_intents", [])
+            if item["intent_id"] == intent_id
+        ),
+        None,
+    )
+    if previous is not None:
+        if previous.get("payload_sha256") != sha256_json(payload):
+            raise BrokerError("create intent resume payload differs")
+        reconciled = reconcile_create_intent(
+            lease_path,
+            registry_path,
+            lease,
+            cli,
+            previous,
+            require_resolution=False,
+        )
+        if reconciled is None:
+            raise BrokerError(
+                f"create intent is still in doubt: {kind}:{name}; refusing redispatch"
+            )
+        return reconciled
+    intent = record_create_intent(
+        lease_path,
+        registry_path,
+        lease,
+        kind=kind,
+        name=name,
+        parent_id=parent_id,
+        payload=payload,
+    )
+    try:
+        freshness_check()
+        response = cli.run(args, payload=payload, timeout=timeout)
+        resource = add_resource(
+            lease,
+            kind,
+            name,
+            response,
+            parent_id=parent_id if kind == "security_rule" else None,
+        )
+        intent["state"] = "RESOLVED"
+        intent["resource_id"] = resource["id"]
+        intent["resolved_at"] = iso(utc_now())
+        save_lease(lease_path, registry_path, lease)
+        return resource
+    except BaseException:
+        try:
+            freshness_check()
+            reconcile_create_intent(
+                lease_path,
+                registry_path,
+                lease,
+                cli,
+                intent,
+                require_resolution=False,
+            )
+        except Exception as reconciliation_error:
+            add_event(
+                lease,
+                "CREATE_INTENT_RECONCILE_DEFERRED",
+                "WARN",
+                f"{kind}:{name}:{type(reconciliation_error).__name__}",
+            )
+            save_lease(lease_path, registry_path, lease)
+        raise
+
+
 def add_managed_resource(
     lease: dict[str, Any], kind: str, response: dict[str, Any], managed_by_resource_id: str
 ) -> dict[str, Any]:
@@ -1326,6 +1598,9 @@ def capture_isolation_proof(lease: dict[str, Any], cli: NebiusCLI) -> dict[str, 
     instance = cli.run(["compute", "instance", "get", live["instance"]["id"]])
     network = cli.run(["vpc", "network", "get", live["network"]["id"]])
     subnet = cli.run(["vpc", "subnet", "get", live["subnet"]["id"]])
+    security_group_value = cli.run(
+        ["vpc", "security-group", "get", live["security_group"]["id"]]
+    )
     disk = cli.run(["compute", "disk", "get", live["disk"]["id"]])
     bucket = (
         cli.run(["storage", "bucket", "get", live["bucket"]["id"]])
@@ -1341,6 +1616,21 @@ def capture_isolation_proof(lease: dict[str, Any], cli: NebiusCLI) -> dict[str, 
         for interface in interfaces
         if interface.get("public_ip_address")
     ]
+    interface_bindings = [
+        {
+            "name": interface.get("name"),
+            "subnet_id": interface.get("subnet_id"),
+            "security_group_ids": sorted(
+                item.get("id")
+                for item in interface.get("security_groups", [])
+                if isinstance(item, dict) and item.get("id")
+            ),
+            "public_ip_allocation_id": interface.get("public_ip_address", {}).get(
+                "allocation_id"
+            ),
+        }
+        for interface in interfaces
+    ]
     return {
         "verified_at": iso(utc_now()),
         "project_id": lease["request"]["project_id"],
@@ -1353,6 +1643,7 @@ def capture_isolation_proof(lease: dict[str, Any], cli: NebiusCLI) -> dict[str, 
             "preemptible": instance.get("spec", {}).get("preemptible"),
             "service_account_id": instance.get("spec", {}).get("service_account_id"),
             "public_ip_allocation_ids": public_allocations,
+            "network_interfaces": interface_bindings,
             "local_disks": instance.get("spec", {}).get("local_disks"),
         },
         "network": {
@@ -1369,6 +1660,7 @@ def capture_isolation_proof(lease: dict[str, Any], cli: NebiusCLI) -> dict[str, 
         },
         "subnet": {
             "id": live["subnet"]["id"],
+            "network_id": subnet.get("spec", {}).get("network_id"),
             "private_pool_ids": [
                 item["id"]
                 for item in subnet.get("spec", {}).get("ipv4_private_pools", {}).get("pools", [])
@@ -1380,6 +1672,7 @@ def capture_isolation_proof(lease: dict[str, Any], cli: NebiusCLI) -> dict[str, 
         },
         "security_group": {
             "id": live["security_group"]["id"],
+            "network_id": security_group_value.get("spec", {}).get("network_id"),
             "rule_count": len(rules.get("items", [])),
             "rules": [_security_rule_proof(item) for item in rules.get("items", [])],
         },
@@ -1427,6 +1720,19 @@ def validate_isolation_proof(lease: dict[str, Any], proof: dict[str, Any]) -> No
     if live_authorization:
         if len(instance["public_ip_allocation_ids"]) != 1:
             failures.append("authorized scout must have exactly one public IP allocation")
+        interfaces = instance.get("network_interfaces", [])
+        expected_interface = {
+            "name": "eth0",
+            "subnet_id": subnet["id"],
+            "security_group_ids": [security_group["id"]],
+            "public_ip_allocation_id": instance["public_ip_allocation_ids"][0]
+            if len(instance["public_ip_allocation_ids"]) == 1
+            else None,
+        }
+        if interfaces != [expected_interface]:
+            failures.append(
+                "live VM interface is not bound to the exact reviewed subnet/security group"
+            )
     elif instance["public_ip_allocation_ids"]:
         failures.append("instance has a public IP allocation")
     if not profile["local_nvme"]["request"] and instance["local_disks"]:
@@ -1437,6 +1743,10 @@ def validate_isolation_proof(lease: dict[str, Any], proof: dict[str, Any]) -> No
         failures.append("fresh resources reference a pre-existing project resource")
     if not network["private_pool_ids"]:
         failures.append("fresh network has no private address pool")
+    if subnet.get("network_id") != network["id"]:
+        failures.append("reviewed subnet is not attached to the exact fresh network")
+    if security_group.get("network_id") != network["id"]:
+        failures.append("reviewed security group is not attached to the exact fresh network")
     if live_authorization:
         if len(subnet["public_pool_ids"]) != 1:
             failures.append("authorized scout subnet must own exactly one public /32 pool")
@@ -1501,12 +1811,12 @@ def security_rule_payload(
 
 def authorized_cloud_init(lease: dict[str, Any], snapshot: dict[str, Any]) -> str:
     artifact_paths = {
-        "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v4.sh": (
-            "/opt/catswitch/bootstrap_internal_qwen_v4.sh",
+        "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v5.sh": (
+            "/opt/catswitch/bootstrap_internal_qwen_v5.sh",
             "0755",
         ),
-        "catalog-switch/cerebrium-comparator/live/internal_scout_server_v4.py": (
-            "/opt/catswitch/internal_scout_server_v4.py",
+        "catalog-switch/cerebrium-comparator/live/internal_scout_server_v5.py": (
+            "/opt/catswitch/internal_scout_server_v5.py",
             "0644",
         ),
     }
@@ -1522,14 +1832,21 @@ def authorized_cloud_init(lease: dict[str, Any], snapshot: dict[str, Any]) -> st
             ]
         )
     token_encoded = base64.b64encode(snapshot["_bearer_token"].encode()).decode()
+    gate_key_encoded = base64.b64encode(
+        snapshot["_gate_signing_key"].encode()
+    ).decode()
     lines.extend(
         [
             "  - path: /run/catswitch/bearer-token",
             "    permissions: '0600'",
             "    encoding: b64",
             f"    content: {token_encoded}",
+            "  - path: /run/catswitch/gate-verifier-key",
+            "    permissions: '0600'",
+            "    encoding: b64",
+            f"    content: {gate_key_encoded}",
             "runcmd:",
-            "  - [bash, /opt/catswitch/bootstrap_internal_qwen_v4.sh]",
+            "  - [bash, /opt/catswitch/bootstrap_internal_qwen_v5.sh]",
             f"final_message: 'catalog-switch bootstrap finished; lease={lease['lease_id']}'",
             "",
         ]
@@ -1545,29 +1862,42 @@ def provision(
     authorization_path: Path | None = None,
     clearance_path: Path | None = None,
     bearer_token_path: Path | None = None,
+    gate_signing_key_path: Path | None = None,
 ) -> dict[str, Any]:
     """Provision only through an internally observed, repeatedly refreshed gate."""
     lease = load_json(lease_path)
     if lease.get("schema_version") != SCHEMA_VERSION:
         raise BrokerError("unsupported lease schema")
-    if authorization_path is None or clearance_path is None or bearer_token_path is None:
-        raise BrokerError("mandatory live authorization/clearance paths are absent")
+    if (
+        authorization_path is None
+        or clearance_path is None
+        or bearer_token_path is None
+        or gate_signing_key_path is None
+    ):
+        raise BrokerError("mandatory live authorization/clearance/key paths are absent")
 
     def fresh() -> dict[str, Any]:
         return _fresh_live_snapshot(
-            authorization_path, clearance_path, lease_path, bearer_token_path
+            authorization_path,
+            clearance_path,
+            lease_path,
+            bearer_token_path,
+            gate_signing_key_path,
         )
 
     live_snapshot = fresh()
     public_authorization = live_snapshot.get("public", {})
     private_keys_present = {
-        key for key in ("_bearer_token", "_recorder_cidr") if key in live_snapshot
+        key
+        for key in ("_bearer_token", "_gate_signing_key", "_recorder_cidr")
+        if key in live_snapshot
     }
     if (
         public_authorization.get("authorization_id") != QWEN_SCOUT_AUTHORIZATION_ID
         or public_authorization.get("clearance", {}).get("decision") != "CLEARED"
         or public_authorization.get("clearance", {}).get("reviewed_commit") is None
-        or private_keys_present != {"_bearer_token", "_recorder_cidr"}
+        or private_keys_present
+        != {"_bearer_token", "_gate_signing_key", "_recorder_cidr"}
     ):
         raise BrokerError("live authorization has not passed the exact independent gate")
     if lease["state"] == "ACTIVE":
@@ -1601,158 +1931,192 @@ def provision(
     labels = lease["labels"]
     project_id = request["project_id"]
 
-    def guarded_run(args: list[str], **kwargs: Any) -> Any:
-        fresh()
-        return cli.run(args, **kwargs)
-
     try:
-        network_response = guarded_run(
-            ["vpc", "network", "create"],
-            payload=resource_payload(
-                names["network"],
-                project_id,
-                labels,
-                {"ipv4_public_pools": {"pools": []}},
-            ),
-            timeout=180,
+        network_payload = resource_payload(
+            names["network"],
+            project_id,
+            labels,
+            {"ipv4_public_pools": {"pools": []}},
         )
-        network = add_resource(lease, "network", names["network"], network_response)
-        save_lease(lease_path, registry_path, lease)
+        network = run_durable_create(
+            lease_path,
+            registry_path,
+            lease,
+            cli,
+            kind="network",
+            name=names["network"],
+            parent_id=project_id,
+            args=["vpc", "network", "create"],
+            payload=network_payload,
+            timeout=180,
+            freshness_check=fresh,
+        )
 
-        subnet_response = guarded_run(
-            ["vpc", "subnet", "create"],
-            payload=resource_payload(
-                names["subnet"],
-                project_id,
-                labels,
-                {
-                    "network_id": network["id"],
-                    "ipv4_private_pools": {"use_network_pools": True},
-                    "ipv4_public_pools": {
-                        "use_network_pools": False,
-                        "pools": [{"cidrs": [{"cidr": "/32"}]}],
-                    },
+        subnet_payload = resource_payload(
+            names["subnet"],
+            project_id,
+            labels,
+            {
+                "network_id": network["id"],
+                "ipv4_private_pools": {"use_network_pools": True},
+                "ipv4_public_pools": {
+                    "use_network_pools": False,
+                    "pools": [{"cidrs": [{"cidr": "/32"}]}],
                 },
-            ),
-            timeout=180,
+            },
         )
-        subnet = add_resource(lease, "subnet", names["subnet"], subnet_response)
-        save_lease(lease_path, registry_path, lease)
+        subnet = run_durable_create(
+            lease_path,
+            registry_path,
+            lease,
+            cli,
+            kind="subnet",
+            name=names["subnet"],
+            parent_id=project_id,
+            args=["vpc", "subnet", "create"],
+            payload=subnet_payload,
+            timeout=180,
+            freshness_check=fresh,
+        )
         fresh()
         reconcile_managed_children(lease, cli)
         save_lease(lease_path, registry_path, lease)
 
-        sg_response = guarded_run(
-            ["vpc", "security-group", "create"],
-            payload=resource_payload(
-                names["security_group"], project_id, labels, {"network_id": network["id"]}
-            ),
+        security_group_payload = resource_payload(
+            names["security_group"],
+            project_id,
+            labels,
+            {"network_id": network["id"]},
+        )
+        security_group = run_durable_create(
+            lease_path,
+            registry_path,
+            lease,
+            cli,
+            kind="security_group",
+            name=names["security_group"],
+            parent_id=project_id,
+            args=["vpc", "security-group", "create"],
+            payload=security_group_payload,
             timeout=180,
+            freshness_check=fresh,
         )
-        security_group = add_resource(
-            lease, "security_group", names["security_group"], sg_response
-        )
-        save_lease(lease_path, registry_path, lease)
 
         ingress_name = f"{lease['prefix']}-ingress-8080"
-        ingress_response = guarded_run(
-            ["vpc", "security-rule", "create"],
-            payload=security_rule_payload(
-                ingress_name,
-                security_group["id"],
-                labels,
-                {
-                    "access": "allow",
-                    "protocol": "tcp",
-                    "type": "stateful",
-                    "priority": 100,
-                    "ingress": {
-                        "source_cidrs": [fresh()["_recorder_cidr"]],
-                        "destination_ports": [8080],
-                    },
-                },
-            ),
-            timeout=180,
-        )
-        add_resource(
-            lease,
-            "security_rule",
+        ingress_payload = security_rule_payload(
             ingress_name,
-            ingress_response,
-            parent_id=security_group["id"],
+            security_group["id"],
+            labels,
+            {
+                "access": "allow",
+                "protocol": "tcp",
+                "type": "stateful",
+                "priority": 100,
+                "ingress": {
+                    "source_cidrs": [fresh()["_recorder_cidr"]],
+                    "destination_ports": [8080],
+                },
+            },
         )
-        save_lease(lease_path, registry_path, lease)
+        run_durable_create(
+            lease_path,
+            registry_path,
+            lease,
+            cli,
+            kind="security_rule",
+            name=ingress_name,
+            parent_id=security_group["id"],
+            args=["vpc", "security-rule", "create"],
+            payload=ingress_payload,
+            timeout=180,
+            freshness_check=fresh,
+        )
         for index, rule in enumerate(
             fresh()["authorization"]["network"]["bootstrap_egress"], 1
         ):
             egress_name = f"{lease['prefix']}-bootstrap-egress-{index}"
-            egress_response = guarded_run(
-                ["vpc", "security-rule", "create"],
-                payload=security_rule_payload(
-                    egress_name,
-                    security_group["id"],
-                    labels,
-                    {
-                        "access": "allow",
-                        "protocol": rule["protocol"].lower(),
-                        "type": "stateful",
-                        "priority": 100 + index,
-                        "egress": {
-                            "destination_cidrs": rule["destination_cidrs"],
-                            "destination_ports": rule["ports"],
-                        },
-                    },
-                ),
-                timeout=180,
-            )
-            add_resource(
-                lease,
-                "security_rule",
+            egress_payload = security_rule_payload(
                 egress_name,
-                egress_response,
-                parent_id=security_group["id"],
+                security_group["id"],
+                labels,
+                {
+                    "access": "allow",
+                    "protocol": rule["protocol"].lower(),
+                    "type": "stateful",
+                    "priority": 100 + index,
+                    "egress": {
+                        "destination_cidrs": rule["destination_cidrs"],
+                        "destination_ports": rule["ports"],
+                    },
+                },
             )
-            save_lease(lease_path, registry_path, lease)
+            run_durable_create(
+                lease_path,
+                registry_path,
+                lease,
+                cli,
+                kind="security_rule",
+                name=egress_name,
+                parent_id=security_group["id"],
+                args=["vpc", "security-rule", "create"],
+                payload=egress_payload,
+                timeout=180,
+                freshness_check=fresh,
+            )
 
         if request["artifact_storage"]["enabled"]:
-            bucket_response = guarded_run(
-                ["storage", "bucket", "create"],
-                payload=resource_payload(
-                    names["bucket"],
-                    project_id,
-                    labels,
-                    {
-                        "default_storage_class": "STANDARD",
-                        "force_storage_class": True,
-                        "max_size_bytes": int(request["artifact_storage"]["max_size_gib"])
-                        * 1024**3,
-                        "object_audit_logging": "ALL",
-                        "versioning_policy": "DISABLED",
-                    },
-                ),
-                timeout=180,
-            )
-            add_resource(lease, "bucket", names["bucket"], bucket_response)
-            save_lease(lease_path, registry_path, lease)
-
-        disk_response = guarded_run(
-            ["compute", "disk", "create"],
-            payload=resource_payload(
-                names["disk"],
+            bucket_payload = resource_payload(
+                names["bucket"],
                 project_id,
                 labels,
                 {
-                    "block_size_bytes": 4096,
-                    "forbid_deletion": False,
-                    "size_bytes": int(profile["boot_disk_gib"]) * 1024**3,
-                    "source_image_family": {"image_family": profile["image_family"]},
-                    "type": "NETWORK_SSD",
+                    "default_storage_class": "STANDARD",
+                    "force_storage_class": True,
+                    "max_size_bytes": int(request["artifact_storage"]["max_size_gib"])
+                    * 1024**3,
+                    "object_audit_logging": "ALL",
+                    "versioning_policy": "DISABLED",
                 },
-            ),
-            timeout=600,
+            )
+            run_durable_create(
+                lease_path,
+                registry_path,
+                lease,
+                cli,
+                kind="bucket",
+                name=names["bucket"],
+                parent_id=project_id,
+                args=["storage", "bucket", "create"],
+                payload=bucket_payload,
+                timeout=180,
+                freshness_check=fresh,
+            )
+
+        disk_payload = resource_payload(
+            names["disk"],
+            project_id,
+            labels,
+            {
+                "block_size_bytes": 4096,
+                "forbid_deletion": False,
+                "size_bytes": int(profile["boot_disk_gib"]) * 1024**3,
+                "source_image_family": {"image_family": profile["image_family"]},
+                "type": "NETWORK_SSD",
+            },
         )
-        disk = add_resource(lease, "disk", names["disk"], disk_response)
-        save_lease(lease_path, registry_path, lease)
+        disk = run_durable_create(
+            lease_path,
+            registry_path,
+            lease,
+            cli,
+            kind="disk",
+            name=names["disk"],
+            parent_id=project_id,
+            args=["compute", "disk", "create"],
+            payload=disk_payload,
+            timeout=600,
+            freshness_check=fresh,
+        )
 
         cloud_init = authorized_cloud_init(lease, fresh())
         instance_spec: dict[str, Any] = {
@@ -1777,13 +2141,22 @@ def provision(
             instance_spec["preemptible"] = {"on_preemption": "STOP", "priority": 3}
         if profile["local_nvme"]["request"]:
             instance_spec["local_disks"] = {"passthrough_group": {"requested": True}}
-        instance_response = guarded_run(
-            ["compute", "instance", "create"],
-            payload=resource_payload(names["instance"], project_id, labels, instance_spec),
-            timeout=900,
+        instance_payload = resource_payload(
+            names["instance"], project_id, labels, instance_spec
         )
-        instance = add_resource(lease, "instance", names["instance"], instance_response)
-        save_lease(lease_path, registry_path, lease)
+        instance = run_durable_create(
+            lease_path,
+            registry_path,
+            lease,
+            cli,
+            kind="instance",
+            name=names["instance"],
+            parent_id=project_id,
+            args=["compute", "instance", "create"],
+            payload=instance_payload,
+            timeout=900,
+            freshness_check=fresh,
+        )
         fresh()
         reconcile_managed_children(lease, cli)
         save_lease(lease_path, registry_path, lease)
@@ -1795,8 +2168,9 @@ def provision(
             authorization_path=authorization_path,
             clearance_path=clearance_path,
             bearer_token_path=bearer_token_path,
+            gate_signing_key_path=gate_signing_key_path,
         )
-    except Exception as exc:
+    except BaseException as exc:
         lease = load_json(lease_path)
         lease["state"] = "FAILED"
         add_event(lease, "PROVISION_FAILED", "FAIL", str(exc)[:1500])
@@ -1880,10 +2254,15 @@ def narrow_bootstrap_egress(
     authorization_path: Path,
     clearance_path: Path,
     bearer_token_path: Path,
+    gate_signing_key_path: Path,
 ) -> None:
     def fresh() -> dict[str, Any]:
         return _fresh_live_snapshot(
-            authorization_path, clearance_path, lease_path, bearer_token_path
+            authorization_path,
+            clearance_path,
+            lease_path,
+            bearer_token_path,
+            gate_signing_key_path,
         )
 
     fresh()
@@ -1942,6 +2321,7 @@ def prove_health(
     authorization_path: Path,
     clearance_path: Path,
     bearer_token_path: Path,
+    gate_signing_key_path: Path,
 ) -> None:
     lease = load_json(lease_path)
     deadline = time.monotonic() + int(lease["request"]["health_proof"]["timeout_seconds"])
@@ -1951,7 +2331,11 @@ def prove_health(
     last_logs = ""
     while time.monotonic() < deadline:
         _fresh_live_snapshot(
-            authorization_path, clearance_path, lease_path, bearer_token_path
+            authorization_path,
+            clearance_path,
+            lease_path,
+            bearer_token_path,
+            gate_signing_key_path,
         )
         instance = cli.run(["compute", "instance", "get", instance_id])
         last_state = instance_state(instance)
@@ -1976,7 +2360,11 @@ def prove_health(
             last_logs = ""
         if last_state == "RUNNING" and expected_marker in last_logs:
             _fresh_live_snapshot(
-                authorization_path, clearance_path, lease_path, bearer_token_path
+                authorization_path,
+                clearance_path,
+                lease_path,
+                bearer_token_path,
+                gate_signing_key_path,
             )
             observed_gpu = parse_observed_gpu_proof(last_logs)
             lease["health_proof"] = {
@@ -2002,8 +2390,37 @@ def prove_health(
     )
 
 
-def build_runtime_gate(lease: dict[str, Any], bearer_token: str) -> dict[str, Any]:
-    """Create the authenticated proof required before application inference."""
+def runtime_receipt_payload(lease: dict[str, Any]) -> dict[str, Any]:
+    """Return the exact broker-ledger join covered by the runtime signature."""
+    health = lease.get("health_proof")
+    isolation = lease.get("isolation_proof")
+    live_authorization = lease.get("live_authorization")
+    live_resources = sorted(
+        (
+            {"id": item["id"], "kind": item["kind"], "name": item["name"]}
+            for item in lease.get("resources", [])
+            if not item.get("deleted_at")
+        ),
+        key=lambda item: (item["kind"], item["id"]),
+    )
+    if not isinstance(health, dict) or not isinstance(isolation, dict):
+        raise BrokerError("runtime receipt requires health and isolation proofs")
+    if not isinstance(live_authorization, dict):
+        raise BrokerError("runtime receipt requires stored live authorization")
+    return {
+        "schema": "catalog-switch-broker-runtime-receipt/v5",
+        "authorization_sha256": live_authorization["authorization_sha256"],
+        "health_proof_sha256": sha256_json(health),
+        "isolation_proof_sha256": sha256_json(isolation),
+        "lease_id": lease["lease_id"],
+        "lease_plan_sha256": live_authorization["frozen"]["lease_plan_sha256"],
+        "lease_state": lease["state"],
+        "live_resources": live_resources,
+    }
+
+
+def build_runtime_gate(lease: dict[str, Any], gate_signing_key: str) -> dict[str, Any]:
+    """Sign the exact ACTIVE ledger join with the non-client broker authority."""
     if lease.get("state") != "ACTIVE":
         raise BrokerError("runtime gate requires an ACTIVE broker lease")
     health = lease.get("health_proof")
@@ -2013,6 +2430,14 @@ def build_runtime_gate(lease: dict[str, Any], bearer_token: str) -> dict[str, An
         raise BrokerError("runtime gate requires health and isolation proofs")
     if not isinstance(live_authorization, dict):
         raise BrokerError("runtime gate requires the stored live authorization")
+    expected_key_hash = live_authorization.get("network", {}).get(
+        "gate_signing_key_sha256"
+    )
+    if (
+        not re.fullmatch(r"[0-9a-f]{64}", gate_signing_key)
+        or hashlib.sha256(gate_signing_key.encode()).hexdigest() != expected_key_hash
+    ):
+        raise BrokerError("runtime gate was not signed by the pinned broker-only authority")
     observed_gpu = health.get("observed_gpu")
     if (
         not isinstance(observed_gpu, dict)
@@ -2025,24 +2450,74 @@ def build_runtime_gate(lease: dict[str, Any], bearer_token: str) -> dict[str, An
     egress_count = sum(item.get("direction") == "egress" for item in rules)
     if egress_count != 0:
         raise BrokerError("runtime gate requires ACTIVE zero-egress isolation")
+    instances = [
+        item
+        for item in lease.get("resources", [])
+        if item["kind"] == "instance" and not item.get("deleted_at")
+    ]
+    subnets = [
+        item
+        for item in lease.get("resources", [])
+        if item["kind"] == "subnet" and not item.get("deleted_at")
+    ]
+    security_groups = [
+        item
+        for item in lease.get("resources", [])
+        if item["kind"] == "security_group" and not item.get("deleted_at")
+    ]
+    if len(instances) != 1 or len(subnets) != 1 or len(security_groups) != 1:
+        raise BrokerError("runtime gate requires one exact live instance/subnet/security group")
+    instance_id = instances[0]["id"]
+    binding = {
+        "instance_id": instance_id,
+        "subnet_id": subnets[0]["id"],
+        "security_group_id": security_groups[0]["id"],
+    }
+    if (
+        health.get("instance_id") != instance_id
+        or isolation.get("instance", {}).get("id") != instance_id
+        or isolation.get("instance", {}).get("network_interfaces")
+        != [
+            {
+                "name": "eth0",
+                "subnet_id": binding["subnet_id"],
+                "security_group_ids": [binding["security_group_id"]],
+                "public_ip_allocation_id": isolation.get("instance", {}).get(
+                    "public_ip_allocation_ids", [None]
+                )[0],
+            }
+        ]
+        or isolation.get("subnet", {}).get("id") != binding["subnet_id"]
+        or isolation.get("security_group", {}).get("id")
+        != binding["security_group_id"]
+    ):
+        raise BrokerError("runtime gate instance/GPU/isolation join differs from the lease")
+    receipt = runtime_receipt_payload(lease)
     payload = {
-        "schema": "catalog-switch-internal-runtime-gate/v4",
+        "schema": "catalog-switch-internal-runtime-gate/v5",
+        "authorization_id": QWEN_SCOUT_AUTHORIZATION_ID,
         "authorization_sha256": live_authorization["authorization_sha256"],
+        "broker_receipt_sha256": sha256_json(receipt),
         "clearance_expires_at": live_authorization["clearance"]["expires_at"],
         "health_proof_sha256": sha256_json(health),
-        "instance_id": health["instance_id"],
+        "instance_id": instance_id,
         "isolation_proof_sha256": sha256_json(isolation),
         "issued_at_utc": iso(utc_now()),
         "lease_id": lease["lease_id"],
         "lease_plan_sha256": live_authorization["frozen"]["lease_plan_sha256"],
         "lease_state": "ACTIVE",
         "observed_gpu": observed_gpu,
+        "network_binding": binding,
+        "profile": {
+            "platform": lease["profile_snapshot"]["platform"],
+            "preset": lease["profile_snapshot"]["preset"],
+        },
         "runtime_egress_rule_count": 0,
     }
     signature = hmac.new(
-        bearer_token.encode(), canonical(payload).encode(), hashlib.sha256
+        gate_signing_key.encode(), canonical(payload).encode(), hashlib.sha256
     ).hexdigest()
-    return {**payload, "hmac_sha256": signature}
+    return {**payload, "gate_hmac_sha256": signature}
 
 
 def verify_health_lease(
@@ -2054,15 +2529,25 @@ def verify_health_lease(
     authorization_path: Path | None = None,
     clearance_path: Path | None = None,
     bearer_token_path: Path | None = None,
+    gate_signing_key_path: Path | None = None,
 ) -> dict[str, Any]:
     """Use a live lease only after internally reobserving every gate input."""
     lease = load_json(lease_path)
-    if authorization_path is None or clearance_path is None or bearer_token_path is None:
-        raise BrokerError("health verification requires exact authorization paths")
+    if (
+        authorization_path is None
+        or clearance_path is None
+        or bearer_token_path is None
+        or gate_signing_key_path is None
+    ):
+        raise BrokerError("health verification requires exact authorization/key paths")
 
     def fresh() -> dict[str, Any]:
         return _fresh_live_snapshot(
-            authorization_path, clearance_path, lease_path, bearer_token_path
+            authorization_path,
+            clearance_path,
+            lease_path,
+            bearer_token_path,
+            gate_signing_key_path,
         )
 
     live_snapshot = fresh()
@@ -2076,7 +2561,7 @@ def verify_health_lease(
         validate_isolation_proof(lease, lease["isolation_proof"])
         live_snapshot = fresh()
         lease["runtime_gate"] = build_runtime_gate(
-            lease, live_snapshot["_bearer_token"]
+            lease, live_snapshot["_gate_signing_key"]
         )
         save_lease(lease_path, registry_path, lease)
         return lease
@@ -2101,6 +2586,7 @@ def verify_health_lease(
         authorization_path=authorization_path,
         clearance_path=clearance_path,
         bearer_token_path=bearer_token_path,
+        gate_signing_key_path=gate_signing_key_path,
     )
     narrow_bootstrap_egress(
         lease_path,
@@ -2109,6 +2595,7 @@ def verify_health_lease(
         authorization_path=authorization_path,
         clearance_path=clearance_path,
         bearer_token_path=bearer_token_path,
+        gate_signing_key_path=gate_signing_key_path,
     )
     lease = load_json(lease_path)
     fresh()
@@ -2118,7 +2605,9 @@ def verify_health_lease(
     validate_isolation_proof(lease, lease["isolation_proof"])
     live_snapshot = fresh()
     lease["state"] = "ACTIVE"
-    lease["runtime_gate"] = build_runtime_gate(lease, live_snapshot["_bearer_token"])
+    lease["runtime_gate"] = build_runtime_gate(
+        lease, live_snapshot["_gate_signing_key"]
+    )
     add_event(lease, "LEASE_ACTIVE", "PASS", "VM running and newest serial-log marker observed")
     save_lease(lease_path, registry_path, lease)
     return lease
@@ -2191,6 +2680,29 @@ def cleanup(
     lease = load_json(lease_path)
     if lease.get("schema_version") != SCHEMA_VERSION:
         raise BrokerError("unsupported lease schema")
+    try:
+        for intent in lease.get("create_intents", []):
+            if intent.get("state") != "RESOLVED":
+                reconcile_create_intent(
+                    lease_path,
+                    registry_path,
+                    lease,
+                    cli,
+                    intent,
+                    require_resolution=True,
+                )
+        lease = load_json(lease_path)
+    except Exception as exc:
+        lease = load_json(lease_path)
+        lease["state"] = "CLEANUP_FAILED"
+        add_event(
+            lease,
+            "CREATE_INTENT_CLEANUP_BLOCKED",
+            "FAIL",
+            str(exc)[:1500],
+        )
+        save_lease(lease_path, registry_path, lease)
+        raise
     pending = sorted(
         [resource for resource in lease["resources"] if not resource["deleted_at"]],
         key=lambda resource: CLEANUP_PRIORITY.get(resource["kind"], 0),
@@ -2249,6 +2761,13 @@ def cleanup(
             add_event(lease, "RESOURCE_DELETE_FAILED", "FAIL", failures[-1][:1500])
             save_lease(lease_path, registry_path, lease)
     failures.extend(verify_external_references(lease, cli))
+    unresolved_intents = [
+        item
+        for item in lease.get("create_intents", [])
+        if item.get("state") != "RESOLVED"
+    ]
+    if unresolved_intents:
+        failures.append("one or more dispatched create intents remain unresolved")
     if failures:
         lease["state"] = "CLEANUP_FAILED"
         save_lease(lease_path, registry_path, lease)
@@ -2538,6 +3057,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     provision_parser.add_argument("--authorization", required=True, type=Path)
     provision_parser.add_argument("--clearance", required=True, type=Path)
     provision_parser.add_argument("--bearer-token", required=True, type=Path)
+    provision_parser.add_argument("--gate-signing-key", required=True, type=Path)
     provision_parser.add_argument("--execute", action="store_true", required=True)
 
     health_parser = sub.add_parser("verify-health")
@@ -2545,6 +3065,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     health_parser.add_argument("--authorization", required=True, type=Path)
     health_parser.add_argument("--clearance", required=True, type=Path)
     health_parser.add_argument("--bearer-token", required=True, type=Path)
+    health_parser.add_argument("--gate-signing-key", required=True, type=Path)
     health_parser.add_argument("--execute", action="store_true", required=True)
 
     cleanup_parser = sub.add_parser("cleanup")
@@ -2578,6 +3099,7 @@ def main(argv: list[str] | None = None) -> int:
                 authorization_path=args.authorization,
                 clearance_path=args.clearance,
                 bearer_token_path=args.bearer_token,
+                gate_signing_key_path=args.gate_signing_key,
             )
         elif args.command == "verify-health":
             result = verify_health_lease(
@@ -2587,6 +3109,7 @@ def main(argv: list[str] | None = None) -> int:
                 authorization_path=args.authorization,
                 clearance_path=args.clearance,
                 bearer_token_path=args.bearer_token,
+                gate_signing_key_path=args.gate_signing_key,
             )
         elif args.command == "cleanup":
             result = cleanup(

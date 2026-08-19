@@ -16,17 +16,17 @@ MODULE_PATH = Path(__file__).resolve().parents[1] / "broker.py"
 FASTSTART_ROOT = MODULE_PATH.parent.parent
 AUTH_SOURCE = (
     FASTSTART_ROOT
-    / "catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v4.json"
+    / "catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v5.json"
 )
 LEASE_SOURCE = (
     FASTSTART_ROOT
-    / "catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v4.lease.json"
+    / "catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v5.lease.json"
 )
 GLM_LEASE_SOURCE = (
     FASTSTART_ROOT
     / "catalog-switch/cerebrium-comparator/resource-requests/glm52-fp8-h200-tp8-smoke.lease.json"
 )
-SPEC = importlib.util.spec_from_file_location("resource_broker_live_v4", MODULE_PATH)
+SPEC = importlib.util.spec_from_file_location("resource_broker_live_v5", MODULE_PATH)
 assert SPEC and SPEC.loader
 broker = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(broker)
@@ -75,6 +75,40 @@ class PartialCreateCLI:
         if args[:3] == ["vpc", "subnet", "create"]:
             raise KeyboardInterrupt("simulated interruption after network create")
         raise AssertionError(f"unexpected fake call: {args}")
+
+
+class ResponseLostCreateCLI:
+    profile = "sandbox"
+
+    def __init__(self, lease, *, visible=True):
+        self.lease = lease
+        self.visible = visible
+        self.item = None
+        self.deleted = []
+        self.create_calls = 0
+
+    def run(self, args, *, payload=None, json_output=True, timeout=90, allow_not_found=False):
+        if args[:3] == ["vpc", "network", "create"]:
+            self.create_calls += 1
+            self.item = {
+                "metadata": {
+                    "id": "network-response-lost",
+                    "name": payload["metadata"]["name"],
+                    "parent_id": payload["metadata"]["parent_id"],
+                    "labels": dict(payload["metadata"]["labels"]),
+                }
+            }
+            raise TimeoutError("provider accepted create but response was lost")
+        if args[:3] == ["vpc", "network", "list"]:
+            return {"items": [self.item] if self.visible and self.item else []}
+        if args[:3] == ["vpc", "network", "get"]:
+            return self.item if self.visible else None
+        if args[:3] == ["vpc", "network", "delete"]:
+            self.deleted.append(args[3])
+            self.item = None
+            self.visible = False
+            return ""
+        raise AssertionError(f"unexpected response-loss fake call: {args}")
 
 
 class CleanupCLI:
@@ -159,7 +193,7 @@ class ManagedChildrenCLI:
                 "status": {"network_interfaces": [{"ip_address": {"allocation_id": "private-allocation"}, "public_ip_address": {"allocation_id": "public-allocation"}}]},
             }
         if args[:3] == ["vpc", "allocation", "get"]:
-            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2026-08-19T16:28:00Z"}}
+            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2099-08-19T16:28:00Z"}}
         if args[:3] == ["vpc", "network", "get"]:
             return {
                 "metadata": {"id": args[3]},
@@ -172,13 +206,13 @@ class ManagedChildrenCLI:
                 "spec": {"ipv4_private_pools": {"pools": [{"id": "network-private-pool"}]}, "ipv4_public_pools": {"pools": [{"id": "subnet-public-pool"}]}},
             }
         if args[:3] == ["vpc", "pool", "get"]:
-            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2026-08-19T16:28:00Z"}}
+            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2099-08-19T16:28:00Z"}}
         if args[:3] == ["vpc", "route-table", "get"]:
-            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2026-08-19T16:28:00Z"}}
+            return {"metadata": {"id": args[3], "name": args[3], "created_at": "2099-08-19T16:28:00Z"}}
         raise AssertionError(f"unexpected managed-child call: {args}")
 
 
-class LiveGateV4Tests(unittest.TestCase):
+class LiveGateV5Tests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
@@ -186,7 +220,9 @@ class LiveGateV4Tests(unittest.TestCase):
         self.clearance_path = self.root / "clearance.json"
         self.lease_path = self.root / "lease.json"
         self.token_path = self.root / "bearer-token"
+        self.gate_key_path = self.root / "gate-signing-key"
         self.token = "a" * 64
+        self.gate_key = "b" * 64
         shutil.copyfile(LEASE_SOURCE, self.lease_path)
         auth = json.loads(AUTH_SOURCE.read_text())
         auth["network"]["bearer_token_sha256"] = hashlib.sha256(
@@ -195,11 +231,16 @@ class LiveGateV4Tests(unittest.TestCase):
         auth["network"]["recorder_cidr_sha256"] = hashlib.sha256(
             b"203.0.113.10/32"
         ).hexdigest()
+        auth["network"]["gate_signing_key_sha256"] = hashlib.sha256(
+            self.gate_key.encode()
+        ).hexdigest()
         for artifact in auth["artifacts"]:
             artifact["sha256"] = broker.file_sha256(FASTSTART_ROOT / artifact["path"])
         self.write_auth(auth)
         self.token_path.write_text(self.token + "\n")
         os.chmod(self.token_path, 0o600)
+        self.gate_key_path.write_text(self.gate_key + "\n")
+        os.chmod(self.gate_key_path, 0o600)
         self.write_clearance()
 
     def tearDown(self):
@@ -211,21 +252,21 @@ class LiveGateV4Tests(unittest.TestCase):
     def write_clearance(self, **updates):
         value = {
             "schema": "catalog-switch-independent-precreation-clearance/v2",
-            "authorization_id": "internal-qwen3-h100-scout-v4-20260819",
+            "authorization_id": "internal-qwen3-h100-scout-v5-20260819",
             "authorization_sha256": broker.file_sha256(self.auth_path),
-            "clearance_id": "independent-review-v4-unit",
+            "clearance_id": "independent-review-v5-unit",
             "decision": "CLEARED",
-            "reviewed_at": "2026-08-19T16:29:00Z",
+            "reviewed_at": "2026-08-19T17:11:00Z",
             "reviewed_commit": "a" * 40,
             "reviewer": "catalog-switch-independent-precreation-reviewer-v2",
-            "expires_at": "2026-08-19T17:00:00Z",
+            "expires_at": "2026-08-19T17:40:00Z",
         }
         value.update(updates)
         self.clearance_path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
 
     def validate(self, *, cidr="203.0.113.10/32", commit="a" * 40, branch=None, clean=True, now=None):
         branch = branch or "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark"
-        now = now or dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc)
+        now = now or dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc)
         with mock.patch.object(broker, "observe_recorder_cidr", return_value=cidr), mock.patch.object(
             broker, "_git_state", return_value=(commit, branch, clean)
         ), mock.patch.object(broker, "utc_now", return_value=now):
@@ -234,10 +275,11 @@ class LiveGateV4Tests(unittest.TestCase):
                 self.clearance_path,
                 self.lease_path,
                 self.token_path,
+                self.gate_key_path,
             )
 
     def live_environment(self, *, now=None, commit="a" * 40):
-        now = now or dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc)
+        now = now or dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc)
         return mock.patch.multiple(
             broker,
             observe_recorder_cidr=mock.Mock(return_value="203.0.113.10/32"),
@@ -263,7 +305,7 @@ class LiveGateV4Tests(unittest.TestCase):
             "current_commit": "a" * 40,
             "current_branch": broker.QWEN_SCOUT_BRANCH,
             "worktree_clean": True,
-            "now": dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc),
+            "now": dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc),
         }.items():
             with self.subTest(keyword=keyword), self.assertRaises(TypeError):
                 broker._validate_live_authorization_snapshot(
@@ -271,6 +313,7 @@ class LiveGateV4Tests(unittest.TestCase):
                     self.clearance_path,
                     self.lease_path,
                     self.token_path,
+                    self.gate_key_path,
                     **{keyword: value},
                 )
 
@@ -308,7 +351,7 @@ class LiveGateV4Tests(unittest.TestCase):
         lease["live_authorization"] = snapshot["public"]
         self.lease_path.write_text(json.dumps(lease, indent=2, sort_keys=True) + "\n")
         with self.live_environment(
-            now=dt.datetime(2026, 8, 19, 17, 1, tzinfo=dt.timezone.utc)
+            now=dt.datetime(2026, 8, 19, 17, 41, tzinfo=dt.timezone.utc)
         ):
             with self.assertRaisesRegex(broker.BrokerError, "clearance expiry is stale"):
                 broker._validate_live_resume_snapshot(
@@ -316,6 +359,7 @@ class LiveGateV4Tests(unittest.TestCase):
                     self.clearance_path,
                     self.lease_path,
                     self.token_path,
+                    self.gate_key_path,
                 )
         with self.live_environment(commit="b" * 40):
             with self.assertRaisesRegex(broker.BrokerError, "exact current candidate commit"):
@@ -324,6 +368,7 @@ class LiveGateV4Tests(unittest.TestCase):
                     self.clearance_path,
                     self.lease_path,
                     self.token_path,
+                    self.gate_key_path,
                 )
 
     def test_expired_clearance_blocks_health_use_before_provider_calls(self):
@@ -334,7 +379,7 @@ class LiveGateV4Tests(unittest.TestCase):
         self.lease_path.write_text(json.dumps(lease, indent=2, sort_keys=True) + "\n")
         fake = NoCallCLI()
         with self.live_environment(
-            now=dt.datetime(2026, 8, 19, 17, 1, tzinfo=dt.timezone.utc)
+            now=dt.datetime(2026, 8, 19, 17, 41, tzinfo=dt.timezone.utc)
         ):
             with self.assertRaisesRegex(broker.BrokerError, "clearance expiry is stale"):
                 broker.verify_health_lease(
@@ -344,6 +389,7 @@ class LiveGateV4Tests(unittest.TestCase):
                     authorization_path=self.auth_path,
                     clearance_path=self.clearance_path,
                     bearer_token_path=self.token_path,
+                    gate_signing_key_path=self.gate_key_path,
                 )
         self.assertEqual([], fake.calls)
     def test_authorization_requires_two_requests_and_post_bootstrap_zero_egress(self):
@@ -356,6 +402,9 @@ class LiveGateV4Tests(unittest.TestCase):
         auth = json.loads(AUTH_SOURCE.read_text())
         auth["network"]["bearer_token_sha256"] = hashlib.sha256(self.token.encode()).hexdigest()
         auth["network"]["recorder_cidr_sha256"] = hashlib.sha256(b"203.0.113.10/32").hexdigest()
+        auth["network"]["gate_signing_key_sha256"] = hashlib.sha256(
+            self.gate_key.encode()
+        ).hexdigest()
         auth["network"]["runtime_egress"] = [
             {"destination_cidrs": ["0.0.0.0/0"], "ports": [443], "protocol": "TCP"}
         ]
@@ -398,27 +447,73 @@ class LiveGateV4Tests(unittest.TestCase):
         lease["isolation_proof"] = {"security_group": {"rules": []}}
         lease["live_authorization"] = {
             "authorization_sha256": "1" * 64,
-            "clearance": {"expires_at": "2026-08-19T17:00:00Z"},
+            "clearance": {"expires_at": "2026-08-19T17:40:00Z"},
             "frozen": {"lease_plan_sha256": "2" * 64},
+            "network": {
+                "gate_signing_key_sha256": hashlib.sha256(
+                    self.gate_key.encode()
+                ).hexdigest()
+            },
+        }
+        lease["resources"] = [
+            {
+                "kind": "instance",
+                "id": "computeinstance-task-owned",
+                "name": "task-instance",
+                "deleted_at": None,
+            },
+            {
+                "kind": "subnet",
+                "id": "subnet-task-owned",
+                "name": "task-subnet",
+                "deleted_at": None,
+            },
+            {
+                "kind": "security_group",
+                "id": "securitygroup-task-owned",
+                "name": "task-security-group",
+                "deleted_at": None,
+            },
+        ]
+        lease["isolation_proof"] = {
+            "instance": {
+                "id": "computeinstance-task-owned",
+                "public_ip_allocation_ids": ["allocation-task-owned"],
+                "network_interfaces": [
+                    {
+                        "name": "eth0",
+                        "subnet_id": "subnet-task-owned",
+                        "security_group_ids": ["securitygroup-task-owned"],
+                        "public_ip_allocation_id": "allocation-task-owned",
+                    }
+                ],
+            },
+            "subnet": {"id": "subnet-task-owned"},
+            "security_group": {
+                "id": "securitygroup-task-owned",
+                "rules": [],
+            },
         }
         with mock.patch.object(
             broker,
             "utc_now",
-            return_value=dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc),
+            return_value=dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc),
         ):
-            gate = broker.build_runtime_gate(lease, self.token)
+            gate = broker.build_runtime_gate(lease, self.gate_key)
         self.assertEqual("ACTIVE", gate["lease_state"])
         self.assertEqual(0, gate["runtime_egress_rule_count"])
+        with self.assertRaisesRegex(broker.BrokerError, "broker-only authority"):
+            broker.build_runtime_gate(lease, self.token)
         lease["isolation_proof"]["security_group"]["rules"] = [{"direction": "egress"}]
         with self.assertRaisesRegex(broker.BrokerError, "zero-egress"):
-            broker.build_runtime_gate(lease, self.token)
+            broker.build_runtime_gate(lease, self.gate_key)
 
     def test_qwen_and_glm_provision_paths_both_fail_without_authorization(self):
         for source in (LEASE_SOURCE, GLM_LEASE_SOURCE):
             lease = self.root / (source.stem + ".json")
             shutil.copyfile(source, lease)
             fake = NoCallCLI()
-            with self.assertRaisesRegex(broker.BrokerError, "authorization/clearance paths"):
+            with self.assertRaisesRegex(broker.BrokerError, "authorization/clearance/key paths"):
                 broker.provision(lease, self.root / "registry.json", fake)
             self.assertEqual([], fake.calls)
 
@@ -444,7 +539,7 @@ class LiveGateV4Tests(unittest.TestCase):
         ), mock.patch.object(
             broker,
             "utc_now",
-            return_value=dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc),
+            return_value=dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc),
         ):
             with self.assertRaises(KeyboardInterrupt):
                 broker.provision(
@@ -454,10 +549,197 @@ class LiveGateV4Tests(unittest.TestCase):
                     authorization_path=self.auth_path,
                     clearance_path=self.clearance_path,
                     bearer_token_path=self.token_path,
+                    gate_signing_key_path=self.gate_key_path,
                 )
         lease = broker.load_json(self.lease_path)
-        self.assertEqual("CREATING", lease["state"])
+        self.assertEqual("FAILED", lease["state"])
         self.assertEqual(["network-partial"], [item["id"] for item in lease["resources"]])
+        self.assertEqual(
+            ["RESOLVED", "DISPATCHED"],
+            [item["state"] for item in lease["create_intents"]],
+        )
+
+    def test_response_lost_create_is_reconciled_and_exact_id_is_cleaned(self):
+        lease = broker.load_json(self.lease_path)
+        lease["state"] = "CREATING"
+        self.lease_path.write_text(json.dumps(lease, indent=2, sort_keys=True) + "\n")
+        registry = self.root / "response-loss-registry.json"
+        fake = ResponseLostCreateCLI(lease)
+        payload = broker.resource_payload(
+            lease["planned_resources"][0]["name"],
+            lease["request"]["project_id"],
+            lease["labels"],
+            {},
+        )
+        with self.assertRaises(TimeoutError):
+            broker.run_durable_create(
+                self.lease_path,
+                registry,
+                lease,
+                fake,
+                kind="network",
+                name=lease["planned_resources"][0]["name"],
+                parent_id=lease["request"]["project_id"],
+                args=["vpc", "network", "create"],
+                payload=payload,
+                timeout=90,
+                freshness_check=lambda: None,
+            )
+        reconciled = broker.load_json(self.lease_path)
+        self.assertEqual(
+            ["network-response-lost"],
+            [item["id"] for item in reconciled["resources"]],
+        )
+        self.assertEqual("RESOLVED", reconciled["create_intents"][0]["state"])
+        resumed = broker.run_durable_create(
+            self.lease_path,
+            registry,
+            reconciled,
+            fake,
+            kind="network",
+            name=reconciled["planned_resources"][0]["name"],
+            parent_id=reconciled["request"]["project_id"],
+            args=["vpc", "network", "create"],
+            payload=payload,
+            timeout=90,
+            freshness_check=lambda: None,
+        )
+        self.assertEqual("network-response-lost", resumed["id"])
+        self.assertEqual(1, fake.create_calls)
+        reconciled["state"] = "FAILED"
+        self.lease_path.write_text(
+            json.dumps(reconciled, indent=2, sort_keys=True) + "\n"
+        )
+        released = broker.cleanup(self.lease_path, registry, fake, execute=True)
+        self.assertEqual("RELEASED", released["state"])
+        self.assertEqual(["network-response-lost"], fake.deleted)
+
+    def test_unresolved_response_lost_intent_forbids_released_cleanup(self):
+        lease = broker.load_json(self.lease_path)
+        lease["state"] = "CREATING"
+        self.lease_path.write_text(json.dumps(lease, indent=2, sort_keys=True) + "\n")
+        registry = self.root / "unresolved-registry.json"
+        fake = ResponseLostCreateCLI(lease, visible=False)
+        payload = broker.resource_payload(
+            lease["planned_resources"][0]["name"],
+            lease["request"]["project_id"],
+            lease["labels"],
+            {},
+        )
+        with self.assertRaises(TimeoutError):
+            broker.run_durable_create(
+                self.lease_path,
+                registry,
+                lease,
+                fake,
+                kind="network",
+                name=lease["planned_resources"][0]["name"],
+                parent_id=lease["request"]["project_id"],
+                args=["vpc", "network", "create"],
+                payload=payload,
+                timeout=90,
+                freshness_check=lambda: None,
+            )
+        pending = broker.load_json(self.lease_path)
+        self.assertEqual([], pending["resources"])
+        self.assertEqual("DISPATCHED", pending["create_intents"][0]["state"])
+        with self.assertRaisesRegex(broker.BrokerError, "still in doubt"):
+            broker.run_durable_create(
+                self.lease_path,
+                registry,
+                pending,
+                fake,
+                kind="network",
+                name=pending["planned_resources"][0]["name"],
+                parent_id=pending["request"]["project_id"],
+                args=["vpc", "network", "create"],
+                payload=payload,
+                timeout=90,
+                freshness_check=lambda: None,
+            )
+        self.assertEqual(1, fake.create_calls)
+        pending["state"] = "FAILED"
+        self.lease_path.write_text(json.dumps(pending, indent=2, sort_keys=True) + "\n")
+        with self.assertRaisesRegex(broker.BrokerError, "refusing RELEASED"):
+            broker.cleanup(self.lease_path, registry, fake, execute=True)
+        self.assertEqual("CLEANUP_FAILED", broker.load_json(self.lease_path)["state"])
+
+    def test_live_vm_interface_must_join_exact_reviewed_subnet_and_security_group(self):
+        lease = broker.load_json(self.lease_path)
+        cidr_hash = hashlib.sha256(b"203.0.113.10/32").hexdigest()
+        lease["live_authorization"] = {
+            "network": {"recorder_cidr_sha256": cidr_hash}
+        }
+        proof = {
+            "instance": {
+                "state": "RUNNING",
+                "platform": lease["profile_snapshot"]["platform"],
+                "preset": lease["profile_snapshot"]["preset"],
+                "preemptible": True,
+                "service_account_id": None,
+                "public_ip_allocation_ids": ["allocation-task-owned"],
+                "network_interfaces": [
+                    {
+                        "name": "eth0",
+                        "subnet_id": "subnet-reviewed",
+                        "security_group_ids": ["securitygroup-reviewed"],
+                        "public_ip_allocation_id": "allocation-task-owned",
+                    }
+                ],
+                "local_disks": None,
+            },
+            "network": {
+                "id": "network-reviewed",
+                "private_pool_ids": ["pool-private"],
+                "public_pool_ids": [],
+                "external_reference_count": 0,
+            },
+            "subnet": {
+                "id": "subnet-reviewed",
+                "network_id": "network-reviewed",
+                "private_pool_ids": ["pool-private"],
+                "public_pool_ids": ["pool-public"],
+            },
+            "security_group": {
+                "id": "securitygroup-reviewed",
+                "network_id": "network-reviewed",
+                "rule_count": 1,
+                "rules": [
+                    {
+                        "access": "allow",
+                        "cidr_sha256": [cidr_hash],
+                        "direction": "ingress",
+                        "id": "rule-recorder",
+                        "name": "recorder-only",
+                        "ports": [8080],
+                        "protocol": "tcp",
+                        "type": "stateful",
+                        "unrestricted_destination": False,
+                    }
+                ],
+            },
+            "boot_disk": {
+                "id": "disk-task-owned",
+                "type": "NETWORK_SSD",
+                "size_bytes": lease["profile_snapshot"]["boot_disk_gib"] * 1024**3,
+                "source_image_id": "image-task-owned",
+            },
+            "artifact_bucket": {
+                "id": "bucket-task-owned",
+                "state": "ACTIVE",
+                "max_size_bytes": lease["request"]["artifact_storage"]["max_size_gib"] * 1024**3,
+                "storage_class": "STANDARD",
+                "object_audit_logging": "ALL",
+            },
+        }
+        broker.validate_isolation_proof(lease, proof)
+        proof["instance"]["network_interfaces"][0]["security_group_ids"] = [
+            "securitygroup-foreign-open"
+        ]
+        with self.assertRaisesRegex(
+            broker.BrokerError, "exact reviewed subnet/security group"
+        ):
+            broker.validate_isolation_proof(lease, proof)
 
     def test_partial_cleanup_is_idempotent_and_foreign_replacement_is_preserved(self):
         lease = broker.load_json(self.lease_path)
@@ -542,6 +824,7 @@ class LiveGateV4Tests(unittest.TestCase):
                 authorization_path=self.auth_path,
                 clearance_path=self.clearance_path,
                 bearer_token_path=self.token_path,
+                gate_signing_key_path=self.gate_key_path,
             )
 
     def test_clearance_freshness_is_rechecked_before_each_network_mutation(self):
@@ -549,8 +832,8 @@ class LiveGateV4Tests(unittest.TestCase):
         fake = RuleCLI(lease)
         clock = mock.Mock(
             side_effect=[
-                dt.datetime(2026, 8, 19, 16, 30, tzinfo=dt.timezone.utc),
-                dt.datetime(2026, 8, 19, 17, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc),
+                dt.datetime(2026, 8, 19, 17, 41, tzinfo=dt.timezone.utc),
             ]
         )
         with mock.patch.object(broker, "observe_recorder_cidr", return_value="203.0.113.10/32"), mock.patch.object(
@@ -566,6 +849,7 @@ class LiveGateV4Tests(unittest.TestCase):
                     authorization_path=self.auth_path,
                     clearance_path=self.clearance_path,
                     bearer_token_path=self.token_path,
+                    gate_signing_key_path=self.gate_key_path,
                 )
         self.assertEqual([], fake.deleted)
 

@@ -1,0 +1,125 @@
+{
+  "cost_estimate": {
+    "artifact_storage_full_quota_usd_per_hour": "0.001289",
+    "assumptions": "Public PAYG unified H100 price per GPU-hour, taxes and account discounts excluded. The attached 300 GiB Network SSD and full configured artifact quota are modeled separately.",
+    "boot_disk_usd_per_hour": "0.029178",
+    "compute_usd_per_hour": "2.150000",
+    "currency": "USD",
+    "expected_cost_usd": "4.360934",
+    "expected_duration_hours": "2",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+    "ttl_cost_ceiling_usd": "8.721867"
+  },
+  "create_intents": [],
+  "created_at": "2026-08-19T17:10:07Z",
+  "events": [
+    {
+      "at": "2026-08-19T17:10:07Z",
+      "details": "immutable request hash, TTL, budget, ownership, and cleanup owner recorded",
+      "status": "PASS",
+      "type": "PLAN_CREATED"
+    }
+  ],
+  "expires_at": "2026-08-19T21:10:07Z",
+  "external_references": [],
+  "health_proof": null,
+  "isolation_proof": null,
+  "labels": {
+    "broker": "resource-broker-v1",
+    "expires": "20260819t211007z",
+    "lease": "catswitch-qwen3-h100-scout-v5-20260819",
+    "owner": "cerebrium-comparator",
+    "program": "catalog-switch",
+    "task": "catalog-switch-cerebrium-qwen3-glm52-benchmark"
+  },
+  "lease_id": "catswitch-qwen3-h100-scout-v5-20260819",
+  "planned_resources": [
+    {
+      "kind": "network",
+      "name": "mlsp-csw-catalog-switch-cer-711d39a8-net"
+    },
+    {
+      "kind": "subnet",
+      "name": "mlsp-csw-catalog-switch-cer-711d39a8-subnet"
+    },
+    {
+      "kind": "security_group",
+      "name": "mlsp-csw-catalog-switch-cer-711d39a8-sg"
+    },
+    {
+      "kind": "disk",
+      "name": "mlsp-csw-catalog-switch-cer-711d39a8-boot"
+    },
+    {
+      "kind": "instance",
+      "name": "mlsp-csw-catalog-switch-cer-711d39a8-vm"
+    },
+    {
+      "kind": "bucket",
+      "name": "mlsp-csw-catalog-switch-cer-711d39a8-artifacts"
+    }
+  ],
+  "prefix": "mlsp-csw-catalog-switch-cer-711d39a8",
+  "profile_snapshot": {
+    "boot_disk_gib": 300,
+    "cost_assumptions": "Public PAYG unified H100 price per GPU-hour, taxes and account discounts excluded. The attached 300 GiB Network SSD and full configured artifact quota are modeled separately.",
+    "gpu_count": 1,
+    "gpu_quota_name": "compute.instance.gpu.h100",
+    "hourly_compute_usd": {
+      "normal": "3.85",
+      "preemptible": "2.15"
+    },
+    "image_family": "ubuntu24.04-cuda12",
+    "local_nvme": {
+      "ephemeral": true,
+      "notes": "The API can request passthrough local disks, but support is not verified for the allowed eu-north1 H100 project; fail closed until a task-owned capability probe proves it.",
+      "request": false,
+      "verified_supported": false
+    },
+    "max_duration_hours": 12,
+    "max_ttl_hours": 24,
+    "network_ssd_usd_per_gib_month": "0.071",
+    "object_storage_usd_per_gib_month": "0.0147",
+    "platform": "gpu-h100-sxm",
+    "preset": "1gpu-16vcpu-200gb",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+    "regions": [
+      "eu-north1"
+    ]
+  },
+  "request": {
+    "artifact_storage": {
+      "enabled": true,
+      "max_size_gib": 64
+    },
+    "cleanup_owner": "cerebrium-comparator",
+    "expected_duration_hours": "2",
+    "experiment": {
+      "cleanup_plan": "durable create-intent reconciliation, exact-ID cleanup, and absence proof; unresolved dispatched intents prohibit RELEASED",
+      "input_sha256": "c3e3250abbb92869b7a51325a5fd5358eb98122d73698956cf064ed491d3291d",
+      "metric_contract_path": "catalog-switch/cerebrium-comparator/contracts/campaign.json",
+      "metric_contract_sha256": "e6a36c56455cdb5a603eadc1d01781692899ba789a4459bc26e631b5d4d11cba",
+      "model_id": "Qwen/Qwen3-8B@b968826d9c46dd6066d109eabc6255188de91218"
+    },
+    "health_proof": {
+      "marker": "CATSWITCH_QWEN3_H100_V5_OK",
+      "timeout_seconds": 900
+    },
+    "lease_id": "catswitch-qwen3-h100-scout-v5-20260819",
+    "mode": "preemptible",
+    "owner": "cerebrium-comparator",
+    "profile": "h100-single",
+    "project_id": "project-e00z6b02t8ddk96c49",
+    "purpose": "Fresh isolated H100 v5 scout with broker-only gate authority, exact network join, durable create intents, and atomic ordinal consumption.",
+    "region": "eu-north1",
+    "schema_version": "catalog-switch-lease-request/v1",
+    "task_id": "catalog-switch-cerebrium-qwen3-glm52-benchmark",
+    "ttl_hours": 4
+  },
+  "request_sha256": "711d39a8a89aa98dac0eb0c874fd8b3bd67ca6a9827695ef074bd51a6532c919",
+  "resources": [],
+  "schema_version": "catalog-switch-resource-lease/v1",
+  "state": "PLANNED"
+}

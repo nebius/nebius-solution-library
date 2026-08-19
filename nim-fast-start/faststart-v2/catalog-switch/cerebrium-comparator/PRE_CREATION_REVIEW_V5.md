@@ -1,26 +1,28 @@
-# Internal Qwen scout v4 pre-creation review
+# Internal Qwen scout v5 pre-creation review
 
 Status: **PRE-CREATION REVIEW**. This commit is an offline candidate only. No
 Nebius or Cerebrium resource may be created until an independent reviewer
 issues a separate v2 clearance receipt for the exact candidate commit.
 
-Rejected commits `ad824c1dd1b77440819f329f8fbc53521799fd2b` and
-`082f1f8084909db1e0f166a6d7d67075ac6f3c20` remain immutable in history. V4 is
-a new versioned candidate. It removes the importer-forgeable context and all
-caller-supplied clock, Git, worktree, and recorder observations found in v3.
+Rejected commits `ad824c1dd1b77440819f329f8fbc53521799fd2b`,
+`082f1f8084909db1e0f166a6d7d67075ac6f3c20`, and v4
+`27c28e20e89193f3865b5aadf805d0e735f4e20e` remain immutable in history. V5
+is a fresh direct child of the rejected v4 commit. It retains the earlier
+opaque-observation closures and replaces all four v4 mechanisms rejected in
+the final exact review.
 
 ## Frozen candidate
 
-- Authorization: `authorizations/internal-qwen3-h100-scout-v4.json`
+- Authorization: `authorizations/internal-qwen3-h100-scout-v5.json`
 - Authorization SHA-256:
-  `8d5bc887f98d5e8a447d1ac58d80c087dd262a96f1eda5b7cef566f08718f9f9`
-- Lease: `resource-requests/qwen3-h100-scout-v4.lease.json`
+  `db9001b70914ed39409a93824509a5f61d6cde70726a5e88d9ddf141c58d65a6`
+- Lease: `resource-requests/qwen3-h100-scout-v5.lease.json`
 - Lease SHA-256:
-  `a6f2282098ceb6584aa3dd8e4a60d241bf0fb5d4e7ab33f2bfa7ab4605ea2151`
+  `5a758ff9cfc971947a8d05a38461f6a6ff5d7511b272c597f7d91687967bb212`
 - Request SHA-256:
-  `4485e6f734a19e86de66c866c9d27732b201cb68dc4720238d25e138d4cf2a82`
+  `32a31ed57a4b6c75cf67d95e35a49f3000fbd983d3e89fc0c9f6a70977e7503b`
 - Immutable request digest:
-  `e0f72a45e6798d2d4dba74b2f9d07dacf2ed5cb6b26946134739a5f9c69f5573`
+  `711d39a8a89aa98dac0eb0c874fd8b3bd67ca6a9827695ef074bd51a6532c919`
 - Campaign SHA-256:
   `e6a36c56455cdb5a603eadc1d01781692899ba789a4459bc26e631b5d4d11cba`
 - Pinned amd64 image:
@@ -28,11 +30,11 @@ caller-supplied clock, Git, worktree, and recorder observations found in v3.
 - Pinned request payload SHA-256:
   `c3e3250abbb92869b7a51325a5fd5358eb98122d73698956cf064ed491d3291d`
 - Broker/comparator/bootstrap/server/schema/attempt-schema SHA-256 values:
-  `7b2e82d3…f85b`, `5ef9a1b9…7442`, `d0ba96b7…49e2`,
-  `ae99f4f8…5a71`, `98da6847…2cfe`, and `2f234303…7739` respectively;
+  `6933acb4…4af1`, `8afb8cf0…39bf`, `744c9bee…e5a`,
+  `6cfe43a4…80cc`, `79d3b0f5…9dcb`, and `7eb5695b…59db` respectively;
   full values are frozen in the authorization artifact.
 - Expected two-hour cost: USD `4.360934`; four-hour TTL ceiling: USD
-  `8.721867`; expiry: `2026-08-19T20:24:48Z`.
+  `8.721867`; expiry: `2026-08-19T21:10:07Z`.
 
 Expiry requires a new versioned lease/authorization and a new review. Do not
 edit this receipt in place. The lease is `PLANNED` and has `resources=[]`.
@@ -66,8 +68,10 @@ change `HEAD` and invalidate its own reviewed-commit binding.
 The recorder `/32` is published only as SHA-256
 `8a02896ad4d9e37d66635ee97638dd8af40442bb0ef4f473f0b0602fb13e16f4`.
 The validator re-observes it immediately before creation and rejects drift
-without returning or persisting the literal address. The bearer token is also
-hash-pinned and loaded from a mode-0600, non-symlink file.
+without returning or persisting the literal address. The bearer token and a
+distinct broker-only gate signing key are hash-pinned and loaded from separate
+mode-0600, non-symlink files. Possession of the benchmark bearer cannot create
+a valid runtime gate.
 
 Bootstrap permits exactly four egress rules: TCP/443, UDP/53, TCP/53, and
 UDP/123. TCP/80 is absent. The base image must already contain Docker and the
@@ -76,21 +80,27 @@ authenticated server is listening, the controller deletes all four egress
 rules by exact ID and proves them absent before setting the lease `ACTIVE`.
 Runtime state has one stateful TCP/8080 ingress rule from the pinned recorder
 `/32` and zero egress rules. SSH and direct TCP/8000 ingress remain closed.
-The broker then emits an HMAC-authenticated runtime gate binding the lease ID,
-ACTIVE state, lease-plan hash, health proof, isolation proof, observed H100,
-instance ID, and zero-egress count. The server refuses application inference
-until this exact gate is activated and revalidated, and it rejects the gate
-after the independent clearance expires.
+The broker then emits a short-lived HMAC gate signed only by the separate
+broker authority. It binds the exact ACTIVE ledger receipt, live resource IDs,
+lease-plan hash, health and isolation hashes, observed H100, instance ID,
+subnet, security group, frozen platform/preset, and zero-egress count. The
+server refuses application inference until this gate is activated and
+revalidated, rejects client-signed or stale gates, and rejects it after the
+independent clearance expires.
 
 The bootstrap itself fails unless `nvidia-smi` observes exactly one H100. It
 emits a base64url JSON proof to the serial log; the broker independently parses
 the count/name/UUID and stores only the UUID hash. Declared platform/preset is
 not accepted as observed hardware proof.
 
-Network, subnet, private/public pools, private/public allocations, route table,
-security group/rules, disk, bucket, and VM are ledgered against the exact
-lease. Partial creation and interrupted egress narrowing retain recoverable
-IDs. Cleanup validates ID/name/parent/ownership labels before deletion,
+The live VM interface must report exactly the reviewed subnet, reviewed
+security group, and lease public allocation; the subnet and group must both
+join to the reviewed fresh network. Network, subnet, private/public pools,
+private/public allocations, route table, security group/rules, disk, bucket,
+and VM are ledgered against the exact lease. Every create has a durable intent
+written before dispatch. A lost response is reconciled by exact
+name/parent/ownership labels, is never redispatched while in doubt, and blocks
+`RELEASED` until resolved. Cleanup validates identity before deletion,
 preserves a foreign replacement, follows provider cascades, proves absence,
 and is idempotent.
 
@@ -108,8 +118,11 @@ results are independently validated by the recorder against the
 pinned exact-content oracle and separately parsed by the server, which records
 model identity, stream completion, response hash, and an explicit semantic
 verdict. The server tears down only after ordinal 2 and records container
-absence. One response, two copies of one response, a stream-complete flag
-without a verdict, or a changed runtime cannot qualify.
+absence. Each ordinal is durably consumed before runtime start or inference
+dispatch. An ordinal-1 race, duplicate ordinal-2, or crash-in-doubt is terminal
+and cannot start a replacement runtime. One response, two copies of one
+response, a stream-complete flag without a verdict, or a changed runtime cannot
+qualify.
 
 The authorization permits one semantic-smoke runtime group and three cold
 scout runtime groups. Headline cold latency is ordinal 1 only; ordinal 2 is a
@@ -125,13 +138,18 @@ ACTIVE lease ledger and retain health/isolation/H100/gate hashes.
 
 ## Offline verification
 
-- Resource broker: 29 tests.
-- Comparator and qualification server: 27 tests.
+- Resource broker: 32 tests.
+- Comparator and qualification server: 29 tests.
 - Reviewed shared request-SLO harness: 24 tests.
-- Total: 80/80 passing.
+- Total: 85/85 passing.
 
-Adversaries include importer context construction, every caller-injected
-clock/Git/IP argument, expired/wrong-commit replay at resume and health use,
+Adversaries include a gate fabricated with the benchmark bearer (including
+foreign/CPU instance claims), stale signed gates, a live VM attached to a
+foreign open security group, an accepted provider create whose response is
+lost, an unresolved create intent attempting `RELEASED`, two ordinal-1
+requests racing before completion, duplicate ordinal-2, crash/retry, importer
+context construction, every caller-injected clock/Git/IP argument,
+expired/wrong-commit replay at resume and health use,
 clearance expiry between network mutations, no-authorization Qwen/GLM
 provision, invalid timestamp/reviewer, dirty/wrong branch, recorder IP drift,
 truncated/non-running container IDs, fewer/more/duplicate runtime groups, one

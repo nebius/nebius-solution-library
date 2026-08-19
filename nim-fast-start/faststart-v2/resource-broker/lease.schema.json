@@ -4,6 +4,28 @@
   "additionalProperties": false,
   "properties": {
     "cost_estimate": {"type": "object"},
+    "create_intents": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "dispatched_at": {"format": "date-time", "type": "string"},
+          "intent_id": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+          "kind": {"type": "string"},
+          "name": {"type": "string"},
+          "parent_id": {"type": "string"},
+          "payload_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+          "resolved_at": {"type": ["null", "string"]},
+          "resource_id": {"type": ["null", "string"]},
+          "state": {"enum": ["DISPATCHED", "RESOLVED"]}
+        },
+        "required": [
+          "intent_id", "kind", "name", "parent_id", "payload_sha256", "state",
+          "dispatched_at", "resolved_at", "resource_id"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "created_at": {"format": "date-time", "type": "string"},
     "events": {"items": {"type": "object"}, "type": "array"},
     "external_references": {"items": {"type": "object"}, "type": "array"},

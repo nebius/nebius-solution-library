@@ -32,6 +32,21 @@ families from collapsing.
 Resolution: all findings are executable validation gates. FP8 can never satisfy
 the BF16 availability arm, and timing is disabled until parity succeeds.
 
+## Pre-creation safety review state
+
+Independent exact review rejected v4 commit
+`27c28e20e89193f3865b5aadf805d0e735f4e20e` before creation. Its benchmark
+bearer could sign broker gates, its isolation proof did not join the VM's live
+interface to the reviewed subnet/security group, a response-lost create could
+escape cleanup, and ordinal 1 could be admitted twice before completion. V4 is
+immutable rejected evidence.
+
+V5 is a fresh direct child that adds a distinct broker-only signing authority,
+exact live network joins, durable create-intent reconciliation/refusal, and
+pre-work ordinal consumption with terminal crash semantics. These are offline
+candidate closures only. No independent clearance for the exact v5 commit
+exists; the state is `PRE-CREATION REVIEW`, not approval to provision.
+
 ## Statistics, evidence, and cleanup review state
 
 The offline implementation has replayable contract tests for boundaries,

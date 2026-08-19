@@ -32,7 +32,7 @@ No live deployment is permitted unless all of these gates pass:
    Every admitted attempt, including capacity errors and failed semantic
    validation, stays in the denominator.
 
-The internal Qwen v4 plan satisfies the offline portion of gate 3 but remains
+The internal Qwen v5 plan satisfies the offline portion of gate 3 but remains
 at `PRE-CREATION REVIEW`; it cannot provision without a fresh clearance bound
 to the exact clean candidate commit. Cerebrium still does not satisfy gate 2.
 No live mutation has been performed. Pre-existing Cerebrium apps and all
@@ -45,7 +45,7 @@ be left at zero minimum replicas until explicit deletion approval is received.
 - `FEASIBILITY_MATRIX.md` records the pre-live architecture decision.
 - `INDEPENDENT_REVIEW.md` records accepted independent findings and the
   remaining post-live review gate.
-- `PRE_CREATION_REVIEW_V4.md` records the replacement authorization, exact
+- `PRE_CREATION_REVIEW_V5.md` records the replacement authorization, exact
   hashes, network/GPU lifecycle, two-request semantic gate, and adversaries.
 - `VERIFICATION.md` records commands, exact placement/capacity evidence, costs,
   and the zero-resource cleanup disposition.
@@ -57,9 +57,9 @@ be left at zero minimum replicas until explicit deletion approval is received.
   only homogeneous cohorts, and emits reviewed-harness traces/ledgers.
 - `resource-requests/` contains offline broker requests and immutable planned
   leases; it does not authorize provisioning by itself.
-- `authorizations/internal-qwen3-h100-scout-v4.json` is the publishable,
-  hash-only authorization candidate. The independent clearance and bearer
-  secret are deliberately external to Git.
+- `authorizations/internal-qwen3-h100-scout-v5.json` is the publishable,
+  hash-only authorization candidate. The independent clearance, bearer secret,
+  and distinct broker gate-signing secret are deliberately external to Git.
 - `live/` contains the no-package-install bootstrap and authenticated server.
   The server rejects inference until it validates an ACTIVE, zero-egress broker
   gate; uses exact 64-character running container IDs; and admits exactly the
