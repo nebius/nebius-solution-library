@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nebius.example/schemas/catalog-switch-production-architecture-v1.json",
+  "title": "Catalog-switch production architecture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "decision_status", "scope", "metric_contract", "evidence", "recommendations", "scenarios", "backends", "cache_policy", "budgets", "apis", "benchmark_matrix", "rollout_gates", "blockers"],
+  "properties": {
+    "schema_version": {"const": "catalog-switch-production-architecture/v1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "decision_status": {"const": "conditional"},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["empirical_backends", "reference_only", "forbidden_empirical", "internal_project_allowlist", "resource_rule", "jira_mutation_allowed"],
+      "properties": {
+        "empirical_backends": {"type": "array", "uniqueItems": true, "items": {"enum": ["kubernetes", "node-vm", "cerebrium"]}},
+        "reference_only": {"type": "array", "items": {"const": "modal"}, "minItems": 1, "maxItems": 1},
+        "forbidden_empirical": {"type": "array", "items": {"const": "modal"}, "minItems": 1, "maxItems": 1},
+        "internal_project_allowlist": {"type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true, "items": {"enum": ["project-e00z6b02t8ddk96c49", "project-u00tds8vpr00jaxa76s22d", "project-i00xz31gpr00xp9jhp982v"]}},
+        "resource_rule": {"const": "fresh-task-owned-only"},
+        "jira_mutation_allowed": {"const": false}
+      }
+    },
+    "metric_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_commit", "event_schema", "event_schema_sha256", "trace_schema", "trace_schema_sha256", "t0", "success", "required_scenarios", "percentile_minimum_samples", "all_attempts_retained", "phase_percentiles_additive", "request_specific_work_before_t0_allowed", "ingress_compatibility", "compatibility_blocker"],
+      "properties": {
+        "source_commit": {"type": "string", "pattern": "^[0-9a-f]{7,40}$"},
+        "event_schema": {"type": "string", "minLength": 1},
+        "event_schema_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "trace_schema": {"type": "string", "minLength": 1},
+        "trace_schema_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "t0": {"const": "external-client-request-accepted/v1"},
+        "success": {"const": "first-complete-semantically-valid-response/v1"},
+        "required_scenarios": {"type": "array", "minItems": 6, "maxItems": 6, "uniqueItems": true, "items": {"$ref": "#/$defs/scenarioName"}},
+        "percentile_minimum_samples": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["p50", "p95", "p99"],
+          "properties": {"p50": {"const": 2}, "p95": {"const": 20}, "p99": {"const": 100}}
+        },
+        "all_attempts_retained": {"const": true},
+        "phase_percentiles_additive": {"const": false},
+        "request_specific_work_before_t0_allowed": {"const": false},
+        "ingress_compatibility": {"const": "blocked-v2-model-input-acceptance-required"},
+        "compatibility_blocker": {"const": "BLK-ACCEPTANCE-CONTRACT"}
+      }
+    },
+    "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}},
+    "recommendations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/recommendation"}},
+    "scenarios": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"$ref": "#/$defs/scenario"}},
+    "backends": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/backend"}},
+    "cache_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "tiers", "placement", "eviction", "prefetch_default", "prefetch_promotion"],
+      "properties": {
+        "identity": {"type": "string", "minLength": 1},
+        "tiers": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/cacheTier"}},
+        "placement": {"$ref": "#/$defs/stringMap"},
+        "eviction": {"$ref": "#/$defs/stringMap"},
+        "prefetch_default": {"const": "disabled"},
+        "prefetch_promotion": {"type": "string", "minLength": 1}
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["universal_promotion", "latency_classes", "capacity_formula", "capacity_status", "request_cost_rule", "campaign_hard_caps_usd"],
+      "properties": {
+        "universal_promotion": {"$ref": "#/$defs/universalPromotion"},
+        "latency_classes": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/latencyClass"}},
+        "capacity_formula": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "arrival_rate_statistic", "occupancy_statistic", "utilization_target", "minimum_base_slots", "preemptible_failover_slots_input", "implementation"],
+          "properties": {
+            "version": {"const": "catalog-switch-capacity-formula/v1"},
+            "arrival_rate_statistic": {"const": "p95_per_second"},
+            "occupancy_statistic": {"const": "p95_seconds"},
+            "utilization_target": {"const": 0.7},
+            "minimum_base_slots": {"const": 1},
+            "preemptible_failover_slots_input": {"const": true},
+            "implementation": {"const": "catalog-switch/architecture/capacity_budget.py"}
+          }
+        },
+        "capacity_status": {"const": "provisional-until-cost-model"},
+        "request_cost_rule": {"type": "string", "minLength": 1},
+        "campaign_hard_caps_usd": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kubernetes_first_h100_campaign", "node_vm_h100_ttl", "internal_qwen_h100_ttl", "internal_glm_h200_ttl", "cerebrium_provider_spend"],
+          "properties": {
+            "kubernetes_first_h100_campaign": {"const": 27.0},
+            "node_vm_h100_ttl": {"const": 13.082801},
+            "internal_qwen_h100_ttl": {"const": 8.721867},
+            "internal_glm_h200_ttl": {"const": 289.409894},
+            "cerebrium_provider_spend": {"type": "null"}
+          }
+        }
+      }
+    },
+    "apis": {"type": "array", "minItems": 10, "maxItems": 10, "items": {"$ref": "#/$defs/api"}},
+    "benchmark_matrix": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/benchmark"}},
+    "rollout_gates": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/gate"}},
+    "blockers": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/blocker"}}
+  },
+  "$defs": {
+    "scenarioName": {"enum": ["same_model_hot", "idle_local", "a_to_b_local", "a_to_b_remote", "checkpoint_fallback", "capacity_miss"]},
+    "stringMap": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string"}},
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "kind", "confidence", "source_commit", "path", "sha256", "product_slo_eligible", "allowed_claim"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^E-[A-Z0-9-]+$"},
+        "status": {"enum": ["accepted", "provisional", "rejected", "blocked", "reference-only"]},
+        "kind": {"type": "string", "minLength": 1},
+        "confidence": {"enum": ["high", "medium", "low"]},
+        "source_commit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{7,40}$"},
+        "path": {"type": ["string", "null"]},
+        "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "applicable_backends": {"type": "array", "uniqueItems": true, "items": {"enum": ["kubernetes", "node-vm", "cerebrium", "modal"]}},
+        "excluded_backends": {"type": "array", "uniqueItems": true, "items": {"enum": ["kubernetes", "node-vm", "cerebrium", "modal"]}},
+        "source_control_count": {"type": "integer", "minimum": 0},
+        "source_test_family_count": {"type": "integer", "minimum": 0},
+        "internal_control_count": {"type": "integer", "minimum": 0},
+        "internal_test_family_count": {"type": "integer", "minimum": 0},
+        "legacy_modal_only_controls": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "legacy_modal_only_test_families": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "product_slo_eligible": {"type": "boolean"},
+        "allowed_claim": {"type": "string", "minLength": 1}
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "confidence", "statement", "evidence_ids", "rollback"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^R-[A-Z0-9-]+$"},
+        "status": {"enum": ["approved", "experiment-required", "blocked", "rejected", "reference-only"]},
+        "confidence": {"enum": ["high", "medium", "low"]},
+        "statement": {"type": "string", "minLength": 1},
+        "evidence_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "rollback": {"type": "string", "minLength": 1}
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "route", "required_tier", "fallback", "implementation_status"],
+      "properties": {
+        "name": {"$ref": "#/$defs/scenarioName"},
+        "route": {"type": "string", "minLength": 1},
+        "required_tier": {"type": "string", "minLength": 1},
+        "fallback": {"type": "string", "minLength": 1},
+        "implementation_status": {"type": "string", "minLength": 1}
+      }
+    },
+    "backend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "workload_tiers", "role", "production_disposition", "confidence", "evidence_ids", "promotion_gates"],
+      "properties": {
+        "name": {"enum": ["kubernetes", "node-vm", "cerebrium"]},
+        "workload_tiers": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["fast-switch", "standard-on-demand", "large-multi-gpu"]}},
+        "role": {"type": "string", "minLength": 1},
+        "production_disposition": {"const": "not-promoted"},
+        "confidence": {"enum": ["high", "medium", "low"]},
+        "evidence_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "promotion_gates": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}
+      }
+    },
+    "cacheTier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "mutable", "verification", "owner"],
+      "properties": {
+        "name": {"enum": ["L0_gpu_resident", "L1_verified_local", "L2_remote_immutable"]},
+        "mutable": {"type": "boolean"},
+        "verification": {"type": "string", "minLength": 1},
+        "owner": {"type": "string", "minLength": 1}
+      }
+    },
+    "universalPromotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_attempts", "success_rate_min", "semantic_invalid_successes_max", "duplicate_responses_max", "unaccounted_attempts_max", "cleanup_receipt_rate", "gpu_scrub_receipt_rate", "cost_receipt_rate"],
+      "properties": {
+        "minimum_attempts": {"const": 100},
+        "success_rate_min": {"const": 0.99},
+        "semantic_invalid_successes_max": {"const": 0},
+        "duplicate_responses_max": {"const": 0},
+        "unaccounted_attempts_max": {"const": 0},
+        "cleanup_receipt_rate": {"const": 1.0},
+        "gpu_scrub_receipt_rate": {"const": 1.0},
+        "cost_receipt_rate": {"const": 1.0}
+      }
+    },
+    "latencyClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "p95_seconds_max", "p99_seconds_max", "status", "note"],
+      "properties": {
+        "name": {"enum": ["fast-switch", "standard-on-demand", "large-multi-gpu"]},
+        "p95_seconds_max": {"type": ["number", "null"], "minimum": 0},
+        "p99_seconds_max": {"type": ["number", "null"], "minimum": 0},
+        "status": {"type": "string", "minLength": 1},
+        "note": {"type": "string", "minLength": 1}
+      }
+    },
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "owner", "request_schema", "response_schema", "failure_schema", "idempotency"],
+      "properties": {
+        "name": {"enum": ["AcceptRequest", "ResolveCatalog", "PlaceAttempt", "CommitAttemptContext", "ApplyNodeCommand", "DispatchInference", "ValidateResponse", "CommitResponse", "LeaseResources", "CommitAttempt"]},
+        "owner": {"type": "string", "minLength": 1},
+        "request_schema": {"type": "string", "pattern": "^catalog-switch/architecture/control-plane-api\\.schema\\.json#/\\$defs/[A-Za-z]+$"},
+        "response_schema": {"type": "string", "pattern": "^catalog-switch/architecture/control-plane-api\\.schema\\.json#/\\$defs/[A-Za-z]+$"},
+        "failure_schema": {"const": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope"},
+        "idempotency": {"type": "string", "minLength": 1}
+      }
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "backends", "models", "scenarios", "attempts_per_homogeneous_cell", "hardware", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^B-[A-Z0-9-]+$"},
+        "backends": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["kubernetes", "node-vm", "cerebrium"]}},
+        "models": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "scenarios": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/scenarioName"}},
+        "attempts_per_homogeneous_cell": {"type": "integer", "minimum": 20},
+        "hardware": {"type": "string", "minLength": 1},
+        "status": {"const": "blocked"}
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "requires"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^G-[A-Z0-9-]+$"},
+        "status": {"enum": ["pass", "blocked", "pending", "conditional-sign-off"]},
+        "requires": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "owner_task", "exit"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^BLK-[A-Z0-9-]+$"},
+        "owner_task": {"type": "string", "minLength": 1},
+        "exit": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

@@ -1,0 +1,684 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nebius.example/schemas/catalog-switch-control-plane-api-v1.json",
+  "title": "Catalog-switch control-plane wire messages",
+  "$defs": {
+    "Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@+-]*$"
+    },
+    "InlinePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "media_type", "value"],
+      "properties": {
+        "kind": {"const": "inline"},
+        "media_type": {"type": "string", "minLength": 1},
+        "value": {}
+      }
+    },
+    "ImmutablePayloadRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "uri", "digest", "bytes", "media_type"],
+      "properties": {
+        "kind": {"const": "immutable_ref"},
+        "uri": {"type": "string", "format": "uri", "minLength": 1},
+        "digest": {"$ref": "#/$defs/Digest"},
+        "bytes": {"type": "integer", "minimum": 0},
+        "media_type": {"type": "string", "minLength": 1}
+      }
+    },
+    "InputPayload": {
+      "oneOf": [
+        {"$ref": "#/$defs/InlinePayload"},
+        {"$ref": "#/$defs/ImmutablePayloadRef"}
+      ]
+    },
+    "ErrorEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error_schema_version", "correlation_id", "operation", "stage", "terminal", "error"],
+      "properties": {
+        "error_schema_version": {"const": "catalog-switch-error/v1"},
+        "correlation_id": {"$ref": "#/$defs/Identifier"},
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "operation": {"enum": ["AcceptRequest", "ResolveCatalog", "PlaceAttempt", "CommitAttemptContext", "ApplyNodeCommand", "DispatchInference", "ValidateResponse", "CommitResponse", "LeaseResources", "CommitAttempt"]},
+        "stage": {"enum": ["pre_accept", "post_accept", "control"]},
+        "idempotency_key": {"$ref": "#/$defs/Identifier"},
+        "terminal": {"type": "boolean"},
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message", "retryable", "details_digest"],
+          "properties": {
+            "code": {"enum": ["authentication_denied", "resolution_denied", "capacity_miss", "deadline_exceeded", "command_rejected", "runtime_failed", "semantic_invalid", "cancelled", "integrity_failure", "cleanup_incomplete"]},
+            "message": {"type": "string", "minLength": 1},
+            "retryable": {"type": "boolean"},
+            "details_digest": {"$ref": "#/$defs/Digest"}
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"operation": {"enum": ["ResolveCatalog", "PlaceAttempt", "CommitAttemptContext", "ApplyNodeCommand", "DispatchInference", "ValidateResponse", "CommitResponse", "CommitAttempt"]}}, "required": ["operation"]},
+          "then": {"required": ["request_id", "attempt_id", "idempotency_key"], "properties": {"stage": {"const": "post_accept"}}}
+        },
+        {
+          "if": {"properties": {"operation": {"const": "LeaseResources"}}, "required": ["operation"]},
+          "then": {"properties": {"stage": {"const": "control"}}}
+        },
+        {
+          "if": {"properties": {"error": {"properties": {"code": {"const": "authentication_denied"}}, "required": ["code"]}}, "required": ["error"]},
+          "then": {"properties": {"operation": {"const": "AcceptRequest"}, "stage": {"const": "pre_accept"}}}
+        },
+        {
+          "if": {"properties": {"error": {"properties": {"code": {"const": "cleanup_incomplete"}}, "required": ["code"]}}, "required": ["error"]},
+          "then": {"properties": {"operation": {"const": "CommitAttempt"}, "stage": {"const": "post_accept"}}}
+        },
+        {
+          "properties": {"terminal": {"const": true}},
+          "oneOf": [
+            {"properties": {"operation": {"const": "AcceptRequest"}, "error": {"properties": {"code": {"const": "authentication_denied"}}}}},
+            {"properties": {"operation": {"const": "ResolveCatalog"}, "error": {"properties": {"code": {"const": "resolution_denied"}}}}},
+            {"properties": {"operation": {"enum": ["PlaceAttempt", "LeaseResources"]}, "error": {"properties": {"code": {"const": "capacity_miss"}}}}},
+            {"properties": {"operation": {"enum": ["ResolveCatalog", "PlaceAttempt", "CommitAttemptContext", "ApplyNodeCommand", "DispatchInference", "ValidateResponse", "CommitResponse"]}, "error": {"properties": {"code": {"const": "deadline_exceeded"}}}}},
+            {"properties": {"operation": {"const": "ApplyNodeCommand"}, "error": {"properties": {"code": {"const": "command_rejected"}}}}},
+            {"properties": {"operation": {"const": "DispatchInference"}, "error": {"properties": {"code": {"const": "runtime_failed"}}}}},
+            {"properties": {"operation": {"const": "ValidateResponse"}, "error": {"properties": {"code": {"const": "semantic_invalid"}}}}},
+            {"properties": {"operation": {"enum": ["ResolveCatalog", "PlaceAttempt", "CommitAttemptContext", "ApplyNodeCommand", "DispatchInference", "ValidateResponse", "CommitResponse"]}, "error": {"properties": {"code": {"const": "cancelled"}}}}},
+            {"properties": {"operation": {"enum": ["ResolveCatalog", "PlaceAttempt", "CommitAttemptContext", "ApplyNodeCommand", "DispatchInference", "ValidateResponse", "CommitResponse", "LeaseResources", "CommitAttempt"]}, "error": {"properties": {"code": {"const": "integrity_failure"}}}}},
+            {"properties": {"operation": {"const": "CommitAttempt"}, "error": {"properties": {"code": {"const": "cleanup_incomplete"}}}}}
+          ]
+        }
+      ]
+    },
+    "AttemptFailureEnvelope": {
+      "allOf": [
+        {"$ref": "#/$defs/ErrorEnvelope"},
+        {
+          "properties": {
+            "terminal": {"const": true},
+            "stage": {"const": "post_accept"},
+            "error": {
+              "properties": {
+                "code": {"enum": ["resolution_denied", "capacity_miss", "deadline_exceeded", "command_rejected", "runtime_failed", "semantic_invalid", "cancelled", "integrity_failure"]}
+              }
+            }
+          }
+        },
+        {
+          "oneOf": [
+            {"properties": {"operation": {"const": "ResolveCatalog"}, "error": {"properties": {"code": {"const": "resolution_denied"}}}}},
+            {"properties": {"operation": {"const": "PlaceAttempt"}, "error": {"properties": {"code": {"const": "capacity_miss"}}}}},
+            {"properties": {"operation": {"const": "DispatchInference"}, "error": {"properties": {"code": {"const": "deadline_exceeded"}}}}},
+            {"properties": {"operation": {"const": "ApplyNodeCommand"}, "error": {"properties": {"code": {"const": "command_rejected"}}}}},
+            {"properties": {"operation": {"const": "DispatchInference"}, "error": {"properties": {"code": {"const": "runtime_failed"}}}}},
+            {"properties": {"operation": {"const": "ValidateResponse"}, "error": {"properties": {"code": {"const": "semantic_invalid"}}}}},
+            {"properties": {"operation": {"const": "DispatchInference"}, "error": {"properties": {"code": {"const": "cancelled"}}}}},
+            {"properties": {"operation": {"const": "ApplyNodeCommand"}, "error": {"properties": {"code": {"const": "integrity_failure"}}}}}
+          ]
+        }
+      ]
+    },
+    "AcceptRequestRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "input", "idempotency_key", "deadline_utc", "tenant_id", "trace_context"],
+      "properties": {
+        "model_id": {"$ref": "#/$defs/Identifier"},
+        "model_version": {"$ref": "#/$defs/Identifier"},
+        "input": {"$ref": "#/$defs/InputPayload"},
+        "idempotency_key": {"$ref": "#/$defs/Identifier"},
+        "deadline_utc": {"type": "string", "format": "date-time"},
+        "tenant_id": {"$ref": "#/$defs/Identifier"},
+        "trace_context": {"type": "object", "additionalProperties": {"type": "string"}}
+      }
+    },
+    "AcceptRequestResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "requested_model_id", "input_digest", "accepted_input_ref", "accepted_event_hash", "accepted_at_utc", "accepted_at_monotonic_ns"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "requested_model_id": {"$ref": "#/$defs/Identifier"},
+        "requested_model_version": {"$ref": "#/$defs/Identifier"},
+        "input_digest": {"$ref": "#/$defs/Digest"},
+        "accepted_input_ref": {"$ref": "#/$defs/ImmutablePayloadRef"},
+        "accepted_event_hash": {"$ref": "#/$defs/Digest"},
+        "accepted_at_utc": {"type": "string", "format": "date-time"},
+        "accepted_at_monotonic_ns": {"type": "integer", "minimum": 0}
+      }
+    },
+    "ResolveCatalogRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "idempotency_key", "requested_model_id", "tenant_id", "catalog_digest"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "idempotency_key": {"$ref": "#/$defs/Identifier"},
+        "requested_model_id": {"$ref": "#/$defs/Identifier"},
+        "requested_model_version": {"$ref": "#/$defs/Identifier"},
+        "tenant_id": {"$ref": "#/$defs/Identifier"},
+        "catalog_digest": {"$ref": "#/$defs/Digest"}
+      }
+    },
+    "CatalogResolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalog_digest", "model_id", "model_version", "workload", "api_contract_digest", "input_schema_digest", "image_digest", "artifact", "validator_digest", "hardware_runtime", "storage", "snapshot_status", "checkpoint", "fallback_ladder", "policy"],
+      "properties": {
+        "catalog_digest": {"$ref": "#/$defs/Digest"},
+        "model_id": {"$ref": "#/$defs/Identifier"},
+        "model_version": {"$ref": "#/$defs/Identifier"},
+        "workload": {"enum": ["generation", "embedding", "ranking", "structure", "molecule", "other"]},
+        "api_contract_digest": {"$ref": "#/$defs/Digest"},
+        "input_schema_digest": {"$ref": "#/$defs/Digest"},
+        "image_digest": {"$ref": "#/$defs/Digest"},
+        "artifact": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["digest", "bytes", "publication_id"],
+          "properties": {
+            "digest": {"$ref": "#/$defs/Digest"},
+            "bytes": {"type": "integer", "minimum": 0},
+            "publication_id": {"$ref": "#/$defs/Identifier"}
+          }
+        },
+        "validator_digest": {"$ref": "#/$defs/Digest"},
+        "hardware_runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["gpu_sku", "gpu_count", "gpu_memory_gib_min", "runtime", "driver_version", "cuda_version", "topology_digest"],
+          "properties": {
+            "gpu_sku": {"$ref": "#/$defs/Identifier"},
+            "gpu_count": {"type": "integer", "minimum": 1},
+            "gpu_memory_gib_min": {"type": "number", "exclusiveMinimum": 0},
+            "runtime": {"$ref": "#/$defs/Identifier"},
+            "driver_version": {"$ref": "#/$defs/Identifier"},
+            "cuda_version": {"$ref": "#/$defs/Identifier"},
+            "topology_digest": {"$ref": "#/$defs/Digest"}
+          }
+        },
+        "storage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["l1_eligible", "l2_publication_required", "writable_state", "external_mounts"],
+          "properties": {
+            "l1_eligible": {"type": "boolean"},
+            "l2_publication_required": {"type": "boolean"},
+            "writable_state": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "external_mounts": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+          }
+        },
+        "snapshot_status": {"enum": ["eligible", "ineligible", "unresolved"]},
+        "checkpoint": {
+          "oneOf": [
+            {"$ref": "#/$defs/CheckpointBinding"},
+            {"type": "null"}
+          ]
+        },
+        "fallback_ladder": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {"enum": ["snapshot", "conventional", "fail"]}
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tenant_eligible", "license_eligible", "required_secret_refs", "egress_policy_digest", "eligible_backends"],
+          "properties": {
+            "tenant_eligible": {"const": true},
+            "license_eligible": {"const": true},
+            "required_secret_refs": {"type": "array", "items": {"$ref": "#/$defs/Identifier"}, "uniqueItems": true},
+            "egress_policy_digest": {"$ref": "#/$defs/Digest"},
+            "eligible_backends": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["kubernetes", "node-vm", "cerebrium"]}}
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"snapshot_status": {"const": "eligible"}}, "required": ["snapshot_status"]},
+          "then": {"properties": {
+            "checkpoint": {"$ref": "#/$defs/CheckpointBinding"},
+            "fallback_ladder": {"oneOf": [
+              {"const": ["snapshot", "conventional", "fail"]},
+              {"const": ["conventional", "fail"]}
+            ]}
+          }}
+        },
+        {
+          "if": {"properties": {"snapshot_status": {"enum": ["ineligible", "unresolved"]}}, "required": ["snapshot_status"]},
+          "then": {"properties": {
+            "checkpoint": {"type": "null"},
+            "fallback_ladder": {"const": ["conventional", "fail"]}
+          }}
+        }
+      ]
+    },
+    "CheckpointBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digest", "bytes", "binding_digest", "encrypted", "signature", "signer_key_id", "evidence_refs"],
+      "properties": {
+        "digest": {"$ref": "#/$defs/Digest"},
+        "bytes": {"type": "integer", "minimum": 1},
+        "binding_digest": {"$ref": "#/$defs/Digest"},
+        "encrypted": {"const": true},
+        "signature": {"type": "string", "minLength": 1},
+        "signer_key_id": {"$ref": "#/$defs/Identifier"},
+        "evidence_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/Identifier"}}
+      }
+    },
+    "PlaceAttemptRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "catalog_resolution", "deadline_utc", "queue_snapshot_digest", "cache_snapshot_digest", "capacity_snapshot_digest", "policy_digest"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "catalog_resolution": {"$ref": "#/$defs/CatalogResolution"},
+        "deadline_utc": {"type": "string", "format": "date-time"},
+        "queue_snapshot_digest": {"$ref": "#/$defs/Digest"},
+        "cache_snapshot_digest": {"$ref": "#/$defs/Digest"},
+        "capacity_snapshot_digest": {"$ref": "#/$defs/Digest"},
+        "policy_digest": {"$ref": "#/$defs/Digest"}
+      }
+    },
+    "PlaceAttemptResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempt_context", "attempt_context_digest", "estimated_switch_cost_ms", "decision_evidence_digest"],
+      "properties": {
+        "attempt_context": {"$ref": "#/$defs/AttemptContext"},
+        "attempt_context_digest": {"$ref": "#/$defs/Digest"},
+        "estimated_switch_cost_ms": {"type": "number", "minimum": 0},
+        "decision_evidence_digest": {"$ref": "#/$defs/Digest"}
+      }
+    },
+    "AttemptContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "context_id", "context_version", "previous_context_commit_digest", "transition", "request_id", "attempt_id", "accepted_event_hash", "accepted_environment_role", "catalog_resolution_digest", "catalog_digest", "policy_digest", "placement_decision_digest", "backend", "provider", "resource_binding", "node_lease_id", "instance_id", "boot_id", "generation", "model_id", "model_version", "api_contract_digest", "input_schema_digest", "image_digest", "artifact_digest", "launch_strategy", "checkpoint_binding_digest", "validator_digest", "input_digest", "created_at_utc", "created_at_monotonic_ns"],
+      "properties": {
+        "schema_version": {"const": "catalog-switch-attempt-context/v1"},
+        "context_id": {"$ref": "#/$defs/Identifier"},
+        "context_version": {"type": "integer", "minimum": 1, "maximum": 2},
+        "previous_context_commit_digest": {"oneOf": [{"$ref": "#/$defs/Digest"}, {"type": "null"}]},
+        "transition": {"oneOf": [{"$ref": "#/$defs/FallbackTransition"}, {"type": "null"}]},
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "accepted_event_hash": {"$ref": "#/$defs/Digest"},
+        "accepted_environment_role": {"const": "target-neutral-ingress"},
+        "catalog_resolution_digest": {"$ref": "#/$defs/Digest"},
+        "catalog_digest": {"$ref": "#/$defs/Digest"},
+        "policy_digest": {"$ref": "#/$defs/Digest"},
+        "placement_decision_digest": {"$ref": "#/$defs/Digest"},
+        "backend": {"enum": ["kubernetes", "node-vm", "cerebrium"]},
+        "provider": {"$ref": "#/$defs/Identifier"},
+        "resource_binding": {
+          "oneOf": [
+            {"$ref": "#/$defs/InternalResourceBinding"},
+            {"$ref": "#/$defs/ProviderResourceBinding"}
+          ]
+        },
+        "node_lease_id": {"$ref": "#/$defs/Identifier"},
+        "instance_id": {"oneOf": [{"$ref": "#/$defs/Identifier"}, {"type": "null"}]},
+        "boot_id": {"oneOf": [{"$ref": "#/$defs/Identifier"}, {"type": "null"}]},
+        "generation": {"type": "integer", "minimum": 1},
+        "model_id": {"$ref": "#/$defs/Identifier"},
+        "model_version": {"$ref": "#/$defs/Identifier"},
+        "api_contract_digest": {"$ref": "#/$defs/Digest"},
+        "input_schema_digest": {"$ref": "#/$defs/Digest"},
+        "image_digest": {"$ref": "#/$defs/Digest"},
+        "artifact_digest": {"$ref": "#/$defs/Digest"},
+        "launch_strategy": {"enum": ["snapshot", "conventional"]},
+        "checkpoint_binding_digest": {"oneOf": [{"$ref": "#/$defs/Digest"}, {"type": "null"}]},
+        "validator_digest": {"$ref": "#/$defs/Digest"},
+        "input_digest": {"$ref": "#/$defs/Digest"},
+        "created_at_utc": {"type": "string", "format": "date-time"},
+        "created_at_monotonic_ns": {"type": "integer", "minimum": 1}
+      },
+      "allOf": [
+        {"if": {"properties": {"context_version": {"const": 1}}}, "then": {"properties": {"previous_context_commit_digest": {"type": "null"}, "transition": {"type": "null"}}}},
+        {"if": {"properties": {"context_version": {"const": 2}}}, "then": {"properties": {"previous_context_commit_digest": {"$ref": "#/$defs/Digest"}, "transition": {"$ref": "#/$defs/FallbackTransition"}, "launch_strategy": {"const": "conventional"}, "checkpoint_binding_digest": {"type": "null"}}}},
+        {"if": {"properties": {"backend": {"enum": ["kubernetes", "node-vm"]}}}, "then": {"properties": {"provider": {"const": "nebius"}, "resource_binding": {"$ref": "#/$defs/InternalResourceBinding"}}}},
+        {"if": {"properties": {"backend": {"const": "cerebrium"}}}, "then": {"properties": {"provider": {"const": "cerebrium"}, "resource_binding": {"$ref": "#/$defs/ProviderResourceBinding"}}}},
+        {"if": {"properties": {"launch_strategy": {"const": "snapshot"}}}, "then": {"properties": {"checkpoint_binding_digest": {"$ref": "#/$defs/Digest"}}}},
+        {"if": {"properties": {"launch_strategy": {"const": "conventional"}}}, "then": {"properties": {"checkpoint_binding_digest": {"type": "null"}}}}
+      ]
+    },
+    "FallbackTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_strategy", "to_strategy", "checkpoint_failure_receipt_digest", "scrub_receipt_digest"],
+      "properties": {
+        "from_strategy": {"const": "snapshot"},
+        "to_strategy": {"const": "conventional"},
+        "checkpoint_failure_receipt_digest": {"$ref": "#/$defs/Digest"},
+        "scrub_receipt_digest": {"$ref": "#/$defs/Digest"}
+      }
+    },
+    "InternalResourceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "plan_digest", "lease_binding_digest", "project_id", "region", "resource_prefix", "owner_task_id", "dedicated", "exact_resource_ids"],
+      "properties": {
+        "kind": {"const": "internal_broker"},
+        "plan_digest": {"$ref": "#/$defs/Digest"},
+        "lease_binding_digest": {"$ref": "#/$defs/Digest"},
+        "project_id": {"enum": ["project-e00z6b02t8ddk96c49", "project-u00tds8vpr00jaxa76s22d", "project-i00xz31gpr00xp9jhp982v"]},
+        "region": {"$ref": "#/$defs/Identifier"},
+        "resource_prefix": {"type": "string", "pattern": "^mlsp-csw-[a-z0-9-]+$"},
+        "owner_task_id": {"$ref": "#/$defs/Identifier"},
+        "dedicated": {"const": true},
+        "exact_resource_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/Identifier"}}
+      }
+    },
+    "ProviderResourceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "provider_project_id", "region", "task_scope_digest", "provider_receipt_digest", "cleanup_contract_digest", "exact_resource_ids"],
+      "properties": {
+        "kind": {"const": "external_provider"},
+        "provider_project_id": {"$ref": "#/$defs/Identifier"},
+        "region": {"$ref": "#/$defs/Identifier"},
+        "task_scope_digest": {"$ref": "#/$defs/Digest"},
+        "provider_receipt_digest": {"$ref": "#/$defs/Digest"},
+        "cleanup_contract_digest": {"$ref": "#/$defs/Digest"},
+        "exact_resource_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/Identifier"}}
+      }
+    },
+    "CommitAttemptContextRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "idempotency_key", "attempt_context", "attempt_context_digest"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "idempotency_key": {"$ref": "#/$defs/Identifier"},
+        "attempt_context": {"$ref": "#/$defs/AttemptContext"},
+        "attempt_context_digest": {"$ref": "#/$defs/Digest"}
+      }
+    },
+    "CommitAttemptContextResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "context_version", "attempt_context_digest", "context_commit_digest", "committed_at_utc", "replayed"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "context_version": {"type": "integer", "minimum": 1, "maximum": 2},
+        "attempt_context_digest": {"$ref": "#/$defs/Digest"},
+        "context_commit_digest": {"$ref": "#/$defs/Digest"},
+        "committed_at_utc": {"type": "string", "format": "date-time"},
+        "replayed": {"type": "boolean"}
+      }
+    },
+    "SignedNodeCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "command_id", "node_command_sequence", "issued_at_utc", "expires_at_utc", "signer_key_id", "signature_algorithm", "signature", "payload"],
+      "properties": {
+        "schema_version": {"const": "catalog-switch-signed-node-command/v1"},
+        "command_id": {"$ref": "#/$defs/Identifier"},
+        "node_command_sequence": {"type": "integer", "minimum": 1},
+        "issued_at_utc": {"type": "string", "format": "date-time"},
+        "expires_at_utc": {"type": "string", "format": "date-time"},
+        "signer_key_id": {"$ref": "#/$defs/Identifier"},
+        "signature_algorithm": {"enum": ["Ed25519"]},
+        "signature": {"type": "string", "minLength": 1},
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["request_id", "attempt_id", "command_kind", "attempt_context_commit_digest", "node_lease_id", "instance_id", "boot_id", "generation", "model_binding_digest", "input_digest", "nonce", "from_state", "to_state", "parameters_digest"],
+          "properties": {
+            "request_id": {"$ref": "#/$defs/Identifier"},
+            "attempt_id": {"$ref": "#/$defs/Identifier"},
+            "command_kind": {"enum": ["fence_admission", "drain", "terminate", "scrub", "localize", "launch", "quarantine"]},
+            "attempt_context_commit_digest": {"$ref": "#/$defs/Digest"},
+            "node_lease_id": {"$ref": "#/$defs/Identifier"},
+            "instance_id": {"$ref": "#/$defs/Identifier"},
+            "boot_id": {"$ref": "#/$defs/Identifier"},
+            "generation": {"type": "integer", "minimum": 1},
+            "model_binding_digest": {"$ref": "#/$defs/Digest"},
+            "input_digest": {"$ref": "#/$defs/Digest"},
+            "nonce": {"$ref": "#/$defs/Identifier"},
+            "from_state": {"$ref": "#/$defs/Identifier"},
+            "to_state": {"$ref": "#/$defs/Identifier"},
+            "parameters_digest": {"$ref": "#/$defs/Digest"}
+          }
+        }
+      }
+    },
+    "ApplyNodeCommandRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["idempotency_key", "signed_command"],
+      "properties": {
+        "idempotency_key": {"$ref": "#/$defs/Identifier"},
+        "signed_command": {"$ref": "#/$defs/SignedNodeCommand"}
+      }
+    },
+    "ApplyNodeCommandResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "command_kind", "generation", "event_chain_digest", "action_receipt_digest", "final_state"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "command_kind": {"enum": ["fence_admission", "drain", "terminate", "scrub", "localize", "launch", "quarantine"]},
+        "generation": {"type": "integer", "minimum": 1},
+        "event_chain_digest": {"$ref": "#/$defs/Digest"},
+        "action_receipt_digest": {"$ref": "#/$defs/Digest"},
+        "runtime_identity": {"$ref": "#/$defs/Identifier"},
+        "final_state": {"enum": ["completed", "failed", "quarantined"]}
+      }
+    },
+    "DispatchInferenceRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "idempotency_key", "attempt_context_commit_digest", "accepted_input_ref", "input_digest", "catalog_resolution_digest", "node_lease_id", "generation", "runtime_identity", "deadline_utc"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "idempotency_key": {"$ref": "#/$defs/Identifier"},
+        "attempt_context_commit_digest": {"$ref": "#/$defs/Digest"},
+        "accepted_input_ref": {"$ref": "#/$defs/ImmutablePayloadRef"},
+        "input_digest": {"$ref": "#/$defs/Digest"},
+        "catalog_resolution_digest": {"$ref": "#/$defs/Digest"},
+        "node_lease_id": {"$ref": "#/$defs/Identifier"},
+        "generation": {"type": "integer", "minimum": 1},
+        "runtime_identity": {"$ref": "#/$defs/Identifier"},
+        "deadline_utc": {"type": "string", "format": "date-time"}
+      }
+    },
+    "DispatchInferenceResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "attempt_context_commit_digest", "node_lease_id", "generation", "runtime_identity", "raw_output_ref", "raw_output_digest", "inference_receipt_digest", "completed_at_utc"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_context_commit_digest": {"$ref": "#/$defs/Digest"},
+        "node_lease_id": {"$ref": "#/$defs/Identifier"},
+        "generation": {"type": "integer", "minimum": 1},
+        "runtime_identity": {"$ref": "#/$defs/Identifier"},
+        "raw_output_ref": {"$ref": "#/$defs/ImmutablePayloadRef"},
+        "raw_output_digest": {"$ref": "#/$defs/Digest"},
+        "inference_receipt_digest": {"$ref": "#/$defs/Digest"},
+        "completed_at_utc": {"type": "string", "format": "date-time"}
+      }
+    },
+    "ValidateResponseRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "attempt_context_commit_digest", "node_lease_id", "generation", "runtime_identity", "inference_receipt_digest", "model_id", "model_version", "input_digest", "raw_output_ref", "raw_output_digest", "validator_digest"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_context_commit_digest": {"$ref": "#/$defs/Digest"},
+        "node_lease_id": {"$ref": "#/$defs/Identifier"},
+        "generation": {"type": "integer", "minimum": 1},
+        "runtime_identity": {"$ref": "#/$defs/Identifier"},
+        "inference_receipt_digest": {"$ref": "#/$defs/Digest"},
+        "model_id": {"$ref": "#/$defs/Identifier"},
+        "model_version": {"$ref": "#/$defs/Identifier"},
+        "input_digest": {"$ref": "#/$defs/Digest"},
+        "raw_output_ref": {"$ref": "#/$defs/ImmutablePayloadRef"},
+        "raw_output_digest": {"$ref": "#/$defs/Digest"},
+        "validator_digest": {"$ref": "#/$defs/Digest"}
+      }
+    },
+    "ValidateResponseResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "attempt_context_commit_digest", "node_lease_id", "generation", "runtime_identity", "inference_receipt_digest", "valid", "semantic_receipt_digest", "validated_output_ref", "validated_output_digest"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_context_commit_digest": {"$ref": "#/$defs/Digest"},
+        "node_lease_id": {"$ref": "#/$defs/Identifier"},
+        "generation": {"type": "integer", "minimum": 1},
+        "runtime_identity": {"$ref": "#/$defs/Identifier"},
+        "inference_receipt_digest": {"$ref": "#/$defs/Digest"},
+        "valid": {"const": true},
+        "semantic_receipt_digest": {"$ref": "#/$defs/Digest"},
+        "validated_output_ref": {"$ref": "#/$defs/ImmutablePayloadRef"},
+        "validated_output_digest": {"$ref": "#/$defs/Digest"}
+      }
+    },
+    "CommitResponseRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "idempotency_key", "accepted_event_hash", "attempt_context_commit_digest", "node_lease_id", "generation", "runtime_identity", "inference_receipt_digest", "semantic_receipt_digest", "validated_output_ref", "validated_output_digest"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "idempotency_key": {"$ref": "#/$defs/Identifier"},
+        "accepted_event_hash": {"$ref": "#/$defs/Digest"},
+        "attempt_context_commit_digest": {"$ref": "#/$defs/Digest"},
+        "node_lease_id": {"$ref": "#/$defs/Identifier"},
+        "generation": {"type": "integer", "minimum": 1},
+        "runtime_identity": {"$ref": "#/$defs/Identifier"},
+        "inference_receipt_digest": {"$ref": "#/$defs/Digest"},
+        "semantic_receipt_digest": {"$ref": "#/$defs/Digest"},
+        "validated_output_ref": {"$ref": "#/$defs/ImmutablePayloadRef"},
+        "validated_output_digest": {"$ref": "#/$defs/Digest"}
+      }
+    },
+    "CommitResponseResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "attempt_context_commit_digest", "status", "output", "output_digest", "semantic_receipt_digest", "response_commit_digest", "committed_at_utc", "committed_at_monotonic_ns", "recorder_id", "clock_id", "boot_id", "replayed"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_context_commit_digest": {"$ref": "#/$defs/Digest"},
+        "status": {"const": "success"},
+        "output": {"$ref": "#/$defs/InputPayload"},
+        "output_digest": {"$ref": "#/$defs/Digest"},
+        "semantic_receipt_digest": {"$ref": "#/$defs/Digest"},
+        "response_commit_digest": {"$ref": "#/$defs/Digest"},
+        "committed_at_utc": {"type": "string", "format": "date-time"},
+        "committed_at_monotonic_ns": {"type": "integer", "minimum": 1},
+        "recorder_id": {"$ref": "#/$defs/Identifier"},
+        "clock_id": {"$ref": "#/$defs/Identifier"},
+        "boot_id": {"$ref": "#/$defs/Identifier"},
+        "replayed": {"type": "boolean"}
+      }
+    },
+    "LeaseResourcesRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan_digest", "project_id", "region", "resource_prefix", "ttl_seconds", "budget_usd", "owner_task_id", "dedicated", "cleanup_owner"],
+      "properties": {
+        "plan_digest": {"$ref": "#/$defs/Digest"},
+        "project_id": {"enum": ["project-e00z6b02t8ddk96c49", "project-u00tds8vpr00jaxa76s22d", "project-i00xz31gpr00xp9jhp982v"]},
+        "region": {"$ref": "#/$defs/Identifier"},
+        "resource_prefix": {"type": "string", "pattern": "^mlsp-csw-[a-z0-9-]+$"},
+        "ttl_seconds": {"type": "integer", "minimum": 1},
+        "budget_usd": {"type": "number", "exclusiveMinimum": 0},
+        "owner_task_id": {"$ref": "#/$defs/Identifier"},
+        "dedicated": {"const": true},
+        "cleanup_owner": {"$ref": "#/$defs/Identifier"}
+      }
+    },
+    "LeaseResourcesResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan_digest", "lease_id", "project_id", "region", "resource_prefix", "owner_task_id", "dedicated", "state", "exact_resource_ids", "cost_receipt_digests", "cleanup_receipt_digests"],
+      "properties": {
+        "plan_digest": {"$ref": "#/$defs/Digest"},
+        "lease_id": {"$ref": "#/$defs/Identifier"},
+        "project_id": {"enum": ["project-e00z6b02t8ddk96c49", "project-u00tds8vpr00jaxa76s22d", "project-i00xz31gpr00xp9jhp982v"]},
+        "region": {"$ref": "#/$defs/Identifier"},
+        "resource_prefix": {"type": "string", "pattern": "^mlsp-csw-[a-z0-9-]+$"},
+        "owner_task_id": {"$ref": "#/$defs/Identifier"},
+        "dedicated": {"const": true},
+        "state": {"enum": ["PLANNED", "CREATING", "ACTIVE", "CLEANING", "RELEASED", "QUARANTINED"]},
+        "exact_resource_ids": {"type": "array", "items": {"$ref": "#/$defs/Identifier"}, "uniqueItems": true},
+        "cost_receipt_digests": {"type": "array", "items": {"$ref": "#/$defs/Digest"}, "uniqueItems": true},
+        "cleanup_receipt_digests": {"type": "array", "items": {"$ref": "#/$defs/Digest"}, "uniqueItems": true}
+      }
+    },
+    "CommitAttemptRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "attempt_id", "accepted_event_hash", "terminal_event_digest", "terminal_outcome", "attempt_context_commit_digest", "failure", "response_commit_digest", "trace_digest", "ledger_digest", "accounting_digest", "resource_inventory_digest", "cleanup_final_state", "cleanup_receipt_digest"],
+      "properties": {
+        "request_id": {"$ref": "#/$defs/Identifier"},
+        "attempt_id": {"$ref": "#/$defs/Identifier"},
+        "accepted_event_hash": {"$ref": "#/$defs/Digest"},
+        "terminal_event_digest": {"$ref": "#/$defs/Digest"},
+        "terminal_outcome": {"enum": ["success", "failure"]},
+        "attempt_context_commit_digest": {"oneOf": [{"$ref": "#/$defs/Digest"}, {"type": "null"}]},
+        "failure": {"oneOf": [{"$ref": "#/$defs/AttemptFailureEnvelope"}, {"type": "null"}]},
+        "response_commit_digest": {"oneOf": [{"$ref": "#/$defs/Digest"}, {"type": "null"}]},
+        "trace_digest": {"$ref": "#/$defs/Digest"},
+        "ledger_digest": {"$ref": "#/$defs/Digest"},
+        "accounting_digest": {"$ref": "#/$defs/Digest"},
+        "resource_inventory_digest": {"$ref": "#/$defs/Digest"},
+        "cleanup_final_state": {"enum": ["absent", "retained", "quarantined"]},
+        "cleanup_receipt_digest": {"$ref": "#/$defs/Digest"}
+      },
+      "allOf": [
+        {"if": {"properties": {"terminal_outcome": {"const": "success"}}}, "then": {"properties": {"attempt_context_commit_digest": {"$ref": "#/$defs/Digest"}, "failure": {"type": "null"}, "response_commit_digest": {"$ref": "#/$defs/Digest"}}}},
+        {"if": {"properties": {"terminal_outcome": {"const": "failure"}}}, "then": {"properties": {"failure": {"$ref": "#/$defs/AttemptFailureEnvelope"}, "response_commit_digest": {"type": "null"}}}}
+      ]
+    },
+    "CommitAttemptResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit_digest", "validation_status", "aggregate_eligible"],
+      "properties": {
+        "commit_digest": {"$ref": "#/$defs/Digest"},
+        "validation_status": {"enum": ["valid", "invalid"]},
+        "aggregate_eligible": {"type": "boolean"}
+      }
+    }
+  },
+  "oneOf": [
+    {"type": "object", "additionalProperties": false, "required": ["operation", "request"], "properties": {"operation": {"const": "AcceptRequest"}, "request": {"$ref": "#/$defs/AcceptRequestRequest"}}},
+    {"type": "object", "additionalProperties": false, "required": ["operation", "request"], "properties": {"operation": {"const": "ResolveCatalog"}, "request": {"$ref": "#/$defs/ResolveCatalogRequest"}}},
+    {"type": "object", "additionalProperties": false, "required": ["operation", "request"], "properties": {"operation": {"const": "PlaceAttempt"}, "request": {"$ref": "#/$defs/PlaceAttemptRequest"}}},
+    {"type": "object", "additionalProperties": false, "required": ["operation", "request"], "properties": {"operation": {"const": "CommitAttemptContext"}, "request": {"$ref": "#/$defs/CommitAttemptContextRequest"}}},
+    {"type": "object", "additionalProperties": false, "required": ["operation", "request"], "properties": {"operation": {"const": "ApplyNodeCommand"}, "request": {"$ref": "#/$defs/ApplyNodeCommandRequest"}}},
+    {"type": "object", "additionalProperties": false, "required": ["operation", "request"], "properties": {"operation": {"const": "DispatchInference"}, "request": {"$ref": "#/$defs/DispatchInferenceRequest"}}},
+    {"type": "object", "additionalProperties": false, "required": ["operation", "request"], "properties": {"operation": {"const": "ValidateResponse"}, "request": {"$ref": "#/$defs/ValidateResponseRequest"}}},
+    {"type": "object", "additionalProperties": false, "required": ["operation", "request"], "properties": {"operation": {"const": "CommitResponse"}, "request": {"$ref": "#/$defs/CommitResponseRequest"}}},
+    {"type": "object", "additionalProperties": false, "required": ["operation", "request"], "properties": {"operation": {"const": "LeaseResources"}, "request": {"$ref": "#/$defs/LeaseResourcesRequest"}}},
+    {"type": "object", "additionalProperties": false, "required": ["operation", "request"], "properties": {"operation": {"const": "CommitAttempt"}, "request": {"$ref": "#/$defs/CommitAttemptRequest"}}}
+  ]
+}

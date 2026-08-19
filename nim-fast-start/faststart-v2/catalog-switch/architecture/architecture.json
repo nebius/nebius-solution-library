@@ -1,0 +1,615 @@
+{
+  "schema_version": "catalog-switch-production-architecture/v1",
+  "generated_at": "2026-08-19T15:06:53Z",
+  "decision_status": "conditional",
+  "scope": {
+    "empirical_backends": ["kubernetes", "node-vm", "cerebrium"],
+    "reference_only": ["modal"],
+    "forbidden_empirical": ["modal"],
+    "internal_project_allowlist": [
+      "project-e00z6b02t8ddk96c49",
+      "project-u00tds8vpr00jaxa76s22d",
+      "project-i00xz31gpr00xp9jhp982v"
+    ],
+    "resource_rule": "fresh-task-owned-only",
+    "jira_mutation_allowed": false
+  },
+  "metric_contract": {
+    "source_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
+    "event_schema": "performance/request_slo/event.schema.json",
+    "event_schema_sha256": "a8371e8f0e3713ccbf3db8658ae144e2c62b2ace223dbfd6ae7761d1a2cf3a52",
+    "trace_schema": "performance/request_slo/trace.schema.json",
+    "trace_schema_sha256": "b25b9fdc1caacbf173e6575f687899f20c8ca8ad0d6701b1d656105182ec5c3a",
+    "t0": "external-client-request-accepted/v1",
+    "success": "first-complete-semantically-valid-response/v1",
+    "required_scenarios": [
+      "same_model_hot",
+      "idle_local",
+      "a_to_b_local",
+      "a_to_b_remote",
+      "checkpoint_fallback",
+      "capacity_miss"
+    ],
+    "percentile_minimum_samples": {"p50": 2, "p95": 20, "p99": 100},
+    "all_attempts_retained": true,
+    "phase_percentiles_additive": false,
+    "request_specific_work_before_t0_allowed": false,
+    "ingress_compatibility": "blocked-v2-model-input-acceptance-required",
+    "compatibility_blocker": "BLK-ACCEPTANCE-CONTRACT"
+  },
+  "evidence": [
+    {
+      "id": "E-METRIC-001",
+      "status": "accepted",
+      "kind": "reviewed-contract",
+      "confidence": "high",
+      "source_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
+      "path": "performance/request_slo/event.schema.json",
+      "sha256": "a8371e8f0e3713ccbf3db8658ae144e2c62b2ace223dbfd6ae7761d1a2cf3a52",
+      "product_slo_eligible": false,
+      "allowed_claim": "Normative request boundary, causal phases, failure denominator, and aggregation rules."
+    },
+    {
+      "id": "E-CATALOG-001",
+      "status": "accepted",
+      "kind": "deterministic-inventory",
+      "confidence": "high",
+      "source_commit": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
+      "path": "catalog/catalog.json",
+      "sha256": "831c0517c0df3c92e3b8e802b609c08dbc5f2c0eb945fc0d21830e457a71d6ce",
+      "product_slo_eligible": false,
+      "allowed_claim": "220 source rows, 171 canonical models, evidence tiers, deterministic pilots, and explicit gaps."
+    },
+    {
+      "id": "E-SECURITY-001",
+      "status": "accepted",
+      "kind": "independently-reviewed-control-model",
+      "confidence": "high",
+      "source_commit": "9cfbc1b1311a1f784a407889b215aaec5200fe0e",
+      "path": "catalog-switch/security-reliability/threat_model.json",
+      "sha256": "a9bfccaf2425b75beb40ed6265736aa1d97b3a26327ac37db3a9b92877bbb765",
+      "applicable_backends": ["kubernetes", "node-vm"],
+      "excluded_backends": ["cerebrium", "modal"],
+      "source_control_count": 21,
+      "source_test_family_count": 17,
+      "internal_control_count": 20,
+      "internal_test_family_count": 16,
+      "legacy_modal_only_controls": ["CTL-17"],
+      "legacy_modal_only_test_families": ["TST-14"],
+      "product_slo_eligible": false,
+      "allowed_claim": "The source has 21 controls and 17 test families total; 20 controls and 16 test families apply to internal Kubernetes/node-VM paths. CTL-17 and TST-14 are legacy Modal-only, non-operative here, and the source contains no Cerebrium coverage."
+    },
+    {
+      "id": "E-BROKER-001",
+      "status": "accepted",
+      "kind": "live-isolation-and-cleanup-smoke",
+      "confidence": "high",
+      "source_commit": "229101bb5430143e78c4bc796b30715a2a0a14df",
+      "path": "resource-broker/SMOKE_EVIDENCE.md",
+      "sha256": "28e03e04db7f9812dd68a7e345695620fca59a0080c3bb697ced3abdf5a2332a",
+      "product_slo_eligible": false,
+      "allowed_claim": "Fresh CPU lease isolation, exact-ID cleanup, and fail-closed planning work; Kubernetes v2 support remains pending."
+    },
+    {
+      "id": "E-OF2-PREPARED-001",
+      "status": "accepted",
+      "kind": "prepared-node-internal-stage",
+      "confidence": "medium",
+      "source_commit": "0180915001fff47fbed0f82292fe32edc40e40ea",
+      "path": "performance/openfold2/fresh-cohort-n20-results.tsv",
+      "sha256": "b5e3bf5d28c3da0b8a3407dee51aaff8b45fce73f16929b632ca971deb513b03",
+      "product_slo_eligible": false,
+      "allowed_claim": "OpenFold2 prepared-node restore is a feasibility anchor; conservative-upper p95 is 17.629887 seconds, not a product-boundary result."
+    },
+    {
+      "id": "E-BOLTZ-PREPARED-001",
+      "status": "accepted",
+      "kind": "prepared-node-internal-stage",
+      "confidence": "medium",
+      "source_commit": "0180915001fff47fbed0f82292fe32edc40e40ea",
+      "path": "boltz2-native/fresh-cohort-n20-results.tsv",
+      "sha256": "ec36c85052f62878c22d3e6320845d5e74fb342612d5e1b367d422e9beedad58",
+      "product_slo_eligible": false,
+      "allowed_claim": "Boltz2 prepared-node feasibility cohort had 20 valid runs but failed the 30-second internal-stage target at 30.310246 seconds p95."
+    },
+    {
+      "id": "E-NODE-CPU-001",
+      "status": "accepted",
+      "kind": "matched-cpu-runtime-overhead",
+      "confidence": "high",
+      "source_commit": "dd072528b6c5ccac8b553a94bc5ea89b219ec3a6",
+      "path": "node-local-runtime/evidence/cpu-runtime-overhead-20260819.json",
+      "sha256": "9d6809957cf7c5fbae782c58012edaa973fac4b93b1a7d1316c8c149b188e181",
+      "product_slo_eligible": false,
+      "allowed_claim": "OCI isolation adds about 207 milliseconds p50 over a direct static CPU-process lower bound; it does not predict GPU model latency."
+    },
+    {
+      "id": "E-NODE-SUPERVISOR-001",
+      "status": "provisional",
+      "kind": "offline-adversarial-fixture",
+      "confidence": "medium",
+      "source_commit": "dd072528b6c5ccac8b553a94bc5ea89b219ec3a6",
+      "path": "node-local-runtime/evidence/cpu-supervisor-20260819/summary.json",
+      "sha256": "9c9e2125d8381cae5d546082b74afbfa29729365949d5b1573b0403dbb52af32",
+      "product_slo_eligible": false,
+      "allowed_claim": "The bounded supervisor preserves the canonical ledger and fails closed in CPU fixtures; live GPU isolation and switch proof remain absent."
+    },
+    {
+      "id": "E-K8S-CONTRACT-001",
+      "status": "provisional",
+      "kind": "offline-backend-contract",
+      "confidence": "medium",
+      "source_commit": "93309aa4a738c2fc42e123f1a550dc11dc7eacdd",
+      "path": "performance/k8s_baseline/campaign/arm-a-first-campaign.json",
+      "sha256": "620cb24768a7351bd8f683242a2980fc67d911286ce5303707a0e84b78fa0289",
+      "product_slo_eligible": false,
+      "allowed_claim": "Kubernetes Arm A/Arm B boundaries and campaign are executable offline; no live performance sample exists."
+    },
+    {
+      "id": "E-CEREBRIUM-001",
+      "status": "provisional",
+      "kind": "claim-audit-and-read-only-preflight",
+      "confidence": "high",
+      "source_commit": "ad824c1dd1b77440819f329f8fbc53521799fd2b",
+      "path": "catalog-switch/cerebrium-comparator/VERIFICATION.md",
+      "sha256": "e522d3e201b30bf81694e8b18af3f22e01d1cc50597431706a8b8e2984e5b330",
+      "product_slo_eligible": false,
+      "allowed_claim": "Cerebrium is the sole external comparator; the Qwen3 headline is unverified and live entitlement/capacity gates prevented a cohort."
+    },
+    {
+      "id": "E-CEREBRIUM-SECURITY-PENDING-001",
+      "status": "blocked",
+      "kind": "missing-provider-boundary-threat-model",
+      "confidence": "high",
+      "source_commit": null,
+      "path": null,
+      "sha256": null,
+      "product_slo_eligible": false,
+      "allowed_claim": "The reviewed threat model has no Cerebrium backend/control mapping; provider isolation, residue, credential, audit, cleanup, rollback, and accepted-risk disposition remain unreviewed."
+    },
+    {
+      "id": "E-SIM-001",
+      "status": "provisional",
+      "kind": "placeholder-sensitive-simulation",
+      "confidence": "low",
+      "source_commit": "2d17c18726a8cfeaa4979cfef180f276bf6b9b3e",
+      "path": "catalog-sim/results/reports.json",
+      "sha256": "6954d454eb2630279b3e42126ea36afdc1c16540804ec224bd49a0d6f4097f2a",
+      "product_slo_eligible": false,
+      "allowed_claim": "Switch-cost-aware placement, queue caps, and localization sensitivity are structural hypotheses; policy and backend ranking are forbidden."
+    },
+    {
+      "id": "E-STORAGE-CONTRACT-001",
+      "status": "provisional",
+      "kind": "offline-storage-contract",
+      "confidence": "medium",
+      "source_commit": "ce62db1e677aacababab5f9584c30dedc99d55ba",
+      "path": "performance/storage_cache_matrix/README.md",
+      "sha256": "7d056836744d304e91e17d581957e6c984bb3da3c742ace69a3ed35f5e509cf8",
+      "product_slo_eligible": false,
+      "allowed_claim": "The storage/cache evidence shape is executable; local-NVMe entitlement and all live matrix cells are unproven."
+    },
+    {
+      "id": "E-MODAL-REF-001",
+      "status": "reference-only",
+      "kind": "documentation-reference",
+      "confidence": "medium",
+      "source_commit": "530fa212",
+      "path": "modal-pilot/MODAL_CONTRACT.md",
+      "sha256": "0b113e664e2b2344d9a69ce0f57ad167ad2dd037ba6cfbab7f4d4b362a942502",
+      "product_slo_eligible": false,
+      "allowed_claim": "Managed-runtime concepts may inform control-plane design; no Modal benchmark, rank, spend, or deployment is admissible."
+    },
+    {
+      "id": "E-DRAIN-REJECTED-001",
+      "status": "rejected",
+      "kind": "independent-review-rejection",
+      "confidence": "high",
+      "source_commit": "34d70fd0b4c84ddd2375a9db1ec9d9961f4aa5be",
+      "path": null,
+      "sha256": null,
+      "product_slo_eligible": false,
+      "allowed_claim": "The revision is not production-admissible: physical actions, identity/fencing, GPU scrub, restart durability, and live integration were incomplete."
+    },
+    {
+      "id": "E-SNAPSHOT-REJECTED-001",
+      "status": "rejected",
+      "kind": "independent-review-rejection",
+      "confidence": "high",
+      "source_commit": "f5f2706a",
+      "path": null,
+      "sha256": null,
+      "product_slo_eligible": false,
+      "allowed_claim": "The revision is not production-admissible: new-node sample gates, topology claims, pins, and per-model evidence were incomplete."
+    },
+    {
+      "id": "E-COST-PENDING-001",
+      "status": "blocked",
+      "kind": "missing-child-evidence",
+      "confidence": "high",
+      "source_commit": null,
+      "path": null,
+      "sha256": null,
+      "product_slo_eligible": false,
+      "allowed_claim": "No completed capacity/cost model exists, so absolute standard/large-tier budgets and backend unit economics remain open."
+    },
+    {
+      "id": "E-CHAOS-PENDING-001",
+      "status": "blocked",
+      "kind": "missing-child-evidence",
+      "confidence": "high",
+      "source_commit": null,
+      "path": null,
+      "sha256": null,
+      "product_slo_eligible": false,
+      "allowed_claim": "Cross-backend GPU fault, preemption, accounting, rollback, and cleanup qualification has not run."
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "R-METRIC",
+      "status": "experiment-required",
+      "confidence": "high",
+      "statement": "Retain the reviewed v1 external acceptance-to-first-valid-response ledger for pre-resolved benchmark cohorts, and version its acceptance target before using it for the model-id-plus-input production ingress.",
+      "evidence_ids": ["E-METRIC-001"],
+      "rollback": "Keep v1 evidence classified as pre-resolved benchmark evidence and reject production promotion until a reviewed v2 ledger preserves T0 without pre-resolving artifact identity."
+    },
+    {
+      "id": "R-CATALOG",
+      "status": "approved",
+      "confidence": "high",
+      "statement": "Resolve immutable model, image, artifact, validator, hardware, and fallback identity from the versioned catalog before placement.",
+      "evidence_ids": ["E-CATALOG-001", "E-SECURITY-001"],
+      "rollback": "Pin the previous catalog digest and reject requests whose identity cannot resolve under it."
+    },
+    {
+      "id": "R-CONTROL-DATA-PLANE",
+      "status": "experiment-required",
+      "confidence": "medium",
+      "statement": "Use Kubernetes for fleet ownership and baseline serving while evaluating a signed, generation-fenced node-local OCI supervisor for the single-GPU data-plane hot path.",
+      "evidence_ids": ["E-SECURITY-001", "E-NODE-CPU-001", "E-NODE-SUPERVISOR-001", "E-K8S-CONTRACT-001"],
+      "rollback": "Set node-local routing weight to zero, fence its generation, drain it, verify cleanup, and serve through the previous-good Kubernetes backend digest."
+    },
+    {
+      "id": "R-CACHE-PLACEMENT",
+      "status": "experiment-required",
+      "confidence": "low",
+      "statement": "Choose the node with the lowest verified switch cost subject to a queue-depth cap; use digest-addressed L0/L1/L2 tiers and keep prefetch disabled until real transitions justify it.",
+      "evidence_ids": ["E-SIM-001", "E-STORAGE-CONTRACT-001", "E-BOLTZ-PREPARED-001"],
+      "rollback": "Return to least-loaded placement with no prefetch while preserving the same ledger and cache-integrity gates."
+    },
+    {
+      "id": "R-SNAPSHOT-FALLBACK",
+      "status": "approved",
+      "confidence": "high",
+      "statement": "Snapshot restore is an optional launch strategy, never a catalog-wide backend; any binding, signature, topology, or semantic failure descends exactly once to conventional local start.",
+      "evidence_ids": ["E-SECURITY-001", "E-CATALOG-001", "E-OF2-PREPARED-001", "E-BOLTZ-PREPARED-001", "E-SNAPSHOT-REJECTED-001"],
+      "rollback": "Disable the snapshot strategy by catalog version and retain conventional launch for the exact workload identity."
+    },
+    {
+      "id": "R-CEREBRIUM",
+      "status": "experiment-required",
+      "confidence": "low",
+      "statement": "Evaluate Cerebrium only as the matched external comparator and a possible deadline-aware capacity-miss fallback after entitlement, identity, semantic, cost, cleanup, and raw-cohort gates pass.",
+      "evidence_ids": ["E-CEREBRIUM-001", "E-CEREBRIUM-SECURITY-PENDING-001", "E-METRIC-001", "E-COST-PENDING-001"],
+      "rollback": "Set external routing weight to zero and fail capacity misses explicitly or queue them within the caller deadline."
+    },
+    {
+      "id": "R-MODAL-REFERENCE",
+      "status": "reference-only",
+      "confidence": "medium",
+      "statement": "Use Modal documentation only as managed-runtime design input; do not execute, compare, rank, or route traffic to it in this program.",
+      "evidence_ids": ["E-MODAL-REF-001"],
+      "rollback": "Remove the appendix reference; no runtime or traffic change exists."
+    },
+    {
+      "id": "R-PRODUCTION-PROMOTION",
+      "status": "blocked",
+      "confidence": "high",
+      "statement": "Promote no backend or switch implementation until the listed live cohorts, replacements, capacity/cost model, and chaos gates close under independent review.",
+      "evidence_ids": ["E-DRAIN-REJECTED-001", "E-SNAPSHOT-REJECTED-001", "E-COST-PENDING-001", "E-CHAOS-PENDING-001"],
+      "rollback": "Keep production routing unchanged."
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "same_model_hot",
+      "route": "Keep the exact model generation on its current healthy node and issue inference through the target-neutral local endpoint.",
+      "required_tier": "L0_gpu_resident",
+      "fallback": "Re-resolve and enter idle_local if the generation or health proof is stale.",
+      "implementation_status": "contract-ready"
+    },
+    {
+      "name": "idle_local",
+      "route": "Acquire the node lease, verify L1 content and launch either a compatible signed snapshot or the conventional image.",
+      "required_tier": "L1_verified_local",
+      "fallback": "Use a_to_b_remote semantics if any required byte is absent or unverifiable.",
+      "implementation_status": "experiment-required"
+    },
+    {
+      "name": "a_to_b_local",
+      "route": "Fence A admission, bounded-drain, terminate, actively scrub, prove exact GPU/runtime cleanup, then launch and semantically validate B.",
+      "required_tier": "L1_verified_local",
+      "fallback": "Quarantine the node and re-place B; never admit B on an unverified GPU.",
+      "implementation_status": "blocked-on-drain-replacement"
+    },
+    {
+      "name": "a_to_b_remote",
+      "route": "Perform the same fenced reclaim, localize immutable B bytes from L2 after T0, publish L1 atomically, then launch and validate.",
+      "required_tier": "L2_remote_immutable",
+      "fallback": "Try another capacity pool within deadline or fail explicitly; do not reuse stale or foreign bytes.",
+      "implementation_status": "blocked-on-live-storage-and-drain"
+    },
+    {
+      "name": "checkpoint_fallback",
+      "route": "Verify the full checkpoint binding and signature; on one incompatibility or restore failure, scrub and descend once to conventional local start for the same identity.",
+      "required_tier": "L1_verified_local",
+      "fallback": "Conventional local start exactly once, then explicit failure or re-placement.",
+      "implementation_status": "blocked-on-snapshot-replacement"
+    },
+    {
+      "name": "capacity_miss",
+      "route": "Choose fresh internal capacity, matched Cerebrium capacity, bounded queueing, or an explicit failure using the caller deadline and policy version.",
+      "required_tier": "none",
+      "fallback": "Never hide the miss or change model/input identity; external routing remains disabled until its live gate passes.",
+      "implementation_status": "blocked-on-capacity-cost-and-live-comparator"
+    }
+  ],
+  "backends": [
+    {
+      "name": "kubernetes",
+      "workload_tiers": ["fast-switch", "standard-on-demand", "large-multi-gpu"],
+      "role": "Fleet/control-plane default and empirical internal baseline; node-local hot path may operate beneath its ownership only after fencing proof.",
+      "production_disposition": "not-promoted",
+      "confidence": "medium",
+      "evidence_ids": ["E-K8S-CONTRACT-001", "E-SECURITY-001"],
+      "promotion_gates": ["G-LIVE-K8S", "G-DRAIN", "G-CHAOS", "G-COST"]
+    },
+    {
+      "name": "node-vm",
+      "workload_tiers": ["fast-switch", "standard-on-demand"],
+      "role": "Candidate dedicated single-GPU data-plane path with OCI isolation and no provider/Kubernetes call after T0.",
+      "production_disposition": "not-promoted",
+      "confidence": "medium",
+      "evidence_ids": ["E-NODE-CPU-001", "E-NODE-SUPERVISOR-001", "E-SECURITY-001"],
+      "promotion_gates": ["G-LIVE-NODE", "G-DRAIN", "G-CHAOS", "G-COST"]
+    },
+    {
+      "name": "cerebrium",
+      "workload_tiers": ["fast-switch", "standard-on-demand", "large-multi-gpu"],
+      "role": "Sole external matched comparator and disabled-by-default capacity-miss candidate.",
+      "production_disposition": "not-promoted",
+      "confidence": "low",
+      "evidence_ids": ["E-CEREBRIUM-001", "E-CEREBRIUM-SECURITY-PENDING-001"],
+      "promotion_gates": ["G-LIVE-CEREBRIUM", "G-CEREBRIUM-SECURITY", "G-CHAOS", "G-COST"]
+    }
+  ],
+  "cache_policy": {
+    "identity": "sha256(model-version,image,artifact,checkpoint-binding,validator,hardware-runtime-profile)",
+    "tiers": [
+      {"name": "L0_gpu_resident", "mutable": true, "verification": "exact generation and semantic health", "owner": "node-agent"},
+      {"name": "L1_verified_local", "mutable": false, "verification": "content hash plus fs-verity and signed binding", "owner": "cache-ingester"},
+      {"name": "L2_remote_immutable", "mutable": false, "verification": "digest-pinned publication and request-causal byte receipt", "owner": "artifact-control-plane"}
+    ],
+    "placement": {"candidate": "shortest-verified-switch-cost", "queue_depth_cap": "tune-from-live", "status": "experiment-required"},
+    "eviction": {"candidate": "GDSF", "control": "LRU", "status": "unranked"},
+    "prefetch_default": "disabled",
+    "prefetch_promotion": "Enable only when measured transition telemetry improves product p95 without exceeding the approved byte/cost budget."
+  },
+  "budgets": {
+    "universal_promotion": {
+      "minimum_attempts": 100,
+      "success_rate_min": 0.99,
+      "semantic_invalid_successes_max": 0,
+      "duplicate_responses_max": 0,
+      "unaccounted_attempts_max": 0,
+      "cleanup_receipt_rate": 1.0,
+      "gpu_scrub_receipt_rate": 1.0,
+      "cost_receipt_rate": 1.0
+    },
+    "latency_classes": [
+      {
+        "name": "fast-switch",
+        "p95_seconds_max": 30.0,
+        "p99_seconds_max": null,
+        "status": "provisional-candidate-blocking-owner-ratification",
+        "note": "The 30-second external-boundary p95 is an unratified program objective and executable candidate gate, not an approved product SLO. Product owners must ratify or replace it and define p99 before promotion."
+      },
+      {
+        "name": "standard-on-demand",
+        "p95_seconds_max": null,
+        "p99_seconds_max": null,
+        "status": "blocking-owner-ratification",
+        "note": "Must beat or equal the frozen production baseline for the exact workload; absolute budget awaits capacity/cost evidence and product approval."
+      },
+      {
+        "name": "large-multi-gpu",
+        "p95_seconds_max": null,
+        "p99_seconds_max": null,
+        "status": "blocking-owner-ratification",
+        "note": "Queue/asynchronous semantics and absolute latency budget must be approved before serving."
+      }
+    ],
+    "capacity_formula": {
+      "version": "catalog-switch-capacity-formula/v1",
+      "arrival_rate_statistic": "p95_per_second",
+      "occupancy_statistic": "p95_seconds",
+      "utilization_target": 0.7,
+      "minimum_base_slots": 1,
+      "preemptible_failover_slots_input": true,
+      "implementation": "catalog-switch/architecture/capacity_budget.py"
+    },
+    "capacity_status": "provisional-until-cost-model",
+    "request_cost_rule": "No route is promoted without p50/p95 cost per valid response, failed-attempt cost, warm-idle cost, and cleanup tail from actual receipts.",
+    "campaign_hard_caps_usd": {
+      "kubernetes_first_h100_campaign": 27.0,
+      "node_vm_h100_ttl": 13.082801,
+      "internal_qwen_h100_ttl": 8.721867,
+      "internal_glm_h200_ttl": 289.409894,
+      "cerebrium_provider_spend": null
+    }
+  },
+  "apis": [
+    {
+      "name": "AcceptRequest",
+      "owner": "edge-recorder",
+      "request_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/AcceptRequestRequest",
+      "response_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/AcceptRequestResponse",
+      "failure_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope",
+      "idempotency": "tenant plus client key returns the original accepted request/attempt and input digest"
+    },
+    {
+      "name": "ResolveCatalog",
+      "owner": "catalog-control-plane",
+      "request_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ResolveCatalogRequest",
+      "response_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/CatalogResolution",
+      "failure_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope",
+      "idempotency": "request plus catalog digest resolves once or returns the same terminal resolution denial"
+    },
+    {
+      "name": "PlaceAttempt",
+      "owner": "router",
+      "request_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/PlaceAttemptRequest",
+      "response_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/PlaceAttemptResponse",
+      "failure_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope",
+      "idempotency": "request/attempt plus policy and snapshot digests is a compare-and-set placement decision"
+    },
+    {
+      "name": "CommitAttemptContext",
+      "owner": "evidence-ledger",
+      "request_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/CommitAttemptContextRequest",
+      "response_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/CommitAttemptContextResponse",
+      "failure_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope",
+      "idempotency": "request/attempt plus canonical context digest commits one immutable post-placement context and replays its receipt"
+    },
+    {
+      "name": "ApplyNodeCommand",
+      "owner": "node-agent",
+      "request_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ApplyNodeCommandRequest",
+      "response_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ApplyNodeCommandResponse",
+      "failure_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope",
+      "idempotency": "command id and monotonic node sequence replay the durable action receipt; stale or conflicting commands fail"
+    },
+    {
+      "name": "DispatchInference",
+      "owner": "data-plane-adapter",
+      "request_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/DispatchInferenceRequest",
+      "response_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/DispatchInferenceResponse",
+      "failure_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope",
+      "idempotency": "request/attempt execution key returns the same raw-output receipt and never invokes twice"
+    },
+    {
+      "name": "ValidateResponse",
+      "owner": "semantic-validator",
+      "request_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ValidateResponseRequest",
+      "response_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ValidateResponseResponse",
+      "failure_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope",
+      "idempotency": "raw output plus validator digest returns the same semantic receipt"
+    },
+    {
+      "name": "CommitResponse",
+      "owner": "edge-recorder",
+      "request_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/CommitResponseRequest",
+      "response_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/CommitResponseResponse",
+      "failure_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope",
+      "idempotency": "tenant plus client key commits one semantic result; every replay returns the byte-identical committed response"
+    },
+    {
+      "name": "LeaseResources",
+      "owner": "resource-broker",
+      "request_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/LeaseResourcesRequest",
+      "response_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/LeaseResourcesResponse",
+      "failure_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope",
+      "idempotency": "immutable plan digest creates at most one exact resource set"
+    },
+    {
+      "name": "CommitAttempt",
+      "owner": "evidence-ledger",
+      "request_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/CommitAttemptRequest",
+      "response_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/CommitAttemptResponse",
+      "failure_schema": "catalog-switch/architecture/control-plane-api.schema.json#/$defs/ErrorEnvelope",
+      "idempotency": "request/attempt commits one terminal trace/accounting/cleanup tuple"
+    }
+  ],
+  "benchmark_matrix": [
+    {
+      "id": "B-INTERNAL-SMALL",
+      "backends": ["kubernetes", "node-vm"],
+      "models": ["ProteinMPNN"],
+      "scenarios": ["same_model_hot", "idle_local", "a_to_b_local", "a_to_b_remote", "checkpoint_fallback", "capacity_miss"],
+      "attempts_per_homogeneous_cell": 30,
+      "hardware": "fresh-task-owned-preemptible-H100-first",
+      "status": "blocked"
+    },
+    {
+      "id": "B-INTERNAL-STORAGE",
+      "backends": ["kubernetes", "node-vm"],
+      "models": ["Boltz2"],
+      "scenarios": ["same_model_hot", "idle_local", "a_to_b_local", "a_to_b_remote", "checkpoint_fallback", "capacity_miss"],
+      "attempts_per_homogeneous_cell": 30,
+      "hardware": "fresh-task-owned-compatible-GPU-with-attached-and-remote-tiers",
+      "status": "blocked"
+    },
+    {
+      "id": "B-INTERNAL-LARGE",
+      "backends": ["kubernetes"],
+      "models": ["Evo2-40B", "catalog-selected-non-gated-large-alternate"],
+      "scenarios": ["idle_local", "a_to_b_remote", "checkpoint_fallback", "capacity_miss"],
+      "attempts_per_homogeneous_cell": 30,
+      "hardware": "fresh-task-owned-catalog-compatible-H200-or-approved-alternate",
+      "status": "blocked"
+    },
+    {
+      "id": "B-EXTERNAL-MATCHED-QWEN",
+      "backends": ["kubernetes", "node-vm", "cerebrium"],
+      "models": ["Qwen/Qwen3-8B@b968826d9c46dd6066d109eabc6255188de91218"],
+      "scenarios": ["same_model_hot", "idle_local", "a_to_b_remote", "capacity_miss"],
+      "attempts_per_homogeneous_cell": 30,
+      "hardware": "matched-one-H100-shape-where-provider-contract-permits",
+      "status": "blocked"
+    },
+    {
+      "id": "B-TRACE-REPLAY",
+      "backends": ["kubernetes", "node-vm", "cerebrium"],
+      "models": ["eligible-catalog-subset"],
+      "scenarios": ["same_model_hot", "idle_local", "a_to_b_local", "a_to_b_remote", "checkpoint_fallback", "capacity_miss"],
+      "attempts_per_homogeneous_cell": 100,
+      "hardware": "fresh-task-owned-capacity-pools",
+      "status": "blocked"
+    },
+    {
+      "id": "B-CHAOS",
+      "backends": ["kubernetes", "node-vm", "cerebrium"],
+      "models": ["promoted-representatives"],
+      "scenarios": ["a_to_b_local", "a_to_b_remote", "checkpoint_fallback", "capacity_miss"],
+      "attempts_per_homogeneous_cell": 20,
+      "hardware": "fresh-task-owned-preemptible-where-fault-requires-it",
+      "status": "blocked"
+    }
+  ],
+  "rollout_gates": [
+    {"id": "G-CONTRACT", "status": "blocked", "requires": ["E-METRIC-001", "E-CATALOG-001", "E-SECURITY-001", "catalog-switch/architecture/control-plane-api.schema.json", "catalog-switch/architecture/attempt_context.py", "BLK-ACCEPTANCE-CONTRACT", "BLK-CONTROL-CHAIN"]},
+    {"id": "G-LIVE-K8S", "status": "blocked", "requires": ["B-INTERNAL-SMALL", "B-INTERNAL-STORAGE", "B-INTERNAL-LARGE", "B-TRACE-REPLAY"]},
+    {"id": "G-LIVE-NODE", "status": "blocked", "requires": ["B-INTERNAL-SMALL", "B-INTERNAL-STORAGE", "B-TRACE-REPLAY"]},
+    {"id": "G-LIVE-CEREBRIUM", "status": "blocked", "requires": ["B-EXTERNAL-MATCHED-QWEN", "B-TRACE-REPLAY"]},
+    {"id": "G-CEREBRIUM-SECURITY", "status": "blocked", "requires": ["BLK-CEREBRIUM-SECURITY"]},
+    {"id": "G-DRAIN", "status": "blocked", "requires": ["BLK-DRAIN"]},
+    {"id": "G-SNAPSHOT", "status": "blocked", "requires": ["BLK-SNAPSHOT"]},
+    {"id": "G-COST", "status": "blocked", "requires": ["BLK-COST"]},
+    {"id": "G-CHAOS", "status": "blocked", "requires": ["B-CHAOS", "BLK-CHAOS"]},
+    {"id": "G-INDEPENDENT-REVIEW", "status": "conditional-sign-off", "requires": ["catalog-switch/architecture/INDEPENDENT_REVIEW.md"]}
+  ],
+  "blockers": [
+    {"id": "BLK-ACCEPTANCE-CONTRACT", "owner_task": "catalog-switch-request-slo-harness,catalog-switch-integrated-architecture-adr", "exit": "Review and adopt a v2 external ledger whose T0 binds authenticated tenant, client idempotency key, model/version, immutable input, and deadline only. Post-T0 records must append authoritative catalog/artifact plus compiled API/input-schema digests, occupant, queue/cache/capacity snapshots, placement decision, broker/provider resource IDs, and cleanup inventory/receipts while preserving all-attempt accounting and later external terminal timing."},
+    {"id": "BLK-CONTROL-CHAIN", "owner_task": "catalog-switch-integrated-architecture-adr,catalog-switch-drain-reclaim-state-machine,catalog-switch-k8s-baseline,catalog-switch-node-local-runtime,catalog-switch-cerebrium-qwen3-glm52-benchmark", "exit": "Add and independently review backend-neutral runtime prepare/readiness attestation that binds exact instance/boot/generation/model/image/artifact to runtime_identity before dispatch, carry tenant/idempotency/deadline through every operation, and bind each failed operation's typed request plus canonical failure receipt into the terminal ledger."},
+    {"id": "BLK-DRAIN", "owner_task": "catalog-switch-drain-reclaim-state-machine", "exit": "Reviewed replacement with physical backend actions, durable fencing, exact runtime/GPU proof, rollback, and real H100 A-to-B evidence."},
+    {"id": "BLK-SNAPSHOT", "owner_task": "catalog-switch-snapshot-eligibility", "exit": "Reviewed per-model classification with correct n>=20 new-node gates, topology honesty, self-verifying pins, and explicit conventional outcomes."},
+    {"id": "BLK-COST", "owner_task": "catalog-switch-capacity-cost-model", "exit": "Reviewed capacity availability, preemptible/on-demand behavior, per-valid-response cost, warm-idle cost, and ratified standard/large-tier budgets."},
+    {"id": "BLK-K8S-BROKER", "owner_task": "catalog-switch-resource-broker", "exit": "Reviewed fresh Kubernetes cluster and preemptible GPU node-group v2 lease/cleanup interface."},
+    {"id": "BLK-LIVE-BACKENDS", "owner_task": "catalog-switch-k8s-baseline,catalog-switch-node-local-runtime,catalog-switch-cerebrium-qwen3-glm52-benchmark", "exit": "Matched product-boundary raw GPU cohorts with exact resource/cost/cleanup receipts."},
+    {"id": "BLK-CEREBRIUM-SECURITY", "owner_task": "catalog-switch-security-reliability,catalog-switch-cerebrium-qwen3-glm52-benchmark", "exit": "Independent review of a Cerebrium provider-boundary control mapping, accepted-risk exceptions for unverifiable host/GPU residue, authenticated tenant/model isolation, audit/idempotency, credentials/egress, cost, cleanup, rollback, and mapped live adversarial evidence."},
+    {"id": "BLK-STORAGE", "owner_task": "catalog-switch-storage-cache-matrix", "exit": "Allowed-project local-NVMe entitlement or an explicit scope change, then complete live localization cohorts."},
+    {"id": "BLK-CHAOS", "owner_task": "catalog-switch-chaos-qualification", "exit": "Cross-backend TST fault, preemption, isolation, accounting, rollback, and exact cleanup qualification."},
+    {"id": "BLK-PRODUCT-BUDGETS", "owner_task": "product-and-capacity-owners", "exit": "Ratify or replace the provisional fast-switch p95 objective, define fast-switch p99 semantics, approve absolute standard-on-demand and large-multi-gpu latency semantics, and set the external provider spend cap."}
+  ]
+}
