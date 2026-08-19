@@ -1,0 +1,37 @@
+{
+  "cloud_resources": [],
+  "cloud_scan": false,
+  "cloud_scan_complete": false,
+  "cloud_scan_errors": [],
+  "expired_lease_count": 0,
+  "leases": [
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "expired": false,
+      "expires_at": "2026-08-19T12:23:17Z",
+      "lease_id": "resource-broker-smoke-20260819",
+      "resource_ids": [],
+      "state": "RELEASED"
+    },
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "expired": false,
+      "expires_at": "2026-08-19T12:24:53Z",
+      "lease_id": "resource-broker-smoke2-20260819",
+      "resource_ids": [],
+      "state": "RELEASED"
+    },
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "expired": false,
+      "expires_at": "2026-08-19T12:34:43Z",
+      "lease_id": "resource-broker-smoke3-20260819",
+      "resource_ids": [],
+      "state": "RELEASED"
+    }
+  ],
+  "policy": "unregistered resources are reported for manual review and never auto-deleted",
+  "scanned_at": "2026-08-19T11:42:11Z",
+  "schema_version": "catalog-switch-orphan-scan/v1",
+  "unregistered_cloud_resource_count": 0
+}
