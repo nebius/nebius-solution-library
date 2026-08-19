@@ -1,4 +1,4 @@
-# Generation-fenced A-to-B drain and GPU reclaim v3
+# Generation-fenced A-to-B drain and GPU reclaim v4
 
 This directory contains the backend-neutral reference implementation for
 switching one exclusively occupied GPU from model A to model B. It consumes the
@@ -11,14 +11,15 @@ authenticate to, deploy, run, benchmark, simulate, rank, or implement an
 adapter for Modal. Cerebrium is the parent program's sole external measured
 comparator and is not an adapter in this package.
 
-The v1 candidate at `34d70fd0` and v2 candidate at `6c2c06d` are rejected.
-Version 3 is a fresh direct-child replacement of `6c2c06d` and remains
+The v1 candidate at `34d70fd0`, v2 candidate at `6c2c06d`, and v3 candidate at
+`e2dabf7a274f9db4287553154b625f838031a009` are rejected and preserved.
+Version 4 is a fresh direct-child replacement of exact `e2dabf7a` and remains
 `independent-review-required`; passing its own tests is not approval or live
 H100 evidence.
 
 ## Delivered interfaces
 
-- `contract.json` freezes the v3 states, transitions, ten exact invariants,
+- `contract.json` freezes the v4 states, transitions, ten exact invariants,
   proof gates, prerequisite commit/tree/content hashes, resolved control/test
   bindings, and the backend scope.
 - `state_machine.py` implements durable compare-and-swap state, controller and
@@ -112,8 +113,14 @@ unqueryable memory fails this production gate and quarantines the node. A GPU
 reset or MIG recreation is an allowed scrub method, but it does not waive the
 post-scrub zero observations.
 
-Node-local evidence is accepted only from the exact signed node-agent
-authority, node UID, and boot ID. Kubernetes evidence additionally binds an
+Node-local evidence is accepted only when each action, runtime-absence,
+launch-operation-absence, GPU-release, and requalification proof's
+`source_id` and `source_key_sha256` equal the exact node-agent identity in the
+runtime authority. Membership in the broader trust store is insufficient: a
+correctly signed proof from a second trusted node is rejected before any state
+transition. Broker-owned placement-revocation and recycle proofs are likewise
+bound to the exact configured `resource-broker` source rather than any trusted
+key. Kubernetes evidence additionally binds an
 absolute kubeconfig hash, an absolute non-symlink `kubectl` executable and its
 content hash, context, API server URL, server-CA hash, cluster UID, namespace,
 node UID, Pod UID, and container ID. `nvidia-smi pmon` supplies observed
@@ -121,6 +128,11 @@ graphics contexts; successful exit with empty or header-only output fails.
 Zero processes require both a parseable `gpu pid type` header and an exact
 target-GPU sample, so the implementation never hard-codes an empty graphics-
 process set.
+
+Both Kubernetes runtime and ambiguous launch-operation absence require a
+successfully decoded PodList object with an explicit `items` list. Missing,
+null, or non-list `items` never defaults to an empty inventory and therefore
+cannot clear a lost or partially launched generation.
 
 ## Canonical semantic and durability gate
 
@@ -199,6 +211,8 @@ missing/duplicate/reordered/prior semantic calls, crash/retry closure, timeout
 persistence, launch response loss, partial B cleanup, linked rollback,
 transition-detail tampering, wrong cluster/context/CA/namespace/node/boot,
 wrong node-agent authority, stale-controller side effects, command replay,
+cross-node proof re-signing by another trusted key, missing/null/non-list
+Kubernetes Pod inventories,
 two valid node-local and Kubernetes launches against a runner that would accept
 both, empty/header-only graphics evidence, graphics processes,
 incomplete/full-size scrub, and full

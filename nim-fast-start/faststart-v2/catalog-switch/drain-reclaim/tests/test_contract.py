@@ -94,6 +94,37 @@ class ContractEquivalenceTests(unittest.TestCase):
                 with self.assertRaisesRegex(ContractError, "exact gate"):
                     validate(contract, threat)
 
+    def test_proof_authority_and_pod_inventory_gates_are_exact(self) -> None:
+        mutations = [
+            (
+                "evidence_authority",
+                "broad_trust_membership_is_insufficient",
+                False,
+            ),
+            (
+                "evidence_authority",
+                "required_source_id",
+                "any-trusted-source",
+            ),
+            (
+                "evidence_authority",
+                "required_source_key_sha256",
+                "any-trusted-key",
+            ),
+            ("kubernetes_pod_inventory", "explicit_items_field", False),
+            (
+                "kubernetes_pod_inventory",
+                "missing_null_or_non_list",
+                "treat-as-empty",
+            ),
+        ]
+        for section, field, value in mutations:
+            with self.subTest(section=section, field=field):
+                contract, threat = inputs()
+                contract["proof_gates"][section][field] = value
+                with self.assertRaisesRegex(ContractError, "exact gate"):
+                    validate(contract, threat)
+
     def test_every_inv_ctl_tst_and_code_binding_is_exact(self) -> None:
         mutations = [
             ("DR-INV-01", "controls", ["CTL-10"]),

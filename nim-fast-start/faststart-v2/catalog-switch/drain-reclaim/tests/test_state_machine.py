@@ -29,6 +29,22 @@ from state_machine import (  # noqa: E402
 )
 
 
+def resign_as_trusted_foreign_node(proof):
+    """Re-sign a proof with another trusted node while retaining its subject."""
+
+    changed = replace(
+        proof,
+        source_id="node-agent-2",
+        source_key_sha256=key_sha256(NEW_NODE_KEY),  # noqa: F405
+    )
+    payload = asdict(changed)
+    payload.pop("signature_sha256")
+    return replace(
+        changed,
+        signature_sha256=sign_payload(NEW_NODE_KEY, payload),  # noqa: F405
+    )
+
+
 class MachineFixture(unittest.TestCase):
     def setUp(self) -> None:
         self.acceptance_temp = tempfile.TemporaryDirectory()
@@ -179,6 +195,104 @@ class DrainAndFenceTests(MachineFixture):
 
 
 class ReclaimTests(MachineFixture):
+    def test_trusted_foreign_node_cannot_attest_target_node_reclaim(self) -> None:
+        self.begin_switch()
+        self.machine.advance_drain(self.fence, switch_id="switch-1")
+        reclaim_started = self.machine.snapshot().transitions[-1].at_ns
+        stop, absence, gpu = reclaim_bundle(  # noqa: F405
+            switch_id="switch-1",
+            target=self.runtime_a,
+            fence=self.fence,
+            reclaim_started=reclaim_started,
+        )
+        for label, candidate in (
+            ("action", (resign_as_trusted_foreign_node(stop), absence, gpu)),
+            ("runtime absence", (stop, resign_as_trusted_foreign_node(absence), gpu)),
+            ("GPU release", (stop, absence, resign_as_trusted_foreign_node(gpu))),
+        ):
+            with self.subTest(proof=label):
+                with self.assertRaisesRegex(
+                    ProofRejected, "exact node-agent authority"
+                ):
+                    self.machine.record_reclaim(
+                        self.fence,
+                        switch_id="switch-1",
+                        stop_receipt=candidate[0],
+                        absence=candidate[1],
+                        gpu_release=candidate[2],
+                    )
+                self.assertEqual(
+                    self.machine.snapshot().state, SwitchState.RECLAIMING_A
+                )
+
+        self.machine.record_reclaim(
+            self.fence,
+            switch_id="switch-1",
+            stop_receipt=stop,
+            absence=absence,
+            gpu_release=gpu,
+        )
+        reservation = self.machine.begin_start_b(
+            self.fence,
+            switch_id="switch-1",
+            operation_id="trusted-foreign-node-launch",
+            idempotency_key="trusted-foreign-node-launch-idem",
+        )
+        self.machine.fail_start(
+            self.fence,
+            switch_id="switch-1",
+            reason="ambiguous response-loss adversary",
+        )
+        reclaim_b_started = self.machine.snapshot().transitions[-1].at_ns
+        cleanup = signed_action(  # noqa: F405
+            switch_id="switch-1",
+            operation="cleanup-launch-operation",
+            subject_sha256=reservation.digest,
+            authority=self.authority,
+            fence=self.fence,
+            started=reclaim_b_started + 1,
+        )
+        operation_absence = signed_operation_absence(  # noqa: F405
+            switch_id="switch-1",
+            reservation=reservation,
+            authority=self.authority,
+            observed_at=reclaim_b_started + 3,
+        )
+        gpu_b = signed_gpu_release(  # noqa: F405
+            switch_id="switch-1",
+            subject_sha256=reservation.digest,
+            authority=self.authority,
+            absence_at=operation_absence.observed_at_ns,
+        )
+        for label, candidate in (
+            (
+                "cleanup action",
+                (resign_as_trusted_foreign_node(cleanup), operation_absence, gpu_b),
+            ),
+            (
+                "launch-operation absence",
+                (cleanup, resign_as_trusted_foreign_node(operation_absence), gpu_b),
+            ),
+            (
+                "ambiguous-launch GPU release",
+                (cleanup, operation_absence, resign_as_trusted_foreign_node(gpu_b)),
+            ),
+        ):
+            with self.subTest(proof=label):
+                with self.assertRaisesRegex(
+                    ProofRejected, "exact node-agent authority"
+                ):
+                    self.machine.record_ambiguous_launch_cleanup(
+                        self.fence,
+                        switch_id="switch-1",
+                        cleanup_receipt=candidate[0],
+                        absence=candidate[1],
+                        gpu_release=candidate[2],
+                    )
+                self.assertEqual(
+                    self.machine.snapshot().state, SwitchState.RECLAIMING_B
+                )
+
     def test_exact_total_absence_before_scrub_and_zero_nvml_are_required(self) -> None:
         self.begin_switch()
         self.machine.advance_drain(self.fence, switch_id="switch-1")

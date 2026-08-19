@@ -57,8 +57,10 @@
     "DR-INV-03": {
       "code": [
         "DrainReclaimStateMachine.record_reclaim",
+        "EvidenceTrustStore.verify_authority",
         "GpuReleaseProof.validate_for",
-        "NvidiaSmiNvmlProbe.observe"
+        "NvidiaSmiNvmlProbe.observe",
+        "RuntimeAbsenceProof.validate_for"
       ],
       "controls": [
         "CTL-04",
@@ -67,7 +69,8 @@
       "tests": [
         "test_exact_total_absence_before_scrub_and_zero_nvml_are_required",
         "test_graphics_process_rejects_gpu_release",
-        "test_empty_and_header_only_pmon_are_not_zero_process_proofs"
+        "test_empty_and_header_only_pmon_are_not_zero_process_proofs",
+        "test_trusted_foreign_node_cannot_attest_target_node_reclaim"
       ],
       "threat_tests": [
         "TST-01",
@@ -169,7 +172,9 @@
       "code": [
         "DrainReclaimStateMachine.fail_start",
         "DrainReclaimStateMachine.record_ambiguous_launch_cleanup",
-        "DrainReclaimStateMachine.begin_rollback"
+        "DrainReclaimStateMachine.begin_rollback",
+        "KubernetesEvidenceAdapter._pod_inventory_items",
+        "LaunchOperationAbsenceProof.validate_for"
       ],
       "controls": [
         "CTL-04",
@@ -181,7 +186,9 @@
         "test_action_crash_window_is_durable_and_never_replays",
         "test_cancelled_bound_b_requires_exact_partial_cleanup",
         "test_failed_b_and_rollback_use_separate_linked_traces",
-        "test_many_seed_drain_cancel_failure_and_cleanup_preserve_invariants"
+        "test_many_seed_drain_cancel_failure_and_cleanup_preserve_invariants",
+        "test_operation_absence_requires_explicit_pod_items_list",
+        "test_trusted_foreign_node_cannot_attest_target_node_reclaim"
       ],
       "threat_tests": [
         "TST-01",
@@ -224,7 +231,7 @@
     },
     {
       "id": "DR-INV-03",
-      "statement": "GPU_FREE requires stop completion, exact process/cgroup/container/Pod and host-residue absence, then an approved scrub bound to the exact GPU UUID and total bytes, then exactly two NVML samples with zero compute processes, zero graphics processes, and zero used bytes."
+      "statement": "GPU_FREE requires every action, runtime-absence, and GPU proof signer to equal the runtime authority's exact node-agent ID and key, stop completion, exact process/cgroup/container/Pod and host-residue absence, then an approved scrub bound to the exact GPU UUID and total bytes, then exactly two NVML samples with zero compute processes, zero graphics processes, and zero used bytes."
     },
     {
       "id": "DR-INV-04",
@@ -248,7 +255,7 @@
     },
     {
       "id": "DR-INV-09",
-      "statement": "Every launch has a durable pre-launch operation identity and agent-side executing intent; bound and ambiguous failed launches require exact generation cleanup and GPU-zero proof before rollback or any new generation, and ambiguous commands are never replayed."
+      "statement": "Every launch has a durable pre-launch operation identity and agent-side executing intent; bound and ambiguous failed launches require exact-authority-signed generation cleanup and GPU-zero proof before rollback or any new generation, Kubernetes operation absence requires an explicit authoritative PodList items array, and ambiguous commands are never replayed."
     },
     {
       "id": "DR-INV-10",
@@ -269,6 +276,18 @@
     "success_terminal": "first-complete-semantically-valid-response/v1"
   },
   "proof_gates": {
+    "evidence_authority": {
+      "broad_trust_membership_is_insufficient": true,
+      "node_proof_classes": [
+        "action",
+        "gpu-release",
+        "launch-operation-absence",
+        "requalification",
+        "runtime-absence"
+      ],
+      "required_source_id": "equals-runtime-authority-node-agent-id",
+      "required_source_key_sha256": "equals-runtime-authority-node-agent-key-sha256"
+    },
     "request_acceptance": {
       "constructor_verifier_required": true,
       "exact_request_accepted_first_event": true,
@@ -355,9 +374,16 @@
       ],
       "node_local_and_kubernetes": true,
       "second_valid_launch_refused_before_runner": true
+    },
+    "kubernetes_pod_inventory": {
+      "explicit_items_field": true,
+      "items_type": "list",
+      "missing_null_or_non_list": "reject",
+      "operation_absence_empty_default_forbidden": true,
+      "top_level_type": "object"
     }
   },
-  "schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v3",
+  "schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v4",
   "source_contracts": {
     "request_slo_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
     "request_slo_path": "performance/request_slo",
@@ -386,7 +412,7 @@
       "TST-17"
     ]
   },
-  "state_schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v3",
+  "state_schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v4",
   "states": [
     {"admission": "closed", "name": "IDLE", "runtime": "absent"},
     {"admission": "open", "name": "SERVING_A", "runtime": "exactly-one-bootstrap-or-ledger-qualified"},
@@ -425,5 +451,5 @@
     "reject_reclaim_proof": {"from": ["RECLAIMING_A", "RECLAIMING_B"], "to": ["QUARANTINED"]},
     "seal_switch": {"from": ["SERVING_B", "ROLLBACK_SERVING"], "to": ["SERVING_A"]}
   },
-  "version": 3
+  "version": 4
 }

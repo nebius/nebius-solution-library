@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Callable, Protocol, TypeVar
 
 
-STATE_SCHEMA = "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v3"
+STATE_SCHEMA = "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v4"
 ABSENCE_SCHEMA = "archvteams.nebius.ai/catalog-switch-runtime-absence/v2"
 OPERATION_ABSENCE_SCHEMA = "archvteams.nebius.ai/catalog-switch-operation-absence/v1"
 GPU_RELEASE_SCHEMA = "archvteams.nebius.ai/catalog-switch-gpu-release/v2"
@@ -361,6 +361,51 @@ class EvidenceTrustStore:
         if not hmac.compare_digest(expected, signature_sha256):
             raise ProofRejected("evidence signature differs")
 
+    def verify_authority(
+        self,
+        *,
+        authority: RuntimeAuthority,
+        source_id: str,
+        source_key_sha256: str,
+        payload: Any,
+        signature_sha256: str,
+    ) -> None:
+        """Require the exact authority signer, not merely any trusted key."""
+
+        if (source_id, source_key_sha256) != (
+            authority.node_agent_id,
+            authority.node_agent_key_sha256,
+        ):
+            raise ProofRejected(
+                "proof signer does not match exact node-agent authority"
+            )
+        self.verify(
+            source_id=source_id,
+            source_key_sha256=source_key_sha256,
+            payload=payload,
+            signature_sha256=signature_sha256,
+        )
+
+    def verify_named(
+        self,
+        *,
+        expected_source_id: str,
+        source_id: str,
+        source_key_sha256: str,
+        payload: Any,
+        signature_sha256: str,
+    ) -> None:
+        """Bind non-node proof classes to one exact configured authority name."""
+
+        if source_id != expected_source_id:
+            raise ProofRejected("proof signer does not match exact named authority")
+        self.verify(
+            source_id=source_id,
+            source_key_sha256=source_key_sha256,
+            payload=payload,
+            signature_sha256=signature_sha256,
+        )
+
 
 def _signed_payload(value: Any) -> dict[str, Any]:
     payload = asdict(value)
@@ -426,7 +471,8 @@ class ActionReceipt:
         ):
             _require_digest(value, label)
         _require_id(self.idempotency_key, "action idempotency_key")
-        trust.verify(
+        trust.verify_authority(
+            authority=authority,
             source_id=self.source_id,
             source_key_sha256=self.source_key_sha256,
             payload=_signed_payload(self),
@@ -499,7 +545,8 @@ class RuntimeAbsenceProof:
         if failed or self.observed_at_ns < 1:
             raise ProofRejected(f"runtime absence proof is incomplete: {failed}")
         _require_digest(self.raw_evidence_sha256, "absence raw evidence")
-        trust.verify(
+        trust.verify_authority(
+            authority=runtime.authority,
             source_id=self.source_id,
             source_key_sha256=self.source_key_sha256,
             payload=_signed_payload(self),
@@ -571,7 +618,8 @@ class LaunchOperationAbsenceProof:
         if self.launch_journal_terminal not in {"absent", "cleaned"} or self.observed_at_ns < 1:
             raise ProofRejected("launch journal is not durably absent/cleaned")
         _require_digest(self.raw_evidence_sha256, "operation absence raw evidence")
-        trust.verify(
+        trust.verify_authority(
+            authority=authority,
             source_id=self.source_id,
             source_key_sha256=self.source_key_sha256,
             payload=_signed_payload(self),
@@ -680,7 +728,8 @@ class GpuReleaseProof:
                 raise ProofRejected("NVML observations are not strictly post-scrub ordered")
             previous = observation.observed_at_ns
         _require_digest(self.raw_evidence_sha256, "GPU release raw evidence")
-        trust.verify(
+        trust.verify_authority(
+            authority=authority,
             source_id=self.source_id,
             source_key_sha256=self.source_key_sha256,
             payload=_signed_payload(self),
@@ -940,7 +989,8 @@ class NodeRecycleProof:
         if self.completed_at_ns < 1:
             raise ProofRejected("node recycle completion time is invalid")
         _require_digest(self.raw_evidence_sha256, "recycle raw evidence")
-        trust.verify(
+        trust.verify_named(
+            expected_source_id="resource-broker",
             source_id=self.source_id,
             source_key_sha256=self.source_key_sha256,
             payload=_signed_payload(self),
@@ -992,7 +1042,8 @@ class PlacementRevocationProof:
         ):
             raise ProofRejected("placement revocation evidence is not ordered")
         _require_digest(self.raw_evidence_sha256, "placement revocation raw evidence")
-        trust.verify(
+        trust.verify_named(
+            expected_source_id="resource-broker",
             source_id=self.source_id,
             source_key_sha256=self.source_key_sha256,
             payload=_signed_payload(self),
@@ -1056,7 +1107,8 @@ class RequalificationProof:
         if self.observed_at_ns < previous:
             raise ProofRejected("requalification terminal predates evidence")
         _require_digest(self.raw_evidence_sha256, "requalification raw evidence")
-        trust.verify(
+        trust.verify_authority(
+            authority=authority,
             source_id=self.source_id,
             source_key_sha256=self.source_key_sha256,
             payload=_signed_payload(self),
@@ -2563,6 +2615,20 @@ PROOF_GATE_SPEC = {
     "nvml_samples": 2,
     "memory_rule": ZERO_MEMORY_RULE,
     "semantic_calls": 2,
+    "evidence_authority": {
+        "broad_trust_membership_is_insufficient": True,
+        "node_proof_classes": [
+            "action",
+            "gpu-release",
+            "launch-operation-absence",
+            "requalification",
+            "runtime-absence",
+        ],
+        "required_source_id": "equals-runtime-authority-node-agent-id",
+        "required_source_key_sha256": (
+            "equals-runtime-authority-node-agent-key-sha256"
+        ),
+    },
     "quarantine_recovery_required": [
         "placement-lease-absent",
         "new-placement-refused",

@@ -21,7 +21,7 @@ import state_machine
 from state_machine import PROOF_GATE_SPEC, STATE_SEMANTICS, TRANSITION_SPECS, SwitchState
 
 
-CONTRACT_SCHEMA = "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v3"
+CONTRACT_SCHEMA = "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v4"
 EXPECTED_SOURCE = {
     "request_slo_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
     "request_slo_path": "performance/request_slo",
@@ -37,13 +37,13 @@ EXPECTED_SOURCE = {
 EXPECTED_INVARIANTS = {
     "DR-INV-01": "Admission is open only for one exact runtime after an exact bridge receipt proves two distinct, ordered, raw-evidence-backed semantic calls executed by the canonical validator derived from the pinned source artifact and an independently reread complete off-node durable chain segment.",
     "DR-INV-02": "Every state mutation, physical command, request lease, and response is controller-lease- and runtime-generation-fenced; late responses are durably terminal before rejection.",
-    "DR-INV-03": "GPU_FREE requires stop completion, exact process/cgroup/container/Pod and host-residue absence, then an approved scrub bound to the exact GPU UUID and total bytes, then exactly two NVML samples with zero compute processes, zero graphics processes, and zero used bytes.",
+    "DR-INV-03": "GPU_FREE requires every action, runtime-absence, and GPU proof signer to equal the runtime authority's exact node-agent ID and key, stop completion, exact process/cgroup/container/Pod and host-residue absence, then an approved scrub bound to the exact GPU UUID and total bytes, then exactly two NVML samples with zero compute processes, zero graphics processes, and zero used bytes.",
     "DR-INV-04": "The target switch begins only after a mandatory canonical verifier reconstructs an exact request.accepted receipt from the pinned trace, shared ledger, predecessor-hash audit, and off-node durable segment; every request-specific event remains causally after that immutable external-client T0.",
     "DR-INV-05": "Drain, timeout, reclaim, semantic validation, every admitted failure, accounting, and cleanup are durably retained in the shared denominator and hash-chained audit segment; rollback A has its own later external T0, trace, terminal, accounting, and cleanup linked to B failure.",
     "DR-INV-06": "Unknown cleanup quarantines the node; reuse requires placement-lease revocation, a newly created resource with a fresh boot identity, and signed requalification covering sentinel VRAM, host residue, occupancy, audit continuity, and command replay refusal.",
     "DR-INV-07": "Reclaim cannot begin while an active lease belongs to the retiring runtime; the bounded drain durably completes or times out every admitted lease before stop.",
     "DR-INV-08": "Canonical snapshots use compare-and-swap revisions whose predecessor-hash records embed every complete post-transition state detail; state restart and agent actions reject stale controller generations.",
-    "DR-INV-09": "Every launch has a durable pre-launch operation identity and agent-side executing intent; bound and ambiguous failed launches require exact generation cleanup and GPU-zero proof before rollback or any new generation, and ambiguous commands are never replayed.",
+    "DR-INV-09": "Every launch has a durable pre-launch operation identity and agent-side executing intent; bound and ambiguous failed launches require exact-authority-signed generation cleanup and GPU-zero proof before rollback or any new generation, Kubernetes operation absence requires an explicit authoritative PodList items array, and ambiguous commands are never replayed.",
     "DR-INV-10": "Exact duplicate reservations and commands are idempotent, conflicting retries are rejected, and both node-local and exact-cluster Kubernetes receiving agents fsync GPU/operation/generation occupancy before dispatch and refuse a second valid launch before its physical runner.",
 }
 EXPECTED_BINDING_REQUIREMENTS = {
@@ -60,9 +60,9 @@ EXPECTED_BINDING_REQUIREMENTS = {
         "threat_tests": {"TST-17"},
     },
     "DR-INV-03": {
-        "code": {"DrainReclaimStateMachine.record_reclaim", "GpuReleaseProof.validate_for", "NvidiaSmiNvmlProbe.observe"},
+        "code": {"DrainReclaimStateMachine.record_reclaim", "EvidenceTrustStore.verify_authority", "GpuReleaseProof.validate_for", "NvidiaSmiNvmlProbe.observe", "RuntimeAbsenceProof.validate_for"},
         "controls": {"CTL-04", "CTL-05"},
-        "tests": {"test_exact_total_absence_before_scrub_and_zero_nvml_are_required", "test_graphics_process_rejects_gpu_release", "test_empty_and_header_only_pmon_are_not_zero_process_proofs"},
+        "tests": {"test_exact_total_absence_before_scrub_and_zero_nvml_are_required", "test_graphics_process_rejects_gpu_release", "test_empty_and_header_only_pmon_are_not_zero_process_proofs", "test_trusted_foreign_node_cannot_attest_target_node_reclaim"},
         "threat_tests": {"TST-01", "TST-02"},
     },
     "DR-INV-04": {
@@ -96,9 +96,9 @@ EXPECTED_BINDING_REQUIREMENTS = {
         "threat_tests": {"TST-12", "TST-17"},
     },
     "DR-INV-09": {
-        "code": {"DrainReclaimStateMachine.fail_start", "DrainReclaimStateMachine.record_ambiguous_launch_cleanup", "DrainReclaimStateMachine.begin_rollback"},
+        "code": {"DrainReclaimStateMachine.fail_start", "DrainReclaimStateMachine.record_ambiguous_launch_cleanup", "DrainReclaimStateMachine.begin_rollback", "KubernetesEvidenceAdapter._pod_inventory_items", "LaunchOperationAbsenceProof.validate_for"},
         "controls": {"CTL-04", "CTL-05", "CTL-10"},
-        "tests": {"test_ambiguous_launch_must_be_proved_absent_before_new_generation", "test_action_crash_window_is_durable_and_never_replays", "test_cancelled_bound_b_requires_exact_partial_cleanup", "test_failed_b_and_rollback_use_separate_linked_traces", "test_many_seed_drain_cancel_failure_and_cleanup_preserve_invariants"},
+        "tests": {"test_ambiguous_launch_must_be_proved_absent_before_new_generation", "test_action_crash_window_is_durable_and_never_replays", "test_cancelled_bound_b_requires_exact_partial_cleanup", "test_failed_b_and_rollback_use_separate_linked_traces", "test_many_seed_drain_cancel_failure_and_cleanup_preserve_invariants", "test_operation_absence_requires_explicit_pod_items_list", "test_trusted_foreign_node_cannot_attest_target_node_reclaim"},
         "threat_tests": {"TST-01", "TST-02", "TST-12"},
     },
     "DR-INV-10": {
@@ -168,8 +168,8 @@ def validate(
 ) -> dict[str, Any]:
     package_root = package_root or Path(__file__).resolve().parent
     repo_root = repo_root or Path(__file__).resolve().parents[4]
-    if contract.get("schema") != CONTRACT_SCHEMA or contract.get("version") != 3:
-        raise ContractError("contract schema/version differs from v3")
+    if contract.get("schema") != CONTRACT_SCHEMA or contract.get("version") != 4:
+        raise ContractError("contract schema/version differs from v4")
     if contract.get("status") != "independent-review-required":
         raise ContractError("replacement cannot claim approval before independent review")
     if contract.get("state_schema") != state_machine.STATE_SCHEMA:
@@ -189,7 +189,7 @@ def validate(
         raise ContractError("invariants must be a list")
     invariant_map = {item.get("id"): item.get("statement") for item in invariants}
     if invariant_map != EXPECTED_INVARIANTS or len(invariants) != len(EXPECTED_INVARIANTS):
-        raise ContractError("invariant identifiers/statements differ from executable v3 semantics")
+        raise ContractError("invariant identifiers/statements differ from executable v4 semantics")
     if contract.get("transitions") != TRANSITION_SPECS:
         raise ContractError("transition relation differs from implementation")
     backends = contract.get("backends")
@@ -206,6 +206,8 @@ def validate(
     semantic = proofs.get("semantic", {})
     acceptance = proofs.get("request_acceptance", {})
     occupancy = proofs.get("receiver_occupancy", {})
+    authority = proofs.get("evidence_authority", {})
+    pod_inventory = proofs.get("kubernetes_pod_inventory", {})
     if runtime_absence != {
         "schema": state_machine.ABSENCE_SCHEMA,
         "required": PROOF_GATE_SPEC["runtime_absence_required"],
@@ -263,6 +265,10 @@ def validate(
         "second_valid_launch_refused_before_runner": True,
     }:
         raise ContractError("receiver occupancy exact gate differs from implementation")
+    if authority != PROOF_GATE_SPEC["evidence_authority"]:
+        raise ContractError("evidence authority exact gate differs from implementation")
+    if pod_inventory != adapters.KUBERNETES_POD_INVENTORY_SPEC:
+        raise ContractError("Kubernetes Pod inventory exact gate differs from implementation")
     expected_ledger = {
         "audit_event_schema": ledger.AUDIT_EVENT_SCHEMA,
         "acceptance_gate_receipt_schema": state_machine.ACCEPTANCE_GATE_SCHEMA,

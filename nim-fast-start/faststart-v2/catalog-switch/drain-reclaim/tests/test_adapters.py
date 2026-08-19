@@ -184,6 +184,156 @@ class NodeEvidenceTests(unittest.TestCase):
                     switch_id="switch-1", runtime=target
                 )
 
+    def test_operation_absence_requires_explicit_pod_items_list(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            kubeconfig = root / "fresh.kubeconfig"
+            kubeconfig.write_bytes(b"fresh-cluster-kubeconfig")
+            kubectl = root / "kubectl"
+            kubectl.write_bytes(b"pinned-test-kubectl")
+            kubectl.chmod(0o700)
+            authority = k8s_authority(  # noqa: F405
+                kubeconfig_sha256=hashlib.sha256(kubeconfig.read_bytes()).hexdigest(),
+                kubectl_executable_sha256=hashlib.sha256(
+                    kubectl.read_bytes()
+                ).hexdigest(),
+            )
+            base = (
+                str(kubectl),
+                "--kubeconfig",
+                str(kubeconfig.resolve()),
+                "--context",
+                str(authority.kube_context),
+            )
+            config_cmd = (
+                *base,
+                "config",
+                "view",
+                "--minify",
+                "--raw",
+                "--output",
+                "json",
+            )
+            uid_cmd = (
+                *base,
+                "get",
+                "namespace",
+                "kube-system",
+                "--output",
+                "json",
+            )
+            node_cmd = (
+                *base,
+                "get",
+                "node",
+                authority.node_id,
+                "--output",
+                "json",
+            )
+            pods_cmd = (
+                *base,
+                "get",
+                "pods",
+                "--namespace",
+                str(authority.namespace),
+                "--output",
+                "json",
+            )
+            config = {
+                "clusters": [
+                    {
+                        "cluster": {
+                            "server": authority.api_server_url,
+                            "certificate-authority-data": base64.b64encode(
+                                b"test-ca"
+                            ).decode("ascii"),
+                        }
+                    }
+                ]
+            }
+            runner = FakeRunner(
+                {
+                    config_cmd: result(config_cmd, stdout=json.dumps(config)),
+                    uid_cmd: result(
+                        uid_cmd,
+                        stdout=json.dumps(
+                            {"metadata": {"uid": authority.cluster_uid}}
+                        ),
+                    ),
+                    node_cmd: result(
+                        node_cmd,
+                        stdout=json.dumps(
+                            {
+                                "metadata": {"uid": authority.node_uid},
+                                "status": {
+                                    "nodeInfo": {
+                                        "bootID": authority.node_boot_id
+                                    }
+                                },
+                            }
+                        ),
+                    ),
+                    pods_cmd: result(pods_cmd, stdout=json.dumps({"items": []})),
+                }
+            )
+            agent = LocalSignedNodeAgent(
+                authority=authority,
+                key=NODE_KEY,  # noqa: F405
+                proc_root=root / "proc",
+                cgroup_root=root / "cgroup",
+                runner=runner,
+                cleanup_assertions=clean_host_assertions,  # noqa: F405
+                operation_assertions=clean_operation_assertions,  # noqa: F405
+            )
+            adapter = KubernetesEvidenceAdapter(
+                authority=authority,
+                kubeconfig=kubeconfig,
+                kubectl_executable=kubectl,
+                runner=runner,
+                node_agent=agent,
+                node_agent_verification_key=NODE_KEY,  # noqa: F405
+            )
+            reservation = LaunchReservation(  # noqa: F405
+                switch_id="switch-1",
+                operation_id="launch-b-op",
+                idempotency_key="launch-b-idem",
+                runtime_generation=2,
+                model=MODEL_B,  # noqa: F405
+                gpu_uuid=GPU_UUID,  # noqa: F405
+                authority_sha256=authority.digest,
+                backend="kubernetes",
+                controller_id="controller-1",
+                controller_generation=1,
+                reserved_at_ns=1,
+            )
+            malformed = (
+                {},
+                {"items": None},
+                {"items": {}},
+                {"items": "not-a-list"},
+            )
+            for inventory in malformed:
+                with self.subTest(inventory=inventory):
+                    runner.responses[pods_cmd] = result(
+                        pods_cmd, stdout=json.dumps(inventory)
+                    )
+                    with self.assertRaisesRegex(
+                        ProofRejected, "Pod inventory is malformed"
+                    ):
+                        adapter.collect_operation_absence(
+                            switch_id="switch-1", reservation=reservation
+                        )
+            runner.responses[pods_cmd] = result(
+                pods_cmd, stdout=json.dumps({"items": []})
+            )
+            proof = adapter.collect_operation_absence(
+                switch_id="switch-1", reservation=reservation
+            )
+            self.assertTrue(proof.pod_absent)
+            proof.validate_for(
+                "switch-1", reservation, authority, trust_store(authority=authority)  # noqa: F405
+            )
+
 
 class NvmlTests(unittest.TestCase):
     def test_nvml_observes_compute_and_graphics_contexts(self) -> None:

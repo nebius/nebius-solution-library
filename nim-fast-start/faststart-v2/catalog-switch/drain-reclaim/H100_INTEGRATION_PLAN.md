@@ -5,7 +5,7 @@ does not authorize an existing resource, does not claim that either run has
 occurred, and must be refreshed with exact immutable lease files immediately
 before live work.
 
-Both lanes are gated on fresh independent acceptance of the v3 state-machine
+Both lanes are gated on fresh independent acceptance of the v4 state-machine
 candidate and on task-owned pilot images/artifacts with pinned semantic
 validators. No live resource is created in this commit.
 
@@ -71,6 +71,10 @@ node agent over the authenticated task-local channel.
   generation, reservation digest, and command digest before launch dispatch.
   Submit a second distinct, correctly signed launch while the first remains
   occupied; the second physical runner invocation count must remain zero.
+- Evidence-authority gate: re-sign otherwise exact action, runtime-absence,
+  launch-operation-absence, and GPU-release payloads with a second trusted
+  node-agent key. Each must fail before state mutation despite both keys being
+  present in the task trust store.
 
 The controller must never run `/proc`, cgroup, container, or NVML checks on its
 own host. Those probes execute on the attested target node and return signed
@@ -115,6 +119,10 @@ after T0.
   signed node agent. The receiving agent enforces the operation/executable,
   artifact, and privilege allowlist before dispatch. Both paths return source-
   bound receipts.
+- Pod-inventory gate: runtime and launch-operation absence queries must return
+  an exact PodList object with an explicit `items` array. Exercise missing,
+  null, object, and string `items`; none may emit a signed absence proof or
+  clear an ambiguous launch.
 - Repeat the receiving-agent occupancy adversary through the Kubernetes
   adapter: both envelopes and both exact-cluster preflights are valid, but only
   the first launch command may reach the physical runner.
@@ -138,12 +146,15 @@ accounting, and cleanup; no row is discarded. Run at least:
 6. B failure after a GPU process exists, exact B cleanup, separate B failure
    terminal, then a causally linked rollback-A trace;
 7. cancellation during drain and during B startup;
-8. wrong-node authority (both lanes) and wrong kubeconfig/context/cluster UID/
-   server CA/namespace/node UID (Kubernetes), all rejected;
-9. observed compute and graphics processes blocking release; successful empty
+8. wrong-node authority and a different trusted node-agent re-signing exact
+   proofs (both lanes), plus wrong kubeconfig/context/cluster UID/server CA/
+   namespace/node UID (Kubernetes), all rejected;
+9. missing, null, or non-list Kubernetes Pod inventory `items`, all rejected
+   before runtime or launch-operation absence can be attested;
+10. observed compute and graphics processes blocking release; successful empty
    and header-only `nvidia-smi pmon` output must also fail rather than prove
    zero graphics contexts;
-10. partial cleanup or evidence write loss entering quarantine, then exact
+11. partial cleanup or evidence write loss entering quarantine, then exact
     lease revocation, recycle/new resource, fresh boot, and requalification.
 
 Every accepted B and rollback-A recovery uses two distinct real model requests
@@ -162,11 +173,11 @@ that lane's audit segment.
 | Test | Injection and acceptance rule |
 | --- | --- |
 | TST-01 GPU residue | A allocates sentinel VRAM. After exact runtime absence, run a full-total-byte scrub and two zero-process/zero-graphics/zero-byte NVML samples. B allocates all available VRAM and scans for the sentinel. Repeat after partial B launch. Any hit, short scrub, foreign context, or nonzero byte fails and quarantines. |
-| TST-02 host residue | A writes sentinels to every writable path, opens a socket, spawns a child, and creates labeled runtime objects. B plus the node agent prove no PID/cgroup/container/Pod, mount, namespace, socket, scratch, keyring, log, core, or readable sentinel remains; verify swap/core/dmesg/log-policy controls. Repeat after failed B. |
+| TST-02 host residue | A writes sentinels to every writable path, opens a socket, spawns a child, and creates labeled runtime objects. B plus the node agent prove no PID/cgroup/container/Pod, mount, namespace, socket, scratch, keyring, log, core, or readable sentinel remains; verify swap/core/dmesg/log-policy controls. Repeat after failed B. In Kubernetes, replace the PodList with missing, null, object, and string `items`; every form must fail closed. |
 | TST-11 occupancy and privilege | Assert the pinned capability/seccomp/namespace/mount/egress profile. While A serves, submit a second launch through placement and a different validly signed direct command. The node agent must refuse both and issue a single-occupancy receipt. |
 | TST-12 audit continuity | Drop a middle event, then a terminal event, and separately fail the off-node immutable write. The verifier must reject each segment, admission must remain closed, and the gap/failure must remain in the denominator. A later complete switch uses a new linked segment rather than rewriting history. |
 | TST-16 quarantine/recycle | Independently inject NVML failure, scrub failure, unkillable labeled process, unremovable mount, and receipt-write loss. Prove placement lease revocation, no new placement, old-resource deletion, replacement creation within the 30-minute control budget, changed resource and boot IDs, then full requalification before GPU_FREE. |
-| TST-17 command auth/replay | Send unsigned, altered-policy, wrong-generation, wrong-lease, wrong-node, expired, captured replay, and lower-sequence commands. None may call the physical runner. Then create agent/controller divergence and require detection within one controller lease plus a receipted drain to consistency. |
+| TST-17 command auth/replay | Send unsigned, altered-policy, wrong-generation, wrong-lease, wrong-node, expired, captured replay, and lower-sequence commands. Re-sign exact action/runtime/operation/GPU proofs with a second separately trusted node key. None may mutate state or call the physical runner. Then create agent/controller divergence and require detection within one controller lease plus a receipted drain to consistency. |
 
 The Kubernetes run additionally demonstrates that an otherwise valid absence
 result from a second fresh test cluster cannot satisfy the first cluster's

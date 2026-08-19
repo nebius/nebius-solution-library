@@ -45,6 +45,13 @@ COMMAND_SCHEMA = "archvteams.nebius.ai/catalog-switch-command-envelope/v1"
 AGENT_ATTESTATION_SCHEMA = "archvteams.nebius.ai/catalog-switch-agent-attestation/v1"
 DEFAULT_NODE_AGENT_EXECUTABLE = "/usr/local/libexec/catalog-switch-agent"
 DEFAULT_K8S_AGENT_EXECUTABLE = "/usr/local/libexec/catalog-switch-k8s-agent"
+KUBERNETES_POD_INVENTORY_SPEC = {
+    "explicit_items_field": True,
+    "items_type": "list",
+    "missing_null_or_non_list": "reject",
+    "operation_absence_empty_default_forbidden": True,
+    "top_level_type": "object",
+}
 
 
 @dataclass(frozen=True)
@@ -1346,6 +1353,32 @@ class KubernetesEvidenceAdapter:
             runner=self.runner,
         )
 
+    @staticmethod
+    def _pod_inventory_items(stdout: str) -> list[dict[str, Any]]:
+        """Decode an authoritative PodList without manufacturing an empty list."""
+
+        try:
+            inventory = json.loads(stdout)
+        except (TypeError, ValueError) as exc:
+            raise ProofRejected("Kubernetes Pod inventory is malformed") from exc
+        if not isinstance(inventory, dict) or not isinstance(
+            inventory.get("items"), list
+        ):
+            raise ProofRejected("Kubernetes Pod inventory is malformed")
+        items = inventory["items"]
+        for item in items:
+            if not isinstance(item, dict):
+                raise ProofRejected("Kubernetes Pod inventory is malformed")
+            metadata = item.get("metadata")
+            if not isinstance(metadata, dict) or not isinstance(
+                metadata.get("uid"), str
+            ) or not metadata["uid"]:
+                raise ProofRejected("Kubernetes Pod inventory is malformed")
+            labels = metadata.get("labels", {})
+            if not isinstance(labels, dict):
+                raise ProofRejected("Kubernetes Pod inventory is malformed")
+        return items
+
     def collect_runtime_absence(self, *, switch_id: str, runtime: RuntimeIdentity) -> RuntimeAbsenceProof:
         if runtime.authority != self.authority:
             raise ProofRejected("Kubernetes runtime authority differs")
@@ -1356,9 +1389,7 @@ class KubernetesEvidenceAdapter:
         result = self.runner.run(pods_cmd)
         if result.returncode != 0:
             raise ProofRejected("Kubernetes Pod inventory query failed")
-        items = json.loads(result.stdout).get("items")
-        if not isinstance(items, list):
-            raise ProofRejected("Kubernetes Pod inventory is malformed")
+        items = self._pod_inventory_items(result.stdout)
         pod_absent = all(item.get("metadata", {}).get("uid") != runtime.pod_uid for item in items)
         payload = {
             "schema": ABSENCE_SCHEMA,
@@ -1395,7 +1426,7 @@ class KubernetesEvidenceAdapter:
         result = self.runner.run(pods_cmd)
         if result.returncode != 0:
             raise ProofRejected("Kubernetes Pod inventory query failed")
-        items = json.loads(result.stdout).get("items", [])
+        items = self._pod_inventory_items(result.stdout)
         operation_labels = [item for item in items if item.get("metadata", {}).get("labels", {}).get("catalog-switch-operation") == reservation.operation_id]
         payload = {
             "schema": OPERATION_ABSENCE_SCHEMA,
