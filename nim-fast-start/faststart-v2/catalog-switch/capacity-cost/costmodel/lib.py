@@ -288,11 +288,21 @@ def storage_breakeven_refetches_per_gib_month(
 # ---- simulator repricing -------------------------------------------------
 
 def reprice_simulator_report(report: dict, gpu_hourly: dict,
-                             egress_per_gib: Decimal) -> dict:
+                             egress_per_gib: Decimal,
+                             l1_storage: dict | None = None) -> dict:
     """Re-price one catalog-sim report with sourced prices.
 
     ``gpu_hourly`` maps offer class ('on_demand'/'preemptible') to Decimal
     hourly USD. The simulator's placeholder cost_usd is ignored entirely.
+
+    ``l1_storage``, when given, prices the node-local L1 cache capacity the
+    scenario reserves — a capacity curve without its storage cost is
+    incomplete. Keys: ``capacity_gib`` (per node, Decimal), ``node_count``
+    (int), ``horizon_hours`` (Decimal), ``rates`` (mapping of disk price
+    record label to Decimal USD/GiB-hour). Each combo then also emits
+    ``l1_storage_usd``, ``total_with_l1_storage`` and
+    ``per_1000_completed_with_l1_storage`` per rate, exact until one final
+    quantization per field.
     """
     reserved_h = Decimal(str(report["gpu"]["reserved_gpu_hours"]))
     fetched_gib = Decimal(str(report["bytes"]["fetched_gib"]))
@@ -318,16 +328,41 @@ def reprice_simulator_report(report: dict, gpu_hourly: dict,
     # once from the exact chain. Never sum rounded components or divide a
     # rounded total: at 1e-6 that drifts published fields.
     egress_billed_exact = fetched_gib * egress_per_gib
+    storage_exact: dict = {}
+    if l1_storage is not None:
+        gib_hours = (l1_storage["capacity_gib"]
+                     * Decimal(l1_storage["node_count"])
+                     * l1_storage["horizon_hours"])
+        storage_exact = {label: gib_hours * rate
+                         for label, rate in sorted(
+                             l1_storage["rates"].items())}
+        out["l1_storage_basis"] = {
+            "capacity_gib_per_node": str(l1_storage["capacity_gib"]),
+            "node_count": l1_storage["node_count"],
+            "horizon_hours": str(l1_storage["horizon_hours"]),
+        }
     for offer, hourly in sorted(gpu_hourly.items()):
         gpu_exact = reserved_h * hourly
         for variant, egress_exact in (("egress_billed", egress_billed_exact),
                                       ("egress_free", Decimal(0))):
             total_exact = gpu_exact + egress_exact
             per_1k_exact = total_exact / Decimal(n_completed) * Decimal(1000)
-            out["cost_usd"][f"{offer}/{variant}"] = {
+            combo = {
                 "gpu": str(gpu_exact.quantize(CENT6)),
                 "egress": str(egress_exact.quantize(CENT6)),
                 "total": str(total_exact.quantize(CENT6)),
                 "per_1000_completed": str(per_1k_exact.quantize(CENT6)),
             }
+            if storage_exact:
+                combo["l1_storage_usd"] = {
+                    label: str(v.quantize(CENT6))
+                    for label, v in storage_exact.items()}
+                combo["total_with_l1_storage"] = {
+                    label: str((total_exact + v).quantize(CENT6))
+                    for label, v in storage_exact.items()}
+                combo["per_1000_completed_with_l1_storage"] = {
+                    label: str(((total_exact + v) / Decimal(n_completed)
+                                * Decimal(1000)).quantize(CENT6))
+                    for label, v in storage_exact.items()}
+            out["cost_usd"][f"{offer}/{variant}"] = combo
     return out

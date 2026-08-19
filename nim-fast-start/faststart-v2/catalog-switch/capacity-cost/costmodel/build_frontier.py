@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the measured capacity/cost frontier (corrected candidate, v6).
+"""Build the measured capacity/cost frontier (corrected candidate, v7).
 
 Reads the committed snapshots and checksum-pinned artifacts, consumes the
 isolated top-K/cache sweeps and the legacy simulator matrix as
@@ -84,6 +84,7 @@ def _stats(values: list[Decimal]) -> dict:
     return {
         "p50": str(lib.nearest_rank(values, 50)),
         "p95": str(lib.nearest_rank(values, 95)),
+        "p99": str(lib.nearest_rank(values, 99)),
         "min": str(values[0]),
         "max": str(values[-1]),
     }
@@ -130,6 +131,22 @@ class Ctx:
                        if a["name"] == "snapshot_capture_seconds_of2")
         self.capture_seconds = Decimal(capture["value"])
         self.capture_model = capture["applies_to_model"]
+        self.l1_disk_rates = {
+            "network_ssd": inputs.unit_price("nebius-disk-nssd-gib-hour"),
+            "network_ssd_non_replicated": inputs.unit_price(
+                "nebius-disk-nrd-gib-hour"),
+        }
+        # Conservative capacity gate: the largest quota-clipped 'available'
+        # count on any single eu-north1 H100 fabric at capture time (a node
+        # group lives in one fabric, so counts are not summed across them).
+        self.h100_max_available = {}
+        for row in inputs.availability_rows("eu-north1", "gpu-h100-sxm", 1):
+            for offer in ("on_demand", "preemptible"):
+                avail = row["offers"][offer].get("available")
+                if avail is None:
+                    continue
+                self.h100_max_available[offer] = max(
+                    self.h100_max_available.get(offer, 0), avail)
 
 
 # --------------------------------------------------------------------------
@@ -270,6 +287,20 @@ def cost_total_rows(ctx: Ctx, classes: dict) -> list[dict]:
     model = classes["model"]
     prepared_p50 = Decimal(classes["prepared_switch"]["latency_seconds"]["p50"])
     capture_available = model == ctx.capture_model
+    prepared = classes["prepared_switch"]
+    paired_evidence_base = {
+        "evidence": prepared["evidence"],
+        "n": prepared["n"],
+        "failed_attempt_denominator": prepared["failed_attempt_denominator"],
+        "latency_seconds": prepared["latency_seconds"],
+        "slo_goodput": prepared["slo_goodput"],
+        "notes": ("Cost rows pair with the prepared_switch cohort whose "
+                  "per-request duration also sizes busy GPU seconds "
+                  "(conservative: a pinned node answering warm hits is "
+                  "faster, so node counts and utilization are upper "
+                  "bounds). p99 at n=20 is the nearest-rank maximum. "
+                  "Errors: the measured 0/20 failed-attempt denominator."),
+    }
     month_hours = Decimal(730)
     month_seconds = month_hours * Decimal(3600)
     cap_pre_exact = lib.gpu_seconds_cost_exact(ctx.capture_seconds, ctx.pre)
@@ -332,6 +363,11 @@ def cost_total_rows(ctx: Ctx, classes: dict) -> list[dict]:
                                 + ctx.fixed_month + cap_per_restore * d)
                 per_success_pess = monthly_pess / d
                 missing = [] if capture_available else ["capture_amortized"]
+                max_avail = ctx.h100_max_available[offer]
+                feasible = max(nodes, nodes_pess) <= max_avail
+                if not feasible:
+                    missing = missing + ["capacity_availability_at_capture"]
+                row_complete = capture_available and feasible
                 row = {
                     "model": model,
                     "capacity_model": "dedicated_prepared_node",
@@ -340,15 +376,28 @@ def cost_total_rows(ctx: Ctx, classes: dict) -> list[dict]:
                     "offer": offer,
                     "restores_between_captures": r_value,
                     "capture_status": capture_status,
-                    "completeness": ("COMPLETE" if capture_available
+                    "completeness": ("COMPLETE" if row_complete
                                      else "INCOMPLETE_LOWER_BOUND"),
                     "missing_components": missing,
                     "requests_per_month": demand,
                     "nodes_required": nodes,
                     "nodes_required_pessimistic": nodes_pess,
+                    "capacity_feasibility": {
+                        "status": ("FEASIBLE_AT_CAPTURE" if feasible
+                                   else "EXCEEDS_CAPTURED_AVAILABILITY"),
+                        "offer": offer,
+                        "max_single_fabric_available_at_capture": max_avail,
+                        "gate": "max(nodes_required, "
+                                "nodes_required_pessimistic) <= available",
+                        "aggregation": ("conservative: largest single-fabric "
+                                        "quota-clipped 'available' from the "
+                                        "capacity snapshot; fabrics are not "
+                                        "summed"),
+                    },
                     "reserved_gpu_hours_month": str(
                         Decimal(nodes) * month_hours),
                     "utilization_busy_fraction": q6(utilization),
+                    "paired_evidence": paired_evidence_base,
                     "components_usd": {
                         "dedicated_instances_monthly": q2(
                             Decimal(nodes) * inst_month),
@@ -363,7 +412,7 @@ def cost_total_rows(ctx: Ctx, classes: dict) -> list[dict]:
                         "and availability_at_capture"
                         if offer == "preemptible" else ""),
                 }
-                if capture_available:
+                if row_complete:
                     row.update({
                         "per_success_usd_nominal": q6(per_success_exact),
                         "per_success_usd_pessimistic": q6(per_success_pess),
@@ -384,9 +433,12 @@ def cost_total_rows(ctx: Ctx, classes: dict) -> list[dict]:
                         },
                         "decision_policy": (
                             "measured-anchored LOWER-BOUND SUBTOTALS only: "
-                            "the true total is >= these values because "
-                            "capture_amortized is unavailable; ranking and "
-                            "break-even decisions are FORBIDDEN on them."),
+                            "the true total is >= these values because %s "
+                            "unavailable/unsupported (a plan exceeding "
+                            "captured availability must source capacity "
+                            "elsewhere at >= this cost); ranking and "
+                            "break-even decisions are FORBIDDEN on them."
+                            % ", ".join(missing)),
                     })
                 rows.append(row)
 
@@ -433,6 +485,13 @@ def cost_total_rows(ctx: Ctx, classes: dict) -> list[dict]:
                         "completeness": "INCOMPLETE_LOWER_BOUND",
                         "missing_components": missing,
                         "requests_per_month": demand,
+                        "paired_evidence": (
+                            paired_evidence_base if cls != "cold_switch"
+                            else {**paired_evidence_base,
+                                  "cold_trigger_latency_seconds_p95":
+                                      classes["cold_switch"]
+                                      ["triggering_request_latency_"
+                                       "seconds_p95"]}),
                         "components_usd": {
                             "gpu_switch_p50": q6(gpu_exact),
                             "capture_amortized": (
@@ -503,7 +562,9 @@ def preemption_sweep(ctx: Ctx, classes_list: list[dict]) -> dict:
                     p95, ctx.pre, ctx.od, p),
                 "on_demand_only": lib.gpu_seconds_cost_exact(p95, ctx.od),
             }
-            cheapest = min(sorted(exact), key=lambda k: exact[k])
+            floor_value = min(exact.values())
+            winners = sorted(k for k, v in exact.items()
+                             if v == floor_value)
             points.append({
                 "model": classes["model"],
                 "cost_class": "prepared_switch",
@@ -513,7 +574,7 @@ def preemption_sweep(ctx: Ctx, classes_list: list[dict]) -> dict:
                 "fallback_pre_then_od_usd_per_success": q6(
                     exact["fallback_pre_then_od"]),
                 "on_demand_usd_per_success": q6(exact["on_demand_only"]),
-                "cheapest_strategy": cheapest,
+                "cheapest_strategies": winners,
                 "expected_extra_latency_seconds": q6(p * p95),
             })
     return {
@@ -594,11 +655,22 @@ def regional_loss_options(ctx: Ctx) -> dict:
 # Simulation (placeholder-derived) repricing and curves
 # --------------------------------------------------------------------------
 
-def _sweep_curves(ctx: Ctx, reports: list[dict], axis: str) -> dict:
+def _sweep_curves(ctx: Ctx, reports: list[dict], axis: str,
+                  scenario: dict, capacity_of) -> dict:
+    """Reprice sweep points including the L1 cache tier's storage cost —
+    a capacity curve that prices only GPU + egress omits the very resource
+    the axis varies. ``capacity_of(report)`` returns the per-node L1 GiB."""
+    horizon_hours = Decimal(str(scenario["horizon_seconds"])) / Decimal(3600)
     curves: dict = {}
     for rep in reports:
         repriced = lib.reprice_simulator_report(
-            rep, {"on_demand": ctx.od, "preemptible": ctx.pre}, ctx.egress)
+            rep, {"on_demand": ctx.od, "preemptible": ctx.pre}, ctx.egress,
+            l1_storage={
+                "capacity_gib": capacity_of(rep),
+                "node_count": scenario["n_nodes"],
+                "horizon_hours": horizon_hours,
+                "rates": ctx.l1_disk_rates,
+            })
         repriced["sweep_value"] = rep["sweep_value"]
         repriced["input_provenance"] = rep["input_provenance"]
         curves.setdefault(rep["trace_family"], []).append(repriced)
@@ -719,9 +791,21 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
         (ROOT / inputs.simulation_entry("catalog-sim-reports")["file"])
         .read_text())
     gpu_hourly = {"on_demand": ctx.od, "preemptible": ctx.pre}
+    legacy_horizon_hours = (Decimal(str(sim_doc["scenario"]
+                                        ["horizon_seconds"]))
+                            / Decimal(3600))
     legacy = []
     for r in sim_doc["reports"]:
-        rep = lib.reprice_simulator_report(r, gpu_hourly, ctx.egress)
+        rep = lib.reprice_simulator_report(
+            r, gpu_hourly, ctx.egress,
+            l1_storage={
+                "capacity_gib": Decimal(str(
+                    sim_doc["placeholders"][r["sensitivity"]]
+                    ["l1_capacity_gib"]["selected"])),
+                "node_count": sim_doc["scenario"]["n_nodes"],
+                "horizon_hours": legacy_horizon_hours,
+                "rates": ctx.l1_disk_rates,
+            })
         rep["input_provenance"] = (
             "placeholder-derived simulation (provenance:placeholder MTBF/"
             "bandwidth/cache/drain/reprovision inputs); low/base/high move "
@@ -733,9 +817,14 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
     sweeps_doc = json.loads(
         (ROOT / inputs.simulation_entry("capacity-cost-sweeps")["file"])
         .read_text())
-    k_curves = _sweep_curves(ctx, sweeps_doc["k_sweep"], "warm_top_k")
+    base_l1_gib = Decimal(str(
+        sweeps_doc["base_placeholders"]["l1_capacity_gib"]["selected"]))
+    k_curves = _sweep_curves(
+        ctx, sweeps_doc["k_sweep"], "warm_top_k", sweeps_doc["scenario"],
+        lambda rep: base_l1_gib)
     cache_curves = _sweep_curves(
-        ctx, sweeps_doc["cache_sweep"], "l1_capacity_gib")
+        ctx, sweeps_doc["cache_sweep"], "l1_capacity_gib",
+        sweeps_doc["scenario"], lambda rep: Decimal(rep["sweep_value"]))
 
     # Break-even blocks (measured-anchored).
     warm_rows = []
@@ -789,11 +878,11 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
     } for k in WARM_POOL_K]
 
     frontier = {
-        "schema_version": "capacity-cost-frontier/v6",
+        "schema_version": "capacity-cost-frontier/v7",
         "as_of_date": inputs.price["as_of_date"],
         "generated_by": "catalog-switch/capacity-cost/costmodel/build_frontier.py",
         "statement": (
-            "Corrected candidate v6. Prepared versus request-triggered cost "
+            "Corrected candidate v7. Prepared versus request-triggered cost "
             "classes with explicit amortization; model-scoped inputs stay "
             "model-scoped (the OpenFold2 capture assumption is never applied "
             "to Boltz2); unmeasured relocation is separated from the "
@@ -802,8 +891,16 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
             "subtotals are published in disjoint collections spanning the "
             "capture-reuse grid with "
             "nominal and pessimistic monthly values; the preemption sweep "
-            "exposes its full grid, where the pre-then-on-demand fallback "
-            "beats on-demand only below the break-even loss probability; "
+            "exposes its full grid with exact-Decimal strategy selection "
+            "and explicit exact ties (p=0 ties preemptible-only with the "
+            "fallback rather than crowning one winner); "
+            "capacity curves price the L1 cache tier's storage from the "
+            "captured node-disk quotes alongside GPU and egress; COMPLETE "
+            "dedicated rows are additionally gated on captured "
+            "quota-clipped availability (a plan needing more nodes than "
+            "any single fabric offered at capture is demoted to a "
+            "lower-bound subtotal) and every cost row pairs with the "
+            "latency/p99/goodput/error evidence that sized it; "
             "rows missing a required component carry null complete totals "
             "and null decisions, publishing only explicitly-named "
             "lower-bound subtotals on which ranking and break-even "
@@ -855,7 +952,7 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
 def render_markdown(f: dict) -> str:
     internal = f["backends"]["internal-k8s-snapshot"]
     lines = [
-        "# Capacity/cost frontier v6 (as of %s)" % f["as_of_date"],
+        "# Capacity/cost frontier v7 (as of %s)" % f["as_of_date"],
         "",
         f["statement"],
         "",
@@ -933,8 +1030,8 @@ def render_markdown(f: dict) -> str:
         "### A: dedicated prepared node(s) (sample: preemptible, "
         "OpenFold2 at R=100)",
         "",
-        "| Model | Completeness | D req/mo | Nodes | Utilization | Per-success | Monthly nom/pess |",
-        "|---|---|---:|---:|---:|---:|---:|",
+        "| Model | Completeness | D req/mo | Nodes | Feasibility (max avail) | Utilization | Per-success | Monthly nom/pess |",
+        "|---|---|---:|---:|---|---:|---:|---:|",
     ]
     for row in (internal["complete_cost_totals"]
                 + internal["incomplete_lower_bound_subtotals"]):
@@ -952,10 +1049,15 @@ def render_markdown(f: dict) -> str:
             per = ">= %s" % lb["per_success_nominal"]
             monthly = ">= %s / >= %s" % (lb["monthly_nominal"],
                                          lb["monthly_pessimistic"])
-        lines.append("| %s | %s | %s | %d | %s | %s | %s |" % (
+        feas = row["capacity_feasibility"]
+        feas_cell = "%s (%d)" % (
+            "FEASIBLE" if feas["status"] == "FEASIBLE_AT_CAPTURE"
+            else "EXCEEDS_AVAIL",
+            feas["max_single_fabric_available_at_capture"])
+        lines.append("| %s | %s | %s | %d | %s | %s | %s | %s |" % (
             row["model"], row["completeness"], row["requests_per_month"],
-            row["nodes_required"], row["utilization_busy_fraction"],
-            per, monthly))
+            row["nodes_required"], feas_cell,
+            row["utilization_busy_fraction"], per, monthly))
     lines += [
         "",
         "### B: marginal zero-idle sharing bound (sample: 100k req/mo, "
@@ -1010,12 +1112,14 @@ def render_markdown(f: dict) -> str:
         "|---|---:|---:|---:|---:|---|",
     ]
     for pt in pe["points"]:
+        winners = pt["cheapest_strategies"]
+        cell = (winners[0] if len(winners) == 1
+                else "exact tie: " + " = ".join(winners))
         lines.append("| %s | %s | %s | %s | %s | %s |" % (
             pt["model"], pt["loss_probability"],
             pt["preemptible_only_usd_per_success"],
             pt["fallback_pre_then_od_usd_per_success"],
-            pt["on_demand_usd_per_success"],
-            pt["cheapest_strategy"]))
+            pt["on_demand_usd_per_success"], cell))
     rl = f["sweeps"]["regional_loss"]
     lines += [
         "",
@@ -1035,21 +1139,26 @@ def render_markdown(f: dict) -> str:
         "## Isolated top-K and cache curves (placeholder-derived simulation)",
         "",
         "Each sweep varies exactly one axis at base placeholders on the "
-        "committed traces (checksums asserted). Zipf family shown; all five "
-        "families are in frontier.json.",
+        "committed traces (checksums asserted). The +L1 storage columns "
+        "price the node-local cache capacity itself from the captured "
+        "disk quotes (non-replicated and network SSD per-GiB-hour). Zipf "
+        "family shown; all five families are in frontier.json.",
         "",
-        "| Axis | Value | p95 s | ≤60s goodput | USD/1k (pre, egress-billed) |",
-        "|---|---:|---:|---:|---:|",
+        "| Axis | Value | p95 s | ≤60s goodput | USD/1k (pre, billed) | USD/1k +L1 storage (NRD / NSSD) |",
+        "|---|---:|---:|---:|---:|---|",
     ]
     for block in (f["simulation_frontier"]["top_k_sweep"],
                   f["simulation_frontier"]["cache_sweep"]):
         for row in block["curves"]["zipf"]:
-            lines.append("| %s | %s | %.1f | %.3f | %s |" % (
+            combo = row["cost_usd"]["preemptible/egress_billed"]
+            with_l1 = combo["per_1000_completed_with_l1_storage"]
+            lines.append("| %s | %s | %.1f | %.3f | %s | %s / %s |" % (
                 block["axis"], row["sweep_value"],
                 row["latency_seconds"]["p95"],
                 row["slo_goodput"]["within_60s"],
-                row["cost_usd"]["preemptible/egress_billed"]
-                ["per_1000_completed"][:8]))
+                combo["per_1000_completed"][:8],
+                with_l1["network_ssd_non_replicated"][:8],
+                with_l1["network_ssd"][:8]))
     lines += [
         "",
         "Knees (smallest value within 2% of best p95 per family): " +
@@ -1142,7 +1251,8 @@ def render_tsv(f: dict) -> str:
                                with_addon["pessimistic"]["egress_free"])))
     for pt in f["sweeps"]["preemption"]["points"]:
         rows.append("preemption_sweep\t%s\tp=%s\tcheapest=%s\t%s\t%s\t%s" % (
-            pt["model"], pt["loss_probability"], pt["cheapest_strategy"],
+            pt["model"], pt["loss_probability"],
+            "+".join(pt["cheapest_strategies"]),
             pt["preemptible_only_usd_per_success"],
             pt["fallback_pre_then_od_usd_per_success"],
             pt["on_demand_usd_per_success"]))
@@ -1150,14 +1260,20 @@ def render_tsv(f: dict) -> str:
                   f["simulation_frontier"]["cache_sweep"]):
         for family, curve in sorted(block["curves"].items()):
             for row in curve:
+                pre_c = row["cost_usd"]["preemptible/egress_billed"]
+                od_c = row["cost_usd"]["on_demand/egress_billed"]
                 rows.append(
                     "%s\t%s\t%s\tp95=%s\t%s\t%s\tplaceholder-derived" % (
                         block["axis"], family, row["sweep_value"],
                         row["latency_seconds"]["p95"],
-                        row["cost_usd"]["preemptible/egress_billed"]
-                        ["per_1000_completed"],
-                        row["cost_usd"]["on_demand/egress_billed"]
-                        ["per_1000_completed"]))
+                        "%s/%s" % (
+                            pre_c["per_1000_completed"],
+                            pre_c["per_1000_completed_with_l1_storage"]
+                            ["network_ssd_non_replicated"]),
+                        "%s/%s" % (
+                            od_c["per_1000_completed"],
+                            od_c["per_1000_completed_with_l1_storage"]
+                            ["network_ssd_non_replicated"])))
     for r in f["breakeven"]["warm_pool_monthly"]:
         rows.append("warm_pool_monthly\t-\tk=%d\t-\t%s\t-\t-" % (
             r["k_warm_gpus"], r["monthly_usd_on_demand"]))

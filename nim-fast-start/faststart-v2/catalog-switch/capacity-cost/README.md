@@ -1,4 +1,4 @@
-# Capacity, availability, and cost model across backends (v3)
+# Capacity, availability, and cost model across backends (v7)
 
 This subtree reconciles the program's **measured** switch latency with real,
 dated resource prices and live capacity availability, producing a cost/
@@ -8,17 +8,24 @@ measured: it carries dated, hash-bound public prices only and no measured
 value or rank. Modal appears only as a dated documentation appendix and is
 excluded from every computation.
 
-v3 is the corrected candidate after the independent reviews of `7f6e1080`
-and `034df5cc` (both preserved unchanged in history). On top of v2's cost
-classes, provenance separation, sweeps, archives, and parameterized capture,
-v3 keeps model-scoped inputs model-scoped (the OpenFold2-only capture
-assumption is never applied to Boltz2), separates unmeasured relocation from
-the measured cold-switch lower bound while emitting both egress-variant
-totals, spans the capture-reuse grid with pessimistic monthly totals,
-exposes the full preemption grid with the corrected fallback crossover,
-reconciles public-price retrieval timestamps to the exact archive fetch
-times, binds project/region metadata through the capture parameters, and
-uses exact arithmetic with a single quantization at emission.
+v7 is the current corrected candidate; every rejected predecessor
+(`7f6e1080`, `034df5cc`, `c6c1ae73`, `2bc0f760`, `6310caf6`, `b52ae52b`) is
+preserved unchanged in history. Accumulated contract: model-scoped inputs
+(the OpenFold2-only capture assumption never touches Boltz2), unmeasured
+relocation separated from the measured cold-switch lower bound with all
+four egress/pessimism variants, capture-reuse and demand grids with
+pessimistic monthly totals, the full preemption grid with exact-Decimal
+strategy selection (explicit exact ties; the p=0.44155844 boundary picks
+preemptible-only), archive-timestamped hash-bound public prices,
+project/region binding through capture parameters, exact arithmetic with
+one quantization at emission (including break-even divisions, simulator
+repricing, and traffic chains from measured bytes), disjoint
+complete/incomplete collections with null totals and forbidden decisions on
+every lower-bound row, idle/reserved GPU capacity allocated via the
+dedicated capacity model, L1 cache storage priced into every capacity
+curve from the captured disk quotes, COMPLETE rows gated on captured
+quota-clipped availability, and every cost row paired with the
+latency/p99/goodput/error evidence that sized it.
 
 ## Provenance chain, strictly separated
 
@@ -124,16 +131,24 @@ Cerebrium-pending invariant, and Modal/Cerebrium exclusion rules.
   per model with the cheapest strategy named at every point.
 - Dedicated prepared node (idle fully allocated, preemptible, R=100):
   OpenFold2 is COMPLETE at $0.0213/success and $2,132.29/month at 100k
-  req/mo (utilization 0.658), and $0.0130 at 1M req/mo across 7 nodes;
-  Boltz2's dedicated rows are lower-bound subtotals (>= $0.0354 at 100k
-  across 2 nodes) because its capture cost is unavailable. The marginal
-  zero-idle bound (e.g. OpenFold2 >= $0.0160 at 100k) is always an
-  incomplete lower bound; no ranking or break-even decision is taken from
-  any lower-bound row, and the warm-vs-switch break-even is published only
-  as a decision-forbidden upper bound.
+  req/mo (utilization 0.658), and $0.0130 at 1M req/mo across 7 nodes —
+  feasible against the 76 preemptible H100s available on the best fabric
+  at capture, while the same 1M-demand plan on-demand (7 nominal/8
+  pessimistic nodes vs 6 available) is demoted to a lower-bound subtotal
+  with the capacity component named missing. Boltz2's dedicated rows are
+  lower-bound subtotals (>= $0.0354 at 100k across 2 nodes) because its
+  capture cost is unavailable. The marginal zero-idle bound (e.g.
+  OpenFold2 >= $0.0160 at 100k) is always an incomplete lower bound; no
+  ranking or break-even decision is taken from any lower-bound row, and
+  the warm-vs-switch break-even is published only as a decision-forbidden
+  upper bound. Every cost row carries the paired n=20 latency
+  (p50/p95/p99), goodput, and 0/20 error evidence that sized it.
 - Isolated sweeps (placeholder-derived simulation): warm-K knees at K=1–4
   depending on trace family; cache knees at 400–800 GiB, with cost per 1k
-  requests falling from ~$126 (150 GiB) to ~$99 (800 GiB) on the Zipf trace.
+  requests falling from ~$126 (150 GiB) to ~$99 (800 GiB) on the Zipf
+  trace. Every sweep and legacy point also prices the L1 cache capacity
+  itself from the captured disk quotes (both non-replicated and network
+  SSD per-GiB-hour variants), so bigger caches pay their storage.
 - Storage: SFS ~$0.08/GiB-month beats object+egress above ~4.35
   refetches/GiB-month (egress-billed variant); if intra-cloud reads are
   unbilled, object always wins on cost and the decision is latency-only.

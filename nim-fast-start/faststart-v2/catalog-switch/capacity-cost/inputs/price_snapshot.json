@@ -398,6 +398,24 @@
     },
     {
       "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "committed",
+      "record_id": "nebius-disk-nrd-gib-hour",
+      "region_scope": "derived",
+      "sku": "disk/network_ssd_non_replicated",
+      "source": {
+        "derivation": "hourly / 930 GiB (exact division)",
+        "derived_from": [
+          "nebius-disk-nrd-930gib"
+        ],
+        "kind": "derived"
+      },
+      "unit": "USD/GiB-hour",
+      "unit_price": "0.000072222"
+    },
+    {
+      "currency": "USD",
       "monthly_price": "14.194412",
       "notes": "",
       "offer_class": "committed",
@@ -414,6 +432,24 @@
       },
       "unit": "USD/disk-hour",
       "unit_price": "0.0194444"
+    },
+    {
+      "currency": "USD",
+      "monthly_price": null,
+      "notes": "",
+      "offer_class": "committed",
+      "record_id": "nebius-disk-nssd-gib-hour",
+      "region_scope": "derived",
+      "sku": "disk/network_ssd",
+      "source": {
+        "derivation": "hourly / 200 GiB (exact division)",
+        "derived_from": [
+          "nebius-disk-nssd-200gib"
+        ],
+        "kind": "derived"
+      },
+      "unit": "USD/GiB-hour",
+      "unit_price": "0.000097222"
     },
     {
       "currency": "USD",

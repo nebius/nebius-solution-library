@@ -230,6 +230,21 @@ def build_price_snapshot() -> dict:
         str(sfs_gib_month), "committed", ["nebius-sfs-4096gib"],
         "monthly_price / 4096 GiB, quantized to 1e-9"))
 
+    # Derived per-GiB-hour node-disk rates for the L1 cache tier (the
+    # simulator's node-local artifact cache capacity must carry a storage
+    # cost, not only GPU + egress). Both divisions terminate exactly.
+    nssd = _quote("quote-disk-network-ssd-200gib")
+    records.append(derived_record(
+        "nebius-disk-nssd-gib-hour", "disk/network_ssd", "USD/GiB-hour",
+        format(Decimal(nssd["hourly"]) / Decimal(200), "f"), "committed",
+        ["nebius-disk-nssd-200gib"], "hourly / 200 GiB (exact division)"))
+    nrd = _quote("quote-disk-network-ssd-nonreplicated-930gib")
+    records.append(derived_record(
+        "nebius-disk-nrd-gib-hour", "disk/network_ssd_non_replicated",
+        "USD/GiB-hour",
+        format(Decimal(nrd["hourly"]) / Decimal(930), "f"), "committed",
+        ["nebius-disk-nrd-930gib"], "hourly / 930 GiB (exact division)"))
+
     # --- Nebius public list prices (cross-check + items not quotable) ---
     records += [
         public_record("nebius-list-h100-od", "gpu-h100-sxm", "USD/GPU-hour",

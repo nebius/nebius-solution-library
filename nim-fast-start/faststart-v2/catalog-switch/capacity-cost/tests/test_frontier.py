@@ -112,9 +112,9 @@ class PublishedResultsTest(unittest.TestCase):
     def test_cost_row_count_and_capacity_models(self):
         rows = self.cost_rows
         self.assertEqual(len(rows), 180)
-        self.assertEqual(len(self.internal["complete_cost_totals"]), 48)
+        self.assertEqual(len(self.internal["complete_cost_totals"]), 44)
         self.assertEqual(
-            len(self.internal["incomplete_lower_bound_subtotals"]), 132)
+            len(self.internal["incomplete_lower_bound_subtotals"]), 136)
         dedicated = [r for r in rows
                      if r["capacity_model"] == "dedicated_prepared_node"]
         marginal = [r for r in rows
@@ -175,18 +175,86 @@ class PublishedResultsTest(unittest.TestCase):
                     Decimal(lb[k])
                 self.assertIn("FORBIDDEN", row["decision_policy"])
 
-    def test_adversary_only_dedicated_of2_rows_are_complete(self):
+    def test_adversary_only_feasible_dedicated_of2_rows_are_complete(self):
         """COMPLETE requires every component: idle allocated (dedicated
-        capacity model) AND capture available (OpenFold2 only)."""
+        capacity model), capture available (OpenFold2 only), AND the node
+        plan feasible within captured availability."""
         for row in self.cost_rows:
+            feasible = (row.get("capacity_feasibility", {}).get("status")
+                        == "FEASIBLE_AT_CAPTURE")
             expect_complete = (
                 row["capacity_model"] == "dedicated_prepared_node"
-                and row["model"] == "OpenFold2")
+                and row["model"] == "OpenFold2" and feasible)
             self.assertEqual(row["completeness"] == "COMPLETE",
-                             expect_complete, row["model"])
+                             expect_complete, str(row["model"]))
             if row["capacity_model"] == "marginal_zero_idle_bound":
                 self.assertIn("idle_reserved_gpu_capacity_share",
                               row["missing_components"])
+
+    def test_adversary_capacity_feasibility_gate(self):
+        """Adversary: a COMPLETE dedicated row may never need more nodes
+        than the largest single-fabric quota-clipped availability at
+        capture. The on-demand 1M-demand OpenFold2 plan (7 nominal / 8
+        pessimistic nodes vs 6 available) must be demoted with the
+        capacity component named missing; the preemptible plan (76
+        available) stays COMPLETE."""
+        snap_avail = {"on_demand": 0, "preemptible": 0}
+        for r in self.inputs.availability_rows(
+                "eu-north1", "gpu-h100-sxm", 1):
+            for offer in snap_avail:
+                a = r["offers"][offer].get("available")
+                if a is not None:
+                    snap_avail[offer] = max(snap_avail[offer], a)
+        self.assertEqual(snap_avail, {"on_demand": 6, "preemptible": 76})
+        for row in self.cost_rows:
+            if row["capacity_model"] != "dedicated_prepared_node":
+                continue
+            feas = row["capacity_feasibility"]
+            self.assertEqual(
+                feas["max_single_fabric_available_at_capture"],
+                snap_avail[row["offer"]])
+            needed = max(row["nodes_required"],
+                         row["nodes_required_pessimistic"])
+            expect_feasible = needed <= snap_avail[row["offer"]]
+            self.assertEqual(
+                feas["status"] == "FEASIBLE_AT_CAPTURE", expect_feasible)
+            if not expect_feasible:
+                self.assertIn("capacity_availability_at_capture",
+                              row["missing_components"])
+                self.assertIsNone(row["per_success_usd_nominal"])
+            if row["completeness"] == "COMPLETE":
+                self.assertLessEqual(needed, snap_avail[row["offer"]])
+        demoted = [r for r in self.cost_rows
+                   if r["model"] == "OpenFold2"
+                   and r["capacity_model"] == "dedicated_prepared_node"
+                   and r["offer"] == "on_demand"
+                   and r["requests_per_month"] == 1000000]
+        self.assertEqual(len(demoted), 4)  # one per capture-reuse R
+        for row in demoted:
+            self.assertEqual(row["completeness"], "INCOMPLETE_LOWER_BOUND")
+            self.assertEqual(row["nodes_required"], 7)
+            self.assertEqual(row["nodes_required_pessimistic"], 8)
+        kept = next(r for r in self.cost_rows
+                    if r["model"] == "OpenFold2"
+                    and r["capacity_model"] == "dedicated_prepared_node"
+                    and r["offer"] == "preemptible"
+                    and r["requests_per_month"] == 1000000
+                    and r["restores_between_captures"] == 100)
+        self.assertEqual(kept["completeness"], "COMPLETE")
+
+    def test_adversary_every_cost_row_pairs_evidence(self):
+        """Adversary: every cost row must carry the latency/p99/goodput/
+        error evidence that sized it — cost is never published alone."""
+        for row in self.cost_rows:
+            pe = row["paired_evidence"]
+            self.assertIn("n20", pe["evidence"])
+            self.assertEqual(pe["n"], 20)
+            self.assertEqual(pe["failed_attempt_denominator"], "0/20")
+            for k in ("p50", "p95", "p99", "min", "max"):
+                Decimal(pe["latency_seconds"][k])
+            self.assertIn("within_30s", pe["slo_goodput"])
+            if row["cost_class"] == "cold_switch":
+                Decimal(pe["cold_trigger_latency_seconds_p95"])
 
     def test_adversary_dedicated_rows_allocate_idle_capacity(self):
         """Adversary: dedicated rows must charge whole node-months with
@@ -387,6 +455,11 @@ class PublishedResultsTest(unittest.TestCase):
             if p["loss_probability"] == "0.44155844":
                 self.assertEqual(p["preemptible_only_usd_per_success"],
                                  p["on_demand_usd_per_success"])
+            if p["loss_probability"] == "0.00":
+                # Exact two-way tie: fallback(0) equals preemptible-only.
+                self.assertEqual(p["cheapest_strategies"],
+                                 ["fallback_pre_then_od",
+                                  "preemptible_only"])
 
     def test_adversary_boundary_strategy_selected_on_exact_values(self):
         """Adversary: at grid p=0.44155844, strictly below the exact
@@ -414,7 +487,8 @@ class PublishedResultsTest(unittest.TestCase):
             exact_od = lib.gpu_seconds_cost_exact(p95, od)
             self.assertLess(exact_pre, exact_fb)
             self.assertLess(exact_fb, exact_od)
-            self.assertEqual(pt["cheapest_strategy"], "preemptible_only")
+            self.assertEqual(pt["cheapest_strategies"],
+                             ["preemptible_only"])
 
     def test_adversary_fallback_dearer_than_on_demand_above_breakeven(self):
         """Adversary: the rejected claim said the fallback stays at or below
@@ -427,7 +501,8 @@ class PublishedResultsTest(unittest.TestCase):
                 self.assertGreater(
                     Decimal(p["fallback_pre_then_od_usd_per_success"]),
                     Decimal(p["on_demand_usd_per_success"]), p["model"])
-                self.assertEqual(p["cheapest_strategy"], "on_demand_only")
+                self.assertEqual(p["cheapest_strategies"],
+                                 ["on_demand_only"])
         self.assertIn("ONLY below", pe["fallback_model"])
         self.assertNotIn("across the entire loss grid", self.md)
 
@@ -452,6 +527,52 @@ class PublishedResultsTest(unittest.TestCase):
         for opt in rl["options"]:
             Decimal(opt["usd_per_hour"])
             self.assertNotIn("latency", json.dumps(opt).lower())
+
+    def test_adversary_capacity_curves_price_l1_storage(self):
+        """Adversary: cache-capacity $/1k curves must consume the captured
+        node-disk price records — recompute one point exactly, require
+        storage to grow along the cache axis, stay constant along K, and
+        appear in the legacy matrix too."""
+        rates = {
+            "network_ssd": self.inputs.unit_price(
+                "nebius-disk-nssd-gib-hour"),
+            "network_ssd_non_replicated": self.inputs.unit_price(
+                "nebius-disk-nrd-gib-hour"),
+        }
+        sweeps = json.loads(
+            (ROOT / "catalog-switch/capacity-cost/results/sweeps.json")
+            .read_text())
+        horizon_h = (Decimal(str(sweeps["scenario"]["horizon_seconds"]))
+                     / 3600)
+        nodes = sweeps["scenario"]["n_nodes"]
+        cache_zipf = self.frontier["simulation_frontier"]["cache_sweep"][
+            "curves"]["zipf"]
+        prev = None
+        for row in cache_zipf:
+            gib = Decimal(row["sweep_value"])
+            combo = row["cost_usd"]["preemptible/egress_billed"]
+            for label, rate in rates.items():
+                expect = (gib * nodes * horizon_h * rate).quantize(lib.CENT6)
+                self.assertEqual(
+                    Decimal(combo["l1_storage_usd"][label]), expect)
+                self.assertGreater(
+                    Decimal(combo["total_with_l1_storage"][label]),
+                    Decimal(combo["total"]))
+            storage = Decimal(
+                combo["l1_storage_usd"]["network_ssd_non_replicated"])
+            if prev is not None:
+                self.assertGreater(storage, prev)
+            prev = storage
+        k_zipf = self.frontier["simulation_frontier"]["top_k_sweep"][
+            "curves"]["zipf"]
+        k_storage = {r["cost_usd"]["preemptible/egress_billed"]
+                     ["l1_storage_usd"]["network_ssd_non_replicated"]
+                     for r in k_zipf}
+        self.assertEqual(len(k_storage), 1)  # constant 400 GiB base
+        for rep in self.frontier["simulation_frontier"]["legacy_matrix"]:
+            self.assertIn(
+                "l1_storage_usd",
+                rep["cost_usd"]["preemptible/egress_billed"])
 
     def test_isolated_sweep_curves_complete(self):
         for block, grid in (
