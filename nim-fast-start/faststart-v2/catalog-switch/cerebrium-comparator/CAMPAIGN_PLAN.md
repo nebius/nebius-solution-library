@@ -20,7 +20,7 @@ fresh broker-owned Kubernetes or direct/node-local Nebius VM candidates.
   and are off-limits.
 - Internal resources are PLANNED only. No VM, disk, network, bucket, service
   account, endpoint, namespace, or GPU has been created.
-- Internal Qwen replacement authorization v5 is frozen at `PRE-CREATION
+- Internal Qwen replacement authorization v6 is frozen at `PRE-CREATION
   REVIEW`; no provider preflight or create is reachable without a separate
   exact-commit independent clearance.
 - Matched arms use conventional startup and checkpointing off. Provider-best
@@ -41,9 +41,9 @@ public A10, another region, or a one-off `run`.
 Internal scout lease: fresh project `project-e00z6b02t8ddk96c49`, region
 `eu-north1`, broker profile `h100-single`, preemptible, expected two hours,
 TTL four hours, 64 GiB artifact quota. Versioned lease
-`catswitch-qwen3-h100-scout-v5-20260819` has prefix
-`mlsp-csw-catalog-switch-cer-711d39a8`, expected cost USD `4.360934`, TTL
-ceiling USD `8.721867`, expiry `2026-08-19T21:10:07Z`, and zero resources. A
+`catswitch-qwen3-h100-scout-v6-20260819` has prefix
+`mlsp-csw-catalog-switch-cer-a110da8f`, expected cost USD `4.360934`, TTL
+ceiling USD `8.721867`, expiry `2026-08-19T21:45:12Z`, and zero resources. A
 normal-capacity re-plan is allowed only after the scout demonstrates that
 preemption invalidates the measurement.
 
@@ -56,6 +56,11 @@ Both requests need distinct attempt IDs, independent recorder oracle verdicts,
 matching server-side semantic verdicts, the same container ID, and final
 container-absence proof. One smoke therefore means one cold start plus two
 valid inference results, not one result copied into backend and recorder files.
+
+The only executable workflow is comparator subcommand
+`run-internal-qwen-v6-campaign`. It derives admission from the exact ACTIVE v6
+lease and signed gate and runs all eight requests. There is no caller boolean
+that enables the disabled internal arm.
 
 Sequence per backend: one authenticated two-request semantic smoke; n>=3
 independent two-request cold-runtime scouts; configuration review/freeze;

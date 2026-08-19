@@ -32,7 +32,7 @@ No live deployment is permitted unless all of these gates pass:
    Every admitted attempt, including capacity errors and failed semantic
    validation, stays in the denominator.
 
-The internal Qwen v5 plan satisfies the offline portion of gate 3 but remains
+The internal Qwen v6 plan satisfies the offline portion of gate 3 but remains
 at `PRE-CREATION REVIEW`; it cannot provision without a fresh clearance bound
 to the exact clean candidate commit. Cerebrium still does not satisfy gate 2.
 No live mutation has been performed. Pre-existing Cerebrium apps and all
@@ -45,7 +45,7 @@ be left at zero minimum replicas until explicit deletion approval is received.
 - `FEASIBILITY_MATRIX.md` records the pre-live architecture decision.
 - `INDEPENDENT_REVIEW.md` records accepted independent findings and the
   remaining post-live review gate.
-- `PRE_CREATION_REVIEW_V5.md` records the replacement authorization, exact
+- `PRE_CREATION_REVIEW_V6.md` records the replacement authorization, exact
   hashes, network/GPU lifecycle, two-request semantic gate, and adversaries.
 - `VERIFICATION.md` records commands, exact placement/capacity evidence, costs,
   and the zero-resource cleanup disposition.
@@ -57,13 +57,20 @@ be left at zero minimum replicas until explicit deletion approval is received.
   only homogeneous cohorts, and emits reviewed-harness traces/ledgers.
 - `resource-requests/` contains offline broker requests and immutable planned
   leases; it does not authorize provisioning by itself.
-- `authorizations/internal-qwen3-h100-scout-v5.json` is the publishable,
+- `authorizations/internal-qwen3-h100-scout-v6.json` is the publishable,
   hash-only authorization candidate. The independent clearance, bearer secret,
-  and distinct broker gate-signing secret are deliberately external to Git.
+  and Ed25519 broker private signing key are deliberately external to Git; only
+  the pinned public verifier is delivered to the VM.
 - `live/` contains the no-package-install bootstrap and authenticated server.
-  The server rejects inference until it validates an ACTIVE, zero-egress broker
-  gate; uses exact 64-character running container IDs; and admits exactly the
-  frozen smoke plus three scout runtime groups.
+  Bootstrap installs a persistent output-drop nftables boundary and proves no
+  TCP/8080 listener before returning. The server starts only after controller
+  cloud-egress removal and restart, rejects inference until it validates an
+  ACTIVE signed gate, and admits exactly the frozen four runtime groups.
+
+The sole executable internal campaign path is
+`comparator.py run-internal-qwen-v6-campaign`. It binds the exact ACTIVE v6
+lease/gate and runs all four two-request groups with external-client T0. There
+is no caller boolean that enables the disabled internal arm.
 - `deploy/` contains digest-pinned app specifications. The GLM Cerebrium file
   is intentionally a non-deployable template until the current project exposes
   and confirms the exact H200 compute identifier and count.

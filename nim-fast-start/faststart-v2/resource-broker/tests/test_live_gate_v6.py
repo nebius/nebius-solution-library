@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import datetime as dt
+import base64
 import hashlib
 import importlib.util
 import json
 import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -16,17 +18,17 @@ MODULE_PATH = Path(__file__).resolve().parents[1] / "broker.py"
 FASTSTART_ROOT = MODULE_PATH.parent.parent
 AUTH_SOURCE = (
     FASTSTART_ROOT
-    / "catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v5.json"
+    / "catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v6.json"
 )
 LEASE_SOURCE = (
     FASTSTART_ROOT
-    / "catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v5.lease.json"
+    / "catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v6.lease.json"
 )
 GLM_LEASE_SOURCE = (
     FASTSTART_ROOT
     / "catalog-switch/cerebrium-comparator/resource-requests/glm52-fp8-h200-tp8-smoke.lease.json"
 )
-SPEC = importlib.util.spec_from_file_location("resource_broker_live_v5", MODULE_PATH)
+SPEC = importlib.util.spec_from_file_location("resource_broker_live_v6", MODULE_PATH)
 assert SPEC and SPEC.loader
 broker = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(broker)
@@ -212,7 +214,7 @@ class ManagedChildrenCLI:
         raise AssertionError(f"unexpected managed-child call: {args}")
 
 
-class LiveGateV5Tests(unittest.TestCase):
+class LiveGateV6Tests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
@@ -222,7 +224,24 @@ class LiveGateV5Tests(unittest.TestCase):
         self.token_path = self.root / "bearer-token"
         self.gate_key_path = self.root / "gate-signing-key"
         self.token = "a" * 64
-        self.gate_key = "b" * 64
+        self.public_key_path = self.root / "gate-verifier-public.pem"
+        subprocess.run(
+            ["openssl", "genpkey", "-algorithm", "ED25519", "-out", str(self.gate_key_path)],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["openssl", "pkey", "-in", str(self.gate_key_path), "-pubout", "-out", str(self.public_key_path)],
+            check=True,
+            capture_output=True,
+        )
+        os.chmod(self.gate_key_path, 0o600)
+        self.original_public_key_path = broker.GATE_VERIFICATION_PUBLIC_KEY
+        self.original_public_key_sha256 = broker.GATE_VERIFICATION_PUBLIC_KEY_SHA256
+        broker.GATE_VERIFICATION_PUBLIC_KEY = self.public_key_path
+        broker.GATE_VERIFICATION_PUBLIC_KEY_SHA256 = hashlib.sha256(
+            self.public_key_path.read_bytes()
+        ).hexdigest()
         shutil.copyfile(LEASE_SOURCE, self.lease_path)
         auth = json.loads(AUTH_SOURCE.read_text())
         auth["network"]["bearer_token_sha256"] = hashlib.sha256(
@@ -231,19 +250,19 @@ class LiveGateV5Tests(unittest.TestCase):
         auth["network"]["recorder_cidr_sha256"] = hashlib.sha256(
             b"203.0.113.10/32"
         ).hexdigest()
-        auth["network"]["gate_signing_key_sha256"] = hashlib.sha256(
-            self.gate_key.encode()
-        ).hexdigest()
+        auth["network"]["gate_verification_public_key_sha256"] = (
+            broker.GATE_VERIFICATION_PUBLIC_KEY_SHA256
+        )
         for artifact in auth["artifacts"]:
             artifact["sha256"] = broker.file_sha256(FASTSTART_ROOT / artifact["path"])
         self.write_auth(auth)
         self.token_path.write_text(self.token + "\n")
         os.chmod(self.token_path, 0o600)
-        self.gate_key_path.write_text(self.gate_key + "\n")
-        os.chmod(self.gate_key_path, 0o600)
         self.write_clearance()
 
     def tearDown(self):
+        broker.GATE_VERIFICATION_PUBLIC_KEY = self.original_public_key_path
+        broker.GATE_VERIFICATION_PUBLIC_KEY_SHA256 = self.original_public_key_sha256
         self.temp.cleanup()
 
     def write_auth(self, value):
@@ -252,21 +271,21 @@ class LiveGateV5Tests(unittest.TestCase):
     def write_clearance(self, **updates):
         value = {
             "schema": "catalog-switch-independent-precreation-clearance/v2",
-            "authorization_id": "internal-qwen3-h100-scout-v5-20260819",
+            "authorization_id": "internal-qwen3-h100-scout-v6-20260819",
             "authorization_sha256": broker.file_sha256(self.auth_path),
-            "clearance_id": "independent-review-v5-unit",
+            "clearance_id": "independent-review-v6-unit",
             "decision": "CLEARED",
-            "reviewed_at": "2026-08-19T17:11:00Z",
+            "reviewed_at": "2026-08-19T17:50:00Z",
             "reviewed_commit": "a" * 40,
             "reviewer": "catalog-switch-independent-precreation-reviewer-v2",
-            "expires_at": "2026-08-19T17:40:00Z",
+            "expires_at": "2026-08-19T18:20:00Z",
         }
         value.update(updates)
         self.clearance_path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
 
     def validate(self, *, cidr="203.0.113.10/32", commit="a" * 40, branch=None, clean=True, now=None):
         branch = branch or "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark"
-        now = now or dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc)
+        now = now or dt.datetime(2026, 8, 19, 18, 0, tzinfo=dt.timezone.utc)
         with mock.patch.object(broker, "observe_recorder_cidr", return_value=cidr), mock.patch.object(
             broker, "_git_state", return_value=(commit, branch, clean)
         ), mock.patch.object(broker, "utc_now", return_value=now):
@@ -279,7 +298,7 @@ class LiveGateV5Tests(unittest.TestCase):
             )
 
     def live_environment(self, *, now=None, commit="a" * 40):
-        now = now or dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc)
+        now = now or dt.datetime(2026, 8, 19, 18, 0, tzinfo=dt.timezone.utc)
         return mock.patch.multiple(
             broker,
             observe_recorder_cidr=mock.Mock(return_value="203.0.113.10/32"),
@@ -305,7 +324,7 @@ class LiveGateV5Tests(unittest.TestCase):
             "current_commit": "a" * 40,
             "current_branch": broker.QWEN_SCOUT_BRANCH,
             "worktree_clean": True,
-            "now": dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc),
+            "now": dt.datetime(2026, 8, 19, 18, 0, tzinfo=dt.timezone.utc),
         }.items():
             with self.subTest(keyword=keyword), self.assertRaises(TypeError):
                 broker._validate_live_authorization_snapshot(
@@ -351,7 +370,7 @@ class LiveGateV5Tests(unittest.TestCase):
         lease["live_authorization"] = snapshot["public"]
         self.lease_path.write_text(json.dumps(lease, indent=2, sort_keys=True) + "\n")
         with self.live_environment(
-            now=dt.datetime(2026, 8, 19, 17, 41, tzinfo=dt.timezone.utc)
+            now=dt.datetime(2026, 8, 19, 18, 21, tzinfo=dt.timezone.utc)
         ):
             with self.assertRaisesRegex(broker.BrokerError, "clearance expiry is stale"):
                 broker._validate_live_resume_snapshot(
@@ -379,7 +398,7 @@ class LiveGateV5Tests(unittest.TestCase):
         self.lease_path.write_text(json.dumps(lease, indent=2, sort_keys=True) + "\n")
         fake = NoCallCLI()
         with self.live_environment(
-            now=dt.datetime(2026, 8, 19, 17, 41, tzinfo=dt.timezone.utc)
+            now=dt.datetime(2026, 8, 19, 18, 21, tzinfo=dt.timezone.utc)
         ):
             with self.assertRaisesRegex(broker.BrokerError, "clearance expiry is stale"):
                 broker.verify_health_lease(
@@ -402,9 +421,9 @@ class LiveGateV5Tests(unittest.TestCase):
         auth = json.loads(AUTH_SOURCE.read_text())
         auth["network"]["bearer_token_sha256"] = hashlib.sha256(self.token.encode()).hexdigest()
         auth["network"]["recorder_cidr_sha256"] = hashlib.sha256(b"203.0.113.10/32").hexdigest()
-        auth["network"]["gate_signing_key_sha256"] = hashlib.sha256(
-            self.gate_key.encode()
-        ).hexdigest()
+        auth["network"]["gate_verification_public_key_sha256"] = (
+            broker.GATE_VERIFICATION_PUBLIC_KEY_SHA256
+        )
         auth["network"]["runtime_egress"] = [
             {"destination_cidrs": ["0.0.0.0/0"], "ports": [443], "protocol": "TCP"}
         ]
@@ -445,14 +464,21 @@ class LiveGateV5Tests(unittest.TestCase):
             },
         }
         lease["isolation_proof"] = {"security_group": {"rules": []}}
+        lease["runtime_listener_proof"] = {
+            "instance_id": "computeinstance-task-owned",
+            "observed_at": "2026-08-19T17:14:00Z",
+            "serial_log_marker": "CATSWITCH_QWEN3_H100_V6_SERVER_READY_B64=",
+            "serial_log_marker_observed": True,
+            "pre_restart_isolation_proof_sha256": "8" * 64,
+            "post_restart_isolation_proof_sha256": "9" * 64,
+        }
         lease["live_authorization"] = {
             "authorization_sha256": "1" * 64,
-            "clearance": {"expires_at": "2026-08-19T17:40:00Z"},
+            "clearance": {"expires_at": "2026-08-19T18:20:00Z"},
             "frozen": {"lease_plan_sha256": "2" * 64},
             "network": {
-                "gate_signing_key_sha256": hashlib.sha256(
-                    self.gate_key.encode()
-                ).hexdigest()
+                "gate_signature_algorithm": "Ed25519",
+                "gate_verification_public_key_sha256": broker.GATE_VERIFICATION_PUBLIC_KEY_SHA256,
             },
         }
         lease["resources"] = [
@@ -497,16 +523,102 @@ class LiveGateV5Tests(unittest.TestCase):
         with mock.patch.object(
             broker,
             "utc_now",
-            return_value=dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc),
+            return_value=dt.datetime(2026, 8, 19, 18, 0, tzinfo=dt.timezone.utc),
         ):
-            gate = broker.build_runtime_gate(lease, self.gate_key)
+            gate = broker.build_runtime_gate(lease, self.gate_key_path)
         self.assertEqual("ACTIVE", gate["lease_state"])
         self.assertEqual(0, gate["runtime_egress_rule_count"])
-        with self.assertRaisesRegex(broker.BrokerError, "broker-only authority"):
-            broker.build_runtime_gate(lease, self.token)
+        with self.assertRaisesRegex(broker.BrokerError, "valid private key"):
+            broker.build_runtime_gate(lease, self.token_path)
         lease["isolation_proof"]["security_group"]["rules"] = [{"direction": "egress"}]
         with self.assertRaisesRegex(broker.BrokerError, "zero-egress"):
-            broker.build_runtime_gate(lease, self.gate_key)
+            broker.build_runtime_gate(lease, self.gate_key_path)
+
+    def test_cloud_init_contains_public_verifier_only_and_no_broker_private_key(self):
+        snapshot = self.validate()
+        lease = broker.load_json(self.lease_path)
+        cloud_init = broker.authorized_cloud_init(lease, snapshot)
+        self.assertIn("/etc/catswitch/gate-verifier-public.pem", cloud_init)
+        self.assertNotIn("gate-signing-private", cloud_init)
+        self.assertNotIn(
+            base64.b64encode(self.gate_key_path.read_bytes()).decode(), cloud_init
+        )
+        self.assertNotIn("PRIVATE KEY", base64.b64decode(
+            next(
+                line.split("content: ", 1)[1]
+                for line in cloud_init.splitlines()
+                if line.strip().startswith("content: ")
+                and base64.b64decode(line.split("content: ", 1)[1]).startswith(b"-----BEGIN PUBLIC KEY-----")
+            )
+        ).decode())
+
+    def test_bootstrap_locks_host_egress_and_forbids_listener_before_return(self):
+        script = (
+            FASTSTART_ROOT
+            / "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v6.sh"
+        ).read_text()
+        lockdown = script.index("systemctl enable --now catswitch-egress-lockdown-v6.service")
+        app_enable = script.index("systemctl enable catalog-switch-qwen-scout-v6.service")
+        listener_rejection = script.index("TCP/8080 listener existed during bootstrap")
+        marker = script.index("${marker} lease=${lease_id}")
+        self.assertLess(lockdown, app_enable)
+        self.assertLess(app_enable, listener_rejection)
+        self.assertLess(listener_rejection, marker)
+        self.assertNotIn("enable --now catalog-switch-qwen-scout-v6.service", script)
+        self.assertIn("policy drop", script)
+
+    def test_controller_proves_zero_egress_before_restart_can_expose_listener(self):
+        lease = broker.load_json(self.lease_path)
+        lease["state"] = "CREATING"
+        lease["isolation_proof"] = {"security_group": {"rules": []}}
+        self.lease_path.write_text(json.dumps(lease, indent=2, sort_keys=True) + "\n")
+        order = []
+
+        class ListenerCLI:
+            def run(_self, args, **_kwargs):
+                if args[:3] == ["compute", "instance", "restart"]:
+                    order.append("restart")
+                    self.assertIn("zero-egress-validated", order)
+                    return {}
+                if args[:3] == ["compute", "instance", "logs"]:
+                    order.append("listener-marker")
+                    payload = json.dumps(
+                        {
+                            "schema": "catalog-switch-runtime-listener-proof/v6",
+                            "lease_id": "catswitch-qwen3-h100-scout-v6-20260819",
+                            "boot_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                            "observed_at_utc": "2026-08-19T18:00:00.000000Z",
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode()
+                    encoded = base64.urlsafe_b64encode(payload).decode().rstrip("=")
+                    return f"CATSWITCH_QWEN3_H100_V6_SERVER_READY_B64={encoded}\n"
+                raise AssertionError(args)
+
+        def validated(_lease, _proof):
+            order.append("zero-egress-validated")
+
+        with mock.patch.object(broker, "validate_isolation_proof", side_effect=validated), mock.patch.object(
+            broker, "_fresh_live_snapshot", return_value={}
+        ), mock.patch.object(
+            broker,
+            "utc_now",
+            return_value=dt.datetime(2026, 8, 19, 18, 0, tzinfo=dt.timezone.utc),
+        ):
+            broker.prove_runtime_listener(
+                self.lease_path,
+                self.root / "listener-registry.json",
+                ListenerCLI(),
+                "computeinstance-task-owned",
+                authorization_path=self.auth_path,
+                clearance_path=self.clearance_path,
+                bearer_token_path=self.token_path,
+                gate_signing_key_path=self.gate_key_path,
+            )
+        self.assertEqual(
+            ["zero-egress-validated", "restart", "listener-marker"], order
+        )
 
     def test_qwen_and_glm_provision_paths_both_fail_without_authorization(self):
         for source in (LEASE_SOURCE, GLM_LEASE_SOURCE):
@@ -539,7 +651,7 @@ class LiveGateV5Tests(unittest.TestCase):
         ), mock.patch.object(
             broker,
             "utc_now",
-            return_value=dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc),
+            return_value=dt.datetime(2026, 8, 19, 18, 0, tzinfo=dt.timezone.utc),
         ):
             with self.assertRaises(KeyboardInterrupt):
                 broker.provision(
@@ -832,8 +944,8 @@ class LiveGateV5Tests(unittest.TestCase):
         fake = RuleCLI(lease)
         clock = mock.Mock(
             side_effect=[
-                dt.datetime(2026, 8, 19, 17, 15, tzinfo=dt.timezone.utc),
-                dt.datetime(2026, 8, 19, 17, 41, tzinfo=dt.timezone.utc),
+                dt.datetime(2026, 8, 19, 18, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2026, 8, 19, 18, 21, tzinfo=dt.timezone.utc),
             ]
         )
         with mock.patch.object(broker, "observe_recorder_cidr", return_value="203.0.113.10/32"), mock.patch.object(

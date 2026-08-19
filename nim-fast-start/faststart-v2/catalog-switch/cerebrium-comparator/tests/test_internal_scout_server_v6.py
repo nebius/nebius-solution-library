@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import importlib.util
+import base64
 import hashlib
-import hmac
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "live" / "internal_scout_server_v5.py"
-SPEC = importlib.util.spec_from_file_location("internal_scout_server_v5", MODULE_PATH)
+MODULE_PATH = Path(__file__).resolve().parents[1] / "live" / "internal_scout_server_v6.py"
+SPEC = importlib.util.spec_from_file_location("internal_scout_server_v6", MODULE_PATH)
 assert SPEC and SPEC.loader
 server = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(server)
@@ -21,17 +22,44 @@ def line(value):
     return b"data: " + json.dumps(value).encode() + b"\n"
 
 
-class InternalScoutServerV5Tests(unittest.TestCase):
-    def runtime_gate(self, signing_key="b" * 64, *, issued_at="2026-08-19T16:30:00Z"):
+class InternalScoutServerV6Tests(unittest.TestCase):
+    def setUp(self):
+        self.keys = tempfile.TemporaryDirectory()
+        self.private_key = Path(self.keys.name) / "private.pem"
+        self.public_key = Path(self.keys.name) / "public.pem"
+        subprocess.run(
+            ["openssl", "genpkey", "-algorithm", "ED25519", "-out", str(self.private_key)],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["openssl", "pkey", "-in", str(self.private_key), "-pubout", "-out", str(self.public_key)],
+            check=True,
+            capture_output=True,
+        )
+
+    def tearDown(self):
+        self.keys.cleanup()
+
+    def verifier_context(self):
+        return mock.patch.multiple(
+            server,
+            GATE_VERIFIER_PUBLIC_KEY_PATH=self.public_key,
+            GATE_VERIFIER_PUBLIC_KEY_SHA256=hashlib.sha256(self.public_key.read_bytes()).hexdigest(),
+        )
+
+    def runtime_gate(self, signing_key=None, *, issued_at="2026-08-19T16:30:00Z"):
+        signing_key = signing_key or self.private_key
         payload = {
-            "schema": "catalog-switch-internal-runtime-gate/v5",
-            "authorization_id": "internal-qwen3-h100-scout-v5-20260819",
+            "schema": "catalog-switch-internal-runtime-gate/v6",
+            "authorization_id": "internal-qwen3-h100-scout-v6-20260819",
             "authorization_sha256": "1" * 64,
             "broker_receipt_sha256": "6" * 64,
             "clearance_expires_at": "2099-08-19T17:00:00Z",
             "health_proof_sha256": "2" * 64,
             "instance_id": "computeinstance-task-owned",
             "isolation_proof_sha256": "3" * 64,
+            "listener_proof_sha256": "7" * 64,
             "issued_at_utc": issued_at,
             "lease_id": server.LEASE_ID,
             "lease_plan_sha256": "4" * 64,
@@ -52,10 +80,24 @@ class InternalScoutServerV5Tests(unittest.TestCase):
             },
             "runtime_egress_rule_count": 0,
         }
-        signature = hmac.new(
-            signing_key.encode(), server.canonical(payload), hashlib.sha256
-        ).hexdigest()
-        return {**payload, "gate_hmac_sha256": signature}
+        return {
+            **payload,
+            "gate_signature_ed25519_base64": self.sign_payload(payload, signing_key),
+        }
+
+    def sign_payload(self, payload, signing_key=None):
+        signing_key = signing_key or self.private_key
+        with tempfile.NamedTemporaryFile() as message, tempfile.NamedTemporaryFile() as signature:
+            message.write(server.canonical(payload))
+            message.flush()
+            subprocess.run(
+                ["openssl", "pkeyutl", "-sign", "-rawin", "-inkey", str(signing_key), "-in", message.name, "-out", signature.name],
+                check=True,
+                capture_output=True,
+            )
+            signature.seek(0)
+            encoded = base64.b64encode(signature.read()).decode()
+        return encoded
 
     def test_stream_oracle_records_complete_exact_semantic_verdict(self):
         oracle = server.StreamOracle()
@@ -144,12 +186,8 @@ class InternalScoutServerV5Tests(unittest.TestCase):
     def test_inference_gate_requires_authenticated_active_zero_egress_h100(self):
         with tempfile.TemporaryDirectory() as directory:
             token_path = Path(directory) / "token"
-            gate_key_path = Path(directory) / "gate-key"
             token_path.write_text("a" * 64 + "\n")
-            gate_key_path.write_text("b" * 64 + "\n")
-            with mock.patch.object(server, "TOKEN_PATH", token_path), mock.patch.object(
-                server, "GATE_VERIFIER_KEY_PATH", gate_key_path
-            ), mock.patch.object(
+            with mock.patch.object(server, "TOKEN_PATH", token_path), self.verifier_context(), mock.patch.object(
                 server,
                 "current_utc",
                 return_value=server.datetime(2026, 8, 19, 16, 30, tzinfo=server.UTC),
@@ -166,15 +204,13 @@ class InternalScoutServerV5Tests(unittest.TestCase):
                     payload = {
                         item_key: item_value
                         for item_key, item_value in changed.items()
-                        if item_key != "gate_hmac_sha256"
+                        if item_key != "gate_signature_ed25519_base64"
                     }
-                    changed["gate_hmac_sha256"] = hmac.new(
-                        ("b" * 64).encode(), server.canonical(payload), hashlib.sha256
-                    ).hexdigest()
+                    changed["gate_signature_ed25519_base64"] = self.sign_payload(payload)
                     with self.assertRaisesRegex(ValueError, "fresh exact ACTIVE"):
                         server.validate_runtime_gate(changed)
                 forged = dict(gate)
-                forged["gate_hmac_sha256"] = "0" * 64
+                forged["gate_signature_ed25519_base64"] = base64.b64encode(b"0" * 64).decode()
                 with self.assertRaisesRegex(ValueError, "signature"):
                     server.validate_runtime_gate(forged)
 
@@ -182,17 +218,47 @@ class InternalScoutServerV5Tests(unittest.TestCase):
                 payload = {
                     key: value
                     for key, value in client_forgery.items()
-                    if key != "gate_hmac_sha256"
+                    if key != "gate_signature_ed25519_base64"
                 }
-                client_forgery["gate_hmac_sha256"] = hmac.new(
-                    ("a" * 64).encode(), server.canonical(payload), hashlib.sha256
-                ).hexdigest()
+                attacker_private = Path(directory) / "attacker.pem"
+                subprocess.run(
+                    ["openssl", "genpkey", "-algorithm", "ED25519", "-out", str(attacker_private)],
+                    check=True,
+                    capture_output=True,
+                )
+                client_forgery["gate_signature_ed25519_base64"] = self.sign_payload(
+                    payload, attacker_private
+                )
                 with self.assertRaisesRegex(ValueError, "signature"):
                     server.validate_runtime_gate(client_forgery)
 
                 stale = self.runtime_gate(issued_at="1970-01-01T00:00:00Z")
                 with self.assertRaisesRegex(ValueError, "fresh exact ACTIVE"):
                     server.validate_runtime_gate(stale)
+
+    def test_vm_public_verifier_cannot_self_mint_a_gate(self):
+        with tempfile.NamedTemporaryFile() as message, tempfile.NamedTemporaryFile() as signature:
+            message.write(b"forged-gate")
+            message.flush()
+            result = subprocess.run(
+                ["openssl", "pkeyutl", "-sign", "-rawin", "-inkey", str(self.public_key), "-in", message.name, "-out", signature.name],
+                check=False,
+                capture_output=True,
+            )
+        self.assertNotEqual(0, result.returncode)
+
+    def test_server_ready_marker_binds_fresh_boot_identity(self):
+        boot = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\n"
+        with mock.patch.object(Path, "read_text", return_value=boot), mock.patch.object(
+            server, "utc_now", return_value="2026-08-19T18:00:00.000000Z"
+        ):
+            marker = server.server_ready_marker()
+        encoded = marker.split("=", 1)[1]
+        payload = json.loads(
+            base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+        )
+        self.assertEqual(server.LEASE_ID, payload["lease_id"])
+        self.assertEqual(boot.strip(), payload["boot_id"])
 
     def test_runtime_group_ordinal_is_atomically_consumed_before_runtime_start(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.object(

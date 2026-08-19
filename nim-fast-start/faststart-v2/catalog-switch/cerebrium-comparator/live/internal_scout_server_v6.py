@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Authenticated, broker-gated v5 qualification server for the Qwen3 H100 scout.
+"""Authenticated, broker-gated v6 qualification server for the Qwen3 H100 scout.
 
 Ordinal 1 starts one conventional vLLM runtime after request acceptance. Ordinal
 2 must use that same container. Both streamed responses receive independent
@@ -9,12 +9,14 @@ recorded. The external comparator separately validates both responses.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
 import os
 import re
 import subprocess
+import tempfile
 import threading
 import time
 import urllib.error
@@ -29,7 +31,7 @@ from typing import Any
 MODEL_ID = "Qwen/Qwen3-8B"
 MODEL_REVISION = "b968826d9c46dd6066d109eabc6255188de91218"
 EXPECTED_ANSWER = "QWEN3_CATALOG_SWITCH_OK"
-LEASE_ID = "catswitch-qwen3-h100-scout-v5-20260819"
+LEASE_ID = "catswitch-qwen3-h100-scout-v6-20260819"
 RUNTIME_GROUP_IDS = (
     "qwen-smoke-01",
     "qwen-scout-01",
@@ -63,7 +65,10 @@ RUNTIME_GATE = Path("/var/lib/catswitch/runtime-gate.json")
 CAMPAIGN_EVIDENCE = Path("/var/lib/catswitch/campaign-evidence.json")
 GROUP_STATE_DIR = Path("/var/lib/catswitch/runtime-groups")
 TOKEN_PATH = Path("/run/catswitch/bearer-token")
-GATE_VERIFIER_KEY_PATH = Path("/run/catswitch/gate-verifier-key")
+GATE_VERIFIER_PUBLIC_KEY_PATH = Path("/etc/catswitch/gate-verifier-public.pem")
+GATE_VERIFIER_PUBLIC_KEY_SHA256 = (
+    "bd7d25d0f56bf93fe54fc003439660e04adb67509da38096ac0dc121a11cc42a"
+)
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,95}$")
 CONTAINER_RE = re.compile(r"[0-9a-f]{64}")
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
@@ -91,6 +96,23 @@ def canonical(value: Any) -> bytes:
 
 def utc_now() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
+def server_ready_marker() -> str:
+    boot_id = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    if not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", boot_id):
+        raise RuntimeError("kernel boot identity is invalid")
+    payload = canonical(
+        {
+            "schema": "catalog-switch-runtime-listener-proof/v6",
+            "lease_id": LEASE_ID,
+            "boot_id": boot_id,
+            "observed_at_utc": utc_now(),
+        }
+    )
+    return "CATSWITCH_QWEN3_H100_V6_SERVER_READY_B64=" + base64.urlsafe_b64encode(
+        payload
+    ).decode().rstrip("=")
 
 
 def run(
@@ -161,7 +183,7 @@ def load_group_state(runtime_group_id: str) -> dict[str, Any] | None:
     value = json.loads(path.read_text(), object_pairs_hook=unique_object)
     if (
         not isinstance(value, dict)
-        or value.get("schema") != "catalog-switch-runtime-group-state/v5"
+        or value.get("schema") != "catalog-switch-runtime-group-state/v6"
         or value.get("runtime_group_id") != runtime_group_id
     ):
         raise RuntimeError("runtime-group state is invalid")
@@ -175,7 +197,7 @@ def claim_runtime_ordinal(
     path = group_state_path(runtime_group_id)
     if ordinal == 1:
         value = {
-            "schema": "catalog-switch-runtime-group-state/v5",
+            "schema": "catalog-switch-runtime-group-state/v6",
             "runtime_group_id": runtime_group_id,
             "state": "ORDINAL1_IN_PROGRESS",
             "container_name": f"catswitch-vllm-{runtime_group_id}",
@@ -202,7 +224,7 @@ def claim_runtime_ordinal(
     ):
         raise ValueError("qualification ordinal 2 is not exactly claimable")
     ordinal2_claim = {
-        "schema": "catalog-switch-runtime-ordinal-claim/v5",
+        "schema": "catalog-switch-runtime-ordinal-claim/v6",
         "runtime_group_id": runtime_group_id,
         "ordinal": 2,
         "attempt_id": attempt_id,
@@ -241,11 +263,47 @@ def token() -> str:
     return value
 
 
-def gate_verifier_key() -> str:
-    value = GATE_VERIFIER_KEY_PATH.read_text().strip()
-    if not re.fullmatch(r"[0-9a-f]{64}", value):
-        raise RuntimeError("broker gate verifier key is unavailable")
-    return value
+def gate_verifier_public_key() -> Path:
+    path = GATE_VERIFIER_PUBLIC_KEY_PATH
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError("broker gate public verifier is unavailable")
+    if hashlib.sha256(path.read_bytes()).hexdigest() != GATE_VERIFIER_PUBLIC_KEY_SHA256:
+        raise RuntimeError("broker gate public verifier digest differs")
+    return path
+
+
+def verify_ed25519(payload: bytes, signature_base64: Any) -> None:
+    if not isinstance(signature_base64, str):
+        raise ValueError("runtime gate signature differs")
+    try:
+        signature = base64.b64decode(signature_base64, validate=True)
+    except ValueError as exc:
+        raise ValueError("runtime gate signature differs") from exc
+    if len(signature) != 64:
+        raise ValueError("runtime gate signature differs")
+    message_fd, message_name = tempfile.mkstemp(prefix="catswitch-gate-message-")
+    signature_fd, signature_name = tempfile.mkstemp(prefix="catswitch-gate-signature-")
+    try:
+        with os.fdopen(message_fd, "wb") as handle:
+            handle.write(payload)
+        with os.fdopen(signature_fd, "wb") as handle:
+            handle.write(signature)
+        result = run(
+            [
+                "openssl", "pkeyutl", "-verify", "-rawin", "-pubin", "-inkey",
+                str(gate_verifier_public_key()), "-in", message_name,
+                "-sigfile", signature_name,
+            ],
+            check=False,
+        )
+        if result.returncode:
+            raise ValueError("runtime gate signature differs")
+    finally:
+        for name in (message_name, signature_name):
+            try:
+                os.unlink(name)
+            except FileNotFoundError:
+                pass
 
 
 def current_utc() -> datetime:
@@ -259,10 +317,11 @@ def validate_runtime_gate(value: Any) -> dict[str, Any]:
         "authorization_sha256",
         "broker_receipt_sha256",
         "clearance_expires_at",
-        "gate_hmac_sha256",
+        "gate_signature_ed25519_base64",
         "health_proof_sha256",
         "instance_id",
         "isolation_proof_sha256",
+        "listener_proof_sha256",
         "issued_at_utc",
         "lease_id",
         "lease_plan_sha256",
@@ -275,15 +334,13 @@ def validate_runtime_gate(value: Any) -> dict[str, Any]:
     }
     if not isinstance(value, dict) or set(value) != required:
         raise ValueError("runtime gate fields differ")
-    signature = value["gate_hmac_sha256"]
+    signature = value["gate_signature_ed25519_base64"]
     payload = {
-        key: item for key, item in value.items() if key != "gate_hmac_sha256"
+        key: item
+        for key, item in value.items()
+        if key != "gate_signature_ed25519_base64"
     }
-    expected = hmac.new(
-        gate_verifier_key().encode(), canonical(payload), hashlib.sha256
-    ).hexdigest()
-    if not isinstance(signature, str) or not hmac.compare_digest(signature, expected):
-        raise ValueError("runtime gate signature differs")
+    verify_ed25519(canonical(payload), signature)
     gpu = value["observed_gpu"]
     try:
         issued_at = datetime.strptime(
@@ -298,14 +355,14 @@ def validate_runtime_gate(value: Any) -> dict[str, Any]:
     binding = value["network_binding"]
     profile = value["profile"]
     if (
-        value["schema"] != "catalog-switch-internal-runtime-gate/v5"
+        value["schema"] != "catalog-switch-internal-runtime-gate/v6"
         or value["authorization_id"]
-        != "internal-qwen3-h100-scout-v5-20260819"
+        != "internal-qwen3-h100-scout-v6-20260819"
         or value["lease_id"] != LEASE_ID
         or value["lease_state"] != "ACTIVE"
         or value["runtime_egress_rule_count"] != 0
         or issued_at > now + timedelta(seconds=5)
-        or now - issued_at > timedelta(minutes=5)
+        or now - issued_at > timedelta(hours=1)
         or now >= clearance_expires
         or not all(
             SHA256_RE.fullmatch(str(value[key]))
@@ -314,6 +371,7 @@ def validate_runtime_gate(value: Any) -> dict[str, Any]:
                 "broker_receipt_sha256",
                 "health_proof_sha256",
                 "isolation_proof_sha256",
+                "listener_proof_sha256",
                 "lease_plan_sha256",
             )
         )
@@ -364,7 +422,7 @@ def record_completed_runtime_group(runtime_group_id: str) -> dict[str, Any]:
     if len(groups) > 4:
         raise RuntimeError("campaign exceeds exactly four runtime groups")
     value = {
-        "schema": "catalog-switch-qwen-runtime-campaign/v5",
+        "schema": "catalog-switch-qwen-runtime-campaign/v6",
         "required_runtime_groups": list(RUNTIME_GROUP_IDS),
         "completed_runtime_groups": groups,
         "complete": set(groups) == set(RUNTIME_GROUP_IDS) and len(groups) == 4,
@@ -620,7 +678,7 @@ class Handler(BaseHTTPRequestHandler):
             self.json_response(
                 200,
                 {
-                    "schema": "catalog-switch-internal-scout-health/v5",
+                    "schema": "catalog-switch-internal-scout-health/v6",
                     "bootstrap_proof_sha256": hashlib.sha256(
                         BOOTSTRAP_PROOF.read_bytes()
                     ).hexdigest(),
@@ -638,7 +696,7 @@ class Handler(BaseHTTPRequestHandler):
             self.json_response(
                 200,
                 {
-                    "schema": "catalog-switch-qwen-runtime-campaign/v5",
+                    "schema": "catalog-switch-qwen-runtime-campaign/v6",
                     "required_runtime_groups": list(RUNTIME_GROUP_IDS),
                     "completed_runtime_groups": groups,
                     "complete": len(groups) == 4 and set(groups) == set(RUNTIME_GROUP_IDS),
@@ -682,7 +740,7 @@ class Handler(BaseHTTPRequestHandler):
             self.json_response(
                 200,
                 {
-                    "schema": "catalog-switch-runtime-gate-activation/v5",
+                    "schema": "catalog-switch-runtime-gate-activation/v6",
                     "runtime_gate_sha256": hashlib.sha256(canonical(validated)).hexdigest(),
                 },
             )
@@ -831,7 +889,7 @@ class Handler(BaseHTTPRequestHandler):
             if ACTIVE_SESSION.exists():
                 ACTIVE_SESSION.unlink()
             evidence = {
-                "schema": "catalog-switch-qwen-runtime-qualification/v5",
+                "schema": "catalog-switch-qwen-runtime-qualification/v6",
                 "runtime_group_id": runtime_group_id,
                 "container_id": active["container_id"],
                 "cold_start_count": active["cold_start_count"],
@@ -938,14 +996,18 @@ def main() -> None:
     if (
         not BOOTSTRAP_PROOF.is_file()
         or not TOKEN_PATH.is_file()
-        or not GATE_VERIFIER_KEY_PATH.is_file()
+        or not GATE_VERIFIER_PUBLIC_KEY_PATH.is_file()
     ):
-        raise SystemExit("bootstrap proof, bearer, or gate verifier key is missing")
+        raise SystemExit("bootstrap proof, bearer, or gate public verifier is missing")
     EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
     GROUP_STATE_DIR.mkdir(parents=True, exist_ok=True)
     recover_runtime_groups()
     load_active()
-    ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
+    server = ThreadingHTTPServer(("0.0.0.0", 8080), Handler)
+    with open("/dev/console", "w", encoding="utf-8") as console:
+        console.write(server_ready_marker() + "\n")
+        console.flush()
+    server.serve_forever()
 
 
 if __name__ == "__main__":

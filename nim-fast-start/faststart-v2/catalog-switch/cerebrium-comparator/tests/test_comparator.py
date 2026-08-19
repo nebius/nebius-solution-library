@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import importlib.util
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "comparator.py"
@@ -91,7 +94,8 @@ def backend(*, gpu_type="H100", gpu_count=1):
             "health_proof_sha256": "2" * 64,
             "instance_id": "computeinstance-task-owned",
             "isolation_proof_sha256": "3" * 64,
-            "lease_id": comparator.QWEN_V5_LEASE_ID,
+            "listener_proof_sha256": "8" * 64,
+            "lease_id": comparator.QWEN_V6_LEASE_ID,
             "lease_plan_sha256": "4" * 64,
             "lease_state": "ACTIVE",
             "network_binding": {
@@ -191,6 +195,63 @@ def receipt(
 
 
 class ComparatorTests(unittest.TestCase):
+    def test_sealed_internal_qwen_campaign_cli_is_executable_without_boolean_exception(self):
+        self.assertNotIn(
+            "authorized_internal_qwen_pair",
+            inspect.signature(comparator.run_attempt).parameters,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("backend.json", "cold.json", "warm.json"):
+                (root / name).write_text("{}\n")
+            bundle = {
+                "schema": "catalog-switch-qwen-sealed-campaign/v6",
+                "lease_id": comparator.QWEN_V6_LEASE_ID,
+                "runtime_gate_sha256": "a" * 64,
+                "pairs": [],
+                "server_campaign": {},
+                "replay": {"replay_sha256": "b" * 64},
+            }
+            with mock.patch.dict(os.environ, {"TEST_QWEN_TOKEN": "secret"}), mock.patch.object(
+                comparator, "run_qwen_qualification_campaign", return_value=bundle
+            ) as run_campaign:
+                rc = comparator.main(
+                    [
+                        "run-internal-qwen-v6-campaign",
+                        "--lease", str(root / "lease.json"),
+                        "--endpoint", "https://recorder.example/v1/chat/completions",
+                        "--token-env", "TEST_QWEN_TOKEN",
+                        "--backend-proof", str(root / "backend.json"),
+                        "--cold-state-proof", str(root / "cold.json"),
+                        "--warm-state-proof", str(root / "warm.json"),
+                        "--output-dir", str(root / "output"),
+                    ]
+                )
+            self.assertEqual(0, rc)
+            run_campaign.assert_called_once()
+            self.assertEqual(
+                root / "lease.json", run_campaign.call_args.kwargs["lease_path"]
+            )
+            self.assertTrue(callable(run_campaign.call_args.kwargs["receipt_sink"]))
+
+            with mock.patch.dict(os.environ, {"TEST_QWEN_TOKEN": "secret"}), mock.patch.object(
+                comparator, "run_qwen_qualification_campaign", return_value=bundle
+            ) as blocked:
+                rc = comparator.main(
+                    [
+                        "run-internal-qwen-v6-campaign",
+                        "--lease", str(root / "lease.json"),
+                        "--endpoint", "https://recorder.example/v1/chat/completions",
+                        "--token-env", "TEST_QWEN_TOKEN",
+                        "--backend-proof", str(root / "backend.json"),
+                        "--cold-state-proof", str(root / "cold.json"),
+                        "--warm-state-proof", str(root / "warm.json"),
+                        "--output-dir", str(root / "output"),
+                    ]
+                )
+            self.assertEqual(2, rc)
+            blocked.assert_not_called()
+
     def test_frozen_contracts_validate(self):
         result = comparator.validate_contracts()
         self.assertEqual("PASS", result["status"])
@@ -241,7 +302,7 @@ class ComparatorTests(unittest.TestCase):
                     "X-Catswitch-Runtime-Group-ID": "qwen-smoke-01",
                     "X-Catswitch-Qualification-Ordinal": "1",
                     "X-Catswitch-Container-ID": "a" * 64,
-                    "X-Catswitch-Lease-ID": comparator.QWEN_V5_LEASE_ID,
+                    "X-Catswitch-Lease-ID": comparator.QWEN_V6_LEASE_ID,
                     "X-Catswitch-Runtime-Gate-SHA256": "6" * 64,
                 },
             )
@@ -272,7 +333,7 @@ class ComparatorTests(unittest.TestCase):
             "X-Catswitch-Runtime-Group-ID": "qwen-smoke-01",
             "X-Catswitch-Qualification-Ordinal": "1",
             "X-Catswitch-Container-ID": "a" * 64,
-            "X-Catswitch-Lease-ID": comparator.QWEN_V5_LEASE_ID,
+            "X-Catswitch-Lease-ID": comparator.QWEN_V6_LEASE_ID,
             "X-Catswitch-Runtime-Gate-SHA256": "6" * 64,
         }
         result = comparator.stream_request(
@@ -354,18 +415,20 @@ class ComparatorTests(unittest.TestCase):
             },
         }
         isolation = {"security_group": {"rules": []}}
+        listener = {"serial_log_marker_observed": True}
         gate = {
-            "schema": "catalog-switch-internal-runtime-gate/v5",
-            "authorization_id": "internal-qwen3-h100-scout-v5-20260819",
+            "schema": "catalog-switch-internal-runtime-gate/v6",
+            "authorization_id": "internal-qwen3-h100-scout-v6-20260819",
             "authorization_sha256": "1" * 64,
             "broker_receipt_sha256": "placeholder",
             "clearance_expires_at": "2026-08-19T17:00:00Z",
             "health_proof_sha256": comparator.digest(health),
-            "gate_hmac_sha256": "7" * 64,
+            "gate_signature_ed25519_base64": "dGVzdC1vbmx5LXNpZ25hdHVyZS1ieXRlcy10ZXN0LW9ubHktc2lnbmF0dXJlLWJ5dGVzLXRlc3Qtb25seS0xMjM0NTY3ODkwMTI=",
             "instance_id": "computeinstance-task-owned",
             "isolation_proof_sha256": comparator.digest(isolation),
+            "listener_proof_sha256": comparator.digest(listener),
             "issued_at_utc": "2026-08-19T16:30:00Z",
-            "lease_id": comparator.QWEN_V5_LEASE_ID,
+            "lease_id": comparator.QWEN_V6_LEASE_ID,
             "lease_plan_sha256": "4" * 64,
             "lease_state": "ACTIVE",
             "network_binding": {
@@ -382,7 +445,7 @@ class ComparatorTests(unittest.TestCase):
         }
         lease = {
             "state": "ACTIVE",
-            "lease_id": comparator.QWEN_V5_LEASE_ID,
+            "lease_id": comparator.QWEN_V6_LEASE_ID,
             "prefix": "mlsp-csw-task-owned",
             "profile_snapshot": {
                 "platform": "gpu-h100-sxm",
@@ -390,6 +453,7 @@ class ComparatorTests(unittest.TestCase):
             },
             "health_proof": health,
             "isolation_proof": isolation,
+            "runtime_listener_proof": listener,
             "live_authorization": {
                 "authorization_sha256": "1" * 64,
                 "clearance": {"expires_at": "2026-08-19T17:00:00Z"},
@@ -523,13 +587,13 @@ class ComparatorTests(unittest.TestCase):
             value["response_identity"] = {
                 "attempt_id": value["attempt_id"],
                 "container_id": "a" * 64,
-                "lease_id": comparator.QWEN_V5_LEASE_ID,
+                "lease_id": comparator.QWEN_V6_LEASE_ID,
                 "qualification_ordinal": ordinal,
                 "runtime_gate_sha256": "6" * 64,
                 "runtime_group_id": "qwen-smoke-01",
             }
         evidence = {
-            "schema": "catalog-switch-qwen-runtime-qualification/v5",
+            "schema": "catalog-switch-qwen-runtime-qualification/v6",
             "runtime_group_id": "qwen-smoke-01",
             "container_id": "a" * 64,
             "cold_start_count": 1,
@@ -567,7 +631,7 @@ class ComparatorTests(unittest.TestCase):
 
     def test_campaign_requires_exactly_four_runtime_groups(self):
         pairs = []
-        for index, group in enumerate(sorted(comparator.QWEN_V5_RUNTIME_GROUPS)):
+        for index, group in enumerate(sorted(comparator.QWEN_V6_RUNTIME_GROUPS)):
             first = receipt(10 + index * 2)
             second = receipt(
                 11 + index * 2,
@@ -580,13 +644,13 @@ class ComparatorTests(unittest.TestCase):
                 value["response_identity"] = {
                     "attempt_id": value["attempt_id"],
                     "container_id": container_id,
-                    "lease_id": comparator.QWEN_V5_LEASE_ID,
+                    "lease_id": comparator.QWEN_V6_LEASE_ID,
                     "qualification_ordinal": ordinal,
                     "runtime_gate_sha256": "6" * 64,
                     "runtime_group_id": group,
                 }
             evidence = {
-                "schema": "catalog-switch-qwen-runtime-qualification/v5",
+                "schema": "catalog-switch-qwen-runtime-qualification/v6",
                 "runtime_group_id": group,
                 "container_id": container_id,
                 "cold_start_count": 1,
@@ -614,9 +678,9 @@ class ComparatorTests(unittest.TestCase):
                 {"receipts": [first, second], "backend_evidence": evidence, "replay": replay}
             )
         campaign = {
-            "schema": "catalog-switch-qwen-runtime-campaign/v5",
-            "required_runtime_groups": sorted(comparator.QWEN_V5_RUNTIME_GROUPS),
-            "completed_runtime_groups": sorted(comparator.QWEN_V5_RUNTIME_GROUPS),
+            "schema": "catalog-switch-qwen-runtime-campaign/v6",
+            "required_runtime_groups": sorted(comparator.QWEN_V6_RUNTIME_GROUPS),
+            "completed_runtime_groups": sorted(comparator.QWEN_V6_RUNTIME_GROUPS),
             "complete": True,
         }
         replay = comparator.validate_qualification_campaign(pairs, campaign)

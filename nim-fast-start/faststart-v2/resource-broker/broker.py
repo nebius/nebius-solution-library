@@ -8,7 +8,6 @@ import base64
 import datetime as dt
 import fcntl
 import hashlib
-import hmac
 import ipaddress
 import json
 import os
@@ -52,10 +51,10 @@ AUTH_FAILURES = (
 NOT_FOUND_MARKERS = ("notfound", "not found", "code = not_found")
 SAFE_LABEL = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,62}$")
 GPU_PLATFORM_PREFIX = "gpu-"
-LIVE_AUTH_SCHEMA_VERSION = "catalog-switch-internal-live-authorization/v5"
+LIVE_AUTH_SCHEMA_VERSION = "catalog-switch-internal-live-authorization/v6"
 LIVE_CLEARANCE_SCHEMA_VERSION = "catalog-switch-independent-precreation-clearance/v2"
-QWEN_SCOUT_AUTHORIZATION_ID = "internal-qwen3-h100-scout-v5-20260819"
-QWEN_SCOUT_LEASE_ID = "catswitch-qwen3-h100-scout-v5-20260819"
+QWEN_SCOUT_AUTHORIZATION_ID = "internal-qwen3-h100-scout-v6-20260819"
+QWEN_SCOUT_LEASE_ID = "catswitch-qwen3-h100-scout-v6-20260819"
 QWEN_SCOUT_TASK_ID = "catalog-switch-cerebrium-qwen3-glm52-benchmark"
 QWEN_SCOUT_ARM_ID = "internal-qwen3-new-target-matched"
 QWEN_SCOUT_MODEL = "Qwen/Qwen3-8B"
@@ -65,6 +64,14 @@ QWEN_SCOUT_IMAGE_DIGEST = (
 )
 QWEN_SCOUT_REQUIRED_REVIEWER = "catalog-switch-independent-precreation-reviewer-v2"
 QWEN_SCOUT_BRANCH = "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark"
+GATE_VERIFICATION_PUBLIC_KEY = (
+    FASTSTART_ROOT
+    / "catalog-switch/cerebrium-comparator/keys/"
+    "internal-qwen3-v6-gate-verifier-public.pem"
+)
+GATE_VERIFICATION_PUBLIC_KEY_SHA256 = (
+    "bd7d25d0f56bf93fe54fc003439660e04adb67509da38096ac0dc121a11cc42a"
+)
 RECORDER_IP_ENDPOINT = "https://api.ipify.org"
 STRICT_UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -191,8 +198,66 @@ def _load_runtime_bearer(path: Path) -> str:
     return _load_hex_secret(path, "runtime bearer token")
 
 
-def _load_gate_signing_key(path: Path) -> str:
-    return _load_hex_secret(path, "broker gate signing key")
+def _load_gate_signing_key(path: Path) -> Path:
+    """Validate a private Ed25519 key against the sole committed public verifier."""
+    try:
+        info = path.lstat()
+    except OSError as exc:
+        raise BrokerError("broker gate signing key file is unavailable") from exc
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+        raise BrokerError("broker gate signing key must be a regular non-symlink file")
+    if info.st_mode & 0o077:
+        raise BrokerError("broker gate signing key file must have mode 0600 or stricter")
+    if file_sha256(GATE_VERIFICATION_PUBLIC_KEY) != GATE_VERIFICATION_PUBLIC_KEY_SHA256:
+        raise BrokerError("committed gate verification public key digest differs")
+    private_public = subprocess.run(
+        ["openssl", "pkey", "-in", str(path), "-pubout"],
+        text=False,
+        capture_output=True,
+        check=False,
+    )
+    if private_public.returncode:
+        raise BrokerError("broker gate signing key is not a valid private key")
+    committed_public = subprocess.run(
+        ["openssl", "pkey", "-pubin", "-in", str(GATE_VERIFICATION_PUBLIC_KEY), "-pubout"],
+        text=False,
+        capture_output=True,
+        check=False,
+    )
+    if committed_public.returncode or private_public.stdout != committed_public.stdout:
+        raise BrokerError("broker private key does not match the committed public verifier")
+    return path.resolve()
+
+
+def _ed25519_sign(payload: bytes, private_key_path: Path) -> str:
+    """Sign via OpenSSL without placing private material in Python or VM state."""
+    message_fd, message_name = tempfile.mkstemp(prefix="catswitch-gate-message-")
+    signature_fd, signature_name = tempfile.mkstemp(prefix="catswitch-gate-signature-")
+    os.close(signature_fd)
+    try:
+        with os.fdopen(message_fd, "wb") as handle:
+            handle.write(payload)
+        result = subprocess.run(
+            [
+                "openssl", "pkeyutl", "-sign", "-rawin", "-inkey",
+                str(private_key_path), "-in", message_name, "-out", signature_name,
+            ],
+            text=False,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode:
+            raise BrokerError("broker Ed25519 runtime-gate signing failed")
+        signature = Path(signature_name).read_bytes()
+        if len(signature) != 64:
+            raise BrokerError("broker Ed25519 signature length differs")
+        return base64.b64encode(signature).decode()
+    finally:
+        for name in (message_name, signature_name):
+            try:
+                os.unlink(name)
+            except FileNotFoundError:
+                pass
 
 
 def _git_state() -> tuple[str, str, bool]:
@@ -291,11 +356,11 @@ def _validate_live_authorization_snapshot(
     """Observe and validate the sole live gate; never accepts caller observations."""
     authorization = load_json(authorization_path)
     if set(authorization) != LIVE_AUTH_TOP_KEYS:
-        raise BrokerError("live authorization top-level fields differ from v5")
+        raise BrokerError("live authorization top-level fields differ from v6")
     if authorization.get("schema") != LIVE_AUTH_SCHEMA_VERSION:
         raise BrokerError("unsupported live authorization schema")
     if authorization.get("authorization_id") != QWEN_SCOUT_AUTHORIZATION_ID:
-        raise BrokerError("authorization is not the exact Qwen v5 scout authorization")
+        raise BrokerError("authorization is not the exact Qwen v6 scout authorization")
     if authorization.get("state") != "PRE_CREATION_REVIEW":
         raise BrokerError("versioned authorization must remain PRE_CREATION_REVIEW")
     if authorization.get("authorized_by") != "explicit-user-manager-intervention-20260819":
@@ -368,7 +433,7 @@ def _validate_live_authorization_snapshot(
         "model_id": QWEN_SCOUT_MODEL,
         "model_revision": QWEN_SCOUT_REVISION,
         "request_sha256": lease["request_sha256"],
-        "source_parent_commit": "27c28e20e89193f3865b5aadf805d0e735f4e20e",
+        "source_parent_commit": "548a7bf1ce5f6ed5caa0e17f04b4afa4585079f9",
         "ttl_cost_ceiling_usd": lease["cost_estimate"]["ttl_cost_ceiling_usd"],
     }
     if frozen != expected_frozen:
@@ -380,9 +445,9 @@ def _validate_live_authorization_snapshot(
     allowed_artifacts = {
         "resource-broker/broker.py",
         "catalog-switch/cerebrium-comparator/comparator.py",
-        "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v5.sh",
-        "catalog-switch/cerebrium-comparator/live/internal_scout_server_v5.py",
-        "catalog-switch/cerebrium-comparator/schemas/live-authorization-v5.schema.json",
+        "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v6.sh",
+        "catalog-switch/cerebrium-comparator/live/internal_scout_server_v6.py",
+        "catalog-switch/cerebrium-comparator/schemas/live-authorization-v6.schema.json",
         "catalog-switch/cerebrium-comparator/schemas/attempt.schema.json",
     }
     if {item.get("path") for item in artifacts if isinstance(item, dict)} != allowed_artifacts:
@@ -446,7 +511,9 @@ def _validate_live_authorization_snapshot(
         "bearer_token_sha256",
         "bootstrap_egress",
         "direct_container_ingress",
-        "gate_signing_key_sha256",
+        "broker_private_key_on_target",
+        "gate_signature_algorithm",
+        "gate_verification_public_key_sha256",
         "ingress",
         "lifecycle_transition",
         "public_ipv4_count",
@@ -461,14 +528,18 @@ def _validate_live_authorization_snapshot(
         network["ingress"] != expected_ingress
         or network["bootstrap_egress"] != expected_bootstrap_egress
         or network["runtime_egress"] != []
-        or network["lifecycle_transition"] != "controller-delete-bootstrap-egress-before-active"
+        or network["lifecycle_transition"] != "host-lockdown-no-listener-then-controller-zero-egress-restart"
         or network["public_ipv4_count"] != 1
         or network["recorder_cidr_published"] is not False
         or network["secret_values_published"] is not False
         or network["ssh_ingress"] is not False
         or network["direct_container_ingress"] is not False
+        or network["broker_private_key_on_target"] is not False
+        or network["gate_signature_algorithm"] != "Ed25519"
+        or network["gate_verification_public_key_sha256"]
+        != GATE_VERIFICATION_PUBLIC_KEY_SHA256
     ):
-        raise BrokerError("authorization network lifecycle is not the exact v5 boundary")
+        raise BrokerError("authorization network lifecycle is not the exact v6 boundary")
     if any(80 in item["ports"] for item in network["bootstrap_egress"]):
         raise BrokerError("unconditional TCP/80 is forbidden")
     cidr = observe_recorder_cidr()
@@ -485,12 +556,6 @@ def _validate_live_authorization_snapshot(
     if hashlib.sha256(bearer_token.encode()).hexdigest() != network["bearer_token_sha256"]:
         raise BrokerError("runtime bearer token differs from the pinned hash")
     gate_signing_key = _load_gate_signing_key(gate_signing_key_path)
-    if hashlib.sha256(gate_signing_key.encode()).hexdigest() != network[
-        "gate_signing_key_sha256"
-    ]:
-        raise BrokerError("broker gate signing key differs from the pinned hash")
-    if hmac.compare_digest(gate_signing_key, bearer_token):
-        raise BrokerError("broker gate signing key must differ from the benchmark bearer")
 
     clearance_public = _validate_clearance(
         load_json(clearance_path),
@@ -505,7 +570,9 @@ def _validate_live_authorization_snapshot(
         "network": {
             "bearer_token_sha256": network["bearer_token_sha256"],
             "bootstrap_egress_rule_count": 4,
-            "gate_signing_key_sha256": network["gate_signing_key_sha256"],
+            "broker_private_key_on_target": False,
+            "gate_signature_algorithm": "Ed25519",
+            "gate_verification_public_key_sha256": GATE_VERIFICATION_PUBLIC_KEY_SHA256,
             "ingress_port": 8080,
             "recorder_cidr_sha256": network["recorder_cidr_sha256"],
             "runtime_egress_rule_count": 0,
@@ -520,7 +587,7 @@ def _validate_live_authorization_snapshot(
         "authorization": authorization,
         "public": public,
         "_bearer_token": bearer_token,
-        "_gate_signing_key": gate_signing_key,
+        "_gate_signing_key_path": gate_signing_key,
         "_recorder_cidr": canonical_cidr,
     }
 
@@ -565,17 +632,11 @@ def _validate_live_resume_snapshot(
     if hashlib.sha256(bearer_token.encode()).hexdigest() != stored["network"]["bearer_token_sha256"]:
         raise BrokerError("runtime bearer token differs during live resume")
     gate_signing_key = _load_gate_signing_key(gate_signing_key_path)
-    if hashlib.sha256(gate_signing_key.encode()).hexdigest() != stored["network"][
-        "gate_signing_key_sha256"
-    ]:
-        raise BrokerError("broker gate signing key differs during live resume")
-    if hmac.compare_digest(gate_signing_key, bearer_token):
-        raise BrokerError("broker gate signing key must differ from the benchmark bearer")
     return {
         "authorization": authorization,
         "public": stored,
         "_bearer_token": bearer_token,
-        "_gate_signing_key": gate_signing_key,
+        "_gate_signing_key_path": gate_signing_key,
         "_recorder_cidr": canonical_cidr,
     }
 
@@ -1811,12 +1872,12 @@ def security_rule_payload(
 
 def authorized_cloud_init(lease: dict[str, Any], snapshot: dict[str, Any]) -> str:
     artifact_paths = {
-        "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v5.sh": (
-            "/opt/catswitch/bootstrap_internal_qwen_v5.sh",
+        "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v6.sh": (
+            "/opt/catswitch/bootstrap_internal_qwen_v6.sh",
             "0755",
         ),
-        "catalog-switch/cerebrium-comparator/live/internal_scout_server_v5.py": (
-            "/opt/catswitch/internal_scout_server_v5.py",
+        "catalog-switch/cerebrium-comparator/live/internal_scout_server_v6.py": (
+            "/opt/catswitch/internal_scout_server_v6.py",
             "0644",
         ),
     }
@@ -1832,21 +1893,19 @@ def authorized_cloud_init(lease: dict[str, Any], snapshot: dict[str, Any]) -> st
             ]
         )
     token_encoded = base64.b64encode(snapshot["_bearer_token"].encode()).decode()
-    gate_key_encoded = base64.b64encode(
-        snapshot["_gate_signing_key"].encode()
-    ).decode()
+    public_key_encoded = base64.b64encode(GATE_VERIFICATION_PUBLIC_KEY.read_bytes()).decode()
     lines.extend(
         [
             "  - path: /run/catswitch/bearer-token",
             "    permissions: '0600'",
             "    encoding: b64",
             f"    content: {token_encoded}",
-            "  - path: /run/catswitch/gate-verifier-key",
-            "    permissions: '0600'",
+            "  - path: /etc/catswitch/gate-verifier-public.pem",
+            "    permissions: '0644'",
             "    encoding: b64",
-            f"    content: {gate_key_encoded}",
+            f"    content: {public_key_encoded}",
             "runcmd:",
-            "  - [bash, /opt/catswitch/bootstrap_internal_qwen_v5.sh]",
+            "  - [bash, /opt/catswitch/bootstrap_internal_qwen_v6.sh]",
             f"final_message: 'catalog-switch bootstrap finished; lease={lease['lease_id']}'",
             "",
         ]
@@ -1889,7 +1948,7 @@ def provision(
     public_authorization = live_snapshot.get("public", {})
     private_keys_present = {
         key
-        for key in ("_bearer_token", "_gate_signing_key", "_recorder_cidr")
+        for key in ("_bearer_token", "_gate_signing_key_path", "_recorder_cidr")
         if key in live_snapshot
     }
     if (
@@ -1897,7 +1956,7 @@ def provision(
         or public_authorization.get("clearance", {}).get("decision") != "CLEARED"
         or public_authorization.get("clearance", {}).get("reviewed_commit") is None
         or private_keys_present
-        != {"_bearer_token", "_gate_signing_key", "_recorder_cidr"}
+        != {"_bearer_token", "_gate_signing_key_path", "_recorder_cidr"}
     ):
         raise BrokerError("live authorization has not passed the exact independent gate")
     if lease["state"] == "ACTIVE":
@@ -2390,10 +2449,114 @@ def prove_health(
     )
 
 
+def prove_runtime_listener(
+    lease_path: Path,
+    registry_path: Path,
+    cli: NebiusCLI,
+    instance_id: str,
+    *,
+    authorization_path: Path,
+    clearance_path: Path,
+    bearer_token_path: Path,
+    gate_signing_key_path: Path,
+) -> None:
+    """Restart only after zero egress, then prove the v6 listener became reachable."""
+    lease = load_json(lease_path)
+    isolation = lease.get("isolation_proof")
+    if not isinstance(isolation, dict):
+        raise BrokerError("runtime listener requires pre-restart isolation proof")
+    validate_isolation_proof(lease, isolation)
+    if any(
+        item.get("direction") == "egress"
+        for item in isolation.get("security_group", {}).get("rules", [])
+    ):
+        raise BrokerError("runtime listener restart requires proven zero egress")
+    _fresh_live_snapshot(
+        authorization_path,
+        clearance_path,
+        lease_path,
+        bearer_token_path,
+        gate_signing_key_path,
+    )
+    restarted_at = utc_now()
+    cli.run(["compute", "instance", "restart", instance_id], timeout=300)
+    marker_prefix = "CATSWITCH_QWEN3_H100_V6_SERVER_READY_B64="
+    deadline = time.monotonic() + int(lease["request"]["health_proof"]["timeout_seconds"])
+    last_logs = ""
+    while time.monotonic() < deadline:
+        _fresh_live_snapshot(
+            authorization_path,
+            clearance_path,
+            lease_path,
+            bearer_token_path,
+            gate_signing_key_path,
+        )
+        last_logs = cli.run(
+            [
+                "compute", "instance", "logs", instance_id, "--project-id",
+                lease["request"]["project_id"], "--since", "30m", "--limit", "500",
+            ],
+            json_output=False,
+            timeout=45,
+        )
+        matches = re.findall(
+            rf"(?:^|\n){marker_prefix}([A-Za-z0-9_-]+)(?:\n|$)", last_logs
+        )
+        listener_value = None
+        if matches:
+            try:
+                encoded = matches[-1] + "=" * (-len(matches[-1]) % 4)
+                candidate = json.loads(base64.urlsafe_b64decode(encoded).decode())
+                observed_at = dt.datetime.strptime(
+                    candidate["observed_at_utc"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                ).replace(tzinfo=dt.timezone.utc)
+                if (
+                    set(candidate) == {"boot_id", "lease_id", "observed_at_utc", "schema"}
+                    and candidate["schema"] == "catalog-switch-runtime-listener-proof/v6"
+                    and candidate["lease_id"] == lease["lease_id"]
+                    and re.fullmatch(
+                        r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}",
+                        str(candidate["boot_id"]),
+                    )
+                    and restarted_at - dt.timedelta(seconds=5)
+                    <= observed_at
+                    <= utc_now() + dt.timedelta(seconds=5)
+                ):
+                    listener_value = candidate
+            except (KeyError, ValueError, UnicodeDecodeError, json.JSONDecodeError):
+                listener_value = None
+        if listener_value is not None:
+            lease = load_json(lease_path)
+            lease["runtime_listener_proof"] = {
+                "instance_id": instance_id,
+                "observed_at": iso(utc_now()),
+                "serial_log_marker": marker_prefix,
+                "serial_log_marker_observed": True,
+                "boot_id_sha256": hashlib.sha256(
+                    listener_value["boot_id"].encode()
+                ).hexdigest(),
+                "listener_observed_at_utc": listener_value["observed_at_utc"],
+                "pre_restart_isolation_proof_sha256": sha256_json(isolation),
+            }
+            add_event(
+                lease,
+                "RUNTIME_LISTENER_PROOF",
+                "PASS",
+                "listener started only after host lockdown and controller zero-egress restart",
+            )
+            save_lease(lease_path, registry_path, lease)
+            return
+        time.sleep(10)
+    raise BrokerError(
+        f"runtime listener proof timed out; marker_observed={marker_prefix in last_logs}"
+    )
+
+
 def runtime_receipt_payload(lease: dict[str, Any]) -> dict[str, Any]:
     """Return the exact broker-ledger join covered by the runtime signature."""
     health = lease.get("health_proof")
     isolation = lease.get("isolation_proof")
+    listener = lease.get("runtime_listener_proof")
     live_authorization = lease.get("live_authorization")
     live_resources = sorted(
         (
@@ -2403,15 +2566,20 @@ def runtime_receipt_payload(lease: dict[str, Any]) -> dict[str, Any]:
         ),
         key=lambda item: (item["kind"], item["id"]),
     )
-    if not isinstance(health, dict) or not isinstance(isolation, dict):
-        raise BrokerError("runtime receipt requires health and isolation proofs")
+    if (
+        not isinstance(health, dict)
+        or not isinstance(isolation, dict)
+        or not isinstance(listener, dict)
+    ):
+        raise BrokerError("runtime receipt requires health, isolation, and listener proofs")
     if not isinstance(live_authorization, dict):
         raise BrokerError("runtime receipt requires stored live authorization")
     return {
-        "schema": "catalog-switch-broker-runtime-receipt/v5",
+        "schema": "catalog-switch-broker-runtime-receipt/v6",
         "authorization_sha256": live_authorization["authorization_sha256"],
         "health_proof_sha256": sha256_json(health),
         "isolation_proof_sha256": sha256_json(isolation),
+        "listener_proof_sha256": sha256_json(listener),
         "lease_id": lease["lease_id"],
         "lease_plan_sha256": live_authorization["frozen"]["lease_plan_sha256"],
         "lease_state": lease["state"],
@@ -2419,25 +2587,23 @@ def runtime_receipt_payload(lease: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_runtime_gate(lease: dict[str, Any], gate_signing_key: str) -> dict[str, Any]:
+def build_runtime_gate(lease: dict[str, Any], gate_signing_key: Path) -> dict[str, Any]:
     """Sign the exact ACTIVE ledger join with the non-client broker authority."""
     if lease.get("state") != "ACTIVE":
         raise BrokerError("runtime gate requires an ACTIVE broker lease")
     health = lease.get("health_proof")
     isolation = lease.get("isolation_proof")
+    listener = lease.get("runtime_listener_proof")
     live_authorization = lease.get("live_authorization")
-    if not isinstance(health, dict) or not isinstance(isolation, dict):
-        raise BrokerError("runtime gate requires health and isolation proofs")
+    if (
+        not isinstance(health, dict)
+        or not isinstance(isolation, dict)
+        or not isinstance(listener, dict)
+    ):
+        raise BrokerError("runtime gate requires health, isolation, and listener proofs")
     if not isinstance(live_authorization, dict):
         raise BrokerError("runtime gate requires the stored live authorization")
-    expected_key_hash = live_authorization.get("network", {}).get(
-        "gate_signing_key_sha256"
-    )
-    if (
-        not re.fullmatch(r"[0-9a-f]{64}", gate_signing_key)
-        or hashlib.sha256(gate_signing_key.encode()).hexdigest() != expected_key_hash
-    ):
-        raise BrokerError("runtime gate was not signed by the pinned broker-only authority")
+    gate_signing_key = _load_gate_signing_key(Path(gate_signing_key))
     observed_gpu = health.get("observed_gpu")
     if (
         not isinstance(observed_gpu, dict)
@@ -2494,7 +2660,7 @@ def build_runtime_gate(lease: dict[str, Any], gate_signing_key: str) -> dict[str
         raise BrokerError("runtime gate instance/GPU/isolation join differs from the lease")
     receipt = runtime_receipt_payload(lease)
     payload = {
-        "schema": "catalog-switch-internal-runtime-gate/v5",
+        "schema": "catalog-switch-internal-runtime-gate/v6",
         "authorization_id": QWEN_SCOUT_AUTHORIZATION_ID,
         "authorization_sha256": live_authorization["authorization_sha256"],
         "broker_receipt_sha256": sha256_json(receipt),
@@ -2502,6 +2668,7 @@ def build_runtime_gate(lease: dict[str, Any], gate_signing_key: str) -> dict[str
         "health_proof_sha256": sha256_json(health),
         "instance_id": instance_id,
         "isolation_proof_sha256": sha256_json(isolation),
+        "listener_proof_sha256": sha256_json(listener),
         "issued_at_utc": iso(utc_now()),
         "lease_id": lease["lease_id"],
         "lease_plan_sha256": live_authorization["frozen"]["lease_plan_sha256"],
@@ -2514,10 +2681,8 @@ def build_runtime_gate(lease: dict[str, Any], gate_signing_key: str) -> dict[str
         },
         "runtime_egress_rule_count": 0,
     }
-    signature = hmac.new(
-        gate_signing_key.encode(), canonical(payload).encode(), hashlib.sha256
-    ).hexdigest()
-    return {**payload, "gate_hmac_sha256": signature}
+    signature = _ed25519_sign(canonical(payload).encode(), gate_signing_key)
+    return {**payload, "gate_signature_ed25519_base64": signature}
 
 
 def verify_health_lease(
@@ -2561,7 +2726,7 @@ def verify_health_lease(
         validate_isolation_proof(lease, lease["isolation_proof"])
         live_snapshot = fresh()
         lease["runtime_gate"] = build_runtime_gate(
-            lease, live_snapshot["_gate_signing_key"]
+            lease, live_snapshot["_gate_signing_key_path"]
         )
         save_lease(lease_path, registry_path, lease)
         return lease
@@ -2603,10 +2768,30 @@ def verify_health_lease(
     fresh()
     lease["isolation_proof"] = capture_isolation_proof(lease, cli)
     validate_isolation_proof(lease, lease["isolation_proof"])
+    save_lease(lease_path, registry_path, lease)
+    prove_runtime_listener(
+        lease_path,
+        registry_path,
+        cli,
+        instance_id,
+        authorization_path=authorization_path,
+        clearance_path=clearance_path,
+        bearer_token_path=bearer_token_path,
+        gate_signing_key_path=gate_signing_key_path,
+    )
+    lease = load_json(lease_path)
+    fresh()
+    reconcile_managed_children(lease, cli)
+    fresh()
+    lease["isolation_proof"] = capture_isolation_proof(lease, cli)
+    validate_isolation_proof(lease, lease["isolation_proof"])
+    lease["runtime_listener_proof"]["post_restart_isolation_proof_sha256"] = (
+        sha256_json(lease["isolation_proof"])
+    )
     live_snapshot = fresh()
     lease["state"] = "ACTIVE"
     lease["runtime_gate"] = build_runtime_gate(
-        lease, live_snapshot["_gate_signing_key"]
+        lease, live_snapshot["_gate_signing_key_path"]
     )
     add_event(lease, "LEASE_ACTIVE", "PASS", "VM running and newest serial-log marker observed")
     save_lease(lease_path, registry_path, lease)

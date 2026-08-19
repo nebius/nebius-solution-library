@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-internal-live-authorization-v5.schema.json",
-  "title": "Catalog-switch internal live authorization v5",
+  "$id": "catalog-switch-internal-live-authorization-v6.schema.json",
+  "title": "Catalog-switch internal live authorization v6",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,8 +21,8 @@
     "state"
   ],
   "properties": {
-    "schema": {"const": "catalog-switch-internal-live-authorization/v5"},
-    "authorization_id": {"const": "internal-qwen3-h100-scout-v5-20260819"},
+    "schema": {"const": "catalog-switch-internal-live-authorization/v6"},
+    "authorization_id": {"const": "internal-qwen3-h100-scout-v6-20260819"},
     "state": {"const": "PRE_CREATION_REVIEW"},
     "issued_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
     "expires_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
@@ -52,7 +52,7 @@
         "branch": {"const": "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark"},
         "gpu_count": {"const": 1},
         "gpu_type": {"const": "H100"},
-        "lease_id": {"const": "catswitch-qwen3-h100-scout-v5-20260819"},
+        "lease_id": {"const": "catswitch-qwen3-h100-scout-v6-20260819"},
         "mode": {"const": "preemptible"},
         "profile": {"const": "h100-single"},
         "project_id": {"const": "project-e00z6b02t8ddk96c49"},
@@ -73,17 +73,19 @@
         "model_id": {"const": "Qwen/Qwen3-8B"},
         "model_revision": {"const": "b968826d9c46dd6066d109eabc6255188de91218"},
         "request_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
-        "source_parent_commit": {"const": "27c28e20e89193f3865b5aadf805d0e735f4e20e"},
+        "source_parent_commit": {"const": "548a7bf1ce5f6ed5caa0e17f04b4afa4585079f9"},
         "ttl_cost_ceiling_usd": {"pattern": "^[0-9]+\\.[0-9]+$", "type": "string"}
       }
     },
     "network": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["bearer_token_sha256", "bootstrap_egress", "direct_container_ingress", "gate_signing_key_sha256", "ingress", "lifecycle_transition", "public_ipv4_count", "recorder_cidr_published", "recorder_cidr_sha256", "runtime_egress", "secret_values_published", "ssh_ingress"],
+      "required": ["bearer_token_sha256", "bootstrap_egress", "broker_private_key_on_target", "direct_container_ingress", "gate_signature_algorithm", "gate_verification_public_key_sha256", "ingress", "lifecycle_transition", "public_ipv4_count", "recorder_cidr_published", "recorder_cidr_sha256", "runtime_egress", "secret_values_published", "ssh_ingress"],
       "properties": {
         "bearer_token_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
-        "gate_signing_key_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "broker_private_key_on_target": {"const": false},
+        "gate_signature_algorithm": {"const": "Ed25519"},
+        "gate_verification_public_key_sha256": {"const": "bd7d25d0f56bf93fe54fc003439660e04adb67509da38096ac0dc121a11cc42a"},
         "recorder_cidr_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
         "bootstrap_egress": {
           "type": "array",
@@ -105,7 +107,7 @@
         "ingress": {
           "const": {"authentication": "bearer-sha256-pinned", "port": 8080, "protocol": "TCP", "source": "runtime-observed-ipv4-32-sha256-pinned"}
         },
-        "lifecycle_transition": {"const": "controller-delete-bootstrap-egress-before-active"},
+        "lifecycle_transition": {"const": "host-lockdown-no-listener-then-controller-zero-egress-restart"},
         "public_ipv4_count": {"const": 1},
         "recorder_cidr_published": {"const": false},
         "runtime_egress": {"maxItems": 0, "type": "array"},

@@ -16,7 +16,7 @@ those recorded IDs. It never adopts or mutates a pre-existing project resource.
   first lists every broker-prefixed resource and rejects exact-name collisions.
 - The broker default remains air-gapped: a VM gets a fresh VPC, private subnet,
   deny-all security group, automatically encrypted Network SSD boot disk, and
-  no public IP or attached service account. The versioned Qwen v5 authorization
+  no public IP or attached service account. The versioned Qwen v6 authorization
   is the only narrower exception: one lease-bound public `/32`, authenticated
   TCP/8080 from the hash-pinned recorder `/32`, no SSH/direct-container
   ingress, and zero egress before `ACTIVE`. Artifact buckets are private,
@@ -38,7 +38,7 @@ those recorded IDs. It never adopts or mutates a pre-existing project resource.
   deadline, not provider-side magic: the hourly supervisor must run the scanner
   and exact-ID cleanup for expired leases.
 - On this comparator task branch, every `provision` and `verify-health` path is
-  additionally sealed behind the versioned Qwen v5 authorization and a
+  additionally sealed behind the versioned Qwen v6 authorization and a
   separate, exact-commit independent clearance. Missing authorization blocks
   CPU, Qwen, and GLM leases before provider preflight. This is intentionally
   narrower than the reviewed broker's general interface.
@@ -96,11 +96,11 @@ gate signing key:
 python3 broker.py \
   --registry ../catalog-switch/cerebrium-comparator/resource-requests/registry.json \
   provision \
-  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v5.lease.json \
-  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v5.json \
+  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v6.lease.json \
+  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v6.json \
   --clearance /secure/external/exact-commit-clearance.json \
   --bearer-token /secure/external/qwen-scout-bearer \
-  --gate-signing-key /secure/external/qwen-scout-gate-key \
+  --gate-signing-key /secure/external/qwen-scout-ed25519-private.pem \
   --execute
 ```
 
@@ -111,22 +111,25 @@ same fail-closed health gate without creating anything new:
 python3 broker.py \
   --registry ../catalog-switch/cerebrium-comparator/resource-requests/registry.json \
   verify-health \
-  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v5.lease.json \
-  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v5.json \
+  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v6.lease.json \
+  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v6.json \
   --clearance /secure/external/exact-commit-clearance.json \
   --bearer-token /secure/external/qwen-scout-bearer \
-  --gate-signing-key /secure/external/qwen-scout-gate-key \
+  --gate-signing-key /secure/external/qwen-scout-ed25519-private.pem \
   --execute
 ```
 
-The Qwen v5 API accepts no caller-created authorization context or supplied
+The Qwen v6 API accepts no caller-created authorization context or supplied
 clock/Git/recorder observation. It re-observes those inputs before every live
 mutation or resumed use. The health proof requires live `RUNNING`, the lease
-marker, an observed exactly-one-H100 serial proof, and deletion/absence of all
-bootstrap egress before `ACTIVE`. The live VM interface must join the exact
-reviewed network/subnet/security group. Only then does the broker issue a
-short-lived runtime gate signed with the non-client key and bound to the exact
-ledger/health/isolation/GPU receipt consumed by the application and comparator.
+bootstrap marker, an observed exactly-one-H100 serial proof, and a host-level
+output-drop boundary while TCP/8080 is absent. The controller then deletes and
+absence-proves all cloud bootstrap egress before restarting the VM; only the
+post-restart listener marker is admissible. The live VM interface must join the
+exact reviewed network/subnet/security group. Only then does the broker issue a
+short-lived Ed25519 runtime gate bound to the exact
+ledger/health/isolation/listener/GPU receipt. The private signing key never
+enters cloud-init or VM state; the VM receives only the hash-pinned public key.
 Inspect the
 exact reverse-order cleanup plan before executing it. Cleanup deliberately does
 not require a still-valid performance clearance,
@@ -193,13 +196,15 @@ python3 -m json.tool profiles.json >/dev/null
 python3 -m json.tool lease.schema.json >/dev/null
 ```
 
-The 32-test unit suite covers policy validation, request-hash idempotency,
+The 35-test unit suite covers policy validation, request-hash idempotency,
 unauthorized project rejection, the GPU experiment gate, mandatory live
 authorization, exact commit/reviewer/time binding, source drift, observed GPU
 shape, interrupted partial creation, lifecycle egress narrowing, public/private
 child reconciliation, exact VM-interface binding, response-loss create
 reconciliation, unresolved-intent cleanup refusal, foreign replacement
-preservation, idempotent cleanup, non-client runtime-gate authority, orphan
+preservation, idempotent cleanup, asymmetric non-client runtime-gate authority,
+VM self-mint rejection, pre-listener host lockdown, zero-egress-before-restart,
+fresh boot-bound listener proof, orphan
 scanning, and the supervisor export contract. It also proves that
 capacity advice is matched on the nested exact platform/preset contract and
 that limit-reached modes fail before any create call.

@@ -1,0 +1,89 @@
+{
+  "schema": "catalog-switch-internal-live-authorization/v6",
+  "authorization_id": "internal-qwen3-h100-scout-v6-20260819",
+  "state": "PRE_CREATION_REVIEW",
+  "issued_at": "2026-08-19T17:45:12Z",
+  "expires_at": "2026-08-19T21:45:12Z",
+  "authorized_by": "explicit-user-manager-intervention-20260819",
+  "required_reviewer": "catalog-switch-independent-precreation-reviewer-v2",
+  "scope": {
+    "arm_id": "internal-qwen3-new-target-matched",
+    "backend": "internal-nebius",
+    "branch": "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark",
+    "gpu_count": 1,
+    "gpu_type": "H100",
+    "lease_id": "catswitch-qwen3-h100-scout-v6-20260819",
+    "mode": "preemptible",
+    "profile": "h100-single",
+    "project_id": "project-e00z6b02t8ddk96c49",
+    "region": "eu-north1",
+    "task_id": "catalog-switch-cerebrium-qwen3-glm52-benchmark"
+  },
+  "frozen": {
+    "campaign_sha256": "e6a36c56455cdb5a603eadc1d01781692899ba789a4459bc26e631b5d4d11cba",
+    "expected_cost_usd": "4.360934",
+    "image_amd64_digest": "sha256:7c2c59db86a9a64138c5c675b98e3e05b7f37a34a344d4aa461b1529ed60262d",
+    "input_sha256": "c3e3250abbb92869b7a51325a5fd5358eb98122d73698956cf064ed491d3291d",
+    "lease_plan_sha256": "c3af34df794e181efc15736a823e64d3862e2d596ac3371d53fbf9fee7519d58",
+    "model_id": "Qwen/Qwen3-8B",
+    "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "request_sha256": "a110da8f1e7336748199893933be02218d775da1dc7ff3b2f6691ef2d2871d79",
+    "source_parent_commit": "548a7bf1ce5f6ed5caa0e17f04b4afa4585079f9",
+    "ttl_cost_ceiling_usd": "8.721867"
+  },
+  "artifacts": [
+    {"path": "resource-broker/broker.py", "sha256": "94501f31c18e73413e8999f94b50d2872067fd2713d5111eb724c83d7da40ec0"},
+    {"path": "catalog-switch/cerebrium-comparator/comparator.py", "sha256": "409cf7ad543f668fa8dd2bb72fa5a7b92e3cf3d9fa95b27c97abc2746ec80d5e"},
+    {"path": "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v6.sh", "sha256": "525f49a413837b0aa4070d6d3f234e127f8da53c28fda99c8104114ef6585b8a"},
+    {"path": "catalog-switch/cerebrium-comparator/live/internal_scout_server_v6.py", "sha256": "cedaa2ed1802ecc7a03878572c3c4bd186813ce6c4f274b4f61fc3837d918835"},
+    {"path": "catalog-switch/cerebrium-comparator/schemas/live-authorization-v6.schema.json", "sha256": "923faa432f5fa221479be295df5adf7cf3d277bf05ad67fe58d044619b2f21b8"},
+    {"path": "catalog-switch/cerebrium-comparator/schemas/attempt.schema.json", "sha256": "7eb5695b3848bf617e6d39f8316a1f0364a493fc93c1a73c6522e742ecf859db"}
+  ],
+  "network": {
+    "bearer_token_sha256": "05d63fab4f79a7e460368d4950fa15297a342d7efc02c874e3ac71e264095b12",
+    "bootstrap_egress": [
+      {"destination_cidrs": ["0.0.0.0/0"], "ports": [443], "protocol": "TCP", "purpose": "TLS image/model localization"},
+      {"destination_cidrs": ["0.0.0.0/0"], "ports": [53], "protocol": "UDP", "purpose": "DNS resolution"},
+      {"destination_cidrs": ["0.0.0.0/0"], "ports": [53], "protocol": "TCP", "purpose": "DNS fallback"},
+      {"destination_cidrs": ["0.0.0.0/0"], "ports": [123], "protocol": "UDP", "purpose": "UTC clock synchronization"}
+    ],
+    "broker_private_key_on_target": false,
+    "direct_container_ingress": false,
+    "gate_signature_algorithm": "Ed25519",
+    "gate_verification_public_key_sha256": "bd7d25d0f56bf93fe54fc003439660e04adb67509da38096ac0dc121a11cc42a",
+    "ingress": {
+      "authentication": "bearer-sha256-pinned",
+      "port": 8080,
+      "protocol": "TCP",
+      "source": "runtime-observed-ipv4-32-sha256-pinned"
+    },
+    "lifecycle_transition": "host-lockdown-no-listener-then-controller-zero-egress-restart",
+    "public_ipv4_count": 1,
+    "recorder_cidr_published": false,
+    "recorder_cidr_sha256": "8a02896ad4d9e37d66635ee97638dd8af40442bb0ef4f473f0b0602fb13e16f4",
+    "runtime_egress": [],
+    "secret_values_published": false,
+    "ssh_ingress": false
+  },
+  "observed_gpu": {
+    "count": 1,
+    "marker": "CATSWITCH_GPU_PROOF_B64",
+    "name_regex": "^NVIDIA H100(?: |$)",
+    "source": "bootstrap-nvidia-smi-serial-proof"
+  },
+  "qualification": {
+    "headline_request_ordinal": 1,
+    "independent_recorder_oracle_validation": true,
+    "requests_per_runtime": 2,
+    "runtime_group_ids": ["qwen-smoke-01", "qwen-scout-01", "qwen-scout-02", "qwen-scout-03"],
+    "server_oracle_verdict_required": true,
+    "teardown_after_request_ordinal": 2
+  },
+  "cleanup": {
+    "desired_final_state": "ABSENT",
+    "foreign_replacement_policy": "fail-closed-no-delete",
+    "idempotent": true,
+    "partial_create_cleanup": true,
+    "verification": "exact-id-not-found-plus-cascade-child-absence"
+  }
+}

@@ -41,11 +41,17 @@ interface to the reviewed subnet/security group, a response-lost create could
 escape cleanup, and ordinal 1 could be admitted twice before completion. V4 is
 immutable rejected evidence.
 
-V5 is a fresh direct child that adds a distinct broker-only signing authority,
-exact live network joins, durable create-intent reconciliation/refusal, and
-pre-work ordinal consumption with terminal crash semantics. These are offline
-candidate closures only. No independent clearance for the exact v5 commit
-exists; the state is `PRE-CREATION REVIEW`, not approval to provision.
+Independent exact review also rejected v5 commit `548a7bf1` because the app
+listener started while broad bootstrap egress remained, the symmetric HMAC
+secret was copied to the VM, and the pair workflow had no executable CLI path.
+V5 remains immutable rejected evidence.
+
+V6 is a fresh direct child. It installs host output-drop and proves no listener
+during bootstrap, deletes/absence-proves cloud egress before restart, places
+only an Ed25519 public verifier on the VM, and exposes one sealed four-group
+campaign CLI with no caller boolean. These are offline candidate closures only.
+No independent clearance for the exact v6 commit exists; the state is
+`PRE-CREATION REVIEW`, not approval to provision.
 
 ## Statistics, evidence, and cleanup review state
 
