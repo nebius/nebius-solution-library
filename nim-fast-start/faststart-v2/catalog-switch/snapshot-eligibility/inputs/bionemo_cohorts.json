@@ -1,11 +1,12 @@
 {
- "comment": "Hand-encoded per-NIM cohort requirements and storage/topology blockers for the ten ARCHVTEAMS-2407 BioNeMo NIM lanes, ordered evidence-first (Boltz2 and OpenFold2 carry fresh fail-closed n=20 cohorts). Provisioned-node statuses are derived from committed lane evidence at the pinned catalog commit; new-preemptible-node cohorts do not exist under the current exact contract for any NIM (the OpenFold2 new-node lane records zero current-contract samples and a newnode-v2-only future execution path), so they are recorded as required, never invented.",
+ "comment": "Hand-encoded per-NIM storage/topology blockers and new-node historical notes for the ten ARCHVTEAMS-2407 BioNeMo NIM lanes, ordered evidence-first (Boltz2 and OpenFold2 carry the fresh fail-closed n=20 cohorts). Cohort statuses, outcomes, and further-required work are NOT encoded here: the builder derives them from the vendored catalog's measured evidence class and verifies every evidence ref against committed bytes (SHA-256 bound, sample counts re-counted, nearest-rank percentiles recomputed, digests and response-timing contract matched, zero current-contract new-node samples proven from the committed audit). New-preemptible-node cohorts do not exist under the current exact contract for any NIM, so they are recorded as required, never invented.",
  "pinned_catalog_commit": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
  "evidence_order": [
   "boltz2", "openfold2", "diffdock", "evo2-40b", "genmol", "molmim",
   "msa-search", "openfold3", "proteinmpnn", "rfdiffusion"
  ],
- "new_preemptible_required_default": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+ "new_preemptible_min_accepted_samples": 20,
+ "new_preemptible_required_default": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
  "nims": {
   "boltz2": {
    "row_id": "faststart:boltz2@sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98",
@@ -14,14 +15,7 @@
     "storage attached never implies bytes page-resident; the proven cohort's storage state is 'direct' and any other tier requires its own measured restore"
    ],
    "topology_blockers": [],
-   "provisioned_node": {
-    "status": "complete-fresh-fail-closed-n20",
-    "further_required": null
-   },
-   "new_preemptible_node": {
-    "status": "required-not-run",
-    "historical_note": null
-   }
+   "newnode_historical_note": null
   },
   "openfold2": {
    "row_id": "faststart:openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4",
@@ -29,18 +23,7 @@
     "G-STORAGE applies: direct/O_DIRECT model artifact volume must be content-verified against the promotion tuple before restore; the proven cohort's storage state is 'direct'"
    ],
    "topology_blockers": [],
-   "provisioned_node": {
-    "status": "complete-fresh-fail-closed-n20",
-    "further_required": null
-   },
-   "new_preemptible_node": {
-    "status": "required-not-run",
-    "historical_note": "two historical new-node lifecycles passed (of2-newnode-r4-0418, of2-newnode-r5-regional) but are non-poolable under the current exact contract; zero current-contract samples exist and the future execution path is newnode-v2-only",
-    "evidence_refs": [
-     "nim-fast-start/faststart-v2/openfold2-newnode/CURRENT_STATUS.json",
-     "nim-fast-start/faststart-v2/openfold2-newnode/README.md"
-    ]
-   }
+   "newnode_historical_note": "two historical new-node lifecycles passed (of2-newnode-r4-0418, of2-newnode-r5-regional) but are non-poolable under the current exact contract; zero current-contract samples exist and the future execution path is newnode-v2-only"
   },
   "diffdock": {
    "row_id": "faststart:diffdock@sha256:300696eb8331d78face40f84d835cc1e278c7d3c391c5aabbbee5884366da480",
@@ -48,14 +31,7 @@
     "evidence assumes a buffered, fully prewarmed artifact volume (7.5 GB); unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
    ],
    "topology_blockers": [],
-   "provisioned_node": {
-    "status": "complete-n3",
-    "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard"
-   },
-   "new_preemptible_node": {
-    "status": "required-not-run",
-    "historical_note": null
-   }
+   "newnode_historical_note": null
   },
   "evo2-40b": {
    "row_id": "faststart:evo2-40b@sha256:561886bab1d2d0da836ebf5bec403f9de2baf6e92deb7eedf1b316aa994b5dd2",
@@ -66,14 +42,7 @@
     "GPU-count discrepancy: the lane profile pins a single-H200 configuration while the Terraform catalog requests 2 GPUs for the same image; this must be resolved before any capture qualification",
     "writable state on the production-shaped route is unknown; the state audit is unfinished"
    ],
-   "provisioned_node": {
-    "status": "missing-production-shaped",
-    "further_required": "production-shaped capture and cohort on the pinned digest; deferred pending the explicit owner decision to release the only allowed H200"
-   },
-   "new_preemptible_node": {
-    "status": "blocked-hardware-gate-h200",
-    "historical_note": "only manual/provisional restore-trigger evidence exists (65.377 s median from an in-Pod trigger); it is not comparable with the production clock"
-   }
+   "newnode_historical_note": "only manual/provisional restore-trigger evidence exists (65.377 s median from an in-Pod trigger); it is not comparable with the production clock"
   },
   "genmol": {
    "row_id": "faststart:genmol@sha256:139b909a450fe1fb81198214784a15f67e172e766a93a1569827ba5aa05b4541",
@@ -81,14 +50,7 @@
     "evidence assumes a buffered, fully prewarmed artifact volume (4.8 GB); unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
    ],
    "topology_blockers": [],
-   "provisioned_node": {
-    "status": "complete-n3",
-    "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard"
-   },
-   "new_preemptible_node": {
-    "status": "required-not-run",
-    "historical_note": null
-   }
+   "newnode_historical_note": null
   },
   "molmim": {
    "row_id": "faststart:molmim@sha256:7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa",
@@ -96,14 +58,7 @@
     "evidence assumes buffered, fully prewarmed artifact (5.2 GB) and cache (0.3 GB) volumes; unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
    ],
    "topology_blockers": [],
-   "provisioned_node": {
-    "status": "complete-n3",
-    "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard"
-   },
-   "new_preemptible_node": {
-    "status": "required-not-run",
-    "historical_note": null
-   }
+   "newnode_historical_note": null
   },
   "msa-search": {
    "row_id": "faststart:msa-search@sha256:944f3cf845761be8e42b33147ae08b68c61eca7cad67bf5251e1708d03c0165c",
@@ -111,16 +66,10 @@
     "prewarmed database cache volume required (PDB70 subset, 0.1 GB measured); full MSA databases are much larger and outside the selected route, so any database expansion requires a new cohort"
    ],
    "topology_blockers": [
-    "native capture excluded: the runtime's process topology at load differs from the captured topology, so restore identity cannot hold; conventional-only is permanent absent new runtime evidence"
+    "current-artifact topology mismatch, correctable: the v1 donor captured /opt/nim/workspace as emptyDir while the qualified target used the final cache PVC, and the MMseqs shared-memory token differed because a compatibility symlink changed the canonical database path; no native attempt passed strict inference semantics",
+    "prescribed fix before any native promotion: capture a fresh checkpoint with the final cache PVC mounted identically at /opt/nim/.cache and /opt/nim/workspace, then qualify with identical target mounts; the checked-in donor and target templates already express the aligned topology"
    ],
-   "provisioned_node": {
-    "status": "complete-n3-conventional",
-    "further_required": "fresh fail-closed n=20 conventional rerun to the Boltz2/OpenFold2 evidence standard"
-   },
-   "new_preemptible_node": {
-    "status": "required-not-run",
-    "historical_note": "cohort is conventional-cached-start only; no snapshot attempt is admissible"
-   }
+   "newnode_historical_note": "cohort is conventional-cached-start only until the prescribed topology-aligned recapture qualifies; no snapshot attempt is admissible before that"
   },
   "openfold3": {
    "row_id": "faststart:openfold3@sha256:6286cc7c02247ed3efe42f0f1af6c2f6f6a680b1e5cae669512c44b636aa42d2",
@@ -128,14 +77,7 @@
     "evidence assumes a buffered, fully prewarmed artifact volume (9.3 GB); unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
    ],
    "topology_blockers": [],
-   "provisioned_node": {
-    "status": "complete-n3",
-    "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (T0-to-call-2 median 30.56 s already exceeds the 30 s SLO)"
-   },
-   "new_preemptible_node": {
-    "status": "required-not-run",
-    "historical_note": null
-   }
+   "newnode_historical_note": null
   },
   "proteinmpnn": {
    "row_id": "faststart:proteinmpnn@sha256:b55a0aa6733e267e6e6fe06434e98aea61eff14bc5545127555607fef6f38aa5",
@@ -143,14 +85,7 @@
     "evidence assumes a buffered, fully prewarmed artifact volume (1.9 GB); unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
    ],
    "topology_blockers": [],
-   "provisioned_node": {
-    "status": "complete-n3",
-    "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard"
-   },
-   "new_preemptible_node": {
-    "status": "required-not-run",
-    "historical_note": null
-   }
+   "newnode_historical_note": null
   },
   "rfdiffusion": {
    "row_id": "faststart:rfdiffusion@sha256:15e40e466d8ebe9a53f1feea599373720428c9de65da750bf4271c96ec35ceb4",
@@ -158,14 +93,7 @@
     "evidence assumes buffered, fully prewarmed artifact (22.1 GB) and cache (2.6 GB) volumes; unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
    ],
    "topology_blockers": [],
-   "provisioned_node": {
-    "status": "complete-n3",
-    "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (T0-to-call-2 median 31.38 s already exceeds the 30 s SLO)"
-   },
-   "new_preemptible_node": {
-    "status": "required-not-run",
-    "historical_note": null
-   }
+   "newnode_historical_note": null
   }
  }
 }

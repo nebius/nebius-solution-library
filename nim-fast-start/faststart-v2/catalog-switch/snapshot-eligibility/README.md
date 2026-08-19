@@ -16,8 +16,10 @@ fail-closed startup path.
   rows: no catalog row has direct evidence that externalization is both
   required and sufficient. The candidate external-/tmp Boltz2 variant
   is tracked by a sibling task and would land here once qualified.)
-- **conventional-only** — snapshot rejected by evidence (topology-
-  mismatched runtime) or by nature (non-serving row).
+- **conventional-only** — snapshot rejected on current evidence (for
+  example a correctable capture-artifact topology mismatch) or by
+  nature (non-serving row); reclassification requires new exact capture
+  and qualification evidence through the shared canary process.
 - **unresolved** — insufficient evidence; fail-closed to the
   conventional fallback until the named blockers are resolved through
   the shared canary process.
@@ -35,11 +37,22 @@ fail-closed startup path.
 evidence-first coverage of all ten ARCHVTEAMS-2407 BioNeMo NIMs (Boltz2
 and OpenFold2 first, with their fresh fail-closed n=20 cohorts), each
 recording exact snapshot eligibility, the conventional fallback,
-storage/topology blockers, the provisioned-node cohort status, and the
-required — currently nonexistent — new-preemptible-node cohort
-(`inputs/bionemo_cohorts.json` is the hand-encoded evidence table). The
-builder refuses to emit output when any Modal reference exists outside
-the scope notes, so Modal can never become an execution class.
+storage/topology blockers, the provisioned-node cohort with its SLO
+outcome and outstanding evidence gaps, and the required — currently
+nonexistent — new-preemptible-node cohort (at least 20 accepted samples
+per scenario, per the authoritative new-node contract). Cohort statuses
+are derived, not hand-asserted: the builder maps them from the vendored
+catalog's measured evidence class, resolves every evidence ref to
+committed bytes with SHA-256 binding, re-counts the n=20 cohorts and
+recomputes their nearest-rank percentiles from the committed TSVs,
+requires the exact published medians/digests/response-timing contract
+in the n=3 results files, proves the zero-current-contract new-node
+state from the committed audit, and discloses MolMIM's cohort as not
+sealed (its citation is a harness tree without committed per-run
+receipts). `inputs/bionemo_cohorts.json` holds only the hand-encoded
+blockers and notes. The builder refuses to emit output when any Modal
+reference exists outside the scope notes, so Modal can never become an
+execution class.
 
 ## Pinned inputs (never edited here)
 
@@ -48,11 +61,18 @@ the scope notes, so Modal can never become an execution class.
   (branch `agent/catalog-switch-model-inventory`); SHA-256 pins are
   enforced by the builder and the tests, and the vendored catalog is
   re-validated against the vendored schema on every test run.
-- The reviewed threat model at commit `9cfbc1b1` (branch
-  `agent/catalog-switch-security-reliability`) is pinned by content
-  hash; gates bind to its invariants (INV-*) and controls (CTL-*).
+- `inputs/threat_model.json` — byte-identical vendored copy of the
+  reviewed threat model at commit `9cfbc1b1` (branch
+  `agent/catalog-switch-security-reliability`), SHA-256 pinned; every
+  gate binding (INV-*/CTL-*) is resolved against its exact content at
+  build time and drifted/renamed refs fail the build, so a clean clone
+  verifies the bindings offline.
 - `inputs/lane_evidence.json` — hand-encoded dispositions for the ten
   measured faststart-v2 lanes, citing only committed lane evidence.
+- The requested_via interfaces resolve in-ancestry: the reviewed
+  resource-broker contract (`229101bb`) and request-SLO harness
+  (`ba49c9e2`) are merged into this branch, and the builder verifies
+  their v1 schema ids and hashes (`meta.interfaces`).
 
 ## Rebuild and test
 

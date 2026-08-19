@@ -18,6 +18,7 @@ import sys
 import unittest
 
 ELIG_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FASTSTART_ROOT = os.path.dirname(os.path.dirname(ELIG_DIR))
 sys.path.insert(0, ELIG_DIR)
 
 import build_eligibility  # noqa: E402
@@ -74,6 +75,7 @@ class EligibilityArtifacts(unittest.TestCase):
         for fname, key in (
             (os.path.join("inputs", "catalog.json"), "catalog_sha256"),
             (os.path.join("inputs", "catalog.schema.json"), "catalog_schema_sha256"),
+            (os.path.join("inputs", "threat_model.json"), "threat_model_sha256"),
         ):
             with open(os.path.join(ELIG_DIR, fname), "rb") as fh:
                 digest = "sha256:" + hashlib.sha256(fh.read()).hexdigest()
@@ -208,10 +210,41 @@ class EligibilityArtifacts(unittest.TestCase):
             for blocker in r["blockers"]:
                 base = "access-gate" if blocker.startswith("access-gate:") else blocker
                 self.assertIn(base, self.blocker_ids, r["id"])
+        threat = json.loads(read(os.path.join("inputs", "threat_model.json")))
+        self.assertEqual(threat["status"], "reviewed")
+        threat_ids = {i["id"] for i in threat["invariants"]}
+        threat_ids |= {c["id"] for c in threat["controls"]}
         for gate in self.meta["gates"]:
             for binding in gate["bindings"]:
-                self.assertRegex(binding, r"^(INV|CTL)-\d{2}$")
+                self.assertIn(binding, threat_ids, gate["id"])
             self.assertNotIn("CTL-17", gate["bindings"], "Modal control must not bind")
+
+    def test_gate_binding_validator_rejects_unknown_and_modal_refs(self):
+        ids = {"INV-01", "CTL-01", "CTL-17"}
+        with self.assertRaises(SystemExit):
+            build_eligibility.validate_gate_bindings(
+                [{"id": "G-X", "bindings": ["INV-99"]}], ids
+            )
+        with self.assertRaises(SystemExit):
+            build_eligibility.validate_gate_bindings(
+                [{"id": "G-X", "bindings": ["CTL-17"]}], ids
+            )
+
+    def test_interfaces_are_in_tree_pinned_and_drift_checked(self):
+        for iface in self.meta["interfaces"]:
+            rel = iface["path"][len("nim-fast-start/faststart-v2/"):]
+            path = os.path.join(FASTSTART_ROOT, rel)
+            self.assertTrue(os.path.isfile(path), iface["path"])
+            with open(path, "rb") as fh:
+                data = fh.read()
+            self.assertEqual(
+                "sha256:" + hashlib.sha256(data).hexdigest(), iface["sha256"]
+            )
+            self.assertEqual(json.loads(data)["$id"], iface["schema_id"])
+        schema_ids = {i["schema_id"] for i in self.meta["interfaces"]}
+        self.assertEqual(len(schema_ids), 3)
+        with self.assertRaises(SystemExit):
+            build_eligibility.repo_read_bytes("does/not/exist.json")
 
     def test_unresolved_rows_name_blockers(self):
         for r in self.rows:
@@ -357,11 +390,10 @@ class EligibilityArtifacts(unittest.TestCase):
             prov = e["cohorts"]["provisioned_node"]
             newnode = e["cohorts"]["new_preemptible_node"]
             self.assertTrue(prov["evidence_refs"], nim)
+            self.assertTrue(prov["further_required"], nim)
             self.assertIn("resource-broker", newnode["requested_via"]["resource_broker"], nim)
             self.assertIn("request_slo", newnode["requested_via"]["request_slo_harness"], nim)
             self.assertIn("preemptible", newnode["required"], nim)
-            if prov["status"] != "complete-fresh-fail-closed-n20":
-                self.assertTrue(prov["further_required"], nim)
         self.assertTrue(by_nim["msa-search"]["topology_blockers"])
         self.assertTrue(by_nim["evo2-40b"]["topology_blockers"])
         self.assertEqual(
@@ -375,6 +407,274 @@ class EligibilityArtifacts(unittest.TestCase):
         self.assertEqual(by_nim["msa-search"]["snapshot_class"], "conventional-only")
         self.assertTrue(by_nim["openfold2"]["cohorts"]["new_preemptible_node"]["historical_note"])
 
+    def test_provisioned_statuses_bound_to_catalog_evidence_class(self):
+        cat_by_id = {r["id"]: r for r in self.catalog["rows"]}
+        for e in self.meta["bionemo_nims"]:
+            prov = e["cohorts"]["provisioned_node"]
+            measured = cat_by_id[e["row_id"]]["startup"]["measured"]
+            self.assertEqual(prov["evidence_class"], measured["evidence_class"], e["nim"])
+            self.assertEqual(
+                prov["status"],
+                build_eligibility.EVIDENCE_CLASS_TO_STATUS[measured["evidence_class"]],
+                e["nim"],
+            )
+
+    def test_bionemo_evidence_refs_resolve_to_committed_bytes(self):
+        for e in self.meta["bionemo_nims"]:
+            for section in ("provisioned_node", "new_preemptible_node"):
+                for ref in e["cohorts"][section]["evidence_refs"]:
+                    rel = ref["path"][len("nim-fast-start/faststart-v2/"):]
+                    full = os.path.join(FASTSTART_ROOT, rel)
+                    if ref["sha256"] is None:
+                        self.assertTrue(os.path.isdir(full), ref["path"])
+                        self.assertFalse(
+                            e["cohorts"][section].get("sealed", True), e["nim"]
+                        )
+                        continue
+                    self.assertTrue(os.path.isfile(full), ref["path"])
+                    with open(full, "rb") as fh:
+                        digest = "sha256:" + hashlib.sha256(fh.read()).hexdigest()
+                    self.assertEqual(digest, ref["sha256"], ref["path"])
+
+    def test_n20_outcomes_recomputed_and_slo_honest(self):
+        by_nim = {e["nim"]: e for e in self.meta["bionemo_nims"]}
+        boltz = by_nim["boltz2"]["cohorts"]["provisioned_node"]
+        of2 = by_nim["openfold2"]["cohorts"]["provisioned_node"]
+        self.assertFalse(boltz["outcome"]["slo_pass"])
+        self.assertEqual(boltz["outcome"]["boottime_upper_p95_s"], 30.310246)
+        self.assertIn("latency result", boltz["outcome"]["note"])
+        self.assertIn("boltz2-under-20", boltz["further_required"])
+        self.assertTrue(of2["outcome"]["slo_pass"])
+        self.assertEqual(of2["outcome"]["boottime_upper_p95_s"], 17.629887)
+        self.assertIn("not closed by the SLO pass", of2["further_required"])
+        for prov in (boltz, of2):
+            self.assertEqual(len(prov["outstanding_evidence_gaps"]), 2)
+            gaps = " ".join(prov["outstanding_evidence_gaps"])
+            self.assertIn("Xid", gaps)
+            self.assertIn("80 raw response bodies", gaps)
+        for nim in ("openfold3", "rfdiffusion"):
+            prov = by_nim[nim]["cohorts"]["provisioned_node"]
+            self.assertFalse(prov["outcome"]["slo_pass"], nim)
+            self.assertIn("exceeds the 30 s SLO", prov["further_required"], nim)
+
+    def test_molmim_evidence_disclosed_as_not_sealed(self):
+        molmim = next(e for e in self.meta["bionemo_nims"] if e["nim"] == "molmim")
+        prov = molmim["cohorts"]["provisioned_node"]
+        self.assertFalse(prov["sealed"])
+        gaps = " ".join(prov["outstanding_evidence_gaps"])
+        self.assertIn("not sealed", gaps)
+        self.assertIn("harness tree", gaps)
+        for e in self.meta["bionemo_nims"]:
+            if e["nim"] != "molmim":
+                self.assertTrue(e["cohorts"]["provisioned_node"]["sealed"], e["nim"])
+
+    def test_newnode_cohorts_require_at_least_20_accepted_samples(self):
+        proof = self.meta["newnode_zero_sample_proof"]
+        self.assertEqual(proof["sample_count"], 0)
+        self.assertEqual(proof["poolable_run_ids"], [])
+        for e in self.meta["bionemo_nims"]:
+            newnode = e["cohorts"]["new_preemptible_node"]
+            self.assertGreaterEqual(newnode["min_accepted_samples"], 20, e["nim"])
+            self.assertIn("at least 20 accepted samples", newnode["required"], e["nim"])
+            for match in re.finditer(r"n\s*>=\s*(\d+)", newnode["required"]):
+                self.assertGreaterEqual(int(match.group(1)), 20, e["nim"])
+            self.assertNotIn("n>=3", newnode["required"], e["nim"])
+
+    def test_newnode_requirement_reconciles_with_authoritative_audit(self):
+        with open(
+            os.path.join(FASTSTART_ROOT, "openfold2-newnode", "CURRENT_STATUS.json"),
+            encoding="utf-8",
+        ) as fh:
+            audit = json.load(fh)
+        self.assertEqual(audit["current_contract"]["sample_count"], 0)
+        self.assertIn(
+            "n>=20 cohort aggregator",
+            audit["v1_blockers"]["missing_current_contract_evidence"],
+        )
+        self.assertTrue(
+            any(
+                "at least 20 accepted samples" in step
+                for step in audit["newnode_v2_plan"]
+            )
+        )
+        of2 = next(e for e in self.meta["bionemo_nims"] if e["nim"] == "openfold2")
+        note = of2["cohorts"]["new_preemptible_node"]["historical_note"]
+        for run in audit["historical_runs"]:
+            self.assertIn(run["run_id"], note)
+
+    def test_msa_exclusion_is_correctable_not_permanent(self):
+        with open(
+            os.path.join(FASTSTART_ROOT, "msa-search-native", "results.json"),
+            encoding="utf-8",
+        ) as fh:
+            results = json.load(fh)
+        native = results["native_checkpoint"]
+        self.assertIn("emptyDir", native["reason"])
+        self.assertIn("cache PVC", native["reason"])
+        self.assertIn("fresh checkpoint", native["required_fix"])
+        self.assertIn("/opt/nim/.cache", native["required_fix"])
+        msa = next(e for e in self.meta["bionemo_nims"] if e["nim"] == "msa-search")
+        row = self.by_id[msa["row_id"]]
+        blob = json.dumps(msa) + row["evidence"]["detail"]
+        self.assertIn("correctable", blob)
+        self.assertIn("fresh checkpoint", blob)
+        self.assertNotIn("permanent", blob.lower())
+        # "inherent" may appear only inside the explicit negation.
+        lowered = blob.lower()
+        self.assertEqual(
+            lowered.count("inherent"), lowered.count("not an inherent")
+        )
+        self.assertIn(
+            "new exact capture", self.meta["classes"]["conventional-only"]
+        )
+
+    def test_negative_mutations_per_status_class(self):
+        b = build_eligibility
+        # unknown evidence class can never silently become a status
+        with self.assertRaises(SystemExit):
+            b.derive_provisioned_status("some new cohort kind")
+        with self.assertRaises(SystemExit):
+            b.derive_provisioned_status(None)
+        # complete-fresh-fail-closed-n20: sample count, denominator, percentiles
+        tsv_path = os.path.join(
+            FASTSTART_ROOT, "boltz2-native", "fresh-cohort-n20-results.tsv"
+        )
+        with open(tsv_path, encoding="utf-8") as fh:
+            good = fh.read()
+        lines = good.splitlines()
+        sample_idx = next(i for i, l in enumerate(lines) if l.startswith("sample"))
+        missing_row = "\n".join(lines[:sample_idx] + lines[sample_idx + 1:]) + "\n"
+        with self.assertRaises(SystemExit):
+            b.check_n20_tsv(missing_row, 28.794544, 30.208757)
+        with self.assertRaises(SystemExit):
+            b.check_n20_tsv(good, 28.794544, 29.0)
+        with self.assertRaises(SystemExit):
+            b.check_n20_tsv(good.replace("0/20", "1/20"), 28.794544, 30.208757)
+        # complete-n3: published median, contract, digest must be present
+        doc = {"x": {"values": [1.0, 2.0, 3.0], "median": 2.0}}
+        raw = json.dumps(doc) + build_eligibility.RESPONSE_CONTRACT + "sha256:abc"
+        b.check_n3_results(doc, raw, 2.0, None)
+        with self.assertRaises(SystemExit):
+            b.check_n3_results(doc, raw, 9.9, None)
+        with self.assertRaises(SystemExit):
+            b.check_n3_results(doc, json.dumps(doc), 2.0, None)
+        with self.assertRaises(SystemExit):
+            b.check_n3_results(doc, raw, 2.0, "sha256:missing-digest")
+        # complete-n3 (proteinmpnn TSV shape)
+        head = "run_id\tstatus\tdemand_to_two_semantic_responses_seconds"
+        good_pmpnn = f"{head}\nr1\tPASS\t1.0\nr2\tPASS\t2.0\nr3\tPASS\t3.0\n"
+        b.check_pmpnn_tsv(good_pmpnn, 2.0)
+        with self.assertRaises(SystemExit):
+            b.check_pmpnn_tsv(good_pmpnn.replace("r3\tPASS\t3.0\n", ""), 2.0)
+        with self.assertRaises(SystemExit):
+            b.check_pmpnn_tsv(good_pmpnn.replace("r2\tPASS", "r2\tFAIL"), 2.0)
+        # complete-n3-conventional (msa) and its exclusion record
+        with open(
+            os.path.join(FASTSTART_ROOT, "msa-search-native", "results.json"),
+            encoding="utf-8",
+        ) as fh:
+            msa = json.load(fh)
+        p50 = msa["conventional_cached_n3"]["demand_to_call2_response_seconds"]["median"]
+        b.check_msa_results(msa, p50)
+        mutated = json.loads(json.dumps(msa))
+        mutated["conventional_cached_n3"]["trial_count"] = 2
+        with self.assertRaises(SystemExit):
+            b.check_msa_results(mutated, p50)
+        mutated = json.loads(json.dumps(msa))
+        mutated["native_checkpoint"]["counted_trials"] = 1
+        with self.assertRaises(SystemExit):
+            b.check_msa_results(mutated, p50)
+        mutated = json.loads(json.dumps(msa))
+        mutated["native_checkpoint"]["required_fix"] = "n/a"
+        with self.assertRaises(SystemExit):
+            b.check_msa_results(mutated, p50)
+        # missing-production-shaped (evo2): digest identity
+        with self.assertRaises(SystemExit):
+            b.check_evo2_profile({"model": {"image": "img@sha256:other"}}, "sha256:x")
+        # zero-sample proof mutations (required-not-run must stay proven)
+        with open(
+            os.path.join(FASTSTART_ROOT, "openfold2-newnode", "CURRENT_STATUS.json"),
+            encoding="utf-8",
+        ) as fh:
+            audit = json.load(fh)
+        for mutate in (
+            lambda d: d["current_contract"].__setitem__("sample_count", 1),
+            lambda d: d["current_contract"].__setitem__("poolable_run_ids", ["x"]),
+            lambda d: d["current_contract"].__setitem__("classification", "OTHER"),
+            lambda d: d["v1_blockers"].__setitem__(
+                "missing_current_contract_evidence", []
+            ),
+            lambda d: d.__setitem__("newnode_v2_plan", ["run some samples"]),
+        ):
+            copy = json.loads(json.dumps(audit))
+            mutate(copy)
+            with self.assertRaises(SystemExit):
+                b.check_zero_newnode_samples(copy)
+        # blocked-hardware-gate-h200 vs required-not-run derivation
+        self.assertEqual(
+            b.derive_newnode_status(["hardware-gate-h200"]),
+            "blocked-hardware-gate-h200",
+        )
+        self.assertEqual(b.derive_newnode_status([]), "required-not-run")
+        # n>=20 floor
+        with self.assertRaises(SystemExit):
+            b.check_min_samples(19, "at least 20 accepted samples")
+        with self.assertRaises(SystemExit):
+            b.check_min_samples(20, "fail-closed n>=3 lifecycle")
+        # foreign new-node evidence directories must fail closed
+        with self.assertRaises(SystemExit):
+            b.check_no_other_newnode_dirs(["openfold2-newnode", "boltz2-newnode"])
+        with self.assertRaises(SystemExit):
+            b.check_no_other_newnode_dirs([])
+        # metrics-doc drift
+        with self.assertRaises(SystemExit):
+            b.check_metrics_doc("nothing relevant here")
+
+    def test_clean_tree_offline_reconstruction(self):
+        import shutil
+        import subprocess
+        import tempfile
+
+        needed = [
+            "performance/COLD_START_METRICS.md",
+            "performance/openfold2/fresh-cohort-n20-results.tsv",
+            "boltz2-native/fresh-cohort-n20-results.tsv",
+            "diffdock-native/results.json",
+            "genmol-native/results.json",
+            "openfold3-native/results.json",
+            "rfdiffusion-native/results.json",
+            "msa-search-native/results.json",
+            "proteinmpnn-native/response-boundary-results.tsv",
+            "evo2-native/profile.json",
+            "openfold2-newnode/CURRENT_STATUS.json",
+            "resource-broker/lease.schema.json",
+            "performance/request_slo/event.schema.json",
+            "performance/request_slo/trace.schema.json",
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "nim-fast-start", "faststart-v2")
+            dst = os.path.join(root, "catalog-switch", "snapshot-eligibility")
+            shutil.copytree(
+                ELIG_DIR, dst, ignore=shutil.ignore_patterns("__pycache__")
+            )
+            for rel in needed:
+                src = os.path.join(FASTSTART_ROOT, rel)
+                target = os.path.join(root, rel)
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                shutil.copy(src, target)
+            os.makedirs(os.path.join(root, "molmim-native", "conventional"))
+            env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+            subprocess.run(
+                [sys.executable, "build_eligibility.py"],
+                cwd=dst,
+                check=True,
+                env=env,
+                capture_output=True,
+            )
+            for out in ("eligibility.json", "eligibility.tsv"):
+                with open(os.path.join(dst, out), encoding="utf-8") as fh:
+                    self.assertEqual(fh.read(), read(out), out)
+
     def test_modal_is_never_an_execution_class(self):
         pruned = json.loads(read("eligibility.json"))
         pruned["meta"]["scope_notes"] = []
@@ -383,7 +683,12 @@ class EligibilityArtifacts(unittest.TestCase):
     # -- scope and sanitization ------------------------------------------
 
     def test_no_modal_dependency_anywhere(self):
-        for name in ARTIFACTS:
+        # The vendored threat model is immutable reviewed bytes (SHA-pinned)
+        # that survey Modal as one program backend; it is reference material,
+        # not a dependency, and its Modal control (CTL-17) is separately
+        # forbidden from gate bindings.
+        scanned = [a for a in ARTIFACTS if not a.endswith("threat_model.json")]
+        for name in scanned:
             text = read(name).lower()
             for token in ("modal.com", "import modal", "modal app", "modal deploy"):
                 self.assertNotIn(token, text, name)
@@ -398,7 +703,11 @@ class EligibilityArtifacts(unittest.TestCase):
     def test_no_credentials_or_private_identifiers(self):
         for name in ARTIFACTS:
             text = read(name)
-            leaks = find_forbidden(text)
+            leaks = [
+                leak
+                for leak in find_forbidden(text)
+                if leak not in SANITIZER_FALSE_POSITIVES
+            ]
             self.assertEqual(leaks, [], f"{name}: {sorted(set(leaks))[:10]}")
             self.assertNotIn("/home/", text, name)
             self.assertNotIn("nvapi-", text, name)
@@ -413,8 +722,14 @@ ARTIFACTS = [
     os.path.join("inputs", "catalog.schema.json"),
     os.path.join("inputs", "lane_evidence.json"),
     os.path.join("inputs", "bionemo_cohorts.json"),
+    os.path.join("inputs", "threat_model.json"),
     os.path.join("schema", "eligibility.schema.json"),
 ]
+
+# The vendored reviewed threat model labels an asset class
+# "tenant-confidential"; that phrase pattern-matches the tenant-resource-id
+# regex but is a classification label, not an identifier.
+SANITIZER_FALSE_POSITIVES = frozenset(["tenant-confidential"])
 
 
 if __name__ == "__main__":

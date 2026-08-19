@@ -8,20 +8,41 @@
      "new_preemptible_node": {
       "evidence_refs": [],
       "historical_note": null,
+      "min_accepted_samples": 20,
       "requested_via": {
-       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
       },
-      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "required": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
       "status": "required-not-run"
      },
      "provisioned_node": {
       "evidence_class": "fresh fail-closed n=20",
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/boltz2-native/fresh-cohort-n20-results.tsv",
-       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+       {
+        "path": "nim-fast-start/faststart-v2/boltz2-native/fresh-cohort-n20-results.tsv",
+        "sha256": "sha256:ec36c85052f62878c22d3e6320845d5e74fb342612d5e1b367d422e9beedad58"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+        "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       }
       ],
-      "further_required": null,
+      "further_required": "sub-30 s SLO not met (conservative-upper p95 30.310246 s); latency work is tracked by the sibling boltz2-under-20 task; outstanding evidence gaps (host-driver Xid proof, raw response-body retention) remain open",
+      "outcome": {
+       "boottime_upper_p50_s": 28.892235,
+       "boottime_upper_p95_s": 30.310246,
+       "note": "SLO FAIL is a latency result, not an execution failure: all 20 samples were semantically valid with clean cleanup and a 0/20 failed denominator.",
+       "slo_pass": false,
+       "slo_threshold_s": 30.0,
+       "t0_to_call2_p50_s": 28.794544,
+       "t0_to_call2_p95_s": 30.208757
+      },
+      "outstanding_evidence_gaps": [
+       "host-driver Xid absence is recorded as unavailable/unproven for all 40 selected qualification receipts (no task-scoped privileged node-log collector existed)",
+       "the 80 raw response bodies referenced by the 40 two-call semantic summaries were not retained; response SHA-256, byte counts, complete-body timestamps, and strict semantic receipts are retained"
+      ],
+      "sealed": true,
       "status": "complete-fresh-fail-closed-n20"
      }
     },
@@ -47,24 +68,47 @@
     "cohorts": {
      "new_preemptible_node": {
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/openfold2-newnode/CURRENT_STATUS.json",
-       "nim-fast-start/faststart-v2/openfold2-newnode/README.md"
+       {
+        "path": "nim-fast-start/faststart-v2/openfold2-newnode/CURRENT_STATUS.json",
+        "sha256": "sha256:04387309e922d3fda105c9459b95da5c5fd65c2d608731e21519da4038b29994"
+       }
       ],
       "historical_note": "two historical new-node lifecycles passed (of2-newnode-r4-0418, of2-newnode-r5-regional) but are non-poolable under the current exact contract; zero current-contract samples exist and the future execution path is newnode-v2-only",
+      "min_accepted_samples": 20,
       "requested_via": {
-       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
       },
-      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "required": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
       "status": "required-not-run"
      },
      "provisioned_node": {
       "evidence_class": "fresh fail-closed n=20",
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
-       "nim-fast-start/faststart-v2/performance/openfold2/fresh-cohort-n20-results.tsv"
+       {
+        "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+        "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/performance/openfold2/fresh-cohort-n20-results.tsv",
+        "sha256": "sha256:b5e3bf5d28c3da0b8a3407dee51aaff8b45fce73f16929b632ca971deb513b03"
+       }
       ],
-      "further_required": null,
+      "further_required": "no further provisioned-node cohort samples required; outstanding evidence gaps (host-driver Xid proof, raw response-body retention) remain open and are not closed by the SLO pass",
+      "outcome": {
+       "boottime_upper_p50_s": 17.30254,
+       "boottime_upper_p95_s": 17.629887,
+       "note": "SLO PASS on the conservative BOOTTIME upper bound; cohort evidence closure does not close the outstanding evidence gaps listed separately.",
+       "slo_pass": true,
+       "slo_threshold_s": 30.0,
+       "t0_to_call2_p50_s": 17.202273,
+       "t0_to_call2_p95_s": 17.532731
+      },
+      "outstanding_evidence_gaps": [
+       "host-driver Xid absence is recorded as unavailable/unproven for all 40 selected qualification receipts (no task-scoped privileged node-log collector existed)",
+       "the 80 raw response bodies referenced by the 40 two-call semantic summaries were not retained; response SHA-256, byte counts, complete-body timestamps, and strict semantic receipts are retained"
+      ],
+      "sealed": true,
       "status": "complete-fresh-fail-closed-n20"
      }
     },
@@ -90,20 +134,38 @@
      "new_preemptible_node": {
       "evidence_refs": [],
       "historical_note": null,
+      "min_accepted_samples": 20,
       "requested_via": {
-       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
       },
-      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "required": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
       "status": "required-not-run"
      },
      "provisioned_node": {
       "evidence_class": "exact response-boundary n=3",
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/diffdock-native/results.json",
-       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+       {
+        "path": "nim-fast-start/faststart-v2/diffdock-native/results.json",
+        "sha256": "sha256:dccc4f51adea70a1d493e2fa127f13e591ee5c8cc05e135df8a2d9c4ad653305"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+        "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       }
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "outcome": {
+       "boottime_upper_p50_s": null,
+       "boottime_upper_p95_s": null,
+       "note": null,
+       "slo_pass": true,
+       "slo_threshold_s": 30.0,
+       "t0_to_call2_p50_s": 14.190621,
+       "t0_to_call2_p95_s": null
+      },
+      "outstanding_evidence_gaps": [],
+      "sealed": true,
       "status": "complete-n3"
      }
     },
@@ -129,20 +191,30 @@
      "new_preemptible_node": {
       "evidence_refs": [],
       "historical_note": "only manual/provisional restore-trigger evidence exists (65.377 s median from an in-Pod trigger); it is not comparable with the production clock",
+      "min_accepted_samples": 20,
       "requested_via": {
-       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
       },
-      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "required": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
       "status": "blocked-hardware-gate-h200"
      },
      "provisioned_node": {
       "evidence_class": "manual/provisional",
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/evo2-native/profile.json",
-       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+       {
+        "path": "nim-fast-start/faststart-v2/evo2-native/profile.json",
+        "sha256": "sha256:94f98e1f209a75b68e662131fee819b7a4f1f8d936ac894925e2a55a0c21824b"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+        "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       }
       ],
       "further_required": "production-shaped capture and cohort on the pinned digest; deferred pending the explicit owner decision to release the only allowed H200",
+      "outcome": null,
+      "outstanding_evidence_gaps": [],
+      "sealed": true,
       "status": "missing-production-shaped"
      }
     },
@@ -171,20 +243,38 @@
      "new_preemptible_node": {
       "evidence_refs": [],
       "historical_note": null,
+      "min_accepted_samples": 20,
       "requested_via": {
-       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
       },
-      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "required": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
       "status": "required-not-run"
      },
      "provisioned_node": {
       "evidence_class": "exact response-boundary n=3",
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/genmol-native/results.json",
-       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+       {
+        "path": "nim-fast-start/faststart-v2/genmol-native/results.json",
+        "sha256": "sha256:51184c5e7c381deb47b40c376cad3e5a6ce760caf6079e4d29dcd5f5249c1094"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+        "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       }
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "outcome": {
+       "boottime_upper_p50_s": null,
+       "boottime_upper_p95_s": null,
+       "note": null,
+       "slo_pass": true,
+       "slo_threshold_s": 30.0,
+       "t0_to_call2_p50_s": 12.177434,
+       "t0_to_call2_p95_s": null
+      },
+      "outstanding_evidence_gaps": [],
+      "sealed": true,
       "status": "complete-n3"
      }
     },
@@ -210,20 +300,40 @@
      "new_preemptible_node": {
       "evidence_refs": [],
       "historical_note": null,
+      "min_accepted_samples": 20,
       "requested_via": {
-       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
       },
-      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "required": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
       "status": "required-not-run"
      },
      "provisioned_node": {
       "evidence_class": "exact response-boundary n=3",
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/molmim-native/conventional/",
-       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+       {
+        "path": "nim-fast-start/faststart-v2/molmim-native/conventional/",
+        "sha256": null
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+        "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       }
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "outcome": {
+       "boottime_upper_p50_s": null,
+       "boottime_upper_p95_s": null,
+       "note": null,
+       "slo_pass": true,
+       "slo_threshold_s": 30.0,
+       "t0_to_call2_p50_s": 15.43163,
+       "t0_to_call2_p95_s": null
+      },
+      "outstanding_evidence_gaps": [
+       "provenance cites a harness tree without committed per-run result receipts; the published medians appear in the committed metrics document while raw receipts live in uncommitted external state, so this cohort's evidence is not sealed pending a committed replayable result artifact"
+      ],
+      "sealed": false,
       "status": "complete-n3"
      }
     },
@@ -248,21 +358,39 @@
     "cohorts": {
      "new_preemptible_node": {
       "evidence_refs": [],
-      "historical_note": "cohort is conventional-cached-start only; no snapshot attempt is admissible",
+      "historical_note": "cohort is conventional-cached-start only until the prescribed topology-aligned recapture qualifies; no snapshot attempt is admissible before that",
+      "min_accepted_samples": 20,
       "requested_via": {
-       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
       },
-      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "required": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
       "status": "required-not-run"
      },
      "provisioned_node": {
       "evidence_class": "exact response-boundary conventional n=3",
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/msa-search-native/results.json",
-       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+       {
+        "path": "nim-fast-start/faststart-v2/msa-search-native/results.json",
+        "sha256": "sha256:59f79227a8a7871fd5bbd71ba5d117e55d8bda39b321c189fddc9e54b131c412"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+        "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       }
       ],
       "further_required": "fresh fail-closed n=20 conventional rerun to the Boltz2/OpenFold2 evidence standard",
+      "outcome": {
+       "boottime_upper_p50_s": null,
+       "boottime_upper_p95_s": null,
+       "note": null,
+       "slo_pass": true,
+       "slo_threshold_s": 30.0,
+       "t0_to_call2_p50_s": 4.942788,
+       "t0_to_call2_p95_s": null
+      },
+      "outstanding_evidence_gaps": [],
+      "sealed": true,
       "status": "complete-n3-conventional"
      }
     },
@@ -284,7 +412,8 @@
      "prewarmed database cache volume required (PDB70 subset, 0.1 GB measured); full MSA databases are much larger and outside the selected route, so any database expansion requires a new cohort"
     ],
     "topology_blockers": [
-     "native capture excluded: the runtime's process topology at load differs from the captured topology, so restore identity cannot hold; conventional-only is permanent absent new runtime evidence"
+     "current-artifact topology mismatch, correctable: the v1 donor captured /opt/nim/workspace as emptyDir while the qualified target used the final cache PVC, and the MMseqs shared-memory token differed because a compatibility symlink changed the canonical database path; no native attempt passed strict inference semantics",
+     "prescribed fix before any native promotion: capture a fresh checkpoint with the final cache PVC mounted identically at /opt/nim/.cache and /opt/nim/workspace, then qualify with identical target mounts; the checked-in donor and target templates already express the aligned topology"
     ]
    },
    {
@@ -293,20 +422,38 @@
      "new_preemptible_node": {
       "evidence_refs": [],
       "historical_note": null,
+      "min_accepted_samples": 20,
       "requested_via": {
-       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
       },
-      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "required": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
       "status": "required-not-run"
      },
      "provisioned_node": {
       "evidence_class": "exact response-boundary n=3",
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/openfold3-native/results.json",
-       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
+       {
+        "path": "nim-fast-start/faststart-v2/openfold3-native/results.json",
+        "sha256": "sha256:ec275339000ce2ed81a4f354659397e8f78b57565d7067f9545832d69cd22bd2"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+        "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       }
       ],
-      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (T0-to-call-2 median 30.56 s already exceeds the 30 s SLO)",
+      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (published T0-to-call-2 median 30.564921 s already exceeds the 30 s SLO)",
+      "outcome": {
+       "boottime_upper_p50_s": null,
+       "boottime_upper_p95_s": null,
+       "note": null,
+       "slo_pass": false,
+       "slo_threshold_s": 30.0,
+       "t0_to_call2_p50_s": 30.564921,
+       "t0_to_call2_p95_s": null
+      },
+      "outstanding_evidence_gaps": [],
+      "sealed": true,
       "status": "complete-n3"
      }
     },
@@ -332,20 +479,38 @@
      "new_preemptible_node": {
       "evidence_refs": [],
       "historical_note": null,
+      "min_accepted_samples": 20,
       "requested_via": {
-       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
       },
-      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "required": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
       "status": "required-not-run"
      },
      "provisioned_node": {
       "evidence_class": "exact response-boundary n=3",
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
-       "nim-fast-start/faststart-v2/proteinmpnn-native/response-boundary-results.tsv"
+       {
+        "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+        "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/proteinmpnn-native/response-boundary-results.tsv",
+        "sha256": "sha256:219473abf80292df8301add3b83b63302d10f5138be2744a4880b0c1f6fbdf0f"
+       }
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "outcome": {
+       "boottime_upper_p50_s": null,
+       "boottime_upper_p95_s": null,
+       "note": null,
+       "slo_pass": true,
+       "slo_threshold_s": 30.0,
+       "t0_to_call2_p50_s": 10.249097,
+       "t0_to_call2_p95_s": null
+      },
+      "outstanding_evidence_gaps": [],
+      "sealed": true,
       "status": "complete-n3"
      }
     },
@@ -371,20 +536,38 @@
      "new_preemptible_node": {
       "evidence_refs": [],
       "historical_note": null,
+      "min_accepted_samples": 20,
       "requested_via": {
-       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
+       "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+       "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
       },
-      "required": "fail-closed n>=3 lifecycle on a fresh preemptible GPU node under the current exact contract (setup_demand_at/scale dispatch and demand_at/target submission through call_2_response_received_at), including cold image pull, volume attach, prewarm receipts with named storage state, strict semantic validation, full failed-attempt denominator, and exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
+      "required": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
       "status": "required-not-run"
      },
      "provisioned_node": {
       "evidence_class": "exact response-boundary n=3",
       "evidence_refs": [
-       "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
-       "nim-fast-start/faststart-v2/rfdiffusion-native/results.json"
+       {
+        "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
+        "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/rfdiffusion-native/results.json",
+        "sha256": "sha256:7295b34cf600f7402f27b0f3fa2f855125b462f6eba7863de0693f5952001259"
+       }
       ],
-      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (T0-to-call-2 median 31.38 s already exceeds the 30 s SLO)",
+      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (published T0-to-call-2 median 31.379359 s already exceeds the 30 s SLO)",
+      "outcome": {
+       "boottime_upper_p50_s": null,
+       "boottime_upper_p95_s": null,
+       "note": null,
+       "slo_pass": false,
+       "slo_threshold_s": 30.0,
+       "t0_to_call2_p50_s": 31.379359,
+       "t0_to_call2_p95_s": null
+      },
+      "outstanding_evidence_gaps": [],
+      "sealed": true,
       "status": "complete-n3"
      }
     },
@@ -480,8 +663,8 @@
      "canary_id": "canary-direct-min-bytes",
      "purpose": "Re-prove the smallest direct-snapshot-safe lane end to end under the shared external-T0 request-SLO contract.",
      "requested_via": {
-      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup)"
+      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
      },
      "row_id": "faststart:proteinmpnn@sha256:b55a0aa6733e267e6e6fe06434e98aea61eff14bc5545127555607fef6f38aa5",
      "snapshot_attempt_allowed": true,
@@ -491,8 +674,8 @@
      "canary_id": "canary-direct-storage-heavy",
      "purpose": "Qualify the storage-bound gate (G-STORAGE): restore the heaviest direct lane on the exact target storage tier with the page-cache state named.",
      "requested_via": {
-      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup)"
+      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
      },
      "row_id": "faststart:boltz2@sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98",
      "snapshot_attempt_allowed": true,
@@ -502,8 +685,8 @@
      "canary_id": "canary-family-proven-rebind",
      "purpose": "Prove digest rebinding: the family checkpoint must be refused for this digest (G-DIGEST), and a fresh capture qualification must succeed or fail on its own evidence.",
      "requested_via": {
-      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup)"
+      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
      },
      "row_id": "forge:boltz2-nim-blackwell-fast@1-7-0-blackwell-fast",
      "snapshot_attempt_allowed": true,
@@ -513,8 +696,8 @@
      "canary_id": "canary-vllm-state-audit",
      "purpose": "State-externalization audit for the vllm runtime family (sockets, mutable files, external mounts, process topology) plus a measured conventional baseline.",
      "requested_via": {
-      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup)"
+      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
      },
      "row_id": "forge:aaditya-llama3-openbiollm-8b-vllm@hf-70d6bb5-vllm-0-21-0",
      "snapshot_attempt_allowed": false,
@@ -524,8 +707,8 @@
      "canary_id": "canary-tei-state-audit",
      "purpose": "State-externalization audit for the tei runtime family (sockets, mutable files, external mounts, process topology) plus a measured conventional baseline.",
      "requested_via": {
-      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup)"
+      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
      },
      "row_id": "forge:abhinand-medembed-small-v0-1-tei-cuda-1-9@hf-40a5850-tei-cuda-1-9-3",
      "snapshot_attempt_allowed": false,
@@ -535,8 +718,8 @@
      "canary_id": "canary-multi-gpu-conventional",
      "purpose": "Measured conventional baseline for a multi-GPU row; any snapshot attempt is forbidden (multi-gpu-restore-unqualified is fail-closed).",
      "requested_via": {
-      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (external T0, semantic completion, full denominator)",
-      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, unique prefix, TTL, exact-ID cleanup)"
+      "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
+      "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
      },
      "row_id": "forge:redhatai-qwen3-next-80b-a3b-thinking-fp8-dynamic-vllm@vllm-0-21-0-cuda13-tp2",
      "snapshot_attempt_allowed": false,
@@ -552,7 +735,7 @@
    "unresolved": 210
   },
   "classes": {
-   "conventional-only": "Snapshot capture/restore is rejected for this row by evidence (e.g. topology-mismatched runtime) or by its nature (non-serving); the only permitted startup path is a conventional start.",
+   "conventional-only": "On current evidence, snapshot capture/restore is rejected for this row (for example a capture whose artifact topology mismatches the restore target) or the row is non-serving; the only permitted startup path today is a conventional start. Reclassification is possible and requires new exact capture and qualification evidence through the shared canary process.",
    "direct-snapshot-safe": "A native snapshot capture/restore of this exact image digest and artifact revision is proven by measured-local evidence with strict semantic validation; the restored route needs no state change.",
    "snapshot-after-state-externalization": "Snapshot restore is safe only after an explicit, verified externalization of mutable state (writable files, scratch dirs, sockets) out of the captured process image; the externalized variant must be qualified on its own digest-bound evidence.",
    "unresolved": "Insufficient evidence to admit any snapshot path; fail-closed to the conventional fallback until the named blockers are resolved through the shared canary process."
@@ -589,7 +772,7 @@
      "CTL-19"
     ],
     "id": "G-TOPOLOGY",
-    "requirement": "Restore is refused when GPU SKU, GPU count, MIG layout, driver, kernel, or the runtime's process topology differs from capture. Runtimes evidenced to change process topology at load are conventional-only.",
+    "requirement": "Restore is refused when GPU SKU, GPU count, MIG layout, driver, kernel, mounts, canonical artifact paths, or shared-memory identity differ between the captured artifact and the restore target. A row whose only capture evidence is topology-mismatched is conventional-only until a topology-aligned recapture is qualified on exact evidence.",
     "title": "Capture/restore topology identity"
    },
    {
@@ -631,16 +814,53 @@
     "title": "Storage-bound restore qualification"
    }
   ],
+  "interfaces": [
+   {
+    "commit": "229101bb5430143e78c4bc796b30715a2a0a14df",
+    "path": "nim-fast-start/faststart-v2/resource-broker/lease.schema.json",
+    "schema_id": "https://nebius.example/catalog-switch-resource-lease-v1.schema.json",
+    "sha256": "sha256:6639e1cc759ecd7728f901aa9f2397752548f60b220cfaecb613996b7dd12b29"
+   },
+   {
+    "commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
+    "path": "nim-fast-start/faststart-v2/performance/request_slo/event.schema.json",
+    "schema_id": "https://nebius.ai/schemas/catalog-switch-ledger-event-v1.json",
+    "sha256": "sha256:a8371e8f0e3713ccbf3db8658ae144e2c62b2ace223dbfd6ae7761d1a2cf3a52"
+   },
+   {
+    "commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
+    "path": "nim-fast-start/faststart-v2/performance/request_slo/trace.schema.json",
+    "schema_id": "https://nebius.ai/schemas/catalog-switch-trace-v1.json",
+    "sha256": "sha256:b25b9fdc1caacbf173e6575f687899f20c8ca8ad0d6701b1d656105182ec5c3a"
+   }
+  ],
+  "newnode_zero_sample_proof": {
+   "classification": "NO_CURRENT_CONTRACT_EVIDENCE",
+   "future_execution_path": "newnode-v2-only",
+   "historical_run_ids": [
+    "of2-newnode-r4-0418",
+    "of2-newnode-r5-regional"
+   ],
+   "path": "nim-fast-start/faststart-v2/openfold2-newnode/CURRENT_STATUS.json",
+   "poolable_run_ids": [],
+   "sample_count": 0,
+   "sha256": "sha256:04387309e922d3fda105c9459b95da5c5fd65c2d608731e21519da4038b29994"
+  },
   "pins": {
    "catalog_branch": "agent/catalog-switch-model-inventory",
    "catalog_commit": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
    "catalog_path": "nim-fast-start/faststart-v2/catalog/catalog.json",
    "catalog_schema_sha256": "sha256:c1d979b6ab62ed6e54edd2e1657e7aae4d557514638d726ba99ff7766e9ad56c",
    "catalog_sha256": "sha256:831c0517c0df3c92e3b8e802b609c08dbc5f2c0eb945fc0d21830e457a71d6ce",
+   "request_slo_branch": "agent/catalog-switch-request-slo-harness",
+   "request_slo_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
+   "resource_broker_branch": "agent/catalog-switch-resource-broker",
+   "resource_broker_commit": "229101bb5430143e78c4bc796b30715a2a0a14df",
    "threat_model_branch": "agent/catalog-switch-security-reliability",
    "threat_model_commit": "9cfbc1b1311a1f784a407889b215aaec5200fe0e",
    "threat_model_path": "nim-fast-start/faststart-v2/catalog-switch/security-reliability/threat_model.json",
-   "threat_model_sha256": "sha256:a9bfccaf2425b75beb40ed6265736aa1d97b3a26327ac37db3a9b92877bbb765"
+   "threat_model_sha256": "sha256:a9bfccaf2425b75beb40ed6265736aa1d97b3a26327ac37db3a9b92877bbb765",
+   "threat_model_vendored": "inputs/threat_model.json"
   },
   "rule_counts": {
    "R01-lane-evidence": 10,
@@ -1087,7 +1307,7 @@
    "confidence": "high",
    "decision_rule": "R01-lane-evidence",
    "evidence": {
-    "detail": "native capture was excluded as topology-mismatched: the runtime's process topology at load differs from the captured topology, so restore identity cannot hold. The selected route is a measured conventional cached start (exact response-boundary conventional n=3, T0-to-call-2 median 4.942788 s) under the same T0/readiness/request boundaries.",
+    "detail": "native capture v1 was excluded for a current-artifact topology mismatch, not an inherent runtime prohibition: the donor captured /opt/nim/workspace as emptyDir while the qualified target used the final cache PVC, and the MMseqs shared-memory token differed because a compatibility symlink changed the canonical database path; no native attempt passed strict inference semantics. The mismatch is correctable: the prescribed fix is a fresh checkpoint captured with the final cache PVC mounted identically at /opt/nim/.cache and /opt/nim/workspace, qualified with identical target mounts, and the checked-in donor/target templates now express that aligned topology. Until that recapture qualifies, the selected route is a measured conventional cached start (exact response-boundary conventional n=3, T0-to-call-2 median 4.942788 s) under the same T0/readiness/request boundaries. Caveats: Reclassification out of conventional-only requires the prescribed topology-aligned recapture and exact qualification evidence through the shared canary process.",
     "refs": [
      "nim-fast-start/faststart-v2/msa-search-native/results.json",
      "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"

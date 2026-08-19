@@ -51,9 +51,11 @@
   },
   "faststart:msa-search@sha256:944f3cf845761be8e42b33147ae08b68c61eca7cad67bf5251e1708d03c0165c": {
    "disposition": "conventional-only",
-   "basis": "native capture was excluded as topology-mismatched: the runtime's process topology at load differs from the captured topology, so restore identity cannot hold. The selected route is a measured conventional cached start (exact response-boundary conventional n=3, T0-to-call-2 median 4.942788 s) under the same T0/readiness/request boundaries.",
+   "basis": "native capture v1 was excluded for a current-artifact topology mismatch, not an inherent runtime prohibition: the donor captured /opt/nim/workspace as emptyDir while the qualified target used the final cache PVC, and the MMseqs shared-memory token differed because a compatibility symlink changed the canonical database path; no native attempt passed strict inference semantics. The mismatch is correctable: the prescribed fix is a fresh checkpoint captured with the final cache PVC mounted identically at /opt/nim/.cache and /opt/nim/workspace, qualified with identical target mounts, and the checked-in donor/target templates now express that aligned topology. Until that recapture qualifies, the selected route is a measured conventional cached start (exact response-boundary conventional n=3, T0-to-call-2 median 4.942788 s) under the same T0/readiness/request boundaries.",
    "fallback_measured": true,
-   "caveats": []
+   "caveats": [
+    "Reclassification out of conventional-only requires the prescribed topology-aligned recapture and exact qualification evidence through the shared canary process."
+   ]
   },
   "faststart:evo2-40b@sha256:561886bab1d2d0da836ebf5bec403f9de2baf6e92deb7eedf1b316aa994b5dd2": {
    "disposition": "unresolved",

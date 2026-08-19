@@ -9,9 +9,10 @@
   "meta": {
    "type": "object",
    "required": [
-    "artifact", "task", "catalog_version", "pins", "classes", "rules",
-    "gates", "blockers", "class_counts", "rule_counts", "fleet_counts",
-    "bionemo_nims", "fallback_policy", "canary_plan", "scope_notes"
+    "artifact", "task", "catalog_version", "pins", "interfaces", "classes",
+    "rules", "gates", "blockers", "class_counts", "rule_counts",
+    "fleet_counts", "bionemo_nims", "newnode_zero_sample_proof",
+    "fallback_policy", "canary_plan", "scope_notes"
    ],
    "additionalProperties": false,
    "properties": {
@@ -23,7 +24,9 @@
      "required": [
       "catalog_commit", "catalog_branch", "catalog_path", "catalog_sha256",
       "catalog_schema_sha256", "threat_model_commit", "threat_model_branch",
-      "threat_model_path", "threat_model_sha256"
+      "threat_model_path", "threat_model_sha256", "threat_model_vendored",
+      "resource_broker_commit", "resource_broker_branch",
+      "request_slo_commit", "request_slo_branch"
      ],
      "additionalProperties": false,
      "properties": {
@@ -35,7 +38,44 @@
       "threat_model_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
       "threat_model_branch": {"type": "string"},
       "threat_model_path": {"type": "string"},
-      "threat_model_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      "threat_model_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+      "threat_model_vendored": {"type": "string"},
+      "resource_broker_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+      "resource_broker_branch": {"type": "string"},
+      "request_slo_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+      "request_slo_branch": {"type": "string"}
+     }
+    },
+    "interfaces": {
+     "type": "array",
+     "minItems": 3,
+     "items": {
+      "type": "object",
+      "required": ["path", "schema_id", "commit", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+       "path": {"type": "string", "pattern": "^nim-fast-start/faststart-v2/"},
+       "schema_id": {"type": "string", "pattern": "-v1(\\.schema)?\\.json$"},
+       "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+       "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+     }
+    },
+    "newnode_zero_sample_proof": {
+     "type": "object",
+     "required": [
+      "path", "sha256", "sample_count", "poolable_run_ids",
+      "classification", "future_execution_path", "historical_run_ids"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "path": {"type": "string"},
+      "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+      "sample_count": {"const": 0},
+      "poolable_run_ids": {"type": "array", "maxItems": 0},
+      "classification": {"const": "NO_CURRENT_CONTRACT_EVIDENCE"},
+      "future_execution_path": {"const": "newnode-v2-only"},
+      "historical_run_ids": {"type": "array", "items": {"type": "string"}}
      }
     },
     "classes": {
@@ -155,7 +195,10 @@
         "properties": {
          "provisioned_node": {
           "type": "object",
-          "required": ["status", "evidence_class", "evidence_refs", "further_required"],
+          "required": [
+           "status", "evidence_class", "evidence_refs", "sealed", "outcome",
+           "outstanding_evidence_gaps", "further_required"
+          ],
           "additionalProperties": false,
           "properties": {
            "status": {
@@ -165,19 +208,49 @@
             ]
            },
            "evidence_class": {"type": ["string", "null"]},
-           "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
-           "further_required": {"type": ["string", "null"]}
+           "evidence_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"$ref": "#/$defs/bound_ref"}
+           },
+           "sealed": {"type": "boolean"},
+           "outcome": {
+            "anyOf": [
+             {"type": "null"},
+             {
+              "type": "object",
+              "required": [
+               "slo_threshold_s", "slo_pass", "t0_to_call2_p50_s",
+               "t0_to_call2_p95_s", "boottime_upper_p50_s",
+               "boottime_upper_p95_s", "note"
+              ],
+              "additionalProperties": false,
+              "properties": {
+               "slo_threshold_s": {"const": 30.0},
+               "slo_pass": {"type": "boolean"},
+               "t0_to_call2_p50_s": {"type": "number"},
+               "t0_to_call2_p95_s": {"type": ["number", "null"]},
+               "boottime_upper_p50_s": {"type": ["number", "null"]},
+               "boottime_upper_p95_s": {"type": ["number", "null"]},
+               "note": {"type": ["string", "null"]}
+              }
+             }
+            ]
+           },
+           "outstanding_evidence_gaps": {"type": "array", "items": {"type": "string", "minLength": 20}},
+           "further_required": {"type": "string", "minLength": 20}
           }
          },
          "new_preemptible_node": {
           "type": "object",
           "required": [
-           "status", "required", "requested_via", "historical_note",
-           "evidence_refs"
+           "status", "min_accepted_samples", "required", "requested_via",
+           "historical_note", "evidence_refs"
           ],
           "additionalProperties": false,
           "properties": {
            "status": {"enum": ["required-not-run", "blocked-hardware-gate-h200"]},
+           "min_accepted_samples": {"type": "integer", "minimum": 20},
            "required": {"type": "string", "minLength": 20},
            "requested_via": {
             "type": "object",
@@ -189,7 +262,7 @@
             }
            },
            "historical_note": {"type": ["string", "null"]},
-           "evidence_refs": {"type": "array", "items": {"type": "string"}}
+           "evidence_refs": {"type": "array", "items": {"$ref": "#/$defs/bound_ref"}}
           }
          }
         }
@@ -265,6 +338,20 @@
   }
  },
  "$defs": {
+  "bound_ref": {
+   "type": "object",
+   "required": ["path", "sha256"],
+   "additionalProperties": false,
+   "properties": {
+    "path": {"type": "string", "pattern": "^nim-fast-start/faststart-v2/"},
+    "sha256": {
+     "anyOf": [
+      {"type": "null"},
+      {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+     ]
+    }
+   }
+  },
   "row": {
    "type": "object",
    "required": [

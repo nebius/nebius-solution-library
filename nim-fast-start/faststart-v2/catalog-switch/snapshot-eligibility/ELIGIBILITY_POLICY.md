@@ -70,8 +70,14 @@ conventional start still requires G-DIGEST, G-SEMEQ, and G-ROLLBACK.
 - **Storage-bound**: G-STORAGE applies; storage state (direct vs
   buffered/prewarmed) is mandatory metadata, and "storage attached"
   never implies "bytes page-resident".
-- **Topology-changing**: evidenced topology-mismatched runtimes are
-  conventional-only (MSA Search); for all unassessed runtimes the
+- **Topology-mismatched captures**: a capture whose artifact topology
+  (mounts, canonical paths, shared-memory identity) mismatches the
+  restore target is refused, and a row whose only capture evidence is
+  topology-mismatched is conventional-only until a topology-aligned
+  recapture qualifies. MSA Search is the evidenced case — a
+  *correctable* current-artifact mismatch (emptyDir donor vs final
+  cache PVC, MMseqs token drift) with a prescribed aligned recapture,
+  not an inherent runtime prohibition. For all unassessed runtimes the
   `state-audit-pending` blocker forbids capture until an explicit audit
   of sockets, mutable files, external mounts, and process topology
   routes the row to direct / after-externalization / conventional-only.
@@ -100,22 +106,39 @@ evidence-first: Boltz2 and OpenFold2 (fresh fail-closed n=20,
 provisioned node, storage attached) rank 1–2, the rest alphabetical.
 Per NIM it records the exact snapshot class, the conventional fallback
 with measurement honesty, storage blockers (direct-I/O verification,
-prewarm assumptions), topology blockers (MSA Search's excluding
-topology mismatch; Evo2's GPU-count discrepancy), and both node
-cohorts:
+prewarm assumptions), topology blockers (MSA Search's correctable
+donor/target mismatch; Evo2's GPU-count discrepancy), and both node
+cohorts. Statuses are **derived from evidence, never hand-asserted**:
+the builder maps them from the vendored catalog's measured evidence
+class, SHA-256-binds every evidence ref to committed bytes, re-counts
+both n=20 cohorts and recomputes their nearest-rank percentiles from
+the committed TSVs, and requires the exact published medians, digests,
+and response-timing contract in each n=3 results file.
 
-- **provisioned-node** — what exists: `complete-fresh-fail-closed-n20`
-  (Boltz2, OpenFold2), `complete-n3` (DiffDock, GenMol, MolMIM,
-  OpenFold3, ProteinMPNN, RFdiffusion; each owes an n=20 rerun to the
-  Boltz2/OpenFold2 standard), `complete-n3-conventional` (MSA Search),
-  `missing-production-shaped` (Evo2-40B, H200 owner gate).
-- **new-preemptible-node** — what is required and does not exist: zero
-  current-contract new-node samples for any NIM (OpenFold2 has two
-  historical non-poolable lifecycles; the future path is
-  newnode-v2-only). Every NIM requires a fail-closed n≥3 fresh
-  preemptible-node cohort under the current exact contract via an
-  approved broker lease and the shared harness; Evo2-40B's is
-  additionally blocked on the H200 gate.
+- **provisioned-node** — what exists, with explicit outcome:
+  `complete-fresh-fail-closed-n20` for Boltz2 (SLO **FAIL**,
+  conservative-upper p95 30.310246 s — a latency result, not an
+  execution failure) and OpenFold2 (SLO **PASS**, 17.629887 s); both
+  carry outstanding evidence gaps that an SLO pass does not close
+  (host-driver Xid absence unproven, 80 raw response bodies not
+  retained). `complete-n3` for DiffDock, GenMol, MolMIM, OpenFold3,
+  ProteinMPNN, RFdiffusion — each owes an n=20 rerun, OpenFold3 and
+  RFdiffusion already exceed the 30 s SLO at n=3, and MolMIM's cohort
+  is disclosed as **not sealed** (its citation is a harness tree
+  without committed per-run receipts). `complete-n3-conventional`
+  (MSA Search), `missing-production-shaped` (Evo2-40B, H200 owner
+  gate).
+- **new-preemptible-node** — what is required and does not exist: the
+  committed new-node audit proves zero current-contract samples
+  (OpenFold2's two historical lifecycles are non-poolable; the future
+  path is newnode-v2-only). Every NIM requires a fail-closed cohort of
+  **at least 20 accepted samples per scenario** (the authoritative
+  n≥20 cohort aggregator: full attempt ledger, nearest-rank
+  p50/p95/max, full failure denominator, no pooling of historical
+  runs) via an approved broker lease and the shared harness; Evo2-40B's
+  is additionally blocked on the H200 gate. The requested_via
+  interfaces are in-ancestry reviewed contracts (resource-broker
+  `229101bb`, request-SLO `ba49c9e2`), verified by schema id and hash.
 
 ## Canary process
 

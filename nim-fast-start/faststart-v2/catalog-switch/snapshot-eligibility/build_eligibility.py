@@ -17,16 +17,33 @@ non-direct active row routes to an explicit conventional fallback whose
 measurement status is stated honestly. All outputs are deterministic:
 rebuilding must byte-match the committed artifacts.
 
+The BioNeMo NIM section is evidence-derived, not hand-asserted: cohort
+statuses map deterministically from the vendored catalog's measured
+evidence class, every evidence ref is resolved to committed bytes and
+SHA-256 bound, n=20 cohorts are re-counted and their nearest-rank
+percentiles recomputed from the committed TSVs, n=3 results files must
+contain the exact published medians, digests, and response-timing
+contract, and the zero-current-contract new-node state is proven from
+the committed new-node audit. Threat-model gate bindings resolve
+against the vendored reviewed threat model, and the requested_via
+interfaces resolve against in-ancestry reviewed contracts.
+
 Offline only: no network, credentials, clusters, or GPUs are touched.
 """
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
+import math
 import os
+import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+FASTSTART_ROOT = os.path.dirname(os.path.dirname(HERE))
+FS_PREFIX = "nim-fast-start/faststart-v2/"
 
 PINS = {
     "catalog_commit": "9abd49204e7dbfb9be17ebf6c3f213227a88e5ca",
@@ -40,6 +57,11 @@ PINS = {
         "nim-fast-start/faststart-v2/catalog-switch/security-reliability/threat_model.json"
     ),
     "threat_model_sha256": "sha256:a9bfccaf2425b75beb40ed6265736aa1d97b3a26327ac37db3a9b92877bbb765",
+    "threat_model_vendored": "inputs/threat_model.json",
+    "resource_broker_commit": "229101bb5430143e78c4bc796b30715a2a0a14df",
+    "resource_broker_branch": "agent/catalog-switch-resource-broker",
+    "request_slo_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
+    "request_slo_branch": "agent/catalog-switch-request-slo-harness",
 }
 
 CLASSES = {
@@ -55,9 +77,12 @@ CLASSES = {
         "variant must be qualified on its own digest-bound evidence."
     ),
     "conventional-only": (
-        "Snapshot capture/restore is rejected for this row by evidence "
-        "(e.g. topology-mismatched runtime) or by its nature (non-serving); "
-        "the only permitted startup path is a conventional start."
+        "On current evidence, snapshot capture/restore is rejected for this "
+        "row (for example a capture whose artifact topology mismatches the "
+        "restore target) or the row is non-serving; the only permitted "
+        "startup path today is a conventional start. Reclassification is "
+        "possible and requires new exact capture and qualification "
+        "evidence through the shared canary process."
     ),
     "unresolved": (
         "Insufficient evidence to admit any snapshot path; fail-closed to "
@@ -66,8 +91,9 @@ CLASSES = {
     ),
 }
 
-# Snapshot-path promotion gates. Bindings cite the reviewed threat model
-# (invariants INV-*, controls CTL-*) at the pinned commit.
+# Snapshot-path promotion gates. Bindings cite the vendored reviewed
+# threat model (invariants INV-*, controls CTL-*) and are resolved
+# against its exact content at build time.
 GATES = [
     {
         "id": "G-DIGEST",
@@ -87,9 +113,11 @@ GATES = [
         "title": "Capture/restore topology identity",
         "requirement": (
             "Restore is refused when GPU SKU, GPU count, MIG layout, "
-            "driver, kernel, or the runtime's process topology differs "
-            "from capture. Runtimes evidenced to change process topology "
-            "at load are conventional-only."
+            "driver, kernel, mounts, canonical artifact paths, or "
+            "shared-memory identity differ between the captured artifact "
+            "and the restore target. A row whose only capture evidence is "
+            "topology-mismatched is conventional-only until a topology-"
+            "aligned recapture is qualified on exact evidence."
         ),
         "bindings": ["INV-02", "CTL-19"],
     },
@@ -333,6 +361,86 @@ MEASUREMENT_OWNER = (
     "catalog-switch-k8s-baseline lane"
 )
 
+REQUESTED_VIA = {
+    "resource_broker": (
+        "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed "
+        "contract; catalog-switch-resource-lease-v1; immutable lease plan, "
+        "unique prefix, TTL, exact-ID cleanup; preemptible profile for "
+        "new-node cohorts)"
+    ),
+    "request_slo_harness": (
+        "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry "
+        "reviewed contract; catalog-switch-ledger-event-v1 and "
+        "catalog-switch-trace-v1; external T0, semantic completion, full "
+        "denominator)"
+    ),
+}
+
+# In-ancestry interface contracts that requested_via/measurement text
+# points at. The builder refuses to emit output when a path or schema id
+# is missing or drifted.
+INTERFACE_CONTRACTS = [
+    {
+        "path": "resource-broker/lease.schema.json",
+        "schema_id": "https://nebius.example/catalog-switch-resource-lease-v1.schema.json",
+        "commit": PINS["resource_broker_commit"],
+    },
+    {
+        "path": "performance/request_slo/event.schema.json",
+        "schema_id": "https://nebius.ai/schemas/catalog-switch-ledger-event-v1.json",
+        "commit": PINS["request_slo_commit"],
+    },
+    {
+        "path": "performance/request_slo/trace.schema.json",
+        "schema_id": "https://nebius.ai/schemas/catalog-switch-trace-v1.json",
+        "commit": PINS["request_slo_commit"],
+    },
+]
+
+BIONEMO_NIMS = frozenset(
+    [
+        "boltz2",
+        "openfold2",
+        "diffdock",
+        "evo2-40b",
+        "genmol",
+        "molmim",
+        "msa-search",
+        "openfold3",
+        "proteinmpnn",
+        "rfdiffusion",
+    ]
+)
+
+EVIDENCE_CLASS_TO_STATUS = {
+    "fresh fail-closed n=20": "complete-fresh-fail-closed-n20",
+    "exact response-boundary n=3": "complete-n3",
+    "exact response-boundary conventional n=3": "complete-n3-conventional",
+    "manual/provisional": "missing-production-shaped",
+}
+
+RESPONSE_CONTRACT = "request-dispatch-to-complete-http-body/v1"
+NEWNODE_AUDIT_PATH = "openfold2-newnode/CURRENT_STATUS.json"
+METRICS_DOC_PATH = "performance/COLD_START_METRICS.md"
+
+XID_GAP = (
+    "host-driver Xid absence is recorded as unavailable/unproven for all 40 "
+    "selected qualification receipts (no task-scoped privileged node-log "
+    "collector existed)"
+)
+RAWBODY_GAP = (
+    "the 80 raw response bodies referenced by the 40 two-call semantic "
+    "summaries were not retained; response SHA-256, byte counts, "
+    "complete-body timestamps, and strict semantic receipts are retained"
+)
+MOLMIM_SEAL_GAP = (
+    "provenance cites a harness tree without committed per-run result "
+    "receipts; the published medians appear in the committed metrics "
+    "document while raw receipts live in uncommitted external state, so "
+    "this cohort's evidence is not sealed pending a committed replayable "
+    "result artifact"
+)
+
 
 def read_json(name: str):
     with open(os.path.join(HERE, name), encoding="utf-8") as fh:
@@ -344,14 +452,251 @@ def read_bytes(name: str) -> bytes:
         return fh.read()
 
 
+def repo_rel(catalog_path: str) -> str:
+    if not catalog_path.startswith(FS_PREFIX):
+        raise SystemExit(f"provenance path outside faststart-v2: {catalog_path}")
+    return catalog_path[len(FS_PREFIX):]
+
+
+def repo_read_bytes(rel: str) -> bytes:
+    path = os.path.join(FASTSTART_ROOT, rel)
+    if not os.path.isfile(path):
+        raise SystemExit(f"authoritative source missing from tree: {rel}")
+    with open(path, "rb") as fh:
+        return fh.read()
+
+
+def sha256_hex(data: bytes) -> str:
+    return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
 def verify_pins() -> None:
     for fname, key in (
         ("inputs/catalog.json", "catalog_sha256"),
         ("inputs/catalog.schema.json", "catalog_schema_sha256"),
+        ("inputs/threat_model.json", "threat_model_sha256"),
     ):
-        digest = "sha256:" + hashlib.sha256(read_bytes(fname)).hexdigest()
+        digest = sha256_hex(read_bytes(fname))
         if digest != PINS[key]:
             raise SystemExit(f"pinned input mismatch: {fname} is {digest}")
+
+
+def load_threat_model_ids() -> set[str]:
+    doc = json.loads(read_bytes("inputs/threat_model.json"))
+    if doc.get("status") != "reviewed":
+        raise SystemExit("vendored threat model is not in reviewed status")
+    ids = {i["id"] for i in doc["invariants"]} | {c["id"] for c in doc["controls"]}
+    if not ids:
+        raise SystemExit("vendored threat model defines no invariants/controls")
+    return ids
+
+
+def validate_gate_bindings(gates: list[dict], threat_ids: set[str]) -> None:
+    for gate in gates:
+        for binding in gate["bindings"]:
+            if binding == "CTL-17":
+                raise SystemExit(
+                    "gates must not bind the Modal-specific control CTL-17"
+                )
+            if binding not in threat_ids:
+                raise SystemExit(
+                    f"gate {gate['id']} binds unknown/renamed/drifted "
+                    f"threat-model ref {binding}"
+                )
+
+
+def verify_interfaces() -> list[dict]:
+    out = []
+    for contract in INTERFACE_CONTRACTS:
+        data = repo_read_bytes(contract["path"])
+        doc = json.loads(data)
+        if doc.get("$id") != contract["schema_id"]:
+            raise SystemExit(
+                f"interface drift: {contract['path']} $id is "
+                f"{doc.get('$id')!r}, expected {contract['schema_id']!r}"
+            )
+        out.append(
+            {
+                "path": FS_PREFIX + contract["path"],
+                "schema_id": contract["schema_id"],
+                "commit": contract["commit"],
+                "sha256": sha256_hex(data),
+            }
+        )
+    return out
+
+
+# --- BioNeMo evidence verification (pure, unit-testable) ----------------
+
+
+def nearest_rank(sorted_values: list[float], quantile: float) -> float:
+    rank = math.ceil(quantile * len(sorted_values))
+    return sorted_values[rank - 1]
+
+
+def check_n20_tsv(tsv_text: str, expected_p50: float, expected_p95: float) -> dict:
+    rows = list(csv.DictReader(io.StringIO(tsv_text), delimiter="\t"))
+    samples = [r for r in rows if r["record_type"] == "sample"]
+    if len(samples) != 20:
+        raise SystemExit(f"n20 cohort has {len(samples)} sample rows, not 20")
+    denominators = {r["failed_attempt_denominator"] for r in samples}
+    if denominators != {"0/20"}:
+        raise SystemExit(f"n20 cohort failed denominators unexpected: {denominators}")
+    observed = sorted(float(r["demand_to_two_semantic_seconds"]) for r in samples)
+    upper = sorted(
+        float(r["demand_to_two_semantic_boottime_upper_seconds"]) for r in samples
+    )
+    got_p50 = nearest_rank(observed, 0.5)
+    got_p95 = nearest_rank(observed, 0.95)
+    if got_p50 != expected_p50 or got_p95 != expected_p95:
+        raise SystemExit(
+            "n20 recomputed percentiles "
+            f"({got_p50}, {got_p95}) do not match the catalog "
+            f"({expected_p50}, {expected_p95})"
+        )
+    return {
+        "sample_count": len(samples),
+        "failed_attempt_denominator": "0/20",
+        "boottime_upper_p50_s": nearest_rank(upper, 0.5),
+        "boottime_upper_p95_s": nearest_rank(upper, 0.95),
+    }
+
+
+def walk_floats(obj):
+    if isinstance(obj, dict):
+        for v in obj.values():
+            yield from walk_floats(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from walk_floats(v)
+    elif isinstance(obj, float):
+        yield obj
+
+
+def check_n3_results(
+    doc: dict, raw_text: str, expected_p50: float, digest: str | None
+) -> None:
+    if expected_p50 not in set(walk_floats(doc)):
+        raise SystemExit(
+            f"published p50 {expected_p50} not present in the committed "
+            "n3 results file"
+        )
+    if RESPONSE_CONTRACT not in raw_text:
+        raise SystemExit("n3 results file lacks the exact response-timing contract")
+    if digest is not None and digest not in raw_text:
+        raise SystemExit("n3 results file does not record the row's image digest")
+
+
+def check_pmpnn_tsv(tsv_text: str, expected_p50: float) -> None:
+    rows = list(csv.DictReader(io.StringIO(tsv_text), delimiter="\t"))
+    if len(rows) != 3:
+        raise SystemExit(f"proteinmpnn cohort has {len(rows)} rows, not 3")
+    if {r["status"] for r in rows} != {"PASS"}:
+        raise SystemExit("proteinmpnn cohort contains non-PASS rows")
+    vals = sorted(float(r["demand_to_two_semantic_responses_seconds"]) for r in rows)
+    if vals[1] != expected_p50:
+        raise SystemExit(
+            f"proteinmpnn median {vals[1]} does not match catalog {expected_p50}"
+        )
+
+
+def check_msa_results(doc: dict, expected_p50: float) -> None:
+    conv = doc["conventional_cached_n3"]
+    if conv["status"] != "PASS" or conv["trial_count"] != 3:
+        raise SystemExit("msa conventional n3 cohort is not a 3-trial PASS")
+    if conv["mmseqs_pipe_pass_count"] != 3:
+        raise SystemExit("msa MMseqs pipe validation did not pass 3/3")
+    if conv["demand_to_call2_response_seconds"]["median"] != expected_p50:
+        raise SystemExit("msa conventional median does not match the catalog")
+    native = doc["native_checkpoint"]
+    if native["status"] != "EXCLUDED_NON_PROMOTABLE" or native["counted_trials"] != 0:
+        raise SystemExit("msa native exclusion state drifted")
+    reason = native["reason"]
+    if "emptyDir" not in reason or "cache PVC" not in reason:
+        raise SystemExit("msa exclusion reason drifted from donor/target mismatch")
+    fix = native["required_fix"]
+    if "fresh checkpoint" not in fix or "/opt/nim/.cache" not in fix:
+        raise SystemExit("msa prescribed aligned-recapture fix drifted")
+
+
+def check_evo2_profile(doc: dict, digest: str) -> None:
+    if digest not in doc["model"]["image"]:
+        raise SystemExit("evo2 profile does not pin the row's image digest")
+
+
+def check_metrics_doc(text: str) -> None:
+    normalized = " ".join(text.split())
+    for phrase in (
+        "Xid absence as unavailable/unproven",
+        "80 raw response bodies",
+        "15.431630",
+    ):
+        if phrase not in normalized:
+            raise SystemExit(f"metrics document drifted: missing {phrase!r}")
+
+
+def check_zero_newnode_samples(doc: dict) -> dict:
+    contract = doc["current_contract"]
+    if contract["sample_count"] != 0:
+        raise SystemExit("new-node current-contract sample count is not zero")
+    if contract["poolable_run_ids"] != []:
+        raise SystemExit("new-node audit lists poolable runs; zero-sample proof fails")
+    if contract["classification"] != "NO_CURRENT_CONTRACT_EVIDENCE":
+        raise SystemExit("new-node audit classification drifted")
+    blockers = doc["v1_blockers"]["missing_current_contract_evidence"]
+    if "n>=20 cohort aggregator" not in blockers:
+        raise SystemExit("authoritative n>=20 cohort aggregator requirement missing")
+    if not any("at least 20 accepted samples" in step for step in doc["newnode_v2_plan"]):
+        raise SystemExit("authoritative >=20 accepted-samples plan step missing")
+    return {
+        "sample_count": 0,
+        "poolable_run_ids": [],
+        "classification": contract["classification"],
+        "future_execution_path": contract["future_execution_path"],
+        "historical_run_ids": sorted(r["run_id"] for r in doc["historical_runs"]),
+    }
+
+
+def check_no_other_newnode_dirs(names: list[str]) -> None:
+    newnode = {n for n in names if n.endswith("-newnode")}
+    if newnode != {"openfold2-newnode"}:
+        raise SystemExit(
+            f"unexpected new-node evidence directories {sorted(newnode)}; "
+            "reclassification required before build"
+        )
+
+
+def derive_provisioned_status(evidence_class: str | None) -> str:
+    if evidence_class not in EVIDENCE_CLASS_TO_STATUS:
+        raise SystemExit(
+            f"unmapped measured evidence class {evidence_class!r}; refusing "
+            "to assert a cohort status without evidence"
+        )
+    return EVIDENCE_CLASS_TO_STATUS[evidence_class]
+
+
+def derive_newnode_status(row_blockers: list[str]) -> str:
+    if "hardware-gate-h200" in row_blockers:
+        return "blocked-hardware-gate-h200"
+    return "required-not-run"
+
+
+def check_min_samples(min_samples: int, required_text: str) -> None:
+    if min_samples < 20:
+        raise SystemExit(
+            f"new-node minimum accepted samples {min_samples} weakens the "
+            "authoritative n>=20 contract"
+        )
+    if "at least 20 accepted samples" not in required_text:
+        raise SystemExit("new-node required text lost the >=20 accepted-samples term")
+    for match in re.finditer(r"n\s*>=\s*(\d+)", required_text):
+        if int(match.group(1)) < 20:
+            raise SystemExit(
+                f"new-node required text contains weakened term {match.group(0)!r}"
+            )
+
+
+# --- classification ------------------------------------------------------
 
 
 def is_storage_bound(row: dict) -> bool:
@@ -641,16 +986,7 @@ def build_canary_plan(out_rows: list[dict], lanes: dict) -> dict:
     )
 
     for entry in entries:
-        entry["requested_via"] = {
-            "resource_broker": (
-                "nim-fast-start/faststart-v2/resource-broker (immutable "
-                "lease plan, unique prefix, TTL, exact-ID cleanup)"
-            ),
-            "request_slo_harness": (
-                "nim-fast-start/faststart-v2/performance/request_slo "
-                "(external T0, semantic completion, full denominator)"
-            ),
-        }
+        entry["requested_via"] = dict(REQUESTED_VIA)
         entry["status"] = "requested-not-run"
 
     evo2_id = next(
@@ -679,46 +1015,144 @@ def build_canary_plan(out_rows: list[dict], lanes: dict) -> dict:
     }
 
 
-BIONEMO_NIMS = frozenset(
-    [
-        "boltz2",
-        "openfold2",
-        "diffdock",
-        "evo2-40b",
-        "genmol",
-        "molmim",
-        "msa-search",
-        "openfold3",
-        "proteinmpnn",
-        "rfdiffusion",
-    ]
-)
-
-REQUESTED_VIA = {
-    "resource_broker": (
-        "nim-fast-start/faststart-v2/resource-broker (immutable lease plan, "
-        "unique prefix, TTL, exact-ID cleanup; preemptible profile for "
-        "new-node cohorts)"
-    ),
-    "request_slo_harness": (
-        "nim-fast-start/faststart-v2/performance/request_slo (external T0, "
-        "semantic completion, full denominator)"
-    ),
-}
+# --- BioNeMo section ------------------------------------------------------
 
 
-def build_bionemo_section(cohort_doc: dict, by_id: dict, cat_rows: dict) -> list[dict]:
-    """Explicit per-NIM coverage of the ten ARCHVTEAMS-2407 BioNeMo NIMs,
-    evidence-first (Boltz2 and OpenFold2 carry the fresh fail-closed n=20
-    cohorts), each with exact eligibility, conventional fallback,
-    storage/topology blockers, and both node-cohort requirements."""
+def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
+    """Resolve and verify the committed evidence behind one NIM lane.
+    Returns bound refs (path+sha256) and any recomputed cohort figures."""
+    measured = cat_row["startup"].get("measured") or {}
+    p50 = measured.get("t0_to_call2_p50_s")
+    p95 = measured.get("t0_to_call2_p95_s")
+    digest = cat_row["image"]["digest"]
+    bound_refs = []
+    recomputed = {}
+    sealed = True
+    for ref in refs:
+        rel = repo_rel(ref)
+        if ref.endswith("/"):
+            # Directory citation (MolMIM): a harness tree is not a sealed
+            # per-run result artifact and cannot be hash-bound as one.
+            if not os.path.isdir(os.path.join(FASTSTART_ROOT, rel)):
+                raise SystemExit(f"cited evidence directory missing: {ref}")
+            bound_refs.append({"path": ref, "sha256": None})
+            sealed = False
+            continue
+        data = repo_read_bytes(rel)
+        bound_refs.append({"path": ref, "sha256": sha256_hex(data)})
+        text = data.decode("utf-8")
+        if rel == METRICS_DOC_PATH:
+            check_metrics_doc(text)
+        elif nim in ("boltz2", "openfold2") and rel.endswith(".tsv"):
+            recomputed = check_n20_tsv(text, p50, p95)
+        elif nim == "proteinmpnn" and rel.endswith(".tsv"):
+            check_pmpnn_tsv(text, p50)
+        elif nim == "msa-search" and rel.endswith("results.json"):
+            check_msa_results(json.loads(text), p50)
+        elif nim == "evo2-40b" and rel.endswith("profile.json"):
+            check_evo2_profile(json.loads(text), digest)
+        elif rel.endswith("results.json"):
+            check_n3_results(
+                json.loads(text),
+                text,
+                p50,
+                digest if nim != "openfold3" else None,
+            )
+        else:
+            raise SystemExit(f"unrecognized evidence ref for {nim}: {ref}")
+    return {"refs": bound_refs, "recomputed": recomputed, "sealed": sealed}
+
+
+def provisioned_outcome(
+    nim: str, status: str, measured: dict, recomputed: dict
+) -> dict | None:
+    if status == "missing-production-shaped":
+        return None
+    outcome = {
+        "slo_threshold_s": 30.0,
+        "slo_pass": bool(measured.get("slo_under_30s")),
+        "t0_to_call2_p50_s": measured.get("t0_to_call2_p50_s"),
+        "t0_to_call2_p95_s": measured.get("t0_to_call2_p95_s"),
+        "boottime_upper_p50_s": recomputed.get("boottime_upper_p50_s"),
+        "boottime_upper_p95_s": recomputed.get("boottime_upper_p95_s"),
+        "note": None,
+    }
+    if status == "complete-fresh-fail-closed-n20":
+        if outcome["slo_pass"]:
+            outcome["note"] = (
+                "SLO PASS on the conservative BOOTTIME upper bound; cohort "
+                "evidence closure does not close the outstanding evidence "
+                "gaps listed separately."
+            )
+        else:
+            outcome["note"] = (
+                "SLO FAIL is a latency result, not an execution failure: "
+                "all 20 samples were semantically valid with clean cleanup "
+                "and a 0/20 failed denominator."
+            )
+    return outcome
+
+
+def provisioned_further_required(nim: str, status: str, outcome: dict | None) -> str | None:
+    if status == "complete-fresh-fail-closed-n20":
+        gaps = (
+            "outstanding evidence gaps (host-driver Xid proof, raw "
+            "response-body retention) remain open"
+        )
+        if outcome and outcome["slo_pass"]:
+            return (
+                "no further provisioned-node cohort samples required; "
+                + gaps
+                + " and are not closed by the SLO pass"
+            )
+        return (
+            f"sub-30 s SLO not met (conservative-upper p95 "
+            f"{outcome['boottime_upper_p95_s']} s); latency work is tracked "
+            "by the sibling boltz2-under-20 task; " + gaps
+        )
+    if status == "complete-n3":
+        base = "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard"
+        if outcome and not outcome["slo_pass"]:
+            base += (
+                f" (published T0-to-call-2 median {outcome['t0_to_call2_p50_s']} s "
+                "already exceeds the 30 s SLO)"
+            )
+        return base
+    if status == "complete-n3-conventional":
+        return (
+            "fresh fail-closed n=20 conventional rerun to the "
+            "Boltz2/OpenFold2 evidence standard"
+        )
+    if status == "missing-production-shaped":
+        return (
+            "production-shaped capture and cohort on the pinned digest; "
+            "deferred pending the explicit owner decision to release the "
+            "only allowed H200"
+        )
+    raise SystemExit(f"no further-required rule for status {status}")
+
+
+def build_bionemo_section(
+    cohort_doc: dict, by_id: dict, cat_rows: dict
+) -> tuple[list[dict], dict]:
     order = cohort_doc["evidence_order"]
     nims = cohort_doc["nims"]
     if set(order) != BIONEMO_NIMS or set(nims) != BIONEMO_NIMS:
         raise SystemExit("bionemo cohort table must cover exactly the ten NIMs")
     if order[:2] != ["boltz2", "openfold2"]:
         raise SystemExit("Boltz2/OpenFold2 evidence must rank first")
+    min_samples = cohort_doc["new_preemptible_min_accepted_samples"]
     default_required = cohort_doc["new_preemptible_required_default"]
+    check_min_samples(min_samples, default_required)
+
+    check_no_other_newnode_dirs(sorted(os.listdir(FASTSTART_ROOT)))
+    audit_bytes = repo_read_bytes(NEWNODE_AUDIT_PATH)
+    zero_proof = check_zero_newnode_samples(json.loads(audit_bytes))
+    zero_proof = {
+        "path": FS_PREFIX + NEWNODE_AUDIT_PATH,
+        "sha256": sha256_hex(audit_bytes),
+        **zero_proof,
+    }
 
     entries = []
     for rank, nim in enumerate(order, start=1):
@@ -728,8 +1162,26 @@ def build_bionemo_section(cohort_doc: dict, by_id: dict, cat_rows: dict) -> list
         if row is None or cat is None or row["source"] != "faststart-v2-lanes":
             raise SystemExit(f"bionemo NIM {nim} does not resolve to a faststart lane row")
         measured = cat["startup"].get("measured") or {}
-        prov = spec["provisioned_node"]
-        newnode = spec["new_preemptible_node"]
+        status = derive_provisioned_status(measured.get("evidence_class"))
+        verified = verify_lane_evidence(nim, cat, evidence_refs(cat))
+        outcome = provisioned_outcome(nim, status, measured, verified["recomputed"])
+
+        gaps: list[str] = []
+        if status == "complete-fresh-fail-closed-n20":
+            gaps = [XID_GAP, RAWBODY_GAP]
+        if not verified["sealed"]:
+            gaps = gaps + [MOLMIM_SEAL_GAP]
+
+        newnode_status = derive_newnode_status(row["blockers"])
+        historical_note = spec["newnode_historical_note"]
+        if nim == "openfold2":
+            for run_id in zero_proof["historical_run_ids"]:
+                if run_id not in (historical_note or ""):
+                    raise SystemExit(
+                        "openfold2 historical note must name every "
+                        f"non-poolable run; missing {run_id}"
+                    )
+
         entries.append(
             {
                 "nim": nim,
@@ -748,22 +1200,37 @@ def build_bionemo_section(cohort_doc: dict, by_id: dict, cat_rows: dict) -> list
                 "topology_blockers": spec["topology_blockers"],
                 "cohorts": {
                     "provisioned_node": {
-                        "status": prov["status"],
+                        "status": status,
                         "evidence_class": measured.get("evidence_class"),
-                        "evidence_refs": evidence_refs(cat),
-                        "further_required": prov["further_required"],
+                        "evidence_refs": verified["refs"],
+                        "sealed": verified["sealed"],
+                        "outcome": outcome,
+                        "outstanding_evidence_gaps": gaps,
+                        "further_required": provisioned_further_required(
+                            nim, status, outcome
+                        ),
                     },
                     "new_preemptible_node": {
-                        "status": newnode["status"],
+                        "status": newnode_status,
+                        "min_accepted_samples": min_samples,
                         "required": default_required,
                         "requested_via": dict(REQUESTED_VIA),
-                        "historical_note": newnode["historical_note"],
-                        "evidence_refs": newnode.get("evidence_refs", []),
+                        "historical_note": historical_note,
+                        "evidence_refs": (
+                            [
+                                {
+                                    "path": zero_proof["path"],
+                                    "sha256": zero_proof["sha256"],
+                                }
+                            ]
+                            if nim == "openfold2"
+                            else []
+                        ),
                     },
                 },
             }
         )
-    return entries
+    return entries, zero_proof
 
 
 def assert_modal_never_executes(doc: dict) -> None:
@@ -777,6 +1244,9 @@ def assert_modal_never_executes(doc: dict) -> None:
 
 def build():
     verify_pins()
+    threat_ids = load_threat_model_ids()
+    validate_gate_bindings(GATES, threat_ids)
+    interfaces = verify_interfaces()
     catalog = read_json("inputs/catalog.json")
     lane_doc = read_json("inputs/lane_evidence.json")
     lanes = lane_doc["lanes"]
@@ -799,7 +1269,7 @@ def build():
     cohort_doc = read_json("inputs/bionemo_cohorts.json")
     if cohort_doc["pinned_catalog_commit"] != PINS["catalog_commit"]:
         raise SystemExit("bionemo_cohorts.json pinned to a different catalog commit")
-    bionemo_nims = build_bionemo_section(cohort_doc, by_id, cat_rows)
+    bionemo_nims, zero_proof = build_bionemo_section(cohort_doc, by_id, cat_rows)
 
     class_counts: dict[str, int] = {}
     rule_counts: dict[str, int] = {}
@@ -815,6 +1285,7 @@ def build():
             "task": "catalog-switch-snapshot-eligibility",
             "catalog_version": catalog["meta"]["catalog_version"],
             "pins": PINS,
+            "interfaces": interfaces,
             "classes": CLASSES,
             "rules": RULES,
             "gates": GATES,
@@ -823,6 +1294,7 @@ def build():
             "rule_counts": rule_counts,
             "fleet_counts": fleet_counts,
             "bionemo_nims": bionemo_nims,
+            "newnode_zero_sample_proof": zero_proof,
             "fallback_policy": {
                 "statement": (
                     "Every active row whose snapshot path is not direct-"
