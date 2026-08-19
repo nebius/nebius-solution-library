@@ -1,0 +1,327 @@
+{
+  "api_server": null,
+  "attempts": [],
+  "backend_version": "nebius-managed-kubernetes/v1",
+  "cleanup_plan": {
+    "cleanup_owner": "catalog-switch-resource-broker",
+    "deadline_utc": "2026-08-20T15:00:00Z",
+    "desired_final_state": "ABSENT",
+    "foreign_resource_policy": "report and preserve; never adopt or delete",
+    "order": [
+      "kubeconfig_authority",
+      "gpu_node_group",
+      "gpu_node",
+      "system_node_group",
+      "system_node",
+      "cluster",
+      "registry_access_permit",
+      "bucket_access_permit",
+      "group_membership",
+      "registry",
+      "bucket",
+      "iam_group",
+      "service_account",
+      "security_group",
+      "subnet",
+      "network",
+      "provider_network_children"
+    ],
+    "policy": "delete exact recorded IDs only in reverse dependency order; verify NotFound/absence after every deletion"
+  },
+  "cluster_id": null,
+  "cost_estimate": {
+    "assumptions": "Managed Kubernetes has no separately listed control-plane fee; nodes use Compute prices. The normal CPU support node uses the public CPU/RAM rate, the demand-created H100 node uses the public preemptible H100 rate, Network SSD is normalized with 730 hours/month, and Object Storage is conservatively charged at the full configured quota. Taxes, traffic, requests, logs, and account-specific discounts are excluded.",
+    "currency": "USD",
+    "expected_cost_usd": "8.940816",
+    "expected_duration_hours": "4",
+    "hard_cost_cap_usd": "60.000000",
+    "one_gpu_active_usd_per_hour": "2.235204",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_sources": [
+      "https://docs.nebius.com/compute/resources/pricing",
+      "https://docs.nebius.com/kubernetes/resources/pricing",
+      "https://docs.nebius.com/object-storage/resources/pricing"
+    ],
+    "support_only_usd_per_hour": "0.056026",
+    "ttl_cost_ceiling_usd": "53.644899",
+    "ttl_hours": "24"
+  },
+  "created_at": "2026-08-19T15:06:44Z",
+  "demand": null,
+  "event_schema_version": "catalog-switch-kubernetes-lifecycle-events/v1",
+  "expires_at": "2026-08-20T15:00:00Z",
+  "failures": [],
+  "gpu_product": "NVIDIA H100 80GB HBM3",
+  "isolation_proof": null,
+  "kubeconfig_path": "/home/tux/dashboard/data/worktrees/catalog-switch-resource-broker/nim-fast-start/faststart-v2/resource-broker/kubeconfigs/k8s-baseline-new-node-candidate.yaml",
+  "kubernetes_context": "mlsp-csw-catalog-switch-k8s-df4e41bc",
+  "labels": {
+    "broker": "resource-broker-k8s-v2",
+    "expires": "20260820t150000z",
+    "lease": "k8s-baseline-new-node-candidate",
+    "owner": "catalog-switch-k8s-baseline",
+    "program": "catalog-switch",
+    "task": "catalog-switch-k8s-baseline"
+  },
+  "lease_id": "k8s-baseline-new-node-candidate",
+  "lifecycle_events": [
+    {
+      "attributes": {
+        "prefix": "mlsp-csw-catalog-switch-k8s-df4e41bc",
+        "request_sha256": "df4e41bc8d3e913e9778fef1f8e34c0cc4a3b5df9585164fa623b44a5e714982"
+      },
+      "event": "lease.plan.created",
+      "observed_at_utc": "2026-08-19T15:06:44.566826Z",
+      "observed_monotonic_ns": 5704577578903578,
+      "outcome": "PASS",
+      "sequence": 0
+    }
+  ],
+  "node_group_ids": [],
+  "node_ids": [],
+  "plan_sha256": "4d8614b557c22ad054feaa2857285b6255dbdfa7e6879d50ff83b88ae64c9e1b",
+  "preemptible": true,
+  "prefix": "mlsp-csw-catalog-switch-k8s-df4e41bc",
+  "profile_sha256": "af44f3ba064bcb601bf5a09f1087944ab8e388973d42e39f1862214d25489ca4",
+  "profile_snapshot": {
+    "cost_assumptions": "Managed Kubernetes has no separately listed control-plane fee; nodes use Compute prices. The normal CPU support node uses the public CPU/RAM rate, the demand-created H100 node uses the public preemptible H100 rate, Network SSD is normalized with 730 hours/month, and Object Storage is conservatively charged at the full configured quota. Taxes, traffic, requests, logs, and account-specific discounts are excluded.",
+    "gpu_node_group": {
+      "boot_disk_gib": 300,
+      "capacity_advice_required_after_t0": true,
+      "compute_usd_per_hour": "2.15",
+      "driver_preset": "cuda13.0",
+      "gpu_count_per_node": 1,
+      "gpu_product": "NVIDIA H100 80GB HBM3",
+      "mode": "preemptible",
+      "node_count": 1,
+      "os": "ubuntu24.04",
+      "platform": "gpu-h100-sxm",
+      "preset": "1gpu-16vcpu-200gb"
+    },
+    "karpenter": false,
+    "kubernetes_version": "1.34",
+    "max_duration_hours": 12,
+    "max_ttl_hours": 24,
+    "network_ssd_usd_per_gib_month": "0.071",
+    "object_storage_usd_per_gib_month": "0.0147",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_sources": [
+      "https://docs.nebius.com/compute/resources/pricing",
+      "https://docs.nebius.com/kubernetes/resources/pricing",
+      "https://docs.nebius.com/object-storage/resources/pricing"
+    ],
+    "public_control_plane_endpoint": true,
+    "regions": [
+      "eu-north1"
+    ],
+    "service_cidr": "/16",
+    "system_node_group": {
+      "boot_disk_gib": 64,
+      "compute_usd_per_hour": "0.0496",
+      "mode": "normal",
+      "node_count": 1,
+      "os": "ubuntu24.04",
+      "platform": "cpu-e2",
+      "preset": "2vcpu-8gb"
+    }
+  },
+  "project_id": "project-e00z6b02t8ddk96c49",
+  "readiness_timestamps": {},
+  "region": "eu-north1",
+  "request": {
+    "artifact_storage": {
+      "max_size_gib": 10
+    },
+    "campaign_arm": "B_new_preemptible_node",
+    "cleanup_deadline_utc": "2026-08-20T15:00:00Z",
+    "cleanup_owner": "catalog-switch-resource-broker",
+    "cleanup_plan": "Broker cleanup owner deletes each exact attempt node group and provider node before the next independent attempt, then deletes the support graph in reverse dependency order and records NotFound or local-file absence for every ledger row.",
+    "cluster_version": "1.34",
+    "expected_duration_hours": "4",
+    "hard_cost_cap_usd": "60.000000",
+    "lease_id": "k8s-baseline-new-node-candidate",
+    "metric_contract_sha256": "deb1e20022735bd958d3e832fb1a1e8faa036bd3be15cb07ee81a34f31a1eab3",
+    "model_input_sha256s": {
+      "boltz2": "5f810e10b2e72d62e1fb3e4ffd8a1f9c7a13c87ef1d2b10b097a296c017fee71",
+      "openfold2": "283ee064e0c88e8583e43aa6923d3da75c3e050ed74832cc2f4782b9c5254099"
+    },
+    "nebius_profile": "sandbox",
+    "node_group_profile": "mk8s-h100-new-node-v1",
+    "owner": "catalog-switch-k8s-baseline",
+    "project_id": "project-e00z6b02t8ddk96c49",
+    "purpose": "Fresh isolated Kubernetes support and demand-created preemptible H100 node-group baseline candidate.",
+    "region": "eu-north1",
+    "schema_version": "catalog-switch-kubernetes-lease-request/v1",
+    "task_id": "catalog-switch-k8s-baseline",
+    "trace_sha256": "786876a7a155ed50c18926787638ae426b550215645b8706ff678c0f37f50c23",
+    "ttl_hours": 24
+  },
+  "request_sha256": "df4e41bc8d3e913e9778fef1f8e34c0cc4a3b5df9585164fa623b44a5e714982",
+  "resource_create_operations": [],
+  "resource_graph": [
+    {
+      "authority": "cloud",
+      "depends_on": [],
+      "desired_final_state": "ABSENT",
+      "key": "network",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-net",
+      "resource_type": "network"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [
+        "network"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "subnet",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-subnet",
+      "resource_type": "subnet"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [
+        "network"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "security_group",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-sg",
+      "resource_type": "security_group"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [],
+      "desired_final_state": "ABSENT",
+      "key": "service_account",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-nodes-sa",
+      "resource_type": "service_account"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [],
+      "desired_final_state": "ABSENT",
+      "key": "iam_group",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-nodes-group",
+      "resource_type": "iam_group"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [
+        "iam_group",
+        "service_account"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "group_membership",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-nodes-member",
+      "resource_type": "group_membership"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [],
+      "desired_final_state": "ABSENT",
+      "key": "registry",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-registry",
+      "resource_type": "registry"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [
+        "iam_group",
+        "registry"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "registry_access_permit",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-registry-view",
+      "resource_type": "registry_access_permit"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [],
+      "desired_final_state": "ABSENT",
+      "key": "bucket",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-artifacts",
+      "resource_type": "bucket"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [
+        "iam_group",
+        "bucket"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "bucket_access_permit",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-artifact-edit",
+      "resource_type": "bucket_access_permit"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [
+        "subnet"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "cluster",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-cluster",
+      "resource_type": "cluster"
+    },
+    {
+      "authority": "cloud",
+      "depends_on": [
+        "cluster",
+        "subnet",
+        "service_account",
+        "registry_access_permit",
+        "bucket_access_permit"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "system_node_group",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-system",
+      "resource_type": "system_node_group"
+    },
+    {
+      "authority": "provider_cascade",
+      "depends_on": [
+        "system_node_group"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "system_node",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-system-provider-node",
+      "resource_type": "system_node"
+    },
+    {
+      "authority": "local_secret",
+      "depends_on": [
+        "cluster"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "kubeconfig_authority",
+      "resource_name": "k8s-baseline-new-node-candidate.yaml",
+      "resource_type": "kubeconfig_authority"
+    },
+    {
+      "authority": "demand_gated_cloud",
+      "depends_on": [
+        "cluster",
+        "subnet",
+        "service_account",
+        "registry_access_permit",
+        "bucket_access_permit"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "gpu_node_group",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-gpu-{demand_sha256_8}",
+      "resource_type": "gpu_node_group"
+    },
+    {
+      "authority": "provider_cascade",
+      "depends_on": [
+        "gpu_node_group"
+      ],
+      "desired_final_state": "ABSENT",
+      "key": "gpu_node",
+      "resource_name": "mlsp-csw-catalog-switch-k8s-df4e41bc-gpu-{demand_sha256_8}-provider-node",
+      "resource_type": "gpu_node"
+    }
+  ],
+  "resources": [],
+  "schema_version": "catalog-switch-kubernetes-resource-lease/v2",
+  "state": "PLANNED"
+}

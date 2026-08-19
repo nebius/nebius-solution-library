@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "catalog-switch-kubernetes-lease-request/v1",
+  "title": "Catalog switch Kubernetes lease request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "lease_id",
+    "task_id",
+    "owner",
+    "cleanup_owner",
+    "purpose",
+    "campaign_arm",
+    "project_id",
+    "region",
+    "nebius_profile",
+    "cluster_version",
+    "node_group_profile",
+    "expected_duration_hours",
+    "ttl_hours",
+    "cleanup_deadline_utc",
+    "hard_cost_cap_usd",
+    "artifact_storage",
+    "metric_contract_sha256",
+    "trace_sha256",
+    "model_input_sha256s",
+    "cleanup_plan"
+  ],
+  "properties": {
+    "schema_version": {"const": "catalog-switch-kubernetes-lease-request/v1"},
+    "lease_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
+    "task_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
+    "owner": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
+    "cleanup_owner": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
+    "purpose": {"type": "string", "minLength": 20},
+    "campaign_arm": {"enum": ["A_prepared_node", "B_new_preemptible_node"]},
+    "project_id": {"type": "string"},
+    "region": {"type": "string"},
+    "nebius_profile": {"const": "sandbox"},
+    "cluster_version": {"type": "string", "pattern": "^1\\.[0-9]+$"},
+    "node_group_profile": {"type": "string"},
+    "expected_duration_hours": {"type": ["string", "number"]},
+    "ttl_hours": {"type": "integer", "minimum": 1},
+    "cleanup_deadline_utc": {"type": "string", "format": "date-time"},
+    "hard_cost_cap_usd": {"type": ["string", "number"]},
+    "artifact_storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_size_gib"],
+      "properties": {"max_size_gib": {"type": "integer", "minimum": 1, "maximum": 1024}}
+    },
+    "metric_contract_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "trace_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "model_input_sha256s": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
+    "cleanup_plan": {"type": "string", "minLength": 20}
+  }
+}

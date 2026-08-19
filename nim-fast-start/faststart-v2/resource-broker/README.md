@@ -5,6 +5,11 @@ catalog-switch architecture program. It issues immutable experiment leases,
 provisions only fresh task-owned resources, records exact IDs, and deletes only
 those recorded IDs. It never adopts or mutates a pre-existing project resource.
 
+The original `broker.py` VM behavior remains the v1 contract. The additive
+Managed Kubernetes v2 backend is documented in `KUBERNETES_BACKEND.md`; its
+consumer handshake is `K8S_BASELINE_INTERFACE.md`. No Kubernetes resource was
+created while sealing the review candidate.
+
 ## Safety boundary
 
 - Allowed projects are hard-coded to `project-e00z6b02t8ddk96c49`
@@ -107,10 +112,11 @@ python3 broker.py scan --cloud --output evidence/orphan-scan-cloud.json
 ```
 
 The hourly supervisor ledger is exported atomically to the required Task Deck
-path. It contains no credentials or signed URLs:
+path. The union exporter preserves both VM v1 and Kubernetes v2 rows and
+contains no credentials, kubeconfig contents, or signed URLs:
 
 ```bash
-python3 broker.py supervisor-ledger
+python3 supervisor_ledger.py
 ```
 
 Its default destination is

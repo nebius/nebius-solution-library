@@ -1,0 +1,21 @@
+{
+  "cloud_resources": [],
+  "cloud_scan": true,
+  "cloud_scan_complete": true,
+  "cloud_scan_errors": [],
+  "expired_lease_count": 0,
+  "leases": [
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "expired": false,
+      "expires_at": "2026-08-20T15:00:00Z",
+      "lease_id": "k8s-baseline-new-node-candidate",
+      "live_resource_ids": [],
+      "state": "PLANNED"
+    }
+  ],
+  "policy": "unregistered or foreign resources are reported and preserved; cleanup accepts only ledgered exact IDs",
+  "scanned_at": "2026-08-19T15:11:04.269168Z",
+  "schema_version": "catalog-switch-kubernetes-orphan-scan/v1",
+  "unregistered_cloud_resource_count": 0
+}

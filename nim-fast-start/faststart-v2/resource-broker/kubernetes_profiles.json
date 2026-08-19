@@ -1,0 +1,47 @@
+{
+  "schema_version": "catalog-switch-kubernetes-resource-profiles/v1",
+  "profiles": {
+    "mk8s-h100-new-node-v1": {
+      "regions": [
+        "eu-north1"
+      ],
+      "kubernetes_version": "1.34",
+      "service_cidr": "/16",
+      "public_control_plane_endpoint": true,
+      "karpenter": false,
+      "system_node_group": {
+        "platform": "cpu-e2",
+        "preset": "2vcpu-8gb",
+        "node_count": 1,
+        "mode": "normal",
+        "os": "ubuntu24.04",
+        "boot_disk_gib": 64,
+        "compute_usd_per_hour": "0.0496"
+      },
+      "gpu_node_group": {
+        "platform": "gpu-h100-sxm",
+        "preset": "1gpu-16vcpu-200gb",
+        "gpu_product": "NVIDIA H100 80GB HBM3",
+        "gpu_count_per_node": 1,
+        "node_count": 1,
+        "mode": "preemptible",
+        "os": "ubuntu24.04",
+        "driver_preset": "cuda13.0",
+        "boot_disk_gib": 300,
+        "compute_usd_per_hour": "2.15",
+        "capacity_advice_required_after_t0": true
+      },
+      "network_ssd_usd_per_gib_month": "0.071",
+      "object_storage_usd_per_gib_month": "0.0147",
+      "max_duration_hours": 12,
+      "max_ttl_hours": 24,
+      "price_observed_at": "2026-08-19T00:00:00Z",
+      "price_sources": [
+        "https://docs.nebius.com/compute/resources/pricing",
+        "https://docs.nebius.com/kubernetes/resources/pricing",
+        "https://docs.nebius.com/object-storage/resources/pricing"
+      ],
+      "cost_assumptions": "Managed Kubernetes has no separately listed control-plane fee; nodes use Compute prices. The normal CPU support node uses the public CPU/RAM rate, the demand-created H100 node uses the public preemptible H100 rate, Network SSD is normalized with 730 hours/month, and Object Storage is conservatively charged at the full configured quota. Taxes, traffic, requests, logs, and account-specific discounts are excluded."
+    }
+  }
+}

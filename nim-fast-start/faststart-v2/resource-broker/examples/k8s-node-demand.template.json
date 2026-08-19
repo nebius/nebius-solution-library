@@ -1,0 +1,8 @@
+{
+  "schema_version": "catalog-switch-kubernetes-node-demand/v1",
+  "lease_id": "REPLACE_FROM_LEASE",
+  "attempt_id": "REPLACE_FROM_DURABLE_REQUEST_ACCEPTED_EVENT",
+  "accepted_event_sha256": "REPLACE_WITH_64_LOWERCASE_HEX",
+  "t0_observed_at_utc": "REPLACE_WITH_REQUEST_ACCEPTED_UTC",
+  "t0_observed_monotonic_ns": "REPLACE_WITH_REQUEST_ACCEPTED_MONOTONIC_NS"
+}

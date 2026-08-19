@@ -1,0 +1,28 @@
+{
+  "schema_version": "catalog-switch-kubernetes-lease-request/v1",
+  "lease_id": "k8s-baseline-new-node-candidate",
+  "task_id": "catalog-switch-k8s-baseline",
+  "owner": "catalog-switch-k8s-baseline",
+  "cleanup_owner": "catalog-switch-resource-broker",
+  "purpose": "Fresh isolated Kubernetes support and demand-created preemptible H100 node-group baseline candidate.",
+  "campaign_arm": "B_new_preemptible_node",
+  "project_id": "project-e00z6b02t8ddk96c49",
+  "region": "eu-north1",
+  "nebius_profile": "sandbox",
+  "cluster_version": "1.34",
+  "node_group_profile": "mk8s-h100-new-node-v1",
+  "expected_duration_hours": "4",
+  "ttl_hours": 24,
+  "cleanup_deadline_utc": "2026-08-20T15:00:00Z",
+  "hard_cost_cap_usd": "60",
+  "artifact_storage": {
+    "max_size_gib": 10
+  },
+  "metric_contract_sha256": "deb1e20022735bd958d3e832fb1a1e8faa036bd3be15cb07ee81a34f31a1eab3",
+  "trace_sha256": "786876a7a155ed50c18926787638ae426b550215645b8706ff678c0f37f50c23",
+  "model_input_sha256s": {
+    "boltz2": "5f810e10b2e72d62e1fb3e4ffd8a1f9c7a13c87ef1d2b10b097a296c017fee71",
+    "openfold2": "283ee064e0c88e8583e43aa6923d3da75c3e050ed74832cc2f4782b9c5254099"
+  },
+  "cleanup_plan": "Broker cleanup owner deletes each exact attempt node group and provider node before the next independent attempt, then deletes the support graph in reverse dependency order and records NotFound or local-file absence for every ledger row."
+}
