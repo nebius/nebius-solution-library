@@ -790,6 +790,20 @@ class ExternalTmpStateTests(unittest.TestCase):
             read(forged, "writer-forged-attempt.json")
 
         forged = receipt()
+        forged["evidence"]["donor_get_attempt"]["argv"] = [  # type: ignore[index]
+            "kubectl",
+            "get",
+            "pod",
+            state.DONOR_POD_NAME,
+            "-n",
+            "some-other-namespace",
+            "-o",
+            "json",
+        ]
+        with self.assertRaisesRegex(state.StateError, "NotFound donor"):
+            read(forged, "writer-forged-argv-namespace.json")
+
+        forged = receipt()
         forged["holder"]["pod_spec_sha256"] = "7" * 64  # type: ignore[index]
         with self.assertRaisesRegex(state.StateError, "holder evidence contradicts"):
             read(forged, "writer-forged-spec-hash.json")
