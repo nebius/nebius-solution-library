@@ -184,14 +184,35 @@ class KubernetesBackend:
         ):
             raise BaselineError("target Pod inventory is not a canonical Kubernetes v1 List")
         items = value["items"]
-        if any(
-            not isinstance(item, dict)
-            or item.get("apiVersion") != "v1"
-            or item.get("kind") != "Pod"
-            or not isinstance(item.get("metadata"), dict)
-            for item in items
-        ):
-            raise BaselineError("target Pod inventory contains a noncanonical Pod object")
+        for item in items:
+            if (
+                not isinstance(item, dict)
+                or item.get("apiVersion") != "v1"
+                or item.get("kind") != "Pod"
+                or not isinstance(item.get("metadata"), dict)
+            ):
+                raise BaselineError("target Pod inventory contains a noncanonical Pod object")
+            metadata = item["metadata"]
+            labels = metadata.get("labels")
+            if (
+                not isinstance(metadata.get("name"), str)
+                or not metadata["name"]
+                or not isinstance(metadata.get("uid"), str)
+                or not metadata["uid"]
+                or metadata.get("namespace") != self.plan["kubernetes"]["namespace"]
+                or not isinstance(labels, dict)
+                or labels.get("mlsp.nebius.ai/role") != "catalog-switch-target"
+                or labels.get("mlsp.nebius.ai/task") != self.plan["task_id"]
+                or labels.get("mlsp.nebius.ai/resource-prefix")
+                != self.plan["resource_lease"]["prefix"]
+                or not isinstance(labels.get("mlsp.nebius.ai/model-id"), str)
+                or not labels["mlsp.nebius.ai/model-id"]
+                or not isinstance(labels.get("mlsp.nebius.ai/model-version-id"), str)
+                or not labels["mlsp.nebius.ai/model-version-id"]
+            ):
+                raise BaselineError(
+                    "target Pod inventory lacks exact deletable task-owned identity"
+                )
         return items
 
     def _active_occupant(self) -> dict[str, str] | None:
@@ -673,16 +694,15 @@ class KubernetesBackend:
         pods = self._pods()
         deleted: list[str] = []
         for item in pods:
-            name = item.get("metadata", {}).get("name")
-            uid = item.get("metadata", {}).get("uid")
-            if name:
-                self.kube.delete(
-                    "pod", name, self.plan["kubernetes"]["drain_timeout_seconds"]
-                )
-                self._record("pod_deleted", switch_uid=switch_uid, name=name, uid=uid)
-                deleted.append(
-                    f"k8s:{self.plan['kubernetes']['namespace']}/pod/{name}"
-                )
+            name = item["metadata"]["name"]
+            uid = item["metadata"]["uid"]
+            self.kube.delete(
+                "pod", name, self.plan["kubernetes"]["drain_timeout_seconds"]
+            )
+            self._record("pod_deleted", switch_uid=switch_uid, name=name, uid=uid)
+            deleted.append(
+                f"k8s:{self.plan['kubernetes']['namespace']}/pod/{name}"
+            )
         if self._pods():
             raise BaselineError("drain completed with surviving target Pods")
         self._active_pod = None

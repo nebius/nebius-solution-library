@@ -32,6 +32,7 @@ class KubernetesBackendTests(unittest.TestCase):
                 "gpu_profile": "h100-single",
                 "preemptible": True,
                 "sentinel_pod": "gpu-sentinel",
+                "drain_timeout_seconds": 30,
             },
             "gpu_profiles": {
                 "h100-single": {
@@ -378,6 +379,25 @@ class KubernetesBackendTests(unittest.TestCase):
             backend._active_occupant()
 
     def test_pod_inventory_is_a_real_kubernetes_list_and_cleanup_fails_closed(self) -> None:
+        def pod(metadata: dict) -> dict:
+            return {"apiVersion": "v1", "kind": "Pod", "metadata": metadata}
+
+        owned_metadata = {
+            "name": "target-a", "uid": "pod-uid-a", "namespace": "mlsp-csw-k8s",
+            "labels": {
+                "mlsp.nebius.ai/role": "catalog-switch-target",
+                "mlsp.nebius.ai/task": "catalog-switch-k8s-baseline",
+                "mlsp.nebius.ai/resource-prefix": "mlsp-csw-test",
+                "mlsp.nebius.ai/model-id": "model-a",
+                "mlsp.nebius.ai/model-version-id": "v1",
+            },
+        }
+        def pod_list(*items: dict) -> dict:
+            return {
+                "apiVersion": "v1", "kind": "List", "metadata": {},
+                "items": list(items),
+            }
+
         malformed = (
             {},
             {"apiVersion": "v1", "kind": "List", "metadata": {}, "items": None},
@@ -386,6 +406,12 @@ class KubernetesBackendTests(unittest.TestCase):
                 "apiVersion": "v1", "kind": "List", "metadata": {},
                 "items": [{"apiVersion": "v1", "kind": "Service", "metadata": {}}],
             },
+            pod_list(pod({})),
+            pod_list(pod({**owned_metadata, "name": ""})),
+            pod_list(pod({**owned_metadata, "uid": ""})),
+            pod_list(pod({**owned_metadata, "labels": {
+                **owned_metadata["labels"], "mlsp.nebius.ai/task": "foreign-task",
+            }})),
         )
         for response in malformed:
             with self.subTest(response=response):
@@ -401,10 +427,28 @@ class KubernetesBackendTests(unittest.TestCase):
 
         backend = self.backend()
         backend.kube = Mock()
-        backend.kube.run.return_value = {
-            "apiVersion": "v1", "kind": "List", "metadata": {}, "items": [],
-        }
+        backend.kube.run.side_effect = [pod_list(pod({})), pod_list(), pod_list()]
+        backend._prepared = True
+        with self.assertRaisesRegex(BaselineError, "deletable task-owned identity"):
+            backend.final_cleanup()
+        backend.kube.delete.assert_not_called()
+        self.assertEqual(backend.kube.run.call_count, 1)
+
+        backend = self.backend()
+        backend.kube = Mock()
+        backend.kube.run.return_value = pod_list()
         self.assertEqual(backend._delete_active("verified-empty"), ())
+
+        # An observed Pod may disappear on the subsequent NotFound inventory only
+        # after the exact admitted name and UID were accepted and a delete issued.
+        backend = self.backend()
+        backend.kube = Mock()
+        backend.kube.run.side_effect = [pod_list(pod(owned_metadata)), pod_list()]
+        self.assertEqual(
+            backend._delete_active("verified-delete"),
+            ("k8s:mlsp-csw-k8s/pod/target-a",),
+        )
+        backend.kube.delete.assert_called_once_with("pod", "target-a", 30)
 
     def test_partial_phase_failure_retains_bytes_and_closes_gpu_time(self) -> None:
         backend = self.backend()
