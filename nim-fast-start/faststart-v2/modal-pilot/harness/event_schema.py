@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-"""Frozen per-request event schema for the Modal pilot.
+"""PROVISIONAL adapter event schema for the Modal pilot.
 
-T0 is external acceptance of a request carrying ``model_id`` plus input;
-completion is the first complete semantically valid response. One record is
-one request attempt window: platform-internal retries stay inside the same
-record via ``attempts``. Records are fail-closed: a record that cannot be
-validated is rejected, never coerced.
+This is NOT the program metric contract. The authoritative external-client
+request/switch ledger is owned by ``catalog-switch-request-slo-harness``;
+until that contract is published and reviewed, records produced here are
+provisional adapter-test artifacts only and must be re-emitted through the
+shared ledger before any cross-backend claim. No result aggregated from this
+schema may be promoted as a backend comparison.
+
+Within that limit the local rules stay fail-closed: T0 is client-side
+external acceptance of a request carrying ``model_id`` plus input;
+completion is the first complete semantically valid response; one record is
+one request attempt window (platform-internal retries stay inside it via
+``attempts``); a record that cannot be validated is rejected, never coerced.
 """
 
 from __future__ import annotations
@@ -13,7 +20,9 @@ from __future__ import annotations
 import json
 from typing import Any, Mapping
 
-SCHEMA = "ml-specialist.nebius.ai/catalog-switch-modal-pilot/request-event/v1"
+SCHEMA = (
+    "ml-specialist.nebius.ai/catalog-switch-modal-pilot/provisional-adapter-event/v1"
+)
 
 MODES = frozenset(
     {"cold", "cpu_snapshot", "gpu_snapshot", "warm_bounded", "switch", "burst", "capacity"}

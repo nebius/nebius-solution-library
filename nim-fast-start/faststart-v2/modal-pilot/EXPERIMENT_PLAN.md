@@ -4,7 +4,16 @@ Written 2026-08-19, **before any live Modal spend**, as required by the task
 ("live spend follows a recorded experiment plan"). Execution is blocked until
 the user provides a Modal workspace token and confirms the budget cap below.
 
-## Metric boundary (frozen, inherited from the program contract)
+## Metric boundary (provisional; defers to the shared ledger)
+
+The authoritative external-client request/switch metric contract is owned by
+`catalog-switch-request-slo-harness`. Until that ledger is published and
+reviewed, this pilot's schema is a **provisional adapter** only: local runs
+are adapter tests, their aggregates are not promotable backend comparisons,
+and every retained event will be re-emitted through the shared ledger via
+the adapter boundary below. If the shared contract conflicts with any local
+rule, the shared contract wins and local data is re-mapped or discarded,
+never grandfathered.
 
 - **T0** = external acceptance of a request carrying `model_id` + input,
   timestamped by the client harness immediately before the request leaves the
@@ -81,6 +90,11 @@ multipliers are recorded per run.
   list` receipts captured. Retention only with a written reason.
 - No Nebius resources are created for this pilot. If a Nebius-side echo test
   is later needed, it goes through `catalog-switch-resource-broker`.
+- **TTL and cleanup owner:** every Modal app, Volume, and Secret created for
+  a cohort has a TTL of the cohort run plus 24 h, hard-capped at 7 days from
+  creation; the cleanup owner is this task (`catalog-switch-modal-pilot`),
+  which records teardown receipts before the task can leave review. Warm (M3)
+  deployments additionally carry the 2 h idle bound above.
 
 ## Execution gates (in order)
 
