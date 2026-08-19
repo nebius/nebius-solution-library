@@ -50,7 +50,20 @@ nearest-rank percentiles recomputed, the file's own cohort_outcome
 column consistent), extracts the n=3 results by exact field paths
 (status PASS, three float samples whose recomputed median equals the
 file's median and the catalog p50, exact image reference, exact
-response-timing contract — token presence is never sufficient), proves
+response-timing contract — token presence is never sufficient), and
+binds each promoted n=3 row to its *selected cohort's own* record:
+selected status, semantic request/pass counts, unique run ids,
+qualification (image residency), and cleanup fields are asserted by
+exact path and exact typed value (`LANE_BINDINGS`). Every promoted
+cohort carries an explicit `image_binding` (`in-file` exact reference;
+`checkpoint-join` for OpenFold3, whose digest binds through the
+checkpoint identity shared between its results and prior-evidence
+files; `cohort-bound-n20` for the TSV cohorts) — a snapshot-safe class
+with `image_binding: none` refuses the build. ProteinMPNN's
+digest-bearing results file and OpenFold3's prior-evidence file are
+cited and hash-bound as supplementary evidence; OpenFold3's and
+RFdiffusion's missing per-trial cleanup records are disclosed as gaps,
+not assumed. The builder also proves
 the zero-current-contract new-node state from the committed audit, and
 recomputes every SLO verdict from verified samples with the catalog
 boolean only cross-checked. MolMIM is downgraded to `unresolved`

@@ -30,6 +30,7 @@
        }
       ],
       "further_required": "sub-30 s SLO not met (conservative-upper p95 30.310246 s); latency work is tracked by the sibling boltz2-under-20 task; outstanding evidence gaps (host-driver Xid proof, raw response-body retention) remain open",
+      "image_binding": "cohort-bound-n20",
       "outcome": {
        "boottime_upper_p50_s": 28.892235,
        "boottime_upper_p95_s": 30.310246,
@@ -97,6 +98,7 @@
        }
       ],
       "further_required": "no further provisioned-node cohort samples required; outstanding evidence gaps (host-driver Xid proof, raw response-body retention) remain open and are not closed by the SLO pass",
+      "image_binding": "cohort-bound-n20",
       "outcome": {
        "boottime_upper_p50_s": 17.30254,
        "boottime_upper_p95_s": 17.629887,
@@ -158,6 +160,7 @@
        }
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "image_binding": "in-file",
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -216,6 +219,7 @@
        }
       ],
       "further_required": "production-shaped capture and cohort on the pinned digest; deferred pending the explicit owner decision to release the only allowed H200",
+      "image_binding": "in-file",
       "outcome": null,
       "outstanding_evidence_gaps": [],
       "sealed": true,
@@ -269,6 +273,7 @@
        }
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "image_binding": "in-file",
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -327,6 +332,7 @@
        }
       ],
       "further_required": "commit a replayable per-run result artifact to reseal the existing cohort, or run a fresh sealed cohort; then a fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "image_binding": "none",
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -387,6 +393,7 @@
        }
       ],
       "further_required": "fresh fail-closed n=20 conventional rerun to the Boltz2/OpenFold2 evidence standard",
+      "image_binding": "in-file",
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -448,9 +455,14 @@
        {
         "path": "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md",
         "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/openfold3-native/prior-evidence.json",
+        "sha256": "sha256:35aaf8faf61fb766f5b306c5eb47e977ae7312bbddd964a37ccc48fbbbee666e"
        }
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (published T0-to-call-2 median 30.564921 s already exceeds the 30 s SLO)",
+      "image_binding": "checkpoint-join",
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -461,7 +473,7 @@
        "t0_to_call2_p95_s": null
       },
       "outstanding_evidence_gaps": [
-       "the committed n=3 results file records no image reference; digest binding for this cohort relies on the catalog row and lane provenance only"
+       "the committed results file records no per-trial cleanup verification block, so cleanup cannot be bound from sealed bytes for this cohort; the missing record is disclosed, not assumed"
       ],
       "sealed": true,
       "status": "complete-n3"
@@ -508,9 +520,14 @@
        {
         "path": "nim-fast-start/faststart-v2/proteinmpnn-native/response-boundary-results.tsv",
         "sha256": "sha256:219473abf80292df8301add3b83b63302d10f5138be2744a4880b0c1f6fbdf0f"
+       },
+       {
+        "path": "nim-fast-start/faststart-v2/proteinmpnn-native/results.json",
+        "sha256": "sha256:4bf097bd030e4e30b15df5d48c3ede246eba6d7c05ed8d30e156a6f405cb29e4"
        }
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "image_binding": "in-file",
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -569,6 +586,7 @@
        }
       ],
       "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard (published T0-to-call-2 median 31.379359 s already exceeds the 30 s SLO)",
+      "image_binding": "in-file",
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
@@ -578,7 +596,9 @@
        "t0_to_call2_p50_s": 31.379359,
        "t0_to_call2_p95_s": null
       },
-      "outstanding_evidence_gaps": [],
+      "outstanding_evidence_gaps": [
+       "the committed results file records no per-trial cleanup verification block, so cleanup cannot be bound from sealed bytes for this cohort; the missing record is disclosed, not assumed"
+      ],
       "sealed": true,
       "status": "complete-n3"
      }

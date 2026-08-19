@@ -681,6 +681,21 @@ N3_SPECS = {
         "image_path": ["image"],
         "contract_path": ["metric_contract", "response_timing_contract"],
     },
+    "proteinmpnn": {
+        "status_path": ["status"],
+        "values_path": [
+            "selected_n3",
+            "demand_to_two_semantic_responses_seconds",
+            "values",
+        ],
+        "median_path": [
+            "selected_n3",
+            "demand_to_two_semantic_responses_seconds",
+            "median",
+        ],
+        "image_path": ["image"],
+        "contract_path": ["metric_contract", "response_timing_contract"],
+    },
 }
 
 
@@ -691,6 +706,182 @@ def get_path(doc, path: list[str]):
             raise SystemExit(f"evidence file lacks required field {'/'.join(path)}")
         node = node[key]
     return node
+
+
+# Selected-cohort binding tables: every promoted n=3 row's own selected
+# result, semantic pass counts, qualification, and cleanup record are
+# asserted by exact path and exact value (types included). A mutation of
+# any of these fields refuses the build.
+LANE_BINDINGS = {
+    "diffdock": {
+        "bindings": [
+            (["selected_response_boundary_n3", "status"], "PASS"),
+            (["selected_response_boundary_n3", "semantic_requests"], 6),
+            (["selected_response_boundary_n3", "semantic_passes"], 6),
+            (["response_boundary_requalification", "status"], "PASS"),
+            (["response_boundary_requalification", "trial_count"], 3),
+            (["response_boundary_requalification", "semantic_request_count"], 6),
+            (["cleanup", "measured_run_objects_remaining"], 0),
+            (["cleanup", "uid_preconditions_enforced"], True),
+            (["cleanup", "active_gpu_requests_final"], 0),
+        ],
+        "unique_run_ids": ["selected_response_boundary_n3", "runs"],
+    },
+    "genmol": {
+        "bindings": [
+            (["response_boundary_requalification", "status"], "PASS"),
+            (["response_boundary_requalification", "semantic_pass_count"], 6),
+            (
+                [
+                    "response_boundary_requalification",
+                    "cleanup_commands_succeeded_after_each_trial",
+                ],
+                True,
+            ),
+            (
+                [
+                    "response_boundary_requalification",
+                    "target_image_and_worker_image_resident_before_t0",
+                ],
+                True,
+            ),
+            (["buffered", "trial_count"], 3),
+            (["buffered", "request_count"], 6),
+        ],
+        "unique_run_ids": ["response_boundary_requalification", "selected_run_ids"],
+    },
+    "openfold3": {
+        "bindings": [
+            (["response_boundary_requalification", "status"], "PASS"),
+            (["response_boundary_requalification", "trial_count"], 3),
+            (["response_boundary_requalification", "semantic_call_count"], 6),
+            (["selected", "trial_count"], 3),
+            (["selected", "semantic_call_count"], 6),
+        ],
+        "unique_run_ids": None,
+    },
+    "rfdiffusion": {
+        "bindings": [
+            (["selected_n3", "status"], "PASS"),
+            (["selected_n3", "semantic_pass_count"], 6),
+        ],
+        "unique_run_ids": ["selected_n3", "run_ids"],
+    },
+    "proteinmpnn": {
+        "bindings": [
+            (["selected_n3", "status"], "PASS"),
+            (["selected_n3", "trial_count"], 3),
+            (["selected_n3", "semantic_pass_count"], 6),
+            (
+                [
+                    "cleanup",
+                    "run_id_scoped_exact_manifest_cleanup_succeeded_after_each_trial",
+                ],
+                True,
+            ),
+            (["cleanup", "counted_run_resources_remaining"], 0),
+        ],
+        "unique_run_ids": ["selected_n3", "run_ids"],
+    },
+    "msa-search": {
+        "bindings": [
+            (["response_boundary_requalification", "status"], "PASS"),
+            (
+                ["response_boundary_requalification", "response_timing_contract"],
+                RESPONSE_CONTRACT,
+            ),
+            (["conventional_cached_n3", "semantic_call_count"], 6),
+            (["conventional_cached_n3", "strict_semantic_calls_per_trial"], 2),
+            (
+                ["conventional_cached_n3", "target_image_residency", "preloaded_outside_t0"],
+                True,
+            ),
+            (
+                [
+                    "conventional_cached_n3",
+                    "target_image_residency",
+                    "target_event_pulling_count",
+                ],
+                0,
+            ),
+            (["cleanup", "counted_run_jobs_remaining"], 0),
+            (["cleanup", "counted_run_pods_remaining"], 0),
+            (["cleanup", "active_gpu_request_total_on_node"], 0),
+            (["cleanup", "per_trial_cleanup_receipt_count"], 3),
+        ],
+        "unique_run_ids": None,
+    },
+}
+
+
+def assert_lane_bindings(nim: str, doc: dict) -> None:
+    table = LANE_BINDINGS[nim]
+    for path, expected in table["bindings"]:
+        actual = get_path(doc, path)
+        if actual is not expected and actual != expected:
+            raise SystemExit(
+                f"{nim} evidence binding {'/'.join(path)} is {actual!r}, "
+                f"expected {expected!r}"
+            )
+        if type(actual) is not type(expected):
+            raise SystemExit(
+                f"{nim} evidence binding {'/'.join(path)} has type "
+                f"{type(actual).__name__}, expected {type(expected).__name__}"
+            )
+    if table["unique_run_ids"] is not None:
+        run_ids = get_path(doc, table["unique_run_ids"])
+        if not isinstance(run_ids, list) or len(run_ids) != 3 or len(set(run_ids)) != 3:
+            raise SystemExit(f"{nim} evidence run ids are not 3 unique runs")
+
+
+def check_of3_digest_join(results_doc: dict, prior_doc: dict, image_ref: str) -> None:
+    """OpenFold3's results file records no image; the digest binds through
+    the checkpoint identity shared with the prior-evidence file."""
+    if get_path(prior_doc, ["status"]) != "PASS":
+        raise SystemExit("openfold3 prior-evidence status is not PASS")
+    if get_path(prior_doc, ["execution_identity", "image"]) != image_ref:
+        raise SystemExit(
+            "openfold3 prior-evidence image does not equal the row's pinned "
+            "image reference"
+        )
+    sel = results_doc["selected"]
+    ckpt = prior_doc["checkpoint"]
+    for key in ("checkpoint_id", "manifest_sha256"):
+        if sel.get(key) != ckpt.get(key):
+            raise SystemExit(
+                f"openfold3 checkpoint join broken on {key}: "
+                f"{sel.get(key)!r} != {ckpt.get(key)!r}"
+            )
+    if str(sel.get("artifact_version")) != str(ckpt.get("artifact_version")):
+        raise SystemExit("openfold3 checkpoint join broken on artifact_version")
+
+
+# Evidence files verified in addition to the catalog row's provenance:
+# ProteinMPNN's digest-bearing results file and OpenFold3's digest-join
+# prior-evidence file. Cited explicitly so promotion never rests on
+# image-free evidence alone.
+SUPPLEMENTARY_EVIDENCE = {
+    "proteinmpnn": ["proteinmpnn-native/results.json"],
+    "openfold3": ["openfold3-native/prior-evidence.json"],
+}
+
+# Lanes whose committed results file records no cleanup block; disclosed
+# as an outstanding evidence gap instead of being silently assumed.
+NO_CLEANUP_RECORD = frozenset(["openfold3", "rfdiffusion"])
+
+# How each promoted cohort's exact image digest is bound to its evidence.
+IMAGE_BINDING = {
+    "boltz2": "cohort-bound-n20",
+    "openfold2": "cohort-bound-n20",
+    "diffdock": "in-file",
+    "genmol": "in-file",
+    "rfdiffusion": "in-file",
+    "proteinmpnn": "in-file",
+    "msa-search": "in-file",
+    "evo2-40b": "in-file",
+    "openfold3": "checkpoint-join",
+    "molmim": "none",
+}
 
 
 def check_n3_results(
@@ -1213,6 +1404,9 @@ def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
     recomputed = {}
     sealed = True
     values: list[float] | None = None
+    image_verified = False
+    of3_results_doc = None
+    of3_prior_doc = None
     for ref in refs:
         rel = repo_rel(ref)
         if ref.endswith("/"):
@@ -1232,22 +1426,56 @@ def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
             recomputed = check_n20_tsv(
                 text, p50, p95, N20_SPECS[nim]["cohort_prefix"]
             )
+            image_verified = True  # cohort id is NIM-bound; digest from row id
         elif nim == "proteinmpnn" and rel.endswith(".tsv"):
-            values = check_pmpnn_tsv(text, p50)
+            tsv_values = check_pmpnn_tsv(text, p50)
+            if values is not None and sorted(tsv_values)[1] != sorted(values)[1]:
+                raise SystemExit("proteinmpnn TSV and results medians diverge")
         elif nim == "msa-search" and rel.endswith("results.json"):
-            values = check_msa_results(json.loads(text), p50)
+            doc = json.loads(text)
+            values = check_msa_results(doc, p50)
+            if get_path(doc, ["nim_image"]) != image_ref:
+                raise SystemExit(
+                    "msa results file image ref does not equal the row's "
+                    "pinned image reference"
+                )
+            assert_lane_bindings(nim, doc)
+            image_verified = True
         elif nim == "evo2-40b" and rel.endswith("profile.json"):
             check_evo2_profile(json.loads(text), digest)
+            image_verified = True
+        elif nim == "openfold3" and rel.endswith("prior-evidence.json"):
+            of3_prior_doc = json.loads(text)
         elif nim in N3_SPECS and rel.endswith("results.json"):
             spec = N3_SPECS[nim]
+            doc = json.loads(text)
             values = check_n3_results(
-                json.loads(text),
+                doc,
                 spec,
                 p50,
                 image_ref if spec["image_path"] is not None else None,
             )
+            assert_lane_bindings(nim, doc)
+            if spec["image_path"] is not None:
+                image_verified = True
+            if nim == "openfold3":
+                of3_results_doc = doc
         else:
             raise SystemExit(f"unrecognized evidence ref for {nim}: {ref}")
+    if nim == "openfold3":
+        if of3_results_doc is None or of3_prior_doc is None:
+            raise SystemExit(
+                "openfold3 requires both results.json and prior-evidence.json "
+                "to close the digest join"
+            )
+        check_of3_digest_join(of3_results_doc, of3_prior_doc, image_ref)
+        image_verified = True
+    expected_binding = IMAGE_BINDING[nim]
+    if expected_binding != "none" and not image_verified:
+        raise SystemExit(
+            f"{nim}: image binding {expected_binding!r} was not verified by "
+            "any cited evidence"
+        )
     # SLO is recomputed from verified evidence only; the catalog boolean is
     # cross-checked, never trusted.
     slo_recomputed: bool | None = None
@@ -1264,6 +1492,7 @@ def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
         "recomputed": recomputed,
         "sealed": sealed,
         "slo_recomputed": slo_recomputed,
+        "image_binding": expected_binding,
     }
 
 
@@ -1384,10 +1613,22 @@ def build_bionemo_section(
         if row is None or cat is None or row["source"] != "faststart-v2-lanes":
             raise SystemExit(f"bionemo NIM {nim} does not resolve to a faststart lane row")
         measured = cat["startup"].get("measured") or {}
-        verified = verify_lane_evidence(nim, cat, evidence_refs(cat))
+        refs = evidence_refs(cat) + [
+            FS_PREFIX + extra for extra in SUPPLEMENTARY_EVIDENCE.get(nim, [])
+        ]
+        verified = verify_lane_evidence(nim, cat, refs)
         status = derive_provisioned_status(
             measured.get("evidence_class"), verified["sealed"]
         )
+        if (
+            row["snapshot_class"] in ("direct-snapshot-safe",
+                                      "snapshot-after-state-externalization")
+            and verified["image_binding"] == "none"
+        ):
+            raise SystemExit(
+                f"{nim}: snapshot-safe promotion without a verified exact "
+                "image binding is forbidden"
+            )
         outcome = provisioned_outcome(nim, status, measured, verified)
 
         gaps: list[str] = []
@@ -1395,11 +1636,12 @@ def build_bionemo_section(
             gaps = [XID_GAP, RAWBODY_GAP]
         if not verified["sealed"]:
             gaps = gaps + [MOLMIM_SEAL_GAP]
-        if nim in N3_SPECS and N3_SPECS[nim]["image_path"] is None:
+        if nim in NO_CLEANUP_RECORD:
             gaps = gaps + [
-                "the committed n=3 results file records no image reference; "
-                "digest binding for this cohort relies on the catalog row "
-                "and lane provenance only"
+                "the committed results file records no per-trial cleanup "
+                "verification block, so cleanup cannot be bound from sealed "
+                "bytes for this cohort; the missing record is disclosed, not "
+                "assumed"
             ]
 
         newnode_status = derive_newnode_status(row["blockers"])
@@ -1434,6 +1676,7 @@ def build_bionemo_section(
                         "evidence_class": measured.get("evidence_class"),
                         "evidence_refs": verified["refs"],
                         "sealed": verified["sealed"],
+                        "image_binding": verified["image_binding"],
                         "outcome": outcome,
                         "outstanding_evidence_gaps": gaps,
                         "further_required": provisioned_further_required(

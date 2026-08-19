@@ -777,6 +777,142 @@ class EligibilityArtifacts(unittest.TestCase):
         with self.assertRaises(SystemExit):
             b.check_metrics_doc("nothing relevant here")
 
+    def test_snapshot_safe_requires_verified_image_binding(self):
+        for e in self.meta["bionemo_nims"]:
+            binding = e["cohorts"]["provisioned_node"]["image_binding"]
+            self.assertIn(
+                binding,
+                ("in-file", "checkpoint-join", "cohort-bound-n20", "none"),
+                e["nim"],
+            )
+            if e["snapshot_class"] in SNAPSHOT_SAFE:
+                self.assertNotEqual(binding, "none", e["nim"])
+        by_nim = {e["nim"]: e["cohorts"]["provisioned_node"] for e in self.meta["bionemo_nims"]}
+        self.assertEqual(by_nim["openfold3"]["image_binding"], "checkpoint-join")
+        self.assertEqual(by_nim["proteinmpnn"]["image_binding"], "in-file")
+        self.assertEqual(by_nim["molmim"]["image_binding"], "none")
+        # ProteinMPNN's digest-bearing results file and OpenFold3's
+        # digest-join prior evidence must be cited and hash-bound.
+        pm_paths = {r["path"] for r in by_nim["proteinmpnn"]["evidence_refs"]}
+        self.assertIn(
+            "nim-fast-start/faststart-v2/proteinmpnn-native/results.json", pm_paths
+        )
+        of3_paths = {r["path"] for r in by_nim["openfold3"]["evidence_refs"]}
+        self.assertIn(
+            "nim-fast-start/faststart-v2/openfold3-native/prior-evidence.json",
+            of3_paths,
+        )
+        for nim in ("openfold3", "rfdiffusion"):
+            gaps = " ".join(by_nim[nim]["outstanding_evidence_gaps"])
+            self.assertIn("no per-trial cleanup", gaps, nim)
+
+    def test_selected_cohort_binding_adversaries(self):
+        b = build_eligibility
+
+        def load(rel):
+            with open(os.path.join(FASTSTART_ROOT, rel), encoding="utf-8") as fh:
+                return json.load(fh)
+
+        # DiffDock: selected status FAIL / semantic passes 0 must be rejected
+        dd = load("diffdock-native/results.json")
+        b.assert_lane_bindings("diffdock", dd)
+        for mutate in (
+            lambda d: d["selected_response_boundary_n3"].__setitem__("status", "FAIL"),
+            lambda d: d["selected_response_boundary_n3"].__setitem__("semantic_passes", 0),
+            lambda d: d["cleanup"].__setitem__("uid_preconditions_enforced", False),
+            lambda d: d["cleanup"].__setitem__("active_gpu_requests_final", 1),
+            lambda d: d["selected_response_boundary_n3"].__setitem__(
+                "runs", ["r1", "r1", "r2"]
+            ),
+            # string "PASS"-shaped truthy values of the wrong type also fail
+            lambda d: d["selected_response_boundary_n3"].__setitem__(
+                "semantic_passes", "6"
+            ),
+        ):
+            mutated = json.loads(json.dumps(dd))
+            mutate(mutated)
+            with self.assertRaises(SystemExit):
+                b.assert_lane_bindings("diffdock", mutated)
+        # GenMol: qualification FAIL / semantic passes 0 / cleanup false
+        gm = load("genmol-native/results.json")
+        b.assert_lane_bindings("genmol", gm)
+        for mutate in (
+            lambda d: d["response_boundary_requalification"].__setitem__("status", "FAIL"),
+            lambda d: d["response_boundary_requalification"].__setitem__(
+                "semantic_pass_count", 0
+            ),
+            lambda d: d["response_boundary_requalification"].__setitem__(
+                "cleanup_commands_succeeded_after_each_trial", False
+            ),
+            lambda d: d["response_boundary_requalification"].__setitem__(
+                "target_image_and_worker_image_resident_before_t0", False
+            ),
+        ):
+            mutated = json.loads(json.dumps(gm))
+            mutate(mutated)
+            with self.assertRaises(SystemExit):
+                b.assert_lane_bindings("genmol", mutated)
+        # MSA: wrong digest, wrong timing contract, qualification FAIL
+        msa = load("msa-search-native/results.json")
+        b.assert_lane_bindings("msa-search", msa)
+        image_ref = msa["nim_image"]
+        self.assertTrue(image_ref.endswith(
+            "sha256:944f3cf845761be8e42b33147ae08b68c61eca7cad67bf5251e1708d03c0165c"
+        ))
+        for mutate in (
+            lambda d: d["response_boundary_requalification"].__setitem__(
+                "response_timing_contract", "other/v2"
+            ),
+            lambda d: d["response_boundary_requalification"].__setitem__("status", "FAIL"),
+            lambda d: d["conventional_cached_n3"]["target_image_residency"].__setitem__(
+                "preloaded_outside_t0", False
+            ),
+            lambda d: d["cleanup"].__setitem__("counted_run_pods_remaining", 2),
+        ):
+            mutated = json.loads(json.dumps(msa))
+            mutate(mutated)
+            with self.assertRaises(SystemExit):
+                b.assert_lane_bindings("msa-search", mutated)
+        # ProteinMPNN results.json bindings and structural spec
+        pm = load("proteinmpnn-native/results.json")
+        b.assert_lane_bindings("proteinmpnn", pm)
+        pm_spec = b.N3_SPECS["proteinmpnn"]
+        pm_image = pm["image"]
+        b.check_n3_results(pm, pm_spec, 10.249097, pm_image)
+        mutated = json.loads(json.dumps(pm))
+        mutated["metric_contract"]["response_timing_contract"] = "other/v2"
+        with self.assertRaises(SystemExit):
+            b.check_n3_results(mutated, pm_spec, 10.249097, pm_image)
+        mutated = json.loads(json.dumps(pm))
+        mutated["image"] = pm_image.split("@")[0] + "@sha256:" + "0" * 64
+        with self.assertRaises(SystemExit):
+            b.check_n3_results(mutated, pm_spec, 10.249097, pm_image)
+        mutated = json.loads(json.dumps(pm))
+        mutated["selected_n3"]["semantic_pass_count"] = 0
+        with self.assertRaises(SystemExit):
+            b.assert_lane_bindings("proteinmpnn", mutated)
+        # OpenFold3 digest join breaks
+        of3 = load("openfold3-native/results.json")
+        prior = load("openfold3-native/prior-evidence.json")
+        of3_image = prior["execution_identity"]["image"]
+        b.check_of3_digest_join(of3, prior, of3_image)
+        for mutate_pair in (
+            lambda r, p: r["selected"].__setitem__("checkpoint_id", "other-ckpt"),
+            lambda r, p: r["selected"].__setitem__("manifest_sha256", "0" * 64),
+            lambda r, p: p["checkpoint"].__setitem__("artifact_version", "2"),
+            lambda r, p: p["execution_identity"].__setitem__(
+                "image", of3_image.split("@")[0] + "@sha256:" + "0" * 64
+            ),
+            lambda r, p: p.__setitem__("status", "FAIL"),
+        ):
+            r2 = json.loads(json.dumps(of3))
+            p2 = json.loads(json.dumps(prior))
+            mutate_pair(r2, p2)
+            with self.assertRaises(SystemExit):
+                b.check_of3_digest_join(r2, p2, of3_image)
+        with self.assertRaises(SystemExit):
+            b.check_of3_digest_join(of3, prior, "wrong@sha256:" + "0" * 64)
+
     def test_clean_tree_offline_reconstruction(self):
         import shutil
         import subprocess
@@ -792,6 +928,8 @@ class EligibilityArtifacts(unittest.TestCase):
             "rfdiffusion-native/results.json",
             "msa-search-native/results.json",
             "proteinmpnn-native/response-boundary-results.tsv",
+            "proteinmpnn-native/results.json",
+            "openfold3-native/prior-evidence.json",
             "evo2-native/profile.json",
             "openfold2-newnode/CURRENT_STATUS.json",
             "resource-broker/lease.schema.json",

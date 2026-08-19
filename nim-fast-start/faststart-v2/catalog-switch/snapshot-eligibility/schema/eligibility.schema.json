@@ -196,11 +196,15 @@
          "provisioned_node": {
           "type": "object",
           "required": [
-           "status", "evidence_class", "evidence_refs", "sealed", "outcome",
-           "outstanding_evidence_gaps", "further_required"
+           "status", "evidence_class", "evidence_refs", "sealed",
+           "image_binding", "outcome", "outstanding_evidence_gaps",
+           "further_required"
           ],
           "additionalProperties": false,
           "properties": {
+           "image_binding": {
+            "enum": ["in-file", "checkpoint-join", "cohort-bound-n20", "none"]
+           },
            "status": {
             "enum": [
              "complete-fresh-fail-closed-n20", "complete-n3",

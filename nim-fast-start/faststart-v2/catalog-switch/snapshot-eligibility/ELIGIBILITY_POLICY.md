@@ -114,7 +114,18 @@ the builder maps them from the vendored catalog's measured evidence
 class, SHA-256-binds every evidence ref to committed bytes, re-counts
 both n=20 cohorts and recomputes their nearest-rank percentiles from
 the committed TSVs, and requires the exact published medians, digests,
-and response-timing contract in each n=3 results file.
+and response-timing contract in each n=3 results file. Each promoted
+n=3 row is additionally bound to its selected cohort's own record —
+selected status, semantic request/pass counts, unique run ids,
+qualification, and cleanup fields asserted by exact path and typed
+value — and carries an explicit `image_binding`: `in-file` (DiffDock,
+GenMol, RFdiffusion, ProteinMPNN, MSA Search, Evo2 profile),
+`checkpoint-join` (OpenFold3: results `selected.checkpoint_id` /
+`manifest_sha256` / `artifact_version` must equal the prior-evidence
+checkpoint whose `execution_identity.image` records the exact digest),
+or `cohort-bound-n20` (Boltz2, OpenFold2). A snapshot-safe class with
+no verified image binding refuses the build. Missing per-trial cleanup
+records (OpenFold3, RFdiffusion) are disclosed as outstanding gaps.
 
 - **provisioned-node** — what exists, with explicit outcome:
   `complete-fresh-fail-closed-n20` for Boltz2 (SLO **FAIL**,
