@@ -1,0 +1,544 @@
+{
+  "capacity_advice": [
+    {
+      "error": "Nebius command failed (5): /usr/local/bin/nebius capacity resource-advice list --parent-id: Error: rpc error: code = Internal desc = internal error request = 277831a8-818f-4acc-9267-56938c18c9d7\n\nThis issue may be linked to API request calls. The following information may be helpful while debugging the issue:\n  Trace ID: 43b9976d6bb08af2063ee56de0ebdf39",
+      "status": "ERROR",
+      "tenant_id": "tenant-e00f3wdfzwfjgbcyfv"
+    }
+  ],
+  "identity": {
+    "id": "serviceaccount-i00pafr0ydvbaxj952",
+    "name": "claw",
+    "parent_id": "project-i00xz31gpr00xp9jhp982v",
+    "type": "service_account_profile"
+  },
+  "nebius_profile": "sandbox",
+  "observed_at": "2026-08-19T11:23:02Z",
+  "projects": [
+    {
+      "expected_region": "eu-north1",
+      "name": "rene",
+      "observed_region": "eu-north1",
+      "platforms": [
+        {
+          "gpu_memory_gigabytes": 279,
+          "name": "gpu-gb300",
+          "presets": [
+            "4gpu-112vcpu-800gb"
+          ]
+        },
+        {
+          "gpu_memory_gigabytes": null,
+          "name": "cpu-d3",
+          "presets": [
+            "4vcpu-16gb",
+            "8vcpu-32gb",
+            "16vcpu-64gb",
+            "32vcpu-128gb",
+            "48vcpu-192gb",
+            "64vcpu-256gb",
+            "96vcpu-384gb",
+            "128vcpu-512gb"
+          ]
+        },
+        {
+          "gpu_memory_gigabytes": 48,
+          "name": "gpu-l40s-d",
+          "presets": [
+            "1gpu-16vcpu-96gb",
+            "1gpu-32vcpu-192gb",
+            "1gpu-48vcpu-288gb",
+            "2gpu-64vcpu-384gb",
+            "2gpu-96vcpu-576gb",
+            "4gpu-128vcpu-768gb",
+            "4gpu-192vcpu-1152gb"
+          ]
+        },
+        {
+          "gpu_memory_gigabytes": 141,
+          "name": "gpu-h200-sxm",
+          "presets": [
+            "1gpu-16vcpu-200gb",
+            "8gpu-128vcpu-1600gb"
+          ]
+        },
+        {
+          "gpu_memory_gigabytes": null,
+          "name": "cpu-e2",
+          "presets": [
+            "2vcpu-8gb",
+            "4vcpu-16gb",
+            "8vcpu-32gb",
+            "16vcpu-64gb",
+            "32vcpu-128gb",
+            "48vcpu-192gb",
+            "64vcpu-256gb",
+            "80vcpu-320gb"
+          ]
+        },
+        {
+          "gpu_memory_gigabytes": 80,
+          "name": "gpu-h100-sxm",
+          "presets": [
+            "1gpu-16vcpu-200gb",
+            "8gpu-128vcpu-1600gb"
+          ]
+        },
+        {
+          "gpu_memory_gigabytes": 48,
+          "name": "gpu-l40s-a",
+          "presets": [
+            "1gpu-8vcpu-32gb",
+            "1gpu-16vcpu-64gb",
+            "1gpu-24vcpu-96gb",
+            "1gpu-32vcpu-128gb",
+            "1gpu-40vcpu-160gb"
+          ]
+        }
+      ],
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "quota_usage": [
+        {
+          "allowance": null,
+          "name": "compute.disk.count",
+          "unit": "count",
+          "usage": "118",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.size.network-hdd",
+          "unit": "byte",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.size.network-ssd",
+          "unit": "byte",
+          "usage": "19763292012544",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.size.network-ssd-io-m3",
+          "unit": "byte",
+          "usage": "3195455668224",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.size.network-ssd-non-replicated",
+          "unit": "byte",
+          "usage": "699005927424",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.snapshot.count",
+          "unit": "count",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.snapshot.size",
+          "unit": "byte",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.filesystem.count",
+          "unit": "count",
+          "usage": "8",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.filesystem.size.network-hdd",
+          "unit": "byte",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.filesystem.size.network-ssd",
+          "unit": "byte",
+          "usage": "21455509127168",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.gpucluster.count",
+          "unit": "count",
+          "usage": "2",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.image.count",
+          "unit": "count",
+          "usage": "4",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.image.size",
+          "unit": "byte",
+          "usage": "18350080000",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.instance.count",
+          "unit": "count",
+          "usage": "67",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.instance.gpu.h100",
+          "unit": "count",
+          "usage": "2",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.instance.gpu.h200",
+          "unit": "count",
+          "usage": "25",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.instance.gpu.l40s",
+          "unit": "count",
+          "usage": "7",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.instance.non-gpu.vcpu",
+          "unit": "count",
+          "usage": "196",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.instance.preemptible.count",
+          "unit": "count",
+          "usage": "18",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "storage.bucket.count",
+          "unit": "count",
+          "usage": "14",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "storage.bucket.size.enhanced-throughput",
+          "unit": "byte",
+          "usage": "99455624",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "storage.bucket.size.intelligent",
+          "unit": "byte",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "storage.bucket.size.standard",
+          "unit": "byte",
+          "usage": "4299259745142",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.allocation.count",
+          "unit": "count",
+          "usage": "165",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.ipv4-address.public.count",
+          "unit": "count",
+          "usage": "23",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.network.count",
+          "unit": "count",
+          "usage": "6",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.pool.count",
+          "unit": "count",
+          "usage": "20",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.route.count",
+          "unit": "count",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.routetable.count",
+          "unit": "count",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.subnet.count",
+          "unit": "count",
+          "usage": "9",
+          "usage_state": "USAGE_STATE_USED"
+        }
+      ],
+      "state": "ACTIVE",
+      "status": "PASS"
+    },
+    {
+      "error": "Nebius command failed (12): /usr/local/bin/nebius iam project get project-u00tds8vpr00jaxa76s22d: Error: gosdk request timeout: rpc error: code = DeadlineExceeded desc = context deadline exceeded",
+      "expected_region": "us-central1",
+      "project_id": "project-u00tds8vpr00jaxa76s22d",
+      "status": "ERROR"
+    },
+    {
+      "expected_region": "me-west1",
+      "name": "rene-israel",
+      "observed_region": "me-west1",
+      "platforms": [
+        {
+          "gpu_memory_gigabytes": 180,
+          "name": "gpu-b200-sxm-a",
+          "presets": [
+            "1gpu-20vcpu-224gb",
+            "8gpu-160vcpu-1792gb"
+          ]
+        },
+        {
+          "gpu_memory_gigabytes": null,
+          "name": "cpu-d3",
+          "presets": [
+            "4vcpu-16gb",
+            "8vcpu-32gb",
+            "16vcpu-64gb",
+            "32vcpu-128gb",
+            "48vcpu-192gb",
+            "64vcpu-256gb",
+            "96vcpu-384gb",
+            "128vcpu-512gb",
+            "160vcpu-640gb",
+            "192vcpu-768gb",
+            "224vcpu-896gb",
+            "256vcpu-1024gb"
+          ]
+        }
+      ],
+      "project_id": "project-i00xz31gpr00xp9jhp982v",
+      "quota_usage": [
+        {
+          "allowance": null,
+          "name": "compute.disk.count",
+          "unit": "count",
+          "usage": "30",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.size.network-ssd",
+          "unit": "byte",
+          "usage": "4281008652288",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.size.network-ssd-io-m3",
+          "unit": "byte",
+          "usage": "18274012102656",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.size.network-ssd-non-replicated",
+          "unit": "byte",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.snapshot.count",
+          "unit": "count",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.disk.snapshot.size",
+          "unit": "byte",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.filesystem.count",
+          "unit": "count",
+          "usage": "2",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.filesystem.size.network-ssd",
+          "unit": "byte",
+          "usage": "9895604649984",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.gpucluster.count",
+          "unit": "count",
+          "usage": "3",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.image.count",
+          "unit": "count",
+          "usage": "2",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.image.size",
+          "unit": "byte",
+          "usage": "3713389297664",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.instance.count",
+          "unit": "count",
+          "usage": "8",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.instance.gpu.b200",
+          "unit": "count",
+          "usage": "1",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.instance.non-gpu.vcpu",
+          "unit": "count",
+          "usage": "144",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "compute.instance.preemptible.count",
+          "unit": "count",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "storage.bucket.count",
+          "unit": "count",
+          "usage": "7",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "storage.bucket.size.enhanced-throughput",
+          "unit": "byte",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "storage.bucket.size.intelligent",
+          "unit": "byte",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "storage.bucket.size.standard",
+          "unit": "byte",
+          "usage": "45951108498",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.allocation.count",
+          "unit": "count",
+          "usage": "25",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.ipv4-address.public.count",
+          "unit": "count",
+          "usage": "11",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.network.count",
+          "unit": "count",
+          "usage": "2",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.pool.count",
+          "unit": "count",
+          "usage": "5",
+          "usage_state": "USAGE_STATE_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.route.count",
+          "unit": "count",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.routetable.count",
+          "unit": "count",
+          "usage": null,
+          "usage_state": "USAGE_STATE_NOT_USED"
+        },
+        {
+          "allowance": null,
+          "name": "vpc.subnet.count",
+          "unit": "count",
+          "usage": "4",
+          "usage_state": "USAGE_STATE_USED"
+        }
+      ],
+      "state": "ACTIVE",
+      "status": "PASS"
+    }
+  ],
+  "schema_version": "catalog-switch-authorized-inventory/v1",
+  "secrets_recorded": false
+}
