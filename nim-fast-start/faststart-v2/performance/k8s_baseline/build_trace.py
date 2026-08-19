@@ -19,7 +19,13 @@ from performance.request_slo.harness import (
 )
 
 
-def precondition(scenario: str, target: dict[str, Any], other: dict[str, Any]) -> dict[str, Any]:
+def precondition(
+    scenario: str,
+    target: dict[str, Any],
+    other: dict[str, Any],
+    *,
+    campaign_arm: str = "A_prepared_node",
+) -> dict[str, Any]:
     target_occupant = {
         "model_id": target["model_id"],
         "model_version": target["model_version"],
@@ -96,7 +102,28 @@ def precondition(scenario: str, target: dict[str, Any], other: dict[str, Any]) -
             "queue_depth": 3,
         },
     }
-    return values[scenario]
+    value = values[scenario]
+    if campaign_arm == "B_new_preemptible_node":
+        if scenario == "a_to_b_remote":
+            raise ValueError(
+                "shared request-SLO v1 cannot represent successful new-node demand without "
+                "inventing a pre-T0 node occupant; Arm B remains planned until that schema is versioned"
+            )
+        if scenario != "capacity_miss":
+            raise ValueError("new-node arm admits only the v1 capacity-miss negative control")
+        value = {
+            **value,
+            "current_node_occupant": None,
+            "cache": {
+                "image": "remote_required" if scenario == "a_to_b_remote" else "unavailable",
+                "artifact": "remote_miss" if scenario == "a_to_b_remote" else "unavailable",
+                "checkpoint": "missing",
+                "storage": "localization_required" if scenario == "a_to_b_remote" else "unavailable",
+            },
+        }
+    elif campaign_arm != "A_prepared_node":
+        raise ValueError("unknown Kubernetes campaign arm")
+    return value
 
 
 def build_trace(
@@ -107,25 +134,30 @@ def build_trace(
     interval_ms: int,
     trace_id: str,
     seed: int,
+    campaign_arm: str = "A_prepared_node",
 ) -> dict[str, Any]:
     if set(catalog) != {"schema", "models"} or catalog["schema"] != CATALOG_SCHEMA:
         raise ValueError("catalog does not use the shared v1 contract")
     models = catalog["models"]
-    if not isinstance(models, list) or len(models) != 2:
-        raise ValueError("matched Kubernetes cohorts require exactly two models")
+    expected_models = 1 if scenario == "same_model_hot" else 2
+    if not isinstance(models, list) or len(models) != expected_models:
+        raise ValueError(
+            f"{scenario} Kubernetes cohorts require exactly {expected_models} model(s)"
+        )
     if scenario not in SCENARIOS:
         raise ValueError("unknown scenario")
-    if request_count < 30:
-        raise ValueError("promoted scenario trace requires at least 30 requests")
+    minimum = 30 * expected_models
+    if request_count < minimum or (expected_models == 2 and request_count % 2):
+        raise ValueError(
+            "promoted switch traces require at least 30 requests per target model "
+            f"({minimum} total and an even count)"
+        )
     if interval_ms < 100:
         raise ValueError("offered interval must leave at least the v1 100 ms recorder ceiling")
     requests = []
     for index in range(request_count):
-        if scenario in {"a_to_b_local", "a_to_b_remote", "checkpoint_fallback"}:
-            target = models[index % 2]
-            other = models[(index + 1) % 2]
-        else:
-            target, other = models
+        target = models[index % expected_models]
+        other = models[(index + 1) % expected_models]
         request_id = f"{trace_id}-request-{index + 1:06d}"
         requests.append(
             {
@@ -145,7 +177,9 @@ def build_trace(
                     )
                 },
                 "input": dict(target["input"]),
-                "precondition": precondition(scenario, target, other),
+                "precondition": precondition(
+                    scenario, target, other, campaign_arm=campaign_arm
+                ),
             }
         )
     trace = {
@@ -170,6 +204,11 @@ def main() -> int:
     parser.add_argument("--interval-ms", required=True, type=int)
     parser.add_argument("--trace-id", required=True)
     parser.add_argument("--seed", required=True, type=int)
+    parser.add_argument(
+        "--campaign-arm",
+        choices=("A_prepared_node", "B_new_preemptible_node"),
+        default="A_prepared_node",
+    )
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     try:
@@ -181,6 +220,7 @@ def main() -> int:
             interval_ms=args.interval_ms,
             trace_id=args.trace_id,
             seed=args.seed,
+            campaign_arm=args.campaign_arm,
         )
         if args.output.exists() or args.output.is_symlink():
             raise ValueError("output must be new")

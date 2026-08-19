@@ -19,9 +19,10 @@
       "network_and_service_account_task_owned": true
     },
     "gpu_node_group": {
-      "platform": "gpu-h100-sxm",
-      "preset": "1gpu-16vcpu-200gb",
-      "gpu_count_per_node": 1,
+      "profile_is_model_compatible": true,
+      "first_wave_platform": "gpu-h100-sxm",
+      "first_wave_preset": "1gpu-16vcpu-200gb",
+      "large_model_profile": "fresh preemptible H200-class profile required when inventory declares H100 incompatible",
       "node_count": 1,
       "mode": "preemptible",
       "task_owned": true,
@@ -33,6 +34,7 @@
       "campaign_arm",
       "project_id",
       "region",
+      "code_revision",
       "cluster_version",
       "node_group_profile",
       "expected_duration_hours",
@@ -42,7 +44,11 @@
       "trace_sha256",
       "model_input_sha256s",
       "cleanup_owner",
-      "cleanup_deadline_utc"
+      "cleanup_deadline_utc",
+      "credential_receipt_sha256",
+      "credential_scope_manifest_sha256",
+      "threat_model_sha256",
+      "runtime_sources_sha256"
     ],
     "lease_evidence_fields": [
       "schema_version",
@@ -59,14 +65,43 @@
       "kubernetes_context",
       "api_server",
       "gpu_product",
+      "gpu_count",
       "preemptible",
       "resource_create_operations",
       "readiness_timestamps",
       "isolation_proof",
       "cost_estimate",
       "resources",
-      "cleanup_plan"
+      "cleanup_plan",
+      "initial_state_receipt",
+      "audit_chain"
     ],
+    "exact_resource_graph": {
+      "support_kind_cardinality": "exactly one each of cluster, network, subnet, service_account, namespace",
+      "arm_a_additional_cardinality": "exactly one node_group and one node",
+      "arm_b_pre_t0_forbidden_kinds": [
+        "node_group",
+        "node",
+        "gpu",
+        "pod",
+        "model",
+        "artifact",
+        "checkpoint"
+      ],
+      "live_kubernetes_bindings": [
+        "namespace UID plus task/prefix/lease/broker-resource annotations",
+        "workload ServiceAccount UID plus task/prefix/lease/broker-resource annotations",
+        "node UID plus broker node ID/node-group ID/lease/prefix/preemptible annotations"
+      ]
+    },
+    "source_bound_evidence": {
+      "isolation": "path, file SHA-256, exact graph/GPU content",
+      "initial_state": "path, file SHA-256, exact occupant plus every target image/artifact/checkpoint identity and bytes",
+      "audit": "events path/file SHA-256; genesis/previous/event/head hashes recomputed",
+      "registry_scope": "task-owned nvcr.io repository/image manifest path and SHA-256 joined to secret UID and receipt",
+      "runtime_sources": "broker request binds one reviewed Git-blob manifest covering every semantic validator, target template, exact container/init-container allowlist, support image, and support-image build/receipt provenance",
+      "strategy": "v2 snapshot RESTORED or conventional LOADED receipt with exact checkpoint/null identity, same-node monotonic work duration, refreshed total GPU-active elapsed duration, process state, and evidence hash"
+    },
     "fail_closed": [
       "authentication_or_authorization_failure",
       "project_or_region_mismatch",
@@ -76,6 +111,10 @@
       "gpu_product_or_count_mismatch",
       "capacity_advice_unavailable",
       "unsealed_metric_or_trace_hash",
+      "unreviewed_metric_inventory_threat_or_strategy_source_commit",
+      "expired_credential_or_cleanup_deadline",
+      "registry_scope_or_live_object_identity_mismatch",
+      "hidden_or_duplicate_cluster_gpu_capacity",
       "missing_exact_id_cleanup_plan"
     ],
     "cleanup": {
@@ -85,7 +124,115 @@
       "provider_children_reconciled": true,
       "final_gpu_process_count": 0,
       "final_gpu_memory_must_equal_baseline": true,
-      "desired_final_state": "ABSENT"
+      "desired_final_state": "ABSENT",
+      "promotion_receipt_schema": "archvteams.nebius.ai/k8s-broker-final-cleanup/v2",
+      "promotion_receipt_fields": [
+        "lease_id and RELEASED state",
+        "canonical exact-resource-absence receipt over every lease resource ID",
+        "canonical FINAL actual-cost receipt with USD cost, billed seconds, and transfer bytes",
+        "canonical pre-delete GPU-zero receipt with node ID, zero processes, and baseline-equal memory",
+        "canonical task-secret plus external-token revocation receipt",
+        "exact provider evidence path and file SHA-256 for every nested receipt",
+        "final audit events path and file SHA-256 extending the admitted lease audit head through GPU-zero, credential revoke, child absence, resource absence, and final cost",
+        "SHA-256 of every nested canonical receipt"
+      ],
+      "cleanup_before_joint_evidence_seal": true,
+      "active_or_cleanup-required_lease_is_unpromotable": true,
+      "two_stage_consumer": {
+        "workload_stage": "immutable k8s-workload-staging-seal/v1, never promotable",
+        "broker_action": "release exact lease and return the final receipt below",
+        "final_stage": "finalize-live verifies staging plus final receipt into a new k8s-evidence-seal/v2; staging is never overwritten"
+      },
+      "final_receipt_exact_shape": {
+        "top_level": [
+          "schema=k8s-broker-final-cleanup/v2",
+          "status=PASS",
+          "lease_id",
+          "lease_state=RELEASED",
+          "lease_cleanup_required=false",
+          "final_resource_state=ABSENT",
+          "exact_absence_receipt plus canonical SHA-256",
+          "provider_children_receipt plus canonical SHA-256",
+          "actual_cost_receipt plus canonical SHA-256",
+          "gpu_zero_receipt plus canonical SHA-256",
+          "credential_revocation_receipt plus canonical SHA-256",
+          "audit_extension_receipt plus canonical SHA-256"
+        ],
+        "exact_absence_receipt": [
+          "schema=exact-resource-absence/v1",
+          "lease_id",
+          "status=ALL_NOT_FOUND",
+          "resource_ids exactly equal every admitted lease graph ID",
+          "observed_at_utc after GPU-zero observation",
+          "evidence_sha256"
+        ],
+        "provider_children_receipt": [
+          "schema=provider-child-absence/v1",
+          "lease_id/project_id/region",
+          "status=ALL_NOT_FOUND",
+          "discovery_complete=true",
+          "sorted discovered_child_ids exactly equal sorted not_found_child_ids",
+          "remaining_child_ids=[]",
+          "observed_at_utc",
+          "evidence_sha256"
+        ],
+        "actual_cost_receipt": [
+          "schema=broker-actual-cost/v1",
+          "lease_id and immutable request_sha256",
+          "status=FINAL and currency=USD",
+          "rate_contract_sha256 over admitted cost_estimate",
+          "hard_cost_cap_usd equal admitted cap",
+          "actual_cost_usd nonnegative and at or below cap",
+          "billed_seconds not below sealed GPU active plus idle seconds",
+          "transfer_bytes not below sealed moved bytes",
+          "evidence_sha256"
+        ],
+        "gpu_zero_receipt": [
+          "schema=final-gpu-zero/v1",
+          "lease_id",
+          "node_id exactly equal admitted Arm-A node ID",
+          "status=PASS",
+          "compute_process_count=0",
+          "observed_memory_bytes equals baseline_memory_bytes",
+          "observed_at_utc before node NotFound observation",
+          "evidence_path and exact file SHA-256"
+        ],
+        "final_audit_extension": [
+          "schema=broker-final-audit-extension/v1",
+          "lease_id and chain_id equal the admitted lease",
+          "previous_head_sha256 and first_sequence equal the admitted audit head/count",
+          "events path and file SHA-256",
+          "five recomputed events in order: GPU-zero, credential revoke, provider children absent, resources absent, cost finalized",
+          "each event payload binds the exact nested canonical receipt SHA-256",
+          "recomputed head_sha256"
+        ]
+      }
+    },
+    "paired_variant_handoff": {
+      "status": "BLOCKED_PENDING_VERSIONED_BROKER_BACKEND",
+      "schema_required": "archvteams.nebius.ai/k8s-broker-pair-handoff/v1",
+      "purpose": "Re-establish an equivalent task-owned initial occupant/cache state after the per-run-Service workload cleanup and before the precreated-Service candidate cohort T0.",
+      "ordering": [
+        "baseline workload staging seal is immutable",
+        "baseline active target is deleted and admitted node receives an exact GPU-zero receipt",
+        "broker performs and costs rearm work outside both measured cohort boundaries",
+        "broker emits an audit extension from the baseline lease head",
+        "candidate initial-state receipt proves the same node/resource graph, occupant, cache targets, images, artifacts, checkpoints, and bytes",
+        "candidate external durable T0 occurs only after the pair-handoff receipt is admitted"
+      ],
+      "required_fields": [
+        "lease_id/request_sha256/resource graph identities unchanged",
+        "baseline workload staging seal SHA-256",
+        "baseline cleanup and GPU-zero receipt SHA-256",
+        "baseline and candidate initial-state receipt SHA-256",
+        "equivalent initial-state core SHA-256 excluding only broker observation time/evidence path",
+        "rearm started/finished UTC timestamps before candidate cohort T0",
+        "rearm actual-cost/bytes/GPU receipt",
+        "source-bound provider evidence paths and SHA-256",
+        "audit events/head extending the admitted chain",
+        "status=PASS"
+      ],
+      "consumer_state": "finalize-live --promote is fail-closed until the pair-handoff/rearm interface exists and is executable-tested"
     }
   },
   "arm_a_prepared_node": {
@@ -102,7 +249,9 @@
       "one Ready H100 node identity",
       "preemptible=true proof",
       "exclusive task namespace ownership proof",
-      "initial occupant and cache-state receipt"
+      "initial occupant and cache-state receipt bound to exact broker node ID/UID",
+      "task-owned scoped registry credential receipt",
+      "reviewed threat-model and hash-chain audit identities"
     ],
     "request_boundary": "Each measured demand is accepted only after the declared prepared-node precondition exists; all request-specific switching follows that demand T0."
   },
@@ -150,6 +299,12 @@
       "node_group_deleted_before_next_independent_attempt": true,
       "node_and_provider_children_not_found_receipts_required": true,
       "failures_and_partially_created_exact_ids_retained_in_evidence": true
+    },
+    "shared_metric_dependency": {
+      "status": "BLOCKED_PENDING_VERSIONED_SCENARIO",
+      "reason": "request-SLO v1 a_to_b_remote requires a pre-T0 occupant, which Arm B forbids",
+      "required_scenario": "new_node_remote with null occupant and remote/unavailable cache only",
+      "capacity_miss_v1_negative_control_only": true
     }
   },
   "arm_separation": {

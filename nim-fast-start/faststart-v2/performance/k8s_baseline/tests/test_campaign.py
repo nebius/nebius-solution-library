@@ -21,7 +21,8 @@ class CampaignFreezeTests(unittest.TestCase):
         self.assertFalse(value["mutation_admitted"])
         self.assertEqual(value["campaign_arm"], "A_prepared_node")
         self.assertEqual(value["models"], ["boltz2", "openfold2"])
-        self.assertEqual(value["repetitions"], 30)
+        self.assertEqual(value["repetitions_per_model"], 30)
+        self.assertEqual(value["total_attempts"], 60)
         self.assertEqual(value["product_boundary"]["semantic_calls_per_attempt"], 2)
         self.assertEqual(
             sha256(CAMPAIGN / value["trace_path"]), value["trace_file_sha256"]
@@ -53,6 +54,14 @@ class CampaignFreezeTests(unittest.TestCase):
         )
         self.assertTrue(value["arm_separation"]["lease_ids_must_differ"])
         self.assertTrue(value["arm_separation"]["evidence_denominators_must_not_mix"])
+        self.assertIn(
+            "runtime_sources_sha256", value["common"]["immutable_request_fields"]
+        )
+        handoff = value["common"]["paired_variant_handoff"]
+        self.assertEqual(
+            handoff["status"], "BLOCKED_PENDING_VERSIONED_BROKER_BACKEND"
+        )
+        self.assertIn("pair-handoff/rearm", handoff["consumer_state"])
 
     def test_wave_one_catalog_pins_two_distinct_semantic_calls(self) -> None:
         catalog = json.loads((ROOT / "experiment-catalog.json").read_text())

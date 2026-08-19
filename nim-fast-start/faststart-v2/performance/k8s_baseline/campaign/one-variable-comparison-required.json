@@ -1,0 +1,38 @@
+{
+  "schema": "archvteams.nebius.ai/k8s-one-variable-comparison-requirement/v1",
+  "consumer": "catalog-switch-k8s-baseline",
+  "status": "PLANNED_NO_PAIR_SEALED",
+  "validator": "performance.k8s_baseline.comparison.load_comparison",
+  "baseline": {
+    "variant": "per_run_service",
+    "precreated_support": []
+  },
+  "candidate": {
+    "variant": "precreated_service",
+    "precreated_support": [
+      "service"
+    ]
+  },
+  "allowed_differences": [
+    "experiment_id",
+    "variant",
+    "precreated_support"
+  ],
+  "must_match_exactly": [
+    "trace and offered schedule",
+    "model, artifact, image, checkpoint, input, and semantic validator identities",
+    "scenario and strategy",
+    "code revision and metric contract",
+    "project, region, cluster server/context/version, namespace UID, node UID, broker node and node-group IDs",
+    "resource lease ID, request hash, and all task-owned resource IDs",
+    "initial occupant/cache content equivalence after a source-bound broker rearm; observation timestamp/path/hash may differ only through the handoff receipt",
+    "credential identity/scope, support images, and threat-model sources",
+    "GPU profile, price snapshot, unit costs, TTL, and cleanup contract"
+  ],
+  "comparison_contract_schema": "archvteams.nebius.ai/k8s-one-variable-comparison/v1",
+  "pair_handoff_schema_required": "archvteams.nebius.ai/k8s-broker-pair-handoff/v1",
+  "pair_handoff_status": "BLOCKED_PENDING_VERSIONED_BROKER_BACKEND",
+  "promotion_cli_behavior": "finalize-live --promote seals promotion_allowed=false and fails closed until pair handoff is implemented",
+  "promotion_requires_sealed_pair": true,
+  "mutation_admitted": false
+}

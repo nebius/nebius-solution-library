@@ -1,6 +1,6 @@
 {
   "schema": "archvteams.nebius.ai/k8s-baseline-campaign-freeze/v1",
-  "campaign_id": "k8s-arm-a-boltz2-openfold2-a2b-local-20260819",
+  "campaign_id": "k8s-arm-a-boltz2-openfold2-a2b-local-v2-20260819",
   "status": "PLANNED",
   "campaign_arm": "A_prepared_node",
   "product_boundary": {
@@ -22,18 +22,19 @@
   "strategy": "snapshot",
   "variant": "per_run_service",
   "precreated_support": [],
-  "repetitions": 30,
+  "repetitions_per_model": 30,
+  "total_attempts": 60,
   "offered_interval_ms": 900000,
   "retain_all_attempts": true,
   "project_id": "project-e00z6b02t8ddk96c49",
   "region": "eu-north1",
   "resource_profile": "mk8s-h100-single-v2",
   "resource_mode": "preemptible",
-  "expected_duration_hours": 8,
-  "ttl_hours": 12,
-  "hard_cost_cap_usd": 27,
-  "trace_path": "arm-a-a2b-local-trace.json",
-  "trace_file_sha256": "d60351c7e9162f5cd7f7779597fafc3e7498c540a3fa9a44092377bee7f7d283",
+  "expected_duration_hours": 18,
+  "ttl_hours": 24,
+  "hard_cost_cap_usd": 60,
+  "trace_path": "arm-a-a2b-local-trace-v2.json",
+  "trace_file_sha256": "f8793c0213472bcbaff697b09796b1deda16b378b7a154a89ba05ed25bcd824c",
   "trace_contract_sha256": "0e5798b3cc2411f6b1839f2ed466d6fc2481ee3111a0385efca8eebec6a70a92",
   "request_slo_freeze_path": "request-slo-freeze.json",
   "request_slo_freeze_sha256": "deb1e20022735bd958d3e832fb1a1e8faa036bd3be15cb07ee81a34f31a1eab3",
@@ -42,6 +43,8 @@
   "resource_lease_path": null,
   "admission_blockers": [
     "versioned fresh-cluster/preemptible-H100-node-group broker backend is not yet sealed",
+    "broker-bound reviewed runtime-source manifest and support-image provenance are not yet sealed",
+    "paired-variant handoff/rearm backend is absent, so precreated-Service promotion is disabled",
     "NVIDIA NGC/NIM registry credential is absent",
     "exact task-owned image and OpenFold2 artifact byte observations are not yet available"
   ],
@@ -49,6 +52,6 @@
   "cleanup": {
     "owner": "catalog-switch-k8s-baseline",
     "deadline_utc": "2026-08-20T14:00:00Z",
-    "required_final_state": "all exact broker resource IDs ABSENT and final H100 process/memory state proven zero"
+    "required_final_state": "all exact broker resource IDs ABSENT, provider children NotFound, task credential revoked, final H100 process/memory state proven zero, and final broker audit extension sealed"
   }
 }

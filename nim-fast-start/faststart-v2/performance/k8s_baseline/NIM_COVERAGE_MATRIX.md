@@ -6,11 +6,17 @@ sizes come from reviewed inventory commit `9abd4920`; live bytes must be
 observed again from fresh task-owned resources. Every executed row requires two
 complete semantically valid responses and retains all failures.
 
+Executable admission currently has audited semantic adapters only for Boltz2,
+OpenFold2, and ProteinMPNN. The other seven rows are roadmap-only and fail
+before T0 until reviewed validators, exact target templates, compatible GPU
+profiles, strategy eligibility, and runtime-source entries exist. A
+representative result never substitutes for an unexecuted NIM.
+
 | Wave | NIM | Pinned image digest | Snapshot lane | Known artifact bytes | Arm A | Arm B | Notes |
 | --- | --- | --- | --- | ---: | --- | --- | --- |
-| 1 | Boltz2 | `0788c95c…c4c98` | proven | 16,241,056,616 | six states × baseline/precreated-Service, n≥30 promoted | new preemptible H100, conventional + snapshot, n≥30 promoted | First target; frozen two-call inputs and strict validator. |
-| 1 | OpenFold2 | `fc649167…3ab4` | proven | unknown | six states × baseline/precreated-Service, n≥30 promoted | new preemptible H100, conventional + snapshot, n≥30 promoted | First target; live artifact bytes must be measured before remote-miss admission. |
-| 2 | ProteinMPNN | `b55a0aa6…aa5` | proven | 1,867,046,505 | same six-state/variant matrix | new-node conventional + snapshot | Small/snapshot-friendly representative, but not a substitute for other rows. |
+| 1 | Boltz2 | `0788c95c…c4c98` | proven | 16,241,056,616 | six states × baseline/precreated-Service, n≥30 after pair handoff | new preemptible H100, conventional + snapshot, n≥30 after Arm-B schema | Adapter implemented; campaign still PLANNED. |
+| 1 | OpenFold2 | `fc649167…3ab4` | proven | unknown | six states × baseline/precreated-Service, n≥30 after pair handoff | new preemptible H100, conventional + snapshot, n≥30 after Arm-B schema | Adapter implemented; live artifact bytes still required. |
+| 2 | ProteinMPNN | `b55a0aa6…aa5` | proven | 1,867,046,505 | same six-state/variant matrix | new-node conventional + snapshot | Adapter implemented; still needs a sealed executable campaign. |
 | 2 | DiffDock | `300696eb…480` | proven | 7,516,058,314 | same six-state/variant matrix | new-node conventional + snapshot | Pin 1UBQ+aspirin semantic input/validator. |
 | 2 | OpenFold3 | `6286cc7c…2d2` | proven | 9,263,246,107 | same six-state/variant matrix | new-node conventional + snapshot | Separate OpenFold3 semantic validator and payload. |
 | 2 | MSA Search | `944f3cf8…65c` | excluded | unknown | conventional six-state/variant matrix; snapshot N/A retained | new-node conventional; snapshot N/A retained | Inventory excludes native snapshot topology; never coerce to snapshot. |
@@ -26,6 +32,7 @@ only between independent Arm A demands and is proven by sentinel receipts.
 Arm B has no donor or model state before T0: its new node begins only after the
 accepted-event hash is durably recorded.
 
-Promotion accounting is per NIM, arm, scenario, strategy, support variant,
+Promotion accounting requires at least 30 independent attempts per NIM and is
+per NIM, arm, scenario, strategy, support variant,
 cache state, GPU profile, and failure class. Cross-NIM summaries may display
 raw rows but may not pool denominators or manufacture an empirical ranking.

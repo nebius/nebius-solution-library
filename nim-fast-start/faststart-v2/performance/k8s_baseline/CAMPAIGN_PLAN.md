@@ -43,11 +43,29 @@ Each promoted scenario gets a separate homogeneous trace and aggregate:
 5. checkpoint miss or stale-version conventional fallback; and
 6. capacity miss with no runtime launch.
 
+Same-model-hot uses one per-NIM trace and strategy `none`: the measured request
+does not restore or conventionally launch a runtime. Switch/fallback traces use
+two targets whose completed target is the next declared occupant; idle and
+capacity-miss traces re-arm to no occupant. This transition rule is tested for
+all six scenarios.
+
 The current path creates a request-specific Service after T0. The only promoted
 hot-path change precreates one model-neutral Service. Pod/runtime manifests,
 storage, cache state, node, request, validator, model pair, and offered schedule
-remain identical. Promotion requires at least 30 attempts per scenario and
-variant, with every failure retained.
+must remain identical. Workload cleanup deletes the active target and scrubs
+the GPU, so the candidate cannot reuse the baseline's old initial-state
+receipt. The broker must first return the versioned pair-handoff/rearm receipt
+in `campaign/broker-cluster-interface-required.json`: the same lease/resource
+graph, source-bound baseline cleanup and GPU-zero, equivalent re-established
+occupant and cache targets, rearm cost/bytes/GPU evidence, and an audit
+extension, all completed before candidate T0. Until that backend exists,
+`finalize-live --promote` seals `promotion_allowed=false` and exits fail-closed.
+
+After that dependency is implemented, promotion requires at least 30 offered attempts and 30
+two-call-qualified attempts per exact NIM, arm,
+scenario, strategy, support variant, cache state, and GPU-profile stratum, with
+every failure retained. Failed/unreceipted attempt cleanup, an accounting
+sentinel, failed final cleanup, or an unverified joint seal blocks promotion.
 
 The first frozen campaign is local A-to-B switching between Boltz2 and
 OpenFold2. The initial occupant is OpenFold2; targets alternate naturally, so
@@ -79,6 +97,14 @@ Arm B runs conventional and eligible snapshot paths separately for each model;
 snapshot-ineligible models retain a conventional result and an explicit
 snapshot-not-applicable record. It is never aggregated with Arm A.
 
+The reviewed request-SLO v1 vocabulary cannot encode a successful Arm B run:
+`a_to_b_remote` requires a distinct pre-T0 node occupant, while Arm B forbids
+any GPU node or model state before T0. This lane therefore admits only the Arm
+B capacity-miss negative control until a reviewed versioned `new_node_remote`
+scenario is integrated. The broker support-only graph and post-durable-T0
+demand interface remain frozen and executable-tested; no run may invent a
+donor/occupant to clear this gate.
+
 ## Ordered campaign waves
 
 - Wave 1: Boltz2 and OpenFold2, both arms. Arm A runs all six starting states
@@ -98,6 +124,10 @@ No mutation occurs until all gates pass:
 - the resource broker publishes and reviews
   `catalog-switch-kubernetes-resource-lease/v2` with the exact interface frozen
   in `campaign/broker-cluster-interface-required.json`;
+- the broker implements that interface's paired-variant handoff/rearm receipt
+  before any precreated-Service result can be promoted;
+- the shared request-SLO contract publishes a versioned successful new-node
+  scenario with no pre-T0 occupant or local cache state;
 - the first campaign is materialized as an immutable v2 request and remains
   `PLANNED` until its cost, TTL, prefix, cleanup owner, trace, metric hashes,
   and exact resource graph are reviewed;
@@ -105,7 +135,9 @@ No mutation occurs until all gates pass:
   path (credentials are never committed or printed);
 - the task-owned image/artifact byte totals, OpenFold2 artifact digest/size,
   templates, semantic validators, cache-control receipts, and GPU sentinel
-  image are digest-pinned;
+  image are digest-pinned in one broker-bound reviewed runtime-source manifest;
+  support-image build and receipt commits must be reproducible ancestor Git
+  blobs;
 - capacity advice and project/region/auth checks pass without switching
   profiles, credentials, projects, or regions; and
 - server/context, namespace ownership, Ready H100 identity, preemptible flag,
@@ -113,4 +145,7 @@ No mutation occurs until all gates pass:
 
 After the final cohort, exact-ID broker cleanup must reach `RELEASED`; all task
 Pods/services/namespaces/node groups/clusters and provider children must be
-NotFound, and the final H100 process count and memory baseline must be zero.
+NotFound, the task credential and external token must be revoked, and the final
+H100 process count and memory baseline must be zero. Provider evidence files
+and a five-event audit extension from the admitted lease head are required
+before the final seal.

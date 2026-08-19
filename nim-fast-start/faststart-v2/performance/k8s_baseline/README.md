@@ -11,16 +11,17 @@ The implementation provides:
 
 - a canonical plan validator pinned to the reviewed request-SLO, Kubernetes
   broker, threat-model, and model-inventory contracts;
-- a scheduled external-T0 controller with one serialized H100 worker, a
-  durable causal ledger, every offered attempt and failure retained, exact
-  bytes/cost/GPU accounting, and post-terminal two-call evidence;
+- a scheduled external-T0 controller with one serialized admitted-GPU worker, a
+  durable causal ledger, every offered attempt and failure retained, partial
+  bytes/failure-time/cost/GPU accounting, and post-terminal two-call evidence;
 - a fail-closed Kubernetes backend that admits only a fresh broker-owned
   cluster/node, proves the live occupant and cache state, drains the prior Pod,
   requires a GPU-zero receipt, uses digest-pinned images and semantic
   validators, and removes exact per-run support objects; and
-- a one-variable comparison between the current per-run Service path and a
-  target-neutral precreated Service. No other support object may change in the
-  promoted comparison.
+- a one-variable comparison design between the current per-run Service path
+  and a target-neutral precreated Service. Promotion is disabled until the
+  broker can attest an equivalent rearmed initial state between the two
+  destructively cleaned workload legs.
 
 ## Two distinct campaign arms
 
@@ -41,10 +42,20 @@ and cost totals.
 The exact required broker v2 interface is frozen in
 `campaign/broker-cluster-interface-required.json`. The first campaign is
 `campaign/arm-a-first-campaign.json`: Boltz2/OpenFold2 local A-to-B, baseline
-per-run Service, snapshot strategy, 30 alternating independent attempts, and
-two validated calls per attempt. It remains `PLANNED`; no resource request or
+per-run Service, snapshot strategy, 60 alternating independent attempts (30
+per NIM and exact stratum), and two validated calls per attempt. It remains
+`PLANNED`; no resource request or
 lease exists until the cluster/node-group broker backend is reviewed and
-sealed.
+sealed. The same interface freezes the required pair-handoff/rearm receipt;
+`finalize-live --promote` fails closed until that backend exists.
+
+Arm B also remains fail-closed on the reviewed request-SLO v1 trace schema:
+that schema requires a distinct pre-existing node occupant for an A-to-B remote
+success, which would contradict Arm B's no-GPU-node-before-T0 rule. The only
+Arm B trace representable honestly today is the capacity-miss negative control.
+A versioned shared `new_node_remote` scenario (occupant `null`, remote
+artifact/image state) must be reviewed before any successful Arm B campaign;
+this lane will not forge an occupant to bypass that dependency.
 
 ## Commands
 
@@ -62,8 +73,8 @@ Build a promoted single-scenario trace:
 ```bash
 python3 -m performance.k8s_baseline.build_trace \
   --catalog performance/k8s_baseline/experiment-catalog.json \
-  --scenario a_to_b_local --requests 30 --interval-ms 900000 \
-  --trace-id k8s-arm-a-boltz2-openfold2-a2b-local-20260819 \
+  --scenario a_to_b_local --requests 60 --interval-ms 900000 \
+  --trace-id k8s-arm-a-boltz2-openfold2-a2b-local-v2-20260819 \
   --seed 2407 --output /new/path/trace.json
 ```
 
@@ -71,6 +82,30 @@ Live execution remains fail-closed. It requires a reviewed v2 Kubernetes lease,
 an exact runtime plan, pinned task-owned images/artifacts, and `--execute`.
 Arm B is additionally refused by the prepared-node backend until its broker
 demand adapter can pass the accepted-event hash and T0 into every create call.
+
+The executable plan is v2 and fails closed on the canonical broker request and
+lease hashes, TTL/cost/exact-ID cleanup, fresh task-owned resource graph,
+preemptibility, exact GPU profile plus cluster/node-group/node/namespace/ServiceAccount
+identities, initial occupant and exact per-model image/artifact/checkpoint cache
+receipts, scoped NGC credential plus hashed repository manifest, reviewed
+threat-model hash, and a broker-bound runtime-source manifest covering every
+template, exact container/init-container allowlist, support-image build
+receipt, semantic oracle, and request bundle. Files are rehashed immediately
+before use to close admission-to-execution drift. Kubernetes uses bounded label-safe model and
+version IDs; full model, artifact, image, strategy, and checkpoint identities
+remain exact Pod annotations and runtime receipts.
+
+Outputs contain raw global counts only. Product and second-semantic-response
+percentiles are emitted per NIM, arm, scenario, strategy, variant, cache state,
+and GPU profile. A mixed aggregate has no headline percentile and cannot be
+promoted. Workload cleanup first creates an immutable, never-promotable staging
+seal. Only after source-bound broker absence, child-absence, actual-cost,
+GPU-zero, credential-revocation, and audit-extension evidence exists does
+`finalize-live` create a separate final joint seal; staging is never
+overwritten. Each exact stratum is evaluated independently and requires at
+least 30 offered and 30 second-call-qualified attempts, replayable per-attempt
+cleanup receipts, no accounting sentinel, and a verified final seal. Hot-path
+improvement promotion remains disabled pending the broker pair handoff.
 
 ## Comparator scope
 
