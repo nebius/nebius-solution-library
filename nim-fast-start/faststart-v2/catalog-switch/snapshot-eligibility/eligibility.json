@@ -9,6 +9,7 @@
       "evidence_refs": [],
       "historical_note": null,
       "min_accepted_samples": 20,
+      "per_scenario": true,
       "requested_via": {
        "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
        "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
@@ -32,7 +33,7 @@
       "outcome": {
        "boottime_upper_p50_s": 28.892235,
        "boottime_upper_p95_s": 30.310246,
-       "note": "SLO FAIL is a latency result, not an execution failure: all 20 samples were semantically valid with clean cleanup and a 0/20 failed denominator.",
+       "note": "SLO FAIL is a latency result, not an execution failure: all 20 samples were semantically valid with clean cleanup and a 0/20 failed denominator (recomputed from the committed cohort TSV).",
        "slo_pass": false,
        "slo_threshold_s": 30.0,
        "t0_to_call2_p50_s": 28.794544,
@@ -75,6 +76,7 @@
       ],
       "historical_note": "two historical new-node lifecycles passed (of2-newnode-r4-0418, of2-newnode-r5-regional) but are non-poolable under the current exact contract; zero current-contract samples exist and the future execution path is newnode-v2-only",
       "min_accepted_samples": 20,
+      "per_scenario": true,
       "requested_via": {
        "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
        "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
@@ -98,7 +100,7 @@
       "outcome": {
        "boottime_upper_p50_s": 17.30254,
        "boottime_upper_p95_s": 17.629887,
-       "note": "SLO PASS on the conservative BOOTTIME upper bound; cohort evidence closure does not close the outstanding evidence gaps listed separately.",
+       "note": "SLO PASS on the conservative BOOTTIME upper bound, recomputed from the committed cohort TSV; cohort evidence closure does not close the outstanding evidence gaps listed separately.",
        "slo_pass": true,
        "slo_threshold_s": 30.0,
        "t0_to_call2_p50_s": 17.202273,
@@ -135,6 +137,7 @@
       "evidence_refs": [],
       "historical_note": null,
       "min_accepted_samples": 20,
+      "per_scenario": true,
       "requested_via": {
        "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
        "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
@@ -192,6 +195,7 @@
       "evidence_refs": [],
       "historical_note": "only manual/provisional restore-trigger evidence exists (65.377 s median from an in-Pod trigger); it is not comparable with the production clock",
       "min_accepted_samples": 20,
+      "per_scenario": true,
       "requested_via": {
        "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
        "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
@@ -244,6 +248,7 @@
       "evidence_refs": [],
       "historical_note": null,
       "min_accepted_samples": 20,
+      "per_scenario": true,
       "requested_via": {
        "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
        "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
@@ -301,6 +306,7 @@
       "evidence_refs": [],
       "historical_note": null,
       "min_accepted_samples": 20,
+      "per_scenario": true,
       "requested_via": {
        "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
        "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
@@ -320,12 +326,12 @@
         "sha256": "sha256:db6932cbd27c84de589e091af7398ef20d21f092f50698c8983cfcf00e8185a1"
        }
       ],
-      "further_required": "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
+      "further_required": "commit a replayable per-run result artifact to reseal the existing cohort, or run a fresh sealed cohort; then a fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard",
       "outcome": {
        "boottime_upper_p50_s": null,
        "boottime_upper_p95_s": null,
-       "note": null,
-       "slo_pass": true,
+       "note": "SLO not asserted: the cohort evidence is not sealed, so no per-run samples exist in committed bytes to recompute it; the published median appears only in the committed metrics document.",
+       "slo_pass": null,
        "slo_threshold_s": 30.0,
        "t0_to_call2_p50_s": 15.43163,
        "t0_to_call2_p95_s": null
@@ -334,10 +340,10 @@
        "provenance cites a harness tree without committed per-run result receipts; the published medians appear in the committed metrics document while raw receipts live in uncommitted external state, so this cohort's evidence is not sealed pending a committed replayable result artifact"
       ],
       "sealed": false,
-      "status": "complete-n3"
+      "status": "complete-n3-unsealed"
      }
     },
-    "confidence": "high",
+    "confidence": "medium",
     "conventional_fallback": {
      "admission": "measurement-required",
      "measured": false,
@@ -347,7 +353,7 @@
     "evidence_rank": 6,
     "nim": "molmim",
     "row_id": "faststart:molmim@sha256:7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa",
-    "snapshot_class": "direct-snapshot-safe",
+    "snapshot_class": "unresolved",
     "storage_blockers": [
      "evidence assumes buffered, fully prewarmed artifact (5.2 GB) and cache (0.3 GB) volumes; unprewarmed or direct-I/O tiers are unmeasured and require their own cohort"
     ],
@@ -360,6 +366,7 @@
       "evidence_refs": [],
       "historical_note": "cohort is conventional-cached-start only until the prescribed topology-aligned recapture qualifies; no snapshot attempt is admissible before that",
       "min_accepted_samples": 20,
+      "per_scenario": true,
       "requested_via": {
        "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
        "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
@@ -423,6 +430,7 @@
       "evidence_refs": [],
       "historical_note": null,
       "min_accepted_samples": 20,
+      "per_scenario": true,
       "requested_via": {
        "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
        "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
@@ -452,7 +460,9 @@
        "t0_to_call2_p50_s": 30.564921,
        "t0_to_call2_p95_s": null
       },
-      "outstanding_evidence_gaps": [],
+      "outstanding_evidence_gaps": [
+       "the committed n=3 results file records no image reference; digest binding for this cohort relies on the catalog row and lane provenance only"
+      ],
       "sealed": true,
       "status": "complete-n3"
      }
@@ -480,6 +490,7 @@
       "evidence_refs": [],
       "historical_note": null,
       "min_accepted_samples": 20,
+      "per_scenario": true,
       "requested_via": {
        "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
        "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
@@ -537,6 +548,7 @@
       "evidence_refs": [],
       "historical_note": null,
       "min_accepted_samples": 20,
+      "per_scenario": true,
       "requested_via": {
        "request_slo_harness": "nim-fast-start/faststart-v2/performance/request_slo (in-ancestry reviewed contract; catalog-switch-ledger-event-v1 and catalog-switch-trace-v1; external T0, semantic completion, full denominator)",
        "resource_broker": "nim-fast-start/faststart-v2/resource-broker (in-ancestry reviewed contract; catalog-switch-resource-lease-v1; immutable lease plan, unique prefix, TTL, exact-ID cleanup; preemptible profile for new-node cohorts)"
@@ -630,6 +642,12 @@
     "id": "production-capture-missing",
     "resolution_path": "Production-shaped capture qualification.",
     "rule": "Only manual/provisional restore evidence exists; the production-shaped clock was never measured."
+   },
+   {
+    "fail_closed_behavior": "Snapshot promotion is refused; the row cannot be classified snapshot-safe on unsealed evidence, regardless of the published aggregate.",
+    "id": "unsealed-evidence-receipts",
+    "resolution_path": "Commit a replayable per-run result artifact to reseal the cohort, or run a fresh sealed cohort through the shared canary process.",
+    "rule": "The cited cohort evidence is not sealed: published aggregates exist in a committed document, but the per-run result receipts live only in uncommitted external state."
    },
    {
     "fail_closed_behavior": "Excluded from the switch fleet entirely; no startup path is admissible.",
@@ -731,8 +749,8 @@
   "catalog_version": "sha256:e66c8043728c85726c1efcb8f9148445e7f1227077567201441dbc81f2fc2c22",
   "class_counts": {
    "conventional-only": 2,
-   "direct-snapshot-safe": 8,
-   "unresolved": 210
+   "direct-snapshot-safe": 7,
+   "unresolved": 211
   },
   "classes": {
    "conventional-only": "On current evidence, snapshot capture/restore is rejected for this row (for example a capture whose artifact topology mismatches the restore target) or the row is non-serving; the only permitted startup path today is a conventional start. Reclassification is possible and requires new exact capture and qualification evidence through the shared canary process.",
@@ -1238,7 +1256,9 @@
    "storage_bound": false
   },
   {
-   "blockers": [],
+   "blockers": [
+    "unsealed-evidence-receipts"
+   ],
    "canary_ids": [],
    "canonical_key": "nvcr.io/nim/nvidia/molmim",
    "catalog": {
@@ -1255,10 +1275,10 @@
     "tag_pinned": true,
     "validator": "nim-fast-start/faststart-v2/molmim-native/validate_molmim.py"
    },
-   "confidence": "high",
+   "confidence": "medium",
    "decision_rule": "R01-lane-evidence",
    "evidence": {
-    "detail": "exact response-boundary n=3 restores with strict semantic validation on the pinned digest; restored process state in Pod with prewarmed artifact and cache volumes.",
+    "detail": "exact response-boundary n=3 restores were published for the pinned digest (restored process state in Pod with prewarmed artifact and cache volumes), and the aggregate medians appear in the committed metrics document, but the cited lane provenance is a harness tree without committed per-run result receipts - the raw receipts live only in uncommitted external state. Unsealed evidence cannot support snapshot promotion, so the row stays fail-closed on the conventional fallback until the cohort is resealed with a committed replayable result artifact or a fresh sealed cohort runs.",
     "refs": [
      "nim-fast-start/faststart-v2/molmim-native/conventional/",
      "nim-fast-start/faststart-v2/performance/COLD_START_METRICS.md"
@@ -1282,7 +1302,7 @@
     "G-SEMEQ",
     "G-ROLLBACK"
    ],
-   "snapshot_class": "direct-snapshot-safe",
+   "snapshot_class": "unresolved",
    "source": "faststart-v2-lanes",
    "storage_bound": false
   },

@@ -43,16 +43,23 @@ nonexistent — new-preemptible-node cohort (at least 20 accepted samples
 per scenario, per the authoritative new-node contract). Cohort statuses
 are derived, not hand-asserted: the builder maps them from the vendored
 catalog's measured evidence class, resolves every evidence ref to
-committed bytes with SHA-256 binding, re-counts the n=20 cohorts and
-recomputes their nearest-rank percentiles from the committed TSVs,
-requires the exact published medians/digests/response-timing contract
-in the n=3 results files, proves the zero-current-contract new-node
-state from the committed audit, and discloses MolMIM's cohort as not
-sealed (its citation is a harness tree without committed per-run
-receipts). `inputs/bionemo_cohorts.json` holds only the hand-encoded
-blockers and notes. The builder refuses to emit output when any Modal
-reference exists outside the scope notes, so Modal can never become an
-execution class.
+committed bytes with SHA-256 binding, verifies the n=20 cohorts
+structurally (20 uniquely identified samples in a NIM-bound cohort, all
+runner-qualification/cleanup PASS, semantic requests exercised,
+nearest-rank percentiles recomputed, the file's own cohort_outcome
+column consistent), extracts the n=3 results by exact field paths
+(status PASS, three float samples whose recomputed median equals the
+file's median and the catalog p50, exact image reference, exact
+response-timing contract — token presence is never sufficient), proves
+the zero-current-contract new-node state from the committed audit, and
+recomputes every SLO verdict from verified samples with the catalog
+boolean only cross-checked. MolMIM is downgraded to `unresolved`
+(medium confidence, `complete-n3-unsealed`) because its citation is a
+harness tree without committed per-run receipts — unsealed evidence
+never supports a snapshot-safe class. `inputs/bionemo_cohorts.json`
+holds only the hand-encoded blockers and notes. The builder refuses to
+emit output when any Modal reference exists outside the scope notes, so
+Modal can never become an execution class.
 
 ## Pinned inputs (never edited here)
 

@@ -261,6 +261,24 @@ BLOCKERS = [
         "resolution_path": "Production-shaped capture qualification.",
     },
     {
+        "id": "unsealed-evidence-receipts",
+        "rule": (
+            "The cited cohort evidence is not sealed: published aggregates "
+            "exist in a committed document, but the per-run result receipts "
+            "live only in uncommitted external state."
+        ),
+        "fail_closed_behavior": (
+            "Snapshot promotion is refused; the row cannot be classified "
+            "snapshot-safe on unsealed evidence, regardless of the "
+            "published aggregate."
+        ),
+        "resolution_path": (
+            "Commit a replayable per-run result artifact to reseal the "
+            "cohort, or run a fresh sealed cohort through the shared canary "
+            "process."
+        ),
+    },
+    {
         "id": "non-serving-row",
         "rule": "Notebook/dev image with no request-serving path.",
         "fail_closed_behavior": (
@@ -384,16 +402,19 @@ INTERFACE_CONTRACTS = [
         "path": "resource-broker/lease.schema.json",
         "schema_id": "https://nebius.example/catalog-switch-resource-lease-v1.schema.json",
         "commit": PINS["resource_broker_commit"],
+        "sha256": "sha256:6639e1cc759ecd7728f901aa9f2397752548f60b220cfaecb613996b7dd12b29",
     },
     {
         "path": "performance/request_slo/event.schema.json",
         "schema_id": "https://nebius.ai/schemas/catalog-switch-ledger-event-v1.json",
         "commit": PINS["request_slo_commit"],
+        "sha256": "sha256:a8371e8f0e3713ccbf3db8658ae144e2c62b2ace223dbfd6ae7761d1a2cf3a52",
     },
     {
         "path": "performance/request_slo/trace.schema.json",
         "schema_id": "https://nebius.ai/schemas/catalog-switch-trace-v1.json",
         "commit": PINS["request_slo_commit"],
+        "sha256": "sha256:b25b9fdc1caacbf173e6575f687899f20c8ca8ad0d6701b1d656105182ec5c3a",
     },
 ]
 
@@ -505,22 +526,31 @@ def validate_gate_bindings(gates: list[dict], threat_ids: set[str]) -> None:
                 )
 
 
+def check_interface_bytes(data: bytes, contract: dict) -> None:
+    digest = sha256_hex(data)
+    if digest != contract["sha256"]:
+        raise SystemExit(
+            f"interface drift: {contract['path']} is {digest}, pinned "
+            f"{contract['sha256']}"
+        )
+    doc = json.loads(data)
+    if doc.get("$id") != contract["schema_id"]:
+        raise SystemExit(
+            f"interface drift: {contract['path']} $id is "
+            f"{doc.get('$id')!r}, expected {contract['schema_id']!r}"
+        )
+
+
 def verify_interfaces() -> list[dict]:
     out = []
     for contract in INTERFACE_CONTRACTS:
-        data = repo_read_bytes(contract["path"])
-        doc = json.loads(data)
-        if doc.get("$id") != contract["schema_id"]:
-            raise SystemExit(
-                f"interface drift: {contract['path']} $id is "
-                f"{doc.get('$id')!r}, expected {contract['schema_id']!r}"
-            )
+        check_interface_bytes(repo_read_bytes(contract["path"]), contract)
         out.append(
             {
                 "path": FS_PREFIX + contract["path"],
                 "schema_id": contract["schema_id"],
                 "commit": contract["commit"],
-                "sha256": sha256_hex(data),
+                "sha256": contract["sha256"],
             }
         )
     return out
@@ -534,14 +564,48 @@ def nearest_rank(sorted_values: list[float], quantile: float) -> float:
     return sorted_values[rank - 1]
 
 
-def check_n20_tsv(tsv_text: str, expected_p50: float, expected_p95: float) -> dict:
+SLO_THRESHOLD_S = 30.0
+
+# Per-lane cohort binding for the two fresh fail-closed n=20 TSVs: the
+# cohort id prefix binds the file to the NIM, and every sample must be a
+# uniquely identified, qualified, cleaned, semantically exercised run.
+N20_SPECS = {
+    "boltz2": {"cohort_prefix": "b2-n20-"},
+    "openfold2": {"cohort_prefix": "of2-n20-"},
+}
+
+
+def check_n20_tsv(
+    tsv_text: str, expected_p50: float, expected_p95: float, cohort_prefix: str
+) -> dict:
     rows = list(csv.DictReader(io.StringIO(tsv_text), delimiter="\t"))
     samples = [r for r in rows if r["record_type"] == "sample"]
     if len(samples) != 20:
         raise SystemExit(f"n20 cohort has {len(samples)} sample rows, not 20")
-    denominators = {r["failed_attempt_denominator"] for r in samples}
-    if denominators != {"0/20"}:
-        raise SystemExit(f"n20 cohort failed denominators unexpected: {denominators}")
+    cohort_ids = {r["cohort_id"] for r in rows}
+    if len(cohort_ids) != 1:
+        raise SystemExit(f"n20 file mixes cohorts: {sorted(cohort_ids)}")
+    cohort_id = cohort_ids.pop()
+    if not cohort_id.startswith(cohort_prefix):
+        raise SystemExit(
+            f"n20 cohort id {cohort_id!r} is not bound to this NIM "
+            f"(expected prefix {cohort_prefix!r})"
+        )
+    if len({r["run_id"] for r in samples}) != 20:
+        raise SystemExit("n20 cohort run ids are not unique")
+    if {r["runner_qualification"] for r in samples} != {"PASS"}:
+        raise SystemExit("n20 cohort contains non-PASS runner qualifications")
+    if {r["cleanup"] for r in samples} != {"PASS"}:
+        raise SystemExit("n20 cohort contains non-PASS cleanup records")
+    if {r["failed_attempt_denominator"] for r in samples} != {"0/20"}:
+        raise SystemExit("n20 cohort failed denominators unexpected")
+    for col in ("semantic_request_1_seconds", "semantic_request_2_seconds"):
+        if not all(float(r[col]) > 0 for r in samples):
+            raise SystemExit(f"n20 cohort has a non-positive {col}; semantic "
+                             "exercise unproven")
+    summaries = {r["record"] for r in rows if r["record_type"] == "summary"}
+    if not {"p50", "p95-nearest-rank", "max"} <= summaries:
+        raise SystemExit("n20 cohort summary records incomplete")
     observed = sorted(float(r["demand_to_two_semantic_seconds"]) for r in samples)
     upper = sorted(
         float(r["demand_to_two_semantic_boottime_upper_seconds"]) for r in samples
@@ -554,59 +618,139 @@ def check_n20_tsv(tsv_text: str, expected_p50: float, expected_p95: float) -> di
             f"({got_p50}, {got_p95}) do not match the catalog "
             f"({expected_p50}, {expected_p95})"
         )
+    upper_p95 = nearest_rank(upper, 0.95)
+    slo_pass = upper_p95 < SLO_THRESHOLD_S
+    outcomes = {r["cohort_outcome"] for r in samples}
+    if outcomes != ({"PASS"} if slo_pass else {"SLO_FAIL"}):
+        raise SystemExit(
+            f"n20 cohort_outcome column {sorted(outcomes)} contradicts the "
+            f"recomputed SLO (upper p95 {upper_p95})"
+        )
     return {
         "sample_count": len(samples),
         "failed_attempt_denominator": "0/20",
         "boottime_upper_p50_s": nearest_rank(upper, 0.5),
-        "boottime_upper_p95_s": nearest_rank(upper, 0.95),
+        "boottime_upper_p95_s": upper_p95,
+        "slo_pass_recomputed": slo_pass,
     }
 
 
-def walk_floats(obj):
-    if isinstance(obj, dict):
-        for v in obj.values():
-            yield from walk_floats(v)
-    elif isinstance(obj, list):
-        for v in obj:
-            yield from walk_floats(v)
-    elif isinstance(obj, float):
-        yield obj
+# Structural extraction specs for the n=3 results files. Every field is
+# addressed by exact path; token presence is never sufficient.
+N3_SPECS = {
+    "diffdock": {
+        "status_path": ["response_boundary_requalification", "status"],
+        "values_path": [
+            "selected_response_boundary_n3",
+            "demand_to_two_semantic_responses_seconds",
+            "values",
+        ],
+        "median_path": [
+            "selected_response_boundary_n3",
+            "demand_to_two_semantic_responses_seconds",
+            "median",
+        ],
+        "image_path": ["nim_image"],
+        "contract_path": ["timing_correction", "response_timing_contract"],
+    },
+    "genmol": {
+        "status_path": ["status"],
+        "values_path": ["buffered", "demand_to_two_semantic_seconds"],
+        "median_path": ["buffered", "median_seconds", "demand_to_two_semantic"],
+        "image_path": ["image"],
+        "contract_path": ["timing_measurement", "response_timing_contract"],
+    },
+    "openfold3": {
+        "status_path": ["status"],
+        "values_path": ["selected", "demand_to_two_semantic_responses_seconds"],
+        "median_path": [
+            "selected",
+            "medians_seconds",
+            "demand_to_two_semantic_responses",
+        ],
+        "image_path": None,  # file records no image ref; disclosed per entry
+        "contract_path": [
+            "response_boundary_requalification",
+            "response_timing_contract",
+        ],
+    },
+    "rfdiffusion": {
+        "status_path": ["status"],
+        "values_path": ["selected_n3", "demand_to_two_semantic_seconds", "values"],
+        "median_path": ["selected_n3", "demand_to_two_semantic_seconds", "median"],
+        "image_path": ["image"],
+        "contract_path": ["metric_contract", "response_timing_contract"],
+    },
+}
+
+
+def get_path(doc, path: list[str]):
+    node = doc
+    for key in path:
+        if not isinstance(node, dict) or key not in node:
+            raise SystemExit(f"evidence file lacks required field {'/'.join(path)}")
+        node = node[key]
+    return node
 
 
 def check_n3_results(
-    doc: dict, raw_text: str, expected_p50: float, digest: str | None
-) -> None:
-    if expected_p50 not in set(walk_floats(doc)):
+    doc: dict, spec: dict, expected_p50: float, expected_image: str | None
+) -> list[float]:
+    if get_path(doc, spec["status_path"]) != "PASS":
+        raise SystemExit("n3 results file status is not PASS")
+    values = get_path(doc, spec["values_path"])
+    if (
+        not isinstance(values, list)
+        or len(values) != 3
+        or not all(isinstance(v, float) for v in values)
+    ):
+        raise SystemExit("n3 results file does not carry exactly 3 float samples")
+    median = get_path(doc, spec["median_path"])
+    if sorted(values)[1] != median or median != expected_p50:
         raise SystemExit(
-            f"published p50 {expected_p50} not present in the committed "
-            "n3 results file"
+            f"n3 median inconsistent: samples give {sorted(values)[1]}, file "
+            f"says {median}, catalog says {expected_p50}"
         )
-    if RESPONSE_CONTRACT not in raw_text:
-        raise SystemExit("n3 results file lacks the exact response-timing contract")
-    if digest is not None and digest not in raw_text:
-        raise SystemExit("n3 results file does not record the row's image digest")
+    if get_path(doc, spec["contract_path"]) != RESPONSE_CONTRACT:
+        raise SystemExit("n3 results file uses a different response-timing contract")
+    if spec["image_path"] is not None:
+        if get_path(doc, spec["image_path"]) != expected_image:
+            raise SystemExit(
+                "n3 results file image ref does not equal the row's pinned "
+                "image reference"
+            )
+    elif expected_image is not None:
+        raise SystemExit("image binding requested but spec records no image field")
+    return values
 
 
-def check_pmpnn_tsv(tsv_text: str, expected_p50: float) -> None:
+def check_pmpnn_tsv(tsv_text: str, expected_p50: float) -> list[float]:
     rows = list(csv.DictReader(io.StringIO(tsv_text), delimiter="\t"))
     if len(rows) != 3:
         raise SystemExit(f"proteinmpnn cohort has {len(rows)} rows, not 3")
     if {r["status"] for r in rows} != {"PASS"}:
         raise SystemExit("proteinmpnn cohort contains non-PASS rows")
+    if len({r["run_id"] for r in rows}) != 3:
+        raise SystemExit("proteinmpnn run ids are not unique")
     vals = sorted(float(r["demand_to_two_semantic_responses_seconds"]) for r in rows)
     if vals[1] != expected_p50:
         raise SystemExit(
             f"proteinmpnn median {vals[1]} does not match catalog {expected_p50}"
         )
+    return vals
 
 
-def check_msa_results(doc: dict, expected_p50: float) -> None:
+def check_msa_results(doc: dict, expected_p50: float) -> list[float]:
     conv = doc["conventional_cached_n3"]
     if conv["status"] != "PASS" or conv["trial_count"] != 3:
         raise SystemExit("msa conventional n3 cohort is not a 3-trial PASS")
     if conv["mmseqs_pipe_pass_count"] != 3:
         raise SystemExit("msa MMseqs pipe validation did not pass 3/3")
-    if conv["demand_to_call2_response_seconds"]["median"] != expected_p50:
+    stats = conv["demand_to_call2_response_seconds"]
+    values = stats["values"]
+    if len(values) != 3 or sorted(values)[1] != stats["median"]:
+        raise SystemExit("msa conventional sample/median aggregate inconsistent")
+    if stats["median"] != expected_p50:
         raise SystemExit("msa conventional median does not match the catalog")
     native = doc["native_checkpoint"]
     if native["status"] != "EXCLUDED_NON_PROMOTABLE" or native["counted_trials"] != 0:
@@ -617,6 +761,15 @@ def check_msa_results(doc: dict, expected_p50: float) -> None:
     fix = native["required_fix"]
     if "fresh checkpoint" not in fix or "/opt/nim/.cache" not in fix:
         raise SystemExit("msa prescribed aligned-recapture fix drifted")
+    return values
+
+
+def assert_slo_consistent(recomputed: bool, catalog_flag, source: str) -> None:
+    if catalog_flag is None or bool(catalog_flag) != recomputed:
+        raise SystemExit(
+            f"catalog slo_under_30s {catalog_flag!r} contradicts the "
+            f"recomputed SLO {recomputed} from {source}"
+        )
 
 
 def check_evo2_profile(doc: dict, digest: str) -> None:
@@ -666,13 +819,20 @@ def check_no_other_newnode_dirs(names: list[str]) -> None:
         )
 
 
-def derive_provisioned_status(evidence_class: str | None) -> str:
+def derive_provisioned_status(evidence_class: str | None, sealed: bool = True) -> str:
     if evidence_class not in EVIDENCE_CLASS_TO_STATUS:
         raise SystemExit(
             f"unmapped measured evidence class {evidence_class!r}; refusing "
             "to assert a cohort status without evidence"
         )
-    return EVIDENCE_CLASS_TO_STATUS[evidence_class]
+    status = EVIDENCE_CLASS_TO_STATUS[evidence_class]
+    if not sealed:
+        if status != "complete-n3":
+            raise SystemExit(
+                f"unsealed evidence is only modeled for n=3 cohorts, got {status}"
+            )
+        return "complete-n3-unsealed"
+    return status
 
 
 def derive_newnode_status(row_blockers: list[str]) -> str:
@@ -681,14 +841,35 @@ def derive_newnode_status(row_blockers: list[str]) -> str:
     return "required-not-run"
 
 
-def check_min_samples(min_samples: int, required_text: str) -> None:
+def check_min_samples(
+    min_samples: int, required_text: str, per_scenario: bool = True
+) -> None:
+    if per_scenario is not True:
+        raise SystemExit("new-node cohort requirement must be per-scenario")
     if min_samples < 20:
         raise SystemExit(
             f"new-node minimum accepted samples {min_samples} weakens the "
             "authoritative n>=20 contract"
         )
-    if "at least 20 accepted samples" not in required_text:
-        raise SystemExit("new-node required text lost the >=20 accepted-samples term")
+    if "at least 20 accepted samples per scenario" not in required_text:
+        raise SystemExit(
+            "new-node required text lost the exact per-scenario >=20 "
+            "accepted-samples term"
+        )
+    lowered = required_text.lower()
+    for weakener in (
+        "across scenarios",
+        "across all scenarios",
+        "total across",
+        "in total",
+        "combined across",
+        "summed across",
+    ):
+        if weakener in lowered:
+            raise SystemExit(
+                f"new-node required text weakens per-scenario counting: "
+                f"{weakener!r}"
+            )
     for match in re.finditer(r"n\s*>=\s*(\d+)", required_text):
         if int(match.group(1)) < 20:
             raise SystemExit(
@@ -744,13 +925,13 @@ def classify_row(row: dict, lanes: dict) -> dict:
         lane = lanes[rid]
         rule = "R01-lane-evidence"
         snapshot_class = lane["disposition"]
-        confidence = "high"
+        confidence = lane.get("confidence", "high")
         detail = lane["basis"]
         if lane.get("caveats"):
             detail += " Caveats: " + " ".join(lane["caveats"])
         blockers.extend(lane.get("extra_blockers", []))
-        if snapshot_class == "unresolved":
-            blockers.append("state-audit-pending")
+        if snapshot_class == "unresolved" and not blockers:
+            raise SystemExit(f"lane {rid} is unresolved without named blockers")
         if snapshot_class == "conventional-only" and lane.get("fallback_measured"):
             fallback["admission"] = "measured"
             fallback["measured"] = True
@@ -1020,14 +1201,18 @@ def build_canary_plan(out_rows: list[dict], lanes: dict) -> dict:
 
 def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
     """Resolve and verify the committed evidence behind one NIM lane.
-    Returns bound refs (path+sha256) and any recomputed cohort figures."""
+    Returns bound refs (path+sha256), recomputed cohort figures, the
+    sealing state, and the SLO recomputed from verified samples (never
+    from the catalog boolean)."""
     measured = cat_row["startup"].get("measured") or {}
     p50 = measured.get("t0_to_call2_p50_s")
     p95 = measured.get("t0_to_call2_p95_s")
     digest = cat_row["image"]["digest"]
+    image_ref = f"{cat_row['image']['upstream_ref']}@{digest}"
     bound_refs = []
     recomputed = {}
     sealed = True
+    values: list[float] | None = None
     for ref in refs:
         rel = repo_rel(ref)
         if ref.endswith("/"):
@@ -1043,34 +1228,54 @@ def verify_lane_evidence(nim: str, cat_row: dict, refs: list[str]) -> dict:
         text = data.decode("utf-8")
         if rel == METRICS_DOC_PATH:
             check_metrics_doc(text)
-        elif nim in ("boltz2", "openfold2") and rel.endswith(".tsv"):
-            recomputed = check_n20_tsv(text, p50, p95)
+        elif nim in N20_SPECS and rel.endswith(".tsv"):
+            recomputed = check_n20_tsv(
+                text, p50, p95, N20_SPECS[nim]["cohort_prefix"]
+            )
         elif nim == "proteinmpnn" and rel.endswith(".tsv"):
-            check_pmpnn_tsv(text, p50)
+            values = check_pmpnn_tsv(text, p50)
         elif nim == "msa-search" and rel.endswith("results.json"):
-            check_msa_results(json.loads(text), p50)
+            values = check_msa_results(json.loads(text), p50)
         elif nim == "evo2-40b" and rel.endswith("profile.json"):
             check_evo2_profile(json.loads(text), digest)
-        elif rel.endswith("results.json"):
-            check_n3_results(
+        elif nim in N3_SPECS and rel.endswith("results.json"):
+            spec = N3_SPECS[nim]
+            values = check_n3_results(
                 json.loads(text),
-                text,
+                spec,
                 p50,
-                digest if nim != "openfold3" else None,
+                image_ref if spec["image_path"] is not None else None,
             )
         else:
             raise SystemExit(f"unrecognized evidence ref for {nim}: {ref}")
-    return {"refs": bound_refs, "recomputed": recomputed, "sealed": sealed}
+    # SLO is recomputed from verified evidence only; the catalog boolean is
+    # cross-checked, never trusted.
+    slo_recomputed: bool | None = None
+    if "slo_pass_recomputed" in recomputed:
+        slo_recomputed = recomputed["slo_pass_recomputed"]
+    elif sealed and values is not None:
+        slo_recomputed = sorted(values)[1] < SLO_THRESHOLD_S
+    if slo_recomputed is not None:
+        assert_slo_consistent(
+            slo_recomputed, measured.get("slo_under_30s"), f"{nim} lane evidence"
+        )
+    return {
+        "refs": bound_refs,
+        "recomputed": recomputed,
+        "sealed": sealed,
+        "slo_recomputed": slo_recomputed,
+    }
 
 
 def provisioned_outcome(
-    nim: str, status: str, measured: dict, recomputed: dict
+    nim: str, status: str, measured: dict, verified: dict
 ) -> dict | None:
     if status == "missing-production-shaped":
         return None
+    recomputed = verified["recomputed"]
     outcome = {
-        "slo_threshold_s": 30.0,
-        "slo_pass": bool(measured.get("slo_under_30s")),
+        "slo_threshold_s": SLO_THRESHOLD_S,
+        "slo_pass": verified["slo_recomputed"],
         "t0_to_call2_p50_s": measured.get("t0_to_call2_p50_s"),
         "t0_to_call2_p95_s": measured.get("t0_to_call2_p95_s"),
         "boottime_upper_p50_s": recomputed.get("boottime_upper_p50_s"),
@@ -1080,16 +1285,25 @@ def provisioned_outcome(
     if status == "complete-fresh-fail-closed-n20":
         if outcome["slo_pass"]:
             outcome["note"] = (
-                "SLO PASS on the conservative BOOTTIME upper bound; cohort "
-                "evidence closure does not close the outstanding evidence "
-                "gaps listed separately."
+                "SLO PASS on the conservative BOOTTIME upper bound, "
+                "recomputed from the committed cohort TSV; cohort evidence "
+                "closure does not close the outstanding evidence gaps "
+                "listed separately."
             )
         else:
             outcome["note"] = (
                 "SLO FAIL is a latency result, not an execution failure: "
                 "all 20 samples were semantically valid with clean cleanup "
-                "and a 0/20 failed denominator."
+                "and a 0/20 failed denominator (recomputed from the "
+                "committed cohort TSV)."
             )
+    elif outcome["slo_pass"] is None:
+        outcome["note"] = (
+            "SLO not asserted: the cohort evidence is not sealed, so no "
+            "per-run samples exist in committed bytes to recompute it; the "
+            "published median appears only in the committed metrics "
+            "document."
+        )
     return outcome
 
 
@@ -1112,12 +1326,19 @@ def provisioned_further_required(nim: str, status: str, outcome: dict | None) ->
         )
     if status == "complete-n3":
         base = "fresh fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence standard"
-        if outcome and not outcome["slo_pass"]:
+        if outcome and outcome["slo_pass"] is False:
             base += (
                 f" (published T0-to-call-2 median {outcome['t0_to_call2_p50_s']} s "
                 "already exceeds the 30 s SLO)"
             )
         return base
+    if status == "complete-n3-unsealed":
+        return (
+            "commit a replayable per-run result artifact to reseal the "
+            "existing cohort, or run a fresh sealed cohort; then a fresh "
+            "fail-closed n=20 rerun to the Boltz2/OpenFold2 evidence "
+            "standard"
+        )
     if status == "complete-n3-conventional":
         return (
             "fresh fail-closed n=20 conventional rerun to the "
@@ -1142,8 +1363,9 @@ def build_bionemo_section(
     if order[:2] != ["boltz2", "openfold2"]:
         raise SystemExit("Boltz2/OpenFold2 evidence must rank first")
     min_samples = cohort_doc["new_preemptible_min_accepted_samples"]
+    per_scenario = cohort_doc["new_preemptible_per_scenario"]
     default_required = cohort_doc["new_preemptible_required_default"]
-    check_min_samples(min_samples, default_required)
+    check_min_samples(min_samples, default_required, per_scenario)
 
     check_no_other_newnode_dirs(sorted(os.listdir(FASTSTART_ROOT)))
     audit_bytes = repo_read_bytes(NEWNODE_AUDIT_PATH)
@@ -1162,15 +1384,23 @@ def build_bionemo_section(
         if row is None or cat is None or row["source"] != "faststart-v2-lanes":
             raise SystemExit(f"bionemo NIM {nim} does not resolve to a faststart lane row")
         measured = cat["startup"].get("measured") or {}
-        status = derive_provisioned_status(measured.get("evidence_class"))
         verified = verify_lane_evidence(nim, cat, evidence_refs(cat))
-        outcome = provisioned_outcome(nim, status, measured, verified["recomputed"])
+        status = derive_provisioned_status(
+            measured.get("evidence_class"), verified["sealed"]
+        )
+        outcome = provisioned_outcome(nim, status, measured, verified)
 
         gaps: list[str] = []
         if status == "complete-fresh-fail-closed-n20":
             gaps = [XID_GAP, RAWBODY_GAP]
         if not verified["sealed"]:
             gaps = gaps + [MOLMIM_SEAL_GAP]
+        if nim in N3_SPECS and N3_SPECS[nim]["image_path"] is None:
+            gaps = gaps + [
+                "the committed n=3 results file records no image reference; "
+                "digest binding for this cohort relies on the catalog row "
+                "and lane provenance only"
+            ]
 
         newnode_status = derive_newnode_status(row["blockers"])
         historical_note = spec["newnode_historical_note"]
@@ -1213,6 +1443,7 @@ def build_bionemo_section(
                     "new_preemptible_node": {
                         "status": newnode_status,
                         "min_accepted_samples": min_samples,
+                        "per_scenario": per_scenario,
                         "required": default_required,
                         "requested_via": dict(REQUESTED_VIA),
                         "historical_note": historical_note,

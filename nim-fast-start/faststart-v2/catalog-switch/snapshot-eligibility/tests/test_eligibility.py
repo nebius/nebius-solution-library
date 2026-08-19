@@ -415,9 +415,55 @@ class EligibilityArtifacts(unittest.TestCase):
             self.assertEqual(prov["evidence_class"], measured["evidence_class"], e["nim"])
             self.assertEqual(
                 prov["status"],
-                build_eligibility.EVIDENCE_CLASS_TO_STATUS[measured["evidence_class"]],
+                build_eligibility.derive_provisioned_status(
+                    measured["evidence_class"], prov["sealed"]
+                ),
                 e["nim"],
             )
+
+    def test_unsealed_evidence_never_supports_snapshot_safe_or_high(self):
+        for e in self.meta["bionemo_nims"]:
+            prov = e["cohorts"]["provisioned_node"]
+            if prov["sealed"]:
+                continue
+            self.assertNotIn(
+                e["snapshot_class"],
+                ("direct-snapshot-safe", "snapshot-after-state-externalization"),
+                e["nim"],
+            )
+            self.assertNotEqual(e["confidence"], "high", e["nim"])
+            self.assertTrue(prov["status"].endswith("-unsealed"), e["nim"])
+            self.assertIsNone(prov["outcome"]["slo_pass"], e["nim"])
+            row = self.by_id[e["row_id"]]
+            self.assertIn("unsealed-evidence-receipts", row["blockers"], e["nim"])
+
+    def test_slo_outcomes_recomputed_not_trusted(self):
+        cat_by_id = {r["id"]: r for r in self.catalog["rows"]}
+        for e in self.meta["bionemo_nims"]:
+            prov = e["cohorts"]["provisioned_node"]
+            outcome = prov["outcome"]
+            if outcome is None or outcome["slo_pass"] is None:
+                continue
+            measured = cat_by_id[e["row_id"]]["startup"]["measured"]
+            # the builder recomputes; committed output must agree with both
+            # the recomputation source and the cross-checked catalog flag
+            self.assertEqual(outcome["slo_pass"], measured["slo_under_30s"], e["nim"])
+            if prov["status"] == "complete-fresh-fail-closed-n20":
+                self.assertEqual(
+                    outcome["slo_pass"],
+                    outcome["boottime_upper_p95_s"] < 30.0,
+                    e["nim"],
+                )
+            else:
+                self.assertEqual(
+                    outcome["slo_pass"],
+                    outcome["t0_to_call2_p50_s"] < 30.0,
+                    e["nim"],
+                )
+        with self.assertRaises(SystemExit):
+            build_eligibility.assert_slo_consistent(True, False, "adversary")
+        with self.assertRaises(SystemExit):
+            build_eligibility.assert_slo_consistent(False, None, "adversary")
 
     def test_bionemo_evidence_refs_resolve_to_committed_bytes(self):
         for e in self.meta["bionemo_nims"]:
@@ -535,31 +581,117 @@ class EligibilityArtifacts(unittest.TestCase):
             b.derive_provisioned_status("some new cohort kind")
         with self.assertRaises(SystemExit):
             b.derive_provisioned_status(None)
-        # complete-fresh-fail-closed-n20: sample count, denominator, percentiles
+        # complete-fresh-fail-closed-n20 adversaries: sample count,
+        # denominator, percentiles, qualification, cleanup, run/cohort
+        # binding, semantic exercise, outcome column, summaries
         tsv_path = os.path.join(
             FASTSTART_ROOT, "boltz2-native", "fresh-cohort-n20-results.tsv"
         )
         with open(tsv_path, encoding="utf-8") as fh:
             good = fh.read()
+        args = (28.794544, 30.208757, "b2-n20-")
+        b.check_n20_tsv(good, *args)
         lines = good.splitlines()
         sample_idx = next(i for i, l in enumerate(lines) if l.startswith("sample"))
         missing_row = "\n".join(lines[:sample_idx] + lines[sample_idx + 1:]) + "\n"
         with self.assertRaises(SystemExit):
-            b.check_n20_tsv(missing_row, 28.794544, 30.208757)
+            b.check_n20_tsv(missing_row, *args)
         with self.assertRaises(SystemExit):
-            b.check_n20_tsv(good, 28.794544, 29.0)
+            b.check_n20_tsv(good, 28.794544, 29.0, "b2-n20-")
         with self.assertRaises(SystemExit):
-            b.check_n20_tsv(good.replace("0/20", "1/20"), 28.794544, 30.208757)
-        # complete-n3: published median, contract, digest must be present
-        doc = {"x": {"values": [1.0, 2.0, 3.0], "median": 2.0}}
-        raw = json.dumps(doc) + build_eligibility.RESPONSE_CONTRACT + "sha256:abc"
-        b.check_n3_results(doc, raw, 2.0, None)
+            b.check_n20_tsv(good.replace("0/20", "1/20"), *args)
+        # qualification / cleanup flipped to FAIL must be rejected
+        first_sample = lines[sample_idx]
+        qual_fail = first_sample.replace("\tPASS\tPASS\t", "\tFAIL\tPASS\t", 1)
+        cleanup_fail = first_sample.replace("\tPASS\tPASS\t", "\tPASS\tFAIL\t", 1)
+        for mutated_line in (qual_fail, cleanup_fail):
+            self.assertNotEqual(mutated_line, first_sample)
+            mutated = "\n".join(
+                lines[:sample_idx] + [mutated_line] + lines[sample_idx + 1:]
+            ) + "\n"
+            with self.assertRaises(SystemExit):
+                b.check_n20_tsv(mutated, *args)
+        # duplicated run id
+        second_sample = lines[sample_idx + 1].split("\t")
+        first_fields = first_sample.split("\t")
+        second_sample[3] = first_fields[3]
+        dup = "\n".join(
+            lines[:sample_idx + 1]
+            + ["\t".join(second_sample)]
+            + lines[sample_idx + 2:]
+        ) + "\n"
         with self.assertRaises(SystemExit):
-            b.check_n3_results(doc, raw, 9.9, None)
+            b.check_n20_tsv(dup, *args)
+        # cohort not bound to this NIM
         with self.assertRaises(SystemExit):
-            b.check_n3_results(doc, json.dumps(doc), 2.0, None)
+            b.check_n20_tsv(good, 28.794544, 30.208757, "of2-n20-")
+        # cohort_outcome contradicting the recomputed SLO
         with self.assertRaises(SystemExit):
-            b.check_n3_results(doc, raw, 2.0, "sha256:missing-digest")
+            b.check_n20_tsv(good.replace("SLO_FAIL", "PASS"), *args)
+        # semantic exercise zeroed out
+        sem_zero = first_fields[:]
+        sem_zero[10] = "0.0"
+        mutated = "\n".join(
+            lines[:sample_idx] + ["\t".join(sem_zero)] + lines[sample_idx + 1:]
+        ) + "\n"
+        with self.assertRaises(SystemExit):
+            b.check_n20_tsv(mutated, *args)
+        # summary rows removed
+        no_summary = "\n".join(
+            l for l in lines if not l.startswith("summary")
+        ) + "\n"
+        with self.assertRaises(SystemExit):
+            b.check_n20_tsv(no_summary, *args)
+        # complete-n3 adversaries: structural extraction, never token presence
+        spec = b.N3_SPECS["genmol"]
+        with open(
+            os.path.join(FASTSTART_ROOT, "genmol-native", "results.json"),
+            encoding="utf-8",
+        ) as fh:
+            genmol = json.load(fh)
+        p50 = 12.177434
+        image = "nvcr.io/nim/nvidia/genmol@sha256:139b909a450fe1fb81198214784a15f67e172e766a93a1569827ba5aa05b4541"
+        b.check_n3_results(genmol, spec, p50, image)
+        # unrelated JSON that merely contains the p50 token must be rejected
+        with self.assertRaises(SystemExit):
+            b.check_n3_results(
+                {"unrelated": [p50], "note": b.RESPONSE_CONTRACT, "img": image},
+                spec,
+                p50,
+                image,
+            )
+        mutated = json.loads(json.dumps(genmol))
+        mutated["status"] = "FAIL"
+        with self.assertRaises(SystemExit):
+            b.check_n3_results(mutated, spec, p50, image)
+        mutated = json.loads(json.dumps(genmol))
+        mutated["buffered"]["demand_to_two_semantic_seconds"][0] = 99.9
+        with self.assertRaises(SystemExit):
+            b.check_n3_results(mutated, spec, p50, image)
+        mutated = json.loads(json.dumps(genmol))
+        mutated["image"] = "nvcr.io/nim/nvidia/genmol@sha256:" + "0" * 64
+        with self.assertRaises(SystemExit):
+            b.check_n3_results(mutated, spec, p50, image)
+        mutated = json.loads(json.dumps(genmol))
+        mutated["timing_measurement"]["response_timing_contract"] = "other/v2"
+        with self.assertRaises(SystemExit):
+            b.check_n3_results(mutated, spec, p50, image)
+        # interface pin adversaries: drifted bytes and drifted $id
+        contract = dict(b.INTERFACE_CONTRACTS[0])
+        data = b.repo_read_bytes(contract["path"])
+        b.check_interface_bytes(data, contract)
+        with self.assertRaises(SystemExit):
+            b.check_interface_bytes(data + b" ", contract)
+        wrong_id = dict(contract, schema_id="https://nebius.example/other-v1.json")
+        with self.assertRaises(SystemExit):
+            b.check_interface_bytes(data, wrong_id)
+        # unsealed evidence derivation
+        self.assertEqual(
+            b.derive_provisioned_status("exact response-boundary n=3", sealed=False),
+            "complete-n3-unsealed",
+        )
+        with self.assertRaises(SystemExit):
+            b.derive_provisioned_status("fresh fail-closed n=20", sealed=False)
         # complete-n3 (proteinmpnn TSV shape)
         head = "run_id\tstatus\tdemand_to_two_semantic_responses_seconds"
         good_pmpnn = f"{head}\nr1\tPASS\t1.0\nr2\tPASS\t2.0\nr3\tPASS\t3.0\n"
@@ -616,11 +748,26 @@ class EligibilityArtifacts(unittest.TestCase):
             "blocked-hardware-gate-h200",
         )
         self.assertEqual(b.derive_newnode_status([]), "required-not-run")
-        # n>=20 floor
+        # n>=20 floor, per-scenario strictness
+        good_text = "at least 20 accepted samples per scenario (n>=20)"
+        b.check_min_samples(20, good_text)
         with self.assertRaises(SystemExit):
-            b.check_min_samples(19, "at least 20 accepted samples")
+            b.check_min_samples(19, good_text)
         with self.assertRaises(SystemExit):
             b.check_min_samples(20, "fail-closed n>=3 lifecycle")
+        with self.assertRaises(SystemExit):
+            b.check_min_samples(20, "at least 20 accepted samples")
+        with self.assertRaises(SystemExit):
+            b.check_min_samples(
+                20, "at least 20 accepted samples per scenario, in total"
+            )
+        with self.assertRaises(SystemExit):
+            b.check_min_samples(
+                20,
+                "at least 20 accepted samples per scenario total across scenarios",
+            )
+        with self.assertRaises(SystemExit):
+            b.check_min_samples(20, good_text, per_scenario=False)
         # foreign new-node evidence directories must fail closed
         with self.assertRaises(SystemExit):
             b.check_no_other_newnode_dirs(["openfold2-newnode", "boltz2-newnode"])

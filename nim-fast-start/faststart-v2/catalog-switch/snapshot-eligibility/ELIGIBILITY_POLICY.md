@@ -18,8 +18,9 @@ Gate and blocker bindings cite the reviewed threat model at commit
 | R06-family-proven | Same canonical model proven on a different digest | unresolved |
 | R07-unassessed | Everything else | unresolved |
 
-Classification is honest about how little is proven: only the eight
-measured lanes are `direct-snapshot-safe`; 210 of 220 rows are
+Classification is honest about how little is proven: only seven
+measured lanes are `direct-snapshot-safe` (MolMIM is downgraded to
+`unresolved` because its cohort evidence is not sealed); 211 of 220 rows are
 `unresolved` and fail-closed to a conventional fallback. Rows whose
 catalog eligibility is `candidate-family-proven` additionally carry the
 `digest-rebind-required` blocker regardless of which rule matched,
@@ -121,13 +122,17 @@ and response-timing contract in each n=3 results file.
   execution failure) and OpenFold2 (SLO **PASS**, 17.629887 s); both
   carry outstanding evidence gaps that an SLO pass does not close
   (host-driver Xid absence unproven, 80 raw response bodies not
-  retained). `complete-n3` for DiffDock, GenMol, MolMIM, OpenFold3,
-  ProteinMPNN, RFdiffusion — each owes an n=20 rerun, OpenFold3 and
-  RFdiffusion already exceed the 30 s SLO at n=3, and MolMIM's cohort
-  is disclosed as **not sealed** (its citation is a harness tree
-  without committed per-run receipts). `complete-n3-conventional`
+  retained). `complete-n3` for DiffDock, GenMol, OpenFold3,
+  ProteinMPNN, RFdiffusion — each owes an n=20 rerun, and OpenFold3 and
+  RFdiffusion already exceed the 30 s SLO at n=3.
+  `complete-n3-unsealed` for MolMIM: its citation is a harness tree
+  without committed per-run receipts, so the row itself is downgraded
+  to `unresolved` (medium confidence, `unsealed-evidence-receipts`
+  blocker) and its SLO is deliberately not asserted — unsealed evidence
+  never supports a snapshot-safe class. `complete-n3-conventional`
   (MSA Search), `missing-production-shaped` (Evo2-40B, H200 owner
-  gate).
+  gate). All SLO verdicts are recomputed from verified samples; the
+  catalog boolean is cross-checked, never trusted.
 - **new-preemptible-node** — what is required and does not exist: the
   committed new-node audit proves zero current-contract samples
   (OpenFold2's two historical lifecycles are non-poolable; the future
@@ -135,10 +140,12 @@ and response-timing contract in each n=3 results file.
   **at least 20 accepted samples per scenario** (the authoritative
   n≥20 cohort aggregator: full attempt ledger, nearest-rank
   p50/p95/max, full failure denominator, no pooling of historical
-  runs) via an approved broker lease and the shared harness; Evo2-40B's
+  runs) via an approved broker lease and the shared harness — counted
+  strictly **per scenario**, never totaled across scenarios; Evo2-40B's
   is additionally blocked on the H200 gate. The requested_via
   interfaces are in-ancestry reviewed contracts (resource-broker
-  `229101bb`, request-SLO `ba49c9e2`), verified by schema id and hash.
+  `229101bb`, request-SLO `ba49c9e2`), pinned by constant SHA-256 and
+  schema id — the builder refuses to emit output on any byte drift.
 
 ## Canary process
 

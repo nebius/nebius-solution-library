@@ -21,8 +21,10 @@
    "caveats": []
   },
   "faststart:molmim@sha256:7700c5556935a93055bee5367d36acb6d3e55d22fd1ba28503f5447656fa63fa": {
-   "disposition": "direct-snapshot-safe",
-   "basis": "exact response-boundary n=3 restores with strict semantic validation on the pinned digest; restored process state in Pod with prewarmed artifact and cache volumes.",
+   "disposition": "unresolved",
+   "confidence": "medium",
+   "extra_blockers": ["unsealed-evidence-receipts"],
+   "basis": "exact response-boundary n=3 restores were published for the pinned digest (restored process state in Pod with prewarmed artifact and cache volumes), and the aggregate medians appear in the committed metrics document, but the cited lane provenance is a harness tree without committed per-run result receipts - the raw receipts live only in uncommitted external state. Unsealed evidence cannot support snapshot promotion, so the row stays fail-closed on the conventional fallback until the cohort is resealed with a committed replayable result artifact or a fresh sealed cohort runs.",
    "caveats": []
   },
   "faststart:openfold2@sha256:fc64916731fee39e124225829dca78e80ec24fe1891be47057d0d69209b93ab4": {
@@ -60,7 +62,7 @@
   "faststart:evo2-40b@sha256:561886bab1d2d0da836ebf5bec403f9de2baf6e92deb7eedf1b316aa994b5dd2": {
    "disposition": "unresolved",
    "basis": "only manual/provisional restore-trigger evidence exists (65.377 s median from an in-Pod trigger, not target-create T0); production-shaped capture is deferred pending an explicit owner decision to release the only allowed H200; writable state on the production-shaped route is unknown.",
-   "extra_blockers": ["hardware-gate-h200", "production-capture-missing"],
+   "extra_blockers": ["hardware-gate-h200", "production-capture-missing", "state-audit-pending"],
    "caveats": [
     "The lane profile pins a single-H200 configuration while the Terraform catalog requests 2 GPUs for the same image; this discrepancy must be resolved before any capture qualification."
    ]

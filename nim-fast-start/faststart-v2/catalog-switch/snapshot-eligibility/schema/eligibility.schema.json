@@ -204,7 +204,8 @@
            "status": {
             "enum": [
              "complete-fresh-fail-closed-n20", "complete-n3",
-             "complete-n3-conventional", "missing-production-shaped"
+             "complete-n3-unsealed", "complete-n3-conventional",
+             "missing-production-shaped"
             ]
            },
            "evidence_class": {"type": ["string", "null"]},
@@ -227,7 +228,7 @@
               "additionalProperties": false,
               "properties": {
                "slo_threshold_s": {"const": 30.0},
-               "slo_pass": {"type": "boolean"},
+               "slo_pass": {"type": ["boolean", "null"]},
                "t0_to_call2_p50_s": {"type": "number"},
                "t0_to_call2_p95_s": {"type": ["number", "null"]},
                "boottime_upper_p50_s": {"type": ["number", "null"]},
@@ -244,13 +245,14 @@
          "new_preemptible_node": {
           "type": "object",
           "required": [
-           "status", "min_accepted_samples", "required", "requested_via",
-           "historical_note", "evidence_refs"
+           "status", "min_accepted_samples", "per_scenario", "required",
+           "requested_via", "historical_note", "evidence_refs"
           ],
           "additionalProperties": false,
           "properties": {
            "status": {"enum": ["required-not-run", "blocked-hardware-gate-h200"]},
            "min_accepted_samples": {"type": "integer", "minimum": 20},
+           "per_scenario": {"const": true},
            "required": {"type": "string", "minLength": 20},
            "requested_via": {
             "type": "object",

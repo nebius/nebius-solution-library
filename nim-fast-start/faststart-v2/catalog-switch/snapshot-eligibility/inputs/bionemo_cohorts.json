@@ -6,6 +6,7 @@
   "msa-search", "openfold3", "proteinmpnn", "rfdiffusion"
  ],
  "new_preemptible_min_accepted_samples": 20,
+ "new_preemptible_per_scenario": true,
  "new_preemptible_required_default": "fail-closed new-node cohort with at least 20 accepted samples per scenario (the authoritative n>=20 cohort aggregator) on a fresh preemptible GPU node under the current exact contract: setup_demand_at (scale dispatch) and demand_at (target submission) through call_2_response_received_at, never aliased or summed from independently aggregated phases; cold-node image qualification proving the image absent at scale T0 with the pulled exact digest bound afterward; exact clock, image-pull, and volume detach/attach receipts; prewarm receipts with named storage state; strict semantic validation; every accepted and failed attempt retained in a fail-closed ledger with nearest-rank p50/p95/max and the full failure denominator; no pooling of historical runs; exact-ID cleanup; newnode-v2 execution path only, via an approved resource-broker preemptible lease and the shared request-SLO harness",
  "nims": {
   "boltz2": {
