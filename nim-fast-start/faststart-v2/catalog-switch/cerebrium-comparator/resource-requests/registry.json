@@ -25,8 +25,21 @@
       "region": "eu-north1",
       "state": "PLANNED",
       "task_id": "catalog-switch-cerebrium-qwen3-glm52-benchmark"
+    },
+    {
+      "cleanup_owner": "cerebrium-comparator",
+      "estimated_ttl_cost_usd": "8.721867",
+      "expires_at": "2026-08-19T19:27:26Z",
+      "lease_file": "/home/tux/dashboard/data/worktrees/catalog-switch-cerebrium-qwen3-glm52-benchmark/nim-fast-start/faststart-v2/catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v3.lease.json",
+      "lease_id": "catswitch-qwen3-h100-scout-v3-20260819",
+      "prefix": "mlsp-csw-catalog-switch-cer-4b0835a1",
+      "profile": "h100-single",
+      "project_id": "project-e00z6b02t8ddk96c49",
+      "region": "eu-north1",
+      "state": "PLANNED",
+      "task_id": "catalog-switch-cerebrium-qwen3-glm52-benchmark"
     }
   ],
   "schema_version": "catalog-switch-lease-registry/v1",
-  "updated_at": "2026-08-19T14:25:41Z"
+  "updated_at": "2026-08-19T15:27:26Z"
 }

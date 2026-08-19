@@ -19,6 +19,7 @@ import sys
 import time
 import tomllib
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -424,12 +425,29 @@ def stream_request(
     opener: Any = urllib.request.urlopen,
     timeout_seconds: int = 1800,
     admission: dict[str, Any] | None = None,
+    attempt_id: str | None = None,
+    runtime_group_id: str | None = None,
+    qualification_ordinal: int | None = None,
 ) -> dict[str, Any]:
     encoded = canonical(payload).encode()
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    if attempt_id is not None:
+        if not ID_RE.fullmatch(attempt_id):
+            raise ComparatorError("attempt header is not canonical")
+        headers["X-Catswitch-Attempt-ID"] = attempt_id
+    if runtime_group_id is not None or qualification_ordinal is not None:
+        if (
+            runtime_group_id is None
+            or not ID_RE.fullmatch(runtime_group_id)
+            or qualification_ordinal not in {1, 2}
+        ):
+            raise ComparatorError("qualification runtime-group headers are incomplete")
+        headers["X-Catswitch-Runtime-Group-ID"] = runtime_group_id
+        headers["X-Catswitch-Qualification-Ordinal"] = str(qualification_ordinal)
     request = urllib.request.Request(
         endpoint,
         data=encoded,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
     started_at = utc_now()
@@ -605,6 +623,9 @@ def run_attempt(
     cold_state: dict[str, Any],
     attempt_id: str,
     opener: Any = urllib.request.urlopen,
+    runtime_group_id: str | None = None,
+    qualification_ordinal: int | None = None,
+    authorized_internal_qwen_pair: bool = False,
 ) -> dict[str, Any]:
     validate_contracts()
     campaign = load_json(CAMPAIGN)
@@ -615,7 +636,14 @@ def run_attempt(
     prompt = prompts.get(prompt_id)
     if arm is None or prompt is None:
         raise ComparatorError("unknown arm or prompt")
-    if arm["enabled"] is not True:
+    pair_exception = (
+        authorized_internal_qwen_pair
+        and arm_id == "internal-qwen3-new-target-matched"
+        and prompt_id == "qwen3-nonthinking-exact"
+        and runtime_group_id is not None
+        and qualification_ordinal in {1, 2}
+    )
+    if arm["enabled"] is not True and not pair_exception:
         raise ComparatorError(f"live arm is not enabled in the frozen campaign: {arm['status']}")
     if arm["model_contract_id"] != prompt["model_contract_id"]:
         raise ComparatorError("arm/prompt model identity differs")
@@ -630,7 +658,16 @@ def run_attempt(
     caught: Exception | None = None
     try:
         # stream_request captures the authoritative T0 immediately before dispatch.
-        raw = stream_request(endpoint, payload, token, opener=opener, admission=admission)
+        raw = stream_request(
+            endpoint,
+            payload,
+            token,
+            opener=opener,
+            admission=admission,
+            attempt_id=attempt_id,
+            runtime_group_id=runtime_group_id,
+            qualification_ordinal=qualification_ordinal,
+        )
     except Exception as exc:  # every admitted request remains in the denominator
         caught = exc
     complete = time.monotonic_ns()
@@ -710,6 +747,79 @@ def run_attempt(
     return receipt
 
 
+def run_qwen_qualification_pair(
+    *,
+    endpoint: str,
+    token: str,
+    backend: dict[str, Any],
+    cold_state: dict[str, Any],
+    warm_state: dict[str, Any],
+    runtime_group_id: str,
+    cold_attempt_id: str,
+    companion_attempt_id: str,
+    cohort_id: str,
+    opener: Any = urllib.request.urlopen,
+) -> dict[str, Any]:
+    """Run and independently validate the required two-request cold-runtime pair."""
+    if not endpoint.endswith("/v1/chat/completions"):
+        raise ComparatorError("qualification endpoint must be the exact chat-completions path")
+    if cold_attempt_id == companion_attempt_id:
+        raise ComparatorError("qualification attempt IDs must be distinct")
+    cold_receipt = run_attempt(
+        arm_id="internal-qwen3-new-target-matched",
+        cohort_id=cohort_id,
+        prompt_id="qwen3-nonthinking-exact",
+        endpoint=endpoint,
+        token=token,
+        backend=backend,
+        cold_state=cold_state,
+        attempt_id=cold_attempt_id,
+        opener=opener,
+        runtime_group_id=runtime_group_id,
+        qualification_ordinal=1,
+        authorized_internal_qwen_pair=True,
+    )
+    companion_receipt = run_attempt(
+        arm_id="internal-qwen3-new-target-matched",
+        cohort_id=f"{cohort_id}-runtime-companion",
+        prompt_id="qwen3-nonthinking-exact",
+        endpoint=endpoint,
+        token=token,
+        backend=backend,
+        cold_state=warm_state,
+        attempt_id=companion_attempt_id,
+        opener=opener,
+        runtime_group_id=runtime_group_id,
+        qualification_ordinal=2,
+        authorized_internal_qwen_pair=True,
+    )
+    evidence_endpoint = (
+        endpoint.removesuffix("/v1/chat/completions")
+        + "/qualification/"
+        + urllib.parse.quote(runtime_group_id, safe="")
+    )
+    request = urllib.request.Request(
+        evidence_endpoint,
+        headers={"Authorization": f"Bearer {token}"},
+        method="GET",
+    )
+    with opener(request, timeout=60) as response:
+        if getattr(response, "status", 200) != 200:
+            raise ComparatorError("qualification evidence endpoint did not return HTTP 200")
+        try:
+            backend_evidence = json.loads(response.read(), object_pairs_hook=_duplicates)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ComparatorError("qualification evidence is not unique-key JSON") from exc
+    replay = validate_qualification_pair(
+        [cold_receipt, companion_receipt], backend_evidence
+    )
+    return {
+        "receipts": [cold_receipt, companion_receipt],
+        "backend_evidence": backend_evidence,
+        "replay": replay,
+    }
+
+
 def validate_receipt(receipt: dict[str, Any]) -> dict[str, Any]:
     expect_keys(receipt, ATTEMPT_KEYS, "attempt")
     if receipt["schema"] != SCHEMA:
@@ -767,6 +877,91 @@ def validate_receipt(receipt: dict[str, Any]) -> dict[str, Any]:
     elif receipt["outcome"]["failure_class"] not in slo.FAILURE_CLASSES:
         raise ComparatorError("failed receipt has a noncanonical failure class")
     return receipt
+
+
+def validate_qualification_pair(
+    receipts: list[dict[str, Any]], backend_evidence: dict[str, Any]
+) -> dict[str, Any]:
+    """Prove two independent semantic results after one conventional cold start."""
+    if len(receipts) != 2:
+        raise ComparatorError("qualification requires exactly two external-client receipts")
+    for receipt in receipts:
+        validate_receipt(receipt)
+        if receipt["outcome"]["status"] != "success" or not receipt["outcome"][
+            "semantically_valid"
+        ]:
+            raise ComparatorError("each qualification receipt must independently pass its oracle")
+    if len({item["attempt_id"] for item in receipts}) != 2:
+        raise ComparatorError("qualification attempts must be distinct")
+    if receipts[0]["cold_state"]["classification"] != "process-cold-artifact-hit":
+        raise ComparatorError("qualification ordinal 1 must be the conventional cold request")
+    if receipts[1]["cold_state"]["classification"] != "warm-control":
+        raise ComparatorError("qualification ordinal 2 must reuse the same cold-started runtime")
+    expected_keys = {
+        "cold_start_count",
+        "completed_at_utc",
+        "container_id",
+        "requests",
+        "runtime_group_id",
+        "schema",
+        "status",
+        "teardown",
+    }
+    expect_keys(backend_evidence, expected_keys, "qualification backend evidence")
+    if backend_evidence["schema"] != "catalog-switch-qwen-runtime-qualification/v3":
+        raise ComparatorError("unsupported qualification evidence schema")
+    if backend_evidence["status"] != "QUALIFIED" or backend_evidence["cold_start_count"] != 1:
+        raise ComparatorError("backend did not prove one cold start with two valid requests")
+    if not ID_RE.fullmatch(str(backend_evidence["runtime_group_id"])):
+        raise ComparatorError("qualification runtime-group ID is not canonical")
+    if not re.fullmatch(r"[0-9a-f]{12,64}", str(backend_evidence["container_id"])):
+        raise ComparatorError("qualification container identity is not canonical")
+    requests = backend_evidence["requests"]
+    if not isinstance(requests, list) or len(requests) != 2:
+        raise ComparatorError("backend evidence does not contain two request results")
+    expected_request_keys = {
+        "attempt_id",
+        "model_id",
+        "ordinal",
+        "oracle_reason",
+        "response_sha256",
+        "semantically_valid",
+        "stream_complete",
+    }
+    for ordinal, (receipt, result) in enumerate(zip(receipts, requests), 1):
+        expect_keys(result, expected_request_keys, f"qualification request {ordinal}")
+        if (
+            result["ordinal"] != ordinal
+            or result["attempt_id"] != receipt["attempt_id"]
+            or result["model_id"] != receipt["model"]["model_id"]
+            or result["response_sha256"] != receipt["outcome"]["response_sha256"]
+            or result["semantically_valid"] is not True
+            or result["stream_complete"] is not True
+            or result["oracle_reason"] != "exact content matched"
+        ):
+            raise ComparatorError(
+                "backend semantic verdict does not match the independently validated receipt"
+            )
+    teardown = expect_keys(
+        backend_evidence["teardown"],
+        {"container_absent", "verified_at_utc"},
+        "qualification teardown",
+    )
+    if teardown["container_absent"] is not True:
+        raise ComparatorError("qualification runtime teardown is not proven")
+    result = {
+        "schema": "catalog-switch-qwen-runtime-qualification-replay/v1",
+        "runtime_group_id": backend_evidence["runtime_group_id"],
+        "attempt_ids": [item["attempt_id"] for item in receipts],
+        "container_id": backend_evidence["container_id"],
+        "independent_recorder_oracles": 2,
+        "server_oracle_verdicts": 2,
+        "cold_start_count": 1,
+        "teardown_verified": True,
+        "backend_evidence_sha256": digest(backend_evidence),
+    }
+    result["replay_sha256"] = digest(result)
+    return result
 
 
 def append_receipt(path: Path, receipt: dict[str, Any]) -> None:

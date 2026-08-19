@@ -1,0 +1,86 @@
+{
+  "schema": "catalog-switch-internal-live-authorization/v3",
+  "authorization_id": "internal-qwen3-h100-scout-v3-20260819",
+  "state": "PRE_CREATION_REVIEW",
+  "issued_at": "2026-08-19T15:27:26Z",
+  "expires_at": "2026-08-19T19:27:26Z",
+  "authorized_by": "explicit-user-manager-intervention-20260819",
+  "required_reviewer": "catalog-switch-independent-precreation-reviewer-v2",
+  "scope": {
+    "arm_id": "internal-qwen3-new-target-matched",
+    "backend": "internal-nebius",
+    "branch": "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark",
+    "gpu_count": 1,
+    "gpu_type": "H100",
+    "lease_id": "catswitch-qwen3-h100-scout-v3-20260819",
+    "mode": "preemptible",
+    "profile": "h100-single",
+    "project_id": "project-e00z6b02t8ddk96c49",
+    "region": "eu-north1",
+    "task_id": "catalog-switch-cerebrium-qwen3-glm52-benchmark"
+  },
+  "frozen": {
+    "campaign_sha256": "e6a36c56455cdb5a603eadc1d01781692899ba789a4459bc26e631b5d4d11cba",
+    "expected_cost_usd": "4.360934",
+    "image_amd64_digest": "sha256:7c2c59db86a9a64138c5c675b98e3e05b7f37a34a344d4aa461b1529ed60262d",
+    "input_sha256": "c3e3250abbb92869b7a51325a5fd5358eb98122d73698956cf064ed491d3291d",
+    "lease_plan_sha256": "93195d80c7eceb81ba7407bba5509040a7a388afd4b8f643d3ae0049d36ef313",
+    "model_id": "Qwen/Qwen3-8B",
+    "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "request_sha256": "4b0835a1c955d1c3826f2d30f90076045a6f72ebd6a6376552ba42365d53c32c",
+    "source_parent_commit": "94cd1c9999dfe7ca7626661b89352b6d41727cd4",
+    "ttl_cost_ceiling_usd": "8.721867"
+  },
+  "artifacts": [
+    {"path": "resource-broker/broker.py", "sha256": "197bf3c79242e33db9e70da30c3e8d734c0ca3dd250c06e45402530abb247555"},
+    {"path": "catalog-switch/cerebrium-comparator/comparator.py", "sha256": "ffec0a9c13b3adc7c1247aab723128dc54e4c42f6ad44d2e3121517bf79cb565"},
+    {"path": "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v3.sh", "sha256": "c3ac7503bc3439651fb563e9fe9bb449884c0de48e41a4d76db5713f932b3465"},
+    {"path": "catalog-switch/cerebrium-comparator/live/internal_scout_server_v3.py", "sha256": "147e22b71dfd06996b01736424b4d3c681448aad38d3d89b480586e587a5ad55"},
+    {"path": "catalog-switch/cerebrium-comparator/schemas/live-authorization-v3.schema.json", "sha256": "17c3ec3b17be1c676fef2e9ae3445649bf2b636de507f2804dd8b4b21bd838d8"}
+  ],
+  "network": {
+    "bearer_token_sha256": "05d63fab4f79a7e460368d4950fa15297a342d7efc02c874e3ac71e264095b12",
+    "bootstrap_egress": [
+      {"destination_cidrs": ["0.0.0.0/0"], "ports": [443], "protocol": "TCP", "purpose": "TLS image/model localization"},
+      {"destination_cidrs": ["0.0.0.0/0"], "ports": [53], "protocol": "UDP", "purpose": "DNS resolution"},
+      {"destination_cidrs": ["0.0.0.0/0"], "ports": [53], "protocol": "TCP", "purpose": "DNS fallback"},
+      {"destination_cidrs": ["0.0.0.0/0"], "ports": [123], "protocol": "UDP", "purpose": "UTC clock synchronization"}
+    ],
+    "direct_container_ingress": false,
+    "ingress": {
+      "authentication": "bearer-sha256-pinned",
+      "port": 8080,
+      "protocol": "TCP",
+      "source": "runtime-observed-ipv4-32-sha256-pinned"
+    },
+    "lifecycle_transition": "controller-delete-bootstrap-egress-before-active",
+    "public_ipv4_count": 1,
+    "recorder_cidr_published": false,
+    "recorder_cidr_sha256": "8a02896ad4d9e37d66635ee97638dd8af40442bb0ef4f473f0b0602fb13e16f4",
+    "runtime_egress": [],
+    "secret_values_published": false,
+    "ssh_ingress": false
+  },
+  "observed_gpu": {
+    "count": 1,
+    "marker": "CATSWITCH_GPU_PROOF_B64",
+    "name_regex": "^NVIDIA H100(?: |$)",
+    "source": "bootstrap-nvidia-smi-serial-proof"
+  },
+  "qualification": {
+    "cold_scout_runtime_groups": 3,
+    "headline_request_ordinal": 1,
+    "independent_recorder_oracle_validation": true,
+    "requests_per_runtime": 2,
+    "semantic_smoke_runtime_groups": 1,
+    "server_oracle_verdict_required": true,
+    "teardown_after_request_ordinal": 2
+  },
+  "cleanup": {
+    "desired_final_state": "ABSENT",
+    "foreign_replacement_policy": "fail-closed-no-delete",
+    "idempotent": true,
+    "partial_create_cleanup": true,
+    "verification": "exact-id-not-found-plus-cascade-child-absence"
+  }
+}

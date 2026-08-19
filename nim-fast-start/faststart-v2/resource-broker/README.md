@@ -30,6 +30,11 @@ those recorded IDs. It never adopts or mutates a pre-existing project resource.
 - The desired final state of every resource is `ABSENT`. TTL is a cleanup
   deadline, not provider-side magic: the hourly supervisor must run the scanner
   and exact-ID cleanup for expired leases.
+- On this comparator task branch, every `provision` and `verify-health` path is
+  additionally sealed behind the versioned Qwen v3 authorization and a
+  separate, exact-commit independent clearance. Missing authorization blocks
+  CPU, Qwen, and GLM leases before provider preflight. This is intentionally
+  narrower than the reviewed broker's general interface.
 
 The current local-NVMe API field is
 `local_disks.passthrough_group.requested=true`, but none of the three allowed
@@ -75,11 +80,16 @@ python3 broker.py plan \
 ```
 
 Review the lease's prefix, estimated cost, expiry, cleanup owner, resource list,
-and exact request hash. Then provision explicitly:
+and exact request hash. A plan alone never authorizes provisioning. On this
+task branch, provisioning additionally requires the reviewed authorization,
+external clearance, and a mode-0600 bearer file:
 
 ```bash
 python3 broker.py provision \
-  --lease leases/resource-broker-smoke-20260819.json \
+  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v3.lease.json \
+  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v3.json \
+  --clearance /secure/external/exact-commit-clearance.json \
+  --bearer-token /secure/external/qwen-scout-bearer \
   --execute
 ```
 
@@ -88,13 +98,18 @@ same fail-closed health gate without creating anything new:
 
 ```bash
 python3 broker.py verify-health \
-  --lease leases/resource-broker-smoke-20260819.json \
+  --lease ../catalog-switch/cerebrium-comparator/resource-requests/qwen3-h100-scout-v3.lease.json \
+  --authorization ../catalog-switch/cerebrium-comparator/authorizations/internal-qwen3-h100-scout-v3.json \
+  --clearance /secure/external/exact-commit-clearance.json \
+  --bearer-token /secure/external/qwen-scout-bearer \
   --execute
 ```
 
-The health proof requires both live `RUNNING` state and the lease-specific
-cloud-init marker in Nebius instance logs. Inspect the exact reverse-order
-cleanup plan before executing it:
+The Qwen v3 health proof requires live `RUNNING`, the lease marker, an observed
+exactly-one-H100 serial proof, and deletion/absence of all bootstrap egress
+before `ACTIVE`. Inspect the exact reverse-order cleanup plan before executing
+it. Cleanup deliberately does not require a still-valid performance clearance,
+so an expired or failed lease can always be made absent:
 
 ```bash
 python3 broker.py cleanup --lease leases/resource-broker-smoke-20260819.json
@@ -157,12 +172,14 @@ python3 -m json.tool profiles.json >/dev/null
 python3 -m json.tool lease.schema.json >/dev/null
 ```
 
-The unit suite covers policy validation, request-hash idempotency, unauthorized
-project rejection, the GPU experiment gate, mocked end-to-end provision/health/
-cleanup, reverse exact-ID deletion, `NotFound` receipts, orphan scanning, and the
-supervisor export contract. It also proves that capacity advice is matched on
-the nested exact platform/preset contract and that limit-reached modes fail
-before any create call.
+The 25-test unit suite covers policy validation, request-hash idempotency,
+unauthorized project rejection, the GPU experiment gate, mandatory live
+authorization, exact commit/reviewer/time binding, source drift, observed GPU
+shape, interrupted partial creation, lifecycle egress narrowing, public/private
+child reconciliation, foreign replacement preservation, idempotent cleanup,
+orphan scanning, and the supervisor export contract. It also proves that
+capacity advice is matched on the nested exact platform/preset contract and
+that limit-reached modes fail before any create call.
 
 The live disposable-CPU run, exact resource IDs, isolation proof, fail-closed
 discoveries, and teardown receipts are summarized in `SMOKE_EVIDENCE.md` and

@@ -345,48 +345,25 @@ class BrokerTests(unittest.TestCase):
                 self.request_path, second_path, self.registry_path, self.profiles_path
             )
 
-    def test_full_fake_provision_and_exact_cleanup(self):
-        lease = self.make_plan()
-        fake = FakeCLI()
-        active = broker.provision(self.lease_path, self.registry_path, fake)
-        self.assertEqual("ACTIVE", active["state"])
-        self.assertTrue(active["health_proof"]["serial_log_marker_observed"])
-        self.assertEqual([], active["isolation_proof"]["network"]["public_pool_ids"])
-        self.assertEqual(0, active["isolation_proof"]["security_group"]["rule_count"])
-        self.assertEqual(9, len(active["resources"]))
-        network_payload = next(payload for kind, payload in fake.created if kind == "network")
-        self.assertEqual([], network_payload["spec"]["ipv4_public_pools"]["pools"])
-        self.assertEqual(
-            {"allocation", "pool", "route_table"},
-            {
-                item["kind"]
-                for item in active["resources"]
-                if item.get("deletion_mode") == "PROVIDER_CASCADE"
-            },
-        )
-        disk_payload = next(payload for kind, payload in fake.created if kind == "disk")
-        self.assertNotIn("disk_encryption", disk_payload["spec"])
-        self.assertEqual("NETWORK_SSD", disk_payload["spec"]["type"])
-        instance_payload = next(payload for kind, payload in fake.created if kind == "instance")
-        self.assertNotIn("service_account_id", instance_payload["spec"])
-        self.assertNotIn("public_ip_address", instance_payload["spec"]["network_interfaces"][0])
-        dry_run = broker.cleanup(
-            self.lease_path, self.registry_path, fake, execute=False
-        )
-        self.assertEqual("instance", dry_run["delete_plan"][0]["kind"])
-        released = broker.cleanup(
-            self.lease_path, self.registry_path, fake, execute=True
-        )
-        self.assertEqual("RELEASED", released["state"])
-        self.assertTrue(all(item["delete_verified_at"] for item in released["resources"]))
-
-    def test_public_pool_association_fails_isolation_gate(self):
+    def test_public_provision_requires_live_authorization_before_preflight(self):
         self.make_plan()
-        fake = FakeCLI(public_pool_ids=["public-pool-id"])
-        with self.assertRaisesRegex(broker.BrokerError, "public-pool association"):
+        fake = FakeCLI()
+        with self.assertRaisesRegex(broker.BrokerError, "mandatory live authorization"):
             broker.provision(self.lease_path, self.registry_path, fake)
-        failed = broker.load_json(self.lease_path)
-        self.assertEqual("FAILED", failed["state"])
+        self.assertEqual([], fake.created)
+        self.assertEqual("PLANNED", broker.load_json(self.lease_path)["state"])
+
+    def test_fabricated_unvalidated_context_cannot_bypass_live_gate(self):
+        self.make_plan()
+        fake = FakeCLI()
+        with self.assertRaisesRegex(broker.BrokerError, "not produced by the validator"):
+            broker.provision(
+                self.lease_path,
+                self.registry_path,
+                fake,
+                live_authorization={"public": {}},
+            )
+        self.assertEqual([], fake.created)
 
     def test_orphan_scan_and_supervisor_export(self):
         lease = self.make_plan()

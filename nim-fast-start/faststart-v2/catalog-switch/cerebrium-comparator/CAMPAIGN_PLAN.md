@@ -20,6 +20,9 @@ fresh broker-owned Kubernetes or direct/node-local Nebius VM candidates.
   and are off-limits.
 - Internal resources are PLANNED only. No VM, disk, network, bucket, service
   account, endpoint, namespace, or GPU has been created.
+- Internal Qwen replacement authorization v3 is frozen at `PRE-CREATION
+  REVIEW`; no provider preflight or create is reachable without a separate
+  exact-commit independent clearance.
 - Matched arms use conventional startup and checkpointing off. Provider-best
   snapshot or local-NVMe configurations require separate arms.
 
@@ -37,12 +40,24 @@ public A10, another region, or a one-off `run`.
 
 Internal scout lease: fresh project `project-e00z6b02t8ddk96c49`, region
 `eu-north1`, broker profile `h100-single`, preemptible, expected two hours,
-TTL four hours, 64 GiB artifact quota. The immutable broker plan provides the
-exact prefix and cost ceiling. A normal-capacity re-plan is allowed only after
-the scout demonstrates that preemption invalidates the measurement.
+TTL four hours, 64 GiB artifact quota. Versioned lease
+`catswitch-qwen3-h100-scout-v3-20260819` has prefix
+`mlsp-csw-catalog-switch-cer-4b0835a1`, expected cost USD `4.360934`, TTL
+ceiling USD `8.721867`, expiry `2026-08-19T19:27:26Z`, and zero resources. A
+normal-capacity re-plan is allowed only after the scout demonstrates that
+preemption invalidates the measurement.
 
-Sequence per backend: one authenticated semantic smoke; n>=3 independent cold
-scouts; configuration review/freeze; n>=30 independent homogeneous process-
+Every semantic smoke and cold scout is a two-request runtime group. Ordinal 1
+starts one conventional vLLM container after external-client T0 and is the only
+headline cold sample. Ordinal 2 is a separately labeled same-runtime companion.
+Both requests need distinct attempt IDs, independent recorder oracle verdicts,
+matching server-side semantic verdicts, the same container ID, and final
+container-absence proof. One smoke therefore means one cold start plus two
+valid inference results, not one result copied into backend and recorder files.
+
+Sequence per backend: one authenticated two-request semantic smoke; n>=3
+independent two-request cold-runtime scouts; configuration review/freeze;
+n>=30 independent homogeneous process-
 cold/artifact-hit trials plus separately named fresh-node/artifact-miss and
 capacity-miss trials; warm control; then >=100 AIPerf/equivalent exploration
 requests. There is no promoted steady-state claim without >=1,000 valid

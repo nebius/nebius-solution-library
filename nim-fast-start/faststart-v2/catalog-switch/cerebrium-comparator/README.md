@@ -32,10 +32,12 @@ No live deployment is permitted unless all of these gates pass:
    Every admitted attempt, including capacity errors and failed semantic
    validation, stays in the denominator.
 
-Current read-only entitlement evidence does not satisfy gates 2 or 3, so no
-live mutation has been performed. Pre-existing Cerebrium apps and all existing
-Nebius resources are off-limits. Any task-created Cerebrium app must be left at
-zero minimum replicas until explicit deletion approval is received.
+The internal Qwen v3 plan satisfies the offline portion of gate 3 but remains
+at `PRE-CREATION REVIEW`; it cannot provision without a fresh clearance bound
+to the exact clean candidate commit. Cerebrium still does not satisfy gate 2.
+No live mutation has been performed. Pre-existing Cerebrium apps and all
+existing Nebius resources are off-limits. Any task-created Cerebrium app must
+be left at zero minimum replicas until explicit deletion approval is received.
 
 ## Files
 
@@ -43,25 +45,32 @@ zero minimum replicas until explicit deletion approval is received.
 - `FEASIBILITY_MATRIX.md` records the pre-live architecture decision.
 - `INDEPENDENT_REVIEW.md` records accepted independent findings and the
   remaining post-live review gate.
+- `PRE_CREATION_REVIEW_V3.md` records the replacement authorization, exact
+  hashes, network/GPU lifecycle, two-request semantic gate, and adversaries.
 - `VERIFICATION.md` records commands, exact placement/capacity evidence, costs,
   and the zero-resource cleanup disposition.
 - `contracts/` pins sources, models, prompts, arms, placement, and statistics.
 - `schemas/attempt.schema.json` documents the supplemental receipt. This
   preserves TTFRB/TTFT/TTFO diagnostics and maps to, rather than replaces, the
-shared product-SLO ledger.
+  shared product-SLO ledger.
+- `comparator.py` validates contracts, records streaming attempts, aggregates
+  only homogeneous cohorts, and emits reviewed-harness traces/ledgers.
+- `resource-requests/` contains offline broker requests and immutable planned
+  leases; it does not authorize provisioning by itself.
+- `authorizations/internal-qwen3-h100-scout-v3.json` is the publishable,
+  hash-only authorization candidate. The independent clearance and bearer
+  secret are deliberately external to Git.
+- `live/` contains the no-package-install bootstrap and authenticated
+  two-request qualification server.
+- `deploy/` contains digest-pinned app specifications. The GLM Cerebrium file
+  is intentionally a non-deployable template until the current project exposes
+  and confirms the exact H200 compute identifier and count.
 
 Modal is out of scope: no Modal authentication, deployment, live request,
 synthetic result, or ranking is permitted. Modal documentation may be used only
 as reference material elsewhere. Cerebrium is the sole measured external
 backend; measured internal candidates are fresh task-owned Kubernetes or
 direct/node-local Nebius VM paths.
-- `comparator.py` validates contracts, records streaming attempts, aggregates
-  only homogeneous cohorts, and emits reviewed-harness traces/ledgers.
-- `resource-requests/` contains offline broker requests and immutable planned
-  leases; it does not authorize provisioning by itself.
-- `deploy/` contains digest-pinned app specifications. The GLM Cerebrium file
-  is intentionally a non-deployable template until the current project exposes
-  and confirms the exact H200 compute identifier and count.
 
 ## Offline verification
 
@@ -69,6 +78,7 @@ direct/node-local Nebius VM paths.
 cd nim-fast-start/faststart-v2/catalog-switch/cerebrium-comparator
 python3 comparator.py validate
 python3 -m unittest discover -v tests
+python3 -m unittest discover -v ../../resource-broker/tests
 ```
 
 Live commands are recorded only after their corresponding gate becomes true.

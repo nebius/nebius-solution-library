@@ -11,7 +11,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v performance/request_sl
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v resource-broker/tests
 ```
 
-Results: comparator 11/11, reviewed request-SLO 24/24, broker 11/11 PASS.
+Results at the v3 pre-creation candidate: comparator/server 19/19, reviewed
+request-SLO 24/24, broker 25/25 PASS (68/68 total).
 The comparator reports exactly one measured external backend, `cerebrium`, and
 `live_mutation_authorized=false`.
 
@@ -56,6 +57,7 @@ Immutable PLANNED leases contain no resources:
 | Lease | Mode/shape | Expected cost | TTL ceiling | Resource prefix |
 |---|---|---:|---:|---|
 | `catswitch-qwen3-h100-scout-20260819` | preemptible 1xH100, 2h/4h | $4.360934 | $8.721867 | `mlsp-csw-catalog-switch-cer-6507dfc4` |
+| `catswitch-qwen3-h100-scout-v3-20260819` | preemptible 1xH100, 2h/4h; PRE-CREATION REVIEW | $4.360934 | $8.721867 | `mlsp-csw-catalog-switch-cer-4b0835a1` |
 | `catswitch-glm52-fp8-tp8-smoke-20260819` | normal 8xH200, 4h/8h | $144.704947 | $289.409894 | `mlsp-csw-catalog-switch-cer-0799ac8e` |
 
 Inventory file:
@@ -65,7 +67,26 @@ Inventory file:
 ## Cleanup and deployment disposition
 
 No cloud or provider resource was created, so there was nothing to clean up.
-Both planned broker leases have `resources=[]`. No Cerebrium app/file was
-created or deleted. Deployment/model/GPU benchmarking was not technically
-permitted after the mandatory gates failed; this is recorded as an availability
-result rather than an untested performance claim.
+All three planned broker leases have `resources=[]`. No Cerebrium app/file was
+created or deleted. The v3 authorization remains at `PRE-CREATION REVIEW`; the
+required external clearance does not exist. Deployment/model/GPU benchmarking
+was therefore prohibited, not silently skipped or reported as performance.
+
+## V3 pre-creation safety evidence
+
+The v3 broker makes authorization mandatory before provider preflight for every
+lease. The Qwen and GLM no-authorization fake paths both stop with zero CLI
+calls. Clearance validates the exact nonzero current commit, exact reviewer,
+canonical review/expiry time, exact branch, and clean worktree. A serialized or
+plain-dictionary proof cannot enter the live path.
+
+Bootstrap network rules are TCP/443, UDP/53, TCP/53, and UDP/123 only. TCP/80
+is absent. All four bootstrap egress rule IDs are deleted and absence-verified
+before `ACTIVE`; runtime has authenticated recorder-only TCP/8080 ingress and
+zero egress. Tests cover interruption/resume and a foreign replacement.
+
+Observed GPU qualification comes from a serial-log `nvidia-smi` proof, not the
+declared preset. One H100 passes; H200 and two-GPU proofs fail. The recorder now
+sends the exact attempt/runtime-group/ordinal headers consumed by the server.
+Each cold runtime requires two distinct, independently oracle-valid results on
+the same container, explicit server semantic verdicts, and teardown absence.

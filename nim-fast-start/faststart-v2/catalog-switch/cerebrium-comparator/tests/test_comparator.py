@@ -182,6 +182,34 @@ class ComparatorTests(unittest.TestCase):
         self.assertEqual("thinking", result["response"]["reasoning_content"])
         self.assertEqual("answer", result["response"]["content"])
 
+    def test_stream_request_sends_server_compatible_attempt_and_pair_headers(self):
+        captured = {}
+
+        def opener(request, **_kwargs):
+            captured["headers"] = dict(request.header_items())
+            return FakeResponse(
+                sse(
+                    {
+                        "model": "Qwen/Qwen3-8B",
+                        "choices": [{"delta": {"content": "QWEN3_CATALOG_SWITCH_OK"}}],
+                    }
+                )
+            )
+
+        comparator.stream_request(
+            "https://example.invalid/v1/chat/completions",
+            {"model": "Qwen/Qwen3-8B", "messages": [], "stream": True},
+            "secret-not-printed",
+            opener=opener,
+            attempt_id="attempt-pair-1",
+            runtime_group_id="runtime-group-1",
+            qualification_ordinal=1,
+        )
+        lowered = {key.lower(): value for key, value in captured["headers"].items()}
+        self.assertEqual("attempt-pair-1", lowered["x-catswitch-attempt-id"])
+        self.assertEqual("runtime-group-1", lowered["x-catswitch-runtime-group-id"])
+        self.assertEqual("1", lowered["x-catswitch-qualification-ordinal"])
+
     def test_reasoning_and_tool_oracles_require_exact_parity(self):
         prompts = comparator._prompt_map()
         valid, _ = comparator.semantic_validate(
@@ -274,6 +302,46 @@ class ComparatorTests(unittest.TestCase):
         value = receipt(0, classification="fresh-node-artifact-miss", cohort_id="qwen-fresh-node")
         with self.assertRaisesRegex(comparator.ComparatorError, "no idle remote-artifact scenario"):
             comparator.export_shared([value])
+
+    def test_two_independent_semantic_receipts_and_server_verdicts_are_required(self):
+        first = receipt(1)
+        second = receipt(2, classification="warm-control", cohort_id="qwen3-runtime-companion")
+        evidence = {
+            "schema": "catalog-switch-qwen-runtime-qualification/v3",
+            "runtime_group_id": "runtime-group-1",
+            "container_id": "a" * 64,
+            "cold_start_count": 1,
+            "requests": [
+                {
+                    "attempt_id": first["attempt_id"],
+                    "model_id": first["model"]["model_id"],
+                    "ordinal": 1,
+                    "oracle_reason": "exact content matched",
+                    "response_sha256": first["outcome"]["response_sha256"],
+                    "semantically_valid": True,
+                    "stream_complete": True,
+                },
+                {
+                    "attempt_id": second["attempt_id"],
+                    "model_id": second["model"]["model_id"],
+                    "ordinal": 2,
+                    "oracle_reason": "exact content matched",
+                    "response_sha256": second["outcome"]["response_sha256"],
+                    "semantically_valid": True,
+                    "stream_complete": True,
+                },
+            ],
+            "teardown": {"container_absent": True, "verified_at_utc": "2026-08-19T00:00:03Z"},
+            "completed_at_utc": "2026-08-19T00:00:03Z",
+            "status": "QUALIFIED",
+        }
+        replay = comparator.validate_qualification_pair([first, second], evidence)
+        self.assertEqual(2, replay["independent_recorder_oracles"])
+        with self.assertRaisesRegex(comparator.ComparatorError, "exactly two"):
+            comparator.validate_qualification_pair([first], evidence)
+        evidence["requests"][1]["semantically_valid"] = False
+        with self.assertRaisesRegex(comparator.ComparatorError, "backend semantic verdict"):
+            comparator.validate_qualification_pair([first, second], evidence)
 
 
 if __name__ == "__main__":

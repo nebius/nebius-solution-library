@@ -4,16 +4,20 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import fcntl
 import hashlib
+import ipaddress
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
 from contextlib import contextmanager
 from decimal import Decimal
 from pathlib import Path
@@ -21,6 +25,7 @@ from typing import Any, Iterator
 
 
 ROOT = Path(__file__).resolve().parent
+FASTSTART_ROOT = ROOT.parent
 NEBIUS = "/usr/local/bin/nebius"
 SCHEMA_VERSION = "catalog-switch-resource-lease/v1"
 REQUEST_SCHEMA_VERSION = "catalog-switch-lease-request/v1"
@@ -46,6 +51,38 @@ AUTH_FAILURES = (
 NOT_FOUND_MARKERS = ("notfound", "not found", "code = not_found")
 SAFE_LABEL = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,62}$")
 GPU_PLATFORM_PREFIX = "gpu-"
+LIVE_AUTH_SCHEMA_VERSION = "catalog-switch-internal-live-authorization/v3"
+LIVE_CLEARANCE_SCHEMA_VERSION = "catalog-switch-independent-precreation-clearance/v2"
+QWEN_SCOUT_AUTHORIZATION_ID = "internal-qwen3-h100-scout-v3-20260819"
+QWEN_SCOUT_LEASE_ID = "catswitch-qwen3-h100-scout-v3-20260819"
+QWEN_SCOUT_TASK_ID = "catalog-switch-cerebrium-qwen3-glm52-benchmark"
+QWEN_SCOUT_ARM_ID = "internal-qwen3-new-target-matched"
+QWEN_SCOUT_MODEL = "Qwen/Qwen3-8B"
+QWEN_SCOUT_REVISION = "b968826d9c46dd6066d109eabc6255188de91218"
+QWEN_SCOUT_IMAGE_DIGEST = (
+    "sha256:7c2c59db86a9a64138c5c675b98e3e05b7f37a34a344d4aa461b1529ed60262d"
+)
+QWEN_SCOUT_REQUIRED_REVIEWER = "catalog-switch-independent-precreation-reviewer-v2"
+QWEN_SCOUT_BRANCH = "agent/catalog-switch-cerebrium-qwen3-glm52-benchmark"
+RECORDER_IP_ENDPOINT = "https://api.ipify.org"
+STRICT_UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+LIVE_AUTH_TOP_KEYS = {
+    "artifacts",
+    "authorization_id",
+    "authorized_by",
+    "cleanup",
+    "expires_at",
+    "frozen",
+    "issued_at",
+    "network",
+    "observed_gpu",
+    "qualification",
+    "required_reviewer",
+    "schema",
+    "scope",
+    "state",
+}
 
 
 class BrokerError(RuntimeError):
@@ -54,6 +91,32 @@ class BrokerError(RuntimeError):
 
 class AuthenticationError(BrokerError):
     """Authentication/authorization stop condition."""
+
+
+_LIVE_CONTEXT_SEAL = object()
+
+
+class LiveAuthorizationContext:
+    """Non-serializable result of the full authorization/clearance validation."""
+
+    __slots__ = ("_value",)
+
+    def __init__(self, value: dict[str, Any], seal: object) -> None:
+        if seal is not _LIVE_CONTEXT_SEAL:
+            raise BrokerError("live authorization context cannot be constructed directly")
+        self._value = value
+
+    def __getitem__(self, key: str) -> Any:
+        return self._value[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._value
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._value.get(key, default)
+
+    def __repr__(self) -> str:
+        return "LiveAuthorizationContext(<redacted>)"
 
 
 def utc_now() -> dt.datetime:
@@ -87,6 +150,454 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise BrokerError(f"expected JSON object in {path}")
     return value
+
+
+def file_sha256(path: Path) -> str:
+    value = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            value.update(block)
+    return value.hexdigest()
+
+
+def strict_parse_utc(value: Any, field: str) -> dt.datetime:
+    if not isinstance(value, str) or not STRICT_UTC_RE.fullmatch(value):
+        raise BrokerError(f"{field} must be canonical UTC seconds (YYYY-MM-DDTHH:MM:SSZ)")
+    try:
+        parsed = dt.datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=dt.timezone.utc
+        )
+    except ValueError as exc:
+        raise BrokerError(f"{field} is not a valid UTC timestamp") from exc
+    if iso(parsed) != value:
+        raise BrokerError(f"{field} is not canonical UTC")
+    return parsed
+
+
+def _strings(value: Any) -> Iterator[str]:
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            yield str(key)
+            yield from _strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _strings(item)
+
+
+def observe_recorder_cidr() -> str:
+    """Observe the recorder address without logging or persisting the literal value."""
+    try:
+        with urllib.request.urlopen(RECORDER_IP_ENDPOINT, timeout=20) as response:
+            raw = response.read(128).decode().strip()
+        address = ipaddress.IPv4Address(raw)
+    except Exception as exc:
+        raise BrokerError("cannot independently observe the recorder IPv4 address") from exc
+    return f"{address}/32"
+
+
+def _load_runtime_bearer(path: Path) -> str:
+    try:
+        info = path.lstat()
+    except OSError as exc:
+        raise BrokerError("runtime bearer-token file is unavailable") from exc
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+        raise BrokerError("runtime bearer-token path must be a regular non-symlink file")
+    if info.st_mode & 0o077:
+        raise BrokerError("runtime bearer-token file must have mode 0600 or stricter")
+    value = path.read_text().strip()
+    if not re.fullmatch(r"[0-9a-f]{64}", value):
+        raise BrokerError("runtime bearer token must be a 32-byte lowercase hex value")
+    return value
+
+
+def _git_state() -> tuple[str, str, bool]:
+    def run_git(*args: str) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(FASTSTART_ROOT), *args],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode:
+            raise BrokerError("cannot resolve the exact candidate Git state")
+        return result.stdout.strip()
+
+    commit = run_git("rev-parse", "HEAD")
+    branch = run_git("branch", "--show-current")
+    clean = run_git("status", "--porcelain") == ""
+    return commit, branch, clean
+
+
+def _validate_clearance(
+    clearance: dict[str, Any],
+    authorization: dict[str, Any],
+    authorization_sha256: str,
+    *,
+    current_commit: str,
+    current_branch: str,
+    worktree_clean: bool,
+    now: dt.datetime,
+) -> dict[str, Any]:
+    expected_keys = {
+        "authorization_id",
+        "authorization_sha256",
+        "clearance_id",
+        "decision",
+        "expires_at",
+        "reviewed_at",
+        "reviewed_commit",
+        "reviewer",
+        "schema",
+    }
+    if set(clearance) != expected_keys:
+        raise BrokerError("independent clearance fields differ from v2")
+    if clearance.get("schema") != LIVE_CLEARANCE_SCHEMA_VERSION:
+        raise BrokerError("unsupported independent clearance schema")
+    if clearance.get("authorization_id") != authorization["authorization_id"]:
+        raise BrokerError("clearance authorization ID differs")
+    if clearance.get("authorization_sha256") != authorization_sha256:
+        raise BrokerError("clearance authorization digest differs")
+    if clearance.get("decision") != "CLEARED":
+        raise BrokerError("independent clearance decision is not CLEARED")
+    if clearance.get("reviewer") != authorization["required_reviewer"]:
+        raise BrokerError("clearance reviewer is not the exactly required reviewer")
+    reviewed_commit = str(clearance.get("reviewed_commit", ""))
+    if (
+        not COMMIT_RE.fullmatch(reviewed_commit)
+        or reviewed_commit == "0" * 40
+        or reviewed_commit != current_commit
+    ):
+        raise BrokerError("clearance is not bound to the exact current candidate commit")
+    if current_branch != authorization["scope"]["branch"]:
+        raise BrokerError("live execution branch differs from the reviewed branch")
+    if not worktree_clean:
+        raise BrokerError("live execution requires the exact clean reviewed worktree")
+    issued_at = strict_parse_utc(authorization["issued_at"], "authorization.issued_at")
+    authorization_expires = strict_parse_utc(
+        authorization["expires_at"], "authorization.expires_at"
+    )
+    reviewed_at = strict_parse_utc(clearance.get("reviewed_at"), "clearance.reviewed_at")
+    clearance_expires = strict_parse_utc(
+        clearance.get("expires_at"), "clearance.expires_at"
+    )
+    if not issued_at <= reviewed_at <= now + dt.timedelta(minutes=5):
+        raise BrokerError("clearance review time is outside the authorization/current-time window")
+    if not now < clearance_expires <= authorization_expires:
+        raise BrokerError("clearance expiry is stale or exceeds authorization expiry")
+    if clearance_expires - reviewed_at > dt.timedelta(hours=1):
+        raise BrokerError("clearance live window exceeds one hour")
+    return {
+        "schema": clearance["schema"],
+        "clearance_id": clearance["clearance_id"],
+        "decision": clearance["decision"],
+        "reviewer": clearance["reviewer"],
+        "reviewed_at": clearance["reviewed_at"],
+        "reviewed_commit": clearance["reviewed_commit"],
+        "expires_at": clearance["expires_at"],
+        "authorization_sha256": clearance["authorization_sha256"],
+    }
+
+
+def validate_live_authorization(
+    authorization_path: Path,
+    clearance_path: Path,
+    lease_path: Path,
+    bearer_token_path: Path,
+    *,
+    observed_recorder_cidr: str | None = None,
+    current_commit: str | None = None,
+    current_branch: str | None = None,
+    worktree_clean: bool | None = None,
+    now: dt.datetime | None = None,
+) -> LiveAuthorizationContext:
+    """Validate the sole live-creation gate before any provider preflight or mutation."""
+    authorization = load_json(authorization_path)
+    if set(authorization) != LIVE_AUTH_TOP_KEYS:
+        raise BrokerError("live authorization top-level fields differ from v3")
+    if authorization.get("schema") != LIVE_AUTH_SCHEMA_VERSION:
+        raise BrokerError("unsupported live authorization schema")
+    if authorization.get("authorization_id") != QWEN_SCOUT_AUTHORIZATION_ID:
+        raise BrokerError("authorization is not the exact Qwen v3 scout authorization")
+    if authorization.get("state") != "PRE_CREATION_REVIEW":
+        raise BrokerError("versioned authorization must remain PRE_CREATION_REVIEW")
+    if authorization.get("authorized_by") != "explicit-user-manager-intervention-20260819":
+        raise BrokerError("authorization provenance differs")
+    if authorization.get("required_reviewer") != QWEN_SCOUT_REQUIRED_REVIEWER:
+        raise BrokerError("authorization reviewer requirement differs")
+    if any(
+        re.fullmatch(r"(?:\d{1,3}\.){3}\d{1,3}/32", value)
+        for value in _strings(authorization)
+    ):
+        raise BrokerError("publishable authorization embeds the recorder /32")
+
+    lease = load_json(lease_path)
+    if lease.get("schema_version") != SCHEMA_VERSION:
+        raise BrokerError("authorization references an unsupported lease")
+    if lease.get("state") != "PLANNED" or lease.get("resources"):
+        raise BrokerError("authorization requires a clean PLANNED zero-resource lease")
+    if sha256_json(lease.get("request")) != lease.get("request_sha256"):
+        raise BrokerError("lease request body differs from its immutable digest")
+    expected_prefix = (
+        f"{PROGRAM_PREFIX}-{lease['request']['task_id'][:18].rstrip('-._')}-"
+        f"{lease['request_sha256'][:8]}"
+    )
+    if lease.get("prefix") != expected_prefix:
+        raise BrokerError("lease resource prefix differs from the immutable request")
+    now = (now or utc_now()).astimezone(dt.timezone.utc).replace(microsecond=0)
+    authorization_expires = strict_parse_utc(
+        authorization.get("expires_at"), "authorization.expires_at"
+    )
+    issued_at = strict_parse_utc(authorization.get("issued_at"), "authorization.issued_at")
+    if not issued_at <= now < authorization_expires:
+        raise BrokerError("live authorization is not currently valid")
+    if authorization.get("expires_at") != lease.get("expires_at"):
+        raise BrokerError("authorization expiry differs from the immutable lease")
+
+    scope = authorization.get("scope")
+    expected_scope = {
+        "arm_id": QWEN_SCOUT_ARM_ID,
+        "backend": "internal-nebius",
+        "branch": QWEN_SCOUT_BRANCH,
+        "gpu_count": 1,
+        "gpu_type": "H100",
+        "lease_id": QWEN_SCOUT_LEASE_ID,
+        "mode": "preemptible",
+        "profile": "h100-single",
+        "project_id": "project-e00z6b02t8ddk96c49",
+        "region": "eu-north1",
+        "task_id": QWEN_SCOUT_TASK_ID,
+    }
+    if scope != expected_scope:
+        raise BrokerError("authorization is not the exact internal Qwen arm allowlist")
+    request = lease["request"]
+    for key in ("lease_id", "mode", "profile", "project_id", "region", "task_id"):
+        if request.get(key) != scope[key]:
+            raise BrokerError(f"authorization/lease scope differs: {key}")
+    if request["experiment"]["model_id"] != f"{QWEN_SCOUT_MODEL}@{QWEN_SCOUT_REVISION}":
+        raise BrokerError("authorization rejects this model identity")
+
+    frozen = authorization.get("frozen")
+    expected_frozen = {
+        "campaign_sha256": request["experiment"]["metric_contract_sha256"],
+        "expected_cost_usd": lease["cost_estimate"]["expected_cost_usd"],
+        "image_amd64_digest": QWEN_SCOUT_IMAGE_DIGEST,
+        "input_sha256": request["experiment"]["input_sha256"],
+        "lease_plan_sha256": file_sha256(lease_path),
+        "model_id": QWEN_SCOUT_MODEL,
+        "model_revision": QWEN_SCOUT_REVISION,
+        "request_sha256": lease["request_sha256"],
+        "source_parent_commit": "94cd1c9999dfe7ca7626661b89352b6d41727cd4",
+        "ttl_cost_ceiling_usd": lease["cost_estimate"]["ttl_cost_ceiling_usd"],
+    }
+    if frozen != expected_frozen:
+        raise BrokerError("authorization frozen model/input/lease/cost pins differ")
+
+    artifacts = authorization.get("artifacts")
+    if not isinstance(artifacts, list) or len(artifacts) != 5:
+        raise BrokerError("authorization must pin the five executable/schema artifacts")
+    allowed_artifacts = {
+        "resource-broker/broker.py",
+        "catalog-switch/cerebrium-comparator/comparator.py",
+        "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v3.sh",
+        "catalog-switch/cerebrium-comparator/live/internal_scout_server_v3.py",
+        "catalog-switch/cerebrium-comparator/schemas/live-authorization-v3.schema.json",
+    }
+    if {item.get("path") for item in artifacts if isinstance(item, dict)} != allowed_artifacts:
+        raise BrokerError("authorization executable/schema artifact allowlist differs")
+    for artifact in artifacts:
+        if set(artifact) != {"path", "sha256"}:
+            raise BrokerError("authorization artifact fields differ")
+        source = (FASTSTART_ROOT / artifact["path"]).resolve()
+        if FASTSTART_ROOT not in source.parents or source.is_symlink() or not source.is_file():
+            raise BrokerError("authorization artifact escapes the task source tree")
+        if file_sha256(source) != artifact["sha256"]:
+            raise BrokerError(f"authorization artifact digest differs: {artifact['path']}")
+
+    expected_qualification = {
+        "cold_scout_runtime_groups": 3,
+        "headline_request_ordinal": 1,
+        "independent_recorder_oracle_validation": True,
+        "requests_per_runtime": 2,
+        "semantic_smoke_runtime_groups": 1,
+        "server_oracle_verdict_required": True,
+        "teardown_after_request_ordinal": 2,
+    }
+    if authorization.get("qualification") != expected_qualification:
+        raise BrokerError("authorization does not require two validations per cold runtime")
+    expected_gpu = {
+        "count": 1,
+        "marker": "CATSWITCH_GPU_PROOF_B64",
+        "name_regex": "^NVIDIA H100(?: |$)",
+        "source": "bootstrap-nvidia-smi-serial-proof",
+    }
+    if authorization.get("observed_gpu") != expected_gpu:
+        raise BrokerError("authorization observed-GPU contract differs")
+    expected_cleanup = {
+        "desired_final_state": "ABSENT",
+        "foreign_replacement_policy": "fail-closed-no-delete",
+        "idempotent": True,
+        "partial_create_cleanup": True,
+        "verification": "exact-id-not-found-plus-cascade-child-absence",
+    }
+    if authorization.get("cleanup") != expected_cleanup:
+        raise BrokerError("authorization cleanup contract differs")
+
+    network = authorization.get("network")
+    expected_ingress = {
+        "authentication": "bearer-sha256-pinned",
+        "port": 8080,
+        "protocol": "TCP",
+        "source": "runtime-observed-ipv4-32-sha256-pinned",
+    }
+    expected_bootstrap_egress = [
+        {"destination_cidrs": ["0.0.0.0/0"], "ports": [443], "protocol": "TCP", "purpose": "TLS image/model localization"},
+        {"destination_cidrs": ["0.0.0.0/0"], "ports": [53], "protocol": "UDP", "purpose": "DNS resolution"},
+        {"destination_cidrs": ["0.0.0.0/0"], "ports": [53], "protocol": "TCP", "purpose": "DNS fallback"},
+        {"destination_cidrs": ["0.0.0.0/0"], "ports": [123], "protocol": "UDP", "purpose": "UTC clock synchronization"},
+    ]
+    if not isinstance(network, dict) or set(network) != {
+        "bearer_token_sha256",
+        "bootstrap_egress",
+        "direct_container_ingress",
+        "ingress",
+        "lifecycle_transition",
+        "public_ipv4_count",
+        "recorder_cidr_published",
+        "recorder_cidr_sha256",
+        "runtime_egress",
+        "secret_values_published",
+        "ssh_ingress",
+    }:
+        raise BrokerError("authorization network fields differ")
+    if (
+        network["ingress"] != expected_ingress
+        or network["bootstrap_egress"] != expected_bootstrap_egress
+        or network["runtime_egress"] != []
+        or network["lifecycle_transition"] != "controller-delete-bootstrap-egress-before-active"
+        or network["public_ipv4_count"] != 1
+        or network["recorder_cidr_published"] is not False
+        or network["secret_values_published"] is not False
+        or network["ssh_ingress"] is not False
+        or network["direct_container_ingress"] is not False
+    ):
+        raise BrokerError("authorization network lifecycle is not the exact v3 boundary")
+    if any(80 in item["ports"] for item in network["bootstrap_egress"]):
+        raise BrokerError("unconditional TCP/80 is forbidden")
+    cidr = observed_recorder_cidr or observe_recorder_cidr()
+    try:
+        parsed_cidr = ipaddress.IPv4Network(cidr, strict=True)
+    except ValueError as exc:
+        raise BrokerError("observed recorder address is not a canonical IPv4 CIDR") from exc
+    if parsed_cidr.prefixlen != 32:
+        raise BrokerError("observed recorder source must be exactly one IPv4 /32")
+    canonical_cidr = str(parsed_cidr)
+    if hashlib.sha256(canonical_cidr.encode()).hexdigest() != network["recorder_cidr_sha256"]:
+        raise BrokerError("recorder IP drift detected; live creation remains fail-closed")
+    bearer_token = _load_runtime_bearer(bearer_token_path)
+    if hashlib.sha256(bearer_token.encode()).hexdigest() != network["bearer_token_sha256"]:
+        raise BrokerError("runtime bearer token differs from the pinned hash")
+
+    if current_commit is None or current_branch is None or worktree_clean is None:
+        current_commit, current_branch, worktree_clean = _git_state()
+    clearance_public = _validate_clearance(
+        load_json(clearance_path),
+        authorization,
+        file_sha256(authorization_path),
+        current_commit=current_commit,
+        current_branch=current_branch,
+        worktree_clean=worktree_clean,
+        now=now,
+    )
+    public = {
+        "authorization_id": authorization["authorization_id"],
+        "authorization_sha256": file_sha256(authorization_path),
+        "clearance": clearance_public,
+        "network": {
+            "bearer_token_sha256": network["bearer_token_sha256"],
+            "bootstrap_egress_rule_count": 4,
+            "ingress_port": 8080,
+            "recorder_cidr_sha256": network["recorder_cidr_sha256"],
+            "runtime_egress_rule_count": 0,
+            "secret_values_published": False,
+        },
+        "observed_gpu": authorization["observed_gpu"],
+        "qualification": authorization["qualification"],
+        "scope": authorization["scope"],
+        "state": authorization["state"],
+    }
+    return LiveAuthorizationContext(
+        {
+            "authorization": authorization,
+            "public": public,
+            "_bearer_token": bearer_token,
+            "_recorder_cidr": canonical_cidr,
+        },
+        _LIVE_CONTEXT_SEAL,
+    )
+
+
+def validate_live_resume(
+    authorization_path: Path,
+    clearance_path: Path,
+    lease_path: Path,
+    bearer_token_path: Path,
+    *,
+    observed_recorder_cidr: str | None = None,
+    current_commit: str | None = None,
+    current_branch: str | None = None,
+    worktree_clean: bool | None = None,
+    now: dt.datetime | None = None,
+) -> LiveAuthorizationContext:
+    """Revalidate current code/reviewer/secrets for a partially created live lease."""
+    authorization = load_json(authorization_path)
+    lease = load_json(lease_path)
+    stored = lease.get("live_authorization")
+    if not isinstance(stored, dict):
+        raise BrokerError("live lease has no previously validated authorization")
+    if authorization.get("schema") != LIVE_AUTH_SCHEMA_VERSION:
+        raise BrokerError("unsupported live resume authorization schema")
+    authorization_sha256 = file_sha256(authorization_path)
+    if (
+        stored.get("authorization_id") != authorization.get("authorization_id")
+        or stored.get("authorization_sha256") != authorization_sha256
+        or stored.get("scope", {}).get("lease_id") != lease.get("lease_id")
+    ):
+        raise BrokerError("resume authorization differs from the stored live lease gate")
+    now = (now or utc_now()).astimezone(dt.timezone.utc).replace(microsecond=0)
+    if current_commit is None or current_branch is None or worktree_clean is None:
+        current_commit, current_branch, worktree_clean = _git_state()
+    clearance = _validate_clearance(
+        load_json(clearance_path),
+        authorization,
+        authorization_sha256,
+        current_commit=current_commit,
+        current_branch=current_branch,
+        worktree_clean=worktree_clean,
+        now=now,
+    )
+    if stored.get("clearance") != clearance:
+        raise BrokerError("resume clearance differs from the originally stored clearance")
+    cidr = observed_recorder_cidr or observe_recorder_cidr()
+    try:
+        canonical_cidr = str(ipaddress.IPv4Network(cidr, strict=True))
+    except ValueError as exc:
+        raise BrokerError("resume recorder address is not a canonical IPv4 CIDR") from exc
+    if hashlib.sha256(canonical_cidr.encode()).hexdigest() != stored["network"]["recorder_cidr_sha256"]:
+        raise BrokerError("recorder IP drift detected during live resume")
+    bearer_token = _load_runtime_bearer(bearer_token_path)
+    if hashlib.sha256(bearer_token.encode()).hexdigest() != stored["network"]["bearer_token_sha256"]:
+        raise BrokerError("runtime bearer token differs during live resume")
+    return LiveAuthorizationContext(
+        {
+            "authorization": authorization,
+            "public": stored,
+            "_bearer_token": bearer_token,
+            "_recorder_cidr": canonical_cidr,
+        },
+        _LIVE_CONTEXT_SEAL,
+    )
 
 
 def atomic_json(path: Path, value: Any) -> None:
@@ -598,6 +1109,7 @@ GET_COMMANDS = {
     "network": ["vpc", "network", "get"],
     "subnet": ["vpc", "subnet", "get"],
     "security_group": ["vpc", "security-group", "get"],
+    "security_rule": ["vpc", "security-rule", "get"],
     "disk": ["compute", "disk", "get"],
     "instance": ["compute", "instance", "get"],
     "bucket": ["storage", "bucket", "get"],
@@ -612,6 +1124,7 @@ DELETE_COMMANDS = {
     "disk": ["compute", "disk", "delete"],
     "bucket": ["storage", "bucket", "delete"],
     "security_group": ["vpc", "security-group", "delete"],
+    "security_rule": ["vpc", "security-rule", "delete"],
     "subnet": ["vpc", "subnet", "delete"],
     "network": ["vpc", "network", "delete"],
 }
@@ -686,7 +1199,12 @@ def add_event(lease: dict[str, Any], event_type: str, status: str, details: str)
 
 
 def add_resource(
-    lease: dict[str, Any], kind: str, name: str, response: dict[str, Any]
+    lease: dict[str, Any],
+    kind: str,
+    name: str,
+    response: dict[str, Any],
+    *,
+    parent_id: str | None = None,
 ) -> dict[str, Any]:
     resource = {
         "kind": kind,
@@ -698,6 +1216,8 @@ def add_resource(
         "deleted_at": None,
         "delete_verified_at": None,
     }
+    if parent_id is not None:
+        resource["parent_id"] = parent_id
     lease["resources"].append(resource)
     add_event(lease, "RESOURCE_CREATED", "PASS", f"{kind}:{resource['id']}")
     return resource
@@ -767,13 +1287,15 @@ def reconcile_managed_children(lease: dict[str, Any], cli: NebiusCLI) -> None:
     live = {item["kind"]: item for item in lease["resources"] if not item["deleted_at"]}
     instance = live.get("instance")
     network = live.get("network")
+    subnet = live.get("subnet")
     if instance:
         instance_value = cli.run(["compute", "instance", "get", instance["id"]])
         for interface in instance_value.get("status", {}).get("network_interfaces", []):
-            allocation_id = interface.get("ip_address", {}).get("allocation_id")
-            if allocation_id:
-                allocation = cli.run(["vpc", "allocation", "get", allocation_id])
-                add_managed_resource(lease, "allocation", allocation, instance["id"])
+            for address_kind in ("ip_address", "public_ip_address"):
+                allocation_id = interface.get(address_kind, {}).get("allocation_id")
+                if allocation_id:
+                    allocation = cli.run(["vpc", "allocation", "get", allocation_id])
+                    add_managed_resource(lease, "allocation", allocation, instance["id"])
     if network:
         network_value = cli.run(["vpc", "network", "get", network["id"]])
         for family in ("ipv4_private_pools", "ipv4_public_pools"):
@@ -790,12 +1312,55 @@ def reconcile_managed_children(lease: dict[str, Any], cli: NebiusCLI) -> None:
         if route_table_id:
             route_table = cli.run(["vpc", "route-table", "get", route_table_id])
             add_managed_resource(lease, "route_table", route_table, network["id"])
+    if subnet:
+        subnet_value = cli.run(["vpc", "subnet", "get", subnet["id"]])
+        for family in ("ipv4_private_pools", "ipv4_public_pools"):
+            for pool_ref in subnet_value.get("spec", {}).get(family, {}).get("pools", []):
+                pool = cli.run(["vpc", "pool", "get", pool_ref["id"]])
+                pool_created = pool.get("metadata", {}).get("created_at")
+                if not pool_created or parse_utc(pool_created) < parse_utc(
+                    lease["created_at"]
+                ):
+                    add_external_reference(lease, "pool", pool, subnet["id"])
+                else:
+                    add_managed_resource(lease, "pool", pool, subnet["id"])
+
+
+def _security_rule_proof(value: dict[str, Any]) -> dict[str, Any]:
+    metadata = value.get("metadata", {})
+    spec = value.get("spec", {})
+    ingress = spec.get("ingress")
+    egress = spec.get("egress")
+    if ingress:
+        direction = "ingress"
+        cidrs = ingress.get("source_cidrs", [])
+        ports = ingress.get("destination_ports", [])
+    elif egress:
+        direction = "egress"
+        cidrs = egress.get("destination_cidrs", [])
+        ports = egress.get("destination_ports", [])
+    else:
+        direction = "unknown"
+        cidrs = []
+        ports = []
+    return {
+        "access": spec.get("access"),
+        "cidr_sha256": [hashlib.sha256(str(item).encode()).hexdigest() for item in cidrs],
+        "direction": direction,
+        "id": metadata.get("id"),
+        "name": metadata.get("name"),
+        "ports": ports,
+        "protocol": spec.get("protocol"),
+        "type": spec.get("type"),
+        "unrestricted_destination": direction == "egress" and cidrs == ["0.0.0.0/0"],
+    }
 
 
 def capture_isolation_proof(lease: dict[str, Any], cli: NebiusCLI) -> dict[str, Any]:
     live = {item["kind"]: item for item in lease["resources"] if not item["deleted_at"]}
     instance = cli.run(["compute", "instance", "get", live["instance"]["id"]])
     network = cli.run(["vpc", "network", "get", live["network"]["id"]])
+    subnet = cli.run(["vpc", "subnet", "get", live["subnet"]["id"]])
     disk = cli.run(["compute", "disk", "get", live["disk"]["id"]])
     bucket = (
         cli.run(["storage", "bucket", "get", live["bucket"]["id"]])
@@ -837,9 +1402,21 @@ def capture_isolation_proof(lease: dict[str, Any], cli: NebiusCLI) -> dict[str, 
             ],
             "external_reference_count": len(lease.get("external_references", [])),
         },
+        "subnet": {
+            "id": live["subnet"]["id"],
+            "private_pool_ids": [
+                item["id"]
+                for item in subnet.get("spec", {}).get("ipv4_private_pools", {}).get("pools", [])
+            ],
+            "public_pool_ids": [
+                item["id"]
+                for item in subnet.get("spec", {}).get("ipv4_public_pools", {}).get("pools", [])
+            ],
+        },
         "security_group": {
             "id": live["security_group"]["id"],
             "rule_count": len(rules.get("items", [])),
+            "rules": [_security_rule_proof(item) for item in rules.get("items", [])],
         },
         "boot_disk": {
             "id": live["disk"]["id"],
@@ -866,6 +1443,7 @@ def validate_isolation_proof(lease: dict[str, Any], proof: dict[str, Any]) -> No
     profile = lease["profile_snapshot"]
     instance = proof["instance"]
     network = proof["network"]
+    subnet = proof["subnet"]
     security_group = proof["security_group"]
     disk = proof["boot_disk"]
     bucket = proof["artifact_bucket"]
@@ -880,7 +1458,11 @@ def validate_isolation_proof(lease: dict[str, Any], proof: dict[str, Any]) -> No
         failures.append("normal lease created a preemptible instance")
     if instance["service_account_id"]:
         failures.append("instance has an attached service account")
-    if instance["public_ip_allocation_ids"]:
+    live_authorization = lease.get("live_authorization")
+    if live_authorization:
+        if len(instance["public_ip_allocation_ids"]) != 1:
+            failures.append("authorized scout must have exactly one public IP allocation")
+    elif instance["public_ip_allocation_ids"]:
         failures.append("instance has a public IP allocation")
     if not profile["local_nvme"]["request"] and instance["local_disks"]:
         failures.append("instance has an unrequested local disk")
@@ -890,8 +1472,30 @@ def validate_isolation_proof(lease: dict[str, Any], proof: dict[str, Any]) -> No
         failures.append("fresh resources reference a pre-existing project resource")
     if not network["private_pool_ids"]:
         failures.append("fresh network has no private address pool")
-    if security_group["rule_count"] != 0:
-        failures.append("deny-all security group has rules")
+    if live_authorization:
+        if len(subnet["public_pool_ids"]) != 1:
+            failures.append("authorized scout subnet must own exactly one public /32 pool")
+        rules = security_group["rules"]
+        ingress = [item for item in rules if item["direction"] == "ingress"]
+        egress = [item for item in rules if item["direction"] == "egress"]
+        expected_source_hash = live_authorization["network"]["recorder_cidr_sha256"]
+        if len(ingress) != 1 or not (
+            ingress[0]["access"] == "allow"
+            and ingress[0]["protocol"] == "tcp"
+            and ingress[0]["type"] == "stateful"
+            and ingress[0]["ports"] == [8080]
+            and ingress[0]["cidr_sha256"] == [expected_source_hash]
+        ):
+            failures.append("authenticated recorder-only TCP/8080 ingress differs")
+        if egress or security_group["rule_count"] != 1:
+            failures.append("runtime security group retains bootstrap or foreign egress")
+        if any(22 in item["ports"] or 8000 in item["ports"] for item in ingress):
+            failures.append("SSH or direct inference-container ingress is exposed")
+    else:
+        if subnet["public_pool_ids"]:
+            failures.append("air-gapped subnet has a public-pool association")
+        if security_group["rule_count"] != 0:
+            failures.append("deny-all security group has rules")
     if disk["type"] != "NETWORK_SSD":
         failures.append("boot disk is not Network SSD")
     expected_disk_size = int(profile["boot_disk_gib"]) * 1024**3
@@ -918,16 +1522,100 @@ def resource_payload(name: str, project_id: str, labels: dict[str, str], spec: d
     return {"metadata": {"name": name, "parent_id": project_id, "labels": labels}, "spec": spec}
 
 
-def provision(lease_path: Path, registry_path: Path, cli: NebiusCLI) -> dict[str, Any]:
+def security_rule_payload(
+    name: str,
+    security_group_id: str,
+    labels: dict[str, str],
+    spec: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "metadata": {"name": name, "parent_id": security_group_id, "labels": labels},
+        "spec": spec,
+    }
+
+
+def authorized_cloud_init(
+    lease: dict[str, Any], context: LiveAuthorizationContext
+) -> str:
+    artifact_paths = {
+        "catalog-switch/cerebrium-comparator/live/bootstrap_internal_qwen_v3.sh": (
+            "/opt/catswitch/bootstrap_internal_qwen_v3.sh",
+            "0755",
+        ),
+        "catalog-switch/cerebrium-comparator/live/internal_scout_server_v3.py": (
+            "/opt/catswitch/internal_scout_server_v3.py",
+            "0644",
+        ),
+    }
+    lines = ["#cloud-config", "write_files:"]
+    for relative, (target, mode) in artifact_paths.items():
+        encoded = base64.b64encode((FASTSTART_ROOT / relative).read_bytes()).decode()
+        lines.extend(
+            [
+                f"  - path: {target}",
+                f"    permissions: '{mode}'",
+                "    encoding: b64",
+                f"    content: {encoded}",
+            ]
+        )
+    token_encoded = base64.b64encode(context["_bearer_token"].encode()).decode()
+    lines.extend(
+        [
+            "  - path: /run/catswitch/bearer-token",
+            "    permissions: '0600'",
+            "    encoding: b64",
+            f"    content: {token_encoded}",
+            "runcmd:",
+            "  - [bash, /opt/catswitch/bootstrap_internal_qwen_v3.sh]",
+            f"final_message: 'catalog-switch bootstrap finished; lease={lease['lease_id']}'",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def provision(
+    lease_path: Path,
+    registry_path: Path,
+    cli: NebiusCLI,
+    *,
+    live_authorization: LiveAuthorizationContext | None = None,
+) -> dict[str, Any]:
     lease = load_json(lease_path)
     if lease.get("schema_version") != SCHEMA_VERSION:
         raise BrokerError("unsupported lease schema")
+    if live_authorization is None:
+        raise BrokerError("mandatory live authorization/clearance is absent")
+    if not isinstance(live_authorization, LiveAuthorizationContext):
+        raise BrokerError("live authorization context was not produced by the validator")
+    public_authorization = live_authorization.get("public", {})
+    private_keys_present = {
+        key for key in ("_bearer_token", "_recorder_cidr") if key in live_authorization
+    }
+    if (
+        public_authorization.get("authorization_id") != QWEN_SCOUT_AUTHORIZATION_ID
+        or public_authorization.get("clearance", {}).get("decision") != "CLEARED"
+        or public_authorization.get("clearance", {}).get("reviewed_commit") is None
+        or private_keys_present != {"_bearer_token", "_recorder_cidr"}
+    ):
+        raise BrokerError("live authorization has not passed the exact independent gate")
     if lease["state"] == "ACTIVE":
+        if lease.get("live_authorization") != public_authorization:
+            raise BrokerError("active lease authorization differs from the current clearance")
         return lease
     if lease["state"] != "PLANNED" or lease["resources"]:
         raise BrokerError("provision requires a clean PLANNED lease")
     if utc_now() >= parse_utc(lease["expires_at"]):
         raise BrokerError("cannot provision an expired lease")
+    if lease["lease_id"] != public_authorization.get("scope", {}).get("lease_id"):
+        raise BrokerError("live authorization lease binding differs")
+    lease["live_authorization"] = public_authorization
+    add_event(
+        lease,
+        "LIVE_AUTHORIZATION",
+        "PASS",
+        f"{QWEN_SCOUT_AUTHORIZATION_ID}; secrets retained as hashes only",
+    )
     request = lease["request"]
     profile = lease["profile_snapshot"]
     lease["preflight"] = run_preflight(cli, request, profile)
@@ -962,12 +1650,17 @@ def provision(lease_path: Path, registry_path: Path, cli: NebiusCLI) -> dict[str
                 {
                     "network_id": network["id"],
                     "ipv4_private_pools": {"use_network_pools": True},
-                    "ipv4_public_pools": {"use_network_pools": False},
+                    "ipv4_public_pools": {
+                        "use_network_pools": False,
+                        "pools": [{"cidrs": [{"cidr": "/32"}]}],
+                    },
                 },
             ),
             timeout=180,
         )
         subnet = add_resource(lease, "subnet", names["subnet"], subnet_response)
+        save_lease(lease_path, registry_path, lease)
+        reconcile_managed_children(lease, cli)
         save_lease(lease_path, registry_path, lease)
 
         sg_response = cli.run(
@@ -981,6 +1674,66 @@ def provision(lease_path: Path, registry_path: Path, cli: NebiusCLI) -> dict[str
             lease, "security_group", names["security_group"], sg_response
         )
         save_lease(lease_path, registry_path, lease)
+
+        ingress_name = f"{lease['prefix']}-ingress-8080"
+        ingress_response = cli.run(
+            ["vpc", "security-rule", "create"],
+            payload=security_rule_payload(
+                ingress_name,
+                security_group["id"],
+                labels,
+                {
+                    "access": "allow",
+                    "protocol": "tcp",
+                    "type": "stateful",
+                    "priority": 100,
+                    "ingress": {
+                        "source_cidrs": [live_authorization["_recorder_cidr"]],
+                        "destination_ports": [8080],
+                    },
+                },
+            ),
+            timeout=180,
+        )
+        add_resource(
+            lease,
+            "security_rule",
+            ingress_name,
+            ingress_response,
+            parent_id=security_group["id"],
+        )
+        save_lease(lease_path, registry_path, lease)
+        for index, rule in enumerate(
+            live_authorization["authorization"]["network"]["bootstrap_egress"], 1
+        ):
+            egress_name = f"{lease['prefix']}-bootstrap-egress-{index}"
+            egress_response = cli.run(
+                ["vpc", "security-rule", "create"],
+                payload=security_rule_payload(
+                    egress_name,
+                    security_group["id"],
+                    labels,
+                    {
+                        "access": "allow",
+                        "protocol": rule["protocol"].lower(),
+                        "type": "stateful",
+                        "priority": 100 + index,
+                        "egress": {
+                            "destination_cidrs": rule["destination_cidrs"],
+                            "destination_ports": rule["ports"],
+                        },
+                    },
+                ),
+                timeout=180,
+            )
+            add_resource(
+                lease,
+                "security_rule",
+                egress_name,
+                egress_response,
+                parent_id=security_group["id"],
+            )
+            save_lease(lease_path, registry_path, lease)
 
         if request["artifact_storage"]["enabled"]:
             bucket_response = cli.run(
@@ -1022,20 +1775,7 @@ def provision(lease_path: Path, registry_path: Path, cli: NebiusCLI) -> dict[str
         disk = add_resource(lease, "disk", names["disk"], disk_response)
         save_lease(lease_path, registry_path, lease)
 
-        marker = request["health_proof"]["marker"]
-        cloud_init = "\n".join(
-            [
-                "#cloud-config",
-                "write_files:",
-                "  - path: /var/lib/catalog-switch-lease",
-                "    permissions: '0444'",
-                f"    content: '{lease['lease_id']}'",
-                "runcmd:",
-                f"  - [sh, -c, 'echo {marker} lease={lease['lease_id']} | tee /dev/console']",
-                f"final_message: '{marker} lease={lease['lease_id']}'",
-                "",
-            ]
-        )
+        cloud_init = authorized_cloud_init(lease, live_authorization)
         instance_spec: dict[str, Any] = {
             "stopped": False,
             "cloud_init_user_data": cloud_init,
@@ -1047,6 +1787,7 @@ def provision(lease_path: Path, registry_path: Path, cli: NebiusCLI) -> dict[str
                     "name": "eth0",
                     "subnet_id": subnet["id"],
                     "ip_address": {},
+                    "public_ip_address": {},
                     "security_groups": [{"id": security_group["id"]}],
                 }
             ],
@@ -1064,7 +1805,15 @@ def provision(lease_path: Path, registry_path: Path, cli: NebiusCLI) -> dict[str
         )
         instance = add_resource(lease, "instance", names["instance"], instance_response)
         save_lease(lease_path, registry_path, lease)
-        return verify_health_lease(lease_path, registry_path, cli, instance["id"])
+        reconcile_managed_children(lease, cli)
+        save_lease(lease_path, registry_path, lease)
+        return verify_health_lease(
+            lease_path,
+            registry_path,
+            cli,
+            instance["id"],
+            live_authorization=live_authorization,
+        )
     except Exception as exc:
         lease = load_json(lease_path)
         lease["state"] = "FAILED"
@@ -1080,6 +1829,111 @@ def instance_state(instance: dict[str, Any]) -> str:
         if value:
             return str(value).upper()
     return "UNKNOWN"
+
+
+def parse_observed_gpu_proof(logs: str) -> dict[str, Any]:
+    matches = re.findall(r"(?:^|\n)CATSWITCH_GPU_PROOF_B64=([A-Za-z0-9_-]+)(?:\n|$)", logs)
+    if not matches:
+        raise BrokerError("bootstrap logs contain no observed GPU proof")
+    try:
+        padded = matches[-1] + "=" * (-len(matches[-1]) % 4)
+        value = json.loads(base64.urlsafe_b64decode(padded).decode())
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise BrokerError("observed GPU proof is not canonical base64url JSON") from exc
+    if not isinstance(value, dict) or set(value) != {"count", "names", "uuids"}:
+        raise BrokerError("observed GPU proof fields differ")
+    if value["count"] != 1 or not isinstance(value["names"], list) or len(value["names"]) != 1:
+        raise BrokerError("observed GPU count is not exactly one")
+    if not re.fullmatch(r"NVIDIA H100(?: |$).*", str(value["names"][0])):
+        raise BrokerError("observed GPU is not an H100")
+    if (
+        not isinstance(value["uuids"], list)
+        or len(value["uuids"]) != 1
+        or not re.fullmatch(r"GPU-[A-Za-z0-9-]{8,}", str(value["uuids"][0]))
+    ):
+        raise BrokerError("observed GPU UUID proof differs")
+    return {
+        "count": 1,
+        "name": value["names"][0],
+        "uuid_sha256": hashlib.sha256(value["uuids"][0].encode()).hexdigest(),
+    }
+
+
+def verify_direct_resource_identity(
+    lease: dict[str, Any], cli: NebiusCLI, resource: dict[str, Any]
+) -> dict[str, Any] | None:
+    value = cli.run(
+        [*GET_COMMANDS[resource["kind"]], resource["id"]],
+        allow_not_found=True,
+        timeout=30,
+    )
+    if value is None:
+        return None
+    metadata = value.get("metadata", {})
+    expected_parent = resource.get("parent_id", lease["request"]["project_id"])
+    labels = metadata.get("labels", {}) or {}
+    expected_labels = lease["labels"]
+    failures = []
+    if metadata.get("id") != resource["id"]:
+        failures.append("ID")
+    if metadata.get("name") != resource["name"]:
+        failures.append("name")
+    if metadata.get("parent_id") != expected_parent:
+        failures.append("parent")
+    for key in ("program", "lease", "task", "owner"):
+        if labels.get(key) != expected_labels[key]:
+            failures.append(f"label:{key}")
+    if failures:
+        raise BrokerError(
+            f"foreign replacement detected for {resource['kind']}:{resource['id']} ({','.join(failures)}); refusing delete"
+        )
+    return value
+
+
+def narrow_bootstrap_egress(
+    lease_path: Path, registry_path: Path, cli: NebiusCLI
+) -> None:
+    lease = load_json(lease_path)
+    prefix = f"{lease['prefix']}-bootstrap-egress-"
+    bootstrap_rules = [
+        item
+        for item in lease["resources"]
+        if item["kind"] == "security_rule"
+        and item["name"].startswith(prefix)
+        and not item["deleted_at"]
+    ]
+    if len(bootstrap_rules) > 4:
+        raise BrokerError("ledger contains unexpected bootstrap egress rules")
+    for resource in sorted(bootstrap_rules, key=lambda item: item["name"]):
+        current = verify_direct_resource_identity(lease, cli, resource)
+        if current is not None:
+            cli.run(delete_args(resource["kind"], resource["id"]), json_output=False, timeout=180)
+        if not wait_absent(cli, resource["kind"], resource["id"], timeout_seconds=180):
+            raise BrokerError("bootstrap egress rule remains after lifecycle narrowing")
+        resource["deleted_at"] = iso(utc_now())
+        resource["delete_verified_at"] = resource["deleted_at"]
+        add_event(
+            lease,
+            "BOOTSTRAP_EGRESS_REMOVED",
+            "PASS",
+            f"security_rule:{resource['id']} NotFound verified",
+        )
+        save_lease(lease_path, registry_path, lease)
+    lease = load_json(lease_path)
+    if any(
+        item["kind"] == "security_rule"
+        and item["name"].startswith(prefix)
+        and not item["deleted_at"]
+        for item in lease["resources"]
+    ):
+        raise BrokerError("post-bootstrap network narrowing is incomplete")
+    add_event(
+        lease,
+        "RUNTIME_NETWORK_NARROWED",
+        "PASS",
+        "all bootstrap egress removed; authenticated recorder ingress only",
+    )
+    save_lease(lease_path, registry_path, lease)
 
 
 def prove_health(
@@ -1114,14 +1968,21 @@ def prove_health(
         except BrokerError:
             last_logs = ""
         if last_state == "RUNNING" and expected_marker in last_logs:
+            observed_gpu = parse_observed_gpu_proof(last_logs)
             lease["health_proof"] = {
                 "verified_at": iso(utc_now()),
                 "instance_id": instance_id,
                 "instance_state": last_state,
                 "serial_log_marker": expected_marker,
                 "serial_log_marker_observed": True,
+                "observed_gpu": observed_gpu,
             }
-            add_event(lease, "HEALTH_PROOF", "PASS", "RUNNING plus serial-log marker")
+            add_event(
+                lease,
+                "HEALTH_PROOF",
+                "PASS",
+                "RUNNING, serial marker, and observed exactly-one-H100 proof",
+            )
             save_lease(lease_path, registry_path, lease)
             return
         time.sleep(10)
@@ -1136,8 +1997,16 @@ def verify_health_lease(
     registry_path: Path,
     cli: NebiusCLI,
     instance_id: str | None = None,
+    *,
+    live_authorization: LiveAuthorizationContext | None = None,
 ) -> dict[str, Any]:
     lease = load_json(lease_path)
+    if live_authorization is None:
+        raise BrokerError("health verification requires the current exact live clearance")
+    if not isinstance(live_authorization, LiveAuthorizationContext):
+        raise BrokerError("health authorization context was not produced by the validator")
+    if lease.get("live_authorization") != live_authorization.get("public"):
+        raise BrokerError("health verification authorization differs from the lease")
     if lease["state"] == "ACTIVE" and lease.get("health_proof"):
         reconcile_managed_children(lease, cli)
         lease["isolation_proof"] = capture_isolation_proof(lease, cli)
@@ -1158,6 +2027,7 @@ def verify_health_lease(
     elif instance_id not in {item["id"] for item in live_instances}:
         raise BrokerError("health instance ID is not a live resource in this lease")
     prove_health(lease_path, registry_path, cli, instance_id)
+    narrow_bootstrap_egress(lease_path, registry_path, cli)
     lease = load_json(lease_path)
     reconcile_managed_children(lease, cli)
     lease["isolation_proof"] = capture_isolation_proof(lease, cli)
@@ -1180,6 +2050,7 @@ CLEANUP_PRIORITY = {
     "allocation": 90,
     "disk": 80,
     "bucket": 70,
+    "security_rule": 65,
     "security_group": 60,
     "subnet": 50,
     "network": 40,
@@ -1269,11 +2140,13 @@ def cleanup(
     for resource in pending:
         try:
             if resource.get("deletion_mode") != "PROVIDER_CASCADE":
-                cli.run(
-                    delete_args(resource["kind"], resource["id"]),
-                    json_output=False,
-                    timeout=600,
-                )
+                current = verify_direct_resource_identity(lease, cli, resource)
+                if current is not None:
+                    cli.run(
+                        delete_args(resource["kind"], resource["id"]),
+                        json_output=False,
+                        timeout=600,
+                    )
             if not wait_absent(cli, resource["kind"], resource["id"], timeout_seconds=300):
                 raise BrokerError("resource still present after delete")
             resource["deleted_at"] = iso(utc_now())
@@ -1576,10 +2449,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
     provision_parser = sub.add_parser("provision")
     provision_parser.add_argument("--lease", required=True, type=Path)
+    provision_parser.add_argument("--authorization", required=True, type=Path)
+    provision_parser.add_argument("--clearance", required=True, type=Path)
+    provision_parser.add_argument("--bearer-token", required=True, type=Path)
     provision_parser.add_argument("--execute", action="store_true", required=True)
 
     health_parser = sub.add_parser("verify-health")
     health_parser.add_argument("--lease", required=True, type=Path)
+    health_parser.add_argument("--authorization", required=True, type=Path)
+    health_parser.add_argument("--clearance", required=True, type=Path)
+    health_parser.add_argument("--bearer-token", required=True, type=Path)
     health_parser.add_argument("--execute", action="store_true", required=True)
 
     cleanup_parser = sub.add_parser("cleanup")
@@ -1606,12 +2485,38 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "plan":
             result = plan(args.request, args.lease, args.registry, args.profiles)
         elif args.command == "provision":
+            if load_json(args.lease).get("state") == "PLANNED":
+                live_authorization = validate_live_authorization(
+                    args.authorization,
+                    args.clearance,
+                    args.lease,
+                    args.bearer_token,
+                )
+            else:
+                live_authorization = validate_live_resume(
+                    args.authorization,
+                    args.clearance,
+                    args.lease,
+                    args.bearer_token,
+                )
             result = provision(
-                args.lease, args.registry, NebiusCLI(profile=args.nebius_profile)
+                args.lease,
+                args.registry,
+                NebiusCLI(profile=args.nebius_profile),
+                live_authorization=live_authorization,
             )
         elif args.command == "verify-health":
+            live_authorization = validate_live_resume(
+                args.authorization,
+                args.clearance,
+                args.lease,
+                args.bearer_token,
+            )
             result = verify_health_lease(
-                args.lease, args.registry, NebiusCLI(profile=args.nebius_profile)
+                args.lease,
+                args.registry,
+                NebiusCLI(profile=args.nebius_profile),
+                live_authorization=live_authorization,
             )
         elif args.command == "cleanup":
             result = cleanup(
