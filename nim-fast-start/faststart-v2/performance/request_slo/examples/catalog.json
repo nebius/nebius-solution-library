@@ -1,0 +1,31 @@
+{
+  "schema": "archvteams.nebius.ai/catalog-switch-model-catalog/v1",
+  "models": [
+    {
+      "model_id": "example-small-model",
+      "model_version": "example-v1",
+      "artifact_id": "example-small-artifact",
+      "artifact_version": "example-artifact-v1",
+      "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "input": {
+        "workload_id": "example-semantic-workload",
+        "input_id": "example-small-input",
+        "payload_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "input_bytes": 128
+      }
+    },
+    {
+      "model_id": "example-large-model",
+      "model_version": "example-v2",
+      "artifact_id": "example-large-artifact",
+      "artifact_version": "example-artifact-v2",
+      "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "input": {
+        "workload_id": "example-semantic-workload",
+        "input_id": "example-large-input",
+        "payload_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "input_bytes": 256
+      }
+    }
+  ]
+}
