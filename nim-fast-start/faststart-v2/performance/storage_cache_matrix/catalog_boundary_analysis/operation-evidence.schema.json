@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archvteams.nebius.ai/schemas/catalog-boundary-operation-evidence-v2.json",
+  "title": "Catalog-boundary typed operation or cleanup evidence v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "kind", "receipt_id", "attempt_id", "clock_binding", "operation", "cleanup", "resource_uids"],
+  "properties": {
+    "schema": {"const": "archvteams.nebius.ai/catalog-boundary-operation-evidence/v2"},
+    "kind": {"enum": ["operation", "cleanup"]},
+    "receipt_id": {"$ref": "#/$defs/id"}, "attempt_id": {"$ref": "#/$defs/id"},
+    "clock_binding": {"$ref": "#/$defs/clock"},
+    "operation": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/operation"}]},
+    "cleanup": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/cleanup"}]},
+    "resource_uids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}$"},
+    "clock": {
+      "type": "object", "additionalProperties": false,
+      "required": ["recorder_id", "clock_id", "boot_id", "utc_sync_source", "max_error_ms", "timestamp_source"],
+      "properties": {"recorder_id": {"$ref": "#/$defs/id"}, "clock_id": {"$ref": "#/$defs/id"}, "boot_id": {"$ref": "#/$defs/id"}, "utc_sync_source": {"$ref": "#/$defs/id"}, "max_error_ms": {"type": "number", "minimum": 0}, "timestamp_source": {"const": "external-request-slo-recorder-monotonic/v1"}}
+    },
+    "bytes": {"type": "integer", "minimum": 0},
+    "operation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "outcome", "started_monotonic_ns", "finished_monotonic_ns", "logical_bytes", "bytes_read", "bytes_written", "bytes_network", "bytes_deleted", "slo_bytes_moved", "reason"],
+      "properties": {
+        "name": {"enum": ["catalog_selection", "queue", "drain", "gpu_release", "eviction", "placement", "artifact_fetch", "clone", "materialization", "hash", "first_read"]},
+        "outcome": {"enum": ["completed", "failed"]}, "started_monotonic_ns": {"type": "integer", "minimum": 1}, "finished_monotonic_ns": {"type": "integer", "minimum": 1},
+        "logical_bytes": {"$ref": "#/$defs/bytes"}, "bytes_read": {"$ref": "#/$defs/bytes"}, "bytes_written": {"$ref": "#/$defs/bytes"}, "bytes_network": {"$ref": "#/$defs/bytes"}, "bytes_deleted": {"$ref": "#/$defs/bytes"}, "slo_bytes_moved": {"$ref": "#/$defs/bytes"},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "cleanup": {
+      "type": "object", "additionalProperties": false,
+      "required": ["generation_id", "generation_uid", "writable_resource_uid", "final_state", "dirty", "reusable", "verified_absent"],
+      "properties": {"generation_id": {"$ref": "#/$defs/id"}, "generation_uid": {"$ref": "#/$defs/id"}, "writable_resource_uid": {"$ref": "#/$defs/id"}, "final_state": {"enum": ["ABSENT", "SEALED_RETAINED"]}, "dirty": {"type": "boolean"}, "reusable": {"type": "boolean"}, "verified_absent": {"type": "boolean"}}
+    }
+  }
+}

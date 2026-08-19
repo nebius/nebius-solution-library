@@ -1,5 +1,5 @@
 {
-  "schema": "archvteams.nebius.ai/catalog-boundary-source-manifest/v1",
+  "schema": "archvteams.nebius.ai/catalog-boundary-source-manifest/v2",
   "created_at_utc": "2026-08-19T16:20:00.000000Z",
   "evidence_classification": "offline-source-pinned-analysis-not-performance-evidence",
   "request_slo": {

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archvteams.nebius.ai/schemas/catalog-boundary-storage-ownership-v2.json",
+  "title": "Catalog-boundary storage ownership receipt v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "receipt_id", "attempt_id", "owner_task_id", "clock_binding", "selected_node_id", "target", "source_available_monotonic_ns", "source_resource_uid", "resources", "generation", "pre_t0_investment"],
+  "properties": {
+    "schema": {"const": "archvteams.nebius.ai/catalog-boundary-storage-ownership/v2"},
+    "receipt_id": {"$ref": "#/$defs/id"}, "attempt_id": {"$ref": "#/$defs/id"}, "owner_task_id": {"$ref": "#/$defs/id"},
+    "clock_binding": {"$ref": "#/$defs/clock"}, "selected_node_id": {"$ref": "#/$defs/id"},
+    "target": {"$ref": "#/$defs/target"}, "source_available_monotonic_ns": {"type": "integer", "minimum": 1},
+    "source_resource_uid": {"$ref": "#/$defs/id"},
+    "resources": {
+      "type": "array", "minItems": 7, "maxItems": 7,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["kind", "id", "uid", "project_id", "region", "role", "artifact_version", "artifact_sha256", "artifact_bytes"],
+        "properties": {
+          "kind": {"enum": ["broker_lease", "node", "pvc", "pv", "provider_volume", "node_seed", "object_store_object"]},
+          "id": {"$ref": "#/$defs/id"}, "uid": {"$ref": "#/$defs/id"}, "project_id": {"$ref": "#/$defs/id"}, "region": {"$ref": "#/$defs/id"}, "role": {"$ref": "#/$defs/id"},
+          "artifact_version": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/id"}]},
+          "artifact_sha256": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+          "artifact_bytes": {"type": ["integer", "null"], "minimum": 1}
+        }
+      }
+    },
+    "generation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["generation_id", "generation_uid", "parent_source_uid", "writable_resource_uid", "mutable_namespace_id"],
+      "properties": {"generation_id": {"$ref": "#/$defs/id"}, "generation_uid": {"$ref": "#/$defs/id"}, "parent_source_uid": {"$ref": "#/$defs/id"}, "writable_resource_uid": {"$ref": "#/$defs/id"}, "mutable_namespace_id": {"$ref": "#/$defs/id"}}
+    },
+    "pre_t0_investment": {"$ref": "#/$defs/investment"}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nonnegative": {"type": "number", "minimum": 0},
+    "clock": {
+      "type": "object", "additionalProperties": false,
+      "required": ["recorder_id", "clock_id", "boot_id", "utc_sync_source", "max_error_ms", "timestamp_source"],
+      "properties": {"recorder_id": {"$ref": "#/$defs/id"}, "clock_id": {"$ref": "#/$defs/id"}, "boot_id": {"$ref": "#/$defs/id"}, "utc_sync_source": {"$ref": "#/$defs/id"}, "max_error_ms": {"$ref": "#/$defs/nonnegative"}, "timestamp_source": {"const": "external-request-slo-recorder-monotonic/v1"}}
+    },
+    "target": {
+      "type": "object", "additionalProperties": false,
+      "required": ["model_id", "model_version", "artifact_id", "artifact_version", "artifact_sha256", "artifact_bytes"],
+      "properties": {"model_id": {"$ref": "#/$defs/id"}, "model_version": {"$ref": "#/$defs/id"}, "artifact_id": {"$ref": "#/$defs/id"}, "artifact_version": {"$ref": "#/$defs/id"}, "artifact_sha256": {"$ref": "#/$defs/sha256"}, "artifact_bytes": {"type": "integer", "minimum": 1}}
+    },
+    "investment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_available_monotonic_ns", "source_age_seconds", "residency_medium", "residency_bytes", "residency_rate_usd_per_gib_month", "residency_cost_usd", "prehydration_bytes", "prehydration_cost_usd", "prehydration_cost_status", "price_source_commit", "included_in_request_totals"],
+      "properties": {
+        "source_available_monotonic_ns": {"type": "integer", "minimum": 1}, "source_age_seconds": {"$ref": "#/$defs/nonnegative"},
+        "residency_medium": {"enum": ["network_ssd", "object_storage"]}, "residency_bytes": {"type": "integer", "minimum": 1},
+        "residency_rate_usd_per_gib_month": {"$ref": "#/$defs/nonnegative"}, "residency_cost_usd": {"$ref": "#/$defs/nonnegative"},
+        "prehydration_bytes": {"type": "integer", "minimum": 1}, "prehydration_cost_usd": {"type": "null"},
+        "prehydration_cost_status": {"const": "not-measured-no-live-receipt"}, "price_source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "included_in_request_totals": {"const": false}
+      }
+    }
+  }
+}

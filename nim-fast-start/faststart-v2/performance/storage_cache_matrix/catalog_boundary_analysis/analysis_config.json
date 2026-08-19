@@ -1,5 +1,5 @@
 {
-  "schema": "archvteams.nebius.ai/catalog-boundary-capacity-analysis/v1",
+  "schema": "archvteams.nebius.ai/catalog-boundary-capacity-analysis/v2",
   "evidence_classification": "projection-from-pinned-sources-not-measurement",
   "catalog_size": 200,
   "cache_sizes_gib": [0, 128, 256, 512, 1024, 2048, 4096],
@@ -16,12 +16,6 @@
     "known_models": 145,
     "unknown_or_added_models": 55,
     "known_bytes": 1615275734485
-  },
-  "row_level_high_ceiling": {
-    "source_rows": 220,
-    "source_bytes": 23295735419434,
-    "scaled_catalog_models": 200,
-    "scaling_rule": "source_bytes * 200 / 220; row-level ceiling is not a canonical-model measurement"
   },
   "cost_semantics": {
     "currency": "USD",

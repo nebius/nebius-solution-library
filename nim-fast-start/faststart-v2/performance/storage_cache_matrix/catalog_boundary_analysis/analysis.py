@@ -22,10 +22,12 @@ from performance.request_slo.harness import (
 )
 
 
-SOURCE_SCHEMA = "archvteams.nebius.ai/catalog-boundary-source-manifest/v1"
-CONFIG_SCHEMA = "archvteams.nebius.ai/catalog-boundary-capacity-analysis/v1"
-RESULT_SCHEMA = "archvteams.nebius.ai/catalog-boundary-capacity-result/v1"
-ATTEMPT_SCHEMA = "archvteams.nebius.ai/catalog-boundary-storage-attempt/v1"
+SOURCE_SCHEMA = "archvteams.nebius.ai/catalog-boundary-source-manifest/v2"
+CONFIG_SCHEMA = "archvteams.nebius.ai/catalog-boundary-capacity-analysis/v2"
+RESULT_SCHEMA = "archvteams.nebius.ai/catalog-boundary-capacity-result/v2"
+ATTEMPT_SCHEMA = "archvteams.nebius.ai/catalog-boundary-storage-attempt/v2"
+OWNERSHIP_SCHEMA = "archvteams.nebius.ai/catalog-boundary-storage-ownership/v2"
+EVIDENCE_SCHEMA = "archvteams.nebius.ai/catalog-boundary-operation-evidence/v2"
 T0_BOUNDARY = "external-client-request-accepted/v1"
 
 CACHE_STATES = (
@@ -49,6 +51,7 @@ OPERATIONS = (
     "drain",
     "gpu_release",
     "eviction",
+    "placement",
     "artifact_fetch",
     "clone",
     "materialization",
@@ -127,11 +130,14 @@ ATTEMPT_KEYS = {
     "target",
     "starting_state",
     "request",
+    "clock_binding",
     "request_slo_binding",
+    "ownership_binding",
     "pre_t0_investment",
     "operations",
     "accounting",
     "concurrency",
+    "terminal",
     "cleanup",
     "supporting_evidence",
 }
@@ -144,14 +150,10 @@ TARGET_KEYS = {
     "artifact_bytes",
 }
 START_KEYS = {
-    "selected_node_id",
     "target_materialized",
     "immutable_node_local_seed_present",
     "remote_artifact_required",
     "target_source",
-    "source_artifact_version",
-    "source_artifact_sha256",
-    "source_age_seconds",
     "active_model",
 }
 ACTIVE_MODEL_KEYS = {"model_id", "model_version"}
@@ -173,20 +175,26 @@ BINDING_KEYS = {
     "request_id",
     "attempt_id",
 }
+OWNERSHIP_BINDING_KEYS = {"path", "sha256", "receipt_id"}
+CLOCK_KEYS = {
+    "recorder_id",
+    "clock_id",
+    "boot_id",
+    "utc_sync_source",
+    "max_error_ms",
+    "timestamp_source",
+}
 INVESTMENT_KEYS = {
-    "publication_bytes",
-    "publication_cost_usd",
-    "node_seed_bytes",
-    "node_seed_prehydration_bytes",
-    "node_seed_prehydration_cost_usd",
-    "node_seed_residency_seconds",
-    "node_seed_residency_cost_usd",
-    "materialized_bytes",
-    "materialized_prehydration_bytes",
-    "materialized_prehydration_cost_usd",
-    "materialized_residency_seconds",
-    "materialized_residency_cost_usd",
-    "price_source",
+    "source_available_monotonic_ns",
+    "source_age_seconds",
+    "residency_medium",
+    "residency_bytes",
+    "residency_rate_usd_per_gib_month",
+    "residency_cost_usd",
+    "prehydration_bytes",
+    "prehydration_cost_usd",
+    "prehydration_cost_status",
+    "price_source_commit",
     "included_in_request_totals",
 }
 OPERATION_KEYS = {
@@ -199,14 +207,17 @@ OPERATION_KEYS = {
     "bytes_written",
     "bytes_network",
     "bytes_deleted",
+    "slo_bytes_moved",
     "reason",
-    "evidence_sha256",
+    "evidence_ref",
 }
 ACCOUNTING_KEYS = {
     "bytes_read_total",
     "bytes_written_total",
     "bytes_network_total",
     "bytes_deleted_total",
+    "physical_bytes_total",
+    "operation_slo_bytes_moved_total",
     "request_slo_bytes_moved_total",
     "request_slo_cost_usd",
 }
@@ -218,13 +229,60 @@ CONCURRENCY_KEYS = {
 }
 CLEANUP_KEYS = {
     "generation_id",
+    "generation_uid",
+    "writable_resource_uid",
     "final_state",
     "dirty",
     "reusable",
     "verified_absent",
-    "receipt_sha256",
+    "evidence_ref",
 }
-EVIDENCE_KEYS = {"kind", "path", "sha256"}
+TERMINAL_KEYS = {"success", "failure_class", "observed_monotonic_ns"}
+EVIDENCE_KEYS = {"kind", "path", "sha256", "receipt_id"}
+OWNERSHIP_RECEIPT_KEYS = {
+    "schema",
+    "receipt_id",
+    "attempt_id",
+    "owner_task_id",
+    "clock_binding",
+    "selected_node_id",
+    "target",
+    "source_available_monotonic_ns",
+    "source_resource_uid",
+    "resources",
+    "generation",
+    "pre_t0_investment",
+}
+BOUND_RESOURCE_KEYS = {
+    "kind",
+    "id",
+    "uid",
+    "project_id",
+    "region",
+    "role",
+    "artifact_version",
+    "artifact_sha256",
+    "artifact_bytes",
+}
+GENERATION_KEYS = {
+    "generation_id",
+    "generation_uid",
+    "parent_source_uid",
+    "writable_resource_uid",
+    "mutable_namespace_id",
+}
+TYPED_EVIDENCE_KEYS = {
+    "schema",
+    "kind",
+    "receipt_id",
+    "attempt_id",
+    "clock_binding",
+    "operation",
+    "cleanup",
+    "resource_uids",
+}
+OPERATION_EVIDENCE_KEYS = OPERATION_KEYS - {"evidence_ref"}
+CLEANUP_EVIDENCE_KEYS = CLEANUP_KEYS - {"evidence_ref"}
 FILE_PIN_KEYS = {"path", "sha256"}
 
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
@@ -297,8 +355,11 @@ def _safe_path(root: Path, relative: Any, label: str) -> Path:
     if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
         raise AnalysisError(f"{label} must be a nonempty relative path")
     root = root.resolve()
-    path = (root / relative).resolve()
-    if root not in path.parents or path.is_symlink() or not path.is_file():
+    candidate = root / relative
+    if candidate.is_symlink():
+        raise AnalysisError(f"{label} must resolve to a regular non-symlink file")
+    path = candidate.resolve()
+    if root not in path.parents or not path.is_file():
         raise AnalysisError(f"{label} must resolve to a regular non-symlink file")
     return path
 
@@ -459,6 +520,24 @@ def _git_show(repo_root: Path, commit: str, path: str) -> bytes:
         raise AnalysisError(f"cannot resolve pinned Git source {commit}:{path}") from exc
 
 
+def _git_tree_id(repo_root: Path, commit: str, path: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", f"{commit}:{path}"],
+            cwd=repo_root,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise AnalysisError(f"cannot resolve pinned Git tree {commit}:{path}") from exc
+    object_id = result.stdout.strip()
+    if not re.fullmatch(r"[0-9a-f]{40,64}", object_id):
+        raise AnalysisError("pinned request-SLO tree identity is malformed")
+    return object_id
+
+
 def _nearest_rank(values: Sequence[int], percentile: float) -> int:
     ordered = sorted(values)
     return ordered[math.ceil(percentile * len(ordered)) - 1]
@@ -498,11 +577,30 @@ def verify_pinned_sources(
     repo_root = repo_root.resolve()
     checked: list[dict[str, str]] = []
     request = manifest["request_slo"]
+    request_slo_path = "nim-fast-start/faststart-v2/performance/request_slo"
+    reviewed_tree = _git_tree_id(
+        repo_root, request["reviewed_commit"], request_slo_path
+    )
+    integrated_tree = _git_tree_id(
+        repo_root, request["integrated_commit"], request_slo_path
+    )
+    if reviewed_tree != integrated_tree:
+        raise AnalysisError(
+            "integrated request-SLO subtree differs from the exact reviewed subtree"
+        )
     for pin in request["files"]:
-        content = _git_show(repo_root, request["integrated_commit"], pin["path"])
-        if _bytes_sha256(content) != pin["sha256"]:
-            raise AnalysisError(f"request-SLO source drifted: {pin['path']}")
-        checked.append({"kind": "request_slo", "path": pin["path"]})
+        for lineage, commit in (
+            ("reviewed", request["reviewed_commit"]),
+            ("integrated", request["integrated_commit"]),
+        ):
+            content = _git_show(repo_root, commit, pin["path"])
+            if _bytes_sha256(content) != pin["sha256"]:
+                raise AnalysisError(
+                    f"request-SLO {lineage} source drifted: {pin['path']}"
+                )
+            checked.append(
+                {"kind": f"request_slo_{lineage}", "path": pin["path"]}
+            )
 
     catalog_pin = manifest["catalog"]
     catalog_raw = _git_show(repo_root, catalog_pin["commit"], catalog_pin["path"])
@@ -547,10 +645,13 @@ def verify_pinned_sources(
             raise AnalysisError("pinned Boltz manager observation is absent from Task Deck")
         observation_status = "verified-in-task-deck"
     return {
-        "schema": "archvteams.nebius.ai/catalog-boundary-source-verification/v1",
+        "schema": "archvteams.nebius.ai/catalog-boundary-source-verification/v2",
         "source_manifest_sha256": canonical_sha256(manifest),
         "verified_file_count": len(checked),
         "verified_files": checked,
+        "reviewed_request_slo_tree": reviewed_tree,
+        "integrated_request_slo_tree": integrated_tree,
+        "request_slo_integration": "content-identical-reviewed-subtree",
         "boltz_status_observation": observation_status,
         "live_execution_permitted": False,
         "created_resource_ids": [],
@@ -570,7 +671,6 @@ def _validate_config(value: Any, manifest: dict[str, Any]) -> dict[str, Any]:
         "node_local_seed_fractions",
         "size_profiles",
         "known_catalog_lower_bound",
-        "row_level_high_ceiling",
         "cost_semantics",
     }
     config = _expect_keys(value, keys, "analysis config")
@@ -649,17 +749,6 @@ def _validate_config(value: Any, manifest: dict[str, Any]) -> dict[str, Any]:
         "known_bytes": manifest["catalog"]["known_canonical_bytes"],
     }:
         raise AnalysisError("known catalog lower bound differs from pinned source")
-    ceiling = _expect_keys(
-        config["row_level_high_ceiling"],
-        {"source_rows", "source_bytes", "scaled_catalog_models", "scaling_rule"},
-        "row-level ceiling",
-    )
-    if (
-        ceiling["source_rows"] != manifest["catalog"]["row_count"]
-        or ceiling["source_bytes"] != manifest["catalog"]["row_storage_high_bytes"]
-        or ceiling["scaled_catalog_models"] != catalog_size
-    ):
-        raise AnalysisError("row-level high ceiling differs from pinned source")
     costs = _expect_keys(
         config["cost_semantics"],
         {
@@ -816,12 +905,6 @@ def analyze_capacity(
                         }
                     )
 
-    ceiling = config["row_level_high_ceiling"]
-    scaled_high = round(
-        ceiling["source_bytes"]
-        * ceiling["scaled_catalog_models"]
-        / ceiling["source_rows"]
-    )
     return {
         "schema": RESULT_SCHEMA,
         "evidence_classification": "projection-from-pinned-sources-not-measurement",
@@ -840,8 +923,10 @@ def analyze_capacity(
             "unknown_or_added_models": config["known_catalog_lower_bound"][
                 "unknown_or_added_models"
             ],
-            "scaled_row_level_high_planning_ceiling_bytes": scaled_high,
-            "scaled_high_is_not_canonical_model_measurement": True,
+            "row_duplicate_high_ceiling_excluded_bytes": manifest["catalog"][
+                "row_storage_high_bytes"
+            ],
+            "row_duplicate_high_ceiling_used_in_projection": False,
         },
         "full_catalog_capacity": full_catalog_rows,
         "cache_budget_sensitivity": capacity_rows,
@@ -877,7 +962,10 @@ def analyze_capacity(
         "caveats": [
             "No live resource was created and no performance measurement is claimed.",
             "Homogeneous median/p90 capacity profiles impute 55 of 200 planning slots.",
-            "The scaled row-level high ceiling is not a canonical-model distribution.",
+            (
+                "The 220-row high ceiling is excluded because duplicate rows cannot "
+                "be scaled or labeled as canonical models."
+            ),
             (
                 "Storage residency cost uses pinned public PAYG assumptions; "
                 "prehydration transfer/compute remains unquantified until measured."
@@ -1380,7 +1468,7 @@ def _validate_attempt(
     }
 
 
-def validate_attempts(
+def _validate_attempts_rejected_v1(
     manifest: dict[str, Any], attempts: Sequence[dict[str, Any]], evidence_root: Path
 ) -> list[dict[str, Any]]:
     manifest = validate_source_manifest(manifest)
@@ -1433,3 +1521,10 @@ def validate_attempts(
         if item["cleanup"]["dirty"]:
             dirty_generations.add(generation)
     return shaped
+
+
+# The original v1 implementation is retained only for audit of rejected commit
+# 75e3b1fa.  All public callers execute the v2 full-ledger gate below.
+from performance.storage_cache_matrix.catalog_boundary_analysis.contract_v2 import (  # noqa: E402
+    validate_attempts_v2 as validate_attempts,
+)

@@ -15,10 +15,25 @@ approved together with the experiment plan.
 | C | Neither materialization nor node seed exists; immutable remote publication exists | Remote fetch, write, full-byte validation, first read, load/restore, and response | Remote artifact miss. |
 | D | A different active model owns the selected GPU/node and the target is not materialized | Drain, GPU release, eviction/reclaim, B- or C-style target localization, load/restore, and response | Active A-to-B switch. |
 
-The attempt validator rejects overlapping starting-state claims, any B-D
-request operation before external T0, physical-byte total mismatches, mutable
-namespace reuse, and dirty generation reuse. In particular, a prepared clone
-cannot be labeled `unknown_model_cold_start`.
+The v2 attempt validator is a full-ledger gate, not a sample-row checker. It
+requires exactly one storage receipt for every request-SLO attempt, including
+failures, and one shared external recorder clock identity. The selected node,
+owner, broker lease, PVC, PV, provider volume, node seed, Object Storage object,
+artifact version/digest/size, and cleanup IDs are joined to the authoritative
+request-SLO ledger and typed ownership receipt. A receipt is rejected when it
+invents an independent monotonic clock, omits a failure, inverts an operation,
+or places B-D work outside T0.
+
+Every executed operation and cleanup action has its own canonical typed JSON
+receipt and content digest. Operation receipts carry exact resource UIDs and
+physical read/write/network/deleted counters; `slo_bytes_moved` is assigned only
+to the source localization operation and must exactly reconcile with both the
+artifact size and request-SLO ledger. Dirty generations are tracked by physical
+generation and writable-resource UIDs, so renaming a PVC, PV, volume, or clone
+cannot make it reusable. Concurrent cohorts require a real localization
+interval overlap on the shared recorder clock and distinct mutable namespaces.
+In particular, a prepared clone cannot be labeled
+`unknown_model_cold_start`.
 
 The bound request-SLO trace and ledger remain authoritative for T0, model/input
 identity, terminal semantic response, GPU/cost accounting, failures, and
@@ -27,8 +42,10 @@ cleanup. This receipt only adds causal storage operations and read/write/network
 
 ## Source-pinned conclusions
 
-The source manifest pins the reviewed request-SLO files, catalog commit, and
-Boltz external-`/tmp` lifecycle commit. The available Boltz status observation
+The source manifest resolves both the reviewed and integrated request-SLO Git
+commits, verifies all five files at both commits, and requires their complete
+request-SLO subtree object IDs to be identical. It also pins the catalog commit
+and Boltz external-`/tmp` lifecycle commit. The available Boltz status observation
 says each attempt copied/hashed 1,826,220,898 bytes for roughly 440--442 seconds
 *before* admission/T0. That is prepared-clone evidence, not a request-bound
 cold-start result. The package deliberately exposes no Boltz latency
@@ -42,9 +59,11 @@ Storage must never be relabeled as local NVMe.
 `analysis_config.json` analyzes a 200-model planning catalog with cache budgets,
 top-K policies, and uniform/Zipf-like reuse exponents. Its two homogeneous size
 profiles come from the pinned 145 known-positive canonical model footprints;
-55 models are explicitly imputed. It also retains the catalog's known-byte
-lower bound and a separately labeled row-level high planning ceiling. These are
-capacity projections, not benchmark results.
+55 of the 200 planning slots are explicitly imputed. The pinned inventory has
+171 canonical models represented by 220 rows. Its 220-row duplicate-inclusive
+high ceiling is retained only as an excluded source fact: it is never scaled by
+`200/220`, never labeled as canonical-model capacity, and never used by the
+projection. These are capacity projections, not benchmark results.
 
 `results/capacity-summary.json` is the checked-in compact result: the homogeneous
 median profile needs 1.577 TiB for 200 models and the p90 profile needs 2.449
@@ -61,14 +80,18 @@ Run from `nim-fast-start/faststart-v2`:
 
 ```bash
 python3 -m performance.storage_cache_matrix.catalog_boundary_analysis.cli \
-  verify-sources --repo-root ../..
+  verify-sources --repo-root ../.. \
+  --task-deck-root /home/tux/dashboard/data
 python3 -m performance.storage_cache_matrix.catalog_boundary_analysis.cli \
   analyze --output performance/storage_cache_matrix/catalog_boundary_analysis/results/capacity-sensitivity.json
 python3 -m unittest discover -v \
   performance/storage_cache_matrix/catalog_boundary_analysis/tests
 ```
 
-Add `--task-deck-root /home/tux/dashboard/data` to `verify-sources` to verify the
-pinned manager observation is still present. `validate-attempts` is the future
-live-receipt gate; it validates canonical JSON Lines against the source manifest
-and exact request-SLO evidence root.
+The 10-attempt adversarial test fixture covers A-D, two retained capacity
+failures, and a true two-model overlap. It is explicitly
+`synthetic-contract-smoke-not-performance-evidence`; it publishes no latency or
+throughput result. `validate-attempts` is the future live-receipt gate, but it
+remains closed while the manifest's broker/bootstrap approval prerequisites are
+unmet. The schema surface consists of `attempt.schema.json`,
+`ownership-receipt.schema.json`, and `operation-evidence.schema.json`.

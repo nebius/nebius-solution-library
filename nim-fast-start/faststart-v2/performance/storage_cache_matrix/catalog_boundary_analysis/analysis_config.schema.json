@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://archvteams.nebius.ai/schemas/catalog-boundary-capacity-analysis-v1.json",
-  "title": "Catalog-boundary capacity analysis config",
+  "$id": "https://archvteams.nebius.ai/schemas/catalog-boundary-capacity-analysis-v2.json",
+  "title": "Catalog-boundary capacity analysis config v2",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "evidence_classification", "catalog_size", "cache_sizes_gib", "top_k_values", "reuse_exponents", "state_mix_top_k_values", "active_switch_probabilities", "node_local_seed_fractions", "size_profiles", "known_catalog_lower_bound", "row_level_high_ceiling", "cost_semantics"],
+  "required": ["schema", "evidence_classification", "catalog_size", "cache_sizes_gib", "top_k_values", "reuse_exponents", "state_mix_top_k_values", "active_switch_probabilities", "node_local_seed_fractions", "size_profiles", "known_catalog_lower_bound", "cost_semantics"],
   "properties": {
-    "schema": {"const": "archvteams.nebius.ai/catalog-boundary-capacity-analysis/v1"},
+    "schema": {"const": "archvteams.nebius.ai/catalog-boundary-capacity-analysis/v2"},
     "evidence_classification": {"const": "projection-from-pinned-sources-not-measurement"},
     "catalog_size": {"const": 200},
     "cache_sizes_gib": {"$ref": "#/$defs/nonnegativeIntegers"},
@@ -37,17 +37,6 @@
         "known_models": {"type": "integer", "minimum": 1},
         "unknown_or_added_models": {"type": "integer", "minimum": 0},
         "known_bytes": {"type": "integer", "minimum": 1}
-      }
-    },
-    "row_level_high_ceiling": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["source_rows", "source_bytes", "scaled_catalog_models", "scaling_rule"],
-      "properties": {
-        "source_rows": {"type": "integer", "minimum": 1},
-        "source_bytes": {"type": "integer", "minimum": 1},
-        "scaled_catalog_models": {"const": 200},
-        "scaling_rule": {"type": "string"}
       }
     },
     "cost_semantics": {

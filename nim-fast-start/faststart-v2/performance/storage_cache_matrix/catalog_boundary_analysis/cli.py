@@ -70,9 +70,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             shaped = validate_attempts(
                 manifest, load_attempts(args.attempts), args.evidence_root
             )
+            failures = [item for item in shaped if not item["terminal"]["success"]]
             result = {
-                "schema": "archvteams.nebius.ai/catalog-boundary-attempt-validation/v1",
+                "schema": "archvteams.nebius.ai/catalog-boundary-attempt-validation/v2",
                 "attempt_count": len(shaped),
+                "success_count": len(shaped) - len(failures),
+                "failure_count": len(failures),
+                "failure_classes": sorted(
+                    {item["terminal"]["failure_class"] for item in failures}
+                ),
+                "trace_id": shaped[0]["binding"]["trace_id"],
+                "ledger_id": shaped[0]["binding"]["ledger_id"],
+                "recorder_clock_id": shaped[0]["clock"]["clock_id"],
                 "cache_states": sorted(
                     {item["raw"]["cache_state"] for item in shaped}
                 ),

@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://archvteams.nebius.ai/schemas/catalog-boundary-source-manifest-v1.json",
-  "title": "Catalog-boundary source manifest",
+  "$id": "https://archvteams.nebius.ai/schemas/catalog-boundary-source-manifest-v2.json",
+  "title": "Catalog-boundary source manifest v2",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "created_at_utc", "evidence_classification", "request_slo", "catalog", "cost_source", "boltz_external_tmp", "execution_gate"],
   "properties": {
-    "schema": {"const": "archvteams.nebius.ai/catalog-boundary-source-manifest/v1"},
+    "schema": {"const": "archvteams.nebius.ai/catalog-boundary-source-manifest/v2"},
     "created_at_utc": {"type": "string"},
     "evidence_classification": {"const": "offline-source-pinned-analysis-not-performance-evidence"},
     "request_slo": {

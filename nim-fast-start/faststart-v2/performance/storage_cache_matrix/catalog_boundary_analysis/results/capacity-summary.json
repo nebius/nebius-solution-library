@@ -1,14 +1,16 @@
 {
-  "schema": "archvteams.nebius.ai/catalog-boundary-capacity-summary/v1",
+  "schema": "archvteams.nebius.ai/catalog-boundary-capacity-summary/v2",
   "evidence_classification": "projection-from-pinned-sources-not-measurement",
-  "source_manifest_sha256": "edd881cf04bff89b6b99c5836b9d9a97074d08665bbcb912ddc8b08d78756294",
-  "analysis_config_sha256": "99a1bd3a151bed3d5384b5607b1bb161363f7b3185d04f5268d98ad34570b638",
+  "source_manifest_sha256": "232b2a2b3215420c05aba2d2849dc3b5716c7c0b590abc54f69955ad38457d8b",
+  "analysis_config_sha256": "229a97ad183dbdd45b47a0db6a4b262b53ef8c33328fc5fed09a8b32f36975f0",
   "planning_models": 200,
+  "pinned_catalog_rows": 220,
+  "pinned_canonical_models": 171,
   "known_canonical_models": 145,
   "unknown_or_added_models": 55,
   "known_canonical_bytes_lower_bound": 1615275734485,
-  "scaled_row_level_high_planning_ceiling_bytes": 21177941290395,
-  "scaled_high_is_not_canonical_model_measurement": true,
+  "row_duplicate_high_ceiling_excluded_bytes": 23295735419434,
+  "row_duplicate_high_ceiling_used_in_projection": false,
   "full_catalog_capacity": [
     {
       "size_profile": "catalog-known-canonical-median",
