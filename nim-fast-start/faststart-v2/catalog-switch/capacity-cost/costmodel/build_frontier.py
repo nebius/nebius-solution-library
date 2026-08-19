@@ -174,9 +174,8 @@ def model_cost_classes(ctx: Ctx, entry_id: str) -> dict:
     if entry["model"] == "Boltz2":
         prep = inputs.measured_entry("boltz2-pret0-cache-read")
         prep_s = Decimal(prep["value_seconds"])
-        prep_traffic_gib = ((Decimal(prep["cache_bytes"])
-                             + Decimal(prep["artifact_bytes"])) / GIB
-                            ).quantize(Decimal("0.000001"))
+        prep_traffic_gib_exact = lib.bytes_to_gib_exact(
+            prep["cache_bytes"] + prep["artifact_bytes"])
         rows = []
         for reuse in ctx.prep_reuse_grid:
             amortized_seconds = prep_s / Decimal(reuse) + switch_p95
@@ -203,9 +202,10 @@ def model_cost_classes(ctx: Ctx, entry_id: str) -> dict:
                                "the bytes must first move from object "
                                "storage, this add-on prices the measured "
                                "byte counts; its duration is unmeasured."),
-                "traffic_gib": str(prep_traffic_gib),
+                "traffic_gib": q6(prep_traffic_gib_exact),
+                "traffic_bytes": prep["cache_bytes"] + prep["artifact_bytes"],
                 "per_preparation_usd": {
-                    "egress_billed": q6(prep_traffic_gib * ctx.egress),
+                    "egress_billed": q6(prep_traffic_gib_exact * ctx.egress),
                     "egress_free": "0.000000",
                 },
             },
@@ -390,12 +390,15 @@ def fully_loaded_rows(ctx: Ctx, classes: dict) -> list[dict]:
     variants = [("prepared_switch", None, prepared_p50, Decimal(0))]
     if classes["cold_switch"].get("status") == "MEASURED_LOWER_BOUND":
         prep_s = Decimal(classes["cold_switch"]["prep_seconds"])
-        traffic_gib = Decimal(
-            classes["cold_switch"]["unmeasured_relocation"]["traffic_gib"])
+        # Recompute exact GiB from the measured byte count; never consume
+        # the display-quantized traffic_gib string in arithmetic.
+        traffic_gib_exact = lib.bytes_to_gib_exact(
+            classes["cold_switch"]["unmeasured_relocation"]["traffic_bytes"])
         for reuse in ctx.prep_reuse_grid:
             s = Decimal(reuse)
             variants.append(("cold_switch", reuse,
-                             prep_s / s + prepared_p50, traffic_gib / s))
+                             prep_s / s + prepared_p50,
+                             traffic_gib_exact / s))
 
     for cls, reuse, gpu_seconds, addon_traffic_gib in variants:
         for offer, hourly in (("preemptible", ctx.pre),
@@ -442,14 +445,29 @@ def fully_loaded_rows(ctx: Ctx, classes: dict) -> list[dict]:
                                 "egress_billed": q6(addon_exact),
                                 "egress_free": "0.000000",
                             },
-                            "per_success_lower_bound_nominal_with_addon": {
-                                "egress_billed": q6(nominal + addon_exact),
-                                "egress_free": q6(nominal),
+                            "per_success_lower_bound_with_addon": {
+                                "nominal": {
+                                    "egress_billed": q6(
+                                        nominal + addon_exact),
+                                    "egress_free": q6(nominal),
+                                },
+                                "pessimistic": {
+                                    "egress_billed": q6(
+                                        pessimistic + addon_exact),
+                                    "egress_free": q6(pessimistic),
+                                },
                             },
-                            "monthly_lower_bound_nominal_with_addon": {
-                                "egress_billed": q2(
-                                    (nominal + addon_exact) * d),
-                                "egress_free": q2(nominal * d),
+                            "monthly_lower_bound_with_addon": {
+                                "nominal": {
+                                    "egress_billed": q2(
+                                        (nominal + addon_exact) * d),
+                                    "egress_free": q2(nominal * d),
+                                },
+                                "pessimistic": {
+                                    "egress_billed": q2(
+                                        (pessimistic + addon_exact) * d),
+                                    "egress_free": q2(pessimistic * d),
+                                },
                             },
                             "provenance": ("unmeasured relocation scenario; "
                                            "see cold_switch."
@@ -468,20 +486,29 @@ def preemption_sweep(ctx: Ctx, classes_list: list[dict]) -> dict:
     for classes in classes_list:
         p95 = Decimal(classes["prepared_switch"]["latency_seconds"]["p95"])
         for p in ctx.loss_grid:
-            pre_only = lib.preemptible_expected_cost(p95, ctx.pre, p)
-            fallback = lib.fallback_blend_cost(p95, ctx.pre, ctx.od, p)
-            od_only = lib.gpu_seconds_cost(p95, ctx.od)
-            strategies = {"preemptible_only": pre_only,
-                          "fallback_pre_then_od": fallback,
-                          "on_demand_only": od_only}
-            cheapest = min(sorted(strategies), key=lambda k: strategies[k])
+            # Strategy selection happens on EXACT values: near the
+            # break-even probability the strategies differ only below the
+            # display precision, so a post-quantization min ties and picks
+            # the wrong strategy. Emission quantizes each field once, after
+            # selection. Exact ties (e.g. p=0) break deterministically by
+            # sorted strategy name.
+            exact = {
+                "preemptible_only": lib.preemptible_expected_cost_exact(
+                    p95, ctx.pre, p),
+                "fallback_pre_then_od": lib.fallback_blend_cost_exact(
+                    p95, ctx.pre, ctx.od, p),
+                "on_demand_only": lib.gpu_seconds_cost_exact(p95, ctx.od),
+            }
+            cheapest = min(sorted(exact), key=lambda k: exact[k])
             points.append({
                 "model": classes["model"],
                 "cost_class": "prepared_switch",
                 "loss_probability": str(p),
-                "preemptible_only_usd_per_success": str(pre_only),
-                "fallback_pre_then_od_usd_per_success": str(fallback),
-                "on_demand_usd_per_success": str(od_only),
+                "preemptible_only_usd_per_success": q6(
+                    exact["preemptible_only"]),
+                "fallback_pre_then_od_usd_per_success": q6(
+                    exact["fallback_pre_then_od"]),
+                "on_demand_usd_per_success": q6(exact["on_demand_only"]),
                 "cheapest_strategy": cheapest,
                 "expected_extra_latency_seconds": q6(p * p95),
             })
@@ -511,10 +538,10 @@ def preemption_sweep(ctx: Ctx, classes_list: list[dict]) -> dict:
 def regional_loss_options(ctx: Ctx) -> dict:
     inputs = ctx.inputs
     prep = inputs.measured_entry("boltz2-pret0-cache-read")
-    reloc_gib = ((Decimal(prep["cache_bytes"])
-                  + Decimal(prep["artifact_bytes"])) / GIB).quantize(
-                      Decimal("0.000001"))
-    reloc_billed = q6(reloc_gib * ctx.egress)
+    reloc_gib_exact = lib.bytes_to_gib_exact(
+        prep["cache_bytes"] + prep["artifact_bytes"])
+    reloc_gib = q6(reloc_gib_exact)
+    reloc_billed = q6(reloc_gib_exact * ctx.egress)
 
     def level(region, platform, gpus, offer):
         try:
@@ -944,9 +971,9 @@ def render_markdown(f: dict) -> str:
         monthly = ">= %s / >= %s" % (lb["monthly_nominal"],
                                      lb["monthly_pessimistic"])
         addon_cell = (">= %s / >= %s" % (
-            addon["per_success_lower_bound_nominal_with_addon"]
+            addon["per_success_lower_bound_with_addon"]["nominal"]
             ["egress_billed"],
-            addon["per_success_lower_bound_nominal_with_addon"]
+            addon["per_success_lower_bound_with_addon"]["nominal"]
             ["egress_free"])
             if addon else "n/a")
         lines.append("| %s | %s | %s | %s | %s | %s | %s | %s |" % (
@@ -1093,14 +1120,15 @@ def render_tsv(f: dict) -> str:
                 "%s/%s" % (lb["monthly_nominal"],
                            lb["monthly_pessimistic"])))
         if addon:
+            with_addon = addon["per_success_lower_bound_with_addon"]
             rows.append(
                 "fully_loaded_relocation_addon_lower_bound\t%s\t%s\t%s"
                 "\t%s\t%s\tunmeasured_scenario_no_decision" % (
                     r["model"], r["cost_class"], key,
-                    addon["per_success_lower_bound_nominal_with_addon"]
-                    ["egress_billed"],
-                    addon["per_success_lower_bound_nominal_with_addon"]
-                    ["egress_free"]))
+                    "%s/%s" % (with_addon["nominal"]["egress_billed"],
+                               with_addon["pessimistic"]["egress_billed"]),
+                    "%s/%s" % (with_addon["nominal"]["egress_free"],
+                               with_addon["pessimistic"]["egress_free"])))
     for pt in f["sweeps"]["preemption"]["points"]:
         rows.append("preemption_sweep\t%s\tp=%s\tcheapest=%s\t%s\t%s\t%s" % (
             pt["model"], pt["loss_probability"], pt["cheapest_strategy"],

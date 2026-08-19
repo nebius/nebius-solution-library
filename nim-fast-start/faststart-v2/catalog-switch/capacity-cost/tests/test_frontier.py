@@ -247,29 +247,69 @@ class PublishedResultsTest(unittest.TestCase):
         cap = self.internal["snapshot_capture_cost"]
         self.assertEqual(cap["applies_to_model"], "OpenFold2")
 
-    def test_adversary_both_egress_variant_totals_emitted(self):
+    def test_adversary_all_four_relocation_variants_emitted(self):
+        """Adversary: the relocation add-on must publish nominal AND
+        pessimistic totals under BOTH egress variants, per-success and
+        monthly, consistent with the lower-bound subtotals."""
         cold_rows = [r for r in self.internal["fully_loaded"]
                      if r["cost_class"] == "cold_switch"]
         self.assertTrue(cold_rows)
         for row in cold_rows:
             addon = row["unmeasured_relocation_addon"]
             lb = row["lower_bound_subtotals_usd"]
-            base = Decimal(lb["per_success_nominal"])
-            with_addon = addon["per_success_lower_bound_nominal_with_addon"]
-            billed = Decimal(with_addon["egress_billed"])
-            free = Decimal(with_addon["egress_free"])
-            self.assertEqual(free, base)
-            # billed and free are each one quantization of exact values, so
-            # their difference may differ from the separately-quantized addon
-            # by at most one display ulp.
-            self.assertLessEqual(
-                abs((billed - free)
-                    - Decimal(addon["per_success_usd"]["egress_billed"])),
-                Decimal("0.000001"))
+            per = addon["per_success_lower_bound_with_addon"]
+            monthly = addon["monthly_lower_bound_with_addon"]
+            for block in (per, monthly):
+                self.assertEqual(set(block), {"nominal", "pessimistic"})
+                for variant in block.values():
+                    self.assertEqual(set(variant),
+                                     {"egress_billed", "egress_free"})
+            self.assertEqual(Decimal(per["nominal"]["egress_free"]),
+                             Decimal(lb["per_success_nominal"]))
+            self.assertEqual(Decimal(per["pessimistic"]["egress_free"]),
+                             Decimal(lb["per_success_pessimistic"]))
+            self.assertEqual(Decimal(monthly["nominal"]["egress_free"]),
+                             Decimal(lb["monthly_nominal"]))
+            self.assertEqual(Decimal(monthly["pessimistic"]["egress_free"]),
+                             Decimal(lb["monthly_pessimistic"]))
+            for kind in ("nominal", "pessimistic"):
+                self.assertGreater(Decimal(per[kind]["egress_billed"]),
+                                   Decimal(per[kind]["egress_free"]))
+                self.assertGreater(Decimal(monthly[kind]["egress_billed"]),
+                                   Decimal(monthly[kind]["egress_free"]))
+                # billed - free equals the addon within one display ulp.
+                self.assertLessEqual(
+                    abs((Decimal(per[kind]["egress_billed"])
+                         - Decimal(per[kind]["egress_free"]))
+                        - Decimal(addon["per_success_usd"]["egress_billed"])),
+                    Decimal("0.000001"))
+            self.assertGreaterEqual(
+                Decimal(per["pessimistic"]["egress_billed"]),
+                Decimal(per["nominal"]["egress_billed"]))
             self.assertIn("unmeasured", addon["provenance"])
-            m = addon["monthly_lower_bound_nominal_with_addon"]
-            self.assertGreater(Decimal(m["egress_billed"]),
-                               Decimal(m["egress_free"]))
+
+    def test_adversary_traffic_arithmetic_uses_exact_bytes(self):
+        """Adversary: relocation arithmetic must start from the measured
+        byte count, never from the display-quantized GiB string."""
+        entry = self.inputs.measured_entry("boltz2-pret0-cache-read")
+        exact_gib = lib.bytes_to_gib_exact(
+            entry["cache_bytes"] + entry["artifact_bytes"])
+        egress = self.inputs.unit_price("nebius-list-object-egress")
+        reloc = self.internal["cost_classes"][1]["cold_switch"][
+            "unmeasured_relocation"]
+        self.assertEqual(reloc["traffic_bytes"],
+                         entry["cache_bytes"] + entry["artifact_bytes"])
+        self.assertEqual(Decimal(reloc["per_preparation_usd"]
+                                 ["egress_billed"]),
+                         (exact_gib * egress).quantize(lib.CENT6))
+        # Addon per-success at reuse=1 must equal the exact chain.
+        row = next(r for r in self.internal["fully_loaded"]
+                   if r["cost_class"] == "cold_switch"
+                   and r["prep_reuse"] == 1)
+        self.assertEqual(
+            Decimal(row["unmeasured_relocation_addon"]["per_success_usd"]
+                    ["egress_billed"]),
+            (exact_gib * egress).quantize(lib.CENT6))
 
     def test_fully_loaded_covers_grids(self):
         rows = self.internal["fully_loaded"]
@@ -310,6 +350,34 @@ class PublishedResultsTest(unittest.TestCase):
             if p["loss_probability"] == "0.44155844":
                 self.assertEqual(p["preemptible_only_usd_per_success"],
                                  p["on_demand_usd_per_success"])
+
+    def test_adversary_boundary_strategy_selected_on_exact_values(self):
+        """Adversary: at grid p=0.44155844, strictly below the exact
+        break-even 1 - 2.15/3.85, all three strategies tie at the 1e-6
+        display precision, but exactly the preemptible-only strategy is
+        strictly cheapest. Selection must therefore happen on exact
+        Decimals, and the displayed tie must not leak into the choice."""
+        pre = self.inputs.unit_price("nebius-h100-1g-pre")
+        od = self.inputs.unit_price("nebius-h100-1g-od")
+        p = Decimal("0.44155844")
+        for pt in self.frontier["sweeps"]["preemption"]["points"]:
+            if pt["loss_probability"] != "0.44155844":
+                continue
+            # Displays tie three ways...
+            self.assertEqual(pt["preemptible_only_usd_per_success"],
+                             pt["fallback_pre_then_od_usd_per_success"])
+            self.assertEqual(pt["preemptible_only_usd_per_success"],
+                             pt["on_demand_usd_per_success"])
+            # ...but the exact ordering is strict and must decide.
+            model_idx = 0 if pt["model"] == "OpenFold2" else 1
+            p95 = Decimal(self.internal["cost_classes"][model_idx]
+                          ["prepared_switch"]["latency_seconds"]["p95"])
+            exact_pre = lib.preemptible_expected_cost_exact(p95, pre, p)
+            exact_fb = lib.fallback_blend_cost_exact(p95, pre, od, p)
+            exact_od = lib.gpu_seconds_cost_exact(p95, od)
+            self.assertLess(exact_pre, exact_fb)
+            self.assertLess(exact_fb, exact_od)
+            self.assertEqual(pt["cheapest_strategy"], "preemptible_only")
 
     def test_adversary_fallback_dearer_than_on_demand_above_breakeven(self):
         """Adversary: the rejected claim said the fallback stays at or below

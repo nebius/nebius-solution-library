@@ -208,13 +208,22 @@ def expected_cost_per_success(attempt_cost: Decimal,
     return (attempt_cost * retry_multiplier(loss_probability)).quantize(CENT6)
 
 
+def preemptible_expected_cost_exact(attempt_seconds: Decimal,
+                                    pre_hourly: Decimal,
+                                    loss_probability: Decimal) -> Decimal:
+    """Unrounded preemptible-only expected cost per success (attempt cost x
+    geometric retry multiplier). Strategy comparisons MUST use this exact
+    value: near the break-even probability the three strategies differ only
+    below the display precision, so selecting after quantization picks the
+    wrong strategy."""
+    return (gpu_seconds_cost_exact(attempt_seconds, pre_hourly)
+            * retry_multiplier(loss_probability))
+
+
 def preemptible_expected_cost(attempt_seconds: Decimal, pre_hourly: Decimal,
                               loss_probability: Decimal) -> Decimal:
-    """Preemptible-only expected cost per success, exact until one final
-    quantization (attempt cost x geometric retry multiplier)."""
-    exact = (gpu_seconds_cost_exact(attempt_seconds, pre_hourly)
-             * retry_multiplier(loss_probability))
-    return exact.quantize(CENT6)
+    return preemptible_expected_cost_exact(
+        attempt_seconds, pre_hourly, loss_probability).quantize(CENT6)
 
 
 def fallback_blend_cost(attempt_seconds: Decimal, pre_hourly: Decimal,
@@ -229,9 +238,25 @@ def fallback_blend_cost(attempt_seconds: Decimal, pre_hourly: Decimal,
     the blend's value is bounding latency to at most one extra attempt.
     Exact arithmetic inside, one final quantization.
     """
+    return fallback_blend_cost_exact(
+        attempt_seconds, pre_hourly, od_hourly, loss_probability
+    ).quantize(CENT6)
+
+
+def fallback_blend_cost_exact(attempt_seconds: Decimal, pre_hourly: Decimal,
+                              od_hourly: Decimal,
+                              loss_probability: Decimal) -> Decimal:
+    """Unrounded pre-then-on-demand blend; see fallback_blend_cost."""
     pre_cost = gpu_seconds_cost_exact(attempt_seconds, pre_hourly)
     od_cost = gpu_seconds_cost_exact(attempt_seconds, od_hourly)
-    return (pre_cost + loss_probability * od_cost).quantize(CENT6)
+    return pre_cost + loss_probability * od_cost
+
+
+def bytes_to_gib_exact(byte_count) -> Decimal:
+    """Unrounded GiB for a byte count. Traffic arithmetic (reuse division,
+    egress multiplication, monthly scaling) must consume this exact value;
+    a display-quantized GiB propagates its rounding into every product."""
+    return Decimal(byte_count) / (Decimal(2) ** 30)
 
 
 def warm_breakeven_requests_per_month(warm_gpu_month_usd: Decimal,

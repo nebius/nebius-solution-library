@@ -76,6 +76,21 @@ class CostMathTest(unittest.TestCase):
         self.assertEqual(be, Decimal("4.3533"))
 
 
+class TrafficExactnessTest(unittest.TestCase):
+    def test_adversary_display_rounded_gib_corrupts_scaled_products(self):
+        """Adversary: quantizing GiB to display precision before arithmetic
+        shifts month-scaled products by whole cents."""
+        byte_count = 1073742361  # exact GiB = 1.000000500120...
+        exact_gib = lib.bytes_to_gib_exact(byte_count)
+        display_gib = Decimal(str(exact_gib.quantize(Decimal("0.000001"))))
+        scale = Decimal(1000000)
+        exact_scaled = (exact_gib * scale).quantize(Decimal("0.01"))
+        rounded_scaled = (display_gib * scale).quantize(Decimal("0.01"))
+        self.assertNotEqual(exact_scaled, rounded_scaled)
+        self.assertEqual(exact_scaled, Decimal("1000000.50"))
+        self.assertEqual(rounded_scaled, Decimal("1000001.00"))
+
+
 class RepriceTest(unittest.TestCase):
     REPORT = {
         "trace_family": "t", "policy": "p", "sensitivity": "base",

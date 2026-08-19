@@ -57,14 +57,14 @@ Break-even loss probability: gpu-b200-sxm 0.44755245, gpu-h100-sxm 0.44155844, g
 | OpenFold2 | 0.10 | 0.011699 | 0.012414 | 0.018854 | preemptible_only |
 | OpenFold2 | 0.20 | 0.013161 | 0.014300 | 0.018854 | preemptible_only |
 | OpenFold2 | 0.30 | 0.015041 | 0.016185 | 0.018854 | preemptible_only |
-| OpenFold2 | 0.44155844 | 0.018854 | 0.018854 | 0.018854 | fallback_pre_then_od |
+| OpenFold2 | 0.44155844 | 0.018854 | 0.018854 | 0.018854 | preemptible_only |
 | OpenFold2 | 0.60 | 0.026322 | 0.021841 | 0.018854 | on_demand_only |
 | Boltz2 | 0.00 | 0.018102 | 0.018102 | 0.032415 | fallback_pre_then_od |
 | Boltz2 | 0.05 | 0.019055 | 0.019723 | 0.032415 | preemptible_only |
 | Boltz2 | 0.10 | 0.020113 | 0.021343 | 0.032415 | preemptible_only |
 | Boltz2 | 0.20 | 0.022627 | 0.024585 | 0.032415 | preemptible_only |
 | Boltz2 | 0.30 | 0.025860 | 0.027826 | 0.032415 | preemptible_only |
-| Boltz2 | 0.44155844 | 0.032415 | 0.032415 | 0.032415 | fallback_pre_then_od |
+| Boltz2 | 0.44155844 | 0.032415 | 0.032415 | 0.032415 | preemptible_only |
 | Boltz2 | 0.60 | 0.045255 | 0.037551 | 0.032415 | on_demand_only |
 
 ## Regional capacity loss fallbacks (eu-north1 preemptible H100 pool unavailable (regional capacity loss); options priced from the snapshot, availability from the capacity capture)

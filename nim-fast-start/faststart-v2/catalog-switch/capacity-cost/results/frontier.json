@@ -289,6 +289,7 @@
                 "egress_free": "0.000000"
               },
               "provenance": "UNMEASURED scenario, kept separate from the measured lower-bound timing above: the measured preparation read the bytes from attached SFS, not from object storage. If the bytes must first move from object storage, this add-on prices the measured byte counts; its duration is unmeasured.",
+              "traffic_bytes": 29582168488,
               "traffic_gib": "27.550541"
             }
           },
@@ -3885,13 +3886,25 @@
           "requests_per_month": 1000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "1083.15",
-              "egress_free": "669.89"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "1083.15",
+                "egress_free": "669.89"
+              },
+              "pessimistic": {
+                "egress_billed": "1130.76",
+                "egress_free": "717.50"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "1.083147",
-              "egress_free": "0.669889"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "1.083147",
+                "egress_free": "0.669889"
+              },
+              "pessimistic": {
+                "egress_billed": "1.130758",
+                "egress_free": "0.717500"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -3931,13 +3944,25 @@
           "requests_per_month": 10000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "7230.61",
-              "egress_free": "3098.03"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "7230.61",
+                "egress_free": "3098.03"
+              },
+              "pessimistic": {
+                "egress_billed": "7706.72",
+                "egress_free": "3574.13"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.723061",
-              "egress_free": "0.309803"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.723061",
+                "egress_free": "0.309803"
+              },
+              "pessimistic": {
+                "egress_billed": "0.770672",
+                "egress_free": "0.357413"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -3977,13 +4002,25 @@
           "requests_per_month": 50000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "34552.66",
-              "egress_free": "13889.76"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "34552.66",
+                "egress_free": "13889.76"
+              },
+              "pessimistic": {
+                "egress_billed": "36933.19",
+                "egress_free": "16270.29"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.691053",
-              "egress_free": "0.277795"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.691053",
+                "egress_free": "0.277795"
+              },
+              "pessimistic": {
+                "egress_billed": "0.738664",
+                "egress_free": "0.325406"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -4023,13 +4060,25 @@
           "requests_per_month": 100000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "68705.23",
-              "egress_free": "27379.42"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "68705.23",
+                "egress_free": "27379.42"
+              },
+              "pessimistic": {
+                "egress_billed": "73466.29",
+                "egress_free": "32140.48"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.687052",
-              "egress_free": "0.273794"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.687052",
+                "egress_free": "0.273794"
+              },
+              "pessimistic": {
+                "egress_billed": "0.734663",
+                "egress_free": "0.321405"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -4069,13 +4118,25 @@
           "requests_per_month": 500000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "341925.77",
-              "egress_free": "135296.72"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "341925.78",
+                "egress_free": "135296.72"
+              },
+              "pessimistic": {
+                "egress_billed": "365731.06",
+                "egress_free": "159102.00"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.683852",
-              "egress_free": "0.270593"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.683852",
+                "egress_free": "0.270593"
+              },
+              "pessimistic": {
+                "egress_billed": "0.731462",
+                "egress_free": "0.318204"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -4115,13 +4176,25 @@
           "requests_per_month": 1000000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "683451.45",
-              "egress_free": "270193.34"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "683451.46",
+                "egress_free": "270193.34"
+              },
+              "pessimistic": {
+                "egress_billed": "731062.03",
+                "egress_free": "317803.91"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.683451",
-              "egress_free": "0.270193"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.683451",
+                "egress_free": "0.270193"
+              },
+              "pessimistic": {
+                "egress_billed": "0.731062",
+                "egress_free": "0.317804"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -4161,13 +4234,25 @@
           "requests_per_month": 1000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "1296.47",
-              "egress_free": "883.21"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "1296.47",
+                "egress_free": "883.21"
+              },
+              "pessimistic": {
+                "egress_billed": "1381.73",
+                "egress_free": "968.47"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "1.296472",
-              "egress_free": "0.883214"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "1.296472",
+                "egress_free": "0.883214"
+              },
+              "pessimistic": {
+                "egress_billed": "1.381728",
+                "egress_free": "0.968470"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -4207,13 +4292,25 @@
           "requests_per_month": 10000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "9363.86",
-              "egress_free": "5231.28"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "9363.86",
+                "egress_free": "5231.28"
+              },
+              "pessimistic": {
+                "egress_billed": "10216.42",
+                "egress_free": "6083.84"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.936386",
-              "egress_free": "0.523128"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.936386",
+                "egress_free": "0.523128"
+              },
+              "pessimistic": {
+                "egress_billed": "1.021642",
+                "egress_free": "0.608384"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -4253,13 +4350,25 @@
           "requests_per_month": 50000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "45218.91",
-              "egress_free": "24556.00"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "45218.91",
+                "egress_free": "24556.00"
+              },
+              "pessimistic": {
+                "egress_billed": "49481.72",
+                "egress_free": "28818.81"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.904378",
-              "egress_free": "0.491120"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.904378",
+                "egress_free": "0.491120"
+              },
+              "pessimistic": {
+                "egress_billed": "0.989634",
+                "egress_free": "0.576376"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -4299,13 +4408,25 @@
           "requests_per_month": 100000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "90037.72",
-              "egress_free": "48711.91"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "90037.72",
+                "egress_free": "48711.91"
+              },
+              "pessimistic": {
+                "egress_billed": "98563.34",
+                "egress_free": "57237.52"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.900377",
-              "egress_free": "0.487119"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.900377",
+                "egress_free": "0.487119"
+              },
+              "pessimistic": {
+                "egress_billed": "0.985633",
+                "egress_free": "0.572375"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -4345,13 +4466,25 @@
           "requests_per_month": 500000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "448588.22",
-              "egress_free": "241959.16"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "448588.22",
+                "egress_free": "241959.16"
+              },
+              "pessimistic": {
+                "egress_billed": "491216.29",
+                "egress_free": "284587.23"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.897176",
-              "egress_free": "0.483918"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.897176",
+                "egress_free": "0.483918"
+              },
+              "pessimistic": {
+                "egress_billed": "0.982433",
+                "egress_free": "0.569174"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -4391,13 +4524,25 @@
           "requests_per_month": 1000000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "896776.34",
-              "egress_free": "483518.23"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "896776.35",
+                "egress_free": "483518.23"
+              },
+              "pessimistic": {
+                "egress_billed": "982032.49",
+                "egress_free": "568774.37"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.896776",
-              "egress_free": "0.483518"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.896776",
+                "egress_free": "0.483518"
+              },
+              "pessimistic": {
+                "egress_billed": "0.982032",
+                "egress_free": "0.568774"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.413258",
@@ -4437,13 +4582,25 @@
           "requests_per_month": 1000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "750.25",
-              "egress_free": "543.62"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "750.25",
+                "egress_free": "543.62"
+              },
+              "pessimistic": {
+                "egress_billed": "775.58",
+                "egress_free": "568.95"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.750249",
-              "egress_free": "0.543620"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.750249",
+                "egress_free": "0.543620"
+              },
+              "pessimistic": {
+                "egress_billed": "0.775577",
+                "egress_free": "0.568948"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4483,13 +4640,25 @@
           "requests_per_month": 10000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "3901.63",
-              "egress_free": "1835.34"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "3901.63",
+                "egress_free": "1835.34"
+              },
+              "pessimistic": {
+                "egress_billed": "4154.91",
+                "egress_free": "2088.62"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.390163",
-              "egress_free": "0.183534"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.390163",
+                "egress_free": "0.183534"
+              },
+              "pessimistic": {
+                "egress_billed": "0.415491",
+                "egress_free": "0.208862"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4529,13 +4698,25 @@
           "requests_per_month": 50000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "17907.76",
-              "egress_free": "7576.30"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "17907.76",
+                "egress_free": "7576.30"
+              },
+              "pessimistic": {
+                "egress_billed": "19174.15",
+                "egress_free": "8842.69"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.358155",
-              "egress_free": "0.151526"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.358155",
+                "egress_free": "0.151526"
+              },
+              "pessimistic": {
+                "egress_billed": "0.383483",
+                "egress_free": "0.176854"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4575,13 +4756,25 @@
           "requests_per_month": 100000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "35415.42",
-              "egress_free": "14752.51"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "35415.42",
+                "egress_free": "14752.51"
+              },
+              "pessimistic": {
+                "egress_billed": "37948.20",
+                "egress_free": "17285.29"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.354154",
-              "egress_free": "0.147525"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.354154",
+                "egress_free": "0.147525"
+              },
+              "pessimistic": {
+                "egress_billed": "0.379482",
+                "egress_free": "0.172853"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4621,13 +4814,25 @@
           "requests_per_month": 500000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "175476.71",
-              "egress_free": "72162.18"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "175476.71",
+                "egress_free": "72162.18"
+              },
+              "pessimistic": {
+                "egress_billed": "188140.60",
+                "egress_free": "84826.07"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.350953",
-              "egress_free": "0.144324"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.350953",
+                "egress_free": "0.144324"
+              },
+              "pessimistic": {
+                "egress_billed": "0.376281",
+                "egress_free": "0.169652"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4667,13 +4872,25 @@
           "requests_per_month": 1000000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "350553.32",
-              "egress_free": "143924.26"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "350553.32",
+                "egress_free": "143924.26"
+              },
+              "pessimistic": {
+                "egress_billed": "375881.11",
+                "egress_free": "169252.05"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.350553",
-              "egress_free": "0.143924"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.350553",
+                "egress_free": "0.143924"
+              },
+              "pessimistic": {
+                "egress_billed": "0.375881",
+                "egress_free": "0.169252"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4713,13 +4930,25 @@
           "requests_per_month": 1000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "863.73",
-              "egress_free": "657.10"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "863.73",
+                "egress_free": "657.10"
+              },
+              "pessimistic": {
+                "egress_billed": "909.09",
+                "egress_free": "702.46"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.863733",
-              "egress_free": "0.657104"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.863733",
+                "egress_free": "0.657104"
+              },
+              "pessimistic": {
+                "egress_billed": "0.909088",
+                "egress_free": "0.702459"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4759,13 +4988,25 @@
           "requests_per_month": 10000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "5036.47",
-              "egress_free": "2970.18"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "5036.47",
+                "egress_free": "2970.18"
+              },
+              "pessimistic": {
+                "egress_billed": "5490.01",
+                "egress_free": "3423.72"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.503647",
-              "egress_free": "0.297018"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.503647",
+                "egress_free": "0.297018"
+              },
+              "pessimistic": {
+                "egress_billed": "0.549001",
+                "egress_free": "0.342372"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4805,13 +5046,25 @@
           "requests_per_month": 50000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "23581.97",
-              "egress_free": "13250.52"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "23581.97",
+                "egress_free": "13250.52"
+              },
+              "pessimistic": {
+                "egress_billed": "25849.69",
+                "egress_free": "15518.24"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.471639",
-              "egress_free": "0.265010"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.471639",
+                "egress_free": "0.265010"
+              },
+              "pessimistic": {
+                "egress_billed": "0.516994",
+                "egress_free": "0.310365"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4851,13 +5104,25 @@
           "requests_per_month": 100000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "46763.84",
-              "egress_free": "26100.93"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "46763.84",
+                "egress_free": "26100.93"
+              },
+              "pessimistic": {
+                "egress_billed": "51299.28",
+                "egress_free": "30636.38"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.467638",
-              "egress_free": "0.261009"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.467638",
+                "egress_free": "0.261009"
+              },
+              "pessimistic": {
+                "egress_billed": "0.512993",
+                "egress_free": "0.306364"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4897,13 +5162,25 @@
           "requests_per_month": 500000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "232218.82",
-              "egress_free": "128904.29"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "232218.82",
+                "egress_free": "128904.29"
+              },
+              "pessimistic": {
+                "egress_billed": "254896.03",
+                "egress_free": "151581.50"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.464438",
-              "egress_free": "0.257809"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.464438",
+                "egress_free": "0.257809"
+              },
+              "pessimistic": {
+                "egress_billed": "0.509792",
+                "egress_free": "0.303163"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4943,13 +5220,25 @@
           "requests_per_month": 1000000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "464037.54",
-              "egress_free": "257408.48"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "464037.54",
+                "egress_free": "257408.48"
+              },
+              "pessimistic": {
+                "egress_billed": "509391.96",
+                "egress_free": "302762.90"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.464038",
-              "egress_free": "0.257408"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.464038",
+                "egress_free": "0.257408"
+              },
+              "pessimistic": {
+                "egress_billed": "0.509392",
+                "egress_free": "0.302763"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.206629",
@@ -4989,13 +5278,25 @@
           "requests_per_month": 1000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "550.51",
-              "egress_free": "467.86"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "550.51",
+                "egress_free": "467.86"
+              },
+              "pessimistic": {
+                "egress_billed": "562.47",
+                "egress_free": "479.82"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.550510",
-              "egress_free": "0.467859"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.550510",
+                "egress_free": "0.467859"
+              },
+              "pessimistic": {
+                "egress_billed": "0.562468",
+                "egress_free": "0.479817"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5035,13 +5336,25 @@
           "requests_per_month": 10000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "1904.24",
-              "egress_free": "1077.72"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "1904.24",
+                "egress_free": "1077.72"
+              },
+              "pessimistic": {
+                "egress_billed": "2023.82",
+                "egress_free": "1197.30"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.190424",
-              "egress_free": "0.107772"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.190424",
+                "egress_free": "0.107772"
+              },
+              "pessimistic": {
+                "egress_billed": "0.202382",
+                "egress_free": "0.119730"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5081,13 +5394,25 @@
           "requests_per_month": 50000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "7920.81",
-              "egress_free": "3788.23"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "7920.81",
+                "egress_free": "3788.23"
+              },
+              "pessimistic": {
+                "egress_billed": "8518.72",
+                "egress_free": "4386.14"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.158416",
-              "egress_free": "0.075765"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.158416",
+                "egress_free": "0.075765"
+              },
+              "pessimistic": {
+                "egress_billed": "0.170374",
+                "egress_free": "0.087723"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5127,13 +5452,25 @@
           "requests_per_month": 100000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "15441.53",
-              "egress_free": "7176.37"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "15441.53",
+                "egress_free": "7176.37"
+              },
+              "pessimistic": {
+                "egress_billed": "16637.34",
+                "egress_free": "8372.18"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.154415",
-              "egress_free": "0.071764"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.154415",
+                "egress_free": "0.071764"
+              },
+              "pessimistic": {
+                "egress_billed": "0.166373",
+                "egress_free": "0.083722"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5173,13 +5510,25 @@
           "requests_per_month": 500000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "75607.27",
-              "egress_free": "34281.45"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "75607.27",
+                "egress_free": "34281.45"
+              },
+              "pessimistic": {
+                "egress_billed": "81586.33",
+                "egress_free": "40260.52"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.151215",
-              "egress_free": "0.068563"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.151215",
+                "egress_free": "0.068563"
+              },
+              "pessimistic": {
+                "egress_billed": "0.163173",
+                "egress_free": "0.080521"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5219,13 +5568,25 @@
           "requests_per_month": 1000000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "150814.44",
-              "egress_free": "68162.81"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "150814.44",
+                "egress_free": "68162.81"
+              },
+              "pessimistic": {
+                "egress_billed": "162772.56",
+                "egress_free": "80120.94"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.150814",
-              "egress_free": "0.068163"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.150814",
+                "egress_free": "0.068163"
+              },
+              "pessimistic": {
+                "egress_billed": "0.162773",
+                "egress_free": "0.080121"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5265,13 +5626,25 @@
           "requests_per_month": 1000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "604.09",
-              "egress_free": "521.44"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "604.09",
+                "egress_free": "521.44"
+              },
+              "pessimistic": {
+                "egress_billed": "625.50",
+                "egress_free": "542.85"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.604090",
-              "egress_free": "0.521438"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.604090",
+                "egress_free": "0.521438"
+              },
+              "pessimistic": {
+                "egress_billed": "0.625503",
+                "egress_free": "0.542852"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5311,13 +5684,25 @@
           "requests_per_month": 10000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "2440.04",
-              "egress_free": "1613.52"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "2440.04",
+                "egress_free": "1613.52"
+              },
+              "pessimistic": {
+                "egress_billed": "2654.17",
+                "egress_free": "1827.66"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.244004",
-              "egress_free": "0.161352"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.244004",
+                "egress_free": "0.161352"
+              },
+              "pessimistic": {
+                "egress_billed": "0.265417",
+                "egress_free": "0.182766"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5357,13 +5742,25 @@
           "requests_per_month": 50000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "10599.80",
-              "egress_free": "6467.22"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "10599.80",
+                "egress_free": "6467.22"
+              },
+              "pessimistic": {
+                "egress_billed": "11670.47",
+                "egress_free": "7537.89"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.211996",
-              "egress_free": "0.129344"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.211996",
+                "egress_free": "0.129344"
+              },
+              "pessimistic": {
+                "egress_billed": "0.233409",
+                "egress_free": "0.150758"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5403,13 +5800,25 @@
           "requests_per_month": 100000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "20799.51",
-              "egress_free": "12534.35"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "20799.51",
+                "egress_free": "12534.35"
+              },
+              "pessimistic": {
+                "egress_billed": "22940.85",
+                "egress_free": "14675.69"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.207995",
-              "egress_free": "0.125343"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.207995",
+                "egress_free": "0.125343"
+              },
+              "pessimistic": {
+                "egress_billed": "0.229409",
+                "egress_free": "0.146757"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5449,13 +5858,25 @@
           "requests_per_month": 500000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "102397.18",
-              "egress_free": "61071.37"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "102397.18",
+                "egress_free": "61071.37"
+              },
+              "pessimistic": {
+                "egress_billed": "113103.87",
+                "egress_free": "71778.06"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.204794",
-              "egress_free": "0.122143"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.204794",
+                "egress_free": "0.122143"
+              },
+              "pessimistic": {
+                "egress_billed": "0.226208",
+                "egress_free": "0.143556"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5495,13 +5916,25 @@
           "requests_per_month": 1000000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "204394.26",
-              "egress_free": "121742.63"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "204394.26",
+                "egress_free": "121742.63"
+              },
+              "pessimistic": {
+                "egress_billed": "225807.65",
+                "egress_free": "143156.02"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.204394",
-              "egress_free": "0.121743"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.204394",
+                "egress_free": "0.121743"
+              },
+              "pessimistic": {
+                "egress_billed": "0.225808",
+                "egress_free": "0.143156"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.082652",
@@ -5541,13 +5974,25 @@
           "requests_per_month": 1000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "483.93",
-              "egress_free": "442.60"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "483.93",
+                "egress_free": "442.60"
+              },
+              "pessimistic": {
+                "egress_billed": "491.43",
+                "egress_free": "450.11"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.483931",
-              "egress_free": "0.442605"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.483931",
+                "egress_free": "0.442605"
+              },
+              "pessimistic": {
+                "egress_billed": "0.491432",
+                "egress_free": "0.450106"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -5587,13 +6032,25 @@
           "requests_per_month": 10000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "1238.44",
-              "egress_free": "825.18"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "1238.44",
+                "egress_free": "825.18"
+              },
+              "pessimistic": {
+                "egress_billed": "1313.46",
+                "egress_free": "900.20"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.123844",
-              "egress_free": "0.082518"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.123844",
+                "egress_free": "0.082518"
+              },
+              "pessimistic": {
+                "egress_billed": "0.131346",
+                "egress_free": "0.090020"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -5633,13 +6090,25 @@
           "requests_per_month": 50000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "4591.83",
-              "egress_free": "2525.54"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "4591.83",
+                "egress_free": "2525.54"
+              },
+              "pessimistic": {
+                "egress_billed": "4966.91",
+                "egress_free": "2900.62"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.091837",
-              "egress_free": "0.050511"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.091837",
+                "egress_free": "0.050511"
+              },
+              "pessimistic": {
+                "egress_billed": "0.099338",
+                "egress_free": "0.058012"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -5679,13 +6148,25 @@
           "requests_per_month": 100000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "8783.57",
-              "egress_free": "4650.99"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "8783.57",
+                "egress_free": "4650.99"
+              },
+              "pessimistic": {
+                "egress_billed": "9533.72",
+                "egress_free": "5401.14"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.087836",
-              "egress_free": "0.046510"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.087836",
+                "egress_free": "0.046510"
+              },
+              "pessimistic": {
+                "egress_billed": "0.095337",
+                "egress_free": "0.054011"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -5725,13 +6206,25 @@
           "requests_per_month": 500000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "42317.45",
-              "egress_free": "21654.55"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "42317.45",
+                "egress_free": "21654.55"
+              },
+              "pessimistic": {
+                "egress_billed": "46068.24",
+                "egress_free": "25405.33"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.084635",
-              "egress_free": "0.043309"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.084635",
+                "egress_free": "0.043309"
+              },
+              "pessimistic": {
+                "egress_billed": "0.092136",
+                "egress_free": "0.050811"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -5771,13 +6264,25 @@
           "requests_per_month": 1000000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "84234.81",
-              "egress_free": "42909.00"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "84234.81",
+                "egress_free": "42909.00"
+              },
+              "pessimistic": {
+                "egress_billed": "91736.38",
+                "egress_free": "50410.57"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.084235",
-              "egress_free": "0.042909"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.084235",
+                "egress_free": "0.042909"
+              },
+              "pessimistic": {
+                "egress_billed": "0.091736",
+                "egress_free": "0.050411"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -5817,13 +6322,25 @@
           "requests_per_month": 1000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "517.54",
-              "egress_free": "476.22"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "517.54",
+                "egress_free": "476.22"
+              },
+              "pessimistic": {
+                "egress_billed": "530.98",
+                "egress_free": "489.65"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.517542",
-              "egress_free": "0.476216"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.517542",
+                "egress_free": "0.476216"
+              },
+              "pessimistic": {
+                "egress_billed": "0.530975",
+                "egress_free": "0.489650"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -5863,13 +6380,25 @@
           "requests_per_month": 10000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "1574.56",
-              "egress_free": "1161.30"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "1574.56",
+                "egress_free": "1161.30"
+              },
+              "pessimistic": {
+                "egress_billed": "1708.89",
+                "egress_free": "1295.63"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.157456",
-              "egress_free": "0.116130"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.157456",
+                "egress_free": "0.116130"
+              },
+              "pessimistic": {
+                "egress_billed": "0.170889",
+                "egress_free": "0.129563"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -5909,13 +6438,25 @@
           "requests_per_month": 50000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "6272.42",
-              "egress_free": "4206.13"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "6272.42",
+                "egress_free": "4206.13"
+              },
+              "pessimistic": {
+                "egress_billed": "6944.07",
+                "egress_free": "4877.78"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.125448",
-              "egress_free": "0.084123"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.125448",
+                "egress_free": "0.084123"
+              },
+              "pessimistic": {
+                "egress_billed": "0.138881",
+                "egress_free": "0.097556"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -5955,13 +6496,25 @@
           "requests_per_month": 100000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "12144.74",
-              "egress_free": "8012.15"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "12144.74",
+                "egress_free": "8012.15"
+              },
+              "pessimistic": {
+                "egress_billed": "13488.04",
+                "egress_free": "9355.46"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.121447",
-              "egress_free": "0.080122"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.121447",
+                "egress_free": "0.080122"
+              },
+              "pessimistic": {
+                "egress_billed": "0.134880",
+                "egress_free": "0.093555"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -6001,13 +6554,25 @@
           "requests_per_month": 500000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "59123.30",
-              "egress_free": "38460.39"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "59123.30",
+                "egress_free": "38460.39"
+              },
+              "pessimistic": {
+                "egress_billed": "65839.82",
+                "egress_free": "45176.91"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.118247",
-              "egress_free": "0.076921"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.118247",
+                "egress_free": "0.076921"
+              },
+              "pessimistic": {
+                "egress_billed": "0.131680",
+                "egress_free": "0.090354"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -6047,13 +6612,25 @@
           "requests_per_month": 1000000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "117846.50",
-              "egress_free": "76520.69"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "117846.50",
+                "egress_free": "76520.69"
+              },
+              "pessimistic": {
+                "egress_billed": "131279.54",
+                "egress_free": "89953.73"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.117846",
-              "egress_free": "0.076521"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.117846",
+                "egress_free": "0.076521"
+              },
+              "pessimistic": {
+                "egress_billed": "0.131280",
+                "egress_free": "0.089954"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.041326",
@@ -6093,13 +6670,25 @@
           "requests_per_month": 1000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "430.67",
-              "egress_free": "422.40"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "430.67",
+                "egress_free": "422.40"
+              },
+              "pessimistic": {
+                "egress_billed": "434.60",
+                "egress_free": "426.34"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.430667",
-              "egress_free": "0.422402"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.430667",
+                "egress_free": "0.422402"
+              },
+              "pessimistic": {
+                "egress_billed": "0.434603",
+                "egress_free": "0.426338"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6139,13 +6728,25 @@
           "requests_per_month": 10000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "705.81",
-              "egress_free": "623.15"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "705.81",
+                "egress_free": "623.15"
+              },
+              "pessimistic": {
+                "egress_billed": "745.17",
+                "egress_free": "662.52"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.070581",
-              "egress_free": "0.062315"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.070581",
+                "egress_free": "0.062315"
+              },
+              "pessimistic": {
+                "egress_billed": "0.074517",
+                "egress_free": "0.066252"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6185,13 +6786,25 @@
           "requests_per_month": 50000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "1928.65",
-              "egress_free": "1515.39"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "1928.65",
+                "egress_free": "1515.39"
+              },
+              "pessimistic": {
+                "egress_billed": "2125.46",
+                "egress_free": "1712.20"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.038573",
-              "egress_free": "0.030308"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.038573",
+                "egress_free": "0.030308"
+              },
+              "pessimistic": {
+                "egress_billed": "0.042509",
+                "egress_free": "0.034244"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6231,13 +6844,25 @@
           "requests_per_month": 100000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "3457.20",
-              "egress_free": "2630.68"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "3457.20",
+                "egress_free": "2630.68"
+              },
+              "pessimistic": {
+                "egress_billed": "3850.83",
+                "egress_free": "3024.31"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.034572",
-              "egress_free": "0.026307"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.034572",
+                "egress_free": "0.026307"
+              },
+              "pessimistic": {
+                "egress_billed": "0.038508",
+                "egress_free": "0.030243"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6277,13 +6902,25 @@
           "requests_per_month": 500000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "15685.60",
-              "egress_free": "11553.02"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "15685.60",
+                "egress_free": "11553.02"
+              },
+              "pessimistic": {
+                "egress_billed": "17653.76",
+                "egress_free": "13521.18"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.031371",
-              "egress_free": "0.023106"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.031371",
+                "egress_free": "0.023106"
+              },
+              "pessimistic": {
+                "egress_billed": "0.035308",
+                "egress_free": "0.027042"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6323,13 +6960,25 @@
           "requests_per_month": 1000000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "30971.11",
-              "egress_free": "22705.94"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "30971.11",
+                "egress_free": "22705.94"
+              },
+              "pessimistic": {
+                "egress_billed": "34907.43",
+                "egress_free": "26642.27"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.030971",
-              "egress_free": "0.022706"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.030971",
+                "egress_free": "0.022706"
+              },
+              "pessimistic": {
+                "egress_billed": "0.034907",
+                "egress_free": "0.026642"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6369,13 +7018,25 @@
           "requests_per_month": 1000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "448.30",
-              "egress_free": "440.04"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "448.30",
+                "egress_free": "440.04"
+              },
+              "pessimistic": {
+                "egress_billed": "455.35",
+                "egress_free": "447.09"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.448304",
-              "egress_free": "0.440039"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.448304",
+                "egress_free": "0.440039"
+              },
+              "pessimistic": {
+                "egress_billed": "0.455353",
+                "egress_free": "0.447088"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6415,13 +7076,25 @@
           "requests_per_month": 10000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "882.18",
-              "egress_free": "799.53"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "882.18",
+                "egress_free": "799.53"
+              },
+              "pessimistic": {
+                "egress_billed": "952.67",
+                "egress_free": "870.01"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.088218",
-              "egress_free": "0.079953"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.088218",
+                "egress_free": "0.079953"
+              },
+              "pessimistic": {
+                "egress_billed": "0.095267",
+                "egress_free": "0.087001"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6461,13 +7134,25 @@
           "requests_per_month": 50000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "2810.51",
-              "egress_free": "2397.25"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "2810.51",
+                "egress_free": "2397.25"
+              },
+              "pessimistic": {
+                "egress_billed": "3162.94",
+                "egress_free": "2749.69"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.056210",
-              "egress_free": "0.047945"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.056210",
+                "egress_free": "0.047945"
+              },
+              "pessimistic": {
+                "egress_billed": "0.063259",
+                "egress_free": "0.054994"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6507,13 +7192,25 @@
           "requests_per_month": 100000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "5220.92",
-              "egress_free": "4394.40"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "5220.92",
+                "egress_free": "4394.40"
+              },
+              "pessimistic": {
+                "egress_billed": "5925.79",
+                "egress_free": "5099.28"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.052209",
-              "egress_free": "0.043944"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.052209",
+                "egress_free": "0.043944"
+              },
+              "pessimistic": {
+                "egress_billed": "0.059258",
+                "egress_free": "0.050993"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6553,13 +7250,25 @@
           "requests_per_month": 500000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "24504.19",
-              "egress_free": "20371.61"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "24504.19",
+                "egress_free": "20371.61"
+              },
+              "pessimistic": {
+                "egress_billed": "28028.58",
+                "egress_free": "23896.00"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.049008",
-              "egress_free": "0.040743"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.049008",
+                "egress_free": "0.040743"
+              },
+              "pessimistic": {
+                "egress_billed": "0.056057",
+                "egress_free": "0.047792"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -6599,13 +7308,25 @@
           "requests_per_month": 1000000,
           "restores_between_captures": null,
           "unmeasured_relocation_addon": {
-            "monthly_lower_bound_nominal_with_addon": {
-              "egress_billed": "48608.29",
-              "egress_free": "40343.13"
+            "monthly_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "48608.29",
+                "egress_free": "40343.13"
+              },
+              "pessimistic": {
+                "egress_billed": "55657.06",
+                "egress_free": "47391.90"
+              }
             },
-            "per_success_lower_bound_nominal_with_addon": {
-              "egress_billed": "0.048608",
-              "egress_free": "0.040343"
+            "per_success_lower_bound_with_addon": {
+              "nominal": {
+                "egress_billed": "0.048608",
+                "egress_free": "0.040343"
+              },
+              "pessimistic": {
+                "egress_billed": "0.055657",
+                "egress_free": "0.047392"
+              }
             },
             "per_success_usd": {
               "egress_billed": "0.008265",
@@ -13085,7 +13806,7 @@
           "preemptible_only_usd_per_success": "0.015041"
         },
         {
-          "cheapest_strategy": "fallback_pre_then_od",
+          "cheapest_strategy": "preemptible_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "7.784625",
           "fallback_pre_then_od_usd_per_success": "0.018854",
@@ -13155,7 +13876,7 @@
           "preemptible_only_usd_per_success": "0.025860"
         },
         {
-          "cheapest_strategy": "fallback_pre_then_od",
+          "cheapest_strategy": "preemptible_only",
           "cost_class": "prepared_switch",
           "expected_extra_latency_seconds": "13.383745",
           "fallback_pre_then_od_usd_per_success": "0.032415",
