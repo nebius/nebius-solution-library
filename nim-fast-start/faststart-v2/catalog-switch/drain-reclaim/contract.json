@@ -7,58 +7,254 @@
       "kubernetes",
       "node-local"
     ],
-    "note": "This state-machine lane does not authenticate to, deploy, run, benchmark, simulate, or rank Modal. Cerebrium is the parent program's sole external measured comparator and is not a backend adapter in this package."
+    "sole_external_measured_comparator": "cerebrium-not-an-adapter-in-this-package"
+  },
+  "bindings": {
+    "DR-INV-01": {
+      "code": [
+        "DrainReclaimStateMachine.accept_b",
+        "DrainReclaimStateMachine.accept_rollback",
+        "ExactLedgerReceiptVerifier.verify",
+        "ExactLedgerReceiptVerifier._verify_durability"
+      ],
+      "controls": [
+        "CTL-10",
+        "CTL-19"
+      ],
+      "tests": [
+        "test_exact_bridge_receipt_is_mandatory_for_admission",
+        "test_semantic_response_loss_reuses_durable_intent_and_idempotency_key",
+        "test_semantic_mismatch_missing_duplicate_reordered_and_prior_calls_reject",
+        "test_validator_source_authority_tamper_rejects"
+      ],
+      "threat_tests": [
+        "TST-11",
+        "TST-12"
+      ]
+    },
+    "DR-INV-02": {
+      "code": [
+        "CommandAdmissionPolicy.authorize",
+        "DrainReclaimStateMachine.complete_response",
+        "FencedActionExecutor.execute"
+      ],
+      "controls": [
+        "CTL-13",
+        "CTL-20"
+      ],
+      "tests": [
+        "test_restart_preserves_state_and_fences_the_old_controller",
+        "test_stale_generation_and_stale_controller_commands_reject",
+        "test_late_response_timeout_is_persisted_before_exception",
+        "test_signed_out_of_policy_command_is_refused_before_side_effect"
+      ],
+      "threat_tests": [
+        "TST-17"
+      ]
+    },
+    "DR-INV-03": {
+      "code": [
+        "DrainReclaimStateMachine.record_reclaim",
+        "GpuReleaseProof.validate_for"
+      ],
+      "controls": [
+        "CTL-04",
+        "CTL-05"
+      ],
+      "tests": [
+        "test_exact_total_absence_before_scrub_and_zero_nvml_are_required",
+        "test_graphics_process_rejects_gpu_release"
+      ],
+      "threat_tests": [
+        "TST-01",
+        "TST-02"
+      ]
+    },
+    "DR-INV-04": {
+      "code": [
+        "DrainReclaimStateMachine.begin_switch",
+        "SwitchLedgerBridge.__init__"
+      ],
+      "controls": [
+        "CTL-10"
+      ],
+      "tests": [
+        "test_bridge_refuses_work_before_external_t0"
+      ],
+      "threat_tests": [
+        "TST-12"
+      ]
+    },
+    "DR-INV-05": {
+      "code": [
+        "SwitchLedgerBridge.fail_attempt",
+        "SwitchLedgerBridge.close_success",
+        "SwitchLedgerBridge.close_recovery_success"
+      ],
+      "controls": [
+        "CTL-10",
+        "CTL-13"
+      ],
+      "tests": [
+        "test_failure_recovery_is_idempotent_and_retained_in_denominator"
+      ],
+      "threat_tests": [
+        "TST-12"
+      ]
+    },
+    "DR-INV-06": {
+      "code": [
+        "DrainReclaimStateMachine.reject_reclaim_proof",
+        "DrainReclaimStateMachine.record_requalification",
+        "NodeLocalActions.revoke_placement",
+        "PlacementRevocationProof.validate_for"
+      ],
+      "controls": [
+        "CTL-04",
+        "CTL-05"
+      ],
+      "tests": [
+        "test_concrete_scrub_and_cleanup_receipt_producers",
+        "test_quarantine_revoke_recycle_new_boot_and_requalify"
+      ],
+      "threat_tests": [
+        "TST-16"
+      ]
+    },
+    "DR-INV-07": {
+      "code": [
+        "DrainReclaimStateMachine.advance_drain",
+        "DrainReclaimStateMachine.record_reclaim"
+      ],
+      "controls": [
+        "CTL-13"
+      ],
+      "tests": [
+        "test_active_a_completes_during_drain_before_reclaim",
+        "test_hung_a_is_timed_out_and_late_a_response_rejected"
+      ],
+      "threat_tests": [
+        "TST-17"
+      ]
+    },
+    "DR-INV-08": {
+      "code": [
+        "DrainReclaimStateMachine._commit",
+        "DrainReclaimStateMachine._validate_snapshot",
+        "FencedActionExecutor.execute"
+      ],
+      "controls": [
+        "CTL-10",
+        "CTL-20"
+      ],
+      "tests": [
+        "test_transition_chain_binds_every_state_detail",
+        "test_stale_generation_and_stale_controller_commands_reject"
+      ],
+      "threat_tests": [
+        "TST-12",
+        "TST-17"
+      ]
+    },
+    "DR-INV-09": {
+      "code": [
+        "DrainReclaimStateMachine.fail_start",
+        "DrainReclaimStateMachine.record_ambiguous_launch_cleanup",
+        "DrainReclaimStateMachine.begin_rollback"
+      ],
+      "controls": [
+        "CTL-04",
+        "CTL-05",
+        "CTL-10"
+      ],
+      "tests": [
+        "test_ambiguous_launch_must_be_proved_absent_before_new_generation",
+        "test_action_crash_window_is_durable_and_never_replays",
+        "test_cancelled_bound_b_requires_exact_partial_cleanup",
+        "test_failed_b_and_rollback_use_separate_linked_traces",
+        "test_many_seed_drain_cancel_failure_and_cleanup_preserve_invariants"
+      ],
+      "threat_tests": [
+        "TST-01",
+        "TST-02",
+        "TST-12"
+      ]
+    },
+    "DR-INV-10": {
+      "code": [
+        "DrainReclaimStateMachine.begin_start_b",
+        "FencedActionExecutor.execute",
+        "KubernetesActions.launch",
+        "NodeLocalActions.launch"
+      ],
+      "controls": [
+        "CTL-19",
+        "CTL-20"
+      ],
+      "tests": [
+        "test_concurrent_duplicate_b_reserves_one_generation",
+        "test_duplicate_launch_reservation_is_idempotent_and_conflict_rejects",
+        "test_node_local_and_kubernetes_action_adapters_refuse_second_occupancy",
+        "test_kubernetes_adapter_pins_kubeconfig_context_cluster_ca_namespace_node"
+      ],
+      "threat_tests": [
+        "TST-11",
+        "TST-17"
+      ]
+    }
   },
   "invariants": [
     {
       "id": "DR-INV-01",
-      "statement": "Admission is open only in a serving state with exactly one bound runtime whose model and GPU match the node record and whose two distinct ordered semantic inferences both passed."
+      "statement": "Admission is open only for one exact runtime after an exact bridge receipt proves two distinct, ordered, raw-evidence-backed semantic calls using the pinned validator source and an independently reread complete off-node durable chain segment."
     },
     {
       "id": "DR-INV-02",
-      "statement": "Every controller mutation and every response is fenced by a monotonic generation; stale controllers, retired runtimes, wrong models, and terminal request leases are rejected."
+      "statement": "Every state mutation, physical command, request lease, and response is controller-lease- and runtime-generation-fenced; late responses are durably terminal before rejection."
     },
     {
       "id": "DR-INV-03",
-      "statement": "A target or rollback runtime cannot reserve a generation until the exact prior PID/start-time, cgroup, container and optional Pod UID are absent, credentials and host residue are cleared, active scrub succeeds, and two ordered NVML samples report no process and zero used framebuffer memory."
+      "statement": "GPU_FREE requires stop completion, exact process/cgroup/container/Pod and host-residue absence, then an approved scrub bound to the exact GPU UUID and total bytes, then exactly two NVML samples with zero compute processes, zero graphics processes, and zero used bytes."
     },
     {
       "id": "DR-INV-04",
-      "statement": "The switch carries the external request T0 and refuses any request-specific transition whose observation precedes it."
+      "statement": "The target switch begins only after the shared external-client T0 and every request-specific event remains causally after that immutable acceptance event."
     },
     {
       "id": "DR-INV-05",
-      "statement": "Drain, timeout, GPU release, failed launch, accounting, and cleanup are explicit events in the shared request ledger; failures remain in the offered-attempt denominator."
+      "statement": "Drain, timeout, reclaim, semantic validation, every admitted failure, accounting, and cleanup are durably retained in the shared denominator and hash-chained audit segment; rollback A has its own later external T0, trace, terminal, accounting, and cleanup linked to B failure."
     },
     {
       "id": "DR-INV-06",
-      "statement": "Unknown or incomplete absence, scrub, NVML, credential, mount, namespace, container, Pod, or kernel-residue evidence quarantines the node and never becomes capacity."
+      "statement": "Unknown cleanup quarantines the node; reuse requires placement-lease revocation, a newly created resource with a fresh boot identity, and signed requalification covering sentinel VRAM, host residue, occupancy, audit continuity, and command replay refusal."
     },
     {
       "id": "DR-INV-07",
-      "statement": "GPU reclaim cannot complete while an active request lease belongs to the runtime being removed; deadline expiry explicitly marks every such lease timed out before termination."
+      "statement": "Reclaim cannot begin while an active lease belongs to the retiring runtime; the bounded drain durably completes or times out every admitted lease before stop."
     },
     {
       "id": "DR-INV-08",
-      "statement": "Canonical durable snapshots use compare-and-swap revisions; controller restart increments the fence so an old controller cannot mutate recovered state."
+      "statement": "Canonical snapshots use compare-and-swap revisions whose predecessor-hash records embed every complete post-transition state detail; state restart and agent actions reject stale controller generations."
     },
     {
       "id": "DR-INV-09",
-      "statement": "A partial or semantically invalid B runtime is itself retired, scrubbed, and proved absent before rollback or another launch."
+      "statement": "Every launch has a durable pre-launch operation identity and agent-side executing intent; bound and ambiguous failed launches require exact generation cleanup and GPU-zero proof before rollback or any new generation, and ambiguous commands are never replayed."
     },
     {
       "id": "DR-INV-10",
-      "statement": "An exact duplicate switch command is idempotent and cannot reserve a second runtime generation; a conflicting command is rejected."
+      "statement": "Exact duplicate reservations and commands are idempotent, conflicting retries are rejected, and both node-local and exact-cluster Kubernetes agents independently refuse double occupancy before physical launch."
     }
   ],
   "ledger": {
+    "audit_event_schema": "archvteams.nebius.ai/catalog-switch-audit-event/v1",
     "boundary": "external-client-request-accepted/v1",
     "failure_terminal": "attempt.failed",
-    "phases_owned": [
-      "drain",
-      "gpu_release"
-    ],
-    "schema": "archvteams.nebius.ai/catalog-switch-ledger-event/v1",
+    "gate_receipt_schema": "archvteams.nebius.ai/catalog-switch-ledger-gate/v2",
+    "offnode_receipt_schema": "archvteams.nebius.ai/catalog-switch-offnode-durability/v1",
+    "immutable_object_exact_version_reread_required": true,
+    "predecessor_hash_required": true,
+    "rollback_external_t0_and_trace_required": true,
+    "shared_schema": "archvteams.nebius.ai/catalog-switch-ledger-event/v1",
     "success_terminal": "first-complete-semantically-valid-response/v1"
   },
   "proof_gates": {
@@ -68,40 +264,75 @@
         "gpu-reset",
         "mig-recreate"
       ],
+      "full_vram_bytes_rule": "bytes-scrubbed-equals-exact-nvml-total",
       "minimum_ordered_nvml_samples": 2,
       "nvml_compute_processes": "empty",
-      "nvml_graphics_processes": "empty",
-      "nvml_memory_used_bytes": "less-than-or-equal-to-pinned-idle-baseline",
-      "schema": "archvteams.nebius.ai/catalog-switch-gpu-release/v1"
+      "nvml_graphics_processes": "observed-and-empty",
+      "nvml_memory_used_bytes": "equals-zero",
+      "order": [
+        "stop-completed",
+        "runtime-or-operation-absence",
+        "scrub-completed",
+        "nvml-zero-sample-1",
+        "nvml-zero-sample-2"
+      ],
+      "schema": "archvteams.nebius.ai/catalog-switch-gpu-release/v2"
     },
     "runtime_absence": {
       "required": [
-        "exact-pid-and-start-time-absent",
+        "exact-process-generation-absent",
         "exact-cgroup-empty-or-absent",
         "exact-container-absent",
         "exact-pod-uid-absent-for-kubernetes",
         "mounts-absent",
         "namespaces-absent",
         "credentials-revoked",
-        "kernel-residue-safe"
+        "kernel-residue-safe",
+        "logs-purged",
+        "sockets-absent"
       ],
-      "schema": "archvteams.nebius.ai/catalog-switch-runtime-absence/v1"
+      "schema": "archvteams.nebius.ai/catalog-switch-runtime-absence/v2"
     },
-    "semantic_probe": {
-      "distinct_inference_count": 2,
-      "each_complete_body": true,
-      "each_semantically_valid": true,
-      "first_valid_response_remains_product_terminal": true,
-      "generation_and_model_must_match": true,
-      "product_terminal_event_digest_must_match_first_inference": true,
-      "schema": "archvteams.nebius.ai/catalog-switch-semantic-probe/v1",
-      "switch_acceptance_after_second_inference": true
+    "quarantine_recovery": {
+      "required": [
+        "placement-lease-absent",
+        "new-placement-refused",
+        "old-resource-absent",
+        "new-resource-created",
+        "new-resource-identity",
+        "fresh-node-boot-identity",
+        "gpu-identity-rebound",
+        "sentinel-vram-absent",
+        "host-residue-absent",
+        "exclusive-occupancy-enforced",
+        "direct-launch-refused",
+        "audit-offnode-continuity",
+        "command-replay-refused",
+        "two-zero-process-zero-graphics-zero-byte-nvml-samples"
+      ],
+      "placement_revocation_schema": "archvteams.nebius.ai/catalog-switch-placement-revocation/v1",
+      "node_recycle_schema": "archvteams.nebius.ai/catalog-switch-node-recycle/v1",
+      "requalification_schema": "archvteams.nebius.ai/catalog-switch-requalification/v1"
+    },
+    "semantic": {
+      "bridge_owned_inference_execution": true,
+      "call_count": 2,
+      "distinct_raw_request_bodies": true,
+      "distinct_raw_response_bodies": true,
+      "durable_idempotent_intents": true,
+      "exact_validator_replay": true,
+      "exact_validator_source_authority": true,
+      "no_prior_call_or_restart": true,
+      "raw_authority_hash_and_bytes": true,
+      "strict_call_order": true
     }
   },
-  "schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v1",
+  "schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-contract/v2",
   "source_contracts": {
     "request_slo_commit": "ba49c9e20f194e0f419d4209608904cc9335219d",
     "request_slo_path": "performance/request_slo",
+    "request_slo_content_manifest_sha256": "0095bf61bf8891040731956f97188af4031c18a3fd06fd713f8b6de271d13bbd",
+    "request_slo_tree_oid_sha1": "ee9ae33ff4af61187e9afb00b2be4fb1e5293725",
     "security_controls": [
       "CTL-04",
       "CTL-05",
@@ -113,185 +344,56 @@
       "CTL-21"
     ],
     "security_model_commit": "9cfbc1b1311a1f784a407889b215aaec5200fe0e",
-    "security_model_path": "catalog-switch/security-reliability/threat_model.json"
+    "security_model_path": "catalog-switch/security-reliability",
+    "security_model_content_manifest_sha256": "9edf0231aa36ecc07a611ca44f7745c2709a8851517cfadb532446fcbbd7684b",
+    "security_model_tree_oid_sha1": "a6ad3555b819a0b58e0c937b42f1cf770fa05743",
+    "security_tests": [
+      "TST-01",
+      "TST-02",
+      "TST-11",
+      "TST-12",
+      "TST-16",
+      "TST-17"
+    ]
   },
-  "state_schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v1",
+  "state_schema": "archvteams.nebius.ai/catalog-switch-drain-reclaim-state/v2",
   "states": [
-    {
-      "admission": "closed",
-      "name": "IDLE",
-      "runtime": "absent"
-    },
-    {
-      "admission": "open",
-      "name": "SERVING_A",
-      "runtime": "exactly-one"
-    },
-    {
-      "admission": "closed",
-      "name": "DRAINING_A",
-      "runtime": "exactly-one"
-    },
-    {
-      "admission": "closed",
-      "name": "RECLAIMING_A",
-      "runtime": "exactly-one-until-proof"
-    },
-    {
-      "admission": "closed",
-      "name": "GPU_FREE",
-      "runtime": "absent-with-proof"
-    },
-    {
-      "admission": "closed",
-      "name": "STARTING_B",
-      "runtime": "zero-or-one-reserved-generation"
-    },
-    {
-      "admission": "open",
-      "name": "SERVING_B",
-      "runtime": "exactly-one"
-    },
-    {
-      "admission": "closed",
-      "name": "FAILED",
-      "runtime": "absent-with-proof"
-    },
-    {
-      "admission": "closed",
-      "name": "RECLAIMING_B",
-      "runtime": "exactly-one-failed-generation-until-proof"
-    },
-    {
-      "admission": "closed",
-      "name": "ROLLING_BACK",
-      "runtime": "zero-or-one-reserved-generation"
-    },
-    {
-      "admission": "open",
-      "name": "ROLLBACK_SERVING",
-      "runtime": "exactly-one"
-    },
-    {
-      "admission": "closed",
-      "name": "QUARANTINED",
-      "runtime": "unknown-never-reusable"
-    }
+    {"admission": "closed", "name": "IDLE", "runtime": "absent"},
+    {"admission": "open", "name": "SERVING_A", "runtime": "exactly-one-bootstrap-or-ledger-qualified"},
+    {"admission": "closed", "name": "DRAINING_A", "runtime": "exactly-one-draining"},
+    {"admission": "closed", "name": "RECLAIMING_A", "runtime": "exactly-one-until-absence-and-zero"},
+    {"admission": "closed", "name": "GPU_FREE", "runtime": "absent-with-exact-zero-proof"},
+    {"admission": "closed", "name": "STARTING_B", "runtime": "zero-or-one-with-durable-operation"},
+    {"admission": "open", "name": "SERVING_B", "runtime": "exactly-one-two-call-ledger-qualified"},
+    {"admission": "closed", "name": "FAILED", "runtime": "absent-awaiting-canonical-failure-ledger"},
+    {"admission": "closed", "name": "RECLAIMING_B", "runtime": "zero-or-one-operation-unresolved"},
+    {"admission": "closed", "name": "ROLLING_BACK", "runtime": "zero-or-one-with-durable-operation"},
+    {"admission": "open", "name": "ROLLBACK_SERVING", "runtime": "exactly-one-linked-recovery-qualified"},
+    {"admission": "closed", "name": "QUARANTINED", "runtime": "unknown-placement-revocation-required"},
+    {"admission": "closed", "name": "QUARANTINE_REVOKING", "runtime": "unknown-lease-revocation-pending"},
+    {"admission": "closed", "name": "RECYCLING_NODE", "runtime": "old-authority-revoked-new-resource-pending"},
+    {"admission": "closed", "name": "REQUALIFYING_NODE", "runtime": "new-boot-control-suite-pending"}
   ],
-  "status": "reference-implementation",
-  "transitions": [
-    {
-      "from": [
-        "IDLE"
-      ],
-      "gate": "exact initial runtime identity",
-      "operation": "install_serving_a",
-      "to": "SERVING_A"
-    },
-    {
-      "from": [
-        "SERVING_A",
-        "SERVING_B",
-        "ROLLBACK_SERVING"
-      ],
-      "gate": "external T0 and distinct target",
-      "operation": "begin_switch",
-      "to": "DRAINING_A"
-    },
-    {
-      "from": [
-        "DRAINING_A"
-      ],
-      "gate": "in-flight zero or explicit deadline timeout",
-      "operation": "advance_drain",
-      "to": "RECLAIMING_A"
-    },
-    {
-      "from": [
-        "RECLAIMING_A",
-        "RECLAIMING_B"
-      ],
-      "gate": "runtime absence plus scrub plus ordered empty NVML observations",
-      "operation": "record_reclaim",
-      "to": "GPU_FREE"
-    },
-    {
-      "from": [
-        "RECLAIMING_A",
-        "RECLAIMING_B"
-      ],
-      "gate": "any unverifiable reclaim evidence",
-      "operation": "reject_reclaim_proof",
-      "to": "QUARANTINED"
-    },
-    {
-      "from": [
-        "GPU_FREE"
-      ],
-      "gate": "uncancelled switch and exact reclaim digest",
-      "operation": "begin_start_b",
-      "to": "STARTING_B"
-    },
-    {
-      "from": [
-        "STARTING_B"
-      ],
-      "gate": "bound generation and semantic validation",
-      "operation": "accept_b",
-      "to": "SERVING_B"
-    },
-    {
-      "from": [
-        "STARTING_B",
-        "ROLLING_BACK"
-      ],
-      "gate": "launch fails before a runtime exists",
-      "operation": "fail_start",
-      "to": "FAILED"
-    },
-    {
-      "from": [
-        "STARTING_B",
-        "ROLLING_BACK"
-      ],
-      "gate": "launch fails after arbitrary code ran",
-      "operation": "fail_start",
-      "to": "RECLAIMING_B"
-    },
-    {
-      "from": [
-        "GPU_FREE"
-      ],
-      "gate": "durable failure reason",
-      "operation": "mark_failed",
-      "to": "FAILED"
-    },
-    {
-      "from": [
-        "GPU_FREE",
-        "FAILED"
-      ],
-      "gate": "cancel/failure plus exact reclaim digest",
-      "operation": "begin_rollback",
-      "to": "ROLLING_BACK"
-    },
-    {
-      "from": [
-        "ROLLING_BACK"
-      ],
-      "gate": "bound source-model generation and semantic validation",
-      "operation": "accept_rollback",
-      "to": "ROLLBACK_SERVING"
-    },
-    {
-      "from": [
-        "SERVING_B",
-        "ROLLBACK_SERVING"
-      ],
-      "gate": "durable terminal, accounting, and cleanup records",
-      "operation": "seal_switch",
-      "to": "SERVING_A"
-    }
-  ],
-  "version": 1
+  "status": "independent-review-required",
+  "transitions": {
+    "accept_b": {"from": ["STARTING_B"], "to": ["SERVING_B"]},
+    "accept_rollback": {"from": ["ROLLING_BACK"], "to": ["ROLLBACK_SERVING"]},
+    "advance_drain": {"from": ["DRAINING_A"], "to": ["DRAINING_A", "RECLAIMING_A"]},
+    "begin_quarantine_recovery": {"from": ["QUARANTINED"], "to": ["QUARANTINE_REVOKING"]},
+    "begin_rollback": {"from": ["GPU_FREE", "FAILED", "ROLLING_BACK"], "to": ["ROLLING_BACK"]},
+    "begin_start_b": {"from": ["GPU_FREE", "STARTING_B"], "to": ["STARTING_B"]},
+    "begin_switch": {"from": ["SERVING_A"], "to": ["DRAINING_A"]},
+    "bind_starting_runtime": {"from": ["STARTING_B", "ROLLING_BACK"], "to": ["STARTING_B", "ROLLING_BACK"]},
+    "fail_start": {"from": ["STARTING_B", "ROLLING_BACK"], "to": ["RECLAIMING_B"]},
+    "install_serving_a": {"from": ["IDLE"], "to": ["SERVING_A"]},
+    "mark_failed": {"from": ["GPU_FREE"], "to": ["FAILED"]},
+    "record_ambiguous_launch_cleanup": {"from": ["RECLAIMING_B"], "to": ["GPU_FREE"]},
+    "record_node_recycle": {"from": ["RECYCLING_NODE"], "to": ["REQUALIFYING_NODE"]},
+    "record_quarantine_revocation": {"from": ["QUARANTINE_REVOKING"], "to": ["RECYCLING_NODE"]},
+    "record_reclaim": {"from": ["RECLAIMING_A", "RECLAIMING_B"], "to": ["GPU_FREE"]},
+    "record_requalification": {"from": ["REQUALIFYING_NODE"], "to": ["GPU_FREE"]},
+    "reject_reclaim_proof": {"from": ["RECLAIMING_A", "RECLAIMING_B"], "to": ["QUARANTINED"]},
+    "seal_switch": {"from": ["SERVING_B", "ROLLBACK_SERVING"], "to": ["SERVING_A"]}
+  },
+  "version": 2
 }

@@ -1,32 +1,44 @@
-# Generation-fenced A-to-B drain and GPU reclaim
+# Generation-fenced A-to-B drain and GPU reclaim v2
 
-This directory is the backend-neutral reference implementation for switching
-one exclusively occupied GPU from model A to model B. It is built on the
-reviewed external-T0 ledger in `performance/request_slo/` and the reviewed
-controls in `catalog-switch/security-reliability/`.
+This directory contains the backend-neutral reference implementation for
+switching one exclusively occupied GPU from model A to model B. It consumes the
+canonical external-T0 request ledger in `performance/request_slo/` and enforces
+the reviewed controls in `catalog-switch/security-reliability/`.
 
-The implementation is offline code, not a service. The internal backend scope
-is Kubernetes and direct/node-local VM only. This lane does not authenticate
-to, deploy, run, benchmark, simulate, or rank Modal. Cerebrium is the parent
-program's sole external measured comparator and is not an adapter here.
+This is offline library code, not a deployed service. Its only internal backend
+adapters are Kubernetes and direct/node-local VM. This lane does not
+authenticate to, deploy, run, benchmark, simulate, rank, or implement an
+adapter for Modal. Cerebrium is the parent program's sole external measured
+comparator and is not an adapter in this package.
+
+The previous v1 candidate at `34d70fd0` is rejected. Version 2 is a direct-child
+replacement and remains `independent-review-required`; passing its own tests is
+not approval or live H100 evidence.
 
 ## Delivered interfaces
 
-- `contract.json` freezes the v1 states, transitions, ten invariants, proof
-  gates, source contract commits, and lane scope.
+- `contract.json` freezes the v2 states, transitions, ten exact invariants,
+  proof gates, prerequisite commit/tree/content hashes, resolved control/test
+  bindings, and the backend scope.
 - `state_machine.py` implements durable compare-and-swap state, controller and
   response generation fences, request leases, bounded drain, exact reclaim,
-  B startup, failure, quarantine, rollback, and a hash-chained transition
-  journal.
-- `adapters.py` supplies exact PID/start-time, cgroup, container, Pod UID, and
-  NVML-backed evidence adapters for node-local and Kubernetes prototypes. It
-  separates mutation commands from independent postcondition evidence.
-- `ledger.py` attaches drain and GPU-release events to an already-existing
-  external `request.accepted` event. It can close a failed attempt without
-  omitting phases and returns a terminal/accounting/cleanup receipt digest only
-  after the complete shared ledger validates.
-- `validate_contract.py` fails closed if the documented states, adapters,
-  proofs, security controls, or Modal exclusion drift from the implementation.
+  durable pre-launch reservations, B startup, failure, linked rollback, full
+  quarantine recovery, and a transition chain that embeds every complete
+  post-transition snapshot.
+- `ledger.py` bridges the shared request ledger to an append-only predecessor-
+  hash audit chain. It stores exact raw request, raw response, and validator
+  output authorities, replays the pinned validator, retains failure/accounting/
+  cleanup events idempotently, persists the complete segment off-node, and
+  issues the only receipts accepted by the state machine.
+- `adapters.py` implements fenced action producers and independent evidence
+  producers for both backends. Every action uses a signed command envelope
+  bound to controller lease, generation, sequence, operation ID, idempotency
+  key, exact runtime authority, policy hash, and source digest. The receiving
+  agent independently enforces the operation/executable, artifact, and
+  privilege allowlist; a valid signature alone never authorizes a command.
+- `validate_contract.py` verifies contract-to-code/test equivalence and the
+  exact prerequisite commit, Git tree, and content-manifest hashes. Nonempty
+  prose is never treated as proof of an invariant.
 
 ## State sequence
 
@@ -38,96 +50,121 @@ IDLE -> SERVING_A -> DRAINING_A -> RECLAIMING_A -> GPU_FREE
                                                    /      \
                                           SERVING_B      RECLAIMING_B
                                                              |
+                                      exact gen-B absence + GPU zero
+                                                             |
                                                              v
                                               GPU_FREE -> FAILED
                                                              |
-                                                             v
-                                                     ROLLING_BACK
+                                  linked recovery trace      v
+                                              GPU_FREE -> ROLLING_BACK
                                                              |
                                                              v
                                                    ROLLBACK_SERVING
 
-Any unverifiable reclaim ------------------------------> QUARANTINED
+Unverifiable reclaim -> QUARANTINED -> QUARANTINE_REVOKING
+  -> RECYCLING_NODE -> REQUALIFYING_NODE -> GPU_FREE
 ```
 
-`SERVING_B` and `ROLLBACK_SERVING` remain explicit until the external recorder
-has durably written the product terminal, accounting, and cleanup events.
-`seal_switch()` requires their validated receipt digest; the current runtime
-then becomes the source A for the next switch.
+`SERVING_B` and `ROLLBACK_SERVING` remain explicit until the bridge has
+durably closed the required ledger segment. `seal_switch()` verifies a fresh
+canonical receipt again; it cannot accept caller-supplied terminal hashes.
 
-## Safety properties
+## Exact reclaim and launch rules
 
-Admission closes atomically when `begin_switch()` commits. Existing A leases
-may finish while `DRAINING_A`; new A leases cannot enter. At the drain deadline,
-every remaining lease becomes `TIMED_OUT`, its generation is retired, and any
-later A response is rejected. PID reuse cannot defeat absence checks because a
-runtime pins both host PID and `/proc` start ticks. Kubernetes identities also
-pin Pod UID and full container ID rather than relying on a reusable Pod name.
+Admission closes atomically with `begin_switch()`. Existing A leases may finish
+only while `DRAINING_A`; new A leases cannot enter. A lease that crosses its
+deadline is atomically persisted as `TIMED_OUT` before `ResponseTimedOut` is
+reported. Its generation is retired, so a late response cannot escape.
 
-`GPU_FREE` means all of the following were proved for the exact runtime and
-switch after the durable reclaim transition:
+Every B or rollback-A launch has a durable reservation before any physical
+side effect. It pins the launch operation, generation, model/artifact,
+idempotency key, and exact runtime authority. The launch receipt must be issued
+by the concrete fenced adapter before a runtime can be bound. If a create/exec
+response is lost, or the controller crashes between launch and bind, the
+reservation remains unresolved. Rollback or another generation is forbidden
+until the adapter proves exact operation/runtime absence and a new GPU-release
+gate completes. A bound or partially launched generation can therefore never
+be hidden behind A's older reclaim proof.
 
-1. PID generation absent, cgroup empty/absent, container absent, and Pod UID
-   absent for Kubernetes.
-2. Mount, namespace, credential, and kernel-residue cleanup attested by the
-   host agent.
-3. An approved active scrub completed (`full-vram-zero`, `gpu-reset`, or
-   `mig-recreate`). NVML emptiness alone is insufficient.
-4. At least two strictly ordered post-scrub NVML samples report no compute or
-   graphics process and memory no higher than the node's pinned idle baseline.
+`GPU_FREE` requires this strict order for the exact GPU UUID and its NVML total
+memory size:
 
-Any mismatch or unknown observation is a failure, not capacity. The caller
-must invoke `reject_reclaim_proof()` and quarantine the node. A partial B
-runtime follows the same reclaim path before rollback or retry.
+1. signed stop/cleanup action completed;
+2. exact PID/start-time, cgroup, container, and (for Kubernetes) Pod UID are
+   absent, along with mounts, namespaces, sockets, credentials, logs, and
+   kernel residue;
+3. an approved scrub completed after absence; `full-vram-zero` must report
+   `bytes_scrubbed == memory_total_bytes`;
+4. two strictly ordered post-scrub NVML samples observe zero compute contexts,
+   zero graphics contexts, and exactly zero framebuffer bytes in use.
 
-`accept_b()` and `accept_rollback()` require exactly two distinct, ordered,
-complete, semantically valid inferences whose model, version, runtime identity,
-and runtime generation match the reserved launch. Neither inference may
-predate the bound runtime.
+There is no arbitrary or node-pinned idle-memory allowance. Driver-reserved or
+unqueryable memory fails this production gate and quarantines the node. A GPU
+reset or MIG recreation is an allowed scrub method, but it does not waive the
+post-scrub zero observations.
 
-The first valid response remains the frozen product terminal. Its timestamp,
-model, and response digest are bound to the canonical `response.validated`
-event. The second inference is a switch-acceptance qualification: it is kept in
-the hash-chained state proof and does not move T0 or the first-valid-response
-latency. It must finish before the state machine opens B admission.
+Node-local evidence is accepted only from the exact signed node-agent
+authority, node UID, and boot ID. Kubernetes evidence additionally binds an
+absolute kubeconfig hash, an absolute non-symlink `kubectl` executable and its
+content hash, context, API server URL, server-CA hash, cluster UID, namespace,
+node UID, Pod UID, and container ID. `nvidia-smi pmon` supplies observed
+graphics contexts; the implementation never hard-codes an empty graphics-
+process set.
 
-## External-T0 ledger integration
+## Canonical semantic and durability gate
 
-The external client must write `request.accepted` first. Constructing
-`SwitchLedgerBridge` before that event fails. The normal ordering is:
+The external client must durably append `request.accepted` before bridge or
+state-machine switch work begins. The bridge mirrors every shared event into a
+contiguous append-only chain whose event binds its sequence, predecessor hash,
+switch/attempt/generation, monotonic time, and canonical payload.
 
-1. External recorder durably appends `request.accepted` with model/input and
-   exact environment/ownership.
-2. Bridge starts `drain`; state machine commits `begin_switch()` with that
-   event's monotonic T0; backend closes admission and drains A.
-3. Bridge finishes `drain`, starts `gpu_release`, and backend terminates A,
-   scrubs, and collects the exact absence/NVML proofs.
-4. State machine commits `record_reclaim()`; bridge finishes `gpu_release`.
-5. The backend records placement/readiness/start/inference through the same
-   external recorder. The first valid B response immediately closes the
-   canonical inference phase and writes `response.validated` at its true time.
-   A second distinct semantic inference is then bound to that terminal event;
-   only after it passes does the state machine accept B.
-6. The recorder writes accounting and cleanup (or the canonical failure path).
-   Failed
-   phases and attempts remain in the denominator. `terminal_receipt_sha256()`
-   validates the entire trace/ledger before `seal_switch()` can release the
-   switch ID.
+Target admission requires exactly two distinct semantic inference calls after
+the runtime bind and with no prior call or restart. For each call, the bridge
+first fsyncs a deterministic idempotent inference intent, owns the invocation
+and its start/completion clocks, and records separate canonical authorities for
+the complete raw request, complete
+raw response, and validator output, including hashes and byte counts. It joins
+the exact model, artifact, runtime identity, launch operation, generation,
+attempt, validator source/hash, and terminal. A completed retry returns the
+durable call without invoking the runtime again; response loss reuses the same
+intent key. Call 2 must start strictly after call 1 completes. The verifier
+reloads the immutable blobs and replays the
+pinned validator; a self-asserted boolean or `SemanticProbe` object has no
+admission path.
 
-No request-specific drain, cleanup, localization, or reclaim may be performed
-before step 1 or shifted to an idle TTL.
+The first valid target response remains the product terminal and retains its
+true timestamp. Call 2 is an admission qualification and never moves T0 or the
+first-valid-response timestamp. The complete segment must include its exact
+terminal, accounting, and cleanup closure and be stored by a versioned
+immutable off-node authority before a receipt verifies.
 
-## Backend integration requirements
+Failed-B rollback uses two causally linked traces rather than pretending A is
+the response to a B-targeted request. The B attempt has its own canonical
+failure terminal and cleanup. Only then may a separately accepted rollback-A
+recovery attempt record two A semantic calls and its own terminal, accounting,
+cleanup, chain segment, and off-node receipt. Every admitted failure remains in
+the denominator.
 
-Prototype action adapters implement the `BackendActions` protocol. A successful
-delete/kill command is only intent; it is never a reclaim proof. Kubernetes
-must combine exact API-observed Pod UID disappearance with node-local PID,
-cgroup, container-runtime, scrub, and NVML evidence. Direct VM runtimes use the
-same host evidence without a Pod field.
+Bridge closure is staged and idempotent. A retry after a crash immediately
+after `attempt.failed` resumes accounting and cleanup without erasing the
+failure; replay after a successful terminal cannot append another terminal.
 
-The controller must persist `MachineSnapshot` through `JsonFileStateStore`.
-Every restart claims a new controller generation. An old process may continue
-running, but all its later mutations fail with `FenceRejected`.
+## Quarantine recovery
+
+Unknown absence, scrub, NVML, audit, or cleanup evidence enters
+`QUARANTINED`, a non-serving state. Reuse requires all of the following durable
+transitions:
+
+1. revoke the exact placement lease and prove no new placement can land;
+2. recycle/delete the old resource and create a replacement with a different
+   resource ID and fresh boot ID;
+3. requalify the replacement with sentinel-VRAM, host-residue, exclusive-
+   occupancy/direct-launch refusal, off-node audit continuity, command-auth
+   replay refusal, and exact NVML-zero controls;
+4. bind the signed recycle and requalification receipts before returning to
+   `GPU_FREE`.
+
+Quarantine is not an idle TTL and cannot be bypassed by a controller restart.
 
 ## Verification
 
@@ -139,13 +176,15 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -v \
   catalog-switch/drain-reclaim/tests
 ```
 
-The tests include 100 deterministic randomized schedules plus targeted cases
-for duplicate/competing B, active and hung A, response cancellation and
-timeouts, wrong-model/late responses, stale controllers after restart, partial
-B cleanup, rollback, incomplete proof quarantine, PID reuse, Kubernetes Pod UID
-reuse, ambiguous container errors, NVML errors, two-distinct-semantic admission,
-first-response terminal binding, and success/failure ledgers.
+The direct tests exercise fabricated ledger hashes, altered validator source,
+missing/duplicate/reordered/prior semantic calls, crash/retry closure, timeout
+persistence, launch response loss, partial B cleanup, linked rollback,
+transition-detail tampering, wrong cluster/context/CA/namespace/node/boot,
+wrong node-agent authority, stale-controller side effects, command replay,
+second occupancy, graphics processes, incomplete/full-size scrub, and full
+quarantine recovery. The prerequisite request-SLO and security suites must also
+remain green.
 
-Offline fixtures are contract tests, never latency or performance evidence.
-Real performance claims require the fresh single-H100 run in
-`H100_INTEGRATION_PLAN.md`.
+Offline fixtures are correctness tests only. They are not latency, provider, or
+GPU evidence. The two separate fresh single-H100 runs are specified in
+`H100_INTEGRATION_PLAN.md`; neither has run for this candidate.

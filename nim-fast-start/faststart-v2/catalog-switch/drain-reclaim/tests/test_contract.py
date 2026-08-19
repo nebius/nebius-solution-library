@@ -12,38 +12,97 @@ sys.path.insert(0, str(ROOT))
 from validate_contract import ContractError, validate  # noqa: E402
 
 
-class ContractTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.contract = json.loads((ROOT / "contract.json").read_text())
-        cls.threat = json.loads(
-            (ROOT.parent / "security-reliability" / "threat_model.json").read_text()
-        )
+def inputs():
+    contract = json.loads((ROOT / "contract.json").read_text())
+    threat = json.loads(
+        (ROOT.parent / "security-reliability" / "threat_model.json").read_text()
+    )
+    return contract, threat
 
-    def test_checked_in_contract_matches_implementation_and_reviewed_security(self) -> None:
-        result = validate(self.contract, self.threat)
-        self.assertEqual(result["status"], "valid")
+
+class ContractEquivalenceTests(unittest.TestCase):
+    def test_contract_matches_exact_code_sources_controls_and_tests(self) -> None:
+        contract, threat = inputs()
+        result = validate(contract, threat)
+        self.assertEqual(result["status"], "valid-independent-review-required")
+        self.assertEqual(result["memory_rule"], "post-scrub-nvml-used-bytes-equals-zero")
         self.assertEqual(result["backends"], ["kubernetes", "node-local"])
 
-    def test_missing_state_fails_closed(self) -> None:
-        mutated = copy.deepcopy(self.contract)
-        mutated["states"].pop()
-        with self.assertRaisesRegex(ContractError, "states differ"):
-            validate(mutated, self.threat)
+    def test_changed_source_commit_or_tree_hash_rejects(self) -> None:
+        for field in (
+            "request_slo_commit",
+            "request_slo_tree_oid_sha1",
+            "request_slo_content_manifest_sha256",
+            "security_model_commit",
+            "security_model_tree_oid_sha1",
+            "security_model_content_manifest_sha256",
+        ):
+            with self.subTest(field=field):
+                contract, threat = inputs()
+                contract["source_contracts"][field] = "0" * (
+                    40 if field.endswith("commit") else 40
+                )
+                with self.assertRaisesRegex(ContractError, "pinned prerequisite"):
+                    validate(contract, threat)
 
-    def test_missing_security_control_fails_closed(self) -> None:
-        mutated = copy.deepcopy(self.threat)
-        mutated["controls"] = [
-            item for item in mutated["controls"] if item["id"] != "CTL-04"
+    def test_empty_scrub_method_or_absence_gate_rejects(self) -> None:
+        for field in ("active_scrub_methods",):
+            contract, threat = inputs()
+            contract["proof_gates"]["gpu_release"][field] = []
+            with self.assertRaisesRegex(ContractError, "GPU release exact gates"):
+                validate(contract, threat)
+        contract, threat = inputs()
+        contract["proof_gates"]["runtime_absence"]["required"] = []
+        with self.assertRaisesRegex(ContractError, "runtime absence exact gate"):
+            validate(contract, threat)
+        contract, threat = inputs()
+        contract["proof_gates"]["quarantine_recovery"]["required"] = []
+        with self.assertRaisesRegex(ContractError, "quarantine recovery exact gate"):
+            validate(contract, threat)
+
+    def test_false_but_nonempty_invariant_statement_rejects(self) -> None:
+        contract, threat = inputs()
+        contract["invariants"][2]["statement"] = "GPU use is fine when convenient."
+        with self.assertRaisesRegex(ContractError, "invariant identifiers/statements"):
+            validate(contract, threat)
+
+    def test_zero_memory_rule_cannot_be_changed_to_baseline(self) -> None:
+        contract, threat = inputs()
+        contract["proof_gates"]["gpu_release"][
+            "nvml_memory_used_bytes"
+        ] = "less-than-or-equal-to-pinned-idle-baseline"
+        with self.assertRaisesRegex(ContractError, "GPU release exact gates"):
+            validate(contract, threat)
+
+    def test_every_inv_ctl_tst_and_code_binding_is_exact(self) -> None:
+        mutations = [
+            ("DR-INV-01", "controls", ["CTL-10"]),
+            ("DR-INV-03", "threat_tests", ["TST-01"]),
+            ("DR-INV-08", "code", ["DrainReclaimStateMachine._commit"]),
+            ("DR-INV-10", "tests", ["test_nonexistent"]),
         ]
-        with self.assertRaisesRegex(ContractError, "missing security controls"):
-            validate(self.contract, mutated)
+        for invariant, field, value in mutations:
+            with self.subTest(invariant=invariant, field=field):
+                contract, threat = inputs()
+                contract["bindings"][invariant][field] = value
+                with self.assertRaisesRegex(ContractError, "exact binding"):
+                    validate(contract, threat)
 
-    def test_modal_cannot_enter_measured_backend_scope(self) -> None:
-        mutated = copy.deepcopy(self.contract)
-        mutated["backends"]["measured_internal"].append("modal")
-        with self.assertRaisesRegex(ContractError, "Kubernetes and node-local only"):
-            validate(mutated, self.threat)
+    def test_state_and_transition_mutations_reject(self) -> None:
+        contract, threat = inputs()
+        contract["states"][0]["runtime"] = "maybe-present"
+        with self.assertRaisesRegex(ContractError, "state admission/runtime"):
+            validate(contract, threat)
+        contract, threat = inputs()
+        contract["transitions"]["accept_b"]["from"] = ["GPU_FREE"]
+        with self.assertRaisesRegex(ContractError, "transition relation"):
+            validate(contract, threat)
+
+    def test_modal_cannot_reenter_adapter_scope(self) -> None:
+        contract, threat = inputs()
+        contract["backends"]["measured_internal"].append("modal")
+        with self.assertRaisesRegex(ContractError, "Modal"):
+            validate(contract, threat)
 
 
 if __name__ == "__main__":
