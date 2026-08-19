@@ -18,6 +18,7 @@ from performance.k8s_baseline.sealing import (
     verify_seal,
 )
 from performance.k8s_baseline.stratification import (
+    _distribution,
     require_promotion_cohorts,
     require_single_promotion_cohort,
     stratify_aggregate,
@@ -454,9 +455,36 @@ class SealingAndStratificationTests(unittest.TestCase):
                     classification="synthetic", events=events,
                 )
 
+            forged_raw = copy.deepcopy(raw)
+            forged_raw["attempts"]["results"][0]["success"] = False
+            forged_raw["attempts"]["results"][0]["failure_class"] = "runtime"
+            forged_raw["attempts"]["valid_responses"] -= 1
+            forged_raw["attempts"]["failures"] += 1
+            with self.assertRaisesRegex(
+                BaselineError, "successful first semantic terminal"
+            ):
+                stratify_aggregate(
+                    forged_raw, trace, plan=None,
+                    qualification=receipt["two_call_qualification"],
+                    classification="synthetic", events=events,
+                )
+
     def test_promotion_requires_call2_cleanup_accounting_final_cleanup_and_seal(self) -> None:
+        results = [
+            {
+                "attempt_id": f"attempt-{index}", "success": True,
+                "terminal_seconds": 1.0 + index / 1000,
+            }
+            for index in range(30)
+        ]
         cohort = {
-            "attempts": {"offered": 30},
+            "attempts": {
+                "offered": 30, "valid_responses": 30, "failures": 0,
+                "results": results,
+            },
+            "request_to_first_semantic_validation_seconds": _distribution(
+                [item["terminal_seconds"] for item in results]
+            ),
             "two_semantic_qualification": {"offered": 30, "qualified": 30},
             "integrity": {
                 "cleanup_admitted": 30, "cleanup_failed_or_unreceipted": 0,
@@ -480,6 +508,19 @@ class SealingAndStratificationTests(unittest.TestCase):
                 aggregate, final_cleanup=released, seal_verified=True
             )
         cohort["two_semantic_qualification"]["qualified"] = 30
+        failed = copy.deepcopy(cohort)
+        for item in failed["attempts"]["results"]:
+            item["success"] = False
+            item["failure_class"] = "runtime"
+        failed["attempts"]["valid_responses"] = 0
+        failed["attempts"]["failures"] = 30
+        failed["request_to_first_semantic_validation_seconds"] = _distribution([])
+        aggregate["strata"] = [failed]
+        with self.assertRaisesRegex(BaselineError, "first- and two-semantically-qualified"):
+            require_single_promotion_cohort(
+                aggregate, final_cleanup=released, seal_verified=True
+            )
+        aggregate["strata"] = [cohort]
         cohort["integrity"]["accounting_failure_sentinel_count"] = 1
         with self.assertRaisesRegex(BaselineError, "cleanup and accounting"):
             require_single_promotion_cohort(
@@ -507,9 +548,22 @@ class SealingAndStratificationTests(unittest.TestCase):
 
     def test_two_model_campaign_promotes_each_exact_stratum_without_pooling(self) -> None:
         def cohort(model_id: str) -> dict:
+            results = [
+                {
+                    "attempt_id": f"{model_id}-{index}", "success": True,
+                    "terminal_seconds": 2.0 + index / 1000,
+                }
+                for index in range(30)
+            ]
             return {
                 "key": {"model_id": model_id},
-                "attempts": {"offered": 30},
+                "attempts": {
+                    "offered": 30, "valid_responses": 30, "failures": 0,
+                    "results": results,
+                },
+                "request_to_first_semantic_validation_seconds": _distribution(
+                    [item["terminal_seconds"] for item in results]
+                ),
                 "two_semantic_qualification": {"offered": 30, "qualified": 30},
                 "integrity": {
                     "cleanup_admitted": 30, "cleanup_failed_or_unreceipted": 0,

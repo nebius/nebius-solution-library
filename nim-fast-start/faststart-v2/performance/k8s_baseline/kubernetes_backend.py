@@ -175,7 +175,24 @@ class KubernetesBackend:
         value = self.kube.run(
             ["get", "pods", "-l", TARGET_SELECTOR, "-o", "json"], json_output=True
         )
-        return value.get("items", [])
+        if (
+            not isinstance(value, dict)
+            or value.get("apiVersion") != "v1"
+            or value.get("kind") != "List"
+            or not isinstance(value.get("metadata"), dict)
+            or not isinstance(value.get("items"), list)
+        ):
+            raise BaselineError("target Pod inventory is not a canonical Kubernetes v1 List")
+        items = value["items"]
+        if any(
+            not isinstance(item, dict)
+            or item.get("apiVersion") != "v1"
+            or item.get("kind") != "Pod"
+            or not isinstance(item.get("metadata"), dict)
+            for item in items
+        ):
+            raise BaselineError("target Pod inventory contains a noncanonical Pod object")
+        return items
 
     def _active_occupant(self) -> dict[str, str] | None:
         live = [

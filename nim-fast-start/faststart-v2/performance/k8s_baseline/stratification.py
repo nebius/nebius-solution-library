@@ -75,9 +75,48 @@ def stratify_aggregate(
     """Remove mixed headline percentiles and emit complete, promotion-safe strata."""
 
     requests = {item["attempt_id"]: item for item in trace["requests"]}
-    results = raw["attempts"]["results"]
-    if set(requests) != {item["attempt_id"] for item in results}:
+    attempts = raw.get("attempts")
+    if not isinstance(attempts, dict) or not isinstance(attempts.get("results"), list):
+        raise BaselineError("raw aggregate lacks canonical per-attempt results")
+    results = attempts["results"]
+    results_by_id: dict[str, dict[str, Any]] = {}
+    for item in results:
+        if not isinstance(item, dict):
+            raise BaselineError("raw aggregate contains a non-object attempt result")
+        attempt_id = item.get("attempt_id")
+        if (
+            not isinstance(attempt_id, str)
+            or attempt_id not in requests
+            or attempt_id in results_by_id
+        ):
+            raise BaselineError("raw aggregate has foreign or duplicate attempt identity")
+        if not isinstance(item.get("success"), bool):
+            raise BaselineError("raw aggregate attempt success must be boolean")
+        terminal_seconds = item.get("terminal_seconds")
+        if (
+            not isinstance(terminal_seconds, (int, float))
+            or isinstance(terminal_seconds, bool)
+            or not math.isfinite(float(terminal_seconds))
+            or float(terminal_seconds) <= 0
+        ):
+            raise BaselineError("raw aggregate attempt lacks a valid product terminal")
+        if item["success"] and item.get("failure_class") is not None:
+            raise BaselineError("successful raw attempt has a failure classification")
+        if not item["success"] and (
+            not isinstance(item.get("failure_class"), str) or not item["failure_class"]
+        ):
+            raise BaselineError("failed raw attempt lacks a failure classification")
+        results_by_id[attempt_id] = item
+    if set(requests) != set(results_by_id):
         raise BaselineError("raw aggregate does not retain every offered attempt")
+    successful_count = sum(item["success"] for item in results)
+    if (
+        attempts.get("offered") != len(requests)
+        or attempts.get("observed") != len(results)
+        or attempts.get("valid_responses") != successful_count
+        or attempts.get("failures") != len(results) - successful_count
+    ):
+        raise BaselineError("raw aggregate attempt counters differ from retained results")
     qualification_rows = (qualification or {}).get("attempts")
     if not isinstance(qualification_rows, list):
         raise BaselineError("two-call qualification evidence lacks per-attempt rows")
@@ -89,18 +128,26 @@ def stratify_aggregate(
         if not isinstance(row, dict) or set(row) != expected_qualification_keys:
             raise BaselineError("two-call qualification row has a noncanonical shape")
         attempt_id = row["attempt_id"]
-        if attempt_id not in requests or attempt_id in qualified:
+        if (
+            not isinstance(attempt_id, str)
+            or attempt_id not in requests
+            or attempt_id in qualified
+        ):
             raise BaselineError("two-call qualification has foreign or duplicate attempt identity")
         if not isinstance(row["qualified"], bool):
             raise BaselineError("two-call qualification status must be boolean")
         if row["qualified"]:
             if (
-                not isinstance(row["t0_to_call2_validation_seconds"], (int, float))
+                not results_by_id[attempt_id]["success"]
+                or not isinstance(row["t0_to_call2_validation_seconds"], (int, float))
                 or isinstance(row["t0_to_call2_validation_seconds"], bool)
-                or float(row["t0_to_call2_validation_seconds"]) < 0
+                or not math.isfinite(float(row["t0_to_call2_validation_seconds"]))
+                or float(row["t0_to_call2_validation_seconds"]) <= 0
                 or row["failure_reason"] is not None
             ):
-                raise BaselineError("qualified second semantic call lacks valid completion evidence")
+                raise BaselineError(
+                    "qualified second semantic call lacks a successful first semantic terminal"
+                )
         elif (
             row["t0_to_call2_validation_seconds"] is not None
             or not isinstance(row["failure_reason"], str)
@@ -236,18 +283,61 @@ def stratify_aggregate(
 
 
 def _validate_promotion_cohort(cohort: dict[str, Any], minimum: int) -> None:
+    attempts = cohort.get("attempts", {})
+    results = attempts.get("results")
+    offered = attempts.get("offered")
+    if (
+        not isinstance(results, list)
+        or not isinstance(offered, int)
+        or isinstance(offered, bool)
+        or len(results) != offered
+    ):
+        raise BaselineError("promotion requires exact retained raw attempt results")
+    successes = [
+        item
+        for item in results
+        if isinstance(item, dict) and item.get("success") is True
+    ]
+    attempt_ids = [item.get("attempt_id") for item in results if isinstance(item, dict)]
+    if (
+        any(
+            not isinstance(item, dict)
+            or not isinstance(item.get("success"), bool)
+            or not isinstance(item.get("terminal_seconds"), (int, float))
+            or isinstance(item.get("terminal_seconds"), bool)
+            or not math.isfinite(float(item["terminal_seconds"]))
+            or float(item["terminal_seconds"]) <= 0
+            or (item["success"] and item.get("failure_class") is not None)
+            or (
+                not item["success"]
+                and (not isinstance(item.get("failure_class"), str) or not item["failure_class"])
+            )
+            for item in results
+        )
+        or any(not isinstance(attempt_id, str) or not attempt_id for attempt_id in attempt_ids)
+        or len(attempt_ids) != len(set(attempt_ids))
+        or attempts.get("valid_responses") != len(successes)
+        or attempts.get("failures") != offered - len(successes)
+        or cohort.get("request_to_first_semantic_validation_seconds")
+        != _distribution([item["terminal_seconds"] for item in successes])
+    ):
+        raise BaselineError(
+            "promotion requires coherent first-semantic results, counters, and distribution"
+        )
     qualification = cohort.get("two_semantic_qualification", {})
     if (
-        cohort.get("attempts", {}).get("offered", 0) < minimum
-        or qualification.get("offered") != cohort.get("attempts", {}).get("offered")
+        offered < minimum
+        or len(successes) < minimum
+        or qualification.get("offered") != offered
+        or qualification.get("qualified", 0) > len(successes)
         or qualification.get("qualified", 0) < minimum
     ):
         raise BaselineError(
-            "promotion requires the frozen minimum offered and two-semantically-qualified attempts"
+            "promotion requires the frozen minimum first- and two-semantically-qualified attempts"
         )
     integrity = cohort.get("integrity", {})
     if (
-        integrity.get("cleanup_admitted") != cohort.get("attempts", {}).get("offered")
+        integrity.get("cleanup_admitted") != offered
         or integrity.get("cleanup_failed_or_unreceipted") != 0
         or integrity.get("accounting_failure_sentinel_count") != 0
     ):

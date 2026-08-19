@@ -16,8 +16,9 @@ The implementation provides:
   bytes/failure-time/cost/GPU accounting, and post-terminal two-call evidence;
 - a fail-closed Kubernetes backend that admits only a fresh broker-owned
   cluster/node, proves the live occupant and cache state, drains the prior Pod,
-  requires a GPU-zero receipt, uses digest-pinned images and semantic
-  validators, and removes exact per-run support objects; and
+  treats only a canonical Kubernetes `v1/List` of `v1/Pod` objects as Pod
+  inventory, requires a GPU-zero receipt, uses digest-pinned images and
+  semantic validators, and removes exact per-run support objects; and
 - a one-variable comparison design between the current per-run Service path
   and a target-neutral precreated Service. Promotion is disabled until the
   broker can attest an equivalent rearmed initial state between the two
@@ -123,10 +124,13 @@ promoted. Workload cleanup first creates an immutable, never-promotable staging
 seal. Only after source-bound broker absence, child-absence, actual-cost,
 GPU-zero, credential-revocation, and audit-extension evidence exists does
 `finalize-live` create a separate final joint seal; staging is never
-overwritten. Each exact stratum is evaluated independently and requires at
-least 30 offered and 30 second-call-qualified attempts, replayable per-attempt
-cleanup receipts, no accounting sentinel, and a verified final seal. Hot-path
-improvement promotion remains disabled pending the broker pair handoff.
+overwritten. Each exact stratum is evaluated independently. Every second-call
+qualification is joined to that attempt's successful raw first semantic
+terminal, and promotion requires at least 30 offered, 30 first-response-valid,
+and 30 second-call-qualified attempts, coherent raw counts/distributions,
+replayable per-attempt cleanup receipts, no accounting sentinel, and a verified
+final seal. Hot-path improvement promotion remains disabled pending the broker
+pair handoff.
 
 ## Comparator scope
 

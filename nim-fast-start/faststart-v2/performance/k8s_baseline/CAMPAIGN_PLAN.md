@@ -61,11 +61,14 @@ occupant and cache targets, rearm cost/bytes/GPU evidence, and an audit
 extension, all completed before candidate T0. Until that backend exists,
 `finalize-live --promote` seals `promotion_allowed=false` and exits fail-closed.
 
-After that dependency is implemented, promotion requires at least 30 offered attempts and 30
-two-call-qualified attempts per exact NIM, arm,
-scenario, strategy, support variant, cache state, and GPU-profile stratum, with
-every failure retained. Failed/unreceipted attempt cleanup, an accounting
-sentinel, failed final cleanup, or an unverified joint seal blocks promotion.
+After that dependency is implemented, promotion requires at least 30 offered,
+30 first-response-valid, and 30 two-call-qualified attempts per exact NIM,
+arm, scenario, strategy, support variant, cache state, and GPU-profile stratum,
+with every failure retained. A second-call qualification is admissible only
+when joined to the same raw attempt's successful first semantic terminal.
+Failed/unreceipted attempt cleanup, an accounting sentinel, failed final
+cleanup, malformed Kubernetes Pod inventory, or an unverified joint seal
+blocks promotion.
 
 The first frozen campaign is local A-to-B switching between Boltz2 and
 OpenFold2. The initial occupant is OpenFold2; targets alternate naturally, so

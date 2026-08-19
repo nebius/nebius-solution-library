@@ -377,6 +377,35 @@ class KubernetesBackendTests(unittest.TestCase):
         with self.assertRaisesRegex(BaselineError, "runtime node/image identity"):
             backend._active_occupant()
 
+    def test_pod_inventory_is_a_real_kubernetes_list_and_cleanup_fails_closed(self) -> None:
+        malformed = (
+            {},
+            {"apiVersion": "v1", "kind": "List", "metadata": {}, "items": None},
+            {"apiVersion": "v1", "kind": "PodList", "metadata": {}, "items": []},
+            {
+                "apiVersion": "v1", "kind": "List", "metadata": {},
+                "items": [{"apiVersion": "v1", "kind": "Service", "metadata": {}}],
+            },
+        )
+        for response in malformed:
+            with self.subTest(response=response):
+                backend = self.backend()
+                backend.kube = Mock()
+                backend.kube.run.return_value = response
+                with self.assertRaisesRegex(BaselineError, "Pod inventory"):
+                    backend._delete_active("adversarial-drain")
+                backend.kube.delete.assert_not_called()
+                backend._prepared = True
+                with self.assertRaisesRegex(BaselineError, "Pod inventory"):
+                    backend.final_cleanup()
+
+        backend = self.backend()
+        backend.kube = Mock()
+        backend.kube.run.return_value = {
+            "apiVersion": "v1", "kind": "List", "metadata": {}, "items": [],
+        }
+        self.assertEqual(backend._delete_active("verified-empty"), ())
+
     def test_partial_phase_failure_retains_bytes_and_closes_gpu_time(self) -> None:
         backend = self.backend()
         state = backend._attempt["attempt-a"]
