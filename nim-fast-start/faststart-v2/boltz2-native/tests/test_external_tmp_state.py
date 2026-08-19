@@ -344,6 +344,7 @@ class ExternalTmpStateTests(unittest.TestCase):
                 "metadata_image_count": len(decode_images),
                 "decoded_image_count": len(decode_images),
                 "tmp_identity_reference_count": 0,
+                "allowed_external_tmp_reg_count": 5,
                 "category_counts": categories,
                 "decoder": self.contract["crit_decoder"],
             },

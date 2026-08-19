@@ -68,7 +68,23 @@ class ExternalTmpArtifactTests(unittest.TestCase):
             name: {"entries": []} for name in METADATA_IMAGES
         }
         self.decoded_values["mountpoints-1.img"] = {
-            "entries": [{"mnt_id": 42, "mountpoint": "/tmp", "root": "/"}]
+            "entries": [
+                {
+                    "mnt_id": 42,
+                    "parent_mnt_id": 7,
+                    "ext_key": "/tmp",
+                    "mountpoint": "/tmp",
+                    "root": "/working/boltz2-native-f7-external-tmp-v2",
+                    "source": "/dev/vdd",
+                },
+                {
+                    "mnt_id": 7,
+                    "parent_mnt_id": 1,
+                    "mountpoint": "/",
+                    "root": "/",
+                    "source": "overlay",
+                },
+            ]
         }
         for index, name in enumerate(METADATA_IMAGES):
             (self.artifact / name).write_bytes(f"raw-{index}-{name}".encode("ascii"))
@@ -456,6 +472,69 @@ class ExternalTmpArtifactTests(unittest.TestCase):
                 ):
                     self.validate()
                 self.decoded_values[name] = original
+
+    def test_external_reg_entries_are_allowed_and_root_mount_is_not_tmp(self) -> None:
+        original = self.decoded_values["files.img"]
+
+        # REG entries resolved through the external /tmp mount are designed
+        # pointers into the seed clone: allowed, counted, and recorded.
+        self.decoded_values["files.img"] = {
+            "entries": [
+                {
+                    "id": 639,
+                    "type": "REG",
+                    "reg": {
+                        "id": 639,
+                        "mnt_id": 42,
+                        "name": "/tmp/root/bionemo_kernel_cache/triton/x/launcher.so",
+                    },
+                },
+                # Root-mount files sharing the /tmp mount's PARENT id must not
+                # be misattributed to /tmp (the first live capture regression).
+                {
+                    "id": 640,
+                    "type": "REG",
+                    "reg": {"id": 640, "mnt_id": 7, "name": "/opt/nim/lib.so"},
+                },
+            ]
+        }
+        receipt = self.validate()
+        self.assertEqual(1, receipt["crit"]["allowed_external_tmp_reg_count"])
+        self.assertEqual(0, receipt["crit"]["tmp_identity_reference_count"])
+        gate_path = self.root / "gate-external-reg.json"
+        state._write_receipt(gate_path, receipt)
+        state._read_artifact_gate(gate_path, self.contract, self.contract_sha)
+
+        # A /tmp path under any OTHER mount id is forbidden.
+        self.decoded_values["files.img"] = {
+            "entries": [
+                {
+                    "id": 641,
+                    "type": "REG",
+                    "reg": {"id": 641, "mnt_id": 7, "name": "/tmp/smuggled"},
+                }
+            ]
+        }
+        with self.assertRaisesRegex(
+            artifact_validator.ArtifactError, "identity-sensitive"
+        ):
+            self.validate()
+        self.decoded_values["files.img"] = original
+
+        # The /tmp mount entry must prove external binding via ext_key.
+        mounts = self.decoded_values["mountpoints-1.img"]
+        stripped = {
+            "entries": [
+                {k: v for k, v in mounts["entries"][0].items() if k != "ext_key"},
+                mounts["entries"][1],
+            ]
+        }
+        self.decoded_values["mountpoints-1.img"] = stripped
+        with self.assertRaisesRegex(
+            artifact_validator.ArtifactError, "not externally bound"
+        ):
+            self.validate()
+        self.decoded_values["mountpoints-1.img"] = mounts
 
     def test_decode_is_executed_not_trusted(self) -> None:
         # A tampered bundle must be refused before anything is decoded.

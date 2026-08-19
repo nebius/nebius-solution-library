@@ -585,24 +585,58 @@ def _dicts(value: Any) -> Iterable[dict[str, Any]]:
             yield from _dicts(item)
 
 
-def _tmp_mount_ids(decoded: dict[str, Any]) -> set[int | str]:
+def _tmp_mount_identity(decoded: dict[str, Any]) -> int | str:
+    """Locate the single external /tmp mount entry and return its own mnt_id.
+
+    Only the entry's exact ``mnt_id`` identifies the /tmp mount: parent,
+    master, and shared ids belong to *other* mounts (the first live capture
+    proved counting ``parent_mnt_id`` misattributes every root-mount file to
+    /tmp).  The entry must also prove external binding via ``ext_key``.
+    """
+
     candidates: list[dict[str, Any]] = []
     for item in _dicts(decoded):
-        strings = [value for value in item.values() if isinstance(value, str)]
-        if "/tmp" in strings:
-            if any(value.startswith("/tmp/") for value in strings):
-                raise ArtifactError("mountpoints metadata names a /tmp descendant")
+        if item.get("mountpoint") == "/tmp":
             candidates.append(item)
+        else:
+            strings = [value for value in item.values() if isinstance(value, str)]
+            if any(value == "/tmp" or value.startswith("/tmp/") for value in strings):
+                if item.get("ext_key") == "/tmp" or item.get("mountpoint", "").startswith("/tmp/"):
+                    raise ArtifactError(
+                        "mountpoints metadata names an unexpected /tmp entry"
+                    )
     if len(candidates) != 1:
         raise ArtifactError("decoded mountpoints must contain one exact /tmp entry")
-    ids: set[int | str] = set()
-    for key, value in candidates[0].items():
-        normalized = key.lower().replace("-", "_")
-        if "mnt" in normalized and "id" in normalized and type(value) in {int, str}:
-            ids.add(value)
-    if not ids:
+    entry = candidates[0]
+    if entry.get("ext_key") != "/tmp":
+        raise ArtifactError(
+            "decoded /tmp mount entry is not externally bound (ext_key != /tmp)"
+        )
+    mnt_id = entry.get("mnt_id")
+    if isinstance(mnt_id, bool) or not isinstance(mnt_id, (int, str)):
         raise ArtifactError("decoded /tmp mount entry has no mount identity")
-    return ids
+    return mnt_id
+
+
+def _is_allowed_external_reg_entry(entry: dict[str, Any], tmp_mnt_id: int | str) -> bool:
+    """A files.img REG entry pointing into the external /tmp mount.
+
+    Such entries are pointers CRIU resolves inside the external volume at
+    restore (e.g. mmapped Triton launcher shared objects); they carry no
+    captured /tmp bytes and are the designed coupling to the seed clone.
+    """
+
+    if entry.get("type") != "REG":
+        return False
+    reg = entry.get("reg")
+    if not isinstance(reg, dict):
+        return False
+    name = reg.get("name")
+    return (
+        reg.get("mnt_id") == tmp_mnt_id
+        and isinstance(name, str)
+        and name.startswith("/tmp/")
+    )
 
 
 def _safe_extract_bundle(bundle: Path, destination: Path) -> int:
@@ -740,13 +774,10 @@ def _inspect_crit(
     mount_names = [name for name in expected_names if name.startswith("mountpoints-")]
     if len(mount_names) != 1:
         raise ArtifactError("artifact must have exactly one mountpoints metadata image")
-    tmp_ids = _tmp_mount_ids(decoded_values[mount_names[0]])
-    category_counts = {name: 0 for name in IDENTITY_CATEGORIES}
-    for raw_name, decoded in decoded_values.items():
-        if raw_name in mount_names:
-            continue
-        category = _category(raw_name)
-        for json_path, item in _walk_json(decoded):
+    tmp_mnt_id = _tmp_mount_identity(decoded_values[mount_names[0]])
+
+    def _scan(category: str, value: Any) -> None:
+        for json_path, item in _walk_json(value):
             if isinstance(item, str):
                 stripped = item[1:] if item.startswith("/") else item
                 if _is_tmp_path(stripped):
@@ -757,9 +788,34 @@ def _inspect_crit(
                     "mnt" in key
                     and "id" in key
                     and type(item) in {int, str}
-                    and item in tmp_ids
+                    and item == tmp_mnt_id
                 ):
                     category_counts[category] += 1
+
+    category_counts = {name: 0 for name in IDENTITY_CATEGORIES}
+    allowed_external_reg = 0
+    for raw_name, decoded in decoded_values.items():
+        if raw_name in mount_names:
+            continue
+        category = _category(raw_name)
+        entries = decoded.get("entries") if isinstance(decoded, dict) else None
+        if raw_name == "files.img" and isinstance(entries, list):
+            # REG entries resolved through the external /tmp mount are the
+            # designed pointers into the immutable seed clone; everything
+            # else in the file table must stay /tmp-free.
+            remainder = {
+                key: value for key, value in decoded.items() if key != "entries"
+            }
+            _scan(category, remainder)
+            for entry in entries:
+                if isinstance(entry, dict) and _is_allowed_external_reg_entry(
+                    entry, tmp_mnt_id
+                ):
+                    allowed_external_reg += 1
+                    continue
+                _scan(category, entry)
+        else:
+            _scan(category, decoded)
     reference_count = sum(category_counts.values())
     if reference_count:
         nonzero = {key: value for key, value in category_counts.items() if value}
@@ -774,6 +830,7 @@ def _inspect_crit(
         "metadata_image_count": len(expected_names),
         "decoded_image_count": len(decoded_values),
         "tmp_identity_reference_count": 0,
+        "allowed_external_tmp_reg_count": allowed_external_reg,
         "category_counts": category_counts,
         "decoder": contract["crit_decoder"],
     }

@@ -1865,10 +1865,15 @@ def _read_artifact_gate(
             "metadata_image_count",
             "decoded_image_count",
             "tmp_identity_reference_count",
+            "allowed_external_tmp_reg_count",
             "category_counts",
             "decoder",
         },
         "artifact-gate crit",
+    )
+    _strict_nonnegative_int(
+        crit["allowed_external_tmp_reg_count"],
+        "allowed external /tmp REG entry count",
     )
     if (
         crit["bundle_sha256"] != contract["crit_decoder"]["source_bundle_sha256"]
