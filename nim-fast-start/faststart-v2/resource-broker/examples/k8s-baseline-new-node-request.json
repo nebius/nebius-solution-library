@@ -1,6 +1,6 @@
 {
-  "schema_version": "catalog-switch-kubernetes-lease-request/v2",
-  "lease_id": "k8s-baseline-new-node-candidate",
+  "schema_version": "catalog-switch-kubernetes-lease-request/v3",
+  "lease_id": "k8s-baseline-new-node-review2-candidate",
   "task_id": "catalog-switch-k8s-baseline",
   "owner": "catalog-switch-k8s-baseline",
   "cleanup_owner": "catalog-switch-resource-broker",
@@ -24,11 +24,54 @@
     "max_size_gib": 10
   },
   "metric_contract_sha256": "deb1e20022735bd958d3e832fb1a1e8faa036bd3be15cb07ee81a34f31a1eab3",
+  "trace_id": "k8s-arm-b-new-node-candidate-20260819",
   "trace_sha256": "786876a7a155ed50c18926787638ae426b550215645b8706ff678c0f37f50c23",
+  "allowed_scenarios": [
+    "a_to_b_remote",
+    "capacity_miss"
+  ],
   "model_input_sha256s": {
     "boltz2": "5f810e10b2e72d62e1fb3e4ffd8a1f9c7a13c87ef1d2b10b097a296c017fee71",
     "openfold2": "283ee064e0c88e8583e43aa6923d3da75c3e050ed74832cc2f4782b9c5254099"
   },
-  "accepted_event_recorder_id": "catalog-switch-k8s-external-client",
+  "model_request_bindings": {
+    "boltz2": {
+      "target": {
+        "model_id": "boltz2",
+        "model_version": "sha256:0788c95c8b5b6c1a73a62c656b298ecc353a8187dc22b794f496ae40672c4c98",
+        "artifact_id": "boltz2-native-f7-v1",
+        "artifact_version": "1",
+        "artifact_sha256": "6539b9f50a71c9f5fb6a3fbacd44f5d5ea41003539b6563682a38600d1492456"
+      },
+      "input": {
+        "workload_id": "protein-structure-prediction-two-call",
+        "input_id": "boltz2-two-semantic-calls",
+        "payload_sha256": "5f810e10b2e72d62e1fb3e4ffd8a1f9c7a13c87ef1d2b10b097a296c017fee71",
+        "input_bytes": 411
+      }
+    },
+    "openfold2": {
+      "target": {
+        "model_id": "openfold2",
+        "model_version": "2.5.0",
+        "artifact_id": "openfold2-native-f7-v1",
+        "artifact_version": "1",
+        "artifact_sha256": "78368af3e6f143d7dc681632c4150b29f6354717103638b56e776244d9631b04"
+      },
+      "input": {
+        "workload_id": "protein-structure-prediction-two-call",
+        "input_id": "openfold2-two-semantic-calls",
+        "payload_sha256": "283ee064e0c88e8583e43aa6923d3da75c3e050ed74832cc2f4782b9c5254099",
+        "input_bytes": 423
+      }
+    }
+  },
+  "accepted_event_authority_id": "catalog-switch-k8s-external-client-v1",
+  "private_runner_receipt": {
+    "status": "PENDING_CONSUMER_PROOF",
+    "path": null,
+    "sha256": null,
+    "reviewed_commit": null
+  },
   "cleanup_plan": "Broker cleanup owner deletes each exact attempt node group and provider node before the next independent attempt, then deletes the support graph in reverse dependency order and records NotFound or local-file absence for every ledger row."
 }

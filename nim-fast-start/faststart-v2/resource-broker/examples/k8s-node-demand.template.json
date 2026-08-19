@@ -1,14 +1,28 @@
 {
-  "schema_version": "catalog-switch-kubernetes-node-demand/v2",
+  "schema_version": "catalog-switch-kubernetes-node-demand/v3",
   "lease_id": "REPLACE_FROM_LEASE",
-  "attempt_id": "REPLACE_FROM_DURABLE_REQUEST_ACCEPTED_EVENT",
+  "attempt_id": "replace-from-durable-request-accepted-event",
   "accepted_event_path": "/absolute/path/to/canonical-events.jsonl",
-  "accepted_event_sha256": "REPLACE_WITH_64_LOWERCASE_HEX",
+  "accepted_event_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "accepted_event_receipt_path": "/absolute/path/to/external-validator-receipt.json",
+  "accepted_event_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "ledger_id": "REPLACE_FROM_ACCEPTED_EVENT",
   "ledger_sequence": 0,
-  "trace_id": "REPLACE_FROM_ACCEPTED_EVENT",
+  "trace_id": "REPLACE_FROM_FROZEN_LEASE_AND_ACCEPTED_EVENT",
   "request_id": "REPLACE_FROM_ACCEPTED_EVENT",
   "event_id": "REPLACE_FROM_ACCEPTED_EVENT",
-  "model_id": "REPLACE_FROM_ACCEPTED_EVENT_TARGET",
-  "input_payload_sha256": "REPLACE_FROM_ACCEPTED_EVENT_INPUT"
+  "scenario": "capacity_miss",
+  "target": {
+    "model_id": "REPLACE_FROM_FROZEN_BINDING",
+    "model_version": "REPLACE_FROM_FROZEN_BINDING",
+    "artifact_id": "REPLACE_FROM_FROZEN_BINDING",
+    "artifact_version": "REPLACE_FROM_FROZEN_BINDING",
+    "artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "input": {
+    "workload_id": "REPLACE_FROM_FROZEN_BINDING",
+    "input_id": "REPLACE_FROM_FROZEN_BINDING",
+    "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "input_bytes": 0
+  }
 }

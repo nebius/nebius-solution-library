@@ -1,19 +1,20 @@
-# Kubernetes lease backend v3
+# Kubernetes lease backend v4
 
 `kubernetes_broker.py` is the sole Managed Kubernetes creation path for the
 catalog-switch program. It is additive: VM backend v1 is unchanged. Modal is
-excluded. This v3 replacement was prepared without creating a cloud resource.
+excluded. This v4 replacement was prepared without creating a cloud resource.
 
 ## Frozen authority and plan
 
-The v2 request freezes the `sandbox` profile and the exact `iam whoami`
+The v3 request freezes the `sandbox` profile and the exact `iam whoami`
 identity type, ID, and parent project. Every mutating entry point rechecks both
 before its first mutation; profile or identity drift is an authentication stop.
 The project/region allowlist, Kubernetes version, private-control-plane policy,
 CPU/H100 shapes, preemptibility, duration, cost, TTL, cleanup owner/deadline,
-metric/trace/model-input hashes, and accepted-event recorder are also frozen.
+metric/trace/model-input identities, accepted-event validation authority, and
+private-API runner receipt are also frozen.
 
-The v3 plan commitment covers the request and profile hashes plus lease ID,
+The v4 plan commitment covers the request and profile hashes plus lease ID,
 schema/backend versions, prefix, project, region, creation/expiry timestamps,
 all ownership labels, signing authority, cost, resource graph, kubeconfig path
 and context, GPU policy, and cleanup policy. Changing any authorization-bearing
@@ -54,9 +55,12 @@ sentinel and does not falsely claim it enforces node traffic.
 One advisory mutation lock covers the entire lease operation, not only registry
 writes. Before every cloud create, the broker persists a signed intent containing
 the exact payload/spec digests and full requested spec. A same-name result may be
-reconciled only when name, parent, required ownership labels, creation time, and
-the live projection of every signed requested field match. Otherwise it is
-foreign and preserved.
+accepted only from the synchronous create response. The installed Nebius create
+API supplies no request correlation token or audit receipt that can distinguish
+an interrupted broker create from another actor copying the exact name, labels,
+and spec. Therefore any exact-name object first seen after an unreceipted intent
+is marked `AMBIGUOUS_FOREIGN_PRESERVED`, is never adopted or deleted, and blocks
+ancestor cleanup. Matching labels/spec/time are deliberately insufficient.
 
 Compute children are discovered with provider APIs independently of kubeconfig.
 This closes the crash window after node creation but before credentials exist.
@@ -77,6 +81,9 @@ broker validates the exact context, cluster entry, user entry, private server,
 embedded CA digest, cluster ID, file digest, current-user ownership, and mode
 0600. It signs and durably saves that content-authority receipt before atomically
 renaming the staging file to the planned path and signing the resource row.
+Both the staged file and its parent directory are fsynced. All atomic JSON state
+replacement and local-secret unlink paths likewise fsync the affected parent
+directory before reporting success.
 
 After a crash, a final or staging file is adopted only if it matches that exact
 signed receipt. A file appearing after intent but before a signed receipt is
@@ -84,26 +91,35 @@ unknown: it is preserved and cleanup fails. Both paths existing is ambiguous
 and also fails closed. Cleanup revalidates the signed structure and digest
 before unlinking.
 
-## Source-bound Arm B T0
+## Reviewed source-bound Arm B T0
 
-The Arm B demand v2 no longer accepts caller-supplied clocks. It identifies an
-exact event in the baseline's durable JSONL ledger by absolute path, canonical
-event SHA-256, ledger ID/sequence, trace ID, request ID, attempt ID, and event
-ID, plus model ID and input payload SHA-256. `record-demand` reads the regular
-private ledger file and requires exactly one matching canonical event with:
+The Arm B demand v3 does not trust caller-supplied clocks or a private file's
+shape. It names both the exact durable JSONL event and a mode-0600 receipt signed
+by a reviewed external recorder/validator authority. The immutable authority
+entry pins the Ed25519 public key, validator implementation SHA-256, and reviewed
+source commit. `record-demand` verifies that signature before reading the ledger
+and then requires exactly one matching canonical event with:
 
 - schema `archvteams.nebius.ai/catalog-switch-ledger-event/v1`;
 - event `request.accepted`, attempt sequence zero, and boundary
   `external-client-request-accepted/v1`;
 - an exact attempt/request/trace/ledger identity join;
-- a model/input pair frozen in the lease; and
+- the frozen trace ID, trace-request SHA-256, metric-contract SHA-256, scenario,
+  and complete target/artifact/input identity; and
 - the frozen external recorder on the current Linux boot/monotonic clock.
 
 The broker derives T0 clocks from that event, rejects future or support-stale
 events, records file device/inode/mode/size/mtime/full-file digest/line index,
 and signs the resulting demand receipt. Capacity advice and create clocks are
 checked against that signed T0 before every provider call. Missing, forged,
-ambiguous, wrong-model/input, wrong-clock, and stale events are rejected.
+ambiguous, wrong-contract/trace/scenario/target/input, wrong-clock, and stale
+events are rejected.
+
+Production live creation is additionally blocked until the baseline consumer
+publishes a reviewed task-owned, private-subnet runner receipt proving internal
+API reachability with no public IP or public ingress. The shipped candidate has
+both this runner gate and the external receipt authority set to pending; it
+cannot invoke a provider create.
 
 ## Cleanup and supervisor truth
 
@@ -119,6 +135,13 @@ transitive parents and provider children of blocked parents, preserving what is
 needed for recovery. Attempt cleanup reconstructs its final group/node receipt
 from all durable resource-row evidence across retries, including crashes after
 either deletion save.
+
+An honest post-T0 `NO_PREEMPTIBLE_CAPACITY` result has no resource rows. Before
+returning that failure, the broker lists the exact cluster parent and intended
+node-group name, requires zero matches and zero create intents, and persists a
+signed `catalog-switch-kubernetes-no-create-absence-receipt/v1`. Attempt cleanup
+accepts only that exact signed no-create proof, retaining the capacity failure
+while returning the support lease to a releasable state.
 
 Supervisor rows distinguish:
 
@@ -142,7 +165,8 @@ python3 kubernetes_broker.py plan \
   --lease kubernetes-leases/k8s-baseline-new-node-candidate.json
 ```
 
-After exact-commit review, support and GPU execution require explicit execute
+After the consumer proofs are reviewed, a new immutable plan is sealed, and its
+exact commit is accepted, support/GPU execution require explicit execute
 commands. Arm B must first provide its source-bound demand file:
 
 ```bash

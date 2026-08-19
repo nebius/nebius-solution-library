@@ -1,78 +1,106 @@
-# `catalog-switch-k8s-baseline` handoff: broker v3
+# `catalog-switch-k8s-baseline` handoff: broker v4
 
 This is the provider-side contract coordinated from the broker worktree. The
-baseline worktree was read only and was not edited.
+baseline sibling worktree was inspected read-only and was not edited.
 
 ## Lease admission
 
-The consumer must require
-`catalog-switch-kubernetes-resource-lease/v3` / backend
-`nebius-managed-kubernetes/v2`. For Arm B, the admitted pre-T0 state remains
-`SUPPORT_ACTIVE_NO_GPU_NODE_GROUP` with a non-null `cluster_id`, empty GPU
-`node_group_ids` and `node_ids`, a private `api_server`, and a target-neutral
-isolation proof. System group/node IDs remain explicit resource rows.
+The consumer must require `catalog-switch-kubernetes-resource-lease/v4` with
+backend `nebius-managed-kubernetes/v3`. For Arm B, admitted pre-T0 state remains
+`SUPPORT_ACTIVE_NO_GPU_NODE_GROUP`: non-null task-owned cluster/system-node IDs,
+empty GPU group/node IDs, a private API server, and target-neutral isolation.
 
-The lease freezes profile `sandbox` and one exact authority identity. It must be
-executed from the same authority. The control plane is private; the benchmark
-runner must have task-owned private-network reachability to the internal API.
+The lease freezes Nebius profile `sandbox`, one exact `iam whoami` authority,
+the request trace and metric contract, all allowed scenarios, and the complete
+model/artifact/input identity for every permitted request. The broker rechecks
+the profile/identity before mutation. Its control plane is private-only.
 
-## Durable accepted-event demand
+The production example is deliberately not live-admitted. Before replanning,
+the consumer must provide both:
 
-After the baseline has fsynced its canonical JSONL `request.accepted` event, it
-must atomically write a demand conforming to
-`catalog-switch-kubernetes-node-demand/v2`:
+- a reviewed external accepted-event recorder/validator authority: exact
+  Ed25519 public key, validator implementation SHA-256, and reviewed source
+  commit; and
+- a reviewed `catalog-switch-kubernetes-private-runner-receipt/v1` proving a
+  task-owned runner reaches the internal API from a task-owned private subnet,
+  with no public IP or public ingress.
+
+Until both receipts are reviewed and frozen into a new plan, every support,
+demand, and GPU provisioning entry point fails before Capacity Advisor or any
+provider create.
+
+## Trusted accepted-event demand
+
+The external validator—not an arbitrary benchmark caller—must validate the
+fsynced canonical JSONL `request.accepted` row and emit a mode-0600 signed
+`catalog-switch-external-accepted-event-receipt/v1`. The signature material
+binds the exact ledger path/hash/device/inode/mode/size/mtime/line, canonical
+event hash, authority/validator provenance, clocks, recorder/boot authority,
+metric-contract SHA-256, trace ID/request SHA-256, scenario, complete target,
+complete input, and request/attempt/event/ledger identities.
+
+The caller then atomically writes a demand conforming to
+`catalog-switch-kubernetes-node-demand/v3`:
 
 ```json
 {
-  "schema_version": "catalog-switch-kubernetes-node-demand/v2",
+  "schema_version": "catalog-switch-kubernetes-node-demand/v3",
   "lease_id": "<lease-id>",
   "attempt_id": "<accepted-event-attempt-id>",
-  "accepted_event_path": "/absolute/path/to/canonical-events.jsonl",
-  "accepted_event_sha256": "<sha256-of-canonical-event-object>",
-  "ledger_id": "<accepted-event-ledger-id>",
+  "accepted_event_path": "/absolute/canonical/events.jsonl",
+  "accepted_event_sha256": "<canonical-event-sha256>",
+  "accepted_event_receipt_path": "/absolute/validator/receipt.json",
+  "accepted_event_receipt_sha256": "<receipt-file-sha256>",
+  "ledger_id": "<ledger-id>",
   "ledger_sequence": 0,
-  "trace_id": "<accepted-event-trace-id>",
-  "request_id": "<accepted-event-request-id>",
-  "event_id": "<accepted-event-event-id>",
-  "model_id": "<accepted-event-data.target.model_id>",
-  "input_payload_sha256": "<accepted-event-data.input.payload_sha256>"
+  "trace_id": "<frozen-trace-id>",
+  "request_id": "<request-id>",
+  "event_id": "<event-id>",
+  "scenario": "a_to_b_remote",
+  "target": {
+    "model_id": "<model-id>",
+    "model_version": "<model-version>",
+    "artifact_id": "<artifact-id>",
+    "artifact_version": "<artifact-version>",
+    "artifact_sha256": "<artifact-sha256>"
+  },
+  "input": {
+    "workload_id": "<workload-id>",
+    "input_id": "<input-id>",
+    "payload_sha256": "<input-payload-sha256>",
+    "input_bytes": 0
+  }
 }
 ```
 
-Do not copy T0 clocks into the demand. The broker reads them from the identified
-durable event, validates the exact event/request/attempt/model/input/recorder/
-boot join, and signs the source receipt. Invoke `record-demand`, then
-`provision-gpu-node-group --execute`. Missing, forged, stale, or ambiguous source
-events fail before Capacity Advisor or create.
-
-The accepted ledger must be a current-user regular non-symlink file without
-group/other permission bits. Its recorder must be the frozen
-`catalog-switch-k8s-external-client` on the same Linux boot with clock ID
-`linux-boottime:<boot-id>`.
+Do not copy clocks into the demand. `record-demand` verifies the external
+signature, rereads and rehashes the exact ledger, derives T0 from that event,
+and joins every receipt/demand/event field to the immutable lease. A caller-made
+0600 file, self-asserted recorder/boot, wrong trace request, wrong metric
+contract, scenario mutation, or partial target/input match fails closed.
 
 ## Attempt receipt and failures
 
-The receipt retains source-file identity/evidence, accepted clocks, demand
-receipt clocks, capacity attempts, create attempts, exact group/node IDs,
-Ready time, live GPU attestation, replacement reconciliations, failures, and
-canonical cleanup evidence.
+The attempt retains the trusted source receipt, T0/demand clocks, capacity
+responses, create attempts, exact group/node IDs, readiness, live GPU
+attestation, replacement reconciliation, failures, and canonical cleanup.
 
-`GPU_CAPACITY_FAILED` and `GPU_CREATE_FAILED` remain measured attempts in the
-failure denominator. Calling provision again with an active attempt reconciles
-the exact group and current provider children; it never silently creates a
-second group. Preemptible replacement nodes are independently discovered and
-reattested.
+`GPU_CAPACITY_FAILED` and `GPU_CREATE_FAILED` remain measured failures. An
+honest `NO_PREEMPTIBLE_CAPACITY` result records a signed exact-parent/name
+provider-list absence receipt before any create intent. This permits
+`cleanup-attempt` to release a zero-resource attempt without erasing the failure.
+An exact-name object instead forces ambiguity and preservation.
 
 Before the next independent Arm B request, require:
 
 ```text
 attempt.receipt.cleanup.node_group_absent == true
 attempt.receipt.cleanup.node_absent == true
-attempt.receipt.cleanup.exact_id_receipts covers every durable group/node row
+attempt.receipt.cleanup has either all exact-ID receipts or one verified signed no-create receipt
 lease.state == SUPPORT_ACTIVE_NO_GPU_NODE_GROUP
 lease.node_group_ids == []
 lease.node_ids == []
 ```
 
-Model image pull, localization, checkpoint choice, Pod/workload creation, and
-semantic inference remain consumer work and must start after its durable T0.
+Model image pull, artifact localization, workload creation, and semantic
+inference remain consumer work and must start after its durable external T0.

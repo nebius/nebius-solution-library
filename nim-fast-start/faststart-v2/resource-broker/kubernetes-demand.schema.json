@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-kubernetes-node-demand/v2",
+  "$id": "catalog-switch-kubernetes-node-demand/v3",
   "title": "Post-T0 Kubernetes GPU node-group demand",
   "type": "object",
   "additionalProperties": false,
@@ -10,26 +10,53 @@
     "attempt_id",
     "accepted_event_path",
     "accepted_event_sha256",
+    "accepted_event_receipt_path",
+    "accepted_event_receipt_sha256",
     "ledger_id",
     "ledger_sequence",
     "trace_id",
     "request_id",
     "event_id",
-    "model_id",
-    "input_payload_sha256"
+    "scenario",
+    "target",
+    "input"
   ],
   "properties": {
-    "schema_version": {"const": "catalog-switch-kubernetes-node-demand/v2"},
+    "schema_version": {"const": "catalog-switch-kubernetes-node-demand/v3"},
     "lease_id": {"type": "string"},
     "attempt_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,127}$"},
     "accepted_event_path": {"type": "string", "minLength": 1},
     "accepted_event_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "accepted_event_receipt_path": {"type": "string", "minLength": 1},
+    "accepted_event_receipt_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "ledger_id": {"type": "string", "minLength": 1},
     "ledger_sequence": {"type": "integer", "minimum": 0},
     "trace_id": {"type": "string", "minLength": 1},
     "request_id": {"type": "string", "minLength": 1},
     "event_id": {"type": "string", "minLength": 1},
-    "model_id": {"type": "string", "minLength": 1},
-    "input_payload_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    "scenario": {"enum": ["same_model_hot", "idle_local", "a_to_b_local", "a_to_b_remote", "checkpoint_fallback", "capacity_miss"]},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "model_version", "artifact_id", "artifact_version", "artifact_sha256"],
+      "properties": {
+        "model_id": {"type": "string", "minLength": 1},
+        "model_version": {"type": "string", "minLength": 1},
+        "artifact_id": {"type": "string", "minLength": 1},
+        "artifact_version": {"type": "string", "minLength": 1},
+        "artifact_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workload_id", "input_id", "payload_sha256", "input_bytes"],
+      "properties": {
+        "workload_id": {"type": "string", "minLength": 1},
+        "input_id": {"type": "string", "minLength": 1},
+        "payload_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "input_bytes": {"type": "integer", "minimum": 0}
+      }
+    }
   }
 }

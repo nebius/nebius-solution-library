@@ -1,5 +1,16 @@
 {
   "schema_version": "catalog-switch-kubernetes-resource-profiles/v1",
+  "accepted_event_authorities": {
+    "catalog-switch-k8s-external-client-v1": {
+      "status": "PENDING_CONSUMER_REVIEW",
+      "recorder_id": "catalog-switch-k8s-external-client",
+      "receipt_schema_version": "catalog-switch-external-accepted-event-receipt/v1",
+      "validator_id": "catalog-switch-request-slo-ledger-validator-v1",
+      "validator_sha256": null,
+      "validator_reviewed_commit": null,
+      "public_key_base64": null
+    }
+  },
   "profiles": {
     "mk8s-h100-new-node-v1": {
       "regions": [

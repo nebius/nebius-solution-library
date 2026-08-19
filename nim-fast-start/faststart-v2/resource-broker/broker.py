@@ -89,6 +89,19 @@ def load_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def fsync_directory(path: Path) -> None:
+    """Make a directory-entry mutation durable before reporting success."""
+
+    flags = os.O_RDONLY
+    if hasattr(os, "O_DIRECTORY"):
+        flags |= os.O_DIRECTORY
+    descriptor = os.open(path, flags)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def atomic_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
@@ -99,6 +112,7 @@ def atomic_json(path: Path, value: Any) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(tmp_name, path)
+        fsync_directory(path.parent)
     finally:
         if os.path.exists(tmp_name):
             os.unlink(tmp_name)

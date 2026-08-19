@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import datetime as dt
 import importlib.util
 import json
@@ -11,6 +12,9 @@ import time
 import unittest
 from pathlib import Path
 from unittest import mock
+
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "kubernetes_broker.py"
@@ -27,13 +31,41 @@ supervisor = importlib.util.module_from_spec(SUPERVISOR_SPEC)
 SUPERVISOR_SPEC.loader.exec_module(supervisor)
 
 
+OPENFOLD_TARGET = {
+    "model_id": "openfold2",
+    "model_version": "2.5.0",
+    "artifact_id": "openfold2-unit-v1",
+    "artifact_version": "1",
+    "artifact_sha256": "6" * 64,
+}
+OPENFOLD_INPUT = {
+    "workload_id": "protein-structure-two-call",
+    "input_id": "openfold2-unit-input",
+    "payload_sha256": "3" * 64,
+    "input_bytes": 423,
+}
+BOLTZ_TARGET = {
+    "model_id": "boltz2",
+    "model_version": "unit-v1",
+    "artifact_id": "boltz2-unit-v1",
+    "artifact_version": "1",
+    "artifact_sha256": "7" * 64,
+}
+BOLTZ_INPUT = {
+    "workload_id": "protein-structure-two-call",
+    "input_id": "boltz2-unit-input",
+    "payload_sha256": "4" * 64,
+    "input_bytes": 411,
+}
+
+
 def timestamp() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def request(**overrides):
     value = {
-        "schema_version": "catalog-switch-kubernetes-lease-request/v2",
+        "schema_version": "catalog-switch-kubernetes-lease-request/v3",
         "lease_id": "k8s-unit-new-node",
         "task_id": "catalog-switch-k8s-baseline",
         "owner": "catalog-switch-k8s-baseline",
@@ -58,9 +90,21 @@ def request(**overrides):
         "hard_cost_cap_usd": "20",
         "artifact_storage": {"max_size_gib": 10},
         "metric_contract_sha256": "1" * 64,
+        "trace_id": "unit-trace",
         "trace_sha256": "2" * 64,
+        "allowed_scenarios": ["a_to_b_remote", "capacity_miss"],
         "model_input_sha256s": {"openfold2": "3" * 64, "boltz2": "4" * 64},
-        "accepted_event_recorder_id": "catalog-switch-k8s-external-client",
+        "model_request_bindings": {
+            "openfold2": {"target": OPENFOLD_TARGET, "input": OPENFOLD_INPUT},
+            "boltz2": {"target": BOLTZ_TARGET, "input": BOLTZ_INPUT},
+        },
+        "accepted_event_authority_id": "catalog-switch-k8s-external-client-v1",
+        "private_runner_receipt": {
+            "status": "PENDING_CONSUMER_PROOF",
+            "path": None,
+            "sha256": None,
+            "reviewed_commit": None,
+        },
         "cleanup_plan": "Broker removes each exact resource ID and proves absence.",
     }
     value.update(overrides)
@@ -495,8 +539,25 @@ class KubernetesBrokerTests(unittest.TestCase):
         self.registry_path = self.root / "registry.json"
         self.demand_path = self.root / "demand.json"
         self.accepted_ledger_path = self.root / "accepted.jsonl"
-        self.profiles_path = MODULE_PATH.parent / "kubernetes_profiles.json"
-        self.request_value = request()
+        self.accepted_receipt_path = self.root / "accepted-receipt.json"
+        self.external_private_key = Ed25519PrivateKey.generate()
+        public_key = self.external_private_key.public_key().public_bytes(
+            serialization.Encoding.Raw,
+            serialization.PublicFormat.Raw,
+        )
+        profiles = json.loads((MODULE_PATH.parent / "kubernetes_profiles.json").read_text())
+        profiles["accepted_event_authorities"]["catalog-switch-k8s-external-client-v1"] = {
+            "status": "REVIEWED_ACTIVE",
+            "recorder_id": "catalog-switch-k8s-external-client",
+            "receipt_schema_version": k8s.EXTERNAL_ACCEPTANCE_RECEIPT_SCHEMA,
+            "validator_id": "catalog-switch-request-slo-ledger-validator-v1",
+            "validator_sha256": "8" * 64,
+            "validator_reviewed_commit": "9" * 40,
+            "public_key_base64": base64.b64encode(public_key).decode("ascii"),
+        }
+        self.profiles_path = self.root / "profiles.json"
+        self.profiles_path.write_text(json.dumps(profiles))
+        self.request_value = self.make_request()
         k8s.KUBECONFIG_ROOT = self.root / "kubeconfigs"
         k8s.LEASE_KEY_ROOT = self.root / "lease-keys"
         self.cli = FakeCLI()
@@ -511,14 +572,51 @@ class KubernetesBrokerTests(unittest.TestCase):
             self.request_path, self.lease_path, self.registry_path, self.profiles_path
         )
 
+    def make_request(self, **overrides):
+        value = request(**overrides)
+        receipt_path = self.root / f"runner-{value['lease_id']}.json"
+        receipt = {
+            "schema_version": k8s.PRIVATE_RUNNER_RECEIPT_SCHEMA,
+            "status": "PASS",
+            "consumer_task_id": value["task_id"],
+            "lease_id": value["lease_id"],
+            "project_id": value["project_id"],
+            "region": value["region"],
+            "runner_owner_task": value["task_id"],
+            "network_path": "task-owned-private-subnet",
+            "api_server_access": "internal-only",
+            "public_ip": False,
+            "public_ingress": False,
+            "implementation_sha256": "a" * 64,
+            "source_commit": "b" * 40,
+            "reviewed_at_utc": timestamp(),
+        }
+        receipt_path.write_text(json.dumps(receipt, sort_keys=True) + "\n")
+        os.chmod(receipt_path, 0o600)
+        value["private_runner_receipt"] = {
+            "status": "REVIEWED_ACTIVE",
+            "path": str(receipt_path.resolve()),
+            "sha256": k8s.hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
+            "reviewed_commit": "b" * 40,
+        }
+        return value
+
     def support(self):
         self.plan()
         return k8s.provision_control_plane(
             self.lease_path, self.registry_path, self.cli, self.kubectl
         )
 
-    def demand(self, *, event_overrides=None, demand_overrides=None, record=True):
+    def demand(
+        self,
+        *,
+        event_overrides=None,
+        receipt_overrides=None,
+        demand_overrides=None,
+        record=True,
+    ):
         boot_id = k8s.current_boot_id()
+        binding = self.request_value["model_request_bindings"]["openfold2"]
         accepted_event = {
             "schema": "archvteams.nebius.ai/catalog-switch-ledger-event/v1",
             "ledger_id": "unit-ledger",
@@ -540,10 +638,10 @@ class KubernetesBrokerTests(unittest.TestCase):
             "event_type": "request.accepted",
             "data": {
                 "boundary": "external-client-request-accepted/v1",
-                "trace_request_sha256": "5" * 64,
+                "trace_request_sha256": self.request_value["trace_sha256"],
                 "scenario": "capacity_miss",
-                "target": {"model_id": "openfold2"},
-                "input": {"payload_sha256": "3" * 64},
+                "target": json.loads(json.dumps(binding["target"])),
+                "input": json.loads(json.dumps(binding["input"])),
                 "precondition": {},
                 "environment": {},
                 "ownership": {},
@@ -552,26 +650,81 @@ class KubernetesBrokerTests(unittest.TestCase):
         if event_overrides:
             for key, value in event_overrides.items():
                 if key.startswith("data."):
-                    accepted_event["data"][key.split(".", 1)[1]] = value
+                    nested = key.split(".")[1:]
+                    target = accepted_event["data"]
+                    for part in nested[:-1]:
+                        target = target[part]
+                    target[nested[-1]] = value
                 elif key.startswith("recorder."):
                     accepted_event["recorder"][key.split(".", 1)[1]] = value
                 else:
                     accepted_event[key] = value
         self.accepted_ledger_path.write_text(k8s.common.canonical(accepted_event) + "\n")
         os.chmod(self.accepted_ledger_path, 0o600)
+        details = self.accepted_ledger_path.stat()
+        authority = json.loads(self.profiles_path.read_text())["accepted_event_authorities"][
+            self.request_value["accepted_event_authority_id"]
+        ]
+        material = {
+            "schema_version": k8s.EXTERNAL_ACCEPTANCE_RECEIPT_SCHEMA,
+            "authority_id": self.request_value["accepted_event_authority_id"],
+            "recorder_id": authority["recorder_id"],
+            "validator_id": authority["validator_id"],
+            "validator_sha256": authority["validator_sha256"],
+            "validator_reviewed_commit": authority["validator_reviewed_commit"],
+            "ledger_path": str(self.accepted_ledger_path.resolve()),
+            "ledger_sha256": k8s.hashlib.sha256(self.accepted_ledger_path.read_bytes()).hexdigest(),
+            "ledger_device": details.st_dev,
+            "ledger_inode": details.st_ino,
+            "ledger_mode": format(details.st_mode & 0o777, "04o"),
+            "ledger_size_bytes": details.st_size,
+            "ledger_mtime_ns": details.st_mtime_ns,
+            "line_index": 0,
+            "canonical_event_sha256": k8s.common.sha256_json(accepted_event),
+            "metric_contract_sha256": self.request_value["metric_contract_sha256"],
+            "trace_id": self.request_value["trace_id"],
+            "trace_sha256": self.request_value["trace_sha256"],
+            "trace_request_sha256": accepted_event["data"]["trace_request_sha256"],
+            "ledger_id": accepted_event["ledger_id"],
+            "ledger_sequence": accepted_event["ledger_sequence"],
+            "request_id": accepted_event["request_id"],
+            "attempt_id": accepted_event["attempt_id"],
+            "event_id": accepted_event["event_id"],
+            "scenario": accepted_event["data"]["scenario"],
+            "target": accepted_event["data"]["target"],
+            "input": accepted_event["data"]["input"],
+            "observed_at_utc": accepted_event["observed_at_utc"],
+            "observed_monotonic_ns": accepted_event["observed_monotonic_ns"],
+            "recorder": accepted_event["recorder"],
+            "validated_at_utc": timestamp(),
+        }
+        material.update(receipt_overrides or {})
+        envelope = {
+            "material": material,
+            "signature_base64": base64.b64encode(
+                self.external_private_key.sign(k8s.external_acceptance_message(material))
+            ).decode("ascii"),
+        }
+        self.accepted_receipt_path.write_text(json.dumps(envelope, sort_keys=True) + "\n")
+        os.chmod(self.accepted_receipt_path, 0o600)
         value = {
-            "schema_version": "catalog-switch-kubernetes-node-demand/v2",
+            "schema_version": "catalog-switch-kubernetes-node-demand/v3",
             "lease_id": "k8s-unit-new-node",
             "attempt_id": "attempt-000001",
             "accepted_event_path": str(self.accepted_ledger_path.resolve()),
             "accepted_event_sha256": k8s.common.sha256_json(accepted_event),
+            "accepted_event_receipt_path": str(self.accepted_receipt_path.resolve()),
+            "accepted_event_receipt_sha256": k8s.hashlib.sha256(
+                self.accepted_receipt_path.read_bytes()
+            ).hexdigest(),
             "ledger_id": accepted_event["ledger_id"],
             "ledger_sequence": accepted_event["ledger_sequence"],
             "trace_id": accepted_event["trace_id"],
             "request_id": accepted_event["request_id"],
             "event_id": accepted_event["event_id"],
-            "model_id": accepted_event["data"]["target"]["model_id"],
-            "input_payload_sha256": accepted_event["data"]["input"]["payload_sha256"],
+            "scenario": accepted_event["data"]["scenario"],
+            "target": accepted_event["data"]["target"],
+            "input": accepted_event["data"]["input"],
         }
         value.update(demand_overrides or {})
         self.demand_path.write_text(json.dumps(value))
@@ -582,7 +735,7 @@ class KubernetesBrokerTests(unittest.TestCase):
     def test_plan_is_versioned_immutable_and_idempotent(self):
         first = self.plan()
         second = self.plan()
-        self.assertEqual("catalog-switch-kubernetes-resource-lease/v3", first["schema_version"])
+        self.assertEqual("catalog-switch-kubernetes-resource-lease/v4", first["schema_version"])
         self.assertEqual(first["request_sha256"], second["request_sha256"])
         self.assertEqual("PLANNED", second["state"])
         self.assertTrue(second["prefix"].startswith("mlsp-csw-"))
@@ -593,6 +746,119 @@ class KubernetesBrokerTests(unittest.TestCase):
         )
         self.assertEqual("catalog-switch-resource-broker", second["request"]["cleanup_owner"])
 
+    def test_live_creation_requires_reviewed_external_authority_and_private_runner(self):
+        pending_runner = json.loads(json.dumps(self.request_value))
+        pending_runner["private_runner_receipt"] = {
+            "status": "PENDING_CONSUMER_PROOF",
+            "path": None,
+            "sha256": None,
+            "reviewed_commit": None,
+        }
+        self.plan(pending_runner)
+        with self.assertRaisesRegex(k8s.common.BrokerError, "private API runner path"):
+            k8s.provision_control_plane(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
+        self.assertEqual({}, self.cli.created_count)
+
+        other_request = self.root / "authority-pending-request.json"
+        other_lease = self.root / "authority-pending-lease.json"
+        value = self.make_request(lease_id="k8s-unit-authority-pending")
+        other_request.write_text(json.dumps(value))
+        k8s.plan(
+            other_request,
+            other_lease,
+            self.registry_path,
+            MODULE_PATH.parent / "kubernetes_profiles.json",
+        )
+        with self.assertRaisesRegex(k8s.common.BrokerError, "authority is unreviewed"):
+            k8s.provision_control_plane(
+                other_lease, self.registry_path, self.cli, self.kubectl
+            )
+        self.assertEqual({}, self.cli.created_count)
+
+    def test_atomic_state_and_kubeconfig_replace_fsync_parent_directories(self):
+        state_path = self.root / "atomic" / "state.json"
+        with mock.patch.object(
+            k8s.common,
+            "fsync_directory",
+            wraps=k8s.common.fsync_directory,
+        ) as fsync_directory:
+            k8s.common.atomic_json(state_path, {"state": "durable"})
+        fsync_directory.assert_called_with(state_path.parent)
+
+        source = state_path.parent / ".kubeconfig.broker-staging"
+        destination = state_path.parent / "kubeconfig.yaml"
+        source.write_text("durable-kubeconfig")
+        with mock.patch.object(
+            k8s.common,
+            "fsync_directory",
+            wraps=k8s.common.fsync_directory,
+        ) as fsync_directory:
+            k8s.durable_replace(source, destination)
+        fsync_directory.assert_called_once_with(destination.parent)
+        self.assertFalse(source.exists())
+        self.assertTrue(destination.exists())
+
+        with mock.patch.object(
+            k8s.common,
+            "fsync_directory",
+            wraps=k8s.common.fsync_directory,
+        ) as fsync_directory:
+            k8s.durable_unlink(destination)
+        fsync_directory.assert_called_once_with(destination.parent)
+        self.assertFalse(destination.exists())
+
+        with mock.patch.object(
+            k8s,
+            "durable_replace",
+            wraps=k8s.durable_replace,
+        ) as durable_replace:
+            support = self.support()
+        kubeconfig = Path(support["kubeconfig_path"])
+        self.assertTrue(
+            any(call.args[1] == kubeconfig for call in durable_replace.call_args_list)
+        )
+
+    def test_caller_constructed_event_without_trusted_signature_is_rejected(self):
+        self.support()
+        self.demand(record=False)
+        envelope = json.loads(self.accepted_receipt_path.read_text())
+        envelope["signature_base64"] = base64.b64encode(b"\0" * 64).decode("ascii")
+        self.accepted_receipt_path.write_text(json.dumps(envelope, sort_keys=True) + "\n")
+        os.chmod(self.accepted_receipt_path, 0o600)
+        demand = json.loads(self.demand_path.read_text())
+        demand["accepted_event_receipt_sha256"] = k8s.hashlib.sha256(
+            self.accepted_receipt_path.read_bytes()
+        ).hexdigest()
+        self.demand_path.write_text(json.dumps(demand))
+        with self.assertRaisesRegex(k8s.common.BrokerError, "receipt signature is invalid"):
+            k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+
+    def test_arm_b_binds_trace_metric_scenario_and_full_target_identity(self):
+        self.support()
+        self.demand(
+            record=False,
+            event_overrides={"data.trace_request_sha256": "5" * 64},
+        )
+        with self.assertRaisesRegex(k8s.common.BrokerError, "trace request digest"):
+            k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+
+        self.demand(record=False, receipt_overrides={"metric_contract_sha256": "0" * 64})
+        with self.assertRaisesRegex(k8s.common.BrokerError, "exact ledger/metric/trace"):
+            k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+
+        self.demand(record=False, event_overrides={"data.scenario": "same_model_hot"})
+        with self.assertRaisesRegex(k8s.common.BrokerError, "scenario is outside"):
+            k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+
+        self.demand(
+            record=False,
+            event_overrides={"data.target.model_version": "foreign-version"},
+        )
+        with self.assertRaisesRegex(k8s.common.BrokerError, "target/input identity"):
+            k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
+
     def test_resource_graph_tamper_breaks_plan_hash(self):
         lease = self.plan()
         lease["resource_graph"][0]["resource_name"] = "foreign-name"
@@ -602,12 +868,12 @@ class KubernetesBrokerTests(unittest.TestCase):
 
     def test_unauthorized_project_and_non_preemptible_profile_fail_closed(self):
         with self.assertRaisesRegex(k8s.common.BrokerError, "outside the epic allowlist"):
-            self.plan(request(project_id="project-foreign"))
+            self.plan(self.make_request(project_id="project-foreign"))
         profiles = json.loads(self.profiles_path.read_text())
         profiles["profiles"]["mk8s-h100-new-node-v1"]["gpu_node_group"]["mode"] = "normal"
         changed = self.root / "profiles.json"
         changed.write_text(json.dumps(profiles))
-        self.request_path.write_text(json.dumps(request()))
+        self.request_path.write_text(json.dumps(self.make_request()))
         with self.assertRaisesRegex(k8s.common.BrokerError, "preemptible"):
             k8s.plan(self.request_path, self.lease_path, self.registry_path, changed)
 
@@ -647,7 +913,7 @@ class KubernetesBrokerTests(unittest.TestCase):
         self.assertTrue(released["attempts"][0]["receipt"]["cleanup"]["node_absent"])
 
     def test_prepared_arm_creates_preemptible_gpu_without_post_t0_demand(self):
-        prepared = request(
+        prepared = self.make_request(
             lease_id="k8s-unit-prepared",
             campaign_arm="A_prepared_node",
             purpose="Fresh isolated Kubernetes prepared-node contract unit test.",
@@ -695,8 +961,24 @@ class KubernetesBrokerTests(unittest.TestCase):
         self.assertEqual("NO_PREEMPTIBLE_CAPACITY", lease["attempts"][0]["receipt"]["capacity_advice"]["result"])
         self.assertEqual(0, self.cli.created_count.get("gpu_node_group", 0))
         self.assertTrue(any(item["stage"] == "gpu_capacity_advice" for item in lease["failures"]))
+        no_create = lease["attempts"][0]["receipt"]["no_create_absence_receipt"]
+        self.assertFalse(no_create["create_admitted"])
+        self.assertEqual(0, no_create["exact_provider_matches"])
+        released = k8s.cleanup_attempt(
+            self.lease_path, self.registry_path, self.cli, execute=True
+        )
+        cleanup = released["attempts"][0]["receipt"]["cleanup"]
+        self.assertEqual([], cleanup["exact_id_receipts"])
+        self.assertEqual(no_create, cleanup["no_create_absence_receipt"])
+        self.assertEqual("SUPPORT_ACTIVE_NO_GPU_NODE_GROUP", released["state"])
+        tampered = json.loads(json.dumps(released))
+        tampered["attempts"][0]["receipt"]["no_create_absence_receipt"][
+            "exact_provider_matches"
+        ] = 1
+        with self.assertRaisesRegex(k8s.common.BrokerError, "ownership signature mismatch"):
+            k8s.assert_integrity(tampered)
 
-    def test_interruption_after_create_reconciles_without_duplicate(self):
+    def test_interruption_after_create_preserves_ambiguous_exact_name(self):
         self.support()
         self.demand()
         self.cli.fail_after_create_kind = "gpu_node_group"
@@ -705,22 +987,27 @@ class KubernetesBrokerTests(unittest.TestCase):
                 self.lease_path, self.registry_path, self.cli, self.kubectl
             )
         self.cli.fail_after_create_kind = None
-        active = k8s.provision_gpu_node_group(
-            self.lease_path, self.registry_path, self.cli, self.kubectl
-        )
-        self.assertEqual("ACTIVE_ATTEMPT", active["state"])
+        with self.assertRaisesRegex(k8s.common.BrokerError, "no provider correlation"):
+            k8s.provision_gpu_node_group(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
         self.assertEqual(1, self.cli.created_count["gpu_node_group"])
+        active = json.loads(self.lease_path.read_text())
         operation = next(
             item
             for item in active["resource_create_operations"]
             if item["kind"] == "gpu_node_group"
         )
-        self.assertEqual("RECONCILED_AFTER_INTERRUPTION", operation["status"])
+        self.assertEqual("AMBIGUOUS_FOREIGN_PRESERVED", operation["status"])
         self.assertTrue(any(item["stage"] == "create:gpu_node_group" for item in active["failures"]))
-        create_attempts = active["attempts"][0]["receipt"]["create_attempts"]
-        self.assertEqual(["FAIL", "CREATED_OR_RECONCILED"], [item["outcome"] for item in create_attempts])
+        group_id = next(
+            resource_id
+            for resource_id, value in self.cli.resources.items()
+            if value.get("_kind") == "gpu_node_group"
+        )
+        self.assertNotIn(group_id, self.cli.deleted)
 
-    def test_interrupted_gpu_create_is_reconciled_for_exact_cleanup(self):
+    def test_interrupted_gpu_create_cleanup_preserves_without_correlation(self):
         self.support()
         self.demand()
         self.cli.fail_after_create_kind = "gpu_node_group"
@@ -728,21 +1015,22 @@ class KubernetesBrokerTests(unittest.TestCase):
             k8s.provision_gpu_node_group(
                 self.lease_path, self.registry_path, self.cli, self.kubectl
             )
-        released = k8s.cleanup_attempt(
-            self.lease_path,
-            self.registry_path,
-            self.cli,
-            self.kubectl,
-            execute=True,
+        with self.assertRaisesRegex(k8s.common.BrokerError, "lacks provider correlation"):
+            k8s.cleanup_attempt(
+                self.lease_path,
+                self.registry_path,
+                self.cli,
+                self.kubectl,
+                execute=True,
+            )
+        group_id = next(
+            resource_id
+            for resource_id, value in self.cli.resources.items()
+            if value.get("_kind") == "gpu_node_group"
         )
-        self.assertEqual("SUPPORT_ACTIVE_NO_GPU_NODE_GROUP", released["state"])
-        receipt = released["attempts"][0]["receipt"]
-        self.assertIsNotNone(receipt["node_group_id"])
-        self.assertIsNotNone(receipt["node_id"])
-        self.assertEqual(2, len(receipt["cleanup"]["exact_id_receipts"]))
-        self.assertTrue(all(item["absence_verified_at"] for item in receipt["cleanup"]["exact_id_receipts"]))
+        self.assertNotIn(group_id, self.cli.deleted)
 
-    def test_control_plane_interruption_reconciles_without_duplicate(self):
+    def test_control_plane_interruption_preserves_without_provider_correlation(self):
         self.plan()
         self.cli.fail_after_create_kind = "cluster"
         with self.assertRaisesRegex(k8s.common.BrokerError, "simulated interruption"):
@@ -750,15 +1038,16 @@ class KubernetesBrokerTests(unittest.TestCase):
                 self.lease_path, self.registry_path, self.cli, self.kubectl
             )
         self.cli.fail_after_create_kind = None
-        support = k8s.provision_control_plane(
-            self.lease_path, self.registry_path, self.cli, self.kubectl
-        )
-        self.assertEqual("SUPPORT_ACTIVE_NO_GPU_NODE_GROUP", support["state"])
+        with self.assertRaisesRegex(k8s.common.BrokerError, "no provider correlation"):
+            k8s.provision_control_plane(
+                self.lease_path, self.registry_path, self.cli, self.kubectl
+            )
         self.assertEqual(1, self.cli.created_count["cluster"])
+        support = json.loads(self.lease_path.read_text())
         operation = next(
             item for item in support["resource_create_operations"] if item["kind"] == "cluster"
         )
-        self.assertEqual("RECONCILED_AFTER_INTERRUPTION", operation["status"])
+        self.assertEqual("AMBIGUOUS_FOREIGN_PRESERVED", operation["status"])
 
     def test_foreign_exact_name_collision_is_preserved(self):
         lease = self.plan()
@@ -834,11 +1123,17 @@ class KubernetesBrokerTests(unittest.TestCase):
             )
         self.assertEqual({}, self.cli.created_count)
         self.cli.profile = "sandbox"
-        self.request_value["authority_identity"]["id"] = "different-authority"
         other_request = self.root / "other-request.json"
         other_lease = self.root / "other-lease.json"
-        self.request_value["lease_id"] = "k8s-unit-other-authority"
-        other_request.write_text(json.dumps(self.request_value))
+        other_value = self.make_request(
+            lease_id="k8s-unit-other-authority",
+            authority_identity={
+                "type": "service_account_profile",
+                "id": "different-authority",
+                "parent_id": "project-i00xz31gpr00xp9jhp982v",
+            },
+        )
+        other_request.write_text(json.dumps(other_value))
         k8s.plan(other_request, other_lease, self.registry_path, self.profiles_path)
         with self.assertRaisesRegex(k8s.common.AuthenticationError, "authority identity differs"):
             k8s.provision_control_plane(
@@ -979,7 +1274,7 @@ class KubernetesBrokerTests(unittest.TestCase):
         with self.assertRaisesRegex(k8s.common.BrokerError, "clock/recorder authority"):
             k8s.record_demand(self.lease_path, self.registry_path, self.demand_path)
 
-    def test_system_provider_child_is_reconciled_without_kubeconfig(self):
+    def test_system_provider_child_window_preserves_ambiguous_parent_without_kubeconfig(self):
         self.plan()
         self.cli.fail_after_create_kind = "system_node_group"
         with self.assertRaisesRegex(k8s.common.BrokerError, "simulated interruption"):
@@ -988,12 +1283,14 @@ class KubernetesBrokerTests(unittest.TestCase):
             )
         lease = json.loads(self.lease_path.read_text())
         self.assertFalse(Path(lease["kubeconfig_path"]).exists())
-        released = k8s.cleanup(
-            self.lease_path, self.registry_path, self.cli, execute=True
+        with self.assertRaisesRegex(k8s.common.BrokerError, "lacks provider correlation"):
+            k8s.cleanup(self.lease_path, self.registry_path, self.cli, execute=True)
+        group_id = next(
+            resource_id
+            for resource_id, value in self.cli.resources.items()
+            if value.get("_kind") == "system_node_group"
         )
-        nodes = [item for item in released["resources"] if item["kind"] == "system_node"]
-        self.assertEqual(1, len(nodes))
-        self.assertTrue(nodes[0]["absence_verified_at"])
+        self.assertNotIn(group_id, self.cli.deleted)
 
     def test_gpu_live_product_and_allocatable_are_attested(self):
         self.support()
@@ -1012,7 +1309,7 @@ class KubernetesBrokerTests(unittest.TestCase):
                 self.lease_path, self.registry_path, self.cli, self.kubectl
             )
 
-    def test_signed_spec_intent_rejects_same_name_label_wrong_spec(self):
+    def test_copied_name_labels_and_exact_spec_remain_ambiguous(self):
         self.plan()
         self.cli.fail_after_create_kind = "cluster"
         with self.assertRaisesRegex(k8s.common.BrokerError, "simulated interruption"):
@@ -1024,9 +1321,8 @@ class KubernetesBrokerTests(unittest.TestCase):
             for resource_id, value in self.cli.resources.items()
             if value.get("_kind") == "cluster"
         )
-        self.cli.resources[cluster_id]["spec"]["control_plane"]["version"] = "1.33"
         self.cli.fail_after_create_kind = None
-        with self.assertRaisesRegex(k8s.common.BrokerError, "create intent"):
+        with self.assertRaisesRegex(k8s.common.BrokerError, "no provider correlation"):
             k8s.provision_control_plane(
                 self.lease_path, self.registry_path, self.cli, self.kubectl
             )

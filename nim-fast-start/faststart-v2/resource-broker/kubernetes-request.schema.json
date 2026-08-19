@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalog-switch-kubernetes-lease-request/v2",
+  "$id": "catalog-switch-kubernetes-lease-request/v3",
   "title": "Catalog switch Kubernetes lease request",
   "type": "object",
   "additionalProperties": false,
@@ -24,13 +24,17 @@
     "hard_cost_cap_usd",
     "artifact_storage",
     "metric_contract_sha256",
+    "trace_id",
     "trace_sha256",
+    "allowed_scenarios",
     "model_input_sha256s",
-    "accepted_event_recorder_id",
+    "model_request_bindings",
+    "accepted_event_authority_id",
+    "private_runner_receipt",
     "cleanup_plan"
   ],
   "properties": {
-    "schema_version": {"const": "catalog-switch-kubernetes-lease-request/v2"},
+    "schema_version": {"const": "catalog-switch-kubernetes-lease-request/v3"},
     "lease_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
     "task_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
     "owner": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]{0,62}$"},
@@ -63,13 +67,65 @@
       "properties": {"max_size_gib": {"type": "integer", "minimum": 1, "maximum": 1024}}
     },
     "metric_contract_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "trace_id": {"type": "string", "minLength": 1},
     "trace_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "allowed_scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["same_model_hot", "idle_local", "a_to_b_local", "a_to_b_remote", "checkpoint_fallback", "capacity_miss"]}
+    },
     "model_input_sha256s": {
       "type": "object",
       "minProperties": 1,
       "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
     },
-    "accepted_event_recorder_id": {"const": "catalog-switch-k8s-external-client"},
+    "model_request_bindings": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "input"],
+        "properties": {
+          "target": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["model_id", "model_version", "artifact_id", "artifact_version", "artifact_sha256"],
+            "properties": {
+              "model_id": {"type": "string", "minLength": 1},
+              "model_version": {"type": "string", "minLength": 1},
+              "artifact_id": {"type": "string", "minLength": 1},
+              "artifact_version": {"type": "string", "minLength": 1},
+              "artifact_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+            }
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["workload_id", "input_id", "payload_sha256", "input_bytes"],
+            "properties": {
+              "workload_id": {"type": "string", "minLength": 1},
+              "input_id": {"type": "string", "minLength": 1},
+              "payload_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "input_bytes": {"type": "integer", "minimum": 0}
+            }
+          }
+        }
+      }
+    },
+    "accepted_event_authority_id": {"type": "string", "minLength": 1},
+    "private_runner_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "path", "sha256", "reviewed_commit"],
+      "properties": {
+        "status": {"enum": ["PENDING_CONSUMER_PROOF", "REVIEWED_ACTIVE"]},
+        "path": {"type": ["string", "null"]},
+        "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "reviewed_commit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"}
+      }
+    },
     "cleanup_plan": {"type": "string", "minLength": 20}
   }
 }

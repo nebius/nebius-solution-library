@@ -38,13 +38,13 @@ if str(ROOT) not in sys.path:
 import broker as common  # noqa: E402
 
 
-REQUEST_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-request/v2"
-LEASE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-lease/v3"
+REQUEST_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-request/v3"
+LEASE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-lease/v4"
 PROFILE_SCHEMA_VERSION = "catalog-switch-kubernetes-resource-profiles/v1"
 REGISTRY_SCHEMA_VERSION = "catalog-switch-kubernetes-lease-registry/v1"
-DEMAND_SCHEMA_VERSION = "catalog-switch-kubernetes-node-demand/v2"
+DEMAND_SCHEMA_VERSION = "catalog-switch-kubernetes-node-demand/v3"
 EVENT_SCHEMA_VERSION = "catalog-switch-kubernetes-lifecycle-events/v1"
-BACKEND_VERSION = "nebius-managed-kubernetes/v2"
+BACKEND_VERSION = "nebius-managed-kubernetes/v3"
 KUBECTL = "/usr/local/bin/kubectl"
 KUBECONFIG_ROOT = ROOT / "kubeconfigs"
 LEASE_KEY_ROOT = ROOT / "lease-keys"
@@ -53,6 +53,17 @@ HEX64 = re.compile(r"^[0-9a-f]{64}$")
 ATTEMPT_ID = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,127}$")
 BASELINE_EVENT_SCHEMA = "archvteams.nebius.ai/catalog-switch-ledger-event/v1"
 T0_BOUNDARY = "external-client-request-accepted/v1"
+EXTERNAL_ACCEPTANCE_RECEIPT_SCHEMA = "catalog-switch-external-accepted-event-receipt/v1"
+PRIVATE_RUNNER_RECEIPT_SCHEMA = "catalog-switch-kubernetes-private-runner-receipt/v1"
+NO_CREATE_RECEIPT_SCHEMA = "catalog-switch-kubernetes-no-create-absence-receipt/v1"
+ACCEPTED_SCENARIOS = {
+    "same_model_hot",
+    "idle_local",
+    "a_to_b_local",
+    "a_to_b_remote",
+    "checkpoint_fallback",
+    "capacity_miss",
+}
 GIB = 1024**3
 
 
@@ -119,6 +130,77 @@ def required_keys(value: dict[str, Any], required: set[str], label: str) -> None
         raise common.BrokerError(f"{label} fields mismatch; missing={missing}, extra={extra}")
 
 
+def validate_private_runner_receipt(
+    value: dict[str, Any], request: dict[str, Any]
+) -> dict[str, Any]:
+    required_keys(value, {"status", "path", "sha256", "reviewed_commit"}, "private_runner_receipt")
+    status_value = value["status"]
+    if status_value == "PENDING_CONSUMER_PROOF":
+        if any(value[field] is not None for field in ("path", "sha256", "reviewed_commit")):
+            raise common.BrokerError("pending private runner receipt must not claim review evidence")
+        return dict(value)
+    if status_value != "REVIEWED_ACTIVE":
+        raise common.BrokerError("private runner receipt has an unsupported status")
+    path = Path(str(value["path"]))
+    if not path.is_absolute() or path.resolve() != path:
+        raise common.BrokerError("private runner receipt path must be absolute and canonical")
+    try:
+        details = path.lstat()
+        raw = path.read_bytes()
+    except OSError as exc:
+        raise common.BrokerError("reviewed private runner receipt is missing") from exc
+    if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
+        raise common.BrokerError("private runner receipt must be a regular non-symlink file")
+    if not HEX64.fullmatch(str(value["sha256"])) or hashlib.sha256(raw).hexdigest() != value["sha256"]:
+        raise common.BrokerError("private runner receipt digest mismatch")
+    if not re.fullmatch(r"[0-9a-f]{40}", str(value["reviewed_commit"])):
+        raise common.BrokerError("private runner receipt must pin an exact reviewed commit")
+    try:
+        receipt = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise common.BrokerError("private runner receipt is not valid JSON") from exc
+    required_keys(
+        receipt,
+        {
+            "schema_version",
+            "status",
+            "consumer_task_id",
+            "lease_id",
+            "project_id",
+            "region",
+            "runner_owner_task",
+            "network_path",
+            "api_server_access",
+            "public_ip",
+            "public_ingress",
+            "implementation_sha256",
+            "source_commit",
+            "reviewed_at_utc",
+        },
+        "private runner receipt material",
+    )
+    expected = {
+        "schema_version": PRIVATE_RUNNER_RECEIPT_SCHEMA,
+        "status": "PASS",
+        "consumer_task_id": request["task_id"],
+        "lease_id": request["lease_id"],
+        "project_id": request["project_id"],
+        "region": request["region"],
+        "runner_owner_task": request["task_id"],
+        "network_path": "task-owned-private-subnet",
+        "api_server_access": "internal-only",
+        "public_ip": False,
+        "public_ingress": False,
+        "implementation_sha256": receipt["implementation_sha256"],
+        "source_commit": value["reviewed_commit"],
+        "reviewed_at_utc": receipt["reviewed_at_utc"],
+    }
+    if receipt != expected or not HEX64.fullmatch(str(receipt["implementation_sha256"])):
+        raise common.BrokerError("private runner receipt does not prove the exact isolated path")
+    common.parse_utc(str(receipt["reviewed_at_utc"]))
+    return {**value, "path": str(path)}
+
+
 def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, Any]:
     required = {
         "schema_version",
@@ -140,9 +222,13 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
         "hard_cost_cap_usd",
         "artifact_storage",
         "metric_contract_sha256",
+        "trace_id",
         "trace_sha256",
+        "allowed_scenarios",
         "model_input_sha256s",
-        "accepted_event_recorder_id",
+        "model_request_bindings",
+        "accepted_event_authority_id",
+        "private_runner_receipt",
         "cleanup_plan",
     }
     required_keys(request, required, "request")
@@ -206,6 +292,16 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
     for field in ("metric_contract_sha256", "trace_sha256"):
         if not HEX64.fullmatch(str(request[field])):
             raise common.BrokerError(f"{field} must be a SHA-256 digest")
+    if not isinstance(request["trace_id"], str) or not request["trace_id"]:
+        raise common.BrokerError("trace_id must be a non-empty frozen identity")
+    scenarios = request["allowed_scenarios"]
+    if (
+        not isinstance(scenarios, list)
+        or not scenarios
+        or len(set(scenarios)) != len(scenarios)
+        or any(item not in ACCEPTED_SCENARIOS for item in scenarios)
+    ):
+        raise common.BrokerError("allowed_scenarios must be unique reviewed request-SLO scenarios")
     model_hashes = request["model_input_sha256s"]
     if not isinstance(model_hashes, dict) or not model_hashes:
         raise common.BrokerError("at least one frozen model input digest is required")
@@ -213,8 +309,81 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
         common.sanitize_label(str(model_id), "model_id")
         if not HEX64.fullmatch(str(digest)):
             raise common.BrokerError("model input values must be SHA-256 digests")
-    if request["accepted_event_recorder_id"] != "catalog-switch-k8s-external-client":
-        raise common.BrokerError("accepted-event recorder authority is not the frozen K8s client")
+    bindings = request["model_request_bindings"]
+    if not isinstance(bindings, dict) or set(bindings) != set(model_hashes):
+        raise common.BrokerError("model_request_bindings must exactly cover frozen model inputs")
+    for model_id, binding in bindings.items():
+        required_keys(binding, {"target", "input"}, f"model_request_bindings.{model_id}")
+        target = binding["target"]
+        request_input = binding["input"]
+        required_keys(
+            target,
+            {"model_id", "model_version", "artifact_id", "artifact_version", "artifact_sha256"},
+            f"model_request_bindings.{model_id}.target",
+        )
+        required_keys(
+            request_input,
+            {"workload_id", "input_id", "payload_sha256", "input_bytes"},
+            f"model_request_bindings.{model_id}.input",
+        )
+        if target["model_id"] != model_id:
+            raise common.BrokerError("model binding target identity differs from its key")
+        if not HEX64.fullmatch(str(target["artifact_sha256"])):
+            raise common.BrokerError("model binding artifact digest is invalid")
+        if request_input["payload_sha256"] != model_hashes[model_id]:
+            raise common.BrokerError("model binding input digest differs from frozen input map")
+        if isinstance(request_input["input_bytes"], bool) or int(request_input["input_bytes"]) < 0:
+            raise common.BrokerError("model binding input_bytes must be nonnegative")
+    authority_id = request["accepted_event_authority_id"]
+    authorities = profiles.get("accepted_event_authorities", {})
+    if authority_id not in authorities:
+        raise common.BrokerError("accepted-event authority is not in the reviewed profile registry")
+    accepted_authority = authorities[authority_id]
+    required_keys(
+        accepted_authority,
+        {
+            "status",
+            "recorder_id",
+            "receipt_schema_version",
+            "validator_id",
+            "validator_sha256",
+            "validator_reviewed_commit",
+            "public_key_base64",
+        },
+        "accepted-event authority",
+    )
+    if accepted_authority["receipt_schema_version"] != EXTERNAL_ACCEPTANCE_RECEIPT_SCHEMA:
+        raise common.BrokerError("accepted-event authority receipt schema is unsupported")
+    if not all(
+        isinstance(accepted_authority[field], str) and accepted_authority[field]
+        for field in ("recorder_id", "validator_id")
+    ):
+        raise common.BrokerError("accepted-event recorder/validator IDs must be non-empty")
+    authority_status = accepted_authority["status"]
+    if authority_status == "PENDING_CONSUMER_REVIEW":
+        if any(
+            accepted_authority[field] is not None
+            for field in ("validator_sha256", "validator_reviewed_commit", "public_key_base64")
+        ):
+            raise common.BrokerError("pending accepted-event authority must not claim review evidence")
+    elif authority_status == "REVIEWED_ACTIVE":
+        if (
+            not HEX64.fullmatch(str(accepted_authority["validator_sha256"]))
+            or not re.fullmatch(r"[0-9a-f]{40}", str(accepted_authority["validator_reviewed_commit"]))
+        ):
+            raise common.BrokerError("reviewed accepted-event validator provenance is incomplete")
+        try:
+            authority_key = base64.b64decode(
+                str(accepted_authority["public_key_base64"]), validate=True
+            )
+            Ed25519PublicKey.from_public_bytes(authority_key)
+        except (ValueError, TypeError) as exc:
+            raise common.BrokerError("reviewed accepted-event authority key is invalid") from exc
+        if len(authority_key) != 32:
+            raise common.BrokerError("reviewed accepted-event authority key has invalid length")
+    else:
+        raise common.BrokerError("accepted-event authority has an unsupported review status")
+    runner = validate_private_runner_receipt(request["private_runner_receipt"], request)
     normalized.update(
         {
             "expected_duration_hours": str(duration),
@@ -223,6 +392,9 @@ def validate_request(request: dict[str, Any], profiles: dict[str, Any]) -> dict[
             "cleanup_deadline_utc": common.iso(deadline),
             "artifact_storage": {"max_size_gib": int(artifact["max_size_gib"])},
             "authority_identity": dict(authority),
+            "allowed_scenarios": list(scenarios),
+            "model_request_bindings": json.loads(json.dumps(bindings)),
+            "private_runner_receipt": runner,
         }
     )
     return normalized
@@ -377,6 +549,7 @@ def create_signing_authority(lease_id: str) -> dict[str, Any]:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+    common.fsync_directory(path.parent)
     public_bytes = private_key.public_key().public_bytes(
         serialization.Encoding.Raw,
         serialization.PublicFormat.Raw,
@@ -416,6 +589,7 @@ def destroy_signing_authority(lease: dict[str, Any]) -> None:
     if path.exists():
         load_private_key(lease)
         path.unlink()
+        common.fsync_directory(path.parent)
     if path.exists():
         raise common.BrokerError("lease signing authority still exists after exact unlink")
     lease["signing_key_cleanup"] = {
@@ -552,13 +726,16 @@ def demand_auth_material(demand: dict[str, Any]) -> dict[str, Any]:
             "attempt_id",
             "accepted_event_path",
             "accepted_event_sha256",
+            "accepted_event_receipt_path",
+            "accepted_event_receipt_sha256",
             "ledger_id",
             "ledger_sequence",
             "trace_id",
             "request_id",
             "event_id",
-            "model_id",
-            "input_payload_sha256",
+            "scenario",
+            "target",
+            "input",
             "accepted_event_source_receipt",
             "t0_observed_at_utc",
             "t0_observed_monotonic_ns",
@@ -594,10 +771,13 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
     task_slug = request["task_id"][:18].rstrip("-._")
     prefix = f"{common.PROGRAM_PREFIX}-{task_slug}-{request_hash[:8]}"
     profile = profiles["profiles"][request["node_group_profile"]]
+    accepted_event_authority = profiles["accepted_event_authorities"][
+        request["accepted_event_authority_id"]
+    ]
     estimate = cost_estimate(request, profile)
     labels = {
         "program": common.PROGRAM,
-        "broker": "resource-broker-k8s-v2",
+        "broker": "resource-broker-k8s-v3",
         "lease": request["lease_id"],
         "task": request["task_id"],
         "owner": request["owner"],
@@ -625,6 +805,16 @@ def build_lease(request: dict[str, Any], profiles: dict[str, Any]) -> dict[str, 
         "signing_authority": signing_authority,
         "profile_snapshot": profile,
         "profile_sha256": common.sha256_json(profile),
+        "accepted_event_authority": accepted_event_authority,
+        "accepted_event_authority_sha256": common.sha256_json(accepted_event_authority),
+        "live_creation_gates": {
+            "external_accepted_event_authority": accepted_event_authority["status"],
+            "private_runner_network_path": request["private_runner_receipt"]["status"],
+            "admitted": (
+                accepted_event_authority["status"] == "REVIEWED_ACTIVE"
+                and request["private_runner_receipt"]["status"] == "REVIEWED_ACTIVE"
+            ),
+        },
         "cost_estimate": estimate,
         "resource_graph": planned_graph(prefix, request),
         "resources": [],
@@ -683,6 +873,9 @@ def immutable_plan_material(lease: dict[str, Any]) -> dict[str, Any]:
         "lease_id": lease["lease_id"],
         "request_sha256": lease["request_sha256"],
         "profile_sha256": lease["profile_sha256"],
+        "accepted_event_authority": lease["accepted_event_authority"],
+        "accepted_event_authority_sha256": lease["accepted_event_authority_sha256"],
+        "live_creation_gates": lease["live_creation_gates"],
         "prefix": lease["prefix"],
         "project_id": lease["project_id"],
         "region": lease["region"],
@@ -707,6 +900,10 @@ def assert_integrity(lease: dict[str, Any]) -> None:
         raise common.BrokerError("immutable request hash mismatch")
     if common.sha256_json(lease.get("profile_snapshot")) != lease.get("profile_sha256"):
         raise common.BrokerError("immutable profile hash mismatch")
+    if common.sha256_json(lease.get("accepted_event_authority")) != lease.get(
+        "accepted_event_authority_sha256"
+    ):
+        raise common.BrokerError("immutable accepted-event authority hash mismatch")
     if common.sha256_json(immutable_plan_material(lease)) != lease.get("plan_sha256"):
         raise common.BrokerError("immutable resource plan hash mismatch")
     if lease.get("project_id") != lease["request"]["project_id"] or lease.get("region") != lease["request"]["region"]:
@@ -741,7 +938,40 @@ def assert_integrity(lease: dict[str, Any]) -> None:
             verify_operation_absence(lease, operation)
     for resource in resources:
         verify_resource(lease, resource)
+    for attempt in lease.get("attempts", []):
+        verify_no_create_absence_receipt(lease, attempt)
     verify_demand(lease)
+
+
+def assert_live_creation_prerequisites(lease: dict[str, Any]) -> None:
+    """Refuse every create until both external trust and private API reachability are reviewed."""
+
+    authority = lease["accepted_event_authority"]
+    gates = lease["live_creation_gates"]
+    if (
+        authority.get("status") != "REVIEWED_ACTIVE"
+        or gates.get("external_accepted_event_authority") != "REVIEWED_ACTIVE"
+    ):
+        raise common.BrokerError(
+            "live creation blocked: external accepted-event recorder/validator authority is unreviewed"
+        )
+    if (
+        not HEX64.fullmatch(str(authority.get("validator_sha256")))
+        or not re.fullmatch(r"[0-9a-f]{40}", str(authority.get("validator_reviewed_commit")))
+    ):
+        raise common.BrokerError("live creation blocked: external validator provenance is incomplete")
+    try:
+        public_key = _unb64(str(authority.get("public_key_base64")))
+        Ed25519PublicKey.from_public_bytes(public_key)
+    except (ValueError, TypeError) as exc:
+        raise common.BrokerError("live creation blocked: external receipt public key is invalid") from exc
+    if len(public_key) != 32:
+        raise common.BrokerError("live creation blocked: external receipt public key length is invalid")
+    runner = validate_private_runner_receipt(lease["request"]["private_runner_receipt"], lease["request"])
+    if runner.get("status") != "REVIEWED_ACTIVE" or not gates.get("admitted"):
+        raise common.BrokerError(
+            "live creation blocked: consumer has no reviewed task-owned private API runner path"
+        )
 
 
 def registry_summary(lease: dict[str, Any], path: Path) -> dict[str, Any]:
@@ -1136,20 +1366,25 @@ def ensure_resource(
     if exact:
         if operation is None or operation["status"] not in {"INTENT_RECORDED", "CREATE_FAILED"}:
             raise common.BrokerError(f"foreign or pre-existing {kind} name collision; preserve it")
-        validate_owned_metadata(lease, kind, exact[0], name, parent_id)
-        project_requested_spec(exact[0].get("spec", {}), spec)
-        created_at = exact[0].get("metadata", {}).get("created_at")
-        if created_at and common.parse_utc(created_at) < common.parse_utc(operation["started_at_utc"]):
-            raise common.BrokerError(f"{kind} predates the persisted create intent; preserve it")
-        resource = add_resource(
-            lease, kind, name, exact[0], depends_on, operation_id, spec
-        )
-        operation["status"] = "RECONCILED_AFTER_INTERRUPTION"
+        operation["status"] = "AMBIGUOUS_FOREIGN_PRESERVED"
         operation["completed_at_utc"] = common.iso(common.utc_now())
-        operation["resource_id"] = resource["id"]
-        event(lease, "resource.create.reconciled", "PASS", kind=kind, resource_id=resource["id"])
+        operation["failure"] = (
+            "exact-name object exists after an unreceipted create window; installed provider "
+            "create API exposes no request correlation token, so labels/spec cannot prove actor ownership"
+        )
+        event(
+            lease,
+            "resource.create.ambiguous",
+            "FAIL",
+            kind=kind,
+            name=name,
+            candidate_id=exact[0].get("metadata", {}).get("id"),
+            foreign_preserved=True,
+        )
         save(lease_path, registry_path, lease)
-        return resource
+        raise common.BrokerError(
+            f"interrupted {kind} create has no provider correlation/audit receipt; preserve exact-name object"
+        )
     if operation is None:
         operation = {
             "operation_id": operation_id,
@@ -1470,6 +1705,33 @@ def kubeconfig_file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def fsync_regular_file(path: Path) -> None:
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(path, flags)
+    try:
+        details = os.fstat(descriptor)
+        if not stat.S_ISREG(details.st_mode):
+            raise common.BrokerError("durability target is not a regular file")
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def durable_replace(source: Path, destination: Path) -> None:
+    if source.parent.resolve() != destination.parent.resolve():
+        raise common.BrokerError("durable replace must remain in one task-owned directory")
+    fsync_regular_file(source)
+    os.replace(source, destination)
+    common.fsync_directory(destination.parent)
+
+
+def durable_unlink(path: Path) -> None:
+    path.unlink()
+    common.fsync_directory(path.parent)
+
+
 def validate_kubeconfig_file(path: Path) -> None:
     staging_name = path.name.startswith(".") and ".yaml." in path.name and path.name.endswith(
         ".broker-staging"
@@ -1617,7 +1879,7 @@ def ensure_kubeconfig(
         if not staging.exists():
             raise common.BrokerError("signed kubeconfig staging receipt exists but file is absent")
         verify_kubeconfig_content(staging, {**expected, "path": str(staging)})
-        os.replace(staging, path)
+        durable_replace(staging, path)
     elif operation:
         verify_operation(lease, operation)
         if staging.exists():
@@ -1667,6 +1929,7 @@ def ensure_kubeconfig(
             timeout=180,
         )
         os.chmod(staging, 0o600)
+        fsync_regular_file(staging)
         generated = kubeconfig_content_authority(
             staging,
             cluster_id=cluster_id,
@@ -1679,7 +1942,7 @@ def ensure_kubeconfig(
             "kubeconfig-content", lease, expected
         )
         save(lease_path, registry_path, lease)
-        os.replace(staging, path)
+        durable_replace(staging, path)
         os.chmod(path, 0o600)
     expected = operation.get("kubeconfig_content_authority")
     if not expected:
@@ -1996,6 +2259,7 @@ def provision_control_plane(
 ) -> dict[str, Any]:
     lease = common.load_json(lease_path)
     assert_integrity(lease)
+    assert_live_creation_prerequisites(lease)
     if lease["state"] in {"SUPPORT_ACTIVE_NO_GPU_NODE_GROUP", "ACTIVE", "ACTIVE_ATTEMPT"}:
         assert_frozen_authority(lease, cli)
         for group_kind, node_kind in (
@@ -2286,13 +2550,16 @@ def validate_demand(value: dict[str, Any], lease: dict[str, Any]) -> dict[str, A
             "attempt_id",
             "accepted_event_path",
             "accepted_event_sha256",
+            "accepted_event_receipt_path",
+            "accepted_event_receipt_sha256",
             "ledger_id",
             "ledger_sequence",
             "trace_id",
             "request_id",
             "event_id",
-            "model_id",
-            "input_payload_sha256",
+            "scenario",
+            "target",
+            "input",
         },
         "demand",
     )
@@ -2304,18 +2571,28 @@ def validate_demand(value: dict[str, Any], lease: dict[str, Any]) -> dict[str, A
         raise common.BrokerError("attempt_id contains unsafe characters")
     if not HEX64.fullmatch(str(value["accepted_event_sha256"])):
         raise common.BrokerError("accepted_event_sha256 must be a SHA-256 digest")
-    if not HEX64.fullmatch(str(value["input_payload_sha256"])):
-        raise common.BrokerError("input_payload_sha256 must be a SHA-256 digest")
-    for field in ("ledger_id", "trace_id", "request_id", "event_id", "model_id"):
+    if not HEX64.fullmatch(str(value["accepted_event_receipt_sha256"])):
+        raise common.BrokerError("accepted_event_receipt_sha256 must be a SHA-256 digest")
+    for field in ("ledger_id", "trace_id", "request_id", "event_id"):
         if not isinstance(value[field], str) or not value[field]:
             raise common.BrokerError(f"{field} must be a non-empty string")
+    if value["scenario"] not in lease["request"]["allowed_scenarios"]:
+        raise common.BrokerError("demand scenario is outside the frozen lease")
+    model_id = value.get("target", {}).get("model_id")
+    binding = lease["request"]["model_request_bindings"].get(model_id)
+    if not binding or value["target"] != binding["target"] or value["input"] != binding["input"]:
+        raise common.BrokerError("demand target/input identity differs from the frozen lease")
     if int(value["ledger_sequence"]) < 0:
         raise common.BrokerError("ledger_sequence must be nonnegative")
     path = Path(str(value["accepted_event_path"]))
     if not path.is_absolute():
         raise common.BrokerError("accepted_event_path must be absolute")
+    receipt_path = Path(str(value["accepted_event_receipt_path"]))
+    if not receipt_path.is_absolute():
+        raise common.BrokerError("accepted_event_receipt_path must be absolute")
     normalized = dict(value)
     normalized["accepted_event_path"] = str(path)
+    normalized["accepted_event_receipt_path"] = str(receipt_path)
     normalized["ledger_sequence"] = int(value["ledger_sequence"])
     return normalized
 
@@ -2327,7 +2604,117 @@ def current_boot_id() -> str:
         raise common.BrokerError("cannot bind accepted-event monotonic clock to host boot") from exc
 
 
+def external_acceptance_message(material: dict[str, Any]) -> bytes:
+    return common.canonical(
+        {
+            "domain": EXTERNAL_ACCEPTANCE_RECEIPT_SCHEMA,
+            "authority_id": material.get("authority_id"),
+            "material": material,
+        }
+    ).encode("ascii")
+
+
+def read_external_acceptance_receipt(
+    demand: dict[str, Any], lease: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    path = Path(demand["accepted_event_receipt_path"])
+    try:
+        details = path.lstat()
+        raw = path.read_bytes()
+    except OSError as exc:
+        raise common.BrokerError("trusted external accepted-event receipt is missing") from exc
+    if (
+        path.resolve() != path
+        or stat.S_ISLNK(details.st_mode)
+        or not stat.S_ISREG(details.st_mode)
+        or details.st_uid != os.getuid()
+        or stat.S_IMODE(details.st_mode) & 0o077
+    ):
+        raise common.BrokerError("trusted external accepted-event receipt path/owner/mode is unsafe")
+    if hashlib.sha256(raw).hexdigest() != demand["accepted_event_receipt_sha256"]:
+        raise common.BrokerError("trusted external accepted-event receipt file digest mismatch")
+    try:
+        envelope = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise common.BrokerError("trusted external accepted-event receipt is invalid JSON") from exc
+    required_keys(envelope, {"material", "signature_base64"}, "external accepted-event receipt")
+    material = envelope["material"]
+    if not isinstance(material, dict):
+        raise common.BrokerError("external accepted-event receipt material must be an object")
+    required_keys(
+        material,
+        {
+            "schema_version",
+            "authority_id",
+            "recorder_id",
+            "validator_id",
+            "validator_sha256",
+            "validator_reviewed_commit",
+            "ledger_path",
+            "ledger_sha256",
+            "ledger_device",
+            "ledger_inode",
+            "ledger_mode",
+            "ledger_size_bytes",
+            "ledger_mtime_ns",
+            "line_index",
+            "canonical_event_sha256",
+            "metric_contract_sha256",
+            "trace_id",
+            "trace_sha256",
+            "trace_request_sha256",
+            "ledger_id",
+            "ledger_sequence",
+            "request_id",
+            "attempt_id",
+            "event_id",
+            "scenario",
+            "target",
+            "input",
+            "observed_at_utc",
+            "observed_monotonic_ns",
+            "recorder",
+            "validated_at_utc",
+        },
+        "external accepted-event receipt material",
+    )
+    authority = lease["accepted_event_authority"]
+    if (
+        material["schema_version"] != EXTERNAL_ACCEPTANCE_RECEIPT_SCHEMA
+        or material["authority_id"] != lease["request"]["accepted_event_authority_id"]
+        or material["recorder_id"] != authority["recorder_id"]
+        or material["validator_id"] != authority["validator_id"]
+        or material["validator_sha256"] != authority["validator_sha256"]
+        or material["validator_reviewed_commit"] != authority["validator_reviewed_commit"]
+    ):
+        raise common.BrokerError("external accepted-event receipt provenance differs from reviewed authority")
+    try:
+        public_key = Ed25519PublicKey.from_public_bytes(_unb64(authority["public_key_base64"]))
+        public_key.verify(
+            _unb64(str(envelope["signature_base64"])),
+            external_acceptance_message(material),
+        )
+    except (InvalidSignature, ValueError) as exc:
+        raise common.BrokerError("external accepted-event receipt signature is invalid") from exc
+    validated_at = common.parse_utc(str(material["validated_at_utc"]))
+    observed_at = common.parse_utc(str(material["observed_at_utc"]))
+    if validated_at < observed_at:
+        raise common.BrokerError("external accepted-event validation predates T0")
+    return material, {
+        "path": str(path),
+        "sha256": demand["accepted_event_receipt_sha256"],
+        "mode": format(stat.S_IMODE(details.st_mode), "04o"),
+        "authority_id": material["authority_id"],
+        "validator_id": material["validator_id"],
+        "validator_sha256": material["validator_sha256"],
+        "validator_reviewed_commit": material["validator_reviewed_commit"],
+        "signature_verified": True,
+        "validated_at_utc": common.iso(validated_at),
+    }
+
+
 def read_bound_accepted_event(demand: dict[str, Any], lease: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    receipt_material, trusted_receipt = read_external_acceptance_receipt(demand, lease)
     path = Path(demand["accepted_event_path"])
     try:
         details = path.lstat()
@@ -2383,20 +2770,28 @@ def read_bound_accepted_event(demand: dict[str, Any], lease: dict[str, Any]) -> 
     data = accepted.get("data", {})
     if data.get("boundary") != T0_BOUNDARY:
         raise common.BrokerError("accepted event has the wrong external T0 boundary")
+    if accepted.get("trace_id") != lease["request"]["trace_id"]:
+        raise common.BrokerError("accepted event trace identity differs from the frozen lease")
+    if data.get("trace_request_sha256") != lease["request"]["trace_sha256"]:
+        raise common.BrokerError("accepted event trace request digest differs from the frozen trace")
+    if data.get("scenario") != demand["scenario"] or data.get("scenario") not in lease["request"]["allowed_scenarios"]:
+        raise common.BrokerError("accepted event scenario differs from the frozen demand")
     target = data.get("target", {})
     request_input = data.get("input", {})
-    if target.get("model_id") != demand["model_id"]:
-        raise common.BrokerError("accepted event model identity differs from demand")
-    if request_input.get("payload_sha256") != demand["input_payload_sha256"]:
-        raise common.BrokerError("accepted event input identity differs from demand")
-    if lease["request"]["model_input_sha256s"].get(demand["model_id"]) != demand[
-        "input_payload_sha256"
-    ]:
-        raise common.BrokerError("accepted event model/input pair is outside the frozen lease")
+    model_id = target.get("model_id")
+    binding = lease["request"]["model_request_bindings"].get(model_id)
+    if (
+        binding is None
+        or target != demand["target"]
+        or request_input != demand["input"]
+        or target != binding["target"]
+        or request_input != binding["input"]
+    ):
+        raise common.BrokerError("accepted event target/input identity differs from the frozen demand")
     recorder = accepted.get("recorder", {})
     boot_id = current_boot_id()
     if (
-        recorder.get("recorder_id") != lease["request"]["accepted_event_recorder_id"]
+        recorder.get("recorder_id") != lease["accepted_event_authority"]["recorder_id"]
         or recorder.get("boot_id") != boot_id
         or recorder.get("clock_id") != f"linux-boottime:{boot_id}"
     ):
@@ -2405,6 +2800,36 @@ def read_bound_accepted_event(demand: dict[str, Any], lease: dict[str, Any]) -> 
     accepted_mono = int(accepted.get("observed_monotonic_ns", 0))
     if accepted_mono <= 0:
         raise common.BrokerError("accepted event monotonic clock is invalid")
+    receipt_expected = {
+        "ledger_path": str(path.resolve()),
+        "ledger_sha256": hashlib.sha256(raw).hexdigest(),
+        "ledger_device": details.st_dev,
+        "ledger_inode": details.st_ino,
+        "ledger_mode": format(stat.S_IMODE(details.st_mode), "04o"),
+        "ledger_size_bytes": len(raw),
+        "ledger_mtime_ns": details.st_mtime_ns,
+        "line_index": line_index,
+        "canonical_event_sha256": demand["accepted_event_sha256"],
+        "metric_contract_sha256": lease["request"]["metric_contract_sha256"],
+        "trace_id": lease["request"]["trace_id"],
+        "trace_sha256": lease["request"]["trace_sha256"],
+        "trace_request_sha256": lease["request"]["trace_sha256"],
+        "ledger_id": accepted["ledger_id"],
+        "ledger_sequence": accepted["ledger_sequence"],
+        "request_id": accepted["request_id"],
+        "attempt_id": accepted["attempt_id"],
+        "event_id": accepted["event_id"],
+        "scenario": demand["scenario"],
+        "target": demand["target"],
+        "input": demand["input"],
+        "observed_at_utc": common.iso(accepted_at),
+        "observed_monotonic_ns": accepted_mono,
+        "recorder": recorder,
+    }
+    if any(receipt_material.get(key) != value for key, value in receipt_expected.items()):
+        raise common.BrokerError(
+            "trusted external receipt does not bind the exact ledger/metric/trace/scenario/target"
+        )
     receipt = {
         "path": str(path.resolve()),
         "device": details.st_dev,
@@ -2421,8 +2846,12 @@ def read_bound_accepted_event(demand: dict[str, Any], lease: dict[str, Any]) -> 
         "request_id": accepted["request_id"],
         "trace_id": accepted["trace_id"],
         "attempt_id": accepted["attempt_id"],
-        "model_id": demand["model_id"],
-        "input_payload_sha256": demand["input_payload_sha256"],
+        "scenario": demand["scenario"],
+        "target": demand["target"],
+        "input": demand["input"],
+        "metric_contract_sha256": lease["request"]["metric_contract_sha256"],
+        "trace_sha256": lease["request"]["trace_sha256"],
+        "external_validation_receipt": trusted_receipt,
         "recorder": recorder,
         "observed_at_utc": common.iso(accepted_at),
         "observed_monotonic_ns": accepted_mono,
@@ -2436,6 +2865,7 @@ def record_demand(
 ) -> dict[str, Any]:
     lease = common.load_json(lease_path)
     assert_integrity(lease)
+    assert_live_creation_prerequisites(lease)
     if lease["request"]["campaign_arm"] != "B_new_preemptible_node":
         raise common.BrokerError("post-T0 demand is valid only for B_new_preemptible_node")
     demand = validate_demand(common.load_json(demand_path), lease)
@@ -2499,6 +2929,8 @@ def record_demand(
             "capacity_advice_started_at_utc": None,
             "capacity_advice": None,
             "capacity_advice_attempts": [],
+            "no_create_absence_receipt": None,
+            "no_create_absence_signature": None,
             "create_operation_started_at_utc": None,
             "create_operation_started_monotonic_ns": None,
             "create_attempts": [],
@@ -2532,6 +2964,106 @@ def current_attempt(lease: dict[str, Any]) -> dict[str, Any]:
     if not demand:
         raise common.BrokerError("no active post-T0 demand exists")
     return next(item for item in lease["attempts"] if item["attempt_id"] == demand["attempt_id"])
+
+
+def verify_no_create_absence_receipt(lease: dict[str, Any], attempt: dict[str, Any]) -> None:
+    receipt = attempt.get("receipt", {}).get("no_create_absence_receipt")
+    signature = attempt.get("receipt", {}).get("no_create_absence_signature")
+    if receipt is None and signature is None:
+        return
+    if not isinstance(receipt, dict) or not isinstance(signature, str):
+        raise common.BrokerError("capacity-miss no-create evidence is incomplete")
+    verify_signature("attempt-no-create-absence", lease, receipt, signature)
+    expected_operations = sorted(
+        item["operation_id"]
+        for item in lease["resource_create_operations"]
+        if item["kind"] == "gpu_node_group" and item["name"] == receipt.get("resource_name")
+    )
+    if (
+        receipt.get("schema_version") != NO_CREATE_RECEIPT_SCHEMA
+        or receipt.get("lease_id") != lease["lease_id"]
+        or receipt.get("attempt_id") != attempt["attempt_id"]
+        or receipt.get("demand_sha256") != attempt["demand_sha256"]
+        or receipt.get("result") != "NO_PREEMPTIBLE_CAPACITY"
+        or receipt.get("create_admitted") is not False
+        or receipt.get("exact_provider_matches") != 0
+        or receipt.get("create_intent_operation_ids") != expected_operations
+        or expected_operations
+    ):
+        raise common.BrokerError("capacity-miss no-create receipt is not canonical durable absence")
+
+
+def record_no_create_absence_receipt(
+    lease_path: Path,
+    registry_path: Path,
+    lease: dict[str, Any],
+    cli: common.NebiusCLI,
+    attempt: dict[str, Any],
+    capacity_response: dict[str, Any],
+) -> dict[str, Any]:
+    cluster = find_resource(lease, "cluster")
+    if not cluster:
+        raise common.BrokerError("cannot prove a capacity miss without the exact support cluster")
+    name = gpu_group_name(lease, attempt)
+    operations = sorted(
+        item["operation_id"]
+        for item in lease["resource_create_operations"]
+        if item["kind"] == "gpu_node_group" and item["name"] == name
+    )
+    if operations:
+        raise common.BrokerError("capacity miss occurred after a GPU create intent; no-create proof refused")
+    provider_list = cli.run(
+        [
+            *RESOURCE_COMMANDS["gpu_node_group"]["list"],
+            "--parent-id",
+            cluster["id"],
+            "--all",
+        ]
+    )
+    exact = [
+        item
+        for item in provider_list.get("items", [])
+        if item.get("metadata", {}).get("name") == name
+    ]
+    if exact:
+        raise common.BrokerError(
+            "capacity-miss exact-name provider object is ambiguous; preserve and require reconciliation"
+        )
+    receipt = {
+        "schema_version": NO_CREATE_RECEIPT_SCHEMA,
+        "lease_id": lease["lease_id"],
+        "attempt_id": attempt["attempt_id"],
+        "demand_sha256": attempt["demand_sha256"],
+        "result": "NO_PREEMPTIBLE_CAPACITY",
+        "resource_type": "gpu_node_group",
+        "resource_name": name,
+        "parent_id": cluster["id"],
+        "capacity_response_sha256": common.sha256_json(capacity_response),
+        "provider_list_response_sha256": common.sha256_json(provider_list),
+        "exact_provider_matches": 0,
+        "create_intent_operation_ids": operations,
+        "create_admitted": False,
+        "provider_absence_verified_at_utc": common.iso(precise_utc_now()),
+        "evidence": (
+            "post-T0 Capacity Advisor returned no fresh preemptible capacity; exact parent/name "
+            "node-group list returned zero matches before any create intent or create call"
+        ),
+    }
+    attempt["receipt"]["no_create_absence_receipt"] = receipt
+    attempt["receipt"]["no_create_absence_signature"] = sign_material(
+        "attempt-no-create-absence", lease, receipt
+    )
+    verify_no_create_absence_receipt(lease, attempt)
+    event(
+        lease,
+        "gpu.capacity_miss.no_create_absence",
+        "PASS",
+        attempt_id=attempt["attempt_id"],
+        resource_name=name,
+        exact_provider_matches=0,
+    )
+    save(lease_path, registry_path, lease)
+    return receipt
 
 
 def post_t0_capacity_advice(
@@ -2598,6 +3130,14 @@ def post_t0_capacity_advice(
         advice_attempt["completed_at_utc"] = snapshot["observed_at_utc"]
         advice_attempt["outcome"] = snapshot["result"]
         if not usable:
+            record_no_create_absence_receipt(
+                lease_path,
+                registry_path,
+                lease,
+                cli,
+                attempt,
+                response,
+            )
             raise common.BrokerError("capacity advice reports no fresh preemptible capacity")
         event(
             lease,
@@ -2740,6 +3280,7 @@ def provision_gpu_node_group(
 ) -> dict[str, Any]:
     lease = common.load_json(lease_path)
     assert_integrity(lease)
+    assert_live_creation_prerequisites(lease)
     assert_frozen_authority(lease, cli)
     arm = lease["request"]["campaign_arm"]
     if lease["state"] in {"ACTIVE", "ACTIVE_ATTEMPT"}:
@@ -2787,6 +3328,8 @@ def provision_gpu_node_group(
                     "capacity_advice_started_at_utc": None,
                     "capacity_advice": None,
                     "capacity_advice_attempts": [],
+                    "no_create_absence_receipt": None,
+                    "no_create_absence_signature": None,
                     "create_operation_started_at_utc": None,
                     "create_operation_started_monotonic_ns": None,
                     "create_attempts": [],
@@ -2807,6 +3350,9 @@ def provision_gpu_node_group(
         raise common.BrokerError("cannot create a GPU node group for an expired lease")
     try:
         post_t0_capacity_advice(lease_path, registry_path, lease, cli, attempt)
+        attempt["receipt"]["no_create_absence_receipt"] = None
+        attempt["receipt"]["no_create_absence_signature"] = None
+        save(lease_path, registry_path, lease)
         resources = {item["kind"]: item for item in lease["resources"] if not item.get("deleted_at")}
         required = {"cluster", "subnet", "service_account", "registry_access_permit", "bucket_access_permit"}
         if not required.issubset(resources):
@@ -3093,7 +3639,7 @@ def reconcile_create_intents_for_cleanup(
                 expected if owned_path == path else {**expected, "path": str(staging)},
             )
             if owned_path == staging:
-                os.replace(staging, path)
+                durable_replace(staging, path)
             digest = expected["sha256"]
             item = {
                 "kind": "kubeconfig_authority",
@@ -3145,25 +3691,16 @@ def reconcile_create_intents_for_cleanup(
                 lease, operation, operation["reconciliation_evidence"]
             )
             continue
-        validate_owned_metadata(lease, kind, exact[0], operation["name"], operation["parent_id"])
-        project_requested_spec(
-            exact[0].get("spec", {}), operation["requested_spec"]
-        )
-        created = exact[0].get("metadata", {}).get("created_at")
-        if created and common.parse_utc(created) < common.parse_utc(operation["started_at_utc"]):
-            raise common.BrokerError(f"interrupted {kind} candidate predates intent; preserve it")
-        resource = add_resource(
-            lease,
-            kind,
-            operation["name"],
-            exact[0],
-            operation.get("depends_on", []),
-            operation["operation_id"],
-            operation["requested_spec"],
-        )
-        operation["resource_id"] = resource["id"]
-        operation["status"] = "RECONCILED_FOR_CLEANUP"
+        operation["status"] = "AMBIGUOUS_FOREIGN_PRESERVED"
         operation["completed_at_utc"] = common.iso(precise_utc_now())
+        operation["failure"] = (
+            "exact-name object exists after an unreceipted create window; preserve until "
+            "provider correlation/audit evidence proves this operation created the exact ID"
+        )
+        save(lease_path, registry_path, lease)
+        raise common.BrokerError(
+            f"interrupted {kind} candidate lacks provider correlation/audit evidence; preserve it"
+        )
     save(lease_path, registry_path, lease)
 
 
@@ -3193,7 +3730,7 @@ def delete_one(
         path = Path(resource["provider_metadata"]["path"])
         if path.exists():
             verify_kubeconfig_content(path, resource["provider_metadata"])
-            path.unlink()
+            durable_unlink(path)
         if path.exists():
             raise common.BrokerError("kubeconfig authority still exists after exact unlink")
         evidence = f"lstat({path}) -> absent after exact owned-file unlink"
@@ -3363,8 +3900,15 @@ def cleanup_attempt(
             item["kind"] == "gpu_node" and item.get("managed_by_resource_id") in group_ids
         )
     ]
-    if not receipt_rows or any(not item.get("absence_verified_at") for item in receipt_rows):
-        raise common.BrokerError("attempt cleanup lacks canonical durable absence evidence")
+    no_create_receipt = attempt["receipt"].get("no_create_absence_receipt")
+    no_create_signature = attempt["receipt"].get("no_create_absence_signature")
+    if receipt_rows:
+        if any(not item.get("absence_verified_at") for item in receipt_rows):
+            raise common.BrokerError("attempt cleanup lacks canonical durable absence evidence")
+    else:
+        verify_no_create_absence_receipt(lease, attempt)
+        if not no_create_receipt or not no_create_signature:
+            raise common.BrokerError("attempt cleanup lacks canonical durable absence evidence")
     attempt["receipt"]["cleanup"] = {
         "verified_at_utc": verified_at,
         "node_group_absent": True,
@@ -3378,6 +3922,8 @@ def cleanup_attempt(
             }
             for item in sorted(receipt_rows, key=lambda value: (value["kind"], value["id"]))
         ],
+        "no_create_absence_receipt": no_create_receipt,
+        "no_create_absence_signature": no_create_signature,
     }
     lease["demand"] = None
     lease["node_group_ids"] = []
