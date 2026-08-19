@@ -1,0 +1,23 @@
+{
+  "artifact_storage": {"enabled": true, "max_size_gib": 1024},
+  "cleanup_owner": "cerebrium-comparator",
+  "expected_duration_hours": "4",
+  "experiment": {
+    "cleanup_plan": "resource-broker exact-ID cleanup followed by absence proof; no pre-existing resources are admissible",
+    "input_sha256": "3b0730a22b10b9bbaeb8e1406f9f36b1aa774466bc59f84be0f1ba19b356612c",
+    "metric_contract_path": "catalog-switch/cerebrium-comparator/contracts/campaign.json",
+    "metric_contract_sha256": "e6a36c56455cdb5a603eadc1d01781692899ba789a4459bc26e631b5d4d11cba",
+    "model_id": "zai-org/GLM-5.2-FP8@ba978f7d347eaf65d22f1a86833408afdb953541"
+  },
+  "health_proof": {"marker": "CATSWITCH_GLM52_TP8_OK", "timeout_seconds": 1800},
+  "lease_id": "catswitch-glm52-fp8-tp8-smoke-20260819",
+  "mode": "normal",
+  "owner": "cerebrium-comparator",
+  "profile": "h200-tp8",
+  "project_id": "project-e00z6b02t8ddk96c49",
+  "purpose": "Fresh isolated one-node 8xH200 parity smoke for the exact official GLM-5.2-FP8 comparator.",
+  "region": "eu-north1",
+  "schema_version": "catalog-switch-lease-request/v1",
+  "task_id": "catalog-switch-cerebrium-qwen3-glm52-benchmark",
+  "ttl_hours": 8
+}

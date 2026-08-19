@@ -1,0 +1,51 @@
+{
+  "$id": "https://nebius.ai/schemas/catalog-switch-cerebrium-attempt-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "accounting": {
+      "additionalProperties": false,
+      "properties": {
+        "billed_seconds": {"minimum": 0, "type": ["number", "null"]},
+        "bytes_received": {"minimum": 0, "type": "integer"},
+        "bytes_sent": {"minimum": 1, "type": "integer"},
+        "cost_usd": {"minimum": 0, "type": ["number", "null"]},
+        "generated_tokens": {"minimum": 0, "type": ["integer", "null"]}
+      },
+      "required": ["billed_seconds", "bytes_received", "bytes_sent", "cost_usd", "generated_tokens"],
+      "type": "object"
+    },
+    "arm_id": {"minLength": 1, "type": "string"},
+    "attempt_id": {"minLength": 1, "type": "string"},
+    "backend": {"type": "object"},
+    "cold_state": {"type": "object"},
+    "cohort_family": {"minLength": 1, "type": "string"},
+    "cohort_id": {"minLength": 1, "type": "string"},
+    "completed_at_utc": {"format": "date-time", "type": "string"},
+    "model": {"type": "object"},
+    "outcome": {"type": "object"},
+    "request": {"type": "object"},
+    "response": {"type": "object"},
+    "schema": {"const": "catalog-switch-cerebrium-attempt/v1"},
+    "started_at_utc": {"format": "date-time", "type": "string"},
+    "timing_ns": {
+      "additionalProperties": false,
+      "properties": {
+        "complete": {"minimum": 1, "type": "integer"},
+        "first_response_byte": {"minimum": 1, "type": ["integer", "null"]},
+        "ttfo": {"minimum": 1, "type": ["integer", "null"]},
+        "ttft": {"minimum": 1, "type": ["integer", "null"]},
+        "t0": {"minimum": 1, "type": "integer"}
+      },
+      "required": ["complete", "first_response_byte", "ttfo", "ttft", "t0"],
+      "type": "object"
+    }
+  },
+  "required": [
+    "accounting", "arm_id", "attempt_id", "backend", "cold_state",
+    "cohort_family", "cohort_id", "completed_at_utc", "model", "outcome",
+    "request", "response", "schema", "started_at_utc", "timing_ns"
+  ],
+  "title": "Supplemental Cerebrium/internal external-client attempt receipt",
+  "type": "object"
+}

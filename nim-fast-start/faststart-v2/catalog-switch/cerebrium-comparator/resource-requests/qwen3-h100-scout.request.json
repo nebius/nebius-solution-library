@@ -1,0 +1,23 @@
+{
+  "artifact_storage": {"enabled": true, "max_size_gib": 64},
+  "cleanup_owner": "cerebrium-comparator",
+  "expected_duration_hours": "2",
+  "experiment": {
+    "cleanup_plan": "resource-broker exact-ID cleanup followed by absence proof; no pre-existing resources are admissible",
+    "input_sha256": "c3e3250abbb92869b7a51325a5fd5358eb98122d73698956cf064ed491d3291d",
+    "metric_contract_path": "catalog-switch/cerebrium-comparator/contracts/campaign.json",
+    "metric_contract_sha256": "e6a36c56455cdb5a603eadc1d01781692899ba789a4459bc26e631b5d4d11cba",
+    "model_id": "Qwen/Qwen3-8B@b968826d9c46dd6066d109eabc6255188de91218"
+  },
+  "health_proof": {"marker": "CATSWITCH_QWEN3_H100_OK", "timeout_seconds": 900},
+  "lease_id": "catswitch-qwen3-h100-scout-20260819",
+  "mode": "preemptible",
+  "owner": "cerebrium-comparator",
+  "profile": "h100-single",
+  "project_id": "project-e00z6b02t8ddk96c49",
+  "purpose": "Fresh isolated H100 scout for the pinned Qwen3 matched external-client comparator.",
+  "region": "eu-north1",
+  "schema_version": "catalog-switch-lease-request/v1",
+  "task_id": "catalog-switch-cerebrium-qwen3-glm52-benchmark",
+  "ttl_hours": 4
+}

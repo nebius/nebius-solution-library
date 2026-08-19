@@ -518,26 +518,54 @@ def run_preflight(cli: NebiusCLI, request: dict[str, Any], profile: dict[str, An
                     "allowance": item.get("spec", {}).get("allowance"),
                 }
             )
-    capacity = {"status": "UNAVAILABLE", "reason": None, "matched": []}
+    capacity = {
+        "status": "UNAVAILABLE",
+        "reason": None,
+        "requested_mode": request["mode"],
+        "matched": [],
+        "eligible": [],
+    }
     tenant_id = project.get("metadata", {}).get("parent_id")
     try:
         advice = cli.run(["capacity", "resource-advice", "list", "--parent-id", tenant_id, "--all"])
         capacity["status"] = "AVAILABLE"
-        capacity["matched"] = [
-            item
-            for item in advice.get("items", [])
-            if item.get("spec", {}).get("region") == request["region"]
-            and (
-                item.get("spec", {}).get("platform") in {None, "", profile["platform"]}
-                or item.get("metadata", {}).get("name") == profile["platform"]
-            )
-        ]
+        capacity["matched"] = []
+        for item in advice.get("items", []):
+            spec = item.get("spec", {})
+            compute = spec.get("compute_instance", {})
+            preset = compute.get("preset", {})
+            if (
+                spec.get("region") == request["region"]
+                and compute.get("platform") == profile["platform"]
+                and preset.get("name") == profile["preset"]
+            ):
+                capacity["matched"].append(item)
+        mode_key = "on_demand" if request["mode"] == "normal" else "preemptible"
+        for item in capacity["matched"]:
+            mode_status = item.get("status", {}).get(mode_key, {})
+            level = str(mode_status.get("availability_level", ""))
+            available = mode_status.get("available")
+            if (
+                level
+                and level != "AVAILABILITY_LEVEL_LIMIT_REACHED"
+                and (available is None or int(available) >= 1)
+            ):
+                capacity["eligible"].append(item)
     except AuthenticationError:
         raise
     except BrokerError as exc:
         capacity["reason"] = str(exc)[:1000]
     if profile["gpu_count"] and capacity["status"] != "AVAILABLE":
         raise BrokerError("GPU lease blocked: capacity advice must succeed before creation")
+    if profile["gpu_count"] and not capacity["matched"]:
+        raise BrokerError(
+            "GPU lease blocked: capacity advice has no exact region/platform/preset match"
+        )
+    if profile["gpu_count"] and not capacity["eligible"]:
+        raise BrokerError(
+            f"GPU lease blocked: exact {profile['platform']}/{profile['preset']} "
+            f"has no eligible {request['mode']} capacity"
+        )
     return {
         "checked_at": iso(utc_now()),
         "profile": cli.profile,

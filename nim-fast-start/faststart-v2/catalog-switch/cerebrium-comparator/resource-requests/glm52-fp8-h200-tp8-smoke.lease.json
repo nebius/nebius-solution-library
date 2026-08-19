@@ -1,0 +1,124 @@
+{
+  "cost_estimate": {
+    "artifact_storage_full_quota_usd_per_hour": "0.020620",
+    "assumptions": "Public PAYG unified H200 price multiplied by eight GPU-hours, taxes and account discounts excluded. The attached 1600 GiB Network SSD and full configured artifact quota are modeled separately. Normal capacity is selected only when preemption would invalidate localization or a homogeneous cold cohort.",
+    "boot_disk_usd_per_hour": "0.155616",
+    "compute_usd_per_hour": "36.000000",
+    "currency": "USD",
+    "expected_cost_usd": "144.704947",
+    "expected_duration_hours": "4",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+    "ttl_cost_ceiling_usd": "289.409894"
+  },
+  "created_at": "2026-08-19T14:25:41Z",
+  "events": [
+    {
+      "at": "2026-08-19T14:25:41Z",
+      "details": "immutable request hash, TTL, budget, ownership, and cleanup owner recorded",
+      "status": "PASS",
+      "type": "PLAN_CREATED"
+    }
+  ],
+  "expires_at": "2026-08-19T22:25:41Z",
+  "external_references": [],
+  "health_proof": null,
+  "isolation_proof": null,
+  "labels": {
+    "broker": "resource-broker-v1",
+    "expires": "20260819t222541z",
+    "lease": "catswitch-glm52-fp8-tp8-smoke-20260819",
+    "owner": "cerebrium-comparator",
+    "program": "catalog-switch",
+    "task": "catalog-switch-cerebrium-qwen3-glm52-benchmark"
+  },
+  "lease_id": "catswitch-glm52-fp8-tp8-smoke-20260819",
+  "planned_resources": [
+    {
+      "kind": "network",
+      "name": "mlsp-csw-catalog-switch-cer-0799ac8e-net"
+    },
+    {
+      "kind": "subnet",
+      "name": "mlsp-csw-catalog-switch-cer-0799ac8e-subnet"
+    },
+    {
+      "kind": "security_group",
+      "name": "mlsp-csw-catalog-switch-cer-0799ac8e-sg"
+    },
+    {
+      "kind": "disk",
+      "name": "mlsp-csw-catalog-switch-cer-0799ac8e-boot"
+    },
+    {
+      "kind": "instance",
+      "name": "mlsp-csw-catalog-switch-cer-0799ac8e-vm"
+    },
+    {
+      "kind": "bucket",
+      "name": "mlsp-csw-catalog-switch-cer-0799ac8e-artifacts"
+    }
+  ],
+  "prefix": "mlsp-csw-catalog-switch-cer-0799ac8e",
+  "profile_snapshot": {
+    "boot_disk_gib": 1600,
+    "cost_assumptions": "Public PAYG unified H200 price multiplied by eight GPU-hours, taxes and account discounts excluded. The attached 1600 GiB Network SSD and full configured artifact quota are modeled separately. Normal capacity is selected only when preemption would invalidate localization or a homogeneous cold cohort.",
+    "gpu_count": 8,
+    "gpu_quota_name": "compute.instance.gpu.h200",
+    "hourly_compute_usd": {
+      "normal": "36.00",
+      "preemptible": "19.60"
+    },
+    "image_family": "ubuntu24.04-cuda12",
+    "local_nvme": {
+      "ephemeral": true,
+      "notes": "The matched GLM-5.2-FP8 primary explicitly keeps platform-best local-NVMe work in a separate arm. No local disk is requested until a fresh task-owned capability probe proves support.",
+      "request": false,
+      "verified_supported": false
+    },
+    "max_duration_hours": 12,
+    "max_ttl_hours": 24,
+    "network_ssd_usd_per_gib_month": "0.071",
+    "object_storage_usd_per_gib_month": "0.0147",
+    "platform": "gpu-h200-sxm",
+    "preset": "8gpu-128vcpu-1600gb",
+    "price_observed_at": "2026-08-19T00:00:00Z",
+    "price_source": "https://docs.nebius.com/compute/resources/pricing; https://docs.nebius.com/object-storage/resources/pricing",
+    "regions": [
+      "eu-north1"
+    ]
+  },
+  "request": {
+    "artifact_storage": {
+      "enabled": true,
+      "max_size_gib": 1024
+    },
+    "cleanup_owner": "cerebrium-comparator",
+    "expected_duration_hours": "4",
+    "experiment": {
+      "cleanup_plan": "resource-broker exact-ID cleanup followed by absence proof; no pre-existing resources are admissible",
+      "input_sha256": "3b0730a22b10b9bbaeb8e1406f9f36b1aa774466bc59f84be0f1ba19b356612c",
+      "metric_contract_path": "catalog-switch/cerebrium-comparator/contracts/campaign.json",
+      "metric_contract_sha256": "e6a36c56455cdb5a603eadc1d01781692899ba789a4459bc26e631b5d4d11cba",
+      "model_id": "zai-org/GLM-5.2-FP8@ba978f7d347eaf65d22f1a86833408afdb953541"
+    },
+    "health_proof": {
+      "marker": "CATSWITCH_GLM52_TP8_OK",
+      "timeout_seconds": 1800
+    },
+    "lease_id": "catswitch-glm52-fp8-tp8-smoke-20260819",
+    "mode": "normal",
+    "owner": "cerebrium-comparator",
+    "profile": "h200-tp8",
+    "project_id": "project-e00z6b02t8ddk96c49",
+    "purpose": "Fresh isolated one-node 8xH200 parity smoke for the exact official GLM-5.2-FP8 comparator.",
+    "region": "eu-north1",
+    "schema_version": "catalog-switch-lease-request/v1",
+    "task_id": "catalog-switch-cerebrium-qwen3-glm52-benchmark",
+    "ttl_hours": 8
+  },
+  "request_sha256": "0799ac8ef2a238bd4daef1c31e0e7ef27d4b0b066546ca07e42c21d821256859",
+  "resources": [],
+  "schema_version": "catalog-switch-resource-lease/v1",
+  "state": "PLANNED"
+}

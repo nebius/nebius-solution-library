@@ -1,0 +1,108 @@
+{
+  "corpus_sha256": "31b5de1c606982d84692591221c0a3ff5d413296be3cf5c601a311ac3bb6ca28",
+  "prompts": [
+    {
+      "generation": {
+        "chat_template_kwargs": {"enable_thinking": false},
+        "max_tokens": 32,
+        "stream": true,
+        "temperature": 0
+      },
+      "messages": [
+        {"content": "Return exactly QWEN3_CATALOG_SWITCH_OK and no other text.", "role": "user"}
+      ],
+      "model_contract_id": "qwen3-8b-bf16-b968826",
+      "oracle": {"expected": "QWEN3_CATALOG_SWITCH_OK", "type": "exact-content"},
+      "prompt_id": "qwen3-nonthinking-exact"
+    },
+    {
+      "generation": {
+        "chat_template_kwargs": {"enable_thinking": false},
+        "max_tokens": 32,
+        "stream": true,
+        "temperature": 0
+      },
+      "messages": [
+        {"content": "Return exactly GLM52_FP8_CATALOG_SWITCH_OK and no other text.", "role": "user"}
+      ],
+      "model_contract_id": "glm-5.2-fp8-ba978f7",
+      "oracle": {"expected": "GLM52_FP8_CATALOG_SWITCH_OK", "type": "exact-content"},
+      "prompt_id": "glm52-nonthinking-exact"
+    },
+    {
+      "generation": {
+        "chat_template_kwargs": {"enable_thinking": true},
+        "max_tokens": 64,
+        "reasoning_effort": "high",
+        "stream": true,
+        "temperature": 0
+      },
+      "messages": [
+        {"content": "Compute 17 + 25, then put GLM52_REASONING_OK_42 in the final answer.", "role": "user"}
+      ],
+      "model_contract_id": "glm-5.2-fp8-ba978f7",
+      "oracle": {
+        "content_contains": "GLM52_REASONING_OK_42",
+        "reasoning_required": true,
+        "separate_reasoning_and_content": true,
+        "type": "reasoning-content"
+      },
+      "prompt_id": "glm52-thinking-high"
+    },
+    {
+      "generation": {
+        "chat_template_kwargs": {"enable_thinking": true},
+        "max_tokens": 64,
+        "stream": true,
+        "temperature": 0
+      },
+      "messages": [
+        {"content": "Compute 19 + 23, then put GLM52_REASONING_DEFAULT_OK_42 in the final answer.", "role": "user"}
+      ],
+      "model_contract_id": "glm-5.2-fp8-ba978f7",
+      "oracle": {
+        "content_contains": "GLM52_REASONING_DEFAULT_OK_42",
+        "reasoning_required": true,
+        "separate_reasoning_and_content": true,
+        "type": "reasoning-content"
+      },
+      "prompt_id": "glm52-thinking-default"
+    },
+    {
+      "generation": {
+        "chat_template_kwargs": {"enable_thinking": false},
+        "max_tokens": 32,
+        "stream": true,
+        "temperature": 0,
+        "tool_choice": {"function": {"name": "catalog_switch_echo"}, "type": "function"},
+        "tools": [
+          {
+            "function": {
+              "description": "Return a single frozen benchmark value.",
+              "name": "catalog_switch_echo",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {"value": {"const": "glm52-tool-ok", "type": "string"}},
+                "required": ["value"],
+                "type": "object"
+              }
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "messages": [
+        {"content": "Call catalog_switch_echo exactly once with value glm52-tool-ok.", "role": "user"}
+      ],
+      "model_contract_id": "glm-5.2-fp8-ba978f7",
+      "oracle": {
+        "arguments": {"value": "glm52-tool-ok"},
+        "name": "catalog_switch_echo",
+        "type": "exact-tool-call"
+      },
+      "prompt_id": "glm52-tool-glm47"
+    }
+  ],
+  "schema": "catalog-switch-cerebrium-prompt-corpus/v1",
+  "seed": 240752
+}

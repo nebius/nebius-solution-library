@@ -1,0 +1,107 @@
+{
+  "models": [
+    {
+      "access": "public-ungated",
+      "artifact_identity_sha256": "93b36b699f72754192ca5c9972d921f8ec422a05a24b1491df3768044cfca574",
+      "chat_template": {
+        "path": "tokenizer_config.json#chat_template",
+        "sha256": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8"
+      },
+      "contract_id": "qwen3-8b-bf16-b968826",
+      "dtype": "bfloat16",
+      "generation": {
+        "max_model_len": 32768,
+        "max_tokens": 32,
+        "reasoning_primary": false,
+        "stream": true,
+        "temperature": 0
+      },
+      "license": "Apache-2.0",
+      "model_id": "Qwen/Qwen3-8B",
+      "parameter_count": 8190735360,
+      "quantization": null,
+      "repository_bytes": 16397461266,
+      "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+      "role": "new-matched-target-not-claim-reproduction",
+      "safetensors_bytes": 16381516776,
+      "tensor_parallel_size": 1,
+      "tokenizer": {
+        "path": "tokenizer.json",
+        "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"
+      }
+    },
+    {
+      "access": "public-ungated",
+      "artifact_identity_sha256": "131c78d2c3c1d43a770b13f5619e1ede007668d24e30dc205de34d83fb17f5a1",
+      "chat_template": {
+        "path": "chat_template.jinja",
+        "sha256": "172dc74a35e1752df75ecfb2b2cf9326d2852bb1379868ebeec9571654489679"
+      },
+      "contract_id": "glm-5.2-fp8-ba978f7",
+      "dtype": "float8_e4m3fn",
+      "generation": {
+        "max_model_len": 131072,
+        "max_tokens": 32,
+        "mtp": false,
+        "prefix_cache": false,
+        "reasoning_primary": false,
+        "stream": true,
+        "temperature": 0
+      },
+      "license": "MIT",
+      "model_id": "zai-org/GLM-5.2-FP8",
+      "parameter_count": 753329940480,
+      "quantization": "official-fp8-checkpoint",
+      "repository_bytes": 761025363709,
+      "revision": "ba978f7d347eaf65d22f1a86833408afdb953541",
+      "role": "primary-deployable-glm-variant-explicitly-labeled",
+      "safetensors_bytes": 755632050320,
+      "tensor_parallel_size": 8,
+      "tokenizer": {
+        "path": "tokenizer.json",
+        "sha256": "19e773648cb4e65de8660ea6365e10acca112d42a854923df93db4a6f333a82d"
+      }
+    },
+    {
+      "access": "public-ungated",
+      "artifact_identity_sha256": "dac5780fd5d70602b2c7d77c074ef0c468227b8ca0e720630791e2159c92ae53",
+      "chat_template": {
+        "path": "chat_template.jinja",
+        "sha256": "172dc74a35e1752df75ecfb2b2cf9326d2852bb1379868ebeec9571654489679"
+      },
+      "contract_id": "glm-5.2-bf16-b4734de-availability-only",
+      "dtype": "bfloat16",
+      "generation": {
+        "max_model_len": 131072,
+        "max_tokens": 32,
+        "mtp": false,
+        "prefix_cache": false,
+        "reasoning_primary": false,
+        "stream": true,
+        "temperature": 0
+      },
+      "license": "MIT",
+      "model_id": "zai-org/GLM-5.2",
+      "parameter_count": 753329940480,
+      "quantization": null,
+      "repository_bytes": 1506689458421,
+      "revision": "b4734de4facf877f85769a911abafc5283eab3d9",
+      "role": "unmatched-availability-result-never-a-fallback",
+      "safetensors_bytes": 1506667387408,
+      "tensor_parallel_size": null,
+      "tokenizer": {
+        "path": "tokenizer.json",
+        "sha256": "19e773648cb4e65de8660ea6365e10acca112d42a854923df93db4a6f333a82d"
+      }
+    }
+  ],
+  "runtime": {
+    "checkpointing": false,
+    "image": "vllm/vllm-openai:glm52",
+    "image_amd64_digest": "sha256:7c2c59db86a9a64138c5c675b98e3e05b7f37a34a344d4aa461b1529ed60262d",
+    "image_index_digest": "sha256:91f505eea4fa6a76a1c63f7e234dbaa7e43c3190ba81d578ebbb0484b476fb88",
+    "required_vllm_minimum": "0.23.0",
+    "runtime_smoke_required": true
+  },
+  "schema": "catalog-switch-cerebrium-model-contract/v1"
+}
