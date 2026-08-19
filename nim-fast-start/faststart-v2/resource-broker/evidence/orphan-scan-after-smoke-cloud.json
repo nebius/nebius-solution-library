@@ -1,0 +1,68 @@
+{
+  "cloud_resources": [],
+  "cloud_scan": true,
+  "cloud_scan_complete": false,
+  "cloud_scan_errors": [
+    {
+      "error": "Nebius command failed (12): /usr/local/bin/nebius vpc network list --parent-id: Error: gosdk request timeout: rpc error: code = DeadlineExceeded desc = context deadline exceeded",
+      "kind": "network",
+      "project_id": "project-u00tds8vpr00jaxa76s22d"
+    },
+    {
+      "error": "Nebius command failed (12): /usr/local/bin/nebius vpc subnet list --parent-id: Error: gosdk request timeout: rpc error: code = DeadlineExceeded desc = context deadline exceeded",
+      "kind": "subnet",
+      "project_id": "project-u00tds8vpr00jaxa76s22d"
+    },
+    {
+      "error": "Nebius command failed (12): /usr/local/bin/nebius vpc security-group list --parent-id: Error: gosdk request timeout: rpc error: code = DeadlineExceeded desc = context deadline exceeded",
+      "kind": "security_group",
+      "project_id": "project-u00tds8vpr00jaxa76s22d"
+    },
+    {
+      "error": "Nebius command failed (20): /usr/local/bin/nebius compute disk list --parent-id: Error: rpc error: code = Unavailable desc = dependent service may be unavailable request = 51a45b86-f041-4024-81c4-d3da54bfa402\n\nThis issue may be linked to API request calls. The following information may be helpful while debugging the issue:\n  Trace ID: 12d0f87c8327d31cf0829e5e9a020e9a",
+      "kind": "disk",
+      "project_id": "project-u00tds8vpr00jaxa76s22d"
+    },
+    {
+      "error": "Nebius command failed (20): /usr/local/bin/nebius compute instance list --parent-id: Error: rpc error: code = Unavailable desc = dependent service may be unavailable request = e1590722-abb8-4175-8e7c-0dad5e700100\n\nThis issue may be linked to API request calls. The following information may be helpful while debugging the issue:\n  Trace ID: 0cbddf8d7a8856374f7a83bc1a37992f",
+      "kind": "instance",
+      "project_id": "project-u00tds8vpr00jaxa76s22d"
+    },
+    {
+      "error": "Nebius command failed (20): /usr/local/bin/nebius storage bucket list --parent-id: Error: rpc error: code = Unavailable desc = dependent service may be unavailable request = e69b9b3b-b7ae-42e0-9a04-3671b80a7327\n\nThis issue may be linked to API request calls. The following information may be helpful while debugging the issue:\n  Trace ID: 81e2e59dda37476eea410e513cdf4a81",
+      "kind": "bucket",
+      "project_id": "project-u00tds8vpr00jaxa76s22d"
+    }
+  ],
+  "expired_lease_count": 0,
+  "leases": [
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "expired": false,
+      "expires_at": "2026-08-19T12:23:17Z",
+      "lease_id": "resource-broker-smoke-20260819",
+      "resource_ids": [],
+      "state": "RELEASED"
+    },
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "expired": false,
+      "expires_at": "2026-08-19T12:24:53Z",
+      "lease_id": "resource-broker-smoke2-20260819",
+      "resource_ids": [],
+      "state": "RELEASED"
+    },
+    {
+      "cleanup_owner": "catalog-switch-resource-broker",
+      "expired": false,
+      "expires_at": "2026-08-19T12:34:43Z",
+      "lease_id": "resource-broker-smoke3-20260819",
+      "resource_ids": [],
+      "state": "RELEASED"
+    }
+  ],
+  "policy": "unregistered resources are reported for manual review and never auto-deleted",
+  "scanned_at": "2026-08-19T11:42:11Z",
+  "schema_version": "catalog-switch-orphan-scan/v1",
+  "unregistered_cloud_resource_count": 0
+}
