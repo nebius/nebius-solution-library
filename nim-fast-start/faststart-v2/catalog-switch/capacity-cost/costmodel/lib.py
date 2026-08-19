@@ -235,12 +235,18 @@ def fallback_blend_cost(attempt_seconds: Decimal, pre_hourly: Decimal,
 
 
 def warm_breakeven_requests_per_month(warm_gpu_month_usd: Decimal,
-                                      per_switch_usd: Decimal) -> Decimal:
+                                      per_switch_usd_exact: Decimal) -> Decimal:
     """Monthly demand above which one dedicated warm GPU is cheaper than
-    paying a full switch on every request (worst-case switch bound)."""
-    if per_switch_usd <= 0:
+    paying a full switch on every request (worst-case switch bound).
+
+    ``per_switch_usd_exact`` must be the UNROUNDED per-switch cost
+    (gpu_seconds_cost_exact); only this final quotient is quantized. A
+    display-rounded intermediate shifts the published break-even by up to
+    ~1.5 requests/month at these magnitudes."""
+    if per_switch_usd_exact <= 0:
         raise InputError("per-switch cost must be positive")
-    return (warm_gpu_month_usd / per_switch_usd).quantize(Decimal("0.01"))
+    return (warm_gpu_month_usd / per_switch_usd_exact).quantize(
+        Decimal("0.01"))
 
 
 def storage_breakeven_refetches_per_gib_month(
@@ -283,18 +289,20 @@ def reprice_simulator_report(report: dict, gpu_hourly: dict,
         "fetched_gib": str(fetched_gib),
         "cost_usd": {},
     }
-    egress_billed = (fetched_gib * egress_per_gib).quantize(CENT6)
+    # All components stay exact; each emitted field is quantized exactly
+    # once from the exact chain. Never sum rounded components or divide a
+    # rounded total: at 1e-6 that drifts published fields.
+    egress_billed_exact = fetched_gib * egress_per_gib
     for offer, hourly in sorted(gpu_hourly.items()):
-        gpu_cost = (reserved_h * hourly).quantize(CENT6)
-        for variant, egress_cost in (("egress_billed", egress_billed),
-                                     ("egress_free", Decimal(0))):
-            total = (gpu_cost + egress_cost).quantize(CENT6)
-            per_1k = (total / Decimal(n_completed) * Decimal(1000)).quantize(
-                CENT6)
+        gpu_exact = reserved_h * hourly
+        for variant, egress_exact in (("egress_billed", egress_billed_exact),
+                                      ("egress_free", Decimal(0))):
+            total_exact = gpu_exact + egress_exact
+            per_1k_exact = total_exact / Decimal(n_completed) * Decimal(1000)
             out["cost_usd"][f"{offer}/{variant}"] = {
-                "gpu": str(gpu_cost),
-                "egress": str(egress_cost.quantize(CENT6)),
-                "total": str(total),
-                "per_1000_completed": str(per_1k),
+                "gpu": str(gpu_exact.quantize(CENT6)),
+                "egress": str(egress_exact.quantize(CENT6)),
+                "total": str(total_exact.quantize(CENT6)),
+                "per_1000_completed": str(per_1k_exact.quantize(CENT6)),
             }
     return out

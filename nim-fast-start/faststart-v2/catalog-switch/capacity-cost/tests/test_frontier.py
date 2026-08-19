@@ -106,30 +106,104 @@ class PublishedResultsTest(unittest.TestCase):
         boltz = self.internal["cost_classes"][1]["prepared_switch"]
         self.assertEqual(boltz["slo_goodput"]["within_20s"], "0.0000")
 
-    # ---- fully loaded ---------------------------------------------------
-    def test_fully_loaded_components_sum_and_scale(self):
+    # ---- fully loaded: two capacity models, strict completeness ---------
+    def test_fully_loaded_row_count_and_capacity_models(self):
         rows = self.internal["fully_loaded"]
-        self.assertEqual(len(rows), 120)
-        for row in rows:
-            comp = sum(Decimal(v) for v in row["components_usd"].values()
-                       if v is not None)
-            total = Decimal(row["per_success_usd_nominal"])
-            # Components are display-rounded independently; the total is one
-            # quantization of the exact sum, so drift is bounded by the
-            # per-component display precision, never accumulated.
-            self.assertLessEqual(abs(comp - total), Decimal("0.000003"))
-            self.assertGreaterEqual(
-                Decimal(row["per_success_usd_pessimistic"]), total)
-            warm = Decimal(row["one_warm_gpu_plus_fixed_monthly_usd"])
-            self.assertEqual(row["cheaper_than_one_warm_gpu"],
-                             Decimal(row["monthly_usd_nominal"]) < warm)
+        self.assertEqual(len(rows), 180)
+        dedicated = [r for r in rows
+                     if r["capacity_model"] == "dedicated_prepared_node"]
+        marginal = [r for r in rows
+                    if r["capacity_model"] == "marginal_zero_idle_bound"]
+        self.assertEqual(len(dedicated), 60)
+        self.assertEqual(len(marginal), 120)
+
+    def test_adversary_incomplete_rows_null_totals_and_no_decisions(self):
+        """Adversary: a row with any unavailable/unallocated required
+        component must carry null complete totals, publish numbers only
+        under lower-bound names, and forbid decisions. No decision field
+        may exist anywhere in fully_loaded."""
+        for row in self.internal["fully_loaded"]:
+            self.assertNotIn("cheaper_than_one_warm_gpu", row)
+            self.assertNotIn("one_warm_gpu_plus_fixed_monthly_usd", row)
+            if row["completeness"] == "COMPLETE":
+                self.assertEqual(row["missing_components"], [])
+                for k in ("per_success_usd_nominal",
+                          "per_success_usd_pessimistic",
+                          "monthly_usd_nominal", "monthly_usd_pessimistic"):
+                    self.assertIsNotNone(row[k], k)
+                self.assertNotIn("lower_bound_subtotals_usd", row)
+            else:
+                self.assertEqual(row["completeness"],
+                                 "INCOMPLETE_LOWER_BOUND")
+                self.assertTrue(row["missing_components"])
+                for k in ("per_success_usd_nominal",
+                          "per_success_usd_pessimistic",
+                          "monthly_usd_nominal", "monthly_usd_pessimistic"):
+                    self.assertIsNone(row[k], k)
+                lb = row["lower_bound_subtotals_usd"]
+                for k in ("per_success_nominal", "per_success_pessimistic",
+                          "monthly_nominal", "monthly_pessimistic"):
+                    Decimal(lb[k])
+                self.assertIn("FORBIDDEN", row["decision_policy"])
+
+    def test_adversary_only_dedicated_of2_rows_are_complete(self):
+        """COMPLETE requires every component: idle allocated (dedicated
+        capacity model) AND capture available (OpenFold2 only)."""
+        for row in self.internal["fully_loaded"]:
+            expect_complete = (
+                row["capacity_model"] == "dedicated_prepared_node"
+                and row["model"] == "OpenFold2")
+            self.assertEqual(row["completeness"] == "COMPLETE",
+                             expect_complete, row["model"])
+            if row["capacity_model"] == "marginal_zero_idle_bound":
+                self.assertIn("idle_reserved_gpu_capacity_share",
+                              row["missing_components"])
+
+    def test_adversary_dedicated_rows_allocate_idle_capacity(self):
+        """Adversary: dedicated rows must charge whole node-months with
+        correct ceilings — utilization can never exceed 1 and monthly
+        totals must equal nodes*instance + fixed (+ capture*D/R)."""
+        month_seconds = Decimal(730) * 3600
+        pre_month = self.inputs.monthly_price("nebius-h100-1g-pre")
+        od_month = self.inputs.monthly_price("nebius-h100-1g-od")
+        fixed = (self.inputs.monthly_price("nebius-sfs-4096gib")
+                 + self.inputs.monthly_price("nebius-cpu-d3-4v16g-od"))
+        pre = self.inputs.unit_price("nebius-h100-1g-pre")
+        od = self.inputs.unit_price("nebius-h100-1g-od")
+        for row in self.internal["fully_loaded"]:
+            if row["capacity_model"] != "dedicated_prepared_node":
+                continue
+            model_idx = 0 if row["model"] == "OpenFold2" else 1
+            p50 = Decimal(self.internal["cost_classes"][model_idx]
+                          ["prepared_switch"]["latency_seconds"]["p50"])
+            d = Decimal(row["requests_per_month"])
+            busy = d * p50
+            expected_nodes = max(build_frontier.ceil_pos(
+                busy / month_seconds), 1)
+            self.assertEqual(row["nodes_required"], expected_nodes)
+            util = Decimal(row["utilization_busy_fraction"])
+            self.assertLessEqual(util, Decimal(1))
+            self.assertGreater(util, Decimal(0))
+            inst = pre_month if row["offer"] == "preemptible" else od_month
+            hourly = pre if row["offer"] == "preemptible" else od
+            cap = Decimal(0)
+            if row["restores_between_captures"] is not None:
+                cap = (lib.gpu_seconds_cost_exact(Decimal("272.426"), hourly)
+                       / Decimal(row["restores_between_captures"])) * d
+            expected_monthly = (expected_nodes * inst + fixed + cap
+                                ).quantize(Decimal("0.01"))
+            got = (row["monthly_usd_nominal"] if row["completeness"] ==
+                   "COMPLETE" else
+                   row["lower_bound_subtotals_usd"]["monthly_nominal"])
+            self.assertEqual(Decimal(got), expected_monthly, row["model"])
 
     def test_adversary_no_early_rounding_in_monthly_totals(self):
         """Adversary: monthly totals must come from unrounded per-success
-        values. Recompute one high-demand row exactly and require equality;
-        the rounded-per-success shortcut differs at this demand."""
+        values. Recompute one high-demand marginal row exactly; the rounded
+        per-success shortcut must differ."""
         row = next(r for r in self.internal["fully_loaded"]
                    if r["model"] == "OpenFold2"
+                   and r["capacity_model"] == "marginal_zero_idle_bound"
                    and r["cost_class"] == "prepared_switch"
                    and r["offer"] == "preemptible"
                    and r["restores_between_captures"] == 1
@@ -137,35 +211,39 @@ class PublishedResultsTest(unittest.TestCase):
         pre = self.inputs.unit_price("nebius-h100-1g-pre")
         p50 = Decimal(self.internal["cost_classes"][0]["prepared_switch"]
                       ["latency_seconds"]["p50"])
-        capture_s = Decimal("272.426")
         fixed = (self.inputs.monthly_price("nebius-sfs-4096gib")
                  + self.inputs.monthly_price("nebius-cpu-d3-4v16g-od"))
         exact = (lib.gpu_seconds_cost_exact(p50, pre)
-                 + lib.gpu_seconds_cost_exact(capture_s, pre)
+                 + lib.gpu_seconds_cost_exact(Decimal("272.426"), pre)
                  + fixed / Decimal(1000000))
-        self.assertEqual(Decimal(row["monthly_usd_nominal"]),
+        lb = row["lower_bound_subtotals_usd"]
+        self.assertEqual(Decimal(lb["monthly_nominal"]),
                          (exact * 1000000).quantize(Decimal("0.01")))
-        rounded_shortcut = (Decimal(row["per_success_usd_nominal"])
+        rounded_shortcut = (Decimal(lb["per_success_nominal"])
                             * 1000000).quantize(Decimal("0.01"))
-        self.assertNotEqual(Decimal(row["monthly_usd_nominal"]),
-                            rounded_shortcut,
+        self.assertNotEqual(Decimal(lb["monthly_nominal"]), rounded_shortcut,
                             "rounded shortcut coincides; pick another row")
 
     def test_adversary_of2_capture_never_applied_to_boltz2(self):
         rows = self.internal["fully_loaded"]
         for row in rows:
+            comp = row["components_usd"]
             if row["model"] == "Boltz2":
                 self.assertIsNone(row["restores_between_captures"], row)
-                self.assertIsNone(row["components_usd"]["capture_amortized"])
+                cap_key = ("capture_amortized_monthly"
+                           if row["capacity_model"] ==
+                           "dedicated_prepared_node" else "capture_amortized")
+                self.assertIsNone(comp[cap_key])
                 self.assertIn("UNAVAILABLE", row["capture_status"])
                 self.assertIn("OpenFold2", row["capture_status"])
+                self.assertIn("capture_amortized", row["missing_components"])
             else:
                 self.assertEqual(row["capture_status"], "APPLIED")
-                self.assertIsNotNone(
-                    row["components_usd"]["capture_amortized"])
-        of2_r = {r["restores_between_captures"] for r in rows
-                 if r["model"] == "OpenFold2"}
-        self.assertEqual(of2_r, {1, 10, 100, 1000})
+        for cm in ("dedicated_prepared_node", "marginal_zero_idle_bound"):
+            of2_r = {r["restores_between_captures"] for r in rows
+                     if r["model"] == "OpenFold2"
+                     and r["capacity_model"] == cm}
+            self.assertEqual(of2_r, {1, 10, 100, 1000}, cm)
         cap = self.internal["snapshot_capture_cost"]
         self.assertEqual(cap["applies_to_model"], "OpenFold2")
 
@@ -175,11 +253,11 @@ class PublishedResultsTest(unittest.TestCase):
         self.assertTrue(cold_rows)
         for row in cold_rows:
             addon = row["unmeasured_relocation_addon"]
-            base = Decimal(row["per_success_usd_nominal"])
-            billed = Decimal(
-                addon["per_success_usd_nominal_with_addon"]["egress_billed"])
-            free = Decimal(
-                addon["per_success_usd_nominal_with_addon"]["egress_free"])
+            lb = row["lower_bound_subtotals_usd"]
+            base = Decimal(lb["per_success_nominal"])
+            with_addon = addon["per_success_lower_bound_nominal_with_addon"]
+            billed = Decimal(with_addon["egress_billed"])
+            free = Decimal(with_addon["egress_free"])
             self.assertEqual(free, base)
             # billed and free are each one quantization of exact values, so
             # their difference may differ from the separately-quantized addon
@@ -189,11 +267,9 @@ class PublishedResultsTest(unittest.TestCase):
                     - Decimal(addon["per_success_usd"]["egress_billed"])),
                 Decimal("0.000001"))
             self.assertIn("unmeasured", addon["provenance"])
-            m = addon["monthly_usd_nominal_with_addon"]
+            m = addon["monthly_lower_bound_nominal_with_addon"]
             self.assertGreater(Decimal(m["egress_billed"]),
                                Decimal(m["egress_free"]))
-        for row in self.internal["fully_loaded"]:
-            self.assertIn("monthly_usd_pessimistic", row)
 
     def test_fully_loaded_covers_grids(self):
         rows = self.internal["fully_loaded"]
@@ -206,6 +282,18 @@ class PublishedResultsTest(unittest.TestCase):
         # OpenFold2 has no cold rows (fail-closed).
         self.assertFalse([r for r in rows if r["model"] == "OpenFold2"
                           and r["cost_class"] == "cold_switch"])
+
+    def test_adversary_tsv_and_markdown_never_claim_complete_fully_loaded(self):
+        """Adversary: no output may present a lower-bound subtotal under a
+        bare fully_loaded/complete label."""
+        for line in self.tsv.splitlines():
+            self.assertFalse(line.startswith("fully_loaded\t"), line)
+            if line.startswith("fully_loaded_dedicated\t"):
+                self.assertTrue(line.endswith("\tcomplete"), line)
+            if "lower_bound" in line.split("\t")[0]:
+                self.assertIn("no_decision", line, line)
+        self.assertIn("marginal_zero_idle_bound", self.md)
+        self.assertIn("dedicated_prepared_node", self.md)
 
     # ---- sweeps ----------------------------------------------------------
     def test_preemption_sweep_consumes_full_grid(self):
@@ -316,7 +404,7 @@ class PublishedResultsTest(unittest.TestCase):
                 rep["cost_usd"]["on_demand/egress_billed"]["total"],
                 str(src["cost_usd"]["total"]))
 
-    def test_breakeven_values(self):
+    def test_breakeven_values_exact_through_division(self):
         be = self.frontier["breakeven"]
         pe = self.frontier["sweeps"]["preemption"]
         self.assertEqual(
@@ -324,12 +412,29 @@ class PublishedResultsTest(unittest.TestCase):
         self.assertEqual(
             be["storage_tier"]
             ["egress_billed_breakeven_refetches_per_gib_month"], "4.3533")
+        pre = self.inputs.unit_price("nebius-h100-1g-pre")
+        od = self.inputs.unit_price("nebius-h100-1g-od")
+        rounded_differs_somewhere = False
         for row in be["warm_vs_switch"]:
-            per_switch = Decimal(row["per_switch_usd_p95"])
+            self.assertTrue(row["decision_forbidden"])
+            self.assertIn("UPPER BOUND", row["bound"])
+            model_idx = 0 if row["model"] == "OpenFold2" else 1
+            p95 = Decimal(self.internal["cost_classes"][model_idx]
+                          ["prepared_switch"]["latency_seconds"]["p95"])
+            hourly = pre if row["switch_offer"] == "preemptible" else od
+            exact = lib.gpu_seconds_cost_exact(p95, hourly)
             warm = Decimal(row["warm_gpu_month_usd_on_demand"])
             self.assertEqual(
-                Decimal(row["breakeven_requests_per_month"]),
-                (warm / per_switch).quantize(Decimal("0.01")))
+                Decimal(row["breakeven_requests_per_month_upper_bound"]),
+                (warm / exact).quantize(Decimal("0.01")))
+            rounded = (warm / Decimal(row["per_switch_usd_p95"])
+                       ).quantize(Decimal("0.01"))
+            if rounded != Decimal(
+                    row["breakeven_requests_per_month_upper_bound"]):
+                rounded_differs_somewhere = True
+        # Adversary: the rounded-intermediate shortcut must actually differ
+        # for at least one row, proving the exact chain matters.
+        self.assertTrue(rounded_differs_somewhere)
 
 
 if __name__ == "__main__":

@@ -34,7 +34,8 @@ enforced by tests.
 
 Modal's pricing shape (per-second GPU+CPU+memory metering while a container
 is up, zero idle charge after scale-to-zero) is the same commercial shape as
-Cerebrium's, which *is* the program's measured external comparator. The
+Cerebrium's, the program's sole external comparator (itself PENDING
+measurement: dated prices only, no measured value yet). The
 architecture lesson — bill only the critical path plus policy-chosen warm
 time — is exactly what the internal warm-vs-switch break-even in
 `results/breakeven.tsv` models against Nebius quotes.

@@ -1,6 +1,6 @@
-# Capacity/cost frontier v3 (as of 2026-08-19)
+# Capacity/cost frontier v4 (as of 2026-08-19)
 
-Corrected candidate v3. Prepared versus request-triggered cost classes with explicit amortization; model-scoped inputs stay model-scoped (the OpenFold2 capture assumption is never applied to Boltz2); unmeasured relocation is separated from the measured cold-switch lower bound and emitted under both egress variants; fully-loaded totals span the capture-reuse grid with nominal and pessimistic monthly values; the preemption sweep exposes its full grid, where the pre-then-on-demand fallback beats on-demand only below the break-even loss probability; public prices are hash-bound to archived payloads whose exact fetch timestamps are the recorded retrieval times; all composite arithmetic is exact with one quantization at emission. Cerebrium is PENDING_MEASUREMENT (prices only, never measured) and Modal documentation-only. Cost is always paired with the latency and goodput of the same evidence.
+Corrected candidate v4. Prepared versus request-triggered cost classes with explicit amortization; model-scoped inputs stay model-scoped (the OpenFold2 capture assumption is never applied to Boltz2); unmeasured relocation is separated from the measured cold-switch lower bound and emitted under both egress variants; fully-loaded totals span the capture-reuse grid with nominal and pessimistic monthly values; the preemption sweep exposes its full grid, where the pre-then-on-demand fallback beats on-demand only below the break-even loss probability; rows missing a required component carry null complete totals and null decisions, publishing only explicitly-named lower-bound subtotals on which ranking and break-even decisions are forbidden; idle/reserved GPU capacity is explicitly allocated in the dedicated_prepared_node capacity model (whole-instance monthly quotes, node counts, utilization), while the marginal zero-idle bound is always an incomplete lower bound and the warm-vs-switch break-even is published only as a decision-forbidden upper bound; public prices are hash-bound to archived payloads whose exact fetch timestamps are the recorded retrieval times; all composite arithmetic is exact with one quantization at emission. Cerebrium is PENDING_MEASUREMENT (prices only, never measured) and Modal documentation-only. Cost is always paired with the latency and goodput of the same evidence.
 
 ## Measured cost classes (1x H100, eu-north1)
 
@@ -18,14 +18,29 @@ Corrected candidate v3. Prepared versus request-triggered cost classes with expl
 Boltz2 cold switch is a measured LOWER BOUND: 422.854590 s preparation (local SFS cache read) + 30.310246 s p95 switch = 14.951x the prepared-switch cost at reuse=1; the amortization grid (reuse 1/2/5/10/50) is in frontier.json. Relocating the measured 27.550541 GiB from object storage is a SEPARATE UNMEASURED add-on: 0.413258 USD egress-billed / 0 USD egress-free per preparation, duration unmeasured.
 OpenFold2 cold switch and all node-provision-miss rows are fail-closed PENDING_MEASUREMENT. Snapshot capture cost (272.426 s, snapshot_capture_seconds_of2) applies to OpenFold2 only; Boltz2 rows exclude it fail-closed.
 
-## Fully-loaded per-success cost (sample: 100k req/month, preemptible, nominal; OpenFold2 at R=100)
+## Per-success and monthly cost under explicit capacity models
 
-| Model | Class | GPU p50 | Capture | Fixed share | Total | Monthly nom/pess | +Relocation (billed/free) |
+Capacity model A, dedicated_prepared_node: idle and reserved GPU capacity fully allocated as whole dedicated H100 instance(s) (nodes = ceil(busy-seconds / node-month), whole monthly instance quotes charged, utilization shown). COMPLETE only where every component is available; Boltz2 capture is unavailable, so its dedicated rows are lower-bound subtotals (>=). Capacity model B, marginal_zero_idle_bound: only measured request/prep GPU seconds plus fixed overheads — ALWAYS an INCOMPLETE_LOWER_BOUND because idle/reserved capacity is unallocated by construction; ranking and break-even decisions are FORBIDDEN on every lower-bound row. Shared-pool allocation with contention is placeholder-derived and lives in the simulation frontier, where reserved GPU-hours are charged in full.
+
+### A: dedicated prepared node(s) (sample: preemptible, OpenFold2 at R=100)
+
+| Model | Completeness | D req/mo | Nodes | Utilization | Per-success | Monthly nom/pess |
+|---|---|---:|---:|---:|---:|---:|
+| OpenFold2 | COMPLETE | 10000 | 1 | 0.065839 | 0.198587 | 1985.87 / 1985.87 |
+| OpenFold2 | COMPLETE | 100000 | 1 | 0.658392 | 0.021323 | 2132.29 / 2132.29 |
+| OpenFold2 | COMPLETE | 1000000 | 7 | 0.940560 | 0.013014 | 13013.58 / 14583.08 |
+| Boltz2 | INCOMPLETE_LOWER_BOUND | 10000 | 1 | 0.109940 | >= 0.196960 | >= 1969.60 / >= 1969.60 |
+| Boltz2 | INCOMPLETE_LOWER_BOUND | 100000 | 2 | 0.549700 | >= 0.035391 | >= 3539.10 / >= 3539.10 |
+| Boltz2 | INCOMPLETE_LOWER_BOUND | 1000000 | 11 | 0.999455 | >= 0.017665 | >= 17664.60 / >= 20803.60 |
+
+### B: marginal zero-idle sharing bound (sample: 100k req/mo, preemptible; every row is a lower-bound subtotal, no decisions)
+
+| Model | Class | GPU p50 | Capture | Fixed share | Per-success | Monthly nom/pess | +Relocation (billed/free) |
 |---|---|---:|---:|---:|---:|---:|---|
-| OpenFold2 | prepared_switch | 0.010333 | 0.001627 | 0.004001 | 0.015961 | 1596.14 / 1778.50 | n/a |
-| Boltz2 | prepared_switch | 0.017255 | excluded | 0.004001 | 0.021256 | 2125.60 / 2430.11 | n/a |
-| Boltz2 | cold_switch (reuse=1) | 0.269793 | excluded | 0.004001 | 0.273794 | 27379.42 / 32140.48 | 0.687052 / 0.273794 |
-| Boltz2 | cold_switch (reuse=10) | 0.042509 | excluded | 0.004001 | 0.046510 | 4650.99 / 5401.14 | 0.087836 / 0.046510 |
+| OpenFold2 | prepared_switch | 0.010333 | 0.001627 | 0.004001 | >= 0.015961 | >= 1596.14 / >= 1778.50 | n/a |
+| Boltz2 | prepared_switch | 0.017255 | unavailable | 0.004001 | >= 0.021256 | >= 2125.60 / >= 2430.11 | n/a |
+| Boltz2 | cold_switch (reuse=1) | 0.269793 | unavailable | 0.004001 | >= 0.273794 | >= 27379.42 / >= 32140.48 | >= 0.687052 / >= 0.273794 |
+| Boltz2 | cold_switch (reuse=10) | 0.042509 | unavailable | 0.004001 | >= 0.046510 | >= 4650.99 / >= 5401.14 | >= 0.087836 / >= 0.046510 |
 
 Full grids (capture-reuse 1/10/100/1000, demand, reuse, both offers, pessimistic monthly, both egress variants for the relocation add-on) are in frontier.json and breakeven.tsv.
 

@@ -195,6 +195,33 @@ class CaptureScriptConsistencyTest(unittest.TestCase):
         self.assertIn("tenant-e00f3wdfzwfjgbcyfv", raw["command"])
 
 
+class SubtreeWordingScanTest(unittest.TestCase):
+    """Adversary: the PENDING/not-measured invariant for Cerebrium must hold
+    in EVERY source and doc file of this subtree, not only in generated
+    outputs. Archived third-party payloads (.html) are external content and
+    excluded."""
+
+    # Built by joining parts so this scanner never matches its own source.
+    FORBIDDEN = tuple(" ".join(parts) for parts in (
+        ("measured", "external", "comparator"),
+        ("external", "measured"),
+        ("measured", "comparator"),
+        ("sole", "external", "measured")))
+
+    def test_no_measured_comparator_wording_anywhere(self):
+        scanned = 0
+        for path in sorted(CC.rglob("*")):
+            if not path.is_file() or path.suffix not in (
+                    ".py", ".md", ".sh", ".json", ".tsv"):
+                continue
+            text = path.read_text(errors="replace").lower()
+            for phrase in self.FORBIDDEN:
+                self.assertNotIn(phrase, text,
+                                 f"{path.relative_to(CC)}: '{phrase}'")
+            scanned += 1
+        self.assertGreater(scanned, 30)  # the scan really covers the subtree
+
+
 class CapacitySnapshotTest(unittest.TestCase):
     def test_matches_raw_capture(self):
         snap = load("capacity_snapshot.json")

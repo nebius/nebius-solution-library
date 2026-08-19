@@ -268,7 +268,8 @@ def build_price_snapshot() -> dict:
                       "and public IPs are listed as free on the same page."),
     ]
 
-    # --- Cerebrium public prices (sole external measured comparator) ---
+    # --- Cerebrium public prices (sole external comparator; PENDING
+    # measurement — dated prices only, never a measured value) ---
     per_second = [
         ("cerebrium-h100-s", "H100", "0.000944"),
         ("cerebrium-h200-s", "H200", "0.001166"),

@@ -50,15 +50,24 @@ Per model on the measured 1x H100:
 - **node_provision_miss** — declared, fail-closed PENDING_MEASUREMENT (the
   legacy new-node lane is fail-closed on this branch).
 
-Fully-loaded per-success and monthly totals combine switch GPU, capture
-amortization across the full grid 1/10/100/1000 (OpenFold2 only — no Boltz2
-capture duration exists, so Boltz2 rows exclude capture fail-closed), the
-fixed SFS+controller share at each demand-grid point, and
-nominal/pessimistic (rule-of-three) retry sensitivity, with monthly totals
-in both variants computed from unrounded per-success values. Unmeasured
-relocation of the measured Boltz2 bytes is a separate add-on emitting both
-egress-billed and egress-free totals, never blended into the
-measured-anchored totals.
+Per-success and monthly totals are published under two explicit capacity
+models. **dedicated_prepared_node** allocates idle and reserved GPU capacity
+in full: whole dedicated H100 instance-months (nodes = ceiling of
+busy-seconds over a node-month, utilization emitted), fixed SFS+controller,
+and capture amortization across the full 1/10/100/1000 grid (OpenFold2 only
+— no Boltz2 capture duration exists, so Boltz2 rows fail closed). Only
+dedicated OpenFold2 rows are COMPLETE. **marginal_zero_idle_bound** charges
+only measured request/prep GPU seconds plus fixed overheads and is always
+an INCOMPLETE_LOWER_BOUND, because idle/reserved capacity is unallocated by
+construction. Every INCOMPLETE row carries null complete totals and null
+decision fields; its numbers appear only under explicit lower-bound
+subtotal names on which ranking and break-even decisions are forbidden.
+Monthly totals (nominal and rule-of-three pessimistic) come from unrounded
+values. Unmeasured relocation of the measured Boltz2 bytes is a separate
+add-on emitting both egress-billed and egress-free totals, never blended
+into the measured lower-bound timing. Shared-pool allocation with real
+contention is placeholder-derived and lives in the simulation frontier,
+where reserved GPU-hours are charged in full.
 
 ## Fail-closed rules
 
@@ -94,8 +103,11 @@ All builders are deterministic (no run-time clocks or randomness). The test
 suite asserts byte-identical regeneration of the committed results, raw-quote
 and archived-payload cross-validation, capture-script/evidence project
 consistency, sweep isolation and single-point live regeneration, fail-closed
-checksum drift, consumed assumption grids, and Modal/Cerebrium exclusion
-rules.
+checksum drift, consumed assumption grids, the completeness contract (null
+totals and forbidden decisions on every row missing a required component,
+idle allocation and node ceilings on dedicated rows, exact unrounded chains
+through every division), a whole-subtree wording scan for the
+Cerebrium-pending invariant, and Modal/Cerebrium exclusion rules.
 
 ## Headline results (results/FRONTIER.md has the full tables)
 
@@ -110,12 +122,15 @@ rules.
   for OpenFold2) on-demand-only wins on cost and the fallback's remaining
   value is bounding latency to one extra attempt. The full grid is exposed
   per model with the cheapest strategy named at every point.
-- Fully loaded at 100k requests/month (preemptible, nominal): OpenFold2
-  prepared $0.0160 (R=100), Boltz2 prepared $0.0213 (capture excluded
-  fail-closed), Boltz2 cold at reuse=1 $0.2738 measured-anchored, or
-  $0.6871/$0.2738 with the unmeasured relocation add-on under
-  egress-billed/egress-free — versus $3,210.60/month for one dedicated warm
-  on-demand H100 plus the same fixed SFS/controller overhead.
+- Dedicated prepared node (idle fully allocated, preemptible, R=100):
+  OpenFold2 is COMPLETE at $0.0213/success and $2,132.29/month at 100k
+  req/mo (utilization 0.658), and $0.0130 at 1M req/mo across 7 nodes;
+  Boltz2's dedicated rows are lower-bound subtotals (>= $0.0354 at 100k
+  across 2 nodes) because its capture cost is unavailable. The marginal
+  zero-idle bound (e.g. OpenFold2 >= $0.0160 at 100k) is always an
+  incomplete lower bound; no ranking or break-even decision is taken from
+  any lower-bound row, and the warm-vs-switch break-even is published only
+  as a decision-forbidden upper bound.
 - Isolated sweeps (placeholder-derived simulation): warm-K knees at K=1–4
   depending on trace family; cache knees at 400–800 GiB, with cost per 1k
   requests falling from ~$126 (150 GiB) to ~$99 (800 GiB) on the Zipf trace.

@@ -100,6 +100,26 @@ class RepriceTest(unittest.TestCase):
         self.assertEqual(free["total"], "7.700000")
         self.assertEqual(free["egress"], "0.000000")
 
+    def test_adversary_no_component_rounding_before_sum(self):
+        """Adversary: two half-ulp components must survive into the total.
+        Rounding gpu and egress independently before summing would publish
+        0.000000; the exact chain publishes 0.000001."""
+        report = dict(self.REPORT)
+        report["gpu"] = {"reserved_gpu_hours": 0.0000005, "utilization": 0.5}
+        report["bytes"] = {"fetched_gib": 0.0000005}
+        report["n_completed"] = 1
+        report["n_requests"] = 1
+        out = lib.reprice_simulator_report(
+            report, {"on_demand": Decimal("1")}, Decimal("1"))
+        billed = out["cost_usd"]["on_demand/egress_billed"]
+        # Each half-ulp component rounds half-even to zero on its own...
+        self.assertEqual(billed["gpu"], "0.000000")
+        self.assertEqual(billed["egress"], "0.000000")
+        # ...but the exact sum survives into the published total, which a
+        # rounded-components implementation would emit as 0.000000.
+        self.assertEqual(billed["total"], "0.000001")
+        self.assertEqual(billed["per_1000_completed"], "0.001000")
+
     def test_zero_completed_fails(self):
         bad = dict(self.REPORT, n_completed=0)
         with self.assertRaises(lib.InputError):

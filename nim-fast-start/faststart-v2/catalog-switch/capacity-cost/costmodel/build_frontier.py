@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the measured capacity/cost frontier (corrected candidate, v3).
+"""Build the measured capacity/cost frontier (corrected candidate, v4).
 
 Reads the committed snapshots and checksum-pinned artifacts, consumes the
 isolated top-K/cache sweeps and the legacy simulator matrix as
@@ -25,9 +25,13 @@ Cost classes per model (prepared versus request-triggered, with amortization):
 
 Model-scoped inputs stay model-scoped: the OpenFold2-only capture-time
 assumption is applied to OpenFold2 alone; Boltz2 capture cost is UNAVAILABLE
-and fails closed. All composite arithmetic is exact (28-digit Decimal
-context) with a single quantization at emission; monthly totals are computed
-from unrounded per-success values.
+and fails closed. Completeness contract: a fully-loaded row whose required
+component is unavailable carries null complete totals and null decision
+fields; its numbers exist only under explicit measured-anchored LOWER-BOUND
+SUBTOTAL names, on which ranking and break-even decisions are forbidden.
+All composite arithmetic is exact (28-digit Decimal context) with a single
+quantization at emission; monthly totals are computed from unrounded
+per-success values.
 
 Run from the ``faststart-v2`` directory:
 
@@ -54,6 +58,13 @@ SLO_THRESHOLDS = (Decimal(20), Decimal(30), Decimal(60))
 WARM_POOL_K = (1, 2, 4, 8, 16)
 GIB = Decimal(2) ** 30
 CENT2 = Decimal("0.01")
+
+
+def ceil_pos(value: Decimal) -> int:
+    """Ceiling of a positive Decimal ratio (Decimal // truncates toward
+    zero, so the -(-a//b) idiom is NOT a ceiling for Decimals)."""
+    whole = int(value)
+    return whole if value == whole else whole + 1
 
 
 def q6(value: Decimal) -> str:
@@ -230,21 +241,152 @@ def model_cost_classes(ctx: Ctx, entry_id: str) -> dict:
 # --------------------------------------------------------------------------
 
 def fully_loaded_rows(ctx: Ctx, classes: dict) -> list[dict]:
-    """Complete per-success and monthly totals across the demand grid.
+    """Per-success and monthly totals across the demand grid, under two
+    explicit capacity models.
 
-    Measured-anchored components: switch GPU (p50 central), preparation GPU
-    amortized (cold class), capture amortized across the capture-reuse grid
-    (only for the model the capture assumption applies to; UNAVAILABLE and
-    excluded for others), fixed SFS+controller share. Retry sensitivity is
-    the nominal/rule-of-three pair on the GPU components. Unmeasured
-    relocation traffic is a separate add-on with both egress variants, never
-    blended into the measured totals. All arithmetic exact; every emitted
-    number quantized exactly once; monthly totals computed from unrounded
-    per-success values.
+    ``dedicated_prepared_node``: prepared capacity is held as whole
+    dedicated H100 instance(s); idle and reserved GPU time is fully
+    allocated (nodes_required = ceil(busy-seconds / node-month), whole
+    monthly instance quotes charged, utilization emitted). COMPLETE only
+    when every component is available (Boltz2 capture is not, so its
+    dedicated rows are lower-bound subtotals).
+
+    ``marginal_zero_idle_bound``: charges only measured request/prep GPU
+    seconds plus fixed overheads — the perfect-sharing, zero-idle floor. It
+    is ALWAYS an INCOMPLETE_LOWER_BOUND because idle/reserved GPU capacity
+    is unallocated by construction (missing component
+    ``idle_reserved_gpu_capacity_share``); ranking and break-even decisions
+    are forbidden on it. Shared-pool allocation with real contention lives
+    in simulation_frontier, is placeholder-derived, and charges reserved
+    GPU-hours in full there.
+
+    All arithmetic exact; every emitted number quantized exactly once;
+    monthly totals computed from unrounded values.
     """
     model = classes["model"]
     prepared_p50 = Decimal(classes["prepared_switch"]["latency_seconds"]["p50"])
+    capture_available = model == ctx.capture_model
+    month_hours = Decimal(730)
+    month_seconds = month_hours * Decimal(3600)
+    cap_pre_exact = lib.gpu_seconds_cost_exact(ctx.capture_seconds, ctx.pre)
+    cap_od_exact = lib.gpu_seconds_cost_exact(ctx.capture_seconds, ctx.od)
+    capture_status = ("APPLIED" if capture_available else
+                      "UNAVAILABLE: the snapshot_capture_seconds_of2 "
+                      "assumption applies to %s only; no %s capture "
+                      "duration exists in this program, so capture cost is "
+                      "excluded rather than borrowed." % (ctx.capture_model,
+                                                          model))
 
+    def lower_bound_block(nominal, pessimistic, d, missing):
+        return {
+            "per_success_usd_nominal": None,
+            "per_success_usd_pessimistic": None,
+            "monthly_usd_nominal": None,
+            "monthly_usd_pessimistic": None,
+            "lower_bound_subtotals_usd": {
+                "per_success_nominal": q6(nominal),
+                "per_success_pessimistic": q6(pessimistic),
+                "monthly_nominal": q2(nominal * d),
+                "monthly_pessimistic": q2(pessimistic * d),
+            },
+            "decision_policy": (
+                "measured-anchored LOWER-BOUND SUBTOTALS only: the true "
+                "total is >= these values because %s unavailable/"
+                "unallocated; ranking and break-even decisions are "
+                "FORBIDDEN on them." % ", ".join(missing)),
+        }
+
+    rows = []
+
+    # --- capacity model A: dedicated prepared node(s), idle allocated ----
+    monthly_by_offer = {
+        "preemptible": ctx.inputs.monthly_price("nebius-h100-1g-pre"),
+        "on_demand": ctx.inputs.monthly_price("nebius-h100-1g-od"),
+    }
+    capture_r_axis = ctx.capture_r_grid if capture_available else [None]
+    for offer in ("preemptible", "on_demand"):
+        inst_month = monthly_by_offer[offer]
+        cap_exact_full = (cap_pre_exact if offer == "preemptible"
+                          else cap_od_exact)
+        for r_value in capture_r_axis:
+            cap_per_restore = (cap_exact_full / Decimal(r_value)
+                               if r_value is not None else Decimal(0))
+            for demand in ctx.demand_grid:
+                d = Decimal(demand)
+                busy_seconds = d * prepared_p50
+                nodes = max(ceil_pos(busy_seconds / month_seconds), 1)
+                utilization = busy_seconds / (Decimal(nodes) * month_seconds)
+                monthly_exact = (Decimal(nodes) * inst_month
+                                 + ctx.fixed_month + cap_per_restore * d)
+                per_success_exact = monthly_exact / d
+                # Retry pessimism adds busy seconds, not idle: the
+                # pessimistic view re-evaluates node count and utilization
+                # under the rule-of-three attempt bound.
+                busy_pess = busy_seconds * ctx.pess
+                nodes_pess = max(ceil_pos(busy_pess / month_seconds), 1)
+                monthly_pess = (Decimal(nodes_pess) * inst_month
+                                + ctx.fixed_month + cap_per_restore * d)
+                per_success_pess = monthly_pess / d
+                missing = [] if capture_available else ["capture_amortized"]
+                row = {
+                    "model": model,
+                    "capacity_model": "dedicated_prepared_node",
+                    "cost_class": "pinned_dedicated",
+                    "prep_reuse": None,
+                    "offer": offer,
+                    "restores_between_captures": r_value,
+                    "capture_status": capture_status,
+                    "completeness": ("COMPLETE" if capture_available
+                                     else "INCOMPLETE_LOWER_BOUND"),
+                    "missing_components": missing,
+                    "requests_per_month": demand,
+                    "nodes_required": nodes,
+                    "nodes_required_pessimistic": nodes_pess,
+                    "reserved_gpu_hours_month": str(
+                        Decimal(nodes) * month_hours),
+                    "utilization_busy_fraction": q6(utilization),
+                    "components_usd": {
+                        "dedicated_instances_monthly": q2(
+                            Decimal(nodes) * inst_month),
+                        "capture_amortized_monthly": (
+                            q2(cap_per_restore * d)
+                            if capture_available else None),
+                        "fixed_sfs_controller_monthly": q2(ctx.fixed_month),
+                    },
+                    "retention_note": (
+                        "preemptible retention of a 24/7 dedicated node is "
+                        "subject to preemption; see the preemption sweep "
+                        "and availability_at_capture"
+                        if offer == "preemptible" else ""),
+                }
+                if capture_available:
+                    row.update({
+                        "per_success_usd_nominal": q6(per_success_exact),
+                        "per_success_usd_pessimistic": q6(per_success_pess),
+                        "monthly_usd_nominal": q2(monthly_exact),
+                        "monthly_usd_pessimistic": q2(monthly_pess),
+                    })
+                else:
+                    row.update({
+                        "per_success_usd_nominal": None,
+                        "per_success_usd_pessimistic": None,
+                        "monthly_usd_nominal": None,
+                        "monthly_usd_pessimistic": None,
+                        "lower_bound_subtotals_usd": {
+                            "per_success_nominal": q6(per_success_exact),
+                            "per_success_pessimistic": q6(per_success_pess),
+                            "monthly_nominal": q2(monthly_exact),
+                            "monthly_pessimistic": q2(monthly_pess),
+                        },
+                        "decision_policy": (
+                            "measured-anchored LOWER-BOUND SUBTOTALS only: "
+                            "the true total is >= these values because "
+                            "capture_amortized is unavailable; ranking and "
+                            "break-even decisions are FORBIDDEN on them."),
+                    })
+                rows.append(row)
+
+    # --- capacity model B: marginal zero-idle sharing bound --------------
     variants = [("prepared_switch", None, prepared_p50, Decimal(0))]
     if classes["cold_switch"].get("status") == "MEASURED_LOWER_BOUND":
         prep_s = Decimal(classes["cold_switch"]["prep_seconds"])
@@ -255,42 +397,34 @@ def fully_loaded_rows(ctx: Ctx, classes: dict) -> list[dict]:
             variants.append(("cold_switch", reuse,
                              prep_s / s + prepared_p50, traffic_gib / s))
 
-    if model == ctx.capture_model:
-        capture_axis = [(r, lib.gpu_seconds_cost_exact(
-            ctx.capture_seconds, ctx.pre) / Decimal(r), lib.gpu_seconds_cost_exact(
-            ctx.capture_seconds, ctx.od) / Decimal(r))
-            for r in ctx.capture_r_grid]
-        capture_status = "APPLIED"
-    else:
-        capture_axis = [(None, None, None)]
-        capture_status = (
-            "UNAVAILABLE: the snapshot_capture_seconds_of2 assumption "
-            "applies to %s only; no %s capture duration exists in this "
-            "program, so capture cost is excluded rather than borrowed."
-            % (ctx.capture_model, model))
-
-    rows = []
     for cls, reuse, gpu_seconds, addon_traffic_gib in variants:
         for offer, hourly in (("preemptible", ctx.pre),
                               ("on_demand", ctx.od)):
             gpu_exact = lib.gpu_seconds_cost_exact(gpu_seconds, hourly)
-            for r_value, cap_pre, cap_od in capture_axis:
+            for r_value in capture_r_axis:
                 cap_exact = (Decimal(0) if r_value is None
-                             else (cap_pre if offer == "preemptible"
-                                   else cap_od))
+                             else ((cap_pre_exact if offer == "preemptible"
+                                    else cap_od_exact) / Decimal(r_value)))
                 addon_exact = addon_traffic_gib * ctx.egress
+                missing = ["idle_reserved_gpu_capacity_share"]
+                if not capture_available:
+                    missing = missing + ["capture_amortized"]
                 for demand in ctx.demand_grid:
                     d = Decimal(demand)
                     fixed_exact = ctx.fixed_month / d
                     nominal = gpu_exact + cap_exact + fixed_exact
-                    pessimistic = gpu_exact * ctx.pess + cap_exact + fixed_exact
+                    pessimistic = (gpu_exact * ctx.pess + cap_exact
+                                   + fixed_exact)
                     row = {
                         "model": model,
+                        "capacity_model": "marginal_zero_idle_bound",
                         "cost_class": cls,
                         "prep_reuse": reuse,
                         "offer": offer,
                         "restores_between_captures": r_value,
                         "capture_status": capture_status,
+                        "completeness": "INCOMPLETE_LOWER_BOUND",
+                        "missing_components": missing,
                         "requests_per_month": demand,
                         "components_usd": {
                             "gpu_switch_p50": q6(gpu_exact),
@@ -299,27 +433,22 @@ def fully_loaded_rows(ctx: Ctx, classes: dict) -> list[dict]:
                                 else None),
                             "fixed_sfs_controller_share": q6(fixed_exact),
                         },
-                        "per_success_usd_nominal": q6(nominal),
-                        "per_success_usd_pessimistic": q6(pessimistic),
-                        "monthly_usd_nominal": q2(nominal * d),
-                        "monthly_usd_pessimistic": q2(pessimistic * d),
-                        "one_warm_gpu_plus_fixed_monthly_usd": q2(
-                            ctx.warm_month + ctx.fixed_month),
-                        "cheaper_than_one_warm_gpu": bool(
-                            nominal * d < ctx.warm_month + ctx.fixed_month),
                     }
+                    row.update(lower_bound_block(
+                        nominal, pessimistic, d, missing))
                     if cls == "cold_switch":
                         row["unmeasured_relocation_addon"] = {
                             "per_success_usd": {
                                 "egress_billed": q6(addon_exact),
                                 "egress_free": "0.000000",
                             },
-                            "per_success_usd_nominal_with_addon": {
+                            "per_success_lower_bound_nominal_with_addon": {
                                 "egress_billed": q6(nominal + addon_exact),
                                 "egress_free": q6(nominal),
                             },
-                            "monthly_usd_nominal_with_addon": {
-                                "egress_billed": q2((nominal + addon_exact) * d),
+                            "monthly_lower_bound_nominal_with_addon": {
+                                "egress_billed": q2(
+                                    (nominal + addon_exact) * d),
                                 "egress_free": q2(nominal * d),
                             },
                             "provenance": ("unmeasured relocation scenario; "
@@ -580,19 +709,25 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
         p95 = Decimal(classes["prepared_switch"]["latency_seconds"]["p95"])
         for offer, hourly in (("preemptible", ctx.pre),
                               ("on_demand", ctx.od)):
-            per_switch = lib.gpu_seconds_cost(p95, hourly)
+            per_switch_exact = lib.gpu_seconds_cost_exact(p95, hourly)
             warm_rows.append({
                 "model": classes["model"],
                 "cost_class": "prepared_switch",
                 "switch_offer": offer,
-                "per_switch_usd_p95": str(per_switch),
+                "per_switch_usd_p95": q6(per_switch_exact),
                 "warm_gpu_month_usd_on_demand": str(ctx.warm_month),
-                "breakeven_requests_per_month": str(
+                "breakeven_requests_per_month_upper_bound": str(
                     lib.warm_breakeven_requests_per_month(
-                        ctx.warm_month, per_switch)),
-                "bound": ("upper bound: every request pays a full prepared "
-                          "switch; cache hits lower it. Cold-switch "
-                          "economics are in fully_loaded rows."),
+                        ctx.warm_month, per_switch_exact)),
+                "decision_forbidden": True,
+                "bound": ("UPPER BOUND on the break-even demand, computed "
+                          "against the zero-idle perfect-sharing per-switch "
+                          "cost (idle/reserved GPU capacity unallocated on "
+                          "the switching side). Real switching capacity "
+                          "also pays idle, so the true break-even demand "
+                          "is at most this value; no ranking or deployment "
+                          "decision may be taken from it. The division "
+                          "uses the exact unrounded per-switch cost."),
             })
 
     storage_be = {
@@ -620,11 +755,11 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
     } for k in WARM_POOL_K]
 
     frontier = {
-        "schema_version": "capacity-cost-frontier/v3",
+        "schema_version": "capacity-cost-frontier/v4",
         "as_of_date": inputs.price["as_of_date"],
         "generated_by": "catalog-switch/capacity-cost/costmodel/build_frontier.py",
         "statement": (
-            "Corrected candidate v3. Prepared versus request-triggered cost "
+            "Corrected candidate v4. Prepared versus request-triggered cost "
             "classes with explicit amortization; model-scoped inputs stay "
             "model-scoped (the OpenFold2 capture assumption is never applied "
             "to Boltz2); unmeasured relocation is separated from the "
@@ -633,6 +768,15 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
             "nominal and pessimistic monthly values; the preemption sweep "
             "exposes its full grid, where the pre-then-on-demand fallback "
             "beats on-demand only below the break-even loss probability; "
+            "rows missing a required component carry null complete totals "
+            "and null decisions, publishing only explicitly-named "
+            "lower-bound subtotals on which ranking and break-even "
+            "decisions are forbidden; idle/reserved GPU capacity is "
+            "explicitly allocated in the dedicated_prepared_node capacity "
+            "model (whole-instance monthly quotes, node counts, "
+            "utilization), while the marginal zero-idle bound is always an "
+            "incomplete lower bound and the warm-vs-switch break-even is "
+            "published only as a decision-forbidden upper bound; "
             "public prices are hash-bound to archived payloads whose exact "
             "fetch timestamps are the recorded retrieval times; all "
             "composite arithmetic is exact with one quantization at "
@@ -675,7 +819,7 @@ def build(inputs: lib.Inputs) -> tuple[dict, str, str]:
 def render_markdown(f: dict) -> str:
     internal = f["backends"]["internal-k8s-snapshot"]
     lines = [
-        "# Capacity/cost frontier v3 (as of %s)" % f["as_of_date"],
+        "# Capacity/cost frontier v4 (as of %s)" % f["as_of_date"],
         "",
         f["statement"],
         "",
@@ -734,14 +878,58 @@ def render_markdown(f: dict) -> str:
             internal["snapshot_capture_cost"]["assumption"],
             internal["snapshot_capture_cost"]["applies_to_model"]),
         "",
-        "## Fully-loaded per-success cost (sample: 100k req/month, "
-        "preemptible, nominal; OpenFold2 at R=100)",
+        "## Per-success and monthly cost under explicit capacity models",
         "",
-        "| Model | Class | GPU p50 | Capture | Fixed share | Total | Monthly nom/pess | +Relocation (billed/free) |",
+        "Capacity model A, dedicated_prepared_node: idle and reserved GPU "
+        "capacity fully allocated as whole dedicated H100 instance(s) "
+        "(nodes = ceil(busy-seconds / node-month), whole monthly instance "
+        "quotes charged, utilization shown). COMPLETE only where every "
+        "component is available; Boltz2 capture is unavailable, so its "
+        "dedicated rows are lower-bound subtotals (>=). Capacity model B, "
+        "marginal_zero_idle_bound: only measured request/prep GPU seconds "
+        "plus fixed overheads — ALWAYS an INCOMPLETE_LOWER_BOUND because "
+        "idle/reserved capacity is unallocated by construction; ranking "
+        "and break-even decisions are FORBIDDEN on every lower-bound row. "
+        "Shared-pool allocation with contention is placeholder-derived and "
+        "lives in the simulation frontier, where reserved GPU-hours are "
+        "charged in full.",
+        "",
+        "### A: dedicated prepared node(s) (sample: preemptible, "
+        "OpenFold2 at R=100)",
+        "",
+        "| Model | Completeness | D req/mo | Nodes | Utilization | Per-success | Monthly nom/pess |",
+        "|---|---|---:|---:|---:|---:|---:|",
+    ]
+    for row in internal["fully_loaded"]:
+        if (row["capacity_model"] != "dedicated_prepared_node"
+                or row["offer"] != "preemptible"
+                or row["restores_between_captures"] not in (None, 100)
+                or row["requests_per_month"] not in (10000, 100000, 1000000)):
+            continue
+        if row["completeness"] == "COMPLETE":
+            per = row["per_success_usd_nominal"]
+            monthly = "%s / %s" % (row["monthly_usd_nominal"],
+                                   row["monthly_usd_pessimistic"])
+        else:
+            lb = row["lower_bound_subtotals_usd"]
+            per = ">= %s" % lb["per_success_nominal"]
+            monthly = ">= %s / >= %s" % (lb["monthly_nominal"],
+                                         lb["monthly_pessimistic"])
+        lines.append("| %s | %s | %s | %d | %s | %s | %s |" % (
+            row["model"], row["completeness"], row["requests_per_month"],
+            row["nodes_required"], row["utilization_busy_fraction"],
+            per, monthly))
+    lines += [
+        "",
+        "### B: marginal zero-idle sharing bound (sample: 100k req/mo, "
+        "preemptible; every row is a lower-bound subtotal, no decisions)",
+        "",
+        "| Model | Class | GPU p50 | Capture | Fixed share | Per-success | Monthly nom/pess | +Relocation (billed/free) |",
         "|---|---|---:|---:|---:|---:|---:|---|",
     ]
     for row in internal["fully_loaded"]:
-        if (row["requests_per_month"] != 100000
+        if (row["capacity_model"] != "marginal_zero_idle_bound"
+                or row["requests_per_month"] != 100000
                 or row["offer"] != "preemptible"
                 or row["restores_between_captures"] not in (None, 100)
                 or (row["cost_class"] == "cold_switch"
@@ -751,17 +939,20 @@ def render_markdown(f: dict) -> str:
             f" (reuse={row['prep_reuse']})" if row["prep_reuse"] else "")
         comp = row["components_usd"]
         addon = row.get("unmeasured_relocation_addon")
-        addon_cell = ("%s / %s" % (
-            addon["per_success_usd_nominal_with_addon"]["egress_billed"],
-            addon["per_success_usd_nominal_with_addon"]["egress_free"])
+        lb = row["lower_bound_subtotals_usd"]
+        per = ">= %s" % lb["per_success_nominal"]
+        monthly = ">= %s / >= %s" % (lb["monthly_nominal"],
+                                     lb["monthly_pessimistic"])
+        addon_cell = (">= %s / >= %s" % (
+            addon["per_success_lower_bound_nominal_with_addon"]
+            ["egress_billed"],
+            addon["per_success_lower_bound_nominal_with_addon"]
+            ["egress_free"])
             if addon else "n/a")
-        lines.append("| %s | %s | %s | %s | %s | %s | %s / %s | %s |" % (
+        lines.append("| %s | %s | %s | %s | %s | %s | %s | %s |" % (
             row["model"], label, comp["gpu_switch_p50"],
-            comp["capture_amortized"] or "excluded",
-            comp["fixed_sfs_controller_share"],
-            row["per_success_usd_nominal"],
-            row["monthly_usd_nominal"], row["monthly_usd_pessimistic"],
-            addon_cell))
+            comp["capture_amortized"] or "unavailable",
+            comp["fixed_sfs_controller_share"], per, monthly, addon_cell))
     pe = f["sweeps"]["preemption"]
     lines += [
         "",
@@ -862,29 +1053,53 @@ def render_tsv(f: dict) -> str:
     internal = f["backends"]["internal-k8s-snapshot"]
     rows = ["table\tmodel\tclass_or_axis\tkey\tusd\tcomparator_usd\tflag"]
     for r in f["breakeven"]["warm_vs_switch"]:
-        rows.append("warm_vs_switch\t%s\t%s\tbreakeven=%s\t%s\t%s\t-" % (
-            r["model"], r["switch_offer"],
-            r["breakeven_requests_per_month"], r["per_switch_usd_p95"],
-            r["warm_gpu_month_usd_on_demand"]))
+        rows.append("warm_vs_switch_upper_bound\t%s\t%s\t"
+                    "breakeven_upper_bound=%s\t%s\t%s\tno_decision" % (
+                        r["model"], r["switch_offer"],
+                        r["breakeven_requests_per_month_upper_bound"],
+                        r["per_switch_usd_p95"],
+                        r["warm_gpu_month_usd_on_demand"]))
     for r in internal["fully_loaded"]:
         key = "D=%s,offer=%s,reuse=%s,R=%s" % (
             r["requests_per_month"], r["offer"], r["prep_reuse"],
             r["restores_between_captures"])
-        rows.append("fully_loaded\t%s\t%s\t%s\t%s\t%s\t%s" % (
-            r["model"], r["cost_class"], key, r["per_success_usd_nominal"],
-            "%s/%s" % (r["monthly_usd_nominal"],
-                       r["monthly_usd_pessimistic"]),
-            "cheaper_than_warm" if r["cheaper_than_one_warm_gpu"]
-            else "warm_cheaper"))
         addon = r.get("unmeasured_relocation_addon")
+        if r["capacity_model"] == "dedicated_prepared_node":
+            key += ",nodes=%d" % r["nodes_required"]
+            if r["completeness"] == "COMPLETE":
+                rows.append(
+                    "fully_loaded_dedicated\t%s\t%s\t%s\t%s\t%s\t"
+                    "complete" % (
+                        r["model"], r["cost_class"], key,
+                        r["per_success_usd_nominal"],
+                        "%s/%s" % (r["monthly_usd_nominal"],
+                                   r["monthly_usd_pessimistic"])))
+            else:
+                lb = r["lower_bound_subtotals_usd"]
+                rows.append(
+                    "fully_loaded_dedicated_lower_bound\t%s\t%s\t%s\t%s"
+                    "\t%s\tincomplete_lower_bound_no_decision" % (
+                        r["model"], r["cost_class"], key,
+                        lb["per_success_nominal"],
+                        "%s/%s" % (lb["monthly_nominal"],
+                                   lb["monthly_pessimistic"])))
+            continue
+        lb = r["lower_bound_subtotals_usd"]
+        rows.append(
+            "fully_loaded_marginal_lower_bound\t%s\t%s\t%s\t%s\t%s\t"
+            "incomplete_lower_bound_no_decision" % (
+                r["model"], r["cost_class"], key,
+                lb["per_success_nominal"],
+                "%s/%s" % (lb["monthly_nominal"],
+                           lb["monthly_pessimistic"])))
         if addon:
             rows.append(
-                "fully_loaded_relocation_addon\t%s\t%s\t%s\t%s\t%s\t"
-                "unmeasured-scenario" % (
+                "fully_loaded_relocation_addon_lower_bound\t%s\t%s\t%s"
+                "\t%s\t%s\tunmeasured_scenario_no_decision" % (
                     r["model"], r["cost_class"], key,
-                    addon["per_success_usd_nominal_with_addon"]
+                    addon["per_success_lower_bound_nominal_with_addon"]
                     ["egress_billed"],
-                    addon["per_success_usd_nominal_with_addon"]
+                    addon["per_success_lower_bound_nominal_with_addon"]
                     ["egress_free"]))
     for pt in f["sweeps"]["preemption"]["points"]:
         rows.append("preemption_sweep\t%s\tp=%s\tcheapest=%s\t%s\t%s\t%s" % (
