@@ -126,8 +126,8 @@ variable "node_group_strategy" {
   validation {
     condition = var.node_group_strategy == null || alltrue([
       for setting in [
-        var.node_group_strategy.max_surge,
-        var.node_group_strategy.max_unavailable,
+        try(var.node_group_strategy.max_surge, null),
+        try(var.node_group_strategy.max_unavailable, null),
       ] :
       setting == null || !(try(setting.count, null) != null && try(setting.percent, null) != null)
     ])
