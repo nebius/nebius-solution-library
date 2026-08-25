@@ -51,6 +51,11 @@ output "filesystem_types" {
   value       = local.filesystem_types
 }
 
+output "local_nvme_by_platform" {
+  description = "Local NVMe device count and per-device capacity in bytes, grouped by platform."
+  value       = local.local_nvme_by_platform
+}
+
 output "cpu_topology_by_platform" {
   description = "CPU topologies preset by platform."
   value       = local.cpu_topologies_by_platforms
