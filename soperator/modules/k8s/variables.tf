@@ -157,7 +157,9 @@ variable "node_group_workers_v2" {
       policy          = optional(string)
       reservation_ids = optional(list(string))
     }))
-    nvl_instance_group_id  = optional(string)
+    nvl_instance_group_id = optional(string)
+    # Additional labels applied to the mk8s worker node template.
+    extra_labels           = optional(map(string), {})
     max_pods               = optional(number, 32)
     placement_policy_nodes = optional(list(string))
     local_nvme = optional(object({

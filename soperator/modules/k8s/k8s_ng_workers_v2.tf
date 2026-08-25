@@ -151,6 +151,7 @@ resource "nebius_mk8s_v1_node_group" "worker_v2" {
   template = {
     metadata = {
       labels = merge(
+        var.node_group_workers_v2[count.index].extra_labels,
         module.labels.label_jail,
         module.labels.label_nodeset_worker,
         tomap({
