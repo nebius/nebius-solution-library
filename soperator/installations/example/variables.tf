@@ -806,7 +806,7 @@ variable "slurm_nodeset_workers" {
       when_scaled  = string
     }))
     local_nvme = optional(object({
-      enabled         = optional(bool, false)
+      enabled         = optional(bool)
       mount_path      = optional(string, "/mnt/local-nvme")
       filesystem_type = optional(string, "ext4")
     }), {})
@@ -958,7 +958,7 @@ variable "slurm_nodeset_workers" {
   validation {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
-      !try(worker.local_nvme.enabled, false) || (
+      !coalesce(worker.local_nvme.enabled, contains(local.local_nvme_default_enabled_platforms, worker.resource.platform)) || (
         startswith(try(worker.local_nvme.mount_path, "/mnt/local-nvme"), "/")
       )
     ])
@@ -1285,12 +1285,12 @@ resource "terraform_data" "check_local_nvme" {
     precondition {
       condition = (
         !anytrue([
-          for worker in var.slurm_nodeset_workers :
-          try(worker.local_nvme.enabled, false)
+          for worker in local.slurm_nodeset_workers_with_defaults :
+          worker.local_nvme.enabled
         ]) ||
         alltrue([
-          for worker in var.slurm_nodeset_workers :
-          !try(worker.local_nvme.enabled, false) || (
+          for worker in local.slurm_nodeset_workers_with_defaults :
+          !worker.local_nvme.enabled || (
             try(module.resources.local_nvme_supported_by_region_platform_preset[var.region][worker.resource.platform][worker.resource.preset], false)
           )
         ])

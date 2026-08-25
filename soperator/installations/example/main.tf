@@ -45,6 +45,9 @@ locals {
   nvl_instance_group_size     = 18
   default_nodes_per_nodegroup = 100
   gb300_enabled               = anytrue([for nodeset in var.slurm_nodeset_workers : nodeset.resource.platform == local.gb300_platform])
+  local_nvme_default_enabled_platforms = toset([
+    local.gb300_platform,
+  ])
 
   # GB300 keeps slurm_nodeset_login.size non-zero in tfvars so Soperator still
   # creates login pods, while Terraform skips the separate unused CPU login node
@@ -52,6 +55,19 @@ locals {
   login_node_group = merge(var.slurm_nodeset_login, {
     node_group_enabled = local.gb300_enabled ? false : var.slurm_nodeset_login.node_group_enabled
   })
+
+  # Apply platform-specific local NVMe defaults while preserving explicit
+  # true/false overrides from slurm_nodeset_workers.
+  slurm_nodeset_workers_with_defaults = [
+    for nodeset in var.slurm_nodeset_workers : merge(nodeset, {
+      local_nvme = merge(nodeset.local_nvme, {
+        enabled = coalesce(
+          nodeset.local_nvme.enabled,
+          contains(local.local_nvme_default_enabled_platforms, nodeset.resource.platform),
+        )
+      })
+    })
+  ]
 
   # Normalize user-facing worker nodesets into the internal nodeset list used
   # by both mk8s node groups and Slurm NodeSets. GB300 is rack-addressed, so one
@@ -63,7 +79,7 @@ locals {
   # zero-replica rack nodeset so Terraform can downscale the generated node
   # groups while the Slurm NodeSet remains addressable.
   slurm_nodeset_workers = flatten([
-    for nodeset in var.slurm_nodeset_workers :
+    for nodeset in local.slurm_nodeset_workers_with_defaults :
     nodeset.resource.platform == local.gb300_platform ? [
       for rack in range(max(1, ceil(nodeset.size / local.gb300_nodes_per_nodegroup))) : merge(nodeset, {
         name = format(
@@ -133,11 +149,7 @@ locals {
       extra_labels           = nodeset.extra_labels
       placement_policy_nodes = nodeset.placement_policy_nodes
       max_pods               = nodeset.max_pods
-      local_nvme = {
-        enabled         = try(nodeset.local_nvme.enabled, false)
-        mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
-        filesystem_type = try(nodeset.local_nvme.filesystem_type, "ext4")
-      }
+      local_nvme             = nodeset.local_nvme
     }
   ]])
 
@@ -619,11 +631,7 @@ module "slurm" {
     ephemeral_nodes                          = nodeset.ephemeral_nodes
     persistent_volume_claim_retention_policy = nodeset.persistent_volume_claim_retention_policy
     initial_number_ephemeral_nodes           = nodeset.initial_number_ephemeral_nodes
-    local_nvme = {
-      enabled         = try(nodeset.local_nvme.enabled, false)
-      mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
-      filesystem_type = try(nodeset.local_nvme.filesystem_type, "ext4")
-    }
+    local_nvme                               = nodeset.local_nvme
     node_local_jail_submounts = [for sm in nodeset.node_local_jail_submounts : {
       name               = sm.name
       mount_path         = sm.mount_path
