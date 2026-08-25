@@ -794,6 +794,8 @@ variable "slurm_nodeset_workers" {
       enabled = optional(bool, false)
       type    = optional(string, "GB300")
     }), {})
+    # Additional labels applied to every mk8s node in this worker nodeset.
+    extra_labels                   = optional(map(string), {})
     placement_policy_nodes         = optional(list(string))
     features                       = optional(list(string))
     create_partition               = optional(bool)

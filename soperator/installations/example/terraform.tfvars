@@ -341,6 +341,9 @@ slurm_nodeset_workers = [
     #   enabled = true
     #   type    = "GB300"
     # }
+    # Additional labels applied to every mk8s node in this worker nodeset.
+    # Built-in Soperator labels take precedence when keys overlap.
+    # extra_labels = {}
     # Optional mk8s placement policy node list for this nodeset. Non-production only.
     # placement_policy_nodes = []
     # Provide a list of strings to set Slurm Node features

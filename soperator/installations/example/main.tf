@@ -130,6 +130,7 @@ locals {
       preemptible            = nodeset.preemptible
       reservation_policy     = nodeset.reservation_policy
       nvlink                 = nodeset.nvlink
+      extra_labels           = nodeset.extra_labels
       placement_policy_nodes = nodeset.placement_policy_nodes
       max_pods               = nodeset.max_pods
       local_nvme = {
