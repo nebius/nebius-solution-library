@@ -210,6 +210,22 @@ resource "terraform_data" "check_worker_nodesets" {
       condition     = length(var.node_count.worker) == length(var.node_capacity.worker)
       error_message = "Worker node set resources must accord to the worker node count."
     }
+
+    precondition {
+      condition = alltrue([
+        for i, nodeset in var.worker_nodesets :
+        !try(nodeset.local_nvme.enabled, false) ||
+        try(nodeset.local_nvme.size_limit_gibibytes, null) == null ||
+        try(
+          nodeset.local_nvme.size_limit_gibibytes
+          + local.resources.munge.ephemeral_storage
+          + (var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
+          <= var.node_capacity.worker[i].ephemeral_storage_gibibytes,
+          false,
+        )
+      ])
+      error_message = "Local NVMe size_limit_gibibytes plus worker sidecar reservations cannot exceed the usable ephemeral-storage capacity."
+    }
   }
 }
 
@@ -895,9 +911,9 @@ variable "worker_nodesets" {
       when_scaled  = string
     }))
     local_nvme = optional(object({
-      enabled         = optional(bool, false)
-      mount_path      = optional(string, "/mnt/local-nvme")
-      filesystem_type = optional(string, "ext4")
+      enabled              = optional(bool, false)
+      mount_path           = optional(string, "/mnt/local-nvme")
+      size_limit_gibibytes = optional(number)
     }), {})
     node_local_image_storage = object({
       enabled = bool

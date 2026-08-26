@@ -97,6 +97,24 @@ locals {
     })]
   ])
 
+  local_nvme_capacity_gibibytes_by_platform = {
+    for platform, local_nvme in module.resources.local_nvme_by_platform :
+    platform => provider::units::to_gib(local_nvme.device_count * local_nvme.device_capacity_bytes)
+  }
+
+  # Kubelet ephemeral storage uses the local NVMe array when enabled and the
+  # boot disk otherwise. Reserve the same headroom in either case.
+  worker_ephemeral_storage_capacity_gibibytes = [
+    for worker in local.slurm_nodeset_workers : floor(
+      (worker.local_nvme.enabled
+        ? local.local_nvme_capacity_gibibytes_by_platform[worker.resource.platform]
+        : worker.boot_disk.size_gibibytes
+      ) * module.resources.k8s_ephemeral_storage_coefficient
+      -module.resources.k8s_ephemeral_storage_reserve.gibibytes
+      -(worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
+    )
+  ]
+
   backups_enabled = (var.backups_enabled == "force_enable" ||
   (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
 
@@ -502,12 +520,8 @@ module "slurm" {
         memory_gibibytes = floor(local.resources.workers[i].memory_gibibytes) - (
           worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.memory_gibibytes : 0
         )
-        ephemeral_storage_gibibytes = floor(
-          worker.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
-          -module.resources.k8s_ephemeral_storage_reserve.gibibytes
-          -(worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
-        )
-        gpus = local.resources.workers[i].gpus
+        ephemeral_storage_gibibytes = local.worker_ephemeral_storage_capacity_gibibytes[i]
+        gpus                        = local.resources.workers[i].gpus
       }
     ]
     login = local.gb300_enabled ? var.gb300_login_pod_worker_reserve : {
