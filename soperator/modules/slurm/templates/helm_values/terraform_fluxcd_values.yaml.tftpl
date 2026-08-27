@@ -395,6 +395,7 @@ resources:
                 - name: ${nodeset.name}
                   nodeSetRefs:
                     - "${nodeset.name}"
+                  topologyRef: "${nodeset.partition_topology}"
                   config: "Default=NO PriorityTier=2 MaxTime=INFINITE State=UP OverSubscribe=YES"
                 %{~ endif ~}
                 %{~ endfor ~}
@@ -408,6 +409,7 @@ resources:
                     - "${nodeset_ref}"
                   %{~ endfor ~}
                   %{~ endif ~}
+                  topologyRef: "${partition.topology}"
                   config: "${partition.config}"
                 %{~ endfor ~}
 
@@ -572,14 +574,28 @@ resources:
             populateJail:
               k8sNodeFilterName: ${slurm_cluster.populate_jail.k8s_node_filter_name}
 
-            %{~ if slurm_cluster.topology.block_size != null ~}
-            slurmConfig:
-              topologyPlugin: "topology/block"
-              topologyParam: "BlockAsNodeRank"
-
             topology:
-              blockSize: ${slurm_cluster.topology.block_size}
-            %{~ endif ~}
+              topologies:
+                %{~ for topology in slurm_cluster.topology.topologies ~}
+                - name: "${topology.name}"
+                  %{~ if topology.cluster_default != null ~}
+                  clusterDefault: ${topology.cluster_default}
+                  %{~ endif ~}
+                  topo:
+                    type: "${topology.type}"
+                    %{~ if topology.type == "block" && length(topology.block_sizes) > 0 ~}
+                    blockSizes:
+                      %{~ for block_size in topology.block_sizes ~}
+                      - ${block_size}
+                      %{~ endfor ~}
+                    %{~ endif ~}
+                  %{~ if length(topology.nodeset_refs) > 0 ~}
+                  nodeSetRefs:
+                    %{~ for nodeset_ref in topology.nodeset_refs ~}
+                    - "${nodeset_ref}"
+                    %{~ endfor ~}
+                  %{~ endif ~}
+                %{~ endfor ~}
 
             periodicChecks:
               ncclBenchmark:
@@ -934,6 +950,8 @@ resources:
           version: ${operator_version}
           values:
             manager:
+              env:
+                enableMultiTopology: "true"
               resources:
                 requests:
                   memory: ${resources.soperator_main_controller.requests.memory}Gi

@@ -162,6 +162,11 @@ slurm_operator_stable = true
 
 # Each partition must have either is_all = true (includes all generated Slurm NodeSets)
 # or slurm_nodeset_refs (list of specific generated Slurm NodeSet names).
+# topology is required. Terraform creates these topologies based on NodeSets:
+# - flat: always;
+# - tree-ib: when at least one GPU NodeSet is configured;
+# - block-nvl72: when at least one GB300 NodeSet is configured.
+# Custom topologies can only be supplied through Helm values overrides.
 # For GB300, one Terraform worker nodeset can produce multiple Slurm NodeSets:
 # Terraform worker `primtrain` with size 36 generates `primtrain-rack0`
 # and `primtrain-rack1`.
@@ -174,14 +179,24 @@ slurm_nodesets_partitions = [
     is_all = true
     # e.g. ["worker"] or ["primtrain-rack0"]; set is_all = false when using refs.
     slurm_nodeset_refs = []
+    topology           = "flat"
     config             = "Default=YES PriorityTier=10 PreemptMode=OFF MaxTime=INFINITE State=UP OverSubscribe=YES"
   },
   {
     name               = "hidden"
     is_all             = true
     slurm_nodeset_refs = []
+    topology           = "flat"
     config             = "Default=NO PriorityTier=10 PreemptMode=OFF Hidden=YES MaxTime=INFINITE State=UP OverSubscribe=YES"
   },
+  # Example of selecting the InfiniBand topology for a GPU partition:
+  # {
+  #   name               = "gpu"
+  #   is_all             = false
+  #   slurm_nodeset_refs = ["worker"]
+  #   topology           = "tree-ib"
+  #   config             = "Default=NO State=UP"
+  # },
 ]
 
 # Type of the Slurm partition config. Could be either `default` or `custom`.

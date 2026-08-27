@@ -159,7 +159,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
       }
 
       topology = {
-        block_size = var.topology.plugin == "topology/block" ? var.topology.block_size : null
+        topologies = var.topology.topologies
       }
 
       use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
