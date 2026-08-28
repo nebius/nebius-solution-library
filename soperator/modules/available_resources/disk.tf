@@ -9,15 +9,4 @@ locals {
     ext4 = "ext4"
     xfs  = "xfs"
   }
-
-  local_nvme_by_platform = tomap({
-    (local.platforms.gpu-b300-sxm) = {
-      device_count          = 6
-      device_capacity_bytes = 3840000000000
-    }
-    (local.platforms.gpu-gb300) = {
-      device_count          = 8
-      device_capacity_bytes = 3840000000000
-    }
-  })
 }

@@ -911,9 +911,11 @@ variable "worker_nodesets" {
       when_scaled  = string
     }))
     local_nvme = optional(object({
-      enabled              = optional(bool, false)
-      mount_path           = optional(string, "/mnt/local-nvme")
-      size_limit_gibibytes = optional(number)
+      enabled                   = optional(bool, false)
+      device_count              = optional(number)
+      device_capacity_gigabytes = optional(number)
+      mount_path                = optional(string, "/mnt/local-nvme")
+      size_limit_gibibytes      = optional(number)
     }), {})
     node_local_image_storage = object({
       enabled = bool

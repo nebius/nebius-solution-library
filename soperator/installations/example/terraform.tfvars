@@ -370,11 +370,15 @@ slurm_nodeset_workers = [
     # For example, enabled = false disables local NVMe on gpu-gb300.
     # mount_path: path where the local-NVMe-backed emptyDir is mounted inside the jail.
     # size_limit_gibibytes: optional emptyDir and slurmd ephemeral-storage limit;
-    # when omitted, it is derived from the platform's total local NVMe capacity.
+    # when omitted, it is derived from the configured total local NVMe capacity.
     # local_nvme = {
-    #   enabled              = true
-    #   mount_path           = "/mnt/local-nvme"
-    #   size_limit_gibibytes = 20000
+    #   enabled = true
+    #   # Local NVMe layout may differ by region, platform, preset, and fabric.
+    #   # Check the actual hardware availability before setting these values.
+    #   device_count              = 8
+    #   device_capacity_gigabytes = 3840 # Decimal GB per device (1 GB = 10^9 bytes).
+    #   mount_path                = "/mnt/local-nvme"
+    #   size_limit_gibibytes      = 20000
     # }
     # Additional (Optional) node-local Network-SSD disks to be mounted inside jail on worker nodes.
     # It will create compute disks with provided spec for each node via CSI.

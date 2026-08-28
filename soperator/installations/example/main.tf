@@ -97,17 +97,24 @@ locals {
     })]
   ])
 
-  local_nvme_capacity_gibibytes_by_platform = {
-    for platform, local_nvme in module.resources.local_nvme_by_platform :
-    platform => provider::units::to_gib(local_nvme.device_count * local_nvme.device_capacity_bytes)
-  }
+  # NVMe device capacities are supplied in decimal GB because that is how the
+  # hardware is advertised. Convert the per-nodeset total to GiB before using
+  # it in Kubernetes resource quantities.
+  local_nvme_capacity_gibibytes = [
+    for worker in local.slurm_nodeset_workers : provider::units::to_gib(
+      coalesce(worker.local_nvme.device_count, 0) *
+      coalesce(worker.local_nvme.device_capacity_gigabytes, 0) *
+      1000000000
+    )
+  ]
 
   # Kubelet ephemeral storage uses the local NVMe array when enabled and the
-  # boot disk otherwise. Reserve the same headroom in either case.
+  # boot disk otherwise. Apply the Kubernetes capacity coefficient and fixed
+  # reserve in either case, plus the login-pod reserve on GB300 workers.
   worker_ephemeral_storage_capacity_gibibytes = [
-    for worker in local.slurm_nodeset_workers : floor(
+    for i, worker in local.slurm_nodeset_workers : floor(
       (worker.local_nvme.enabled
-        ? local.local_nvme_capacity_gibibytes_by_platform[worker.resource.platform]
+        ? local.local_nvme_capacity_gibibytes[i]
         : worker.boot_disk.size_gibibytes
       ) * module.resources.k8s_ephemeral_storage_coefficient
       -module.resources.k8s_ephemeral_storage_reserve.gibibytes

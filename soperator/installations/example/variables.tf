@@ -806,9 +806,11 @@ variable "slurm_nodeset_workers" {
       when_scaled  = string
     }))
     local_nvme = optional(object({
-      enabled              = optional(bool)
-      mount_path           = optional(string, "/mnt/local-nvme")
-      size_limit_gibibytes = optional(number)
+      enabled                   = optional(bool)
+      device_count              = optional(number)
+      device_capacity_gigabytes = optional(number)
+      mount_path                = optional(string, "/mnt/local-nvme")
+      size_limit_gibibytes      = optional(number)
     }), {})
     max_pods = optional(number, 32)
     node_local_image_disk = object({
@@ -963,6 +965,18 @@ variable "slurm_nodeset_workers" {
       )
     ])
     error_message = "When worker local NVMe is enabled, mount_path must be an absolute path."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      !coalesce(worker.local_nvme.enabled, contains(local.local_nvme_default_enabled_platforms, worker.resource.platform)) || (
+        try(worker.local_nvme.device_count > 0, false) &&
+        try(worker.local_nvme.device_count == floor(worker.local_nvme.device_count), false) &&
+        try(worker.local_nvme.device_capacity_gigabytes > 0, false)
+      )
+    ])
+    error_message = "When worker local NVMe is enabled, device_count must be a positive integer and device_capacity_gigabytes must be greater than 0."
   }
 
   validation {
@@ -1306,7 +1320,7 @@ resource "terraform_data" "check_local_nvme" {
           true,
         )
       ])
-      error_message = "Local NVMe size_limit_gibibytes cannot exceed the usable ephemeral-storage capacity of its worker platform."
+      error_message = "Local NVMe size_limit_gibibytes cannot exceed the usable ephemeral-storage capacity calculated from the configured devices."
     }
   }
 }
