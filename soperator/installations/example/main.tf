@@ -108,6 +108,10 @@ locals {
     )
   ]
 
+  # Reserve an additional five percentage points of raw capacity for the ext4
+  # filesystem used by MK8s-managed local NVMe storage.
+  local_nvme_ephemeral_storage_reserve_coefficient = 0.05
+
   # Kubelet ephemeral storage uses the local NVMe array when enabled and the
   # boot disk otherwise. Apply the Kubernetes capacity coefficient and fixed
   # reserve in either case, plus the login-pod reserve on GB300 workers.
@@ -117,6 +121,7 @@ locals {
         ? local.local_nvme_capacity_gibibytes[i]
         : worker.boot_disk.size_gibibytes
       ) * module.resources.k8s_ephemeral_storage_coefficient
+      -(worker.local_nvme.enabled ? local.local_nvme_capacity_gibibytes[i] * local.local_nvme_ephemeral_storage_reserve_coefficient : 0)
       -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       -(worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
     )
