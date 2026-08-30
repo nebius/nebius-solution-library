@@ -36,7 +36,10 @@ DURATION="${1:-3600}"
 export SOAK_DURATION_SECONDS="$DURATION"
 NODE_COUNT="${2:-2}"
 NAMESPACE="gpu-soak"
-SLOTS=8
+# GPUs per node (nproc_per_node + GPU resource request). Auto-detected from node
+# allocatable below once the GPU node type is known — hardcoding 8 breaks any
+# non-8-GPU node (e.g. GB200/GB300). Set SLOTS=<n> to override detection.
+SLOTS="${SLOTS:-}"
 HBM_FILL_FRACTION="${HBM_FILL_FRACTION:-0.75}"
 # Overtemp threshold °C. Exported so monitor.sh and the report agree on one value
 # (raise for Blackwell, e.g. MAX_TEMP=90). Default matches monitor.sh's default.
@@ -51,6 +54,11 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPORT_FILE="soak-report-$(date +%Y%m%d_%H%M%S).txt"
 START_TIME=$(date -u)
 START_EPOCH=$(date +%s)
+# Anchor the monitor log to this script's dir (not the caller's CWD) so the report
+# generator below reliably finds it no matter where the script was invoked from.
+# Also export the run start so monitor.sh can scope its dmesg XID check to this run.
+export SOAK_LOG_DIR="$SCRIPT_DIR"
+export SOAK_START_EPOCH="$START_EPOCH"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -80,7 +88,6 @@ trap '[ "$REACHED_END" = "1" ] || cleanup_ns' EXIT
 echo "=== GPU Soak Test (PyTorchJob / torch.distributed) ==="
 echo "Duration:     ${DURATION}s ($(( DURATION / 60 )) minutes)"
 echo "GPU nodes:    $NODE_COUNT"
-echo "GPUs/node:    $SLOTS"
 echo "HBM fill:     $(awk "BEGIN{printf \"%.0f\", ${HBM_FILL_FRACTION}*100}")%"
 echo "Max temp:     ${MAX_TEMP}°C"
 echo "Image:        $SOAK_IMAGE"
@@ -135,6 +142,19 @@ if [ "$AVAILABLE_GPU_NODES" -lt "$NODE_COUNT" ]; then
 fi
 
 echo "GPU nodes available: $AVAILABLE_GPU_NODES ✓"
+
+# Detect GPUs per node from a Ready node's allocatable, so the job is sized to the
+# actual hardware (GB200/GB300 are not 8-GPU). Falls back to 8 only if unreadable.
+FIRST_GPU_NODE=$(kubectl get nodes -l "node.kubernetes.io/instance-type=${GPU_INSTANCE_TYPE}" \
+  --no-headers 2>/dev/null | awk '$2=="Ready"{print $1; exit}')
+DETECTED_SLOTS=$(kubectl get node "$FIRST_GPU_NODE" \
+  -o jsonpath='{.status.allocatable.nvidia\.com/gpu}' 2>/dev/null)
+SLOTS="${SLOTS:-$DETECTED_SLOTS}"
+if ! [ "${SLOTS:-0}" -gt 0 ] 2>/dev/null; then
+  echo -e "${YELLOW}WARNING: could not detect GPUs/node from allocatable — defaulting to 8${NC}"
+  SLOTS=8
+fi
+echo "GPUs/node:           $SLOTS"
 echo ""
 
 # Single-tenant by design: a soak saturates every GPU on the cluster, so only one
@@ -243,7 +263,10 @@ MONITOR_EXIT=$?
 set -e
 
 # Collect final master logs (rank 0 prints the summary + BUSBW lines)
-MASTER_LOGS=$(kubectl logs --request-timeout=30s -n "$NAMESPACE" -l training.kubeflow.org/replica-type=master 2>/dev/null | tail -40)
+# --tail=-1 is required with -l: `kubectl logs` defaults to only the last 10 lines
+# per pod when a label selector is used (unlike naming a pod, which returns all),
+# which would silently drop the summary/BUSBW lines we parse below.
+MASTER_LOGS=$(kubectl logs --request-timeout=30s --tail=-1 -n "$NAMESPACE" -l training.kubeflow.org/replica-type=master 2>/dev/null | tail -40)
 
 END_TIME=$(date -u)
 END_EPOCH=$(date +%s)

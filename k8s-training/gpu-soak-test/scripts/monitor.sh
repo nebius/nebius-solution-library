@@ -23,7 +23,10 @@ MIN_UTIL="${MIN_UTIL:-80}"
 # joins) can't make the monitor poll forever. Defaults to the soak duration plus
 # a generous buffer for image pull, startup, and the end-of-run XID check.
 SOAK_MONITOR_TIMEOUT="${SOAK_MONITOR_TIMEOUT:-$(( ${SOAK_DURATION_SECONDS:-3600} + 1200 ))}"
-LOG_FILE="soak-monitor-$(date +%Y%m%d_%H%M%S).log"
+# Write the monitor log to the dir the parent runner reads from (SOAK_LOG_DIR),
+# not the caller's CWD — otherwise the report generator can't find it when the
+# runner is invoked from a different directory. Falls back to CWD if run standalone.
+LOG_FILE="${SOAK_LOG_DIR:-.}/soak-monitor-$(date +%Y%m%d_%H%M%S).log"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -42,11 +45,17 @@ warn() { echo -e "${YELLOW}[WARN]${NC} $*" | tee -a "$LOG_FILE"; }
 # for it to complete, read the count from its logs, then delete it.
 # Echoes an integer count, or "__FAILED__" if it could not run.
 check_xid_on_node() {
-  local node="$1" dbg="" waited=0 phase="" out=""
+  local node="$1" dbg="" waited=0 phase="" out="" since_epoch="${SOAK_START_EPOCH:-0}"
+  # Scope the XID scan to this run. dmesg holds the entire kernel ring buffer, so an
+  # unscoped grep would count XID lines from before the soak even started (a prior
+  # workload, a days-old event) against this run. --since restricts it to the run
+  # window; the date is computed on the host so it matches dmesg's host-local clock.
+  # (Requires a modern util-linux dmesg — standard on Nebius Ubuntu hosts. If the
+  # run start is unknown, since_epoch=0 falls back to the whole buffer.)
   # `grep -c` exits 1 when the count is zero, which would mark the debugger pod
   # Failed on a HEALTHY node — so append `|| true` to keep the container clean.
   kubectl debug node/"$node" --image=ubuntu --profile=sysadmin -q \
-    -- chroot /host sh -c 'dmesg 2>/dev/null | grep -ic xid || true' >/dev/null 2>&1 || true
+    -- chroot /host sh -c "dmesg --since \"\$(date -d @${since_epoch} '+%Y-%m-%d %H:%M:%S' 2>/dev/null)\" 2>/dev/null | grep -ic xid || true" >/dev/null 2>&1 || true
   while [ "$waited" -lt 30 ]; do
     dbg=$(kubectl get pods --request-timeout=30s -n default -o name 2>/dev/null | grep "node-debugger-${node}" | tail -1)
     [ -n "$dbg" ] && break
@@ -106,7 +115,7 @@ echo ""
 log "Waiting for workload steady state (first [soak] iter line)..."
 WARMUP=0
 while [ "$WARMUP" -lt 180 ]; do
-  if kubectl logs --request-timeout=30s -n "$NAMESPACE" -l "$MASTER_SELECTOR" 2>/dev/null | grep -qE '\[soak\] iter [0-9]+'; then
+  if kubectl logs --request-timeout=30s --tail=-1 -n "$NAMESPACE" -l "$MASTER_SELECTOR" 2>/dev/null | grep -qE '\[soak\] iter [0-9]+'; then
     log "Workload is running steadily — starting utilization monitoring"
     break
   fi
@@ -274,7 +283,9 @@ else
   pass "No XID errors"
 fi
 
-if [ "$LOW_UTIL_COUNT" -gt "5" ]; then
+# Threshold of 10 matches the README pass criteria and run-soak-test.sh's report
+# (they previously disagreed — monitor used 5). "Fewer than 10 low-util events" passes.
+if [ "$LOW_UTIL_COUNT" -ge "10" ]; then
   warn "$LOW_UTIL_COUNT low utilization events — GPUs may have throttled"
 else
   pass "GPU utilization stayed healthy throughout"
