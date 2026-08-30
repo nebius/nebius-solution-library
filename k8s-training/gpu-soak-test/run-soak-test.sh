@@ -51,6 +51,11 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPORT_FILE="soak-report-$(date +%Y%m%d_%H%M%S).txt"
 START_TIME=$(date -u)
 START_EPOCH=$(date +%s)
+# Anchor the monitor log to this script's dir (not the caller's CWD) so the report
+# generator reliably finds it regardless of invocation directory. Also export the
+# run start so monitor.sh can scope its dmesg XID check to this run.
+export SOAK_LOG_DIR="$SCRIPT_DIR"
+export SOAK_START_EPOCH="$START_EPOCH"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -333,7 +338,10 @@ MONITOR_EXIT=$?
 set -e
 
 # Collect final master logs (rank 0 prints the summary + BUSBW lines)
-MASTER_LOGS=$(kubectl logs --request-timeout=30s -n "$NAMESPACE" -l training.kubeflow.org/replica-type=master 2>/dev/null | tail -40)
+# --tail=-1 is required with -l: `kubectl logs` defaults to only the last 10 lines
+# per pod when a label selector is used (unlike naming a pod, which returns all),
+# which would silently drop the summary/BUSBW lines we parse below.
+MASTER_LOGS=$(kubectl logs --request-timeout=30s --tail=-1 -n "$NAMESPACE" -l training.kubeflow.org/replica-type=master 2>/dev/null | tail -40)
 
 END_TIME=$(date -u)
 END_EPOCH=$(date +%s)
