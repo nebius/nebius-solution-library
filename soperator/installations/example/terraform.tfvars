@@ -606,7 +606,10 @@ dcgm_job_mapping_enabled = true
 # ---
 # kube_state_metrics_max_scrape_size = 268435456
 
-# Optional OpenTelemetry sending_queue batch overrides for logs, jail logs, events, and nccl-profiles collectors.
+# Optional OpenTelemetry sending_queue batch overrides for the in-cluster (VictoriaLogs/VictoriaMetrics)
+# exporters of the logs, jail logs, events, and nccl-profiles collectors.
+# The public Cloud Logging exporter is not affected: its batching is managed by the chart
+# (observability.opentelemetry.publicBatch) and capped at 1000 records per request.
 # By default, chart values are used.
 # ---
 # opentelemetry_batch = {

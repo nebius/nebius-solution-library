@@ -495,7 +495,7 @@ variable "kube_state_metrics_max_scrape_size" {
 }
 
 variable "opentelemetry_batch" {
-  description = "OpenTelemetry sending_queue batch overrides for logs, jail logs, events, and nccl-profiles collectors. Leave null to use chart defaults."
+  description = "OpenTelemetry sending_queue batch overrides for the in-cluster (VictoriaLogs/VictoriaMetrics) exporters of the logs, jail logs, events, and nccl-profiles collectors. Does not affect the public Cloud Logging exporter, whose batching is managed by the chart (publicBatch, capped at 1000 records per request). Leave null to use chart defaults."
   type = object({
     timeout             = optional(string)
     send_batch_size     = optional(number)
