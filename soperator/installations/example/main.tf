@@ -619,6 +619,8 @@ module "slurm" {
     ephemeral_nodes                          = nodeset.ephemeral_nodes
     persistent_volume_claim_retention_policy = nodeset.persistent_volume_claim_retention_policy
     initial_number_ephemeral_nodes           = nodeset.initial_number_ephemeral_nodes
+    host_network                             = nodeset.host_network
+    dns_policy                               = nodeset.dns_policy
     local_nvme = {
       enabled         = try(nodeset.local_nvme.enabled, false)
       mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")

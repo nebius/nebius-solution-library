@@ -361,6 +361,9 @@ slurm_nodeset_workers = [
       when_deleted = "Delete"
       when_scaled  = "Delete"
     }
+    # Optional pod network settings for Slurm worker nodeset pods.
+    # host_network = true
+    # dns_policy   = "ClusterFirstWithHostNet"
     # Maximum number of pods per worker node. Default is 32 to reduce per-node Pod CIDR usage.
     max_pods = 32
     # Optional local NVMe passthrough for this nodeset only.

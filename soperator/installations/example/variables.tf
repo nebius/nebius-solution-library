@@ -805,6 +805,8 @@ variable "slurm_nodeset_workers" {
       when_deleted = string
       when_scaled  = string
     }))
+    host_network = optional(bool, false)
+    dns_policy   = optional(string)
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")
@@ -1054,6 +1056,14 @@ variable "slurm_nodeset_workers" {
       )
     ])
     error_message = "When worker persistent_volume_claim_retention_policy is set, when_deleted and when_scaled must be `Retain` or `Delete`."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      worker.dns_policy == null || contains(["ClusterFirstWithHostNet", "ClusterFirst", "Default", "None"], worker.dns_policy)
+    ])
+    error_message = "Worker nodeset dns_policy must be one of `ClusterFirstWithHostNet`, `ClusterFirst`, `Default`, or `None`."
   }
 }
 
