@@ -50,25 +50,39 @@ variable "slurm_partition_raw_config" {
 }
 
 variable "topology" {
-  description = "Slurm topology configuration. topology/tree leaves the chart default unset; topology/block renders BlockAsNodeRank and requires block_size."
+  description = "Named Slurm topologies rendered in topology.yaml."
   type = object({
-    plugin     = string
-    block_size = optional(number)
+    topologies = list(object({
+      name            = string
+      cluster_default = optional(bool)
+      type            = string
+      block_sizes     = optional(list(number), [])
+      nodeset_refs    = optional(list(string), [])
+    }))
   })
   default = {
-    plugin = "topology/tree"
+    topologies = [{
+      name            = "flat"
+      cluster_default = true
+      type            = "flat"
+      block_sizes     = []
+      nodeset_refs    = ["ALL"]
+    }]
   }
   nullable = false
 
   validation {
-    condition     = contains(["topology/tree", "topology/block"], var.topology.plugin)
-    error_message = "topology.plugin must be one of 'topology/tree' or 'topology/block'."
+    condition = alltrue([
+      for topology in var.topology.topologies : contains(["flat", "tree", "block"], topology.type)
+    ])
+    error_message = "topology.topologies[].type must be one of 'flat', 'tree', or 'block'."
   }
 
   validation {
-    condition     = var.topology.plugin == "topology/block" ? try(var.topology.block_size > 0, false) : true
-    error_message = "topology.block_size must be a positive number when topology.plugin is 'topology/block'."
+    condition     = length(distinct([for topology in var.topology.topologies : topology.name])) == length(var.topology.topologies)
+    error_message = "topology.topologies[].name values must be unique."
   }
+
 }
 
 # endregion PartitionConfiguration
@@ -904,6 +918,7 @@ variable "worker_nodesets" {
     gres_name                      = optional(string)
     gres_config                    = list(string)
     create_partition               = bool
+    partition_topology             = string
     ephemeral_nodes                = optional(bool, false)
     initial_number_ephemeral_nodes = optional(number, 0)
     persistent_volume_claim_retention_policy = optional(object({
@@ -949,6 +964,14 @@ variable "worker_nodesets" {
     ])
     error_message = "When worker persistent_volume_claim_retention_policy is set, when_deleted and when_scaled must be `Retain` or `Delete`."
   }
+
+  validation {
+    condition = alltrue([
+      for worker in var.worker_nodesets :
+      contains([for topology in var.topology.topologies : topology.name], worker.partition_topology)
+    ])
+    error_message = "Each worker partition_topology must reference a topology created by Terraform."
+  }
 }
 
 variable "slurm_nodesets_partitions" {
@@ -961,6 +984,7 @@ variable "slurm_nodesets_partitions" {
     name         = string
     is_all       = optional(bool, false)
     nodeset_refs = optional(list(string), [])
+    topology     = string
     config       = string
   }))
   default = []
@@ -1002,6 +1026,14 @@ variable "slurm_nodesets_partitions" {
       length(distinct([for p in var.slurm_nodesets_partitions : p.name])) == length(var.slurm_nodesets_partitions)
     )
     error_message = "All partition names in slurm_nodesets_partitions must be unique."
+  }
+
+  validation {
+    condition = alltrue([
+      for partition in var.slurm_nodesets_partitions :
+      contains([for topology in var.topology.topologies : topology.name], partition.topology)
+    ])
+    error_message = "Each partition topology must reference a topology created by Terraform."
   }
 }
 

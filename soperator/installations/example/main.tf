@@ -44,6 +44,7 @@ locals {
   gb300_nodes_per_nodegroup   = 18
   nvl_instance_group_size     = 18
   default_nodes_per_nodegroup = 100
+  gpu_enabled                 = anytrue([for nodeset in var.slurm_nodeset_workers : startswith(nodeset.resource.platform, "gpu-")])
   gb300_enabled               = anytrue([for nodeset in var.slurm_nodeset_workers : nodeset.resource.platform == local.gb300_platform])
   local_nvme_default_enabled_platforms = toset([
     local.gb300_platform,
@@ -126,6 +127,35 @@ locals {
       -(worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
     )
   ]
+
+  # Terraform creates at most one topology of each supported type. Additional
+  # custom topologies can only be supplied through Helm values overrides.
+  slurm_named_topologies = concat(
+    [{
+      name            = "flat"
+      cluster_default = true
+      type            = "flat"
+      block_sizes     = []
+      nodeset_refs    = ["ALL"]
+    }],
+    local.gpu_enabled ? [{
+      name            = "tree-ib"
+      cluster_default = false
+      type            = "tree"
+      block_sizes     = []
+      nodeset_refs    = ["ALL"]
+    }] : [],
+    local.gb300_enabled ? [{
+      name            = "block-nvl72"
+      cluster_default = false
+      type            = "block"
+      block_sizes     = [coalesce(var.slurm_topology_block_size, local.gb300_nodes_per_nodegroup)]
+      nodeset_refs = [
+        for nodeset in local.slurm_nodeset_workers : nodeset.name
+        if nodeset.resource.platform == local.gb300_platform
+      ]
+    }] : [],
+  )
 
   backups_enabled = (var.backups_enabled == "force_enable" ||
   (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
@@ -634,6 +664,7 @@ module "slurm" {
     name         = partition.name
     is_all       = partition.is_all
     nodeset_refs = partition.slurm_nodeset_refs
+    topology     = partition.topology
     config       = partition.config
   }]
   worker_nodesets = [for nodeset in local.slurm_nodeset_workers : {
@@ -654,6 +685,7 @@ module "slurm" {
     gres_name                                = lookup(module.resources.gres_name_by_platform, nodeset.resource.platform, null)
     gres_config                              = lookup(module.resources.gres_config_by_platform, nodeset.resource.platform, null)
     create_partition                         = nodeset.create_partition != null ? nodeset.create_partition : false
+    partition_topology                       = nodeset.resource.platform == local.gb300_platform ? "block-nvl72" : startswith(nodeset.resource.platform, "gpu-") ? "tree-ib" : "flat"
     ephemeral_nodes                          = nodeset.ephemeral_nodes
     persistent_volume_claim_retention_policy = nodeset.persistent_volume_claim_retention_policy
     initial_number_ephemeral_nodes           = nodeset.initial_number_ephemeral_nodes
@@ -680,8 +712,7 @@ module "slurm" {
   }]
 
   topology = {
-    plugin     = local.gb300_enabled ? "topology/block" : "topology/tree"
-    block_size = local.gb300_enabled ? try(var.slurm_topology_block_size, local.gb300_nodes_per_nodegroup) : null
+    topologies = local.slurm_named_topologies
   }
 
   login_allocation_id              = module.k8s.static_ip_allocation_id

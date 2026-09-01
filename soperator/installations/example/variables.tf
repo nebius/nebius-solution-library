@@ -544,11 +544,13 @@ variable "slurm_nodesets_partitions" {
     A GB300 worker nodeset expands into rack-scoped Slurm NodeSets named <name>-rack<rack>.
     Users must not remove the "hidden" partition.
     Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
+    topology is required. Available topologies: flat is always present, tree-ib is present for GPU NodeSets, and block-nvl72 is present for GB300 NodeSets.
   EOT
   type = list(object({
     name               = string
     is_all             = optional(bool, false)
     slurm_nodeset_refs = optional(list(string), [])
+    topology           = string
     config             = string
   }))
   default = []
@@ -591,6 +593,21 @@ variable "slurm_nodesets_partitions" {
     )) == 0
 
     error_message = "All slurm_nodesets_partitions[].slurm_nodeset_refs must reference generated Slurm NodeSet names. GB300 worker nodesets generate <name>-rack<rack> names; other worker nodesets use <name>."
+  }
+
+  validation {
+    condition = alltrue([
+      for partition in var.slurm_nodesets_partitions :
+      contains(
+        concat(
+          ["flat"],
+          anytrue([for worker in var.slurm_nodeset_workers : startswith(worker.resource.platform, "gpu-")]) ? ["tree-ib"] : [],
+          anytrue([for worker in var.slurm_nodeset_workers : worker.resource.platform == "gpu-gb300"]) ? ["block-nvl72"] : [],
+        ),
+        partition.topology,
+      )
+    ])
+    error_message = "Each partition topology must be one of the topologies created for the configured NodeSets: flat; tree-ib for GPU NodeSets; block-nvl72 for GB300 NodeSets."
   }
 }
 
