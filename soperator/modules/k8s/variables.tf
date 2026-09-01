@@ -163,9 +163,11 @@ variable "node_group_workers_v2" {
     max_pods               = optional(number, 32)
     placement_policy_nodes = optional(list(string))
     local_nvme = optional(object({
-      enabled         = optional(bool, false)
-      mount_path      = optional(string, "/mnt/local-nvme")
-      filesystem_type = optional(string, "ext4")
+      enabled                   = optional(bool, false)
+      device_count              = optional(number)
+      device_capacity_gigabytes = optional(number)
+      mount_path                = optional(string, "/mnt/local-nvme")
+      size_limit_gibibytes      = optional(number)
     }), {})
     nodeset_index = number
     subset_index  = number

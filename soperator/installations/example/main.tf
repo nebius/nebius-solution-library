@@ -45,6 +45,9 @@ locals {
   nvl_instance_group_size     = 18
   default_nodes_per_nodegroup = 100
   gb300_enabled               = anytrue([for nodeset in var.slurm_nodeset_workers : nodeset.resource.platform == local.gb300_platform])
+  local_nvme_default_enabled_platforms = toset([
+    local.gb300_platform,
+  ])
 
   # GB300 keeps slurm_nodeset_login.size non-zero in tfvars so Soperator still
   # creates login pods, while Terraform skips the separate unused CPU login node
@@ -52,6 +55,19 @@ locals {
   login_node_group = merge(var.slurm_nodeset_login, {
     node_group_enabled = local.gb300_enabled ? false : var.slurm_nodeset_login.node_group_enabled
   })
+
+  # Apply platform-specific local NVMe defaults while preserving explicit
+  # true/false overrides from slurm_nodeset_workers.
+  slurm_nodeset_workers_with_defaults = [
+    for nodeset in var.slurm_nodeset_workers : merge(nodeset, {
+      local_nvme = merge(nodeset.local_nvme, {
+        enabled = coalesce(
+          nodeset.local_nvme.enabled,
+          contains(local.local_nvme_default_enabled_platforms, nodeset.resource.platform),
+        )
+      })
+    })
+  ]
 
   # Normalize user-facing worker nodesets into the internal nodeset list used
   # by both mk8s node groups and Slurm NodeSets. GB300 is rack-addressed, so one
@@ -63,7 +79,7 @@ locals {
   # zero-replica rack nodeset so Terraform can downscale the generated node
   # groups while the Slurm NodeSet remains addressable.
   slurm_nodeset_workers = flatten([
-    for nodeset in var.slurm_nodeset_workers :
+    for nodeset in local.slurm_nodeset_workers_with_defaults :
     nodeset.resource.platform == local.gb300_platform ? [
       for rack in range(max(1, ceil(nodeset.size / local.gb300_nodes_per_nodegroup))) : merge(nodeset, {
         name = format(
@@ -80,6 +96,36 @@ locals {
         rack_number         = null
     })]
   ])
+
+  # NVMe device capacities are supplied in decimal GB because that is how the
+  # hardware is advertised. Convert the per-nodeset total to GiB before using
+  # it in Kubernetes resource quantities.
+  local_nvme_capacity_gibibytes = [
+    for worker in local.slurm_nodeset_workers : provider::units::to_gib(
+      coalesce(worker.local_nvme.device_count, 0) *
+      coalesce(worker.local_nvme.device_capacity_gigabytes, 0) *
+      1000000000
+    )
+  ]
+
+  # Reserve an additional five percentage points of raw capacity for the ext4
+  # filesystem used by MK8s-managed local NVMe storage.
+  local_nvme_ephemeral_storage_reserve_coefficient = 0.05
+
+  # Kubelet ephemeral storage uses the local NVMe array when enabled and the
+  # boot disk otherwise. Apply the Kubernetes capacity coefficient and fixed
+  # reserve in either case, plus the login-pod reserve on GB300 workers.
+  worker_ephemeral_storage_capacity_gibibytes = [
+    for i, worker in local.slurm_nodeset_workers : floor(
+      (worker.local_nvme.enabled
+        ? local.local_nvme_capacity_gibibytes[i]
+        : worker.boot_disk.size_gibibytes
+      ) * module.resources.k8s_ephemeral_storage_coefficient
+      -(worker.local_nvme.enabled ? local.local_nvme_capacity_gibibytes[i] * local.local_nvme_ephemeral_storage_reserve_coefficient : 0)
+      -module.resources.k8s_ephemeral_storage_reserve.gibibytes
+      -(worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
+    )
+  ]
 
   backups_enabled = (var.backups_enabled == "force_enable" ||
   (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
@@ -133,11 +179,7 @@ locals {
       extra_labels           = nodeset.extra_labels
       placement_policy_nodes = nodeset.placement_policy_nodes
       max_pods               = nodeset.max_pods
-      local_nvme = {
-        enabled         = try(nodeset.local_nvme.enabled, false)
-        mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
-        filesystem_type = try(nodeset.local_nvme.filesystem_type, "ext4")
-      }
+      local_nvme             = nodeset.local_nvme
     }
   ]])
 
@@ -490,12 +532,8 @@ module "slurm" {
         memory_gibibytes = floor(local.resources.workers[i].memory_gibibytes) - (
           worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.memory_gibibytes : 0
         )
-        ephemeral_storage_gibibytes = floor(
-          worker.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
-          -module.resources.k8s_ephemeral_storage_reserve.gibibytes
-          -(worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
-        )
-        gpus = local.resources.workers[i].gpus
+        ephemeral_storage_gibibytes = local.worker_ephemeral_storage_capacity_gibibytes[i]
+        gpus                        = local.resources.workers[i].gpus
       }
     ]
     login = local.gb300_enabled ? var.gb300_login_pod_worker_reserve : {
@@ -619,11 +657,7 @@ module "slurm" {
     ephemeral_nodes                          = nodeset.ephemeral_nodes
     persistent_volume_claim_retention_policy = nodeset.persistent_volume_claim_retention_policy
     initial_number_ephemeral_nodes           = nodeset.initial_number_ephemeral_nodes
-    local_nvme = {
-      enabled         = try(nodeset.local_nvme.enabled, false)
-      mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
-      filesystem_type = try(nodeset.local_nvme.filesystem_type, "ext4")
-    }
+    local_nvme                               = nodeset.local_nvme
     node_local_jail_submounts = [for sm in nodeset.node_local_jail_submounts : {
       name               = sm.name
       mount_path         = sm.mount_path

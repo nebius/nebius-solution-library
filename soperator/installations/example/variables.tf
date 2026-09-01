@@ -806,9 +806,11 @@ variable "slurm_nodeset_workers" {
       when_scaled  = string
     }))
     local_nvme = optional(object({
-      enabled         = optional(bool, false)
-      mount_path      = optional(string, "/mnt/local-nvme")
-      filesystem_type = optional(string, "ext4")
+      enabled                   = optional(bool)
+      device_count              = optional(number)
+      device_capacity_gigabytes = optional(number)
+      mount_path                = optional(string, "/mnt/local-nvme")
+      size_limit_gibibytes      = optional(number)
     }), {})
     max_pods = optional(number, 32)
     node_local_image_disk = object({
@@ -958,7 +960,7 @@ variable "slurm_nodeset_workers" {
   validation {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
-      !try(worker.local_nvme.enabled, false) || (
+      !coalesce(worker.local_nvme.enabled, contains(local.local_nvme_default_enabled_platforms, worker.resource.platform)) || (
         startswith(try(worker.local_nvme.mount_path, "/mnt/local-nvme"), "/")
       )
     ])
@@ -968,9 +970,21 @@ variable "slurm_nodeset_workers" {
   validation {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
-      contains(["ext4", "xfs"], try(worker.local_nvme.filesystem_type, "ext4"))
+      !coalesce(worker.local_nvme.enabled, contains(local.local_nvme_default_enabled_platforms, worker.resource.platform)) || (
+        try(worker.local_nvme.device_count > 0, false) &&
+        try(worker.local_nvme.device_count == floor(worker.local_nvme.device_count), false) &&
+        try(worker.local_nvme.device_capacity_gigabytes > 0, false)
+      )
     ])
-    error_message = "When worker local NVMe filesystem_type is set, it must be `ext4` or `xfs`."
+    error_message = "When worker local NVMe is enabled, device_count must be a positive integer and device_capacity_gigabytes must be greater than 0."
+  }
+
+  validation {
+    condition = alltrue([
+      for worker in var.slurm_nodeset_workers :
+      try(worker.local_nvme.size_limit_gibibytes > 0, true)
+    ])
+    error_message = "When worker local NVMe size_limit_gibibytes is set, it must be greater than 0."
   }
 
   validation {
@@ -1285,17 +1299,28 @@ resource "terraform_data" "check_local_nvme" {
     precondition {
       condition = (
         !anytrue([
-          for worker in var.slurm_nodeset_workers :
-          try(worker.local_nvme.enabled, false)
+          for worker in local.slurm_nodeset_workers_with_defaults :
+          worker.local_nvme.enabled
         ]) ||
         alltrue([
-          for worker in var.slurm_nodeset_workers :
-          !try(worker.local_nvme.enabled, false) || (
+          for worker in local.slurm_nodeset_workers_with_defaults :
+          !worker.local_nvme.enabled || (
             try(module.resources.local_nvme_supported_by_region_platform_preset[var.region][worker.resource.platform][worker.resource.preset], false)
           )
         ])
       )
       error_message = "Local NVMe is enabled, but one or more worker nodesets use unsupported region/platform/preset."
+    }
+
+    precondition {
+      condition = alltrue([
+        for i, worker in local.slurm_nodeset_workers :
+        !worker.local_nvme.enabled || try(
+          worker.local_nvme.size_limit_gibibytes <= local.worker_ephemeral_storage_capacity_gibibytes[i],
+          true,
+        )
+      ])
+      error_message = "Local NVMe size_limit_gibibytes cannot exceed the usable ephemeral-storage capacity calculated from the configured devices."
     }
   }
 }

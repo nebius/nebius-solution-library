@@ -325,10 +325,13 @@ locals {
     }
   }
 
-  # Allow-list: "${region}/${platform}/${preset}"
+  # Allow-list patterns: "${region}/${platform}/${preset}".
+  # Use "*" in any section to match every value for that section.
   local_nvme_supported_true_region_platform_preset = toset([
     # gpu-b300-sxm
     "${local.regions.uk-south1}/${local.platforms.gpu-b300-sxm}/${local.presets.p-8g-192c-2768g}",
+    # gpu-gb300 in all regions and presets
+    "*/${local.platforms.gpu-gb300}/*",
   ])
 
   presets_by_platforms_raw = tomap({
@@ -392,7 +395,13 @@ locals {
   local_nvme_supported_by_region_platform_preset = tomap({
     for region in [for _, region in local.regions : region] : region => tomap({
       for platform, presets in local.presets_by_platforms_raw : platform => tomap({
-        for preset, _ in presets : preset => contains(local.local_nvme_supported_true_region_platform_preset, "${region}/${platform}/${preset}")
+        for preset, _ in presets : preset => anytrue([
+          for candidate in setproduct(
+            [region, "*"],
+            [platform, "*"],
+            [preset, "*"],
+          ) : contains(local.local_nvme_supported_true_region_platform_preset, join("/", candidate))
+        ])
       })
     })
   })

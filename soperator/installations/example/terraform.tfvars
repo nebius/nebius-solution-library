@@ -363,13 +363,22 @@ slurm_nodeset_workers = [
     }
     # Maximum number of pods per worker node. Default is 32 to reduce per-node Pod CIDR usage.
     max_pods = 32
-    # Optional local NVMe passthrough for this nodeset only.
-    # Uses local instance disks, creates a RAID0 array and mounts it on the host via cloud-init.
-    # mount_path: path used for both host RAID mount and jail submount.
+    # Local NVMe-backed kubelet ephemeral storage for this nodeset only.
+    # MK8s combines the local instance disks and uses them for kubelet and containerd storage.
+    # Defaults to enabled for gpu-gb300 and disabled for other platforms.
+    # Set enabled explicitly to override the platform default.
+    # For example, enabled = false disables local NVMe on gpu-gb300.
+    # mount_path: path where the local-NVMe-backed emptyDir is mounted inside the jail.
+    # size_limit_gibibytes: optional emptyDir and slurmd ephemeral-storage limit;
+    # when omitted, it is derived from the configured total local NVMe capacity.
     # local_nvme = {
-    #   enabled         = true
-    #   mount_path      = "/mnt/local-nvme"
-    #   filesystem_type = "ext4"
+    #   enabled = true
+    #   # Local NVMe layout may differ by region, platform, preset, and fabric.
+    #   # Check the actual hardware availability before setting these values.
+    #   device_count              = 8
+    #   device_capacity_gigabytes = 3840 # Decimal GB per device (1 GB = 10^9 bytes).
+    #   mount_path                = "/mnt/local-nvme"
+    #   size_limit_gibibytes      = 20000
     # }
     # Additional (Optional) node-local Network-SSD disks to be mounted inside jail on worker nodes.
     # It will create compute disks with provided spec for each node via CSI.

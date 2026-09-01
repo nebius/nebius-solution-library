@@ -11,7 +11,7 @@ resource "local_file" "flux_release_rendered_nodesets" {
       nccl_network_vars = try(local.worker_nccl_network_vars[nodeset.name], null)
       slurm_node_extra  = local.slurm_node_extra_by_nodeset[nodeset.name]
     })]
-    resources = [for res in var.node_capacity.worker : {
+    resources = [for i, res in var.node_capacity.worker : {
       cpu_cores = floor(
         res.cpu_cores
         -local.resources.munge.cpu
@@ -22,10 +22,15 @@ resource "local_file" "flux_release_rendered_nodesets" {
         -local.resources.munge.memory
         -(var.sssd_enabled ? local.resources.sssd.memory : 0)
       ) - local.resources.kruise_daemon.memory
-      ephemeral_storage_gibibytes = floor(
-        res.ephemeral_storage_gibibytes
-        -local.resources.munge.ephemeral_storage
-        -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
+      ephemeral_storage_gibibytes = (
+        try(var.worker_nodesets[i].local_nvme.enabled, false) &&
+        try(var.worker_nodesets[i].local_nvme.size_limit_gibibytes, null) != null
+        ? var.worker_nodesets[i].local_nvme.size_limit_gibibytes
+        : floor(
+          res.ephemeral_storage_gibibytes
+          -local.resources.munge.ephemeral_storage
+          -(var.sssd_enabled ? local.resources.sssd.ephemeral_storage : 0)
+        )
       )
       gpus          = res.gpus
       shared_memory = var.shared_memory_size_gibibytes
