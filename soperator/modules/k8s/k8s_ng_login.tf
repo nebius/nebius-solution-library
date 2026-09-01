@@ -17,7 +17,14 @@ resource "nebius_mk8s_v1_node_group" "login" {
     module.labels.label_jail,
   )
 
-  fixed_node_count = var.node_group_login.size
+  autoscaling = try(var.node_group_login.autoscaling.enabled, false) ? {
+    min_node_count = var.node_group_login.autoscaling.min_size
+    max_node_count = var.node_group_login.autoscaling.max_size
+  } : null
+
+  # Autoscaling owns the live node count, so the configured fixed size must not
+  # compete with the managed Kubernetes cluster autoscaler.
+  fixed_node_count = try(var.node_group_login.autoscaling.enabled, false) ? null : var.node_group_login.size
 
   template = {
     metadata = {
