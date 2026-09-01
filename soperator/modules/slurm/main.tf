@@ -21,11 +21,11 @@ resource "terraform_data" "wait_for_soperator_activechecks_hr" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
+    command = var.active_checks_enabled ? templatefile("${path.module}/scripts/wait_for_flux_hr.sh.tmpl", {
       k8s_cluster_context = var.k8s_cluster_context
       helmrelease_name    = "flux-system-soperator-fluxcd-soperator-activechecks"
       timeout_minutes     = 240
-    })
+    }) : "true"
   }
 }
 
@@ -58,6 +58,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
   namespace  = var.flux_namespace
 
   values = [templatefile("${path.module}/templates/helm_values/terraform_fluxcd_values.yaml.tftpl", {
+    active_checks_enabled                     = var.active_checks_enabled
     soperator_active_checks_override_block    = indent(14, local.soperator_activechecks_override_yaml)
     soperator_active_checks_on_worker_nodes   = local.active_checks_on_worker_nodes
     soperator_active_checks_gpus_per_node     = local.soperator_active_checks_gpus_per_node

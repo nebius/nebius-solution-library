@@ -878,6 +878,12 @@ variable "use_preinstalled_gpu_drivers" {
 }
 
 # region ActiveChecks
+variable "active_checks_enabled" {
+  type        = bool
+  description = "Whether to deploy Soperator ActiveChecks."
+  default     = true
+}
+
 variable "active_checks_scope" {
   type        = string
   description = "Scope of active health-checks. Defines what checks should run after the cluster is provisioned."

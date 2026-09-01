@@ -879,7 +879,7 @@ resources:
                   %{~ endif ~}
 
         soperatorActiveChecks:
-          enabled: true
+          enabled: ${active_checks_enabled}
           interval: 5m
           timeout: 120m
           version: ${operator_version}

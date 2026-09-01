@@ -1737,6 +1737,12 @@ variable "maintenance_ignore_node_groups" {
 # endregion Slurm
 
 # region ActiveChecks
+variable "active_checks_enabled" {
+  type        = bool
+  description = "Whether to deploy Soperator ActiveChecks."
+  default     = true
+}
+
 variable "active_checks_scope" {
   type        = string
   description = "Scope of active checks. Defines what active checks should be checked during cluster bootstrap."

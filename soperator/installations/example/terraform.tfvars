@@ -536,6 +536,9 @@ slurm_exporter_enabled = true
 #----------------------------------------------------------------------------------------------------------------------#
 # region ActiveChecks
 
+# Whether to deploy Soperator ActiveChecks.
+active_checks_enabled = true
+
 # Scope of active health-checks. Defines what checks should run after the cluster is provisioned.
 # Available scopes:
 # - "prod_acceptance" - run all available health-checks. Takes additional 30 minutes (H100) - 2 hours (B300).
