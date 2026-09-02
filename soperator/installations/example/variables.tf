@@ -1072,7 +1072,7 @@ variable "slurm_nodeset_workers" {
 }
 
 variable "slurm_nodeset_login" {
-  description = "Configuration of Slurm Login node set. Login pod autoscaling is disabled by default. When enabled, its replica bounds override size for both login pods and the dedicated mk8s node group."
+  description = "Configuration of Slurm Login node set. Login pod autoscaling is disabled by default. When enabled, its replica bounds override size for login pods."
   type = object({
     size               = number
     node_group_enabled = optional(bool, true)

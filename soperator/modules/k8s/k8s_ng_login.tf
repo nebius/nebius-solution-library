@@ -17,14 +17,17 @@ resource "nebius_mk8s_v1_node_group" "login" {
     module.labels.label_jail,
   )
 
-  autoscaling = try(var.node_group_login.autoscaling.enabled, false) ? {
-    min_node_count = var.node_group_login.autoscaling.min_size
-    max_node_count = var.node_group_login.autoscaling.max_size
-  } : null
+  # These are broad infrastructure guardrails, not desired node counts: one
+  # node keeps baseline login capacity available, while 100 caps runaway VM
+  # provisioning. Actual demand comes from node_group_login.size when the HPA
+  # is disabled and node_group_login.autoscaling min/max when it is enabled;
+  # the Kubernetes autoscaler adds nodes only for unschedulable login pods.
+  autoscaling = {
+    min_node_count = 1
+    max_node_count = 100
+  }
 
-  # Autoscaling owns the live node count, so the configured fixed size must not
-  # compete with the managed Kubernetes cluster autoscaler.
-  fixed_node_count = try(var.node_group_login.autoscaling.enabled, false) ? null : var.node_group_login.size
+  fixed_node_count = null
 
   template = {
     metadata = {
