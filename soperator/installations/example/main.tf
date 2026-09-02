@@ -458,8 +458,8 @@ module "nvidia_operator_gpu" {
   cluster_id = module.k8s.cluster_id
   parent_id  = data.nebius_iam_v1_project.this.id
 
-  enable_dcgm_exporter        = var.dcgm_job_mapping_enabled == false && var.telemetry_enabled
-  enable_dcgm_service_monitor = var.dcgm_job_mapping_enabled == false && var.telemetry_enabled
+  enable_dcgm_exporter        = var.dcgm_exporter_enabled == false && var.telemetry_enabled
+  enable_dcgm_service_monitor = var.dcgm_exporter_enabled == false && var.telemetry_enabled
   relabel_dcgm_exporter       = var.telemetry_enabled
 
 }
@@ -629,6 +629,7 @@ module "slurm" {
   rest_enabled                    = var.slurm_rest_enabled
   accounting_enabled              = var.accounting_enabled
   telemetry_enabled               = var.telemetry_enabled
+  dcgm_exporter_enabled           = var.dcgm_exporter_enabled
   public_o11y_enabled             = var.public_o11y_enabled
   soperator_notifier              = var.soperator_notifier
   nccl_inspector_profiling        = var.nccl_inspector_profiling

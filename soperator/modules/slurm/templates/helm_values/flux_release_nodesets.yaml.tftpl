@@ -202,15 +202,6 @@ nodesets:
                     defaultMode: 500
               %{~ endif ~}
 
-              %{~ if gpu.dcgm_job_mapping.enabled ~}
-              - name: hpc-jobs-dir
-                mountPath: ${gpu.dcgm_job_mapping.dir}
-                volumeSource:
-                  hostPath:
-                    path: ${gpu.dcgm_job_mapping.dir}
-                    type: DirectoryOrCreate
-              %{~ endif ~}
-
               %{~ if gpu.use_preinstalled_drivers~}
               - name: nvidia-driver-root
                 mountPath: /run/nvidia/driver

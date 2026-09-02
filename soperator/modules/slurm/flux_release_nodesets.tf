@@ -50,10 +50,6 @@ resource "local_file" "flux_release_rendered_nodesets" {
 
     gpu = {
       use_preinstalled_drivers = var.use_preinstalled_gpu_drivers
-      dcgm_job_mapping = {
-        enabled = var.dcgm_job_mapping_enabled
-        dir     = var.dcgm_job_map_dir
-      }
     }
 
     munge = {

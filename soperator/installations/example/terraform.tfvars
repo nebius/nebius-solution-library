@@ -611,10 +611,11 @@ maintenance_ignore_node_groups = ["controller", "nfs"]
 # ---
 telemetry_enabled = true
 
-# Whether to enable dcgm job mapping (adds hpc_job label on DCGM_ metrics).
+# Whether to install soperator's dcgm-exporter chart.
+# When false, the NVIDIA gpu-operator's stock dcgm-exporter is used instead.
 # By default, true.
 # ---
-dcgm_job_mapping_enabled = true
+dcgm_exporter_enabled = true
 
 # Optional kube-state-metrics scrape size override in bytes.
 # By default, it is raised automatically for large clusters.
