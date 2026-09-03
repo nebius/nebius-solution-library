@@ -1482,8 +1482,8 @@ variable "allow_o11y_region_migration" {
   default     = false
 }
 
-variable "dcgm_job_mapping_enabled" {
-  description = "Whether to enable HPC job mapping by installing a separate dcgm-exporter"
+variable "dcgm_exporter_enabled" {
+  description = "Whether to install soperator's dcgm-exporter chart. When false, the NVIDIA gpu-operator's stock dcgm-exporter is used instead."
   type        = bool
   default     = true
 }

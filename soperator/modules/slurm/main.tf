@@ -78,7 +78,7 @@ resource "helm_release" "soperator_fluxcd_cm" {
     soperator_image_repo     = local.image.repository
     soperator_image_repo_nfs = var.nfs_in_k8s.use_stable_repo ? local.image.repository_stable : local.image.repository
 
-    dcgm_job_mapping_enabled       = var.dcgm_job_mapping_enabled
+    dcgm_exporter_enabled          = var.dcgm_exporter_enabled
     enroot_direct_squashfs_enabled = var.enroot_direct_squashfs_enabled
     # Cluster-wide toggle for the [program:dockerd] block in the shared jail
     # supervisord config (customConfigmaps), which is one configmap for the whole
@@ -111,7 +111,6 @@ resource "helm_release" "soperator_fluxcd_cm" {
     vmstack_version                           = var.vmstack_version
     vmstack_crds_version                      = var.vmstack_crds_version
     vmlogs_version                            = var.vmlogs_version
-    dcgm_job_map_dir                          = var.dcgm_job_map_dir
     notifier                                  = var.soperator_notifier
     nccl_inspector_profiling                  = var.nccl_inspector_profiling
 

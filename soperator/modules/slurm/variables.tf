@@ -490,8 +490,8 @@ variable "telemetry_enabled" {
   default     = true
 }
 
-variable "dcgm_job_mapping_enabled" {
-  description = "Whether to enable HPC job mapping by installing a separate dcgm-exporter"
+variable "dcgm_exporter_enabled" {
+  description = "Whether to install soperator's dcgm-exporter chart. When false, the NVIDIA gpu-operator's stock dcgm-exporter is used instead."
   type        = bool
   default     = true
 }
@@ -599,12 +599,6 @@ variable "opentelemetry_delete_jail_logs_min_age" {
     condition     = can(regex("^[0-9]+(s|m|h)$", var.opentelemetry_delete_jail_logs_min_age))
     error_message = "Must be a Go-style duration with a single unit, e.g. 90s, 30m, or 4h."
   }
-}
-
-variable "dcgm_job_map_dir" {
-  description = "Directory where HPC job mapping files are located"
-  type        = string
-  default     = "/var/run/nebius/slurm"
 }
 
 # endregion Telemetry

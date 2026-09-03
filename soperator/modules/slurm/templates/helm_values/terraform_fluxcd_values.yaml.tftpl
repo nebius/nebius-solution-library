@@ -263,10 +263,9 @@ resources:
                   memory: ${resources.vm_logs.memory}
 
           dcgmExporter:
-            enabled: ${dcgm_job_mapping_enabled}
+            enabled: ${dcgm_exporter_enabled}
             version: ${operator_version}
             values:
-              hpcJobMapDir: ${dcgm_job_map_dir}
               # waits for nvidia toolkit when not running on preinstalled gpu drivers, so opposite of use_preinstalled_gpu_drivers
               validateToolkit: ${slurm_cluster.use_preinstalled_gpu_drivers ? "false" : "true"}
               resources:
@@ -562,13 +561,6 @@ resources:
                   path: /
                   type: ""
                 name: nvidia-driver-root
-              %{~ endif ~}
-
-              %{~ if dcgm_job_mapping_enabled ~}
-              - name: hpc-jobs-dir
-                hostPath:
-                  path: ${dcgm_job_map_dir}
-                  type: DirectoryOrCreate
               %{~ endif ~}
 
             populateJail:
