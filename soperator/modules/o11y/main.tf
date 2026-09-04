@@ -105,13 +105,13 @@ TOKEN=$(echo $output | jq -r .token)
 export NEBIUS_IAM_TOKEN=$NEBIUS_IAM_TOKEN_BKP
 
 echo "Applying namespace..."
-cat <<EOF | "${path.module}/../scripts/kubectl_apply.sh" --context "${self.triggers_replace.k8s_cluster_context}"
+cat <<EOF | "${path.module}/../scripts/kubectl_apply_with_retries.sh" --context "${self.triggers_replace.k8s_cluster_context}"
 apiVersion: v1
 kind: Namespace
 metadata:
   name: ${self.triggers_replace.o11y_secret_logs_namespace}
 EOF
-cat <<EOF | "${path.module}/../scripts/kubectl_apply.sh" --context "${self.triggers_replace.k8s_cluster_context}"
+cat <<EOF | "${path.module}/../scripts/kubectl_apply_with_retries.sh" --context "${self.triggers_replace.k8s_cluster_context}"
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -124,7 +124,7 @@ kubectl --context "${self.triggers_replace.k8s_cluster_context}" create secret g
   --from-literal=accessToken="$TOKEN" \
   --dry-run=client \
   -o yaml \
-  | "${path.module}/../scripts/kubectl_apply.sh" --server-side --context "${self.triggers_replace.k8s_cluster_context}"
+  | "${path.module}/../scripts/kubectl_apply_with_retries.sh" --server-side --context "${self.triggers_replace.k8s_cluster_context}"
 EOT
   }
 
@@ -193,7 +193,7 @@ O11YWORKSPACE_ID=$(echo "$PROJECT_ID" | sed 's#project-#o11yworkspace-#')
 export NEBIUS_IAM_TOKEN=$NEBIUS_IAM_TOKEN_BKP
 
 echo "Applying opentelemetry controller configmap with $PROJECT_ID..."
-cat <<EOF | "${path.module}/../scripts/kubectl_apply.sh" --context "${self.triggers_replace.k8s_cluster_context}"
+cat <<EOF | "${path.module}/../scripts/kubectl_apply_with_retries.sh" --context "${self.triggers_replace.k8s_cluster_context}"
 apiVersion: v1
 kind: ConfigMap
 metadata:
