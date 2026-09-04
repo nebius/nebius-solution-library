@@ -1,15 +1,18 @@
 resource "terraform_data" "flux_namespace" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    # `kubectl create namespace` fails with AlreadyExists on re-runs, making it
-    # non-retryable. Piping through `--dry-run=client -o yaml | kubectl apply`
-    # produces an idempotent apply that succeeds whether the namespace exists or not.
-    # The pipe requires a shell, so the inner command is passed as a bash -c string.
-    command = join(" ", [
-      "${path.module}/../scripts/retry.sh", "--", "bash", "-c",
-      "'kubectl create namespace flux-system --context ${var.k8s_cluster_context} --dry-run=client -o yaml",
-      "| kubectl apply --context ${var.k8s_cluster_context} -f -'",
-    ])
+    # Render the namespace declaratively so an apply can be retried after an
+    # ambiguous API response without failing with AlreadyExists.
+    command = <<-EOT
+      set -eo pipefail
+
+      kubectl create namespace flux-system \
+        --context "${var.k8s_cluster_context}" \
+        --dry-run=client \
+        -o yaml \
+        | "${path.module}/../scripts/kubectl_apply_with_retries.sh" \
+          --context "${var.k8s_cluster_context}"
+    EOT
   }
   triggers_replace = {
     first_run = "true"
