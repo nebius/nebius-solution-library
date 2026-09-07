@@ -1,12 +1,36 @@
 locals {
   resources = {
-    system     = module.resources.by_platform[var.slurm_nodeset_system.resource.platform][var.slurm_nodeset_system.resource.preset]
-    controller = module.resources.by_platform[var.slurm_nodeset_controller.resource.platform][var.slurm_nodeset_controller.resource.preset]
+    system     = module.resources.by_platform[local.slurm_nodeset_system.resource.platform][local.slurm_nodeset_system.resource.preset]
+    controller = module.resources.by_platform[local.slurm_nodeset_controller.resource.platform][local.slurm_nodeset_controller.resource.preset]
     workers    = [for worker in local.slurm_nodeset_workers : module.resources.by_platform[worker.resource.platform][worker.resource.preset]]
     login      = module.resources.by_platform[var.slurm_nodeset_login.resource.platform][var.slurm_nodeset_login.resource.preset]
-    accounting = var.slurm_nodeset_accounting != null ? module.resources.by_platform[var.slurm_nodeset_accounting.resource.platform][var.slurm_nodeset_accounting.resource.preset] : null
-    nfs        = var.slurm_nodeset_nfs != null ? module.resources.by_platform[var.slurm_nodeset_nfs.resource.platform][var.slurm_nodeset_nfs.resource.preset] : null
+    accounting = local.slurm_nodeset_accounting != null ? module.resources.by_platform[local.slurm_nodeset_accounting.resource.platform][local.slurm_nodeset_accounting.resource.preset] : null
+    nfs        = local.slurm_nodeset_nfs != null ? module.resources.by_platform[local.slurm_nodeset_nfs.resource.platform][local.slurm_nodeset_nfs.resource.preset] : null
   }
+
+  # Resolve CPU nodeset presets from the sizing tier when a preset is not set explicitly,
+  # so a smaller cluster gets smaller controller/accounting/nfs/ system nodes instead of the fixed big-cluster presets.
+  # An explicitly set preset always wins.
+  slurm_nodeset_system = merge(var.slurm_nodeset_system, {
+    resource = merge(var.slurm_nodeset_system.resource, {
+      preset = coalesce(var.slurm_nodeset_system.resource.preset, module.sizing.node_preset.system)
+    })
+  })
+  slurm_nodeset_controller = merge(var.slurm_nodeset_controller, {
+    resource = merge(var.slurm_nodeset_controller.resource, {
+      preset = coalesce(var.slurm_nodeset_controller.resource.preset, module.sizing.node_preset.controller)
+    })
+  })
+  slurm_nodeset_accounting = var.slurm_nodeset_accounting == null ? null : merge(var.slurm_nodeset_accounting, {
+    resource = merge(var.slurm_nodeset_accounting.resource, {
+      preset = coalesce(var.slurm_nodeset_accounting.resource.preset, module.sizing.node_preset.accounting)
+    })
+  })
+  slurm_nodeset_nfs = var.slurm_nodeset_nfs == null ? null : merge(var.slurm_nodeset_nfs, {
+    resource = merge(var.slurm_nodeset_nfs.resource, {
+      preset = coalesce(var.slurm_nodeset_nfs.resource.preset, module.sizing.node_preset.nfs)
+    })
+  })
 
   # keep in sync with helm chart
   # https://github.com/nebius/soperator/blob/main/helm/storageclasses/templates/storageclasses.yaml#L4
@@ -20,7 +44,11 @@ locals {
   gb300_nodes_per_nodegroup   = 18
   nvl_instance_group_size     = 18
   default_nodes_per_nodegroup = 100
+  gpu_enabled                 = anytrue([for nodeset in var.slurm_nodeset_workers : startswith(nodeset.resource.platform, "gpu-")])
   gb300_enabled               = anytrue([for nodeset in var.slurm_nodeset_workers : nodeset.resource.platform == local.gb300_platform])
+  local_nvme_default_enabled_platforms = toset([
+    local.gb300_platform,
+  ])
 
   # GB300 keeps slurm_nodeset_login.size non-zero in tfvars so Soperator still
   # creates login pods, while Terraform skips the separate unused CPU login node
@@ -28,6 +56,19 @@ locals {
   login_node_group = merge(var.slurm_nodeset_login, {
     node_group_enabled = local.gb300_enabled ? false : var.slurm_nodeset_login.node_group_enabled
   })
+
+  # Apply platform-specific local NVMe defaults while preserving explicit
+  # true/false overrides from slurm_nodeset_workers.
+  slurm_nodeset_workers_with_defaults = [
+    for nodeset in var.slurm_nodeset_workers : merge(nodeset, {
+      local_nvme = merge(nodeset.local_nvme, {
+        enabled = coalesce(
+          nodeset.local_nvme.enabled,
+          contains(local.local_nvme_default_enabled_platforms, nodeset.resource.platform),
+        )
+      })
+    })
+  ]
 
   # Normalize user-facing worker nodesets into the internal nodeset list used
   # by both mk8s node groups and Slurm NodeSets. GB300 is rack-addressed, so one
@@ -39,7 +80,7 @@ locals {
   # zero-replica rack nodeset so Terraform can downscale the generated node
   # groups while the Slurm NodeSet remains addressable.
   slurm_nodeset_workers = flatten([
-    for nodeset in var.slurm_nodeset_workers :
+    for nodeset in local.slurm_nodeset_workers_with_defaults :
     nodeset.resource.platform == local.gb300_platform ? [
       for rack in range(max(1, ceil(nodeset.size / local.gb300_nodes_per_nodegroup))) : merge(nodeset, {
         name = format(
@@ -49,11 +90,72 @@ locals {
         )
         size                = min(local.gb300_nodes_per_nodegroup, nodeset.size - rack * local.gb300_nodes_per_nodegroup)
         nodes_per_nodegroup = local.gb300_nodes_per_nodegroup
+        rack_number         = rack
       })
       ] : [merge(nodeset, {
         nodes_per_nodegroup = local.default_nodes_per_nodegroup
+        rack_number         = null
     })]
   ])
+
+  # NVMe device capacities are supplied in decimal GB because that is how the
+  # hardware is advertised. Convert the per-nodeset total to GiB before using
+  # it in Kubernetes resource quantities.
+  local_nvme_capacity_gibibytes = [
+    for worker in local.slurm_nodeset_workers : provider::units::to_gib(
+      coalesce(worker.local_nvme.device_count, 0) *
+      coalesce(worker.local_nvme.device_capacity_gigabytes, 0) *
+      1000000000
+    )
+  ]
+
+  # Reserve an additional five percentage points of raw capacity for the ext4
+  # filesystem used by MK8s-managed local NVMe storage.
+  local_nvme_ephemeral_storage_reserve_coefficient = 0.05
+
+  # Kubelet ephemeral storage uses the local NVMe array when enabled and the
+  # boot disk otherwise. Apply the Kubernetes capacity coefficient and fixed
+  # reserve in either case, plus the login-pod reserve on GB300 workers.
+  worker_ephemeral_storage_capacity_gibibytes = [
+    for i, worker in local.slurm_nodeset_workers : floor(
+      (worker.local_nvme.enabled
+        ? local.local_nvme_capacity_gibibytes[i]
+        : worker.boot_disk.size_gibibytes
+      ) * module.resources.k8s_ephemeral_storage_coefficient
+      -(worker.local_nvme.enabled ? local.local_nvme_capacity_gibibytes[i] * local.local_nvme_ephemeral_storage_reserve_coefficient : 0)
+      -module.resources.k8s_ephemeral_storage_reserve.gibibytes
+      -(worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
+    )
+  ]
+
+  # Terraform creates at most one topology of each supported type. Additional
+  # custom topologies can only be supplied through Helm values overrides.
+  slurm_named_topologies = concat(
+    [{
+      name            = "flat"
+      cluster_default = true
+      type            = "flat"
+      block_sizes     = []
+      nodeset_refs    = ["ALL"]
+    }],
+    local.gpu_enabled ? [{
+      name            = "tree-ib"
+      cluster_default = false
+      type            = "tree"
+      block_sizes     = []
+      nodeset_refs    = ["ALL"]
+    }] : [],
+    local.gb300_enabled ? [{
+      name            = "block-nvl72"
+      cluster_default = false
+      type            = "block"
+      block_sizes     = [coalesce(var.slurm_topology_block_size, local.gb300_nodes_per_nodegroup)]
+      nodeset_refs = [
+        for nodeset in local.slurm_nodeset_workers : nodeset.name
+        if nodeset.resource.platform == local.gb300_platform
+      ]
+    }] : [],
+  )
 
   backups_enabled = (var.backups_enabled == "force_enable" ||
   (var.backups_enabled == "auto" && local.filestore_jail_calculated_size_gibibytes < 12 * 1024))
@@ -104,12 +206,10 @@ locals {
       preemptible            = nodeset.preemptible
       reservation_policy     = nodeset.reservation_policy
       nvlink                 = nodeset.nvlink
+      extra_labels           = nodeset.extra_labels
       placement_policy_nodes = nodeset.placement_policy_nodes
-      local_nvme = {
-        enabled         = try(nodeset.local_nvme.enabled, false)
-        mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
-        filesystem_type = try(nodeset.local_nvme.filesystem_type, "ext4")
-      }
+      max_pods               = nodeset.max_pods
+      local_nvme             = nodeset.local_nvme
     }
   ]])
 
@@ -125,9 +225,21 @@ resource "terraform_data" "check_variables" {
   depends_on = [
     terraform_data.check_slurm_nodeset,
     terraform_data.check_slurm_nodeset_accounting,
+    terraform_data.check_slurm_worker_cpu_platform,
     terraform_data.check_nfs,
+    terraform_data.check_nfs_exclusivity,
+    terraform_data.check_jail_submount_paths,
     terraform_data.check_local_nvme,
   ]
+}
+
+# Resolve the sizing tier used to default the CPU nodeset presets above
+# (see modules/sizing_tier).
+module "sizing" {
+  source = "../../modules/sizing_tier"
+
+  worker_count         = length(local.slurm_nodeset_workers) > 0 ? sum([for w in local.slurm_nodeset_workers : w.size]) : 0
+  sizing_tier_override = var.sizing_tier_override
 }
 
 module "filestore" {
@@ -218,9 +330,6 @@ module "nfs-server" {
 
   public_ip = var.nfs.public_ip
 
-  providers = {
-    nebius = nebius
-  }
 }
 
 module "cleanup" {
@@ -260,6 +369,7 @@ module "k8s" {
     module.cleanup,
     terraform_data.check_slurm_nodeset_accounting,
     terraform_data.check_slurm_nodeset,
+    terraform_data.check_slurm_worker_cpu_platform,
   ]
 
   source = "../../modules/k8s"
@@ -269,15 +379,14 @@ module "k8s" {
   login_public_ip = var.slurm_login_public_ip
 
   k8s_version                  = var.k8s_version
+  node_group_version           = var.node_group_version
   name                         = local.k8s_cluster_name
   company_name                 = var.company_name
   platform_driver_presets      = var.platform_driver_presets
   use_preinstalled_gpu_drivers = var.use_preinstalled_gpu_drivers
 
-  etcd_cluster_size = var.etcd_cluster_size
-
-  node_group_system     = var.slurm_nodeset_system
-  node_group_controller = var.slurm_nodeset_controller
+  node_group_system     = local.slurm_nodeset_system
+  node_group_controller = local.slurm_nodeset_controller
   node_group_workers    = local.node_group_workers
   node_group_workers_v2 = [
     for worker in local.node_group_workers_v2 : merge(worker, {
@@ -287,11 +396,11 @@ module "k8s" {
   node_group_login = local.login_node_group
   node_group_accounting = {
     enabled = var.accounting_enabled
-    spec    = var.slurm_nodeset_accounting
+    spec    = local.slurm_nodeset_accounting
   }
   node_group_nfs = {
-    enabled = var.slurm_nodeset_nfs != null
-    spec    = var.slurm_nodeset_nfs
+    enabled = local.slurm_nodeset_nfs != null
+    spec    = local.slurm_nodeset_nfs
   }
 
   filestores = {
@@ -313,8 +422,9 @@ module "k8s" {
     } : null
   }
 
-  node_ssh_access_users = var.k8s_cluster_node_ssh_access_users
-  nvidia_config_lines   = var.nvidia_config_lines
+  node_ssh_access_users     = var.k8s_cluster_node_ssh_access_users
+  node_ssh_access_public_ip = var.k8s_cluster_node_ssh_access_public_ip
+  nvidia_config_lines       = var.nvidia_config_lines
 
   providers = {
     nebius = nebius
@@ -334,9 +444,6 @@ module "nvidia_operator_network" {
   cluster_id = module.k8s.cluster_id
   parent_id  = data.nebius_iam_v1_project.this.id
 
-  providers = {
-    nebius = nebius
-  }
 }
 
 module "nvidia_operator_gpu" {
@@ -351,13 +458,10 @@ module "nvidia_operator_gpu" {
   cluster_id = module.k8s.cluster_id
   parent_id  = data.nebius_iam_v1_project.this.id
 
-  enable_dcgm_exporter        = var.dcgm_job_mapping_enabled == false && var.telemetry_enabled
-  enable_dcgm_service_monitor = var.dcgm_job_mapping_enabled == false && var.telemetry_enabled
+  enable_dcgm_exporter        = var.dcgm_exporter_enabled == false && var.telemetry_enabled
+  enable_dcgm_service_monitor = var.dcgm_exporter_enabled == false && var.telemetry_enabled
   relabel_dcgm_exporter       = var.telemetry_enabled
 
-  providers = {
-    nebius = nebius
-  }
 }
 
 module "o11y" {
@@ -370,11 +474,13 @@ module "o11y" {
 
   source = "../../modules/o11y"
 
-  iam_project_id      = var.iam_project_id
-  o11y_iam_tenant_id  = var.o11y_iam_tenant_id
-  o11y_profile        = var.o11y_profile
-  k8s_cluster_context = module.k8s.cluster_context
-  company_name        = var.company_name
+  iam_project_id              = var.iam_project_id
+  o11y_iam_tenant_id          = var.o11y_iam_tenant_id
+  o11y_profile                = var.o11y_profile
+  region                      = var.region
+  allow_o11y_region_migration = var.allow_o11y_region_migration
+  k8s_cluster_context         = module.k8s.cluster_context
+  company_name                = var.company_name
 }
 
 module "slurm" {
@@ -409,22 +515,34 @@ module "slurm" {
   maintenance                    = var.maintenance
   maintenance_ignore_node_groups = var.maintenance_ignore_node_groups
 
+  kube_state_metrics_max_scrape_size        = var.kube_state_metrics_max_scrape_size
+  opentelemetry_batch                       = var.opentelemetry_batch
+  opentelemetry_sending_queue               = var.opentelemetry_sending_queue
+  opentelemetry_delete_jail_logs_after_read = var.opentelemetry_delete_jail_logs_after_read
+  opentelemetry_delete_jail_logs_min_age    = var.opentelemetry_delete_jail_logs_min_age
+
   use_preinstalled_gpu_drivers  = var.use_preinstalled_gpu_drivers
   cuda_version                  = lookup(var.platform_cuda_versions, local.slurm_nodeset_workers[0].resource.platform)
   controller_state_on_filestore = var.controller_state_on_filestore
 
   node_count = {
-    controller = var.slurm_nodeset_controller.size
+    controller = local.slurm_nodeset_controller.size
     worker     = [for workers in local.slurm_nodeset_workers : workers.size]
     login      = var.slurm_nodeset_login.size
   }
 
-  resources = {
+  # Resolved tier (auto-derived from the worker count unless var.sizing_tier_override forces it).
+  sizing_tier_override = module.sizing.sizing_tier
+  # Per-component overrides on top of the tier (merged inside the module's size dispatch).
+  component_overrides = var.component_overrides
+
+  # Available capacity of the node VMs backing each Slurm nodeset (preset minus k8s reserves).
+  node_capacity = {
     system = {
       cpu_cores        = local.resources.system.cpu_cores
       memory_gibibytes = local.resources.system.memory_gibibytes
       ephemeral_storage_gibibytes = floor(
-        var.slurm_nodeset_system.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
+        local.slurm_nodeset_system.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     }
@@ -432,7 +550,7 @@ module "slurm" {
       cpu_cores        = local.resources.controller.cpu_cores
       memory_gibibytes = floor(local.resources.controller.memory_gibibytes)
       ephemeral_storage_gibibytes = floor(
-        var.slurm_nodeset_controller.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
+        local.slurm_nodeset_controller.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     }
@@ -444,12 +562,8 @@ module "slurm" {
         memory_gibibytes = floor(local.resources.workers[i].memory_gibibytes) - (
           worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.memory_gibibytes : 0
         )
-        ephemeral_storage_gibibytes = floor(
-          worker.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
-          -module.resources.k8s_ephemeral_storage_reserve.gibibytes
-          -(worker.resource.platform == local.gb300_platform ? var.gb300_login_pod_worker_reserve.ephemeral_storage_gibibytes : 0)
-        )
-        gpus = local.resources.workers[i].gpus
+        ephemeral_storage_gibibytes = local.worker_ephemeral_storage_capacity_gibibytes[i]
+        gpus                        = local.resources.workers[i].gpus
       }
     ]
     login = local.gb300_enabled ? var.gb300_login_pod_worker_reserve : {
@@ -464,11 +578,11 @@ module "slurm" {
       cpu_cores        = local.resources.accounting.cpu_cores
       memory_gibibytes = floor(local.resources.accounting.memory_gibibytes)
       ephemeral_storage_gibibytes = floor(
-        var.slurm_nodeset_accounting.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
+        local.slurm_nodeset_accounting.boot_disk.size_gibibytes * module.resources.k8s_ephemeral_storage_coefficient
         -module.resources.k8s_ephemeral_storage_reserve.gibibytes
       )
     } : null
-    nfs = var.slurm_nodeset_nfs != null ? {
+    nfs = local.slurm_nodeset_nfs != null ? {
       cpu_cores        = local.resources.nfs.cpu_cores
       memory_gibibytes = floor(local.resources.nfs.memory_gibibytes)
     } : null
@@ -508,14 +622,17 @@ module "slurm" {
     storage_class  = replace("compute-csi-${lower(var.nfs_in_k8s.disk_type)}-${lower(var.nfs_in_k8s.filesystem_type)}", "_", "-")
     threads        = var.nfs_in_k8s.threads
   }
-  nfs_node_group_enabled = var.slurm_nodeset_nfs != null
+  nfs_node_group_enabled = local.slurm_nodeset_nfs != null
 
-  exporter_enabled    = var.slurm_exporter_enabled
-  rest_enabled        = var.slurm_rest_enabled
-  accounting_enabled  = var.accounting_enabled
-  telemetry_enabled   = var.telemetry_enabled
-  public_o11y_enabled = var.public_o11y_enabled
-  soperator_notifier  = var.soperator_notifier
+  exporter_enabled                = var.slurm_exporter_enabled
+  exporter_max_collector_inflight = var.slurm_exporter_max_collector_inflight
+  rest_enabled                    = var.slurm_rest_enabled
+  accounting_enabled              = var.accounting_enabled
+  telemetry_enabled               = var.telemetry_enabled
+  dcgm_exporter_enabled           = var.dcgm_exporter_enabled
+  public_o11y_enabled             = var.public_o11y_enabled
+  soperator_notifier              = var.soperator_notifier
+  nccl_inspector_profiling        = var.nccl_inspector_profiling
 
   backups_enabled = local.backups_enabled
   backups_config = {
@@ -542,16 +659,22 @@ module "slurm" {
   slurm_partition_raw_config      = var.slurm_partition_raw_config
   slurm_health_check_config       = var.slurm_health_check_config
 
+  enroot_direct_squashfs_enabled = var.enroot_direct_squashfs_enabled
+
   slurm_nodesets_partitions = [for partition in var.slurm_nodesets_partitions : {
     name         = partition.name
     is_all       = partition.is_all
     nodeset_refs = partition.slurm_nodeset_refs
+    topology     = partition.topology
     config       = partition.config
   }]
   worker_nodesets = [for nodeset in local.slurm_nodeset_workers : {
-    name            = nodeset.name
-    replicas        = nodeset.size
-    max_unavailable = "20%"
+    name                  = nodeset.name
+    platform              = nodeset.resource.platform
+    replicas              = nodeset.size
+    max_unavailable       = "20%"
+    rack_number           = try(nodeset.rack_number, null)
+    nvl_instance_group_id = try(nebius_compute_v1_nvl_instance_group.worker[nodeset.name].id, null)
     features = concat(
       [
         provider::string-functions::snake_case(nodeset.resource.platform),
@@ -563,14 +686,11 @@ module "slurm" {
     gres_name                                = lookup(module.resources.gres_name_by_platform, nodeset.resource.platform, null)
     gres_config                              = lookup(module.resources.gres_config_by_platform, nodeset.resource.platform, null)
     create_partition                         = nodeset.create_partition != null ? nodeset.create_partition : false
+    partition_topology                       = nodeset.resource.platform == local.gb300_platform ? "block-nvl72" : startswith(nodeset.resource.platform, "gpu-") ? "tree-ib" : "flat"
     ephemeral_nodes                          = nodeset.ephemeral_nodes
     persistent_volume_claim_retention_policy = nodeset.persistent_volume_claim_retention_policy
     initial_number_ephemeral_nodes           = nodeset.initial_number_ephemeral_nodes
-    local_nvme = {
-      enabled         = try(nodeset.local_nvme.enabled, false)
-      mount_path      = try(nodeset.local_nvme.mount_path, "/mnt/local-nvme")
-      filesystem_type = try(nodeset.local_nvme.filesystem_type, "ext4")
-    }
+    local_nvme                               = nodeset.local_nvme
     node_local_jail_submounts = [for sm in nodeset.node_local_jail_submounts : {
       name               = sm.name
       mount_path         = sm.mount_path
@@ -587,11 +707,13 @@ module "slurm" {
         storage_class_name = replace("${local.storage_class_prefix}-${lower(nodeset.node_local_image_disk.spec.disk_type)}-${lower(nodeset.node_local_image_disk.spec.filesystem_type)}", "_", "-")
       } : null
     }
+    topology = {
+      fabric = nodeset.gpu_cluster != null ? module.k8s.gpu_cluster_id_by_fabric[nodeset.gpu_cluster.infiniband_fabric] : "root"
+    }
   }]
 
   topology = {
-    plugin     = local.gb300_enabled ? "topology/block" : "topology/tree"
-    block_size = local.gb300_enabled ? try(var.slurm_topology_block_size, local.gb300_nodes_per_nodegroup) : null
+    topologies = local.slurm_named_topologies
   }
 
   login_allocation_id              = module.k8s.static_ip_allocation_id
@@ -606,7 +728,8 @@ module "slurm" {
   flux_namespace = local.flux_namespace
 
   providers = {
-    helm = helm
+    helm       = helm
+    kubernetes = kubernetes
   }
 }
 

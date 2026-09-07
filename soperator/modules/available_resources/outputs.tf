@@ -18,6 +18,11 @@ output "platform_regions" {
   value       = local.platform_regions
 }
 
+output "cpu_platform_by_platform" {
+  description = "Map of binary-compatible CPU platform grouped by Nebius platform."
+  value       = local.cpu_platform_by_platform
+}
+
 output "by_platform" {
   description = "Map of available resource presets grouped by platform."
   value       = local.presets_by_platforms

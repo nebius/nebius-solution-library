@@ -23,15 +23,14 @@ variable "k8s_version" {
   default     = null
 }
 
-variable "name" {
-  description = "Name of the k8s cluster."
+variable "node_group_version" {
+  description = "Nebius version of node group. Contains bundle of different component versions, e.g. driver, linux_kernel, doca, etc."
   type        = string
 }
 
-variable "etcd_cluster_size" {
-  description = "Size of the etcd cluster."
-  type        = number
-  default     = 3
+variable "name" {
+  description = "Name of the k8s cluster."
+  type        = string
 }
 
 variable "company_name" {
@@ -158,18 +157,30 @@ variable "node_group_workers_v2" {
       policy          = optional(string)
       reservation_ids = optional(list(string))
     }))
-    nvl_instance_group_id  = optional(string)
+    nvl_instance_group_id = optional(string)
+    # Additional labels applied to the mk8s worker node template.
+    extra_labels           = optional(map(string), {})
     max_pods               = optional(number, 32)
     placement_policy_nodes = optional(list(string))
     local_nvme = optional(object({
-      enabled         = optional(bool, false)
-      mount_path      = optional(string, "/mnt/local-nvme")
-      filesystem_type = optional(string, "ext4")
+      enabled                   = optional(bool, false)
+      device_count              = optional(number)
+      device_capacity_gigabytes = optional(number)
+      mount_path                = optional(string, "/mnt/local-nvme")
+      size_limit_gibibytes      = optional(number)
     }), {})
     nodeset_index = number
     subset_index  = number
   }))
   default = []
+
+  validation {
+    condition = alltrue([
+      for worker in var.node_group_workers_v2 :
+      worker.max_pods > 0
+    ])
+    error_message = "Worker node group max_pods must be greater than 0."
+  }
 }
 
 variable "node_group_login" {
@@ -247,6 +258,12 @@ variable "node_ssh_access_users" {
     public_keys = list(string)
   }))
   default = []
+}
+
+variable "node_ssh_access_public_ip" {
+  description = "Assign public IP addresses to k8s nodes when node_ssh_access_users is configured."
+  type        = bool
+  default     = false
 }
 
 variable "nvidia_config_lines" {
