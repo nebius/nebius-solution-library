@@ -122,7 +122,8 @@ variable "node_group_workers" {
       block_size_kibibytes = number
     })
     gpu_cluster = optional(object({
-      infiniband_fabric = string
+      id                = optional(string)
+      infiniband_fabric = optional(string)
     }))
     preemptible   = optional(object({}))
     nodeset_index = number
@@ -133,11 +134,12 @@ variable "node_group_workers" {
 variable "node_group_workers_v2" {
   description = "Worker node groups specification for nodesets (v2)."
   type = list(object({
-    name        = string
-    size        = number
-    min_size    = number
-    max_size    = number
-    autoscaling = bool
+    name            = string
+    node_group_name = optional(string)
+    size            = number
+    min_size        = number
+    max_size        = number
+    autoscaling     = bool
     resource = object({
       platform = string
       preset   = string
@@ -148,13 +150,17 @@ variable "node_group_workers_v2" {
       block_size_kibibytes = number
     })
     gpu_cluster = optional(object({
-      infiniband_fabric = string
+      id                = optional(string)
+      infiniband_fabric = optional(string)
     }))
     preemptible = optional(object({}))
     reservation_policy = optional(object({
       policy          = optional(string)
       reservation_ids = optional(list(string))
     }))
+    nvl_instance_group_id  = optional(string)
+    max_pods               = optional(number, 32)
+    placement_policy_nodes = optional(list(string))
     local_nvme = optional(object({
       enabled         = optional(bool, false)
       mount_path      = optional(string, "/mnt/local-nvme")
@@ -167,9 +173,10 @@ variable "node_group_workers_v2" {
 }
 
 variable "node_group_login" {
-  description = "Controller node group specification."
+  description = "Login node group specification."
   type = object({
-    size = number
+    size               = number
+    node_group_enabled = optional(bool, true)
     resource = object({
       platform = string
       preset   = string

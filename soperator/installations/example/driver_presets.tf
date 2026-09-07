@@ -9,6 +9,7 @@ locals {
       gpu-b200-sxm-a = ["cuda12", "cuda12.8", "cuda13.0"]
       gpu-b300-sxm   = ["cuda13.0"]
       gpu-rtx6000    = ["cuda13.0"]
+      gpu-gb300      = ["cuda13.0"]
     }
     "1.33" = {
       gpu-l40s-a     = ["cuda13.0"]
@@ -19,6 +20,29 @@ locals {
       gpu-b200-sxm-a = ["cuda12.8", "cuda13.0"]
       gpu-b300-sxm   = ["cuda13.0"]
       gpu-rtx6000    = ["cuda13.0"]
+      gpu-gb300      = ["cuda13.0"]
+    }
+    "1.34" = {
+      gpu-l40s-a     = ["cuda13.0"]
+      gpu-l40s-d     = ["cuda13.0"]
+      gpu-h100-sxm   = ["cuda13.0"]
+      gpu-h200-sxm   = ["cuda13.0"]
+      gpu-b200-sxm   = ["cuda13.0"]
+      gpu-b200-sxm-a = ["cuda13.0"]
+      gpu-b300-sxm   = ["cuda13.0"]
+      gpu-rtx6000    = ["cuda13.0"]
+      gpu-gb300      = ["cuda13.0"]
+    }
+    "1.35" = {
+      gpu-l40s-a     = ["cuda13.0"]
+      gpu-l40s-d     = ["cuda13.0"]
+      gpu-h100-sxm   = ["cuda13.0"]
+      gpu-h200-sxm   = ["cuda13.0"]
+      gpu-b200-sxm   = ["cuda13.0"]
+      gpu-b200-sxm-a = ["cuda13.0"]
+      gpu-b300-sxm   = ["cuda13.0"]
+      gpu-rtx6000    = ["cuda13.0"]
+      gpu-gb300      = ["cuda13.0"]
     }
   }
 

@@ -154,28 +154,33 @@ nfs_in_k8s = {
 
 # Version of soperator.
 # ---
-slurm_operator_version = "4.0.5"
+slurm_operator_version = "4.1.7"
 
 # Is the version of soperator stable or not.
 # ---
 slurm_operator_stable = true
 
-# Each partition must have either is_all = true (includes all nodesets) or nodeset_refs (list of specific nodesets).
+# Each partition must have either is_all = true (includes all generated Slurm NodeSets)
+# or slurm_nodeset_refs (list of specific generated Slurm NodeSet names).
+# For GB300, one Terraform worker nodeset can produce multiple Slurm NodeSets:
+# Terraform worker `primtrain` with size 36 generates `primtrain-rack0`
+# and `primtrain-rack1`.
 # Users must not remove the "hidden" partition.
 # Users can modify the "main" partition, but should not remove it (there must be at least one default partition).
 # ---
 slurm_nodesets_partitions = [
   {
-    name         = "main"
-    is_all       = true
-    nodeset_refs = [] # e.g. ["worker"], but is_all must be false in this case
-    config       = "Default=YES PriorityTier=10 PreemptMode=OFF MaxTime=INFINITE State=UP OverSubscribe=YES"
+    name   = "main"
+    is_all = true
+    # e.g. ["worker"] or ["primtrain-rack0"]; set is_all = false when using refs.
+    slurm_nodeset_refs = []
+    config             = "Default=YES PriorityTier=10 PreemptMode=OFF MaxTime=INFINITE State=UP OverSubscribe=YES"
   },
   {
-    name         = "hidden"
-    is_all       = true
-    nodeset_refs = []
-    config       = "Default=NO PriorityTier=10 PreemptMode=OFF Hidden=YES MaxTime=INFINITE State=UP OverSubscribe=YES"
+    name               = "hidden"
+    is_all             = true
+    slurm_nodeset_refs = []
+    config             = "Default=NO PriorityTier=10 PreemptMode=OFF Hidden=YES MaxTime=INFINITE State=UP OverSubscribe=YES"
   },
 ]
 
@@ -191,7 +196,7 @@ slurm_partition_config_type = "default"
 #   "PartitionName=low_priority Nodes=low_priority Default=YES MaxTime=INFINITE State=UP PriorityTier=1",
 #   "PartitionName=high_priority Nodes=low_priority Default=NO MaxTime=INFINITE State=UP PriorityTier=2"
 # ]
-# If Nodes present, they must not contain node names: use only nodeset values, "ALL" or "".
+# If Nodes present, they must not contain node names: use only Slurm NodeSet values, "ALL" or "".
 # If nodesets are used in the partition config, slurm_worker_features with non-empty nodeset_name
 # must be declared (see below).
 # Specifying specific nodes is not supported since Dynamic Nodes are used.
@@ -266,8 +271,17 @@ slurm_nodeset_controller = {
 
 # Configuration of Slurm Worker node sets.
 # Multiple worker nodesets are supported with different hardware configurations.
-# Each nodeset will be automatically split into node groups of max 100 nodes with autoscaling enabled.
-# infiniband_fabric is required field for GPU clusters
+# Each nodeset will be automatically split into fixed-size node groups.
+# GB300 workers must use size divisible by 18 in production.
+# Non-production GB300 clusters may use one partial rack with size less than 18.
+# Generated GB300 mk8s node groups are rack-sized, with 18 nodes except for the non-production partial-rack case.
+# Their effective nodeset prefixes are generated as <name>-rack<rack>.
+# For example, a GB300 worker named "primtrain" creates primtrain-rack0-0..primtrain-rack0-17
+# for the first rack and primtrain-rack1-0..primtrain-rack1-17 for the second rack.
+# Non-GB300 workers use the configured name as the node prefix, producing <name>-# nodes,
+# and must not enable NVLink.
+# Set gpu_cluster.id to attach workers to an existing GPU cluster.
+# If id is omitted, infiniband_fabric is used to create a new GPU cluster.
 # ---
 slurm_nodeset_workers = [
   {
@@ -292,6 +306,7 @@ slurm_nodeset_workers = [
       block_size_kibibytes = 4
     }
     gpu_cluster = {
+      # id                = "gpucluster-..."
       infiniband_fabric = ""
     }
     # Change to preemptible = {} in case you want to use preemptible nodes
@@ -301,6 +316,14 @@ slurm_nodeset_workers = [
     #   policy          = "AUTO"  # AUTO, FORBID, or STRICT
     #   reservation_ids = ["capacityblockgroup-xYYzzzzzz"]
     # }
+    # Required for GB300 workers. This creates one NVLink instance group per node group
+    # and labels nodes with nebius.com/nvlink-instance-group=<group-id>.
+    # nvlink = {
+    #   enabled = true
+    #   type    = "GB300"
+    # }
+    # Optional mk8s placement policy node list for this nodeset. Non-production only.
+    # placement_policy_nodes = []
     # Provide a list of strings to set Slurm Node features
     features = null
     # Set to `true` to create partition for the NodeSet by default
@@ -368,9 +391,14 @@ slurm_nodeset_workers = [
 use_preinstalled_gpu_drivers = true
 
 # Configuration of Slurm Login node set.
+# Keep size as the desired login pod replica count. For GB300, Terraform uses
+# this value for Soperator login pods, then skips only the dedicated mk8s login
+# node group so login pods run on worker nodes instead.
 # ---
 slurm_nodeset_login = {
   size = 2
+  # Optional. For GB300, this is set to false internally so login pods run on worker nodes.
+  # node_group_enabled = true
   resource = {
     platform = "cpu-d3"
     preset   = "32vcpu-128gb"
@@ -494,6 +522,21 @@ active_checks_scope = ""
 # ---
 slurm_shared_memory_size_gibibytes = 1024
 
+# Block size for Slurm topology/block topology plugin in number of nodes.
+# This affects how Slurm groups nodes into blocks for scheduling purposes.
+# A smaller block size allows for more flexible scheduling but may increase overhead,
+# while a larger block size may improve scheduling efficiency but reduce flexibility.
+# The optimal value depends on the cluster size and workload characteristics.
+#
+# By default, null (no block topology plugin configuration applied).
+#
+# For GB300,
+# it is recommended to set block size to the rack size (18) or its multiple to optimize for rack-level scheduling.
+# ---
+# slurm_topology_block_size = 18
+# ---
+slurm_topology_block_size = null
+
 # Node groups that Soperator should ignore during maintenance events.
 # These ignored maintenance events will be handled by mk8s control plane instead.
 # Supported values: controller, nfs, system, login, accounting.
@@ -601,7 +644,7 @@ cleanup_bucket_on_destroy = false
 # Version of the k8s to be used.
 # Set to null or don't set to use Nebius default (recommended), or specify explicitly
 # ---
-k8s_version = 1.33
+k8s_version = 1.35
 
 # SSH user credentials for accessing k8s nodes.
 # That option add public ip address to every node.

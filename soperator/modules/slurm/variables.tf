@@ -49,6 +49,28 @@ variable "slurm_partition_raw_config" {
   default     = []
 }
 
+variable "topology" {
+  description = "Slurm topology configuration. topology/tree leaves the chart default unset; topology/block renders BlockAsNodeRank and requires block_size."
+  type = object({
+    plugin     = string
+    block_size = optional(number)
+  })
+  default = {
+    plugin = "topology/tree"
+  }
+  nullable = false
+
+  validation {
+    condition     = contains(["topology/tree", "topology/block"], var.topology.plugin)
+    error_message = "topology.plugin must be one of 'topology/tree' or 'topology/block'."
+  }
+
+  validation {
+    condition     = var.topology.plugin == "topology/block" ? try(var.topology.block_size > 0, false) : true
+    error_message = "topology.block_size must be a positive number when topology.plugin is 'topology/block'."
+  }
+}
+
 # endregion PartitionConfiguration
 
 # region HealthCheckConfig
@@ -168,6 +190,12 @@ variable "login_public_ip" {
 
 variable "tailscale_enabled" {
   description = "Whether to enable tailscale init container on login pod"
+  type        = bool
+  default     = false
+}
+
+variable "login_on_worker_nodes" {
+  description = "Whether login pods and populate-jail should use the worker k8sNodeFilterName instead of dedicated CPU node filters. Used by GB300 installations that do not create dedicated CPU login nodes and need ARM populate-jail."
   type        = bool
   default     = false
 }
@@ -720,7 +748,7 @@ variable "use_preinstalled_gpu_drivers" {
 variable "active_checks_scope" {
   type        = string
   description = "Scope of active health-checks. Defines what checks should run after the cluster is provisioned."
-  default     = ""
+  default     = "prod_quick"
   validation {
     condition     = contains(["dev", "testing", "prod_quick", "prod_acceptance", "essential"], var.active_checks_scope)
     error_message = "active_checks_scope should be one of: dev, testing, prod_quick, prod_acceptance, essential."
