@@ -16,7 +16,6 @@ users:
 package_update: true
 packages:
   - mdadm
-  - nvme-cli
 %{ if local_nvme_filesystem_type == "xfs" }
   - xfsprogs
 %{ endif }
@@ -257,9 +256,6 @@ write_files:
           fail "Unsupported filesystem type: $${FILESYSTEM_TYPE}"
           ;;
       esac
-
-      echo "Detecting NVMe disks..."
-      nvme list
 
       mapfile -t NVME_DISKS < <(
         lsblk -dnpo NAME,TYPE | awk '$2 == "disk" && $1 ~ /^\/dev\/nvme[0-9]+n[0-9]+$/ { print $1 }' | sort -V | uniq
