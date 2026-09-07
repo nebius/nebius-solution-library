@@ -221,6 +221,13 @@ variable "node_capacity" {
 resource "terraform_data" "check_worker_nodesets" {
   lifecycle {
     precondition {
+      condition = var.node_capacity.nfs == null ? true : (
+        var.node_capacity.nfs.cpu_cores > module.sizing.per_node_daemonset_cpu_cores
+      )
+      error_message = "Dedicated NFS node usable CPU (${try(var.node_capacity.nfs.cpu_cores, 0)} cores) must be greater than the per-node DaemonSet reservation (${module.sizing.per_node_daemonset_cpu_cores} cores)."
+    }
+
+    precondition {
       condition     = length(var.node_count.worker) == length(var.node_capacity.worker)
       error_message = "Worker node set resources must accord to the worker node count."
     }

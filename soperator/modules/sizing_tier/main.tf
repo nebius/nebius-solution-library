@@ -250,6 +250,33 @@ locals {
     nccl_profiles_collector     = coalesce(var.component_overrides.nccl_profiles_collector, local.component_presets.nccl_profiles_collector[local.sizing_tier])
   }
 
+  # Effective CPU requested on every node by the standard DaemonSet agents.
+  # Keep this derived from the effective preset so component overrides are reflected
+  # in capacity reserved from pods that otherwise fill a node, such as the NFS server.
+  per_node_daemonset_cpu_cores = (
+    local.preset.node_configurator.requests.cpu
+    + local.preset.kruise_daemon.cpu
+    + (
+      endswith(local.preset.logs_collector.cpu, "m")
+      ? tonumber(trimsuffix(local.preset.logs_collector.cpu, "m")) / 1000
+      : tonumber(local.preset.logs_collector.cpu)
+    )
+    + (
+      endswith(local.preset.spo_daemon.cpu, "m")
+      ? tonumber(trimsuffix(local.preset.spo_daemon.cpu, "m")) / 1000
+      : tonumber(local.preset.spo_daemon.cpu)
+    )
+  )
+
+  # Capacity checks cover every built-in tier and therefore use the default component
+  # values rather than an override supplied for one resolved installation.
+  default_per_node_daemonset_cpu_cores = (
+    local.constant_presets.node_configurator.requests.cpu
+    + local.constant_presets.kruise_daemon.cpu
+    + tonumber(trimsuffix(local.constant_presets.logs_collector.cpu, "m")) / 1000
+    + tonumber(trimsuffix(local.constant_presets.spo_daemon.cpu, "m")) / 1000
+  )
+
   # Node VM preset per CPU nodeset for the resolved tier
   # (overridden per nodeset by the caller via the nodeset's own `preset` field).
   node_preset = {
@@ -346,10 +373,10 @@ locals {
   }
 
   # Per-node DaemonSet agents: they occupy every node, including each system node.
-  # Only node_configurator is modeled; the smaller constant agents (kruise daemon,
-  # logs agent, spo daemon) are not.
+  # CPU accounts for all standard agents. Memory retains the existing node-configurator-only
+  # accounting until the other agents' memory is included in the sizing model.
   daemonset_requests = {
-    cpu    = local.constant_presets.node_configurator.requests.cpu
+    cpu    = local.default_per_node_daemonset_cpu_cores
     memory = local.constant_presets.node_configurator.requests.memory
   }
 

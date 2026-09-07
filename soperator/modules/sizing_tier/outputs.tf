@@ -8,6 +8,11 @@ output "preset" {
   value       = local.preset
 }
 
+output "per_node_daemonset_cpu_cores" {
+  description = "Effective CPU requests, in cores, of the standard DaemonSet agents that run on every node."
+  value       = local.per_node_daemonset_cpu_cores
+}
+
 output "node_preset" {
   description = "Node VM preset per CPU nodeset for the resolved tier (controller/accounting/nfs/system -> preset string)."
   value       = local.node_preset
