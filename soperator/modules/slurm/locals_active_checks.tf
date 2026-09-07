@@ -17,7 +17,8 @@ locals {
     # Run what is relevant in E2E
     testing = {
       gpu-checks = {
-        suspend = true
+        suspend          = true
+        runAfterCreation = false
       }
       ssh-check = {
         k8sJobSpec = {
