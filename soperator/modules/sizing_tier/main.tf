@@ -211,8 +211,7 @@ locals {
     # The per-node log agent only processes logs written on its own node (its k8s metadata
     # watch is node-scoped); the size-correlated part of the pipeline is the central
     # vm_logs sink, which is tier-scaled above.
-    # Keep the CPU reservation small enough to share the dedicated NFS node's remaining
-    # 100m with the 50m Kruise daemon. The collector has no CPU limit and can burst.
+    # The collector has no CPU limit, so it can burst above this request when needed.
     logs_collector = { memory = "200Mi", cpu = "50m" }
     # Per-worker DaemonSet reading Slurm workload outputs from its own node's boot disk;
     # its load is bounded by one node's log volume, not by the cluster size. Runs on worker
@@ -252,12 +251,14 @@ locals {
     nccl_profiles_collector     = coalesce(var.component_overrides.nccl_profiles_collector, local.component_presets.nccl_profiles_collector[local.sizing_tier])
   }
 
-  # Effective CPU requested on every node by the standard DaemonSet agents.
-  # Keep this derived from the effective preset so component overrides are reflected
-  # in capacity reserved from pods that otherwise fill a node, such as the NFS server.
-  per_node_daemonset_cpu_cores = (
+  # Effective CPU requested by the standard DaemonSet agents that run on NFS and
+  # system nodes. Kruise is excluded because it is restricted to worker and controller
+  # nodes. Keep this derived from the effective preset so component overrides are
+  # reflected in capacity reserved from pods that otherwise fill a node.
+  # Normalize the result to Kubernetes' millicore precision so decimal conversions
+  # cannot leak fractional millicores into the rendered NFS request.
+  nfs_system_daemonset_cpu_cores = floor((
     local.preset.node_configurator.requests.cpu
-    + local.preset.kruise_daemon.cpu
     + (
       endswith(local.preset.logs_collector.cpu, "m")
       ? tonumber(trimsuffix(local.preset.logs_collector.cpu, "m")) / 1000
@@ -268,16 +269,15 @@ locals {
       ? tonumber(trimsuffix(local.preset.spo_daemon.cpu, "m")) / 1000
       : tonumber(local.preset.spo_daemon.cpu)
     )
-  )
+  ) * 1000 + 0.5) / 1000
 
   # Capacity checks cover every built-in tier and therefore use the default component
   # values rather than an override supplied for one resolved installation.
-  default_per_node_daemonset_cpu_cores = (
+  default_nfs_system_daemonset_cpu_cores = floor((
     local.constant_presets.node_configurator.requests.cpu
-    + local.constant_presets.kruise_daemon.cpu
     + tonumber(trimsuffix(local.constant_presets.logs_collector.cpu, "m")) / 1000
     + tonumber(trimsuffix(local.constant_presets.spo_daemon.cpu, "m")) / 1000
-  )
+  ) * 1000 + 0.5) / 1000
 
   # Node VM preset per CPU nodeset for the resolved tier
   # (overridden per nodeset by the caller via the nodeset's own `preset` field).
@@ -374,11 +374,11 @@ locals {
     }
   }
 
-  # Per-node DaemonSet agents: they occupy every node, including each system node.
-  # CPU accounts for all standard agents. Memory retains the existing node-configurator-only
-  # accounting until the other agents' memory is included in the sizing model.
+  # DaemonSet agents scheduled on system nodes. CPU accounts for all standard agents
+  # placed there; memory retains the existing node-configurator-only accounting until
+  # the other agents' memory is included in the sizing model.
   daemonset_requests = {
-    cpu    = local.default_per_node_daemonset_cpu_cores
+    cpu    = local.default_nfs_system_daemonset_cpu_cores
     memory = local.constant_presets.node_configurator.requests.memory
   }
 

@@ -139,7 +139,7 @@ locals {
       requests = {
         memory = var.node_capacity.nfs != null ? var.node_capacity.nfs.memory_gibibytes : local.selected_preset.nfs_server.memory
         cpu = var.node_capacity.nfs != null ? (
-          var.node_capacity.nfs.cpu_cores - module.sizing.per_node_daemonset_cpu_cores
+          var.node_capacity.nfs.cpu_cores - module.sizing.nfs_system_daemonset_cpu_cores
         ) : local.selected_preset.nfs_server.cpu
       }
     }

@@ -195,8 +195,8 @@ run "component_override_wins_over_tier" {
     error_message = "soperator_main_controller without an override must keep its tier (XS) value"
   }
   assert {
-    condition     = output.per_node_daemonset_cpu_cores == 1.15
-    error_message = "the per-node DaemonSet CPU total must reflect the logs_collector override, got ${output.per_node_daemonset_cpu_cores}"
+    condition     = output.nfs_system_daemonset_cpu_cores == 1.1
+    error_message = "the NFS/system DaemonSet CPU total must reflect the logs_collector override, got ${output.nfs_system_daemonset_cpu_cores}"
   }
 }
 
@@ -235,8 +235,8 @@ run "constants_do_not_scale_with_tier" {
     error_message = "node_configurator must stay constant at XL"
   }
   assert {
-    condition     = output.per_node_daemonset_cpu_cores == 0.85
-    error_message = "the standard per-node DaemonSet CPU total must stay at 0.85 cores, got ${output.per_node_daemonset_cpu_cores}"
+    condition     = output.nfs_system_daemonset_cpu_cores == 0.65
+    error_message = "the standard NFS/system DaemonSet CPU total must stay at 0.65 cores, got ${output.nfs_system_daemonset_cpu_cores}"
   }
 }
 

@@ -222,9 +222,9 @@ resource "terraform_data" "check_worker_nodesets" {
   lifecycle {
     precondition {
       condition = var.node_capacity.nfs == null ? true : (
-        var.node_capacity.nfs.cpu_cores > module.sizing.per_node_daemonset_cpu_cores
+        var.node_capacity.nfs.cpu_cores > module.sizing.nfs_system_daemonset_cpu_cores
       )
-      error_message = "Dedicated NFS node usable CPU (${try(var.node_capacity.nfs.cpu_cores, 0)} cores) must be greater than the per-node DaemonSet reservation (${module.sizing.per_node_daemonset_cpu_cores} cores)."
+      error_message = "Dedicated NFS node usable CPU (${try(var.node_capacity.nfs.cpu_cores, 0)} cores) must be greater than the NFS/system DaemonSet reservation (${module.sizing.nfs_system_daemonset_cpu_cores} cores)."
     }
 
     precondition {
