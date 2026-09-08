@@ -16,7 +16,6 @@ users:
 package_update: true
 packages:
   - mdadm
-  - nvme-cli
 %{ if local_nvme_filesystem_type == "xfs" }
   - xfsprogs
 %{ endif }
@@ -238,6 +237,12 @@ write_files:
       MOUNTPOINT="$${1:-/mnt/local-nvme}"
       FILESYSTEM_TYPE="${local_nvme_filesystem_type}"
       MD_DEV="/dev/md0"
+
+      fail() {
+        echo "ERROR: $*" >&2
+        exit 1
+      }
+
       case "$${FILESYSTEM_TYPE}" in
         ext4)
           MOUNT_OPTS="noatime,nodiratime,lazytime,commit=60"
@@ -248,22 +253,17 @@ write_files:
           MKFS_CMD=(mkfs.xfs -f)
           ;;
         *)
-          echo "Unsupported filesystem type: $${FILESYSTEM_TYPE}"
-          exit 1
+          fail "Unsupported filesystem type: $${FILESYSTEM_TYPE}"
           ;;
       esac
 
-      echo "Detecting NVMe disks..."
-      nvme list
-
       mapfile -t NVME_DISKS < <(
-        nvme list | awk 'NR>2 && $1 ~ /^\/dev\/nvme[0-9]+n[0-9]+$/ { print $1 }' | sort -V | uniq
+        lsblk -dnpo NAME,TYPE | awk '$2 == "disk" && $1 ~ /^\/dev\/nvme[0-9]+n[0-9]+$/ { print $1 }' | sort -V | uniq
       )
 
       ROOT_SOURCE="$(findmnt -n -o SOURCE / || true)"
-      ROOT_PKNAME="$(lsblk -no PKNAME "$${ROOT_SOURCE}" 2>/dev/null || true)"
-      if [[ -n "$${ROOT_PKNAME}" ]]; then
-        ROOT_DISK="/dev/$${ROOT_PKNAME}"
+      ROOT_DISK="$(lsblk -snpo NAME,TYPE "$${ROOT_SOURCE}" 2>/dev/null | awk '$2 == "disk" { print $1; exit }')"
+      if [[ -n "$${ROOT_DISK}" ]]; then
         FILTERED=()
         for d in "$${NVME_DISKS[@]}"; do
           if [[ "$${d}" != "$${ROOT_DISK}" ]]; then
@@ -275,12 +275,11 @@ write_files:
 
       DISK_COUNT="$${#NVME_DISKS[@]}"
       if (( DISK_COUNT < 2 || DISK_COUNT > 8 )); then
-        echo "Expected 2..8 NVMe disks for RAID0, found $${DISK_COUNT}: $${NVME_DISKS[*]}"
-        exit 1
+        fail "Expected 2..8 NVMe disks for RAID0, found $${DISK_COUNT}: $${NVME_DISKS[*]}"
       fi
 
       for d in "$${NVME_DISKS[@]}"; do
-        [[ -b "$${d}" ]] || { echo "Block device not found: $${d}"; exit 1; }
+        [[ -b "$${d}" ]] || fail "Block device not found: $${d}"
       done
 
       echo "Using $${DISK_COUNT} NVMe disk(s): $${NVME_DISKS[*]}"
@@ -295,34 +294,62 @@ write_files:
         fi
       done
 
-      if [[ -e "$${MD_DEV}" ]]; then
-        mdadm --stop "$${MD_DEV}" || true
+      mkdir -p "$${MOUNTPOINT}"
+      if mountpoint -q "$${MOUNTPOINT}"; then
+        umount "$${MOUNTPOINT}"
       fi
+
+      # Remove entries written by older versions. This service owns the mount,
+      # so persisting a filesystem UUID would only delay boot after replacement.
+      FSTAB_TMP="$(mktemp /etc/fstab.soperator-local-nvme.XXXXXX)"
+      trap '[[ -z "$${FSTAB_TMP:-}" ]] || rm -f "$${FSTAB_TMP}"' EXIT
+      awk -v mountpoint="$${MOUNTPOINT}" '$2 != mountpoint' /etc/fstab > "$${FSTAB_TMP}"
+      chmod --reference=/etc/fstab "$${FSTAB_TMP}"
+      chown --reference=/etc/fstab "$${FSTAB_TMP}"
+      mv "$${FSTAB_TMP}" /etc/fstab
+      FSTAB_TMP=""
+
+      # The array may have been auto-assembled under any /dev/md* name. Stop
+      # every MD array holding one of the ephemeral disks before recreating it.
+      mapfile -t ACTIVE_ARRAYS < <(
+        lsblk -nrpo NAME,TYPE "$${NVME_DISKS[@]}" | awk '$2 ~ /^raid/ { print $1 }' | sort -u
+      )
+      for array in "$${ACTIVE_ARRAYS[@]}"; do
+        mdadm --stop "$${array}"
+      done
 
       mdadm --create "$${MD_DEV}" \
         --level=0 \
         --raid-devices="$${DISK_COUNT}" \
         --force \
+        --run \
         "$${NVME_DISKS[@]}"
 
       udevadm settle
-
       "$${MKFS_CMD[@]}" "$${MD_DEV}"
-
-      mkdir -p "$${MOUNTPOINT}"
       mount -o "$${MOUNT_OPTS}" "$${MD_DEV}" "$${MOUNTPOINT}"
-
-      UUID="$(blkid -s UUID -o value "$${MD_DEV}")"
-      grep -q "$${UUID}" /etc/fstab || echo "UUID=$${UUID} $${MOUNTPOINT} $${FILESYSTEM_TYPE} $${MOUNT_OPTS},nofail 0 2" >> /etc/fstab
-
-      if [[ -d /etc/mdadm ]]; then
-        mdadm --detail --scan > /etc/mdadm/mdadm.conf
-      fi
 
       echo "Done."
       echo "RAID device: $${MD_DEV}"
       echo "Mounted at : $${MOUNTPOINT}"
       df -h "$${MOUNTPOINT}"
+  - path: /etc/systemd/system/prepare-local-nvme.service
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Prepare local NVMe storage
+      After=local-fs.target
+      Before=containerd.service kubelet.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/local/sbin/prepare-disks.sh "${local_nvme_mount_path}"
+
+      [Install]
+      WantedBy=multi-user.target
+      RequiredBy=containerd.service kubelet.service
 %{ endif }
 %{ endif }
 
@@ -332,6 +359,8 @@ runcmd:
   - [ bash, -lc, "/usr/local/bin/nvidia-config-check.sh >> /var/log/nvidia-config-check.log 2>&1" ]
 %{ endif }
 %{ if local_nvme_enabled }
-  - [ bash, -lc, "/usr/local/sbin/prepare-disks.sh ${local_nvme_mount_path} > /var/log/prepare-disks.log 2>&1" ]
+  - [ systemctl, daemon-reload ]
+  - [ systemctl, enable, prepare-local-nvme.service ]
+  - [ systemctl, start, prepare-local-nvme.service ]
 %{ endif }
 %{ endif }
