@@ -255,29 +255,27 @@ locals {
   # system nodes. Kruise is excluded because it is restricted to worker and controller
   # nodes. Keep this derived from the effective preset so component overrides are
   # reflected in capacity reserved from pods that otherwise fill a node.
-  # Normalize the result to Kubernetes' millicore precision so decimal conversions
-  # cannot leak fractional millicores into the rendered NFS request.
-  nfs_system_daemonset_cpu_cores = floor((
-    local.preset.node_configurator.requests.cpu
+  nfs_system_daemonset_cpu_millicores = (
+    local.preset.node_configurator.requests.cpu * 1000
     + (
       endswith(local.preset.logs_collector.cpu, "m")
-      ? tonumber(trimsuffix(local.preset.logs_collector.cpu, "m")) / 1000
-      : tonumber(local.preset.logs_collector.cpu)
+      ? tonumber(trimsuffix(local.preset.logs_collector.cpu, "m"))
+      : tonumber(local.preset.logs_collector.cpu) * 1000
     )
     + (
       endswith(local.preset.spo_daemon.cpu, "m")
-      ? tonumber(trimsuffix(local.preset.spo_daemon.cpu, "m")) / 1000
-      : tonumber(local.preset.spo_daemon.cpu)
+      ? tonumber(trimsuffix(local.preset.spo_daemon.cpu, "m"))
+      : tonumber(local.preset.spo_daemon.cpu) * 1000
     )
-  ) * 1000 + 0.5) / 1000
+  )
 
   # Capacity checks cover every built-in tier and therefore use the default component
   # values rather than an override supplied for one resolved installation.
-  default_nfs_system_daemonset_cpu_cores = floor((
-    local.constant_presets.node_configurator.requests.cpu
-    + tonumber(trimsuffix(local.constant_presets.logs_collector.cpu, "m")) / 1000
-    + tonumber(trimsuffix(local.constant_presets.spo_daemon.cpu, "m")) / 1000
-  ) * 1000 + 0.5) / 1000
+  default_nfs_system_daemonset_cpu_millicores = (
+    local.constant_presets.node_configurator.requests.cpu * 1000
+    + tonumber(trimsuffix(local.constant_presets.logs_collector.cpu, "m"))
+    + tonumber(trimsuffix(local.constant_presets.spo_daemon.cpu, "m"))
+  )
 
   # Node VM preset per CPU nodeset for the resolved tier
   # (overridden per nodeset by the caller via the nodeset's own `preset` field).
@@ -378,7 +376,7 @@ locals {
   # placed there; memory retains the existing node-configurator-only accounting until
   # the other agents' memory is included in the sizing model.
   daemonset_requests = {
-    cpu    = local.default_nfs_system_daemonset_cpu_cores
+    cpu    = local.default_nfs_system_daemonset_cpu_millicores / 1000
     memory = local.constant_presets.node_configurator.requests.memory
   }
 

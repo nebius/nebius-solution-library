@@ -8,9 +8,9 @@ output "preset" {
   value       = local.preset
 }
 
-output "nfs_system_daemonset_cpu_cores" {
-  description = "Effective CPU requests, in cores, of the standard DaemonSet agents that run on NFS and system nodes."
-  value       = local.nfs_system_daemonset_cpu_cores
+output "nfs_system_daemonset_cpu_millicores" {
+  description = "Effective CPU requests, in millicores, of the standard DaemonSet agents that run on NFS and system nodes."
+  value       = local.nfs_system_daemonset_cpu_millicores
 }
 
 output "node_preset" {
