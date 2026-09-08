@@ -436,13 +436,20 @@ resources:
             populateJail:
               k8sNodeFilterName: ${slurm_cluster.populate_jail.k8s_node_filter_name}
 
-            %{~ if slurm_cluster.topology.block_size != null ~}
             slurmConfig:
+            %{~ if slurm_cluster.topology.block_size != null ~}
               topologyPlugin: "topology/block"
               topologyParam: "BlockAsNodeRank"
 
             topology:
               blockSize: ${slurm_cluster.topology.block_size}
+            %{~ else ~}
+              # No InfiniBand fabric on this preset, so there is no switch
+              # topology to describe. An explicit empty value overrides the
+              # chart's topology/tree default, which otherwise makes
+              # worker-init wait for topology data that never arrives.
+              topologyPlugin: ""
+              topologyParam: ""
             %{~ endif ~}
 
             periodicChecks:

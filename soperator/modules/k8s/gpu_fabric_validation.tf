@@ -19,13 +19,13 @@ resource "terraform_data" "check_worker_gpu_fabric" {
   lifecycle {
     precondition {
       condition = (
-        each.value.is_gpu
-        ? (each.value.has_gpu_cluster && (length(each.value.cluster_id) > 0 || length(each.value.fabric) > 0))
-        : !each.value.has_gpu_cluster
+        each.value.has_gpu_cluster
+        ? (each.value.is_gpu && (length(each.value.cluster_id) > 0 || length(each.value.fabric) > 0))
+        : true
       )
       error_message = (
         each.value.is_gpu
-        ? "Worker '${each.value.name}' uses GPU preset '${each.value.preset}' and requires either gpu_cluster.id for an existing GPU cluster or gpu_cluster.infiniband_fabric to create one."
+        ? "Worker '${each.value.name}' sets gpu_cluster but leaves both id and infiniband_fabric empty. Set gpu_cluster.id to join an existing GPU cluster, gpu_cluster.infiniband_fabric to create one, or gpu_cluster = null for presets without InfiniBand."
         : "Worker '${each.value.name}' uses CPU preset '${each.value.preset}', so gpu_cluster must be unset."
       )
     }

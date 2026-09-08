@@ -7,10 +7,10 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 # Name of the company. It is used for context name of the cluster in .kubeconfig file.
-company_name = ""
+company_name = "arka"
 
 # Whether the cluster is production or not.
-production = true
+production = false
 
 # Follow the installation guide and put IAM merge request URL here.
 # Required if production = true.
@@ -58,43 +58,43 @@ filestore_controller_spool = {
 # Notice that auto-backups are enabled for filesystems with size less than 12 TiB.
 # If you need backups for jail larger than 12 TiB, set 'backups_enabled' to 'force_enable' down below.
 # ---
-# filestore_jail = {
-#   spec = {
-#     size_gibibytes       = 2048
-#     block_size_kibibytes = 4
-#     forbid_deletion      = false
-#   }
-# }
-# Or use existing filestore.
-# ---
 filestore_jail = {
-  existing = {
-    id = "computefilesystem-<YOUR-FILESTORE-ID>"
+  spec = {
+    size_gibibytes       = 2048
+    block_size_kibibytes = 4
+    forbid_deletion      = false
   }
 }
+# Or use existing filestore.
+# ---
+#filestore_jail = {
+#  existing = {
+#    id = "computefilesystem-<YOUR-FILESTORE-ID>"
+#  }
+#}
 
 # Additional shared filesystems to be mounted inside jail.
 # If a big filesystem is needed it's better to deploy this additional storage because jails bigger than 12 TiB
 # ARE NOT BACKED UP by default.
 # ---
-# filestore_jail_submounts = [{
-#   name       = "data"
-#   mount_path = "/mnt/data"
-#   spec = {
-#     size_gibibytes       = 2048
-#     block_size_kibibytes = 4
-#     forbid_deletion      = false
-#   }
-# }]
-# Or use existing filestores.
-# ---
 filestore_jail_submounts = [{
   name       = "data"
   mount_path = "/mnt/data"
-  existing = {
-    id = "computefilesystem-<YOUR-FILESTORE-ID>"
+  spec = {
+    size_gibibytes       = 2048
+    block_size_kibibytes = 4
+    forbid_deletion      = false
   }
 }]
+# Or use existing filestores.
+# ---
+#filestore_jail_submounts = [{
+#  name       = "data"
+#  mount_path = "/mnt/data"
+#  existing = {
+#    id = "computefilesystem-<YOUR-FILESTORE-ID>"
+#  }
+#}]
 
 
 # Shared filesystem to be used for accounting DB.
@@ -286,10 +286,10 @@ slurm_nodeset_controller = {
 slurm_nodeset_workers = [
   {
     name = "worker"
-    size = 128
+    size = 2
     # Autoscaling configuration. Set enabled = false to use fixed node count instead.
     autoscaling = {
-      enabled = true
+      enabled = false
       # min_size options:
       # - null: min=max, no scale-down (default, recommended - saves ~10 min on initial provisioning)
       #   it can be changed to a number later if needed.
@@ -298,17 +298,14 @@ slurm_nodeset_workers = [
     }
     resource = {
       platform = "gpu-h100-sxm"
-      preset   = "8gpu-128vcpu-1600gb"
+      preset   = "1gpu-16vcpu-200gb"
     }
     boot_disk = {
       type                 = "NETWORK_SSD"
       size_gibibytes       = 512
       block_size_kibibytes = 4
     }
-    gpu_cluster = {
-      # id                = "gpucluster-..."
-      infiniband_fabric = ""
-    }
+    gpu_cluster = null
     # Change to preemptible = {} in case you want to use preemptible nodes
     preemptible = null
     # Use reservation_policy to leverage compute reservations (capacity blocks)
@@ -474,7 +471,7 @@ slurm_sssd_ldap_ca_config_map_ref_name = ""
 # Authorized keys accepted for connecting to Slurm login nodes via SSH as 'root' user.
 # ---
 slurm_login_ssh_root_public_keys = [
-  "",
+  "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDn15A4TodADm0ru/tPPEQSmPaRWHZNCJDyVmdxLrFwOBtCOt1eupWvP+Yga8ZNDOpOVsR65vxDwXNPdxL+/kdnmmeF5zQne6XfwwtcFLxPYEBuHViIqenKMUx+SYIPd0LCJKmoZAIXKQHmTaDy1SXq6h5UxcO+T/USQA6GaPOFaeQ5xk/G2n8eQic2G+XCR4H5hOpgsdfENppQTHppBPSJHLgECtOVgkym8SjSgFKQq/j6ykwTH5GqNTJD574bftl9n3F22f7Nm9IQ898ZBdHaQqpY1X4/wsmCDV+UjJ1T7ZrNU/H8ZjsuczIxMLDRtdMeLd5Mn+ZBTilCEXsRrgAx arka@arka-macbook-15",
 ]
 
 # endregion Login
@@ -504,7 +501,7 @@ slurm_exporter_enabled = true
 # - "dev" - to be used for Soperator development clusters.
 # - "essential" - skip most of checks and run only essential ones. Don't use in production.
 # ---
-active_checks_scope = ""
+active_checks_scope = "dev"
 
 # endregion ActiveChecks
 
@@ -571,7 +568,7 @@ soperator_notifier = {
   enabled = false
 }
 
-public_o11y_enabled = true
+public_o11y_enabled = false
 
 # endregion Telemetry
 
@@ -601,7 +598,7 @@ accounting_enabled = true
 # Whether to enable Backups. Choose from 'auto', 'force_enable', 'force_disable'.
 # 'auto' turns backups on for jails with max size less than 12 TB and is a default option.
 # ---
-backups_enabled = "auto"
+backups_enabled = "force_disable"
 
 # Password to be used for encrypting jail backups.
 # ---

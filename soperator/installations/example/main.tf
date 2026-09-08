@@ -559,9 +559,15 @@ module "slurm" {
       ],
       nodeset.features != null ? nodeset.features : []
     )
-    cpu_topology                             = module.resources.cpu_topology_by_platform[nodeset.resource.platform][nodeset.resource.preset]
-    gres_name                                = lookup(module.resources.gres_name_by_platform, nodeset.resource.platform, null)
-    gres_config                              = lookup(module.resources.gres_config_by_platform, nodeset.resource.platform, null)
+    cpu_topology = module.resources.cpu_topology_by_platform[nodeset.resource.platform][nodeset.resource.preset]
+    # This installation runs the single-GPU 1gpu-16vcpu-200gb H100 preset. The
+    # catalog keys gres_config by platform only (unlike cpu_topology above, which
+    # keys by platform AND preset), so the lookup returns the 8-GPU HGX config:
+    # eight /dev/nvidia* devices, Cores=0-63, and an 8-way NVLink Links= matrix.
+    # None of that exists on a one-GPU node with 16 vCPUs. Override with the
+    # single device this preset actually has.
+    gres_name                                = "nvidia_h100_80gb_hbm3"
+    gres_config                              = ["AutoDetect=off Name=gpu Type=nvidia_h100_80gb_hbm3 File=/dev/nvidia0 Flags=nvidia_gpu_env"]
     create_partition                         = nodeset.create_partition != null ? nodeset.create_partition : false
     ephemeral_nodes                          = nodeset.ephemeral_nodes
     persistent_volume_claim_retention_policy = nodeset.persistent_volume_claim_retention_policy

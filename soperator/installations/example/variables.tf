@@ -46,10 +46,6 @@ variable "iam_tenant_id" {
   }
 }
 
-data "nebius_iam_v1_tenant" "this" {
-  id = var.iam_tenant_id
-}
-
 variable "o11y_iam_tenant_id" {
   description = "ID of the IAM tenant for O11y."
   type        = string
