@@ -345,7 +345,7 @@ write_files:
       [Service]
       Type=oneshot
       RemainAfterExit=yes
-      ExecStart=/usr/local/sbin/prepare-disks.sh ${local_nvme_mount_path}
+      ExecStart=/usr/local/sbin/prepare-disks.sh "${local_nvme_mount_path}"
 
       [Install]
       WantedBy=multi-user.target

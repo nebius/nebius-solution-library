@@ -252,7 +252,7 @@ resources:
                   customConfig: |
                     {
                       "name": "nvme_raid_health",
-                      "command": ${jsonencode(format("NVME_RAID_MOUNT_POINT=%s ./nvme_raid_health.sh", local_nvme_mount_path))},
+                      "command": ${jsonencode(format("NVME_RAID_MOUNT_POINT='%s' ./nvme_raid_health.sh", local_nvme_mount_path))},
                       "platforms": ["8xB300", "4xGB300"],
                       "skip_for_cpu_jobs": false,
                       "skip_for_partial_gpu_jobs": false,
