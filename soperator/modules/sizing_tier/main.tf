@@ -211,7 +211,9 @@ locals {
     # The per-node log agent only processes logs written on its own node (its k8s metadata
     # watch is node-scoped); the size-correlated part of the pipeline is the central
     # vm_logs sink, which is tier-scaled above.
-    logs_collector = { memory = "200Mi", cpu = "200m" }
+    # Keep the CPU reservation small enough to share the dedicated NFS node's remaining
+    # 100m with the 50m Kruise daemon. The collector has no CPU limit and can burst.
+    logs_collector = { memory = "200Mi", cpu = "50m" }
     # Per-worker DaemonSet reading Slurm workload outputs from its own node's boot disk;
     # its load is bounded by one node's log volume, not by the cluster size. Runs on worker
     # nodes only, so it is not part of the system-node capacity guard below.
