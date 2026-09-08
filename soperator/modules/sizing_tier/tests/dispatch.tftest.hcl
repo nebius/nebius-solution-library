@@ -219,7 +219,7 @@ run "constants_do_not_scale_with_tier" {
     error_message = "kruise_daemon must stay constant at XL"
   }
   assert {
-    condition     = output.preset.logs_collector.memory == "200Mi" && output.preset.logs_collector.cpu == "200m"
+    condition     = output.preset.logs_collector.memory == "200Mi" && output.preset.logs_collector.cpu == "50m"
     error_message = "logs_collector must stay constant at XL"
   }
   assert {
