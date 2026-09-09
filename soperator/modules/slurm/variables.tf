@@ -808,14 +808,6 @@ variable "worker_nodesets" {
     ])
     error_message = "When worker persistent_volume_claim_retention_policy is set, when_deleted and when_scaled must be `Retain` or `Delete`."
   }
-
-  validation {
-    condition = length(distinct([
-      for worker in var.worker_nodesets : worker.local_nvme.mount_path
-      if worker.local_nvme.enabled
-    ])) <= 1
-    error_message = "All worker nodesets with local NVMe enabled must use the same local_nvme.mount_path because nvme_raid_health has one cluster-wide mount path."
-  }
 }
 
 variable "slurm_nodesets_partitions" {

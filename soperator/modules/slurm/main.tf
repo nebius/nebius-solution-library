@@ -102,13 +102,9 @@ resource "helm_release" "soperator_fluxcd_cm" {
     region                  = var.region
     public_o11y_enabled     = var.public_o11y_enabled
     tsa_token_writer_source = local.public_o11y_tsa_token_writer_source
-    has_local_nvme          = anytrue([for nodeset in var.worker_nodesets : nodeset.local_nvme.enabled])
-    local_nvme_mount_path = one(distinct([
-      for nodeset in var.worker_nodesets : nodeset.local_nvme.mount_path
-      if nodeset.local_nvme.enabled
-    ]))
-    metrics_collector = local.metrics_collector
-    create_pvcs       = var.create_pvcs
+    has_local_nvme          = anytrue([for nodeset in var.worker_nodesets : try(nodeset.local_nvme.enabled, false)])
+    metrics_collector       = local.metrics_collector
+    create_pvcs             = var.create_pvcs
 
     slurm_cluster_storage = {
       scheduling = local.node_filters

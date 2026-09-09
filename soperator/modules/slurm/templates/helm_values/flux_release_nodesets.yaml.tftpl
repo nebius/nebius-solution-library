@@ -265,23 +265,7 @@ nodesets:
           - name: ensure-node-local-jail-submount-local-nvme-${try(nodeset.local_nvme.filesystem_type, "ext4")}
             image: cr.eu-north1.nebius.cloud/soperator/busybox
             volumeMounts: [{ name: 'local-nvme', mountPath: /volume-mount }]
-            command:
-              - sh
-              - -ec
-              - |
-                mount_source="$(awk '$2 == "/volume-mount" && $3 == "${try(nodeset.local_nvme.filesystem_type, "ext4")}" { print $1; exit }' /proc/mounts)"
-                case "$${mount_source}" in
-                  /dev/md[0-9]*) ;;
-                  *)
-                    echo "ERROR: /volume-mount is not backed by an MD RAID device (source=$${mount_source:-missing})" >&2
-                    exit 1
-                    ;;
-                esac
-                raid_device="$${mount_source#/dev/}"
-                test -d "/sys/class/block/$${raid_device}/md" || {
-                  echo "ERROR: $${mount_source} is not an MD RAID device" >&2
-                  exit 1
-                }
+            command: ["grep", ' /volume-mount ${try(nodeset.local_nvme.filesystem_type, "ext4")} ', "/proc/mounts"]
           %{~ endif ~}
 
           %{~ if nodeset.node_local_image_storage.enabled ~}

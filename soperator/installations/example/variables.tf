@@ -833,10 +833,11 @@ variable "slurm_nodeset_workers" {
   validation {
     condition = alltrue([
       for worker in var.slurm_nodeset_workers :
-      !try(worker.local_nvme.enabled, false) ||
-      can(regex("^/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$", try(worker.local_nvme.mount_path, "/mnt/local-nvme")))
+      !try(worker.local_nvme.enabled, false) || (
+        startswith(try(worker.local_nvme.mount_path, "/mnt/local-nvme"), "/")
+      )
     ])
-    error_message = "When worker local NVMe is enabled, mount_path must be an absolute path containing only letters, digits, '/', '.', '_', and '-'."
+    error_message = "When worker local NVMe is enabled, mount_path must be an absolute path."
   }
 
   validation {
