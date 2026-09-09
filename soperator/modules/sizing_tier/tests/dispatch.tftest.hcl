@@ -194,6 +194,10 @@ run "component_override_wins_over_tier" {
     condition     = output.preset.soperator_main_controller.limits.memory == 1
     error_message = "soperator_main_controller without an override must keep its tier (XS) value"
   }
+  assert {
+    condition     = output.nfs_system_daemonset_cpu_millicores == 1100
+    error_message = "the NFS/system DaemonSet CPU total must reflect the logs_collector override, got ${output.nfs_system_daemonset_cpu_millicores}m"
+  }
 }
 
 run "vm_single_size_override_must_be_io_m3_multiple" {
@@ -229,6 +233,10 @@ run "constants_do_not_scale_with_tier" {
   assert {
     condition     = output.preset.node_configurator.requests.cpu == 0.5 && output.preset.node_configurator.requests.memory == 0.25 && output.preset.node_configurator.limits.memory == 0.25
     error_message = "node_configurator must stay constant at XL"
+  }
+  assert {
+    condition     = output.nfs_system_daemonset_cpu_millicores == 650
+    error_message = "the standard NFS/system DaemonSet CPU total must stay at 650m, got ${output.nfs_system_daemonset_cpu_millicores}m"
   }
 }
 

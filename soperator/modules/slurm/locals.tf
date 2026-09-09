@@ -130,15 +130,17 @@ locals {
       daemon     = local.selected_preset.spo_daemon
       controller = local.selected_preset.spo_controller
     }
-    # The NFS server pod fills its dedicated node, so when an NFS nodeset exists
-    # its node capacity (var.node_capacity.nfs) wins over the tier value.
+    # The NFS server pod fills its dedicated node after reserving CPU for the
+    # standard DaemonSet agents that must also schedule there.
     nfs_server = {
       limits = {
         memory = var.node_capacity.nfs != null ? var.node_capacity.nfs.memory_gibibytes : local.selected_preset.nfs_server.memory
       }
       requests = {
         memory = var.node_capacity.nfs != null ? var.node_capacity.nfs.memory_gibibytes : local.selected_preset.nfs_server.memory
-        cpu    = var.node_capacity.nfs != null ? var.node_capacity.nfs.cpu_cores : local.selected_preset.nfs_server.cpu
+        cpu = var.node_capacity.nfs != null ? (
+          var.node_capacity.nfs.cpu_cores - module.sizing.nfs_system_daemonset_cpu_millicores / 1000
+        ) : local.selected_preset.nfs_server.cpu
       }
     }
   }

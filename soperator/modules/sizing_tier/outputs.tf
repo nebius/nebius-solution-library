@@ -8,6 +8,11 @@ output "preset" {
   value       = local.preset
 }
 
+output "nfs_system_daemonset_cpu_millicores" {
+  description = "Effective CPU requests, in millicores, of the standard DaemonSet agents that run on NFS and system nodes."
+  value       = local.nfs_system_daemonset_cpu_millicores
+}
+
 output "node_preset" {
   description = "Node VM preset per CPU nodeset for the resolved tier (controller/accounting/nfs/system -> preset string)."
   value       = local.node_preset
