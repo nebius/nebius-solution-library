@@ -1,0 +1,897 @@
+resources:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: terraform-fluxcd-values
+      labels:
+        reconcile.fluxcd.io/watch: Enabled
+      annotations:
+        "helm.sh/resource-policy": keep
+    data:
+      values.yaml: |
+        helmRepository:
+          interval: 15m
+          nfsServer:
+            url: oci://cr.eu-north1.nebius.cloud/soperator
+          soperator:
+            url: oci://cr.eu-north1.nebius.cloud/soperator
+        certManager:
+          enabled: true
+          interval: 5m
+          timeout: 5m
+        backup:
+          enabled: false
+          interval: 5m
+          timeout: 5m
+
+        mariadbOperator:
+          enabled: true
+          interval: 5m
+          timeout: 5m
+          version: 25.10.2
+          values: null
+        observability:
+          enabled: true
+          clusterName: arka
+          publicEndpointEnabled: false
+          region: eu-north1
+          opentelemetry:
+            enabled: true
+            logs:
+              values:
+                resources:
+                  requests:
+                    memory: 200Mi
+                    cpu: 200m
+                  limits:
+                    memory: 200Mi
+                jailLogs:
+                  enabled: true
+                  resources:
+                    requests:
+                      memory: 1Gi
+                      cpu: 1000m
+                    limits:
+                      memory: 1Gi
+
+            events:
+              interval: 5m
+              timeout: 5m
+              values:
+                resources:
+                  requests:
+                    memory: 128Mi
+                    cpu: 100m
+                  limits:
+                    memory: 128Mi
+          prometheusOperator:
+            enabled: true
+            interval: 5m
+            timeout: 5m
+          vmStack:
+            enabled: true
+            crds:
+              interval: 5m
+              timeout: 5m
+            interval: 5m
+            timeout: 5m
+            tsaToken:
+              writer:
+                source: imds
+            values:
+              vmagent:
+                spec:
+                  extraArgs:
+                    promscrape.maxScrapeSize: "33554432"
+                  externalLabels:
+                    iam_tenant_id: tenant-e00vj0jkxzwvp8q5xe
+                    iam_project_id: project-e00zrarspr00gspvvx220s
+                    mk8s_cluster_id: mk8scluster-e00vszg51yqc2qwpvv
+                  resources:
+                    requests:
+                      memory: 10Gi
+                      cpu: 5000m
+                    limits:
+                      memory: 10Gi
+              vmsingle:
+                spec:
+                  extraArgs:
+                    dedup.minScrapeInterval: 30s
+                    maxLabelsPerTimeseries: "40"
+                    search.maxQueryLen: "18765"
+                    search.maxUniqueTimeseries: "500000"
+                  retentionPeriod: 7d
+                  extraEnvs:
+                  - name: GOMAXPROCS
+                    value: "6"
+                  storage:
+                    accessModes:
+                      - ReadWriteOnce
+                    resources:
+                      requests:
+                        storage: 512Gi
+                  resources:
+                    requests:
+                      memory: 24Gi
+                      cpu: 6000m
+                    limits:
+                      memory: 24Gi
+              prometheusNodeExporter:
+                enabled: true
+                extraArgs:
+                  - '--collector.ethtool.device-exclude=ibp.*'
+                  - '--no-collector.infiniband'
+          vmLogs:
+            enabled: true
+            interval: 5m
+            timeout: 5m
+            values:
+              persistentVolume:
+                enabled: true
+                size: 256Gi
+                accessMode: ReadWriteOnce
+              resources:
+                requests:
+                  memory: 2Gi
+                  cpu: 1000m
+                limits:
+                  memory: 2Gi
+          dcgmExporter:
+            enabled: true
+            version: 4.1.7
+            values:
+              hpcJobMapDir: /var/run/nebius/slurm
+              # waits for nvidia toolkit when not running on preinstalled gpu drivers, so opposite of use_preinstalled_gpu_drivers
+              validateToolkit: false
+              resources:
+                requests:
+                  memory: 0.5Gi
+                  cpu: 0.05m
+                limits:
+                  memory: 0.5Gi
+
+        securityProfilesOperator:
+          enabled: true
+          interval: 5m
+          timeout: 5m
+          values:
+            daemon:
+              resources:
+                limits:
+                  memory: 128Mi
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+            resources:
+              limits:
+                cpu: 500m
+                memory: 3Gi
+              requests:
+                cpu: 500m
+                memory: 3Gi
+        slurmCluster:
+          enabled: true
+          interval: 5m
+          timeout: 5m
+          version: 4.1.7
+          namespace: soperator
+          releaseName: soperator
+          overrideValues:
+            clusterName: soperator
+            cudaVersion: 13.0.2
+            useDefaultAppArmorProfile: true
+            maintenance: none
+
+
+            partitionConfiguration:
+              configType: structured
+              partitions:
+                - name: main
+                  isAll: true
+                  config: "Default=YES PriorityTier=10 PreemptMode=OFF MaxTime=INFINITE State=UP OverSubscribe=YES"
+                - name: hidden
+                  isAll: true
+                  config: "Default=NO PriorityTier=10 PreemptMode=OFF Hidden=YES MaxTime=INFINITE State=UP OverSubscribe=YES"
+
+
+            k8sNodeFilters:
+              - name: system
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: slurm.nebius.ai/nodeset
+                              operator: In
+                              values:
+                                - system
+
+              - name: accounting
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: slurm.nebius.ai/nodeset
+                              operator: In
+                              values:
+                                - accounting
+                tolerations:
+                  - key: slurm.nebius.ai/nodeset
+                    operator: Equal
+                    value: accounting
+                    effect: NoSchedule
+
+              - name: controller
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: slurm.nebius.ai/nodeset
+                              operator: In
+                              values:
+                                - controller
+                tolerations:
+                  - key: slurm.nebius.ai/nodeset
+                    operator: Equal
+                    value: controller
+                    effect: NoSchedule
+
+              - name: login
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: slurm.nebius.ai/nodeset
+                              operator: In
+                              values:
+                                - login
+                tolerations:
+                  - key: slurm.nebius.ai/nodeset
+                    operator: Equal
+                    value: login
+                    effect: NoSchedule
+
+              - name: worker
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: slurm.nebius.ai/nodeset
+                              operator: In
+                              values:
+                                - "worker"
+                tolerations:
+                  - key: slurm.nebius.ai/nodeset
+                    operator: Equal
+                    value: worker
+                    effect: NoSchedule
+                  - key: nvidia.com/gpu
+                    operator: Exists
+                    effect: NoSchedule
+
+            volumeSources:
+              - name: jail
+                persistentVolumeClaim:
+                  claimName: jail-pvc
+                  readOnly: false
+
+              - name: controller-spool
+                persistentVolumeClaim:
+                  claimName: controller-spool-pvc
+                  readOnly: false
+
+              - name: worker-spool
+                emptyDir:
+                  sizeLimit: 382Gi
+
+
+              - name: home-dir
+                createPVC: true
+                storageClassName: nfs
+                size: 42 # capacity is not enforced by neither NFS server nor csi-driver-nfs
+                persistentVolumeClaim:
+                  claimName: "home-dir"
+
+              - name: motd-nebius-o11y
+                configMap:
+                  name: motd-nebius-o11y
+                  defaultMode: 500
+
+              - name: jail-submount-data
+                persistentVolumeClaim:
+                  claimName: jail-submount-data-pvc
+                  readOnly: false
+
+              - name: sys-host
+                hostPath:
+                  path: /sys
+                  type: Directory
+
+              - hostPath:
+                  path: /
+                  type: ""
+                name: nvidia-driver-root
+
+              - name: hpc-jobs-dir
+                hostPath:
+                  path: /var/run/nebius/slurm
+                  type: DirectoryOrCreate
+
+            populateJail:
+              k8sNodeFilterName: system
+
+            slurmConfig:
+              # No InfiniBand fabric on this preset, so there is no switch
+              # topology to describe. An explicit empty value overrides the
+              # chart's topology/tree default, which otherwise makes
+              # worker-init wait for topology data that never arrives.
+              topologyPlugin: ""
+              topologyParam: ""
+
+            periodicChecks:
+              ncclBenchmark:
+                enabled: false
+                k8sNodeFilterName: system
+
+            slurmNodes:
+              sssd:
+                enabled: false
+                resources:
+                  cpu: 200m
+                  memory: 0.5Gi
+                  ephemeralStorage: 5Gi
+                sssdConfSecretRefName: ""
+                sssdLdapCAConfigMapRefName: ""
+
+              accounting:
+                enabled: true
+                k8sNodeFilterName: accounting
+                mariadbOperator:
+                  enabled: true
+                  protectedSecret: true
+                  resources:
+                    cpu: 2000m
+                    memory: 12Gi
+                    ephemeralStorage: 16Gi
+                  metrics:
+                    enabled: true
+                  storage:
+                    ephemeral: false
+                    volumeClaimTemplate:
+                      accessModes:
+                        - ReadWriteOnce
+                      resources:
+                        requests:
+                          storage: 512Gi
+                slurmdbd:
+                  resources:
+                    cpu: 4900m
+                    memory: 13.5Gi
+                    ephemeralStorage: 39Gi
+                munge:
+                  resources:
+                    cpu: 100m
+                    memory: 0.5Gi
+                    ephemeralStorage: 5Gi
+                customInitContainers:
+                  - name: ensure-jail-virtiofs
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: jail, mountPath: /volume-mount }]
+                    command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+
+              controller:
+                size: 1
+                k8sNodeFilterName: controller
+                slurmctld:
+                  resources:
+                    cpu: 14000m
+                    memory: 54Gi
+                    ephemeralStorage: 164Gi
+                munge:
+                  resources:
+                    cpu: 100m
+                    memory: 0.5Gi
+                    ephemeralStorage: 5Gi
+                customInitContainers:
+                  - name: ensure-jail-virtiofs
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: jail, mountPath: /volume-mount }]
+                    command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+                volumes:
+                  spool:
+                    volumeClaimTemplateSpec:
+                      accessModes:
+                        - ReadWriteOnce
+                      resources:
+                        requests:
+                          storage: 50Gi
+                      storageClassName: "compute-csi-network-ssd-ext4"
+              login:
+                size: 2
+                k8sNodeFilterName: login
+                sshdServiceType: "LoadBalancer"
+                sshdServiceAnnotations:
+                  "nebius.com/load-balancer-allocation-id": "vpcallocation-e00w6nrd5shc97r4dq"
+                sshdConfigMapRefName: ""
+                sshRootPublicKeys:
+                  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDn15A4TodADm0ru/tPPEQSmPaRWHZNCJDyVmdxLrFwOBtCOt1eupWvP+Yga8ZNDOpOVsR65vxDwXNPdxL+/kdnmmeF5zQne6XfwwtcFLxPYEBuHViIqenKMUx+SYIPd0LCJKmoZAIXKQHmTaDy1SXq6h5UxcO+T/USQA6GaPOFaeQ5xk/G2n8eQic2G+XCR4H5hOpgsdfENppQTHppBPSJHLgECtOVgkym8SjSgFKQq/j6ykwTH5GqNTJD574bftl9n3F22f7Nm9IQ898ZBdHaQqpY1X4/wsmCDV+UjJ1T7ZrNU/H8ZjsuczIxMLDRtdMeLd5Mn+ZBTilCEXsRrgAx arka@arka-macbook-15
+                sshd:
+                  resources:
+                    cpu: 30000m
+                    memory: 112Gi
+                    ephemeralStorage: 164Gi
+                munge:
+                  resources:
+                    cpu: 100m
+                    memory: 0.5Gi
+                    ephemeralStorage: 5Gi
+                customInitContainers:
+                  - name: ensure-jail-virtiofs
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: jail, mountPath: /volume-mount }]
+                    command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+                  - name: ensure-jail-submount-data-virtiofs
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: 'data', mountPath: /volume-mount }]
+                    command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+                volumes:
+                  jailSubMounts:
+                    - mountPath: /home
+                      name: home-dir
+                      volumeSourceName: home-dir
+                    - mountPath: /etc/update-motd.d/95-nebius-o11y
+                      subPath: 95-nebius-o11y
+                      readOnly: true
+                      name: motd-nebius-o11y
+                      volumeSourceName: motd-nebius-o11y
+                    - name: data
+                      mountPath: /mnt/data
+                      volumeSourceName: jail-submount-data
+                  customMounts:
+                    - name: sys-host
+                      mountPath: /mnt/jail.upper/sys-host
+                      readOnly: true
+                      volumeSourceName: sys-host
+
+              exporter:
+                enabled: true
+                k8sNodeFilterName: system
+                exporterContainer:
+                  resources:
+                    cpu: 250m
+                    memory: 0.25Gi
+                    ephemeralStorage: 0.5Gi
+
+              rest:
+                enabled: true
+                k8sNodeFilterName: system
+                size: 2
+                rest:
+                  resources:
+                    cpu: 2000m
+                    memory: 8Gi
+                    ephemeralStorage: 0.5Gi
+                customInitContainers:
+                  - name: ensure-jail-virtiofs
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: jail, mountPath: /volume-mount }]
+                    command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+
+            sConfigController:
+              node:
+                k8sNodeFilterName: system
+                size: 2
+              container:
+                imagePullPolicy: IfNotPresent
+                resources:
+                  cpu: 250m
+                  memory: 256Mi
+                  ephemeralStorage: 500Mi
+
+          slurmClusterStorage:
+            enabled: true
+            interval: 5m
+            timeout: 5m
+            overrideValues:
+              volume:
+                controllerSpool:
+                  size: 128Gi
+                  filestoreDeviceName: controller-spool
+                jail:
+                  size: 2048Gi
+                  filestoreDeviceName: jail
+                jailSubMounts:
+                  - name: data
+                    size: 2048Gi
+                    filestoreDeviceName: jail-submount-data
+                accounting:
+                  enabled: true
+                  size: 512Gi
+                  filestoreDeviceName: accounting
+
+              storage:
+                accounting:
+                  matchExpressions:
+                    - key: slurm.nebius.ai/nodeset
+                      operator: In
+                      values:
+                        - accounting
+                  tolerations:
+                    - key: slurm.nebius.ai/nodeset
+                      operator: Equal
+                      value: accounting
+                      effect: NoSchedule
+
+                controllerSpool:
+                  matchExpressions:
+                    - key: slurm.nebius.ai/nodeset
+                      operator: In
+                      values:
+                        - controller
+                  tolerations:
+                    - key: slurm.nebius.ai/nodeset
+                      operator: Equal
+                      value: controller
+                      effect: NoSchedule
+
+                jail:
+                  matchExpressions:
+                    - key: slurm.nebius.ai/jail
+                      operator: In
+                      values:
+                        - "true"
+                  tolerations:
+                    - key: slurm.nebius.ai/nodeset
+                      operator: Exists
+                      effect: NoSchedule
+                    - key: nvidia.com/gpu
+                      operator: Exists
+                      effect: NoSchedule
+
+        soperatorActiveChecks:
+          enabled: true
+          interval: 5m
+          timeout: 120m
+          version: 4.1.7
+          releaseName: soperator-activechecks
+          namespace: soperator
+          overrideValues:
+            slurmClusterRefName: soperator
+            slurmJob:
+              gpusPerNode: "1"
+            checks:
+              ensure-dir-snccld-logs:
+                enabled: true
+              "ib-gpu-perf":
+                "commentPrefix": null
+                "drainReasonPrefix": "[node_problem]"
+              "ssh-check":
+                "k8sJobSpec":
+                  "jobContainer":
+                    "env":
+                    - "name": "NUM_OF_LOGIN_NODES"
+                      "value": "2"
+              
+            cudaVersion: 13.0.2
+
+        soperator:
+          enabled: true
+          interval: 5m
+          timeout: 5m
+          version: 4.1.7
+          values:
+            manager:
+              resources:
+                requests:
+                  memory: 2Gi
+                  cpu: 1000m
+                limits:
+                  memory: 2Gi
+          kruise:
+            enabled: true
+            interval: 5m
+            timeout: 5m
+            overrideValues:
+              manager:
+                image:
+                  repository: cr.eu-north1.nebius.cloud/soperator/kruise-manager
+                  tag: v1.8.3
+              helmHooks:
+                image:
+                  repository: cr.eu-north1.nebius.cloud/soperator/kruise-helm-hook
+                  tag: v0.1.0
+          soperatorChecks:
+            enabled: true
+            interval: 5m
+            timeout: 5m
+            values:
+              checks:
+                manager:
+                  enabledNodeReplacement: true
+                  enableExtensiveCheck: true
+                  env:
+                    maintenanceIgnoreNodeLabels: "slurm.nebius.ai/nodeset=controller,slurm.nebius.ai/nodeset=nfs"
+                  resources:
+                    requests:
+                      memory: 2Gi
+                      cpu: 1000m
+                    limits:
+                      memory: 2Gi
+          nodeConfigurator:
+            enabled: true
+            interval: 5m
+            timeout: 5m
+            values:
+              resources:
+                requests:
+                  memory: 0.25Gi
+                  cpu: 500m
+                limits:
+                  memory: 0.25Gi
+
+        notifier:
+          enabled: false
+
+        nfsServer:
+          enabled: true
+          version: 1.2.0
+          overrideValues:
+            image:
+              repository: cr.eu-north1.nebius.cloud/soperator/nfs-server
+              tag: 1.2.0
+            nameOverride: nfs-server
+            nfs:
+              sharedDirectory: "/exported"
+              shareOptions: "rw,fsid=0,async,no_subtree_check,no_auth_nlm,insecure,no_root_squash"
+              threads: "32"
+            storage:
+              storageClassName: "compute-csi-network-ssd-io-m3-ext4"
+              size: 3720Gi
+            storageClass:
+              name: nfs
+            resources:
+              requests:
+                memory: 113Gi
+                cpu: 31000m
+              limits:
+                memory: 113Gi
+            nodeSelector:
+              slurm.nebius.ai/nodeset: nfs
+            tolerations:
+              - key: slurm.nebius.ai/nodeset
+                operator: Equal
+                value: nfs
+                effect: NoSchedule
+            monitoring:
+              enabled: true
+              serviceMonitor:
+                enabled: true
+        tailscale:
+          enabled: false
+
+        nodesets:
+          enabled: true
+        
+          interval: 5m
+          timeout: 5m
+          version: 4.1.7
+          namespace: soperator
+          releaseName: soperator-nodesets
+        
+          overrideValues: 
+            nodesets:
+              - name: worker
+                annotations:
+                  slurm.nebius.ai/parental-cluster-ref: soperator
+        
+                replicas: 2
+                maxUnavailable: 20%
+        
+                gpu:
+                  enabled: true
+                  nvidia:
+                    gdrCopyEnabled: true
+        
+                nodeConfig:
+                  features:
+                    - gpu_h100_sxm
+                    - network_ssd
+                  static: "CPUs=16 Boards=1 SocketsPerBoard=1 CoresPerSocket=8 ThreadsPerCore=2 Gres=gpu:nvidia_h100_80gb_hbm3:1"
+                  dynamic: ""
+                  gresConfig:
+                    - AutoDetect=off Name=gpu Type=nvidia_h100_80gb_hbm3 File=/dev/nvidia0 Flags=nvidia_gpu_env
+        
+                slurmd:
+                  customEnv:
+                    - name: "NVIDIA_DRIVER_CAPABILITIES"
+                      value: "compute,graphics,utility,video"
+                  resources:
+                    cpu: 13950m
+                    memory: 176Gi
+                    ephemeralStorage: 382Gi
+                    gpu: 1
+        
+                  volumes:
+                    spool:
+                      emptyDir: {}
+        
+                    jail:
+                      persistentVolumeClaim:
+                        claimName: jail-pvc
+                        readOnly: false
+        
+                    jailSubMounts:
+        
+                      - name: home-dir
+                        mountPath: /home
+                        volumeSource:
+                          persistentVolumeClaim:
+                            claimName: home-dir
+        
+                      - name: data
+                        mountPath: /mnt/data
+                        volumeSource:
+                          persistentVolumeClaim:
+                            claimName: jail-submount-data-pvc
+                            readOnly: false
+        
+                      - name: local-data
+                        mountPath: /mnt/local-data
+                        volumeClaimTemplateSpec:
+                          accessModes:
+                            - ReadWriteOnce
+                          storageClassName: compute-csi-network-ssd-ext4
+                          resources:
+                            requests:
+                              storage: 1024Gi
+        
+        
+                      - name: image-storage
+                        mountPath: /mnt/image-storage
+                        volumeClaimTemplateSpec:
+                          accessModes:
+                            - ReadWriteOnce
+                          storageClassName: compute-csi-network-ssd-io-m3-ext4
+                          resources:
+                            requests:
+                              storage: 930Gi
+        
+                    persistentVolumeClaimRetentionPolicy:
+                      whenDeleted: Delete
+                      whenScaled: Delete
+        
+                    customVolumeMounts:
+                      - name: slurm-scripts
+                        mountPath: /opt/slurm_scripts/
+                        volumeSource:
+                          configMap:
+                            name: slurm-scripts
+                            defaultMode: 0755
+        
+                      - name: slurm-scripts-jail
+                        mountPath: /mnt/jail.upper/opt/slurm_scripts/
+                        volumeSource:
+                          configMap:
+                            name: slurm-scripts
+                            defaultMode: 0755
+        
+                      - name: sys-host
+                        mountPath: /mnt/jail.upper/sys-host
+                        readOnly: true
+                        volumeSource:
+                          hostPath:
+                            path: /sys
+                            type: Directory
+        
+                      - name: enroot-on-image-storage
+                        mountPath: /etc/enroot/enroot.conf.d/custom-dirs.conf
+                        subPath: enroot.conf
+                        readOnly: true
+                        volumeSource:
+                          configMap:
+                            name: image-storage
+                            defaultMode: 500
+        
+                      - name: docker-on-image-storage
+                        mountPath: /etc/docker/daemon.json
+                        subPath: daemon.json
+                        readOnly: true
+                        volumeSource:
+                          configMap:
+                            name: image-storage
+                            defaultMode: 500
+        
+                      - name: hpc-jobs-dir
+                        mountPath: /var/run/nebius/slurm
+                        volumeSource:
+                          hostPath:
+                            path: /var/run/nebius/slurm
+                            type: DirectoryOrCreate
+        
+                      - name: nvidia-driver-root
+                        mountPath: /run/nvidia/driver
+                        readOnly: false
+                        volumeSource:
+                          hostPath:
+                            path: /
+                            type: ""
+        
+                    sharedMemorySize: 1024Gi
+        
+                  security:
+                    appArmorProfile: unconfined
+        
+                munge:
+                  resources:
+                    cpu: 100m
+                    memory: 0.5Gi
+                    ephemeralStorage: 5Gi
+        
+                  security:
+                    appArmorProfile: unconfined
+        
+                sssd:
+                  enabled: false
+                  resources:
+                    cpu: 200m
+                    memory: 0.5Gi
+                    ephemeralStorage: 5Gi
+        
+                sssdConfSecretRefName: ""
+                sssdLdapCAConfigMapRefName: ""
+        
+                configMapRefSupervisord: custom-supervisord-config
+                configMapRefSshd: 
+        
+                enableHostUserNamespace: true
+        
+                priorityClass: soperator-worker-high-priority
+                nodeSelector:
+                  slurm.nebius.ai/nodeset-name: worker
+                tolerations:
+                  - key: nvidia.com/gpu
+                    operator: Exists
+                    effect: NoSchedule
+        
+                customInitContainers:
+                  - name: ensure-jail-virtiofs
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: jail, mountPath: /volume-mount }]
+                    command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+        
+                  - name: ensure-jail-submount-data-virtiofs
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: 'data', mountPath: /volume-mount }]
+                    command: ["grep", " /volume-mount virtiofs ", "/proc/mounts"]
+        
+                  - name: ensure-node-local-jail-submount-local-data-ext4
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: 'local-data', mountPath: /volume-mount }]
+                    command: ["grep", ' /volume-mount ext4 ', "/proc/mounts"]
+        
+        
+                  - name: ensure-node-local-image-storage-ext4
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: 'image-storage', mountPath: /volume-mount }]
+                    command: ["grep", ' /volume-mount ext4 ', "/proc/mounts"]
+        
+                  - name: prepare-node-local-image-storage
+                    image: cr.eu-north1.nebius.cloud/soperator/busybox
+                    volumeMounts: [{ name: 'image-storage', mountPath: /volume-mount }]
+                    command:
+                    - "sh"
+                    - "-c"
+                    - |
+                      mkdir -p \
+                        /volume-mount/enroot/cache \
+                        /volume-mount/enroot/data \
+                        /volume-mount/enroot/runtime \
+                        /volume-mount/docker \
+                      && chmod 777 -R /volume-mount/enroot /volume-mount/docker
+        
+
+
